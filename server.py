@@ -360,15 +360,19 @@ def serve_index():
 @login_required
 def serve_interstitial():
     """Serve the interstitial welcome page shown after login/registration"""
-    session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(
-        session["user"]["email"], 
-        "page_visit", 
-        page="interstitial_welcome",
-        first_name=session["user"].get("first_name"),
-        last_name=session["user"].get("last_name")
-    )
-    return render_template("interstitial.html", session_data=session_data)
+    # TEMPORARILY DISABLED - redirect directly to mobile
+    return redirect("/mobile")
+    
+    # Original code (commented out):
+    # session_data = {"user": session["user"], "authenticated": True}
+    # log_user_activity(
+    #     session["user"]["email"], 
+    #     "page_visit", 
+    #     page="interstitial_welcome",
+    #     first_name=session["user"].get("first_name"),
+    #     last_name=session["user"].get("last_name")
+    # )
+    # return render_template("interstitial.html", session_data=session_data)
 
 
 @app.route("/contact-sub")

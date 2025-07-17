@@ -62,15 +62,15 @@
         </div>
         
         <!-- Custom Message Form -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+        <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-sm border border-purple-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-purple-100 bg-gradient-to-r from-purple-100 to-blue-100">
+                <h2 class="text-lg font-semibold text-purple-900 flex items-center">
+                    <i class="fas fa-edit text-purple-600 mr-2"></i>
                     Create Captain Message
                 </h2>
             </div>
             
-            <div class="p-6">
+            <div class="p-6 bg-gradient-to-br from-purple-50 to-blue-50">
                 <form id="customMessageForm" class="space-y-6">
                     <!-- Message Content -->
                     <div>
@@ -100,18 +100,25 @@
                         <button 
                             type="submit" 
                             id="sendButton"
-                            class="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="flex-1 text-white py-2 px-4 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            style="background-color: #045454 !important;"
+                            onmouseover="this.style.backgroundColor='#034040 !important'"
+                            onmouseout="this.style.backgroundColor='#045454 !important'"
                         >
-                            <i class="fas fa-paper-plane mr-2"></i>
+                            <i class="fas fa-paper-plane mr-1"></i>
                             Create Captain Message
                         </button>
                         <button 
                             type="button" 
-                            onclick="clearForm()"
-                            class="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                            onclick="removeCaptainMessage()"
+                            id="removeButton"
+                            class="flex-1 text-white py-2 px-4 rounded-lg transition-colors font-medium text-sm"
+                            style="background-color: #dc2626 !important;"
+                            onmouseover="this.style.backgroundColor='#b91c1c !important'"
+                            onmouseout="this.style.backgroundColor='#dc2626 !important'"
                         >
-                            <i class="fas fa-eraser mr-1"></i>
-                            Clear
+                            <i class="fas fa-trash mr-1"></i>
+                            Remove Captain Message
                         </button>
                     </div>
                 </form>
@@ -405,6 +412,65 @@ function showResults(result) {
                 </div>
             `;
         }
+}
+
+async function removeCaptainMessage() {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to remove the current captain message? This action cannot be undone.')) {
+        return;
+    }
+    
+    // Disable button
+    const removeButton = document.getElementById('removeButton');
+    const originalText = removeButton.innerHTML;
+    removeButton.disabled = true;
+    removeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Removing...';
+    
+    try {
+        const response = await fetch('/api/captain-messages', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            showResults({
+                success: true,
+                message: "Captain message removed successfully"
+            });
+            
+            // Clear form
+            clearForm();
+            
+            // Add to history
+            addToNotificationHistory({
+                timestamp: new Date().toISOString(),
+                message: "Removed captain message",
+                success: true,
+                result: result
+            });
+        } else {
+            showResults({
+                success: false,
+                error: result.error || 'Failed to remove captain message'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error removing captain message:', error);
+        showResults({
+            success: false,
+            error: 'Network error: ' + error.message
+        });
+    } finally {
+        // Re-enable button
+        removeButton.disabled = false;
+        removeButton.innerHTML = originalText;
+    }
 }
 
 function clearForm() {

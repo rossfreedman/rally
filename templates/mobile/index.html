@@ -853,7 +853,7 @@ async function loadLeagueSwitcherOptions() {
                   <div class="font-bold text-white group-hover:text-blue-200">${league.league_name}</div>
                   <div class="text-sm text-gray-300 group-hover:text-blue-300">${league.player_count} players</div>
               </div>
-              <div class="text-sm ${league.is_current ? 'bg-blue-600 text-white px-3 py-1 rounded' : 'bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded'}">
+              <div class="text-sm ${league.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${league.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
                   ${league.is_current ? 'Current' : 'Switch'}
               </div>
           </button>
@@ -882,7 +882,7 @@ async function loadClubSwitcherOptions() {
                   <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
                   <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
               </div>
-              <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
+              <div class="text-sm ${team.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${team.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
                   ${team.is_current ? 'Current' : 'Switch'}
               </div>
           </button>
@@ -1597,6 +1597,10 @@ function getTimeAgo(date) {
 }
 
 // Layout Toggle Functions
+// Test if JavaScript is loading at all
+console.log('🚀 JavaScript is loading on mobile home page!');
+console.log('🔍 About to set up auto-scroll functionality...');
+
 function switchToGridLayout() {
     // Update button states
     document.getElementById('grid-layout-btn').classList.add('active');
@@ -1615,16 +1619,92 @@ function switchToColumnLayout() {
     window.location.href = '/mobile';
 }
 
+// Simple auto-scroll function - just scroll the window
+function autoScrollOnNavigation() {
+  console.log('🔄 Auto-scroll triggered - scrolling 200px');
+  window.scrollBy({
+    top: 200,
+    behavior: 'smooth'
+  });
+  console.log('✅ Auto-scroll completed');
+}
+
+// Add click event listeners to section headers
+console.log('🔍 About to add DOMContentLoaded listener...');
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔍 Setting up auto-scroll for mobile home page...');
+  
+  try {
+    // Target section headers (Act, Analyze, Prepare, etc.)
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+  
+  if (sectionHeaders.length === 0) {
+    console.warn('⚠️ No section headers found! Checking for alternative selectors...');
+    
+    // Try alternative selectors
+    const alternativeSelectors = [
+      '.section-header',
+      '[class*="section"]',
+      '[class*="header"]',
+      'h2',
+      'h3',
+      '.text-xl',
+      '.font-bold'
+    ];
+    
+    for (const selector of alternativeSelectors) {
+      const elements = document.querySelectorAll(selector);
+      console.log(`🔍 Selector "${selector}": found ${elements.length} elements`);
+      if (elements.length > 0) {
+        console.log(`📋 Elements with "${selector}":`, elements);
+      }
+    }
+  }
+  
+  sectionHeaders.forEach((header, index) => {
+    console.log(`🎯 Adding click listener to section header ${index + 1}:`, header.textContent?.trim() || header.className);
+    header.addEventListener('click', function(e) {
+      console.log(`🖱️ Section header clicked:`, header.textContent?.trim() || header.className);
+      autoScrollOnNavigation();
+    });
+  });
+  
+  // Also try adding listeners to all clickable elements that might be section headers
+  const allClickableElements = document.querySelectorAll('div, h2, h3, button');
+  console.log(`🔍 Found ${allClickableElements.length} total clickable elements`);
+  
+  // Add a test button for debugging
+  const testButton = document.createElement('button');
+  testButton.textContent = 'Test Scroll (Debug)';
+  testButton.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: yellow; padding: 10px; border: 2px solid black;';
+  testButton.onclick = function() {
+    console.log('🧪 Test scroll button clicked');
+    autoScrollOnNavigation();
+  };
+  document.body.appendChild(testButton);
+  console.log('🧪 Added test scroll button to page');
+  
+  } catch (error) {
+    console.error('❌ Error in auto-scroll setup:', error);
+    alert('Error in auto-scroll setup: ' + error.message);
+  }
+});
+
 // Add this new function below the main render function
 function renderScheduleWithWeather(notification) {
+    console.log('🌦️ renderScheduleWithWeather called with notification:', notification);
+    console.log('🌦️ Weather data:', notification.weather);
+    console.log('🌦️ Weather type:', typeof notification.weather);
+    
     // Split the message into lines
     const lines = notification.message.split('\n');
     let html = '';
     
     lines.forEach(line => {
-        html += `<div class="text-sm">${line}</div>`;
-        
         if (notification.weather && typeof notification.weather === 'object') {
+            console.log('🌦️ Processing weather for line:', line);
             // Extract date and time from the line
             let eventDate = null;
             let eventType = null;
@@ -1643,7 +1723,7 @@ function renderScheduleWithWeather(notification) {
                 eventType = 'match';
             }
             
-            // Find matching weather data by date
+            // Find matching weather data by event type and date
             if (eventDate && eventType) {
                 const matchingWeatherKey = Object.keys(notification.weather).find(key => {
                     const weatherEntry = notification.weather[key];
@@ -1659,9 +1739,18 @@ function renderScheduleWithWeather(notification) {
                         return false;
                     }
                     
+                    // Check if the key matches the event type (practice_ or match_)
+                    const keyMatchesEventType = key.startsWith(eventType + '_');
+                    
+                    if (!keyMatchesEventType) {
+                        return false;
+                    }
+                    
                     try {
                         // Convert weather date to display format for comparison
-                        const weatherDate = new Date(weatherEntry.date);
+                        // Parse the date string and create a date in local timezone
+                        const [year, month, day] = weatherEntry.date.split('-').map(Number);
+                        const weatherDate = new Date(year, month - 1, day); // month is 0-indexed
                         const weatherDisplayDate = weatherDate.toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric' 
@@ -1677,14 +1766,91 @@ function renderScheduleWithWeather(notification) {
                 if (matchingWeatherKey) {
                     const weatherEntry = notification.weather[matchingWeatherKey];
                     if (weatherEntry && typeof weatherEntry === 'object') {
-                        html += `<div class="flex gap-2 mt-2">${generateWeatherIcons({[matchingWeatherKey]: weatherEntry})}</div>`;
+                        // Create horizontal layout with event and weather side by side
+                        // Make "Practice:" and "Match:" labels bold
+                        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+                        html += `<div class="flex items-center gap-3 mb-2">`;
+                        html += `<div class="text-sm flex-1">${boldLine}</div>`;
+                        html += generateCompactHorizontalWeatherCard(weatherEntry);
+                        html += `</div>`;
+                        return; // Skip the default line rendering below
                     }
                 }
             }
         }
+        
+        // Default rendering for lines without weather or non-matching lines
+        // Make "Practice:" and "Match:" labels bold
+        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+        html += `<div class="text-sm mb-2">${boldLine}</div>`;
     });
     
     return html;
+}
+
+function generateCompactHorizontalWeatherCard(forecast) {
+    if (!forecast || !forecast.icon) {
+        return '';
+    }
+    
+    const tempHigh = Math.round(forecast.temperature_high);
+    const tempLow = Math.round(forecast.temperature_low);
+    const quality = forecast.quality || 'moderate';
+    const precip = Math.round(forecast.precipitation_chance);
+    const humidity = Math.round(forecast.humidity);
+    
+    // Color coding based on weather quality
+    let bgColor, textColor, borderColor;
+    switch(quality) {
+        case 'good':
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-green-600';
+            break;
+        case 'bad':
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-red-600';
+            break;
+        default:
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-yellow-600';
+    }
+
+    // Format temperature string
+    let tempString = '';
+    if (tempHigh === tempLow) {
+        tempString = `${tempHigh}°F`;
+    } else {
+        tempString = `${tempHigh}°/${tempLow}°F`;
+    }
+
+    // Get weather icon URL
+    const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+
+    return `
+        <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
+            <!-- Weather Icon -->
+            <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" onerror="this.style.display='none'">
+            
+            <!-- Weather Info -->
+            <div class="flex flex-col gap-0.5 justify-center h-full flex-1">
+                <!-- Temperature -->
+                <div class="text-sm font-bold" style="color: white !important;">
+                    ${tempString}
+                </div>
+                
+                <!-- Condition and Rain on same line -->
+                <div class="text-xs text-white capitalize flex items-center gap-1">
+                    <span>${forecast.condition}</span>
+                    ${precip > 0 ? `
+                        <span>💧 ${precip}%</span>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
 }
 </script>
 {% endblock %} 

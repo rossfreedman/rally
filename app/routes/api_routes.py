@@ -3306,37 +3306,6 @@ def switch_team_context():
         }), 500
 
 
-# @api_bp.route("/api/user-context-info", methods=["GET"])
-# @login_required
-# def get_user_context_info():
-#     """Get current user context information - DISABLED: Uses ContextService"""
-#     try:
-#         from app.services.context_service import ContextService
-#         
-#         user_id = session["user"]["id"]
-#         
-#         # Get context info
-#         context_info = ContextService.get_context_info(user_id)
-#         user_leagues = ContextService.get_user_leagues(user_id)
-#         user_teams = ContextService.get_user_teams(user_id)
-#         
-#         return jsonify({
-#             "success": True,
-#             "context": context_info,
-#             "leagues": user_leagues,
-#             "teams": user_teams,
-#             "is_multi_league": len(user_leagues) > 1,
-#             "is_multi_team": len(user_teams) > 1
-#         })
-#         
-#     except Exception as e:
-#         logger.error(f"Error getting user context info: {e}")
-#         return jsonify({
-#             "success": False,
-#             "error": "Failed to get context info"
-#         }), 500
-
-
 @api_bp.route("/api/switch-league", methods=["POST"])
 @login_required
 def switch_league():
@@ -6643,7 +6612,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
                 "id": f"team_poll_{recent_poll['id']}",
                 "type": "team",
                 "title": "Team Poll",
-                "message": f"{recent_poll['question']} - {date_display} by {creator_name}",
+                "message": f"{recent_poll['question']}",
                 "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
                 "priority": 3
             })
@@ -6708,6 +6677,67 @@ def create_captain_message():
     except Exception as e:
         logger.error(f"Error creating captain message: {str(e)}")
         return jsonify({"error": "Failed to create captain message"}), 500
+
+
+@api_bp.route("/api/captain-messages", methods=["DELETE"])
+@login_required
+def remove_captain_message():
+    """Remove the current captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT id, message, captain_user_id
+            FROM captain_messages 
+            WHERE team_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        current_message = execute_query_one(message_query, [team_id])
+        
+        if not current_message:
+            return jsonify({"error": "No captain message found to remove"}), 404
+        
+        # Check if the user is the captain who created the message
+        if current_message["captain_user_id"] != user_id:
+            return jsonify({"error": "Only the captain who created the message can remove it"}), 403
+        
+        # Delete the captain message
+        delete_query = """
+            DELETE FROM captain_messages 
+            WHERE id = %s
+        """
+        
+        result = execute_query(delete_query, [current_message["id"]])
+        
+        if result:
+            # Log the activity
+            log_user_activity(
+                user.get("email"),
+                "captain_message_removed",
+                details=f"Removed captain message for team {team_id}: {current_message['message'][:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Captain message removed successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to remove captain message"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error removing captain message: {str(e)}")
+        return jsonify({"error": "Failed to remove captain message"}), 500
 
 
 def get_captain_messages(user_id, player_id, league_id, team_id):
@@ -6937,7 +6967,24 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         
         # Add weather data to notification if available
         if weather_data:
-            notification_data["weather"] = weather_data
+            # Convert WeatherForecast objects to dictionaries for JSON serialization
+            weather_dict = {}
+            for key, forecast in weather_data.items():
+                if hasattr(forecast, '__dict__'):
+                    weather_dict[key] = {
+                        'date': forecast.date,
+                        'temperature_high': forecast.temperature_high,
+                        'temperature_low': forecast.temperature_low,
+                        'condition': forecast.condition,
+                        'condition_code': forecast.condition_code,
+                        'precipitation_chance': forecast.precipitation_chance,
+                        'wind_speed': forecast.wind_speed,
+                        'humidity': forecast.humidity,
+                        'icon': forecast.icon
+                    }
+                else:
+                    weather_dict[key] = forecast
+            notification_data["weather"] = weather_dict
         
         notifications.append(notification_data)
         
@@ -7189,9 +7236,9 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     match_date,
                     CASE 
                         WHEN home_player_1_id = %s OR home_player_2_id = %s THEN 
-                            CASE WHEN winner = home_team THEN 'W' ELSE 'L' END
+                            CASE WHEN winner = 'home' THEN 'W' ELSE 'L' END
                         ELSE 
-                            CASE WHEN winner = away_team THEN 'W' ELSE 'L' END
+                            CASE WHEN winner = 'away' THEN 'W' ELSE 'L' END
                     END as result
                 FROM match_scores 
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
@@ -7225,14 +7272,18 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 WHERE last_match_date = (SELECT MAX(match_date) FROM match_results)
             ),
             best_win_streak AS (
-                SELECT MAX(streak_length) as best_win_streak_length
+                SELECT streak_length, MAX(last_match_date) as last_win_date
                 FROM streak_lengths
                 WHERE result = 'W'
+                GROUP BY streak_length
+                ORDER BY streak_length DESC, last_win_date DESC
+                LIMIT 1
             )
             SELECT 
                 cs.result as current_streak_result,
                 cs.streak_length as current_streak_length,
-                COALESCE(bws.best_win_streak_length, 0) as best_win_streak_length
+                COALESCE(bws.streak_length, 0) as best_win_streak_length,
+                bws.last_win_date as best_win_streak_end_date
             FROM current_streak cs
             CROSS JOIN best_win_streak bws
         """
@@ -7244,6 +7295,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
             current_streak_length = streak_result.get("current_streak_length", 0)
             current_streak_result = streak_result.get("current_streak_result", "")
             best_win_streak_length = streak_result.get("best_win_streak_length", 0) or 0
+            best_win_streak_end_date = streak_result.get("best_win_streak_end_date")
             
             if current_streak_length >= 3 and current_streak_result == "W":
                 # Show current win streak message
@@ -7257,11 +7309,22 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 })
             elif best_win_streak_length >= 3:
                 # Show best season streak message
+                if best_win_streak_end_date:
+                    from datetime import datetime
+                    try:
+                        date_obj = best_win_streak_end_date
+                        if isinstance(date_obj, str):
+                            date_obj = datetime.strptime(date_obj, "%Y-%m-%d")
+                        date_str = date_obj.strftime("%B %d, %Y")
+                    except Exception:
+                        date_str = str(best_win_streak_end_date)
+                else:
+                    date_str = "unknown date"
                 notifications.append({
                     "id": f"my_best_streak_{player_id}",
                     "type": "personal",
                     "title": "My Win Streaks",
-                    "message": f"Your best win streak this season was {best_win_streak_length}!",
+                    "message": f"Your best win streak this season was {best_win_streak_length}, which ended on {date_str}.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "priority": 5
                 })

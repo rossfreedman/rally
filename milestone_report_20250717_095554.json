@@ -1,0 +1,121 @@
+{
+  "timestamp": "2025-07-17T09:55:54.121905",
+  "duration_seconds": 35.432796239852905,
+  "target_branch": "production",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 17 uncommitted files"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [
+        {
+          "file": "scripts/check_clubs_table.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/check_practice_entries.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/debug_tennaqua_address.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/debug_weather_display.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/debug_weather_notification_ui.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/deploy_enhanced_weather.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/deploy_remove_notification_cards.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/deploy_weather_fallback.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_enhanced_weather_display.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_frontend_weather_logic.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_practice_notification.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_removed_notifications.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_weather_association.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_weather_fallback.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_weather_no_duplication.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_weather_notification_display.py",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/test_win_streak_notifications.py",
+          "status": "??",
+          "description": "Untracked"
+        }
+      ],
+      "unpushed_commits": [],
+      "current_branch": "main",
+      "summary": "17 uncommitted files"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "main",
+      "message": "Deployed to main",
+      "files_deployed": 17,
+      "commits_pushed": 1
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "error",
+      "message": "Backup failed: /Users/rossfreedman/dev/rally/.venv/bin/python: can't open file '/Users/rossfreedman/dev/rally/deployment/cb.py': [Errno 2] No such file or directory\n"
+    },
+    "overall_success": true
+  },
+  "success": true
+}

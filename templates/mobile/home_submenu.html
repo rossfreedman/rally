@@ -34,7 +34,7 @@
   .category-button.active svg { 
     color: #bff863 !important; 
   }
-  .submenu { display: none; background: #fff; border-radius: 1rem; margin-top: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+  .submenu { display: none; background: transparent; margin-top: 0.5rem; overflow: hidden; }
   .submenu.active { display: block; }
   .submenu-item { 
     display: flex; 
@@ -42,29 +42,65 @@
     align-items: center; 
     justify-content: center; 
     padding: 1.5rem; 
-    border-bottom: 1px solid #f0f0f0; 
+    margin-bottom: 0.5rem;
+    border-radius: 1.5rem;
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     text-decoration: none; 
-    color: #045454; 
-    transition: background-color 0.2s; 
+    color: white !important; 
+    transition: box-shadow 0.2s, transform 0.1s, background 0.2s; 
     text-align: center;
     min-height: 120px;
+    background: #797979 !important;
   }
-  .submenu-item:last-child { border-bottom: none; }
-  .submenu-item:hover { background-color: #f8f9fa; }
+  .submenu-item:last-child { margin-bottom: 0; }
+  .submenu-item:hover { 
+    background-color: #f2f2f7; 
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    transform: scale(1.02);
+  }
+  .submenu-item:active { 
+    transform: scale(0.97); 
+    background: #f2f2f7; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
   .submenu-item .icon { 
     width: 2rem; 
     height: 2rem; 
     margin-bottom: 0.75rem; 
     display: block;
+    color: white !important;
   }
   .submenu-item .text { 
     font-weight: 500; 
     text-align: center;
     line-height: 1.3;
+    color: white !important;
   }
   .submenu-item .arrow { 
     display: none;
   }
+  
+  /* Submenu item styling when submenu is active */
+  body.submenu-active .submenu-item {
+    background-color: #797979 !important;
+    color: white !important;
+    border-color: #E0E0E0 !important;
+  }
+  
+  body.submenu-active .submenu-item:hover {
+    background-color: #6b6b6b !important;
+    border-color: #E0E0E0 !important;
+  }
+  
+  body.submenu-active .submenu-item svg {
+    color: white !important;
+  }
+  
+  body.submenu-active .submenu-item .text {
+    color: white !important;
+  }
+  
   .sf-symbol { font-size: 2rem; margin-bottom: 1rem; opacity: 0.9; font-weight: 300; -webkit-font-smoothing: antialiased; }
   .section-header { color: #045454 !important; }
   h1.text-xl.font-bold.text-gray-800 { color: #045454 !important; }
@@ -413,6 +449,7 @@
         <a href="/mobile/track-byes-courts" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 10h6M9 14h6M9 18h2" stroke="currentColor" stroke-width="2"/></svg><span class="text">Track Assignments</span><span class="arrow">→</span></a>
         <a href="/mobile/practice-times" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></svg><span class="text">Practice Times</span><span class="arrow">→</span></a>
         <a href="/mobile/create-team" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg><span class="text">Create Team</span><span class="arrow">→</span></a>
+        <a href="/mobile/team-notifications" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Team Notifications</span><span class="arrow">→</span></a>
         {% if session_data.user.is_admin %}
         <a href="/mobile/admin" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Admin</span><span class="arrow">→</span></a>
         {% endif %}
@@ -449,6 +486,75 @@ function toggleSubmenu(submenuId) {
     if (categoryButton && categoryButton.classList.contains('category-button')) {
       categoryButton.classList.add('active');
     }
+    
+    // Add class to body to style submit buttons when submenu is active
+    document.body.classList.add('submenu-active');
+    
+    // Enhanced scroll debug functionality for submenu buttons
+    setTimeout(() => {
+      console.log('🔍 SCROLL DEBUG: Submenu opened for', submenuId);
+      
+      // Determine scroll distance based on submenu type
+      let scrollDistance = 300; // Default for most submenus
+      if (submenuId === 'captain-submenu') {
+        scrollDistance = 100; // Reduced scroll for Captain's Corner
+        console.log('🎯 SCROLL DEBUG: Using reduced scroll distance (100px) for Captain\'s Corner');
+      }
+      
+      // Always try window scroll first (most visible)
+      console.log('🔍 SCROLL DEBUG: Attempting window scroll...');
+      
+      try {
+        // Get current scroll position
+        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+        console.log(`📊 SCROLL DEBUG: Current window scroll position: ${currentScroll}`);
+        
+        // Scroll window by determined distance
+        window.scrollBy({
+          top: scrollDistance,
+          behavior: 'smooth'
+        });
+        
+        console.log(`✅ SCROLL DEBUG: Window scroll initiated (${scrollDistance}px)`);
+        
+        // Check scroll position after a delay
+        setTimeout(() => {
+          const newScroll = window.pageYOffset || document.documentElement.scrollTop;
+          console.log(`📊 SCROLL DEBUG: New window scroll position: ${newScroll}`);
+          console.log(`📊 SCROLL DEBUG: Scroll difference: ${newScroll - currentScroll}px`);
+          
+          if (newScroll > currentScroll) {
+            console.log('✅ SCROLL DEBUG: Window scroll successful and visible!');
+          } else {
+            console.log('⚠️ SCROLL DEBUG: Window scroll may not be visible (already at bottom)');
+          }
+        }, 800);
+        
+      } catch (error) {
+        console.error('❌ SCROLL DEBUG: Window scroll failed:', error);
+      }
+      
+      // Also try scrolling the submenu container if it exists
+      const submenuContainer = document.querySelector('.submenu.active');
+      if (submenuContainer) {
+        console.log('🔍 SCROLL DEBUG: Attempting submenu container scroll...');
+        
+        try {
+          submenuContainer.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+          console.log('✅ SCROLL DEBUG: Submenu container scroll initiated');
+        } catch (error) {
+          console.error('❌ SCROLL DEBUG: Submenu container scroll failed:', error);
+        }
+      }
+      
+    }, 100); // Reduced delay for faster response
+  } else {
+    // Remove class from body when submenu is closed
+    document.body.classList.remove('submenu-active');
+    console.log('🔍 SCROLL DEBUG: Submenu closed for', submenuId);
   }
 }
 
@@ -609,15 +715,7 @@ function createNotificationElement(notification, index) {
     const icon = getNotificationIcon(notification.type);
     const bgColor = getNotificationBgColor(notification.type);
     
-    // Generate weather icons if available
-    let weatherIcons = '';
-    if (notification.type === 'schedule' && notification.weather) {
-        console.log('🌦️ Weather data found for schedule notification');
-        weatherIcons = generateWeatherIconsForSchedule(notification);
-        console.log('🌦️ Generated weather icons HTML:', weatherIcons);
-    } else if (notification.type === 'schedule') {
-        console.log('🌦️ No weather data found for schedule notification');
-    }
+
     
     element.innerHTML = `
         <div class="notification-content">
@@ -640,14 +738,7 @@ function createNotificationElement(notification, index) {
                 </div>
             </div>
             
-            <!-- Weather Icons Section -->
-            ${weatherIcons ? `
-                <div class="mt-4 pt-4 border-t border-gray-100">
-                    <div class="flex flex-wrap gap-3 justify-center">
-                        ${weatherIcons}
-                    </div>
-                </div>
-            ` : ''}
+
         </div>
     `;
     
@@ -684,8 +775,11 @@ function renderScheduleWithWeather(notification) {
                 eventType = 'match';
             }
             
-            // Find matching weather data by date
+            // Find matching weather data by event type and date
             if (eventDate && eventType) {
+                console.log('🌦️ Looking for weather match for:', eventDate, eventType);
+                console.log('🌦️ Available weather keys:', Object.keys(notification.weather));
+                
                 const matchingWeatherKey = Object.keys(notification.weather).find(key => {
                     const weatherEntry = notification.weather[key];
                     
@@ -700,13 +794,29 @@ function renderScheduleWithWeather(notification) {
                         return false;
                     }
                     
+                    // Check if the key matches the event type (practice_ or match_)
+                    const keyMatchesEventType = key.startsWith(eventType + '_');
+                    
+                    if (!keyMatchesEventType) {
+                        console.log('🌦️ Key type mismatch:', key, 'does not start with', eventType + '_');
+                        return false;
+                    }
+                    
                     try {
                         // Convert weather date to display format for comparison
-                        const weatherDate = new Date(weatherEntry.date);
+                        // Parse the date string and create a date in local timezone
+                        const [year, month, day] = weatherEntry.date.split('-').map(Number);
+                        const weatherDate = new Date(year, month - 1, day); // month is 0-indexed
                         const weatherDisplayDate = weatherDate.toLocaleDateString('en-US', { 
                             month: 'short', 
                             day: 'numeric' 
                         });
+                        
+                        console.log('🌦️ Weather date string:', weatherEntry.date);
+                        console.log('🌦️ Parsed weather date:', weatherDate);
+                        console.log('🌦️ Weather display date:', weatherDisplayDate);
+                        console.log('🌦️ Event date:', eventDate);
+                        console.log('🌦️ Comparing:', weatherDisplayDate, '===', eventDate, 'Result:', weatherDisplayDate === eventDate);
                         
                         return weatherDisplayDate === eventDate;
                     } catch (error) {
@@ -715,22 +825,31 @@ function renderScheduleWithWeather(notification) {
                     }
                 });
                 
+                console.log('🌦️ Matching weather key found:', matchingWeatherKey);
+                
                 if (matchingWeatherKey) {
                     const weatherEntry = notification.weather[matchingWeatherKey];
                     if (weatherEntry && typeof weatherEntry === 'object') {
+                        console.log('🌦️ Creating weather card for:', weatherEntry);
                         // Create horizontal layout with event and weather side by side
-                        html += `<div class="flex items-center gap-3 mb-3">`;
-                        html += `<div class="text-sm flex-1">${line}</div>`;
-                        html += generateHorizontalWeatherCard(weatherEntry);
+                        // Make "Practice:" and "Match:" labels bold
+                        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+                        html += `<div class="flex items-center gap-3 mb-2">`;
+                        html += `<div class="text-sm flex-1">${boldLine}</div>`;
+                        html += generateCompactHorizontalWeatherCard(weatherEntry);
                         html += `</div>`;
                         return; // Skip the default line rendering below
                     }
+                } else {
+                    console.log('🌦️ No matching weather key found for event date:', eventDate);
                 }
             }
         }
         
         // Default rendering for lines without weather or non-matching lines
-        html += `<div class="text-sm">${line}</div>`;
+        // Make "Practice:" and "Match:" labels bold
+        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+        html += `<div class="text-sm mb-2">${boldLine}</div>`;
     });
     
     return html;
@@ -923,6 +1042,73 @@ function generateHorizontalWeatherCard(forecast) {
     `;
 }
 
+function generateCompactHorizontalWeatherCard(forecast) {
+    console.log('🌦️ generateCompactHorizontalWeatherCard called with:', forecast);
+    if (!forecast || !forecast.icon) {
+        console.log('🌦️ No forecast or icon, returning empty string');
+        return '';
+    }
+    
+    const tempHigh = Math.round(forecast.temperature_high);
+    const tempLow = Math.round(forecast.temperature_low);
+    const quality = forecast.quality || 'moderate';
+    const precip = Math.round(forecast.precipitation_chance);
+    const humidity = Math.round(forecast.humidity);
+    
+    // Color coding based on weather quality
+    let bgColor, textColor, borderColor;
+    switch(quality) {
+        case 'good':
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-green-600';
+            break;
+        case 'bad':
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-red-600';
+            break;
+        default:
+            bgColor = 'style="background-color: #797979;"';
+            textColor = 'text-white';
+            borderColor = 'border-yellow-600';
+    }
+
+    // Format temperature string
+    let tempString = '';
+    if (tempHigh === tempLow) {
+        tempString = `${tempHigh}°F`;
+    } else {
+        tempString = `${tempHigh}°/${tempLow}°F`;
+    }
+
+    // Get weather icon URL
+    const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+
+    return `
+        <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
+            <!-- Weather Icon -->
+            <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" onerror="this.style.display='none'">
+            
+            <!-- Weather Info -->
+            <div class="flex flex-col gap-0.5 justify-center h-full flex-1">
+                <!-- Temperature -->
+                <div class="text-sm font-bold" style="color: white !important;">
+                    ${tempString}
+                </div>
+                
+                <!-- Condition and Rain on same line -->
+                <div class="text-xs text-white capitalize flex items-center gap-1">
+                    <span>${forecast.condition}</span>
+                    ${precip > 0 ? `
+                        <span>💧 ${precip}%</span>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function getNotificationIcon(type) {
     // Pickup Games - Tennis Court Icon (matches pickup games button)
     const pickupGamesIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -938,14 +1124,11 @@ function getNotificationIcon(type) {
         <line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/>
     </svg>`;
     
-    // Team Polls - Survey Icon (matches team polls button)
+    // Team Polls - Question Mark Icon
     const teamPollIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-        <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
-        <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-        <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
-        <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-        <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
+        <!-- Question mark -->
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="17" r="1" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     // Captain/Calendar Icon (matches calendar buttons)
@@ -962,30 +1145,31 @@ function getNotificationIcon(type) {
         <path d="M12 9v3l2 2" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
-    // Trophy Icon for Team Position
+    // Trophy Icon for Team Position and Win Streaks
     const trophyIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" stroke="currentColor" stroke-width="2"/>
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" stroke="currentColor" stroke-width="2"/>
-        <path d="M4 22h16" stroke="currentColor" stroke-width="2"/>
-        <path d="M10 14.66V17c0 1.1.9 2 2 2s2-.9 2-2v-2.34" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14.66V9c0-1.1-.9-2-2-2H8" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14.66V9c0-1.1.9-2 2-2h2" stroke="currentColor" stroke-width="2"/>
+        <!-- Trophy cup -->
+        <path d="M8 6h8v8c0 2.2-1.8 4-4 4s-4-1.8-4-4V6z" stroke="currentColor" stroke-width="2"/>
+        <!-- Trophy handles -->
+        <path d="M6 8c0-1.1.9-2 2-2h2" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 8c0-1.1-.9-2-2-2h-2" stroke="currentColor" stroke-width="2"/>
+        <!-- Trophy base -->
+        <path d="M7 18h10" stroke="currentColor" stroke-width="2"/>
+        <path d="M9 18v4h6v-4" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
-    // Fire Icon for Win Streaks
-    const fireIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M12 2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 8c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
+    // Star Icon for Win Streaks
+    const starIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     const icons = {
         'match': pickupGamesIcon,      // Pickup games use tennis court icon
         'captain': captainIcon,        // Captain messages use calendar icon
         'result': captainIcon,         // Results use calendar icon
-        'personal': trophyIcon,        // Personal notifications (win streaks) use trophy icon
+        'personal': starIcon,          // Personal notifications (win streaks) use star icon
         'team': trophyIcon,            // Team notifications (position) use trophy icon
-        'schedule': scheduleIcon       // Schedule notifications use calendar with clock icon
+        'schedule': scheduleIcon,      // Schedule notifications use calendar with clock icon
+        'poll': teamPollIcon           // Team poll notifications use survey icon
     };
     
     return icons[type] || captainIcon;
@@ -1107,7 +1291,7 @@ async function loadLeagueSwitcherOptions() {
                   <div class="font-bold text-white group-hover:text-blue-200">${league.league_name}</div>
                   <div class="text-sm text-gray-300 group-hover:text-blue-300">${league.player_count} players</div>
               </div>
-              <div class="text-sm ${league.is_current ? 'bg-blue-600 text-white px-3 py-1 rounded' : 'bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded'}">
+              <div class="text-sm ${league.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${league.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
                   ${league.is_current ? 'Current' : 'Switch'}
               </div>
           </button>
@@ -1136,7 +1320,7 @@ async function loadClubSwitcherOptions() {
                   <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
                   <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
               </div>
-              <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
+              <div class="text-sm ${team.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${team.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
                   ${team.is_current ? 'Current' : 'Switch'}
               </div>
           </button>
