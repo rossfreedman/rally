@@ -715,10 +715,11 @@ function createNotificationElement(notification, index) {
     const icon = getNotificationIcon(notification.type);
     const bgColor = getNotificationBgColor(notification.type);
     
-
+    // Determine which link to show (detail_link takes priority, then cta)
+    const linkToShow = notification.detail_link || notification.cta;
     
     element.innerHTML = `
-        <div class="notification-content">
+        <div class="notification-content relative">
             <div class="flex items-start gap-4">
                 <!-- Icon -->
                 <div class="flex-shrink-0">
@@ -735,10 +736,33 @@ function createNotificationElement(notification, index) {
                     <p class="text-gray-600 text-sm leading-relaxed mb-3">
                         ${notification.type === 'schedule' ? renderScheduleWithWeather(notification) : notification.message}
                     </p>
+                    ${notification.cta ? `
+                        <div class="mt-3">
+                            <a href="${notification.cta.href}" 
+                               style="
+                                   display: inline-flex; 
+                                   align-items: center; 
+                                   padding: 8px 16px; 
+                                   border-radius: 25px; 
+                                   background: #bff863; 
+                                   color: #045454; 
+                                   text-decoration: none;
+                                   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                                   font-size: 12px;
+                                   font-weight: 600;
+                                   transition: all 0.2s ease;
+                               "
+                               onmouseover="this.style.transform='scale(1.05)'" 
+                               onmouseout="this.style.transform='scale(1)'">
+                                ${notification.cta.label}
+                                <svg style="width: 14px; height: 14px; color: #045454; margin-left: 4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
-            
-
         </div>
     `;
     
