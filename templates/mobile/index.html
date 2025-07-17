@@ -1367,6 +1367,8 @@ function generateWeatherIcons(weatherData) {
             const description = forecast.description || '';
             const emoji = forecast.emoji || '🌤️';
             const precip = Math.round(forecast.precipitation_chance);
+            const windSpeed = Math.round(forecast.wind_speed);
+            const humidity = Math.round(forecast.humidity);
             
             // Color coding based on weather quality
             let bgColor, textColor, borderColor;
@@ -1398,21 +1400,55 @@ function generateWeatherIcons(weatherData) {
             // Format rain string
             let rainString = '';
             if (precip > 0) {
-                rainString = `<span class="text-red-600 font-semibold">, ${precip}% rain</span>`;
+                rainString = `<span class="text-red-600 font-semibold">${precip}%</span>`;
             }
 
+            // Get weather icon URL
+            const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+
             icons += `
-                <div class="flex flex-col items-center gap-1 ${bgColor} border ${borderColor} rounded-lg px-3 py-2">
-                    <span class="text-2xl">${emoji}</span>
-                    <span class="text-xs font-semibold ${textColor} capitalize">
-                        ${forecast.condition}
-                    </span>
-                    <span class="text-sm font-bold ${textColor}">
-                        ${tempString}${rainString}
-                    </span>
-                    <span class="text-xs ${textColor} opacity-75 text-center">
+                <div class="flex flex-col items-center gap-2 ${bgColor} border ${borderColor} rounded-lg px-4 py-3 min-w-[120px]">
+                    <!-- Weather Icon and Condition -->
+                    <div class="flex flex-col items-center gap-1">
+                        <img src="${iconUrl}" alt="${forecast.condition}" class="w-12 h-12" onerror="this.style.display='none'">
+                        <span class="text-xs font-semibold ${textColor} capitalize text-center">
+                            ${forecast.condition}
+                        </span>
+                    </div>
+                    
+                    <!-- Temperature -->
+                    <div class="text-center">
+                        <span class="text-lg font-bold ${textColor}">
+                            ${tempString}
+                        </span>
+                    </div>
+                    
+                    <!-- Weather Details -->
+                    <div class="flex flex-col gap-1 text-xs ${textColor} opacity-80">
+                        ${precip > 0 ? `
+                            <div class="flex items-center gap-1">
+                                <span>💧</span>
+                                <span>Rain: ${rainString}</span>
+                            </div>
+                        ` : ''}
+                        ${windSpeed > 5 ? `
+                            <div class="flex items-center gap-1">
+                                <span>💨</span>
+                                <span>Wind: ${windSpeed} mph</span>
+                            </div>
+                        ` : ''}
+                        ${humidity > 70 ? `
+                            <div class="flex items-center gap-1">
+                                <span>💧</span>
+                                <span>Humidity: ${humidity}%</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="text-xs ${textColor} opacity-75 text-center leading-tight">
                         ${description}
-                    </span>
+                    </div>
                 </div>
             `;
         }
