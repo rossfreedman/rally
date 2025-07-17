@@ -6160,6 +6160,7 @@ def get_home_notifications():
                     "title": "Welcome to Rally!",
                     "message": "Explore your stats, team performance, and stay connected with your teammates.",
                     "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                    "detail_link": {"label": "View Stats", "href": "/mobile/analyze-me"},
                     "priority": 1
                 }
             ]
@@ -6174,6 +6175,7 @@ def get_home_notifications():
                     "title": "Welcome to Rally!",
                     "message": "Explore your stats, team performance, and stay connected with your teammates.",
                     "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                    "detail_link": {"label": "View Stats", "href": "/mobile/analyze-me"},
                     "priority": 1
                 }
             ]
@@ -6191,6 +6193,7 @@ def get_home_notifications():
                 "title": "Welcome to Rally!",
                 "message": "Explore your stats, team performance, and stay connected with your teammates.",
                 "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                "detail_link": {"label": "View Stats", "href": "/mobile/analyze-me"},
                 "priority": 1
             }
         ]
@@ -6230,6 +6233,7 @@ def get_urgent_match_notifications(user_id, player_id, league_id, team_id):
                     "title": "Tonight's Match",
                     "message": f"You have a match tonight: {tonight_match['home_team']} vs {tonight_match['away_team']}",
                     "cta": {"label": "View Details", "href": "/mobile/matches"},
+                    "detail_link": {"label": "View Match", "href": "/mobile/matches"},
                     "priority": 1
                 })
         
@@ -6256,6 +6260,7 @@ def get_urgent_match_notifications(user_id, player_id, league_id, team_id):
                     "title": "Update Availability",
                     "message": f"Please confirm your availability for {record['match_date'].strftime('%b %d')}",
                     "cta": {"label": "Update Now", "href": "/mobile/availability-calendar"},
+                    "detail_link": {"label": "View Calendar", "href": "/mobile/availability-calendar"},
                     "priority": 2
                 })
                 break
@@ -6295,6 +6300,7 @@ def get_urgent_match_notifications(user_id, player_id, league_id, team_id):
                     "title": "Team Poll",
                     "message": f"{captain_name} asked: {latest_poll['question'][:40]}... ({time_text})",
                     "cta": {"label": "Respond Now", "href": f"/mobile/polls/{latest_poll['id']}"},
+                    "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{latest_poll['id']}"},
                     "priority": 4
                 })
             
@@ -6614,6 +6620,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
                 "title": "Team Poll",
                 "message": f"{recent_poll['question']}",
                 "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
+                "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{recent_poll['id']}"},
                 "priority": 3
             })
             
@@ -6792,6 +6799,7 @@ def get_captain_messages(user_id, player_id, league_id, team_id):
                 "type": "captain",
                 "title": "Captain's Message",
                 "message": f"{captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''}",
+                "detail_link": {"label": "View Message", "href": "/mobile/polls"},
                 "priority": 1
             })
             
@@ -6960,6 +6968,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             "title": "Upcoming Schedule",
             "message": f"{practice_text}\n{match_text}",
             "cta": {"label": "View Schedule", "href": "/mobile/availability"},
+            "detail_link": {"label": "View Schedule", "href": "/mobile/availability"},
             "priority": 2
         }
         
@@ -7104,6 +7113,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
                 "title": "Pickup Game Available",
                 "message": f"{game['description']} - {date_display} at {time_display} ({available_slots} spots left)",
                 "cta": {"label": "Join Game", "href": "/mobile/pickup-games"},
+                "detail_link": {"label": "View Game", "href": f"/mobile/pickup-games/{game['id']}"},
                 "priority": 6
             })
             
@@ -7201,6 +7211,7 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
             "title": "Team Position",
             "message": position_text,
             "cta": {"label": "View Standings", "href": "/mobile/my-series"},
+            "detail_link": {"label": "View Standings", "href": "/mobile/my-series"},
             "priority": 3
         })
             
@@ -7303,6 +7314,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "title": "My Win Streaks",
                     "message": f"Great job {user_name}, you're on a {current_streak_length}-match win streak! Keep the momentum going.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "priority": 5
                 })
             elif best_win_streak_length >= 3:
@@ -7324,6 +7336,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "title": "My Win Streaks",
                     "message": f"Your best win streak this season was {best_win_streak_length}, which ended on {date_str}.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "priority": 5
                 })
             else:
@@ -7334,6 +7347,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "title": "My Win Streaks",
                     "message": f"You don't have any winning streaks this season.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "priority": 5
                 })
         else:
@@ -7344,6 +7358,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 "title": "My Win Streaks",
                 "message": f"You don't have any winning streaks this season.",
                 "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                 "priority": 5
             })
             
