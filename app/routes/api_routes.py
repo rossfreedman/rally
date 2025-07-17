@@ -6857,38 +6857,32 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         now = datetime.now()
         current_date = now.date()
         
-        # Query upcoming schedule entries with enhanced location data
+        # Query upcoming schedule entries using team_id for robust matching
         schedule_query = """
             SELECT 
                 s.id,
                 s.match_date,
                 s.match_time,
+                s.home_team_id,
+                s.away_team_id,
                 s.home_team,
                 s.away_team,
                 s.location,
                 c.club_address,
                 CASE 
-                    WHEN s.home_team ILIKE %s THEN 'practice'
+                    WHEN s.home_team_id = %s THEN 'practice'
                     ELSE 'match'
                 END as type
             FROM schedule s
             LEFT JOIN teams t ON (s.home_team_id = t.id OR s.away_team_id = t.id)
             LEFT JOIN clubs c ON t.club_id = c.id
-            WHERE (
-                (s.home_team ILIKE %s OR s.away_team ILIKE %s) OR  -- Regular matches
-                (s.home_team ILIKE %s)  -- Practices
-            )
+            WHERE (s.home_team_id = %s OR s.away_team_id = %s)
             AND s.match_date >= %s
             ORDER BY s.match_date ASC, s.match_time ASC
             LIMIT 10
         """
         
-        schedule_entries = execute_query(schedule_query, [
-            practice_pattern,  # For type detection
-            f"%{team_pattern}%", f"%{team_pattern}%",  # Regular matches
-            f"%{practice_pattern}%",  # Practices
-            current_date
-        ])
+        schedule_entries = execute_query(schedule_query, [team_id, team_id, team_id, current_date])
         
         if not schedule_entries:
             return notifications
@@ -6948,7 +6942,11 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         if next_match:
             match_date = next_match["match_date"].strftime("%b %d")
             match_time = next_match["match_time"].strftime("%I:%M %p").lstrip("0") if next_match["match_time"] else ""
-            opponent = next_match["away_team"] if next_match["home_team"] and team_pattern in next_match["home_team"] else next_match["home_team"]
+            # Determine opponent using team_id
+            if next_match["home_team_id"] == team_id:
+                opponent = next_match["away_team"]
+            else:
+                opponent = next_match["home_team"]
             match_text = f"Match: {match_date}"
             if match_time:
                 match_text += f" at {match_time}"
