@@ -642,7 +642,7 @@ function renderScheduleWithWeather(notification) {
     lines.forEach(line => {
         html += `<div class="text-sm">${line}</div>`;
         
-        if (notification.weather) {
+        if (notification.weather && typeof notification.weather === 'object') {
             // Extract date and time from the line
             let eventDate = null;
             let eventType = null;
@@ -665,21 +665,38 @@ function renderScheduleWithWeather(notification) {
             if (eventDate && eventType) {
                 const matchingWeatherKey = Object.keys(notification.weather).find(key => {
                     const weatherEntry = notification.weather[key];
-                    if (!weatherEntry || !weatherEntry.date) return false;
                     
-                    // Convert weather date to display format for comparison
-                    const weatherDate = new Date(weatherEntry.date);
-                    const weatherDisplayDate = weatherDate.toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric' 
-                    });
+                    // Defensive check for weatherEntry and its properties
+                    if (!weatherEntry || typeof weatherEntry !== 'object') {
+                        console.warn('Weather entry is not a valid object:', weatherEntry);
+                        return false;
+                    }
                     
-                    return weatherDisplayDate === eventDate;
+                    if (!weatherEntry.date) {
+                        console.warn('Weather entry missing date property:', weatherEntry);
+                        return false;
+                    }
+                    
+                    try {
+                        // Convert weather date to display format for comparison
+                        const weatherDate = new Date(weatherEntry.date);
+                        const weatherDisplayDate = weatherDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                        });
+                        
+                        return weatherDisplayDate === eventDate;
+                    } catch (error) {
+                        console.error('Error parsing weather date:', weatherEntry.date, error);
+                        return false;
+                    }
                 });
                 
                 if (matchingWeatherKey) {
                     const weatherEntry = notification.weather[matchingWeatherKey];
-                    html += `<div class="flex gap-2 mt-2">${generateWeatherIcons({[matchingWeatherKey]: weatherEntry})}</div>`;
+                    if (weatherEntry && typeof weatherEntry === 'object') {
+                        html += `<div class="flex gap-2 mt-2">${generateWeatherIcons({[matchingWeatherKey]: weatherEntry})}</div>`;
+                    }
                 }
             }
         }
@@ -704,6 +721,7 @@ function generateWeatherIcons(weatherData) {
             const quality = forecast.quality || 'moderate';
             const description = forecast.description || '';
             const emoji = forecast.emoji || '🌤️';
+            const precip = Math.round(forecast.precipitation_chance);
             
             // Color coding based on weather quality
             let bgColor, textColor, borderColor;
@@ -723,7 +741,21 @@ function generateWeatherIcons(weatherData) {
                     textColor = 'text-yellow-800';
                     borderColor = 'border-yellow-200';
             }
-            
+
+            // Format temperature string
+            let tempString = '';
+            if (tempHigh === tempLow) {
+                tempString = `${tempHigh}°F`;
+            } else {
+                tempString = `${tempHigh}°/${tempLow}°F`;
+            }
+
+            // Format rain string
+            let rainString = '';
+            if (precip > 0) {
+                rainString = `<span class=\"text-red-600 font-semibold\">, ${precip}% rain</span>`;
+            }
+
             icons += `
                 <div class="flex flex-col items-center gap-1 ${bgColor} border ${borderColor} rounded-lg px-3 py-2">
                     <span class="text-2xl">${emoji}</span>
@@ -731,7 +763,7 @@ function generateWeatherIcons(weatherData) {
                         ${forecast.condition}
                     </span>
                     <span class="text-sm font-bold ${textColor}">
-                        ${tempHigh}°/${tempLow}°
+                        ${tempString}${rainString}
                     </span>
                     <span class="text-xs ${textColor} opacity-75 text-center">
                         ${description}
