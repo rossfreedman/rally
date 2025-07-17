@@ -664,8 +664,6 @@ function renderScheduleWithWeather(notification) {
     let html = '';
     
     lines.forEach(line => {
-        html += `<div class="text-sm">${line}</div>`;
-        
         if (notification.weather && typeof notification.weather === 'object') {
             console.log('🌦️ Processing weather for line:', line);
             // Extract date and time from the line
@@ -720,11 +718,19 @@ function renderScheduleWithWeather(notification) {
                 if (matchingWeatherKey) {
                     const weatherEntry = notification.weather[matchingWeatherKey];
                     if (weatherEntry && typeof weatherEntry === 'object') {
-                        html += `<div class="flex gap-2 mt-2">${generateWeatherIcons({[matchingWeatherKey]: weatherEntry})}</div>`;
+                        // Create horizontal layout with event and weather side by side
+                        html += `<div class="flex items-center gap-3 mb-3">`;
+                        html += `<div class="text-sm flex-1">${line}</div>`;
+                        html += generateHorizontalWeatherCard(weatherEntry);
+                        html += `</div>`;
+                        return; // Skip the default line rendering below
                     }
                 }
             }
         }
+        
+        // Default rendering for lines without weather or non-matching lines
+        html += `<div class="text-sm">${line}</div>`;
     });
     
     return html;
@@ -837,6 +843,86 @@ function generateWeatherIcons(weatherData) {
     return icons;
 }
 
+function generateHorizontalWeatherCard(forecast) {
+    if (!forecast || !forecast.icon) {
+        return '';
+    }
+    
+    const tempHigh = Math.round(forecast.temperature_high);
+    const tempLow = Math.round(forecast.temperature_low);
+    const quality = forecast.quality || 'moderate';
+    const description = forecast.description || '';
+    const precip = Math.round(forecast.precipitation_chance);
+    const windSpeed = Math.round(forecast.wind_speed);
+    const humidity = Math.round(forecast.humidity);
+    
+    // Color coding based on weather quality
+    let bgColor, textColor, borderColor;
+    switch(quality) {
+        case 'good':
+            bgColor = 'bg-green-50';
+            textColor = 'text-green-800';
+            borderColor = 'border-green-200';
+            break;
+        case 'bad':
+            bgColor = 'bg-red-50';
+            textColor = 'text-red-800';
+            borderColor = 'border-red-200';
+            break;
+        default:
+            bgColor = 'bg-yellow-50';
+            textColor = 'text-yellow-800';
+            borderColor = 'border-yellow-200';
+    }
+
+    // Format temperature string
+    let tempString = '';
+    if (tempHigh === tempLow) {
+        tempString = `${tempHigh}°F`;
+    } else {
+        tempString = `${tempHigh}°/${tempLow}°F`;
+    }
+
+    // Format rain string
+    let rainString = '';
+    if (precip > 0) {
+        rainString = `<span class="text-red-600 font-semibold">${precip}%</span>`;
+    }
+
+    // Get weather icon URL
+    const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+
+    return `
+        <div class="flex items-center gap-2 ${bgColor} border ${borderColor} rounded-lg px-3 py-2 min-w-[140px]">
+            <!-- Weather Icon -->
+            <img src="${iconUrl}" alt="${forecast.condition}" class="w-8 h-8" onerror="this.style.display='none'">
+            
+            <!-- Weather Info -->
+            <div class="flex flex-col gap-1">
+                <!-- Temperature -->
+                <div class="text-sm font-bold ${textColor}">
+                    ${tempString}
+                </div>
+                
+                <!-- Condition -->
+                <div class="text-xs ${textColor} capitalize">
+                    ${forecast.condition}
+                </div>
+                
+                <!-- Rain and Humidity -->
+                <div class="flex items-center gap-2 text-xs ${textColor} opacity-80">
+                    ${precip > 0 ? `
+                        <span>💧 ${rainString}</span>
+                    ` : ''}
+                    ${humidity > 70 ? `
+                        <span>💧 ${humidity}%</span>
+                    ` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function getNotificationIcon(type) {
     // Pickup Games - Tennis Court Icon (matches pickup games button)
     const pickupGamesIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -897,7 +983,7 @@ function getNotificationIcon(type) {
         'match': pickupGamesIcon,      // Pickup games use tennis court icon
         'captain': captainIcon,        // Captain messages use calendar icon
         'result': captainIcon,         // Results use calendar icon
-        'personal': fireIcon,          // Personal notifications (win streaks) use fire icon
+        'personal': trophyIcon,        // Personal notifications (win streaks) use trophy icon
         'team': trophyIcon,            // Team notifications (position) use trophy icon
         'schedule': scheduleIcon       // Schedule notifications use calendar with clock icon
     };
