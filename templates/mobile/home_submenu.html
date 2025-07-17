@@ -594,6 +594,13 @@ function renderNotifications(notifications) {
 }
 
 function createNotificationElement(notification, index) {
+    // 🔍 DEBUG: Log the entire notification object
+    console.log('🔍 Creating notification element for:', notification.title);
+    console.log('🔍 Full notification object:', notification);
+    console.log('🔍 Notification type:', notification.type);
+    console.log('🔍 Weather property:', notification.weather);
+    console.log('🔍 All notification keys:', Object.keys(notification));
+    
     const element = document.createElement('div');
     element.className = `notification-card bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;
     element.style.animationDelay = `${index * 100}ms`;
@@ -605,7 +612,10 @@ function createNotificationElement(notification, index) {
     // Generate weather icons if available
     let weatherIcons = '';
     if (notification.type === 'schedule' && notification.weather) {
+        console.log('🌦️ Weather data found for schedule notification');
         weatherIcons = generateWeatherIconsForSchedule(notification);
+    } else if (notification.type === 'schedule') {
+        console.log('🌦️ No weather data found for schedule notification');
     }
     
     element.innerHTML = `
@@ -635,6 +645,10 @@ function createNotificationElement(notification, index) {
 }
 
 function renderScheduleWithWeather(notification) {
+    console.log('🌦️ renderScheduleWithWeather called with notification:', notification);
+    console.log('🌦️ Weather data:', notification.weather);
+    console.log('🌦️ Weather type:', typeof notification.weather);
+    
     // Split the message into lines
     const lines = notification.message.split('\n');
     let html = '';
@@ -643,6 +657,7 @@ function renderScheduleWithWeather(notification) {
         html += `<div class="text-sm">${line}</div>`;
         
         if (notification.weather && typeof notification.weather === 'object') {
+            console.log('🌦️ Processing weather for line:', line);
             // Extract date and time from the line
             let eventDate = null;
             let eventType = null;
