@@ -117,6 +117,26 @@ class WeatherService:
                     'lat': data[0]['lat'],
                     'lon': data[0]['lon']
                 }
+            
+            # Fallback for Tennaqua location
+            if 'tennaqua' in location.lower():
+                logger.info(f"Tennaqua geocoding failed, trying fallback: Deerfield, IL, US")
+                fallback_params = {
+                    'q': 'Deerfield, IL, US',
+                    'limit': 1,
+                    'appid': self.api_key
+                }
+                
+                fallback_response = requests.get(url, params=fallback_params, timeout=10)
+                fallback_response.raise_for_status()
+                
+                fallback_data = fallback_response.json()
+                if fallback_data and len(fallback_data) > 0:
+                    logger.info(f"Tennaqua fallback geocoding successful")
+                    return {
+                        'lat': fallback_data[0]['lat'],
+                        'lon': fallback_data[0]['lon']
+                    }
                 
         except Exception as e:
             logger.error(f"Geocoding error for {location}: {str(e)}")
@@ -175,6 +195,7 @@ class WeatherService:
         """Get cached weather forecast from database"""
         try:
             from core.database import get_db
+            from datetime import timezone
             
             with get_db() as conn:
                 cursor = conn.cursor()
@@ -189,10 +210,23 @@ class WeatherService:
                     weather_data, created_at = result
                     
                     # Check if cache is still valid
-                    cache_age = datetime.now() - created_at
+                    # Make both datetimes timezone-aware for comparison
+                    now = datetime.now(timezone.utc)
+                    if created_at.tzinfo is None:
+                        # If created_at is naive, assume it's UTC
+                        created_at = created_at.replace(tzinfo=timezone.utc)
+                    
+                    cache_age = now - created_at
                     if cache_age < self.cache_duration:
-                        # Parse cached data
-                        data = json.loads(weather_data)
+                        # Parse cached data - handle both string and dict cases
+                        if isinstance(weather_data, str):
+                            data = json.loads(weather_data)
+                        elif isinstance(weather_data, dict):
+                            data = weather_data
+                        else:
+                            logger.error(f"Unexpected weather_data type: {type(weather_data)}")
+                            return None
+                            
                         return WeatherForecast(**data)
                         
         except Exception as e:

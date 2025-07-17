@@ -6590,66 +6590,8 @@ def get_team_performance_highlights(user_id, player_id, league_id, team_id):
 
 def get_fallback_notifications(user_id, player_id, league_id, team_id):
     """Provide fallback notifications when no specific notifications are available"""
-    notifications = []
-    
-    try:
-        # Get user info for personalized fallbacks
-        user_query = """
-            SELECT first_name, last_name
-            FROM users 
-            WHERE id = %s
-        """
-        user_info = execute_query_one(user_query, [user_id])
-        
-        # Always provide fallback notifications regardless of user data
-        first_name = user_info.get("first_name", "Player") if user_info else "Player"
-        
-        # Fallback notifications that are always relevant
-        fallback_notifications = [
-            {
-                "id": "welcome_back",
-                "type": "personal",
-                "title": f"Welcome back, {first_name}!",
-                "message": f"Ready to dominate the court today? Check your stats and see how you're performing.",
-                "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                "priority": 1
-            },
-            {
-                "id": "team_overview",
-                "type": "team",
-                "title": "Team Overview",
-                "message": "Your team is ready for action. Check the latest standings and team performance.",
-                "cta": {"label": "View Team", "href": "/mobile/myteam"},
-                "priority": 2
-            },
-            {
-                "id": "stay_connected",
-                "type": "captain",
-                "title": "Stay Connected",
-                "message": "Keep up with your team! Check for polls, messages, and updates from your captain.",
-                "cta": {"label": "View Polls", "href": "/mobile/polls"},
-                "priority": 3
-            }
-        ]
-        
-        notifications = fallback_notifications
-            
-    except Exception as e:
-        logger.error(f"Error getting fallback notifications: {str(e)}")
-        
-        # Ultimate fallback if everything fails
-        notifications = [
-            {
-                "id": "rally_highlights",
-                "type": "personal",
-                "title": "Rally Highlights",
-                "message": "Welcome to Rally! Explore your stats, team performance, and stay connected with your teammates.",
-                "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
-                "priority": 1
-            }
-        ]
-    
-    return notifications
+    # Return empty list to never show welcome cards
+    return []
 
 
 def get_team_poll_notifications(user_id, player_id, league_id, team_id):
@@ -6972,13 +6914,6 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             practice_text = f"Practice: {practice_date}"
             if practice_time:
                 practice_text += f" at {practice_time}"
-            
-            # Add weather info for practice
-            practice_weather_key = f"practice_{next_practice['id']}"
-            if practice_weather_key in weather_data:
-                forecast = weather_data[practice_weather_key]
-                weather_msg = weather_service.format_weather_message(forecast)
-                practice_text += f" • {weather_msg}"
         
         if next_match:
             match_date = next_match["match_date"].strftime("%b %d")
@@ -6989,13 +6924,6 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 match_text += f" at {match_time}"
             if opponent:
                 match_text += f" vs {opponent}"
-            
-            # Add weather info for match
-            match_weather_key = f"match_{next_match['id']}"
-            if match_weather_key in weather_data:
-                forecast = weather_data[match_weather_key]
-                weather_msg = weather_service.format_weather_message(forecast)
-                match_text += f" • {weather_msg}"
         
         # Create notification with weather data
         notification_data = {
@@ -7245,7 +7173,16 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
         if not player_id or not league_id:
             return notifications
             
-        # Calculate current player's win streak using the same logic as my-club page
+        # Get user's name for personalized messages
+        user_query = """
+            SELECT first_name, last_name
+            FROM users 
+            WHERE id = %s
+        """
+        user_info = execute_query_one(user_query, [user_id])
+        user_name = user_info.get("first_name", "Player") if user_info else "Player"
+            
+        # Calculate both current streak and best season streak
         streak_query = """
             WITH match_results AS (
                 SELECT 
@@ -7259,40 +7196,92 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 FROM match_scores 
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
-                ORDER BY match_date DESC
+                ORDER BY match_date ASC
             ),
             streak_groups AS (
                 SELECT 
                     result,
                     match_date,
-                    ROW_NUMBER() OVER (ORDER BY match_date DESC) as rn,
-                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_rn,
-                    ROW_NUMBER() OVER (ORDER BY match_date DESC) - 
-                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_group
+                    ROW_NUMBER() OVER (ORDER BY match_date) as rn,
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date) as streak_rn,
+                    ROW_NUMBER() OVER (ORDER BY match_date) - 
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date) as streak_group
                 FROM match_results
+            ),
+            streak_lengths AS (
+                SELECT 
+                    result, 
+                    streak_group, 
+                    COUNT(*) as streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_groups 
+                GROUP BY result, streak_group
             ),
             current_streak AS (
                 SELECT 
                     result,
-                    COUNT(*) as streak_length
-                FROM streak_groups 
-                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
-                GROUP BY result
-                ORDER BY streak_length DESC
-                LIMIT 1
+                    streak_length
+                FROM streak_lengths 
+                WHERE last_match_date = (SELECT MAX(match_date) FROM match_results)
+            ),
+            best_win_streak AS (
+                SELECT MAX(streak_length) as best_win_streak_length
+                FROM streak_lengths
+                WHERE result = 'W'
             )
-            SELECT * FROM current_streak
+            SELECT 
+                cs.result as current_streak_result,
+                cs.streak_length as current_streak_length,
+                COALESCE(bws.best_win_streak_length, 0) as best_win_streak_length
+            FROM current_streak cs
+            CROSS JOIN best_win_streak bws
         """
         
         streak_result = execute_query_one(streak_query, [player_id, player_id, player_id, player_id, player_id, player_id, league_id])
         
-        # Only show win streaks of 3 or more
-        if streak_result and streak_result["streak_length"] >= 3 and streak_result["result"] == "W":
+        # Always show a notification card with appropriate message
+        if streak_result:
+            current_streak_length = streak_result.get("current_streak_length", 0)
+            current_streak_result = streak_result.get("current_streak_result", "")
+            best_win_streak_length = streak_result.get("best_win_streak_length", 0) or 0
+            
+            if current_streak_length >= 3 and current_streak_result == "W":
+                # Show current win streak message
+                notifications.append({
+                    "id": f"my_win_streak_{player_id}",
+                    "type": "personal",
+                    "title": "My Win Streaks",
+                    "message": f"Great job {user_name}, you're on a {current_streak_length}-match win streak! Keep the momentum going.",
+                    "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "priority": 5
+                })
+            elif best_win_streak_length >= 3:
+                # Show best season streak message
+                notifications.append({
+                    "id": f"my_best_streak_{player_id}",
+                    "type": "personal",
+                    "title": "My Win Streaks",
+                    "message": f"Your best win streak this season was {best_win_streak_length}!",
+                    "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "priority": 5
+                })
+            else:
+                # Show no streaks message
+                notifications.append({
+                    "id": f"my_no_streaks_{player_id}",
+                    "type": "personal",
+                    "title": "My Win Streaks",
+                    "message": f"You don't have any winning streaks this season.",
+                    "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                    "priority": 5
+                })
+        else:
+            # No match data available
             notifications.append({
-                "id": f"my_win_streak_{player_id}",
+                "id": f"my_no_streaks_{player_id}",
                 "type": "personal",
                 "title": "My Win Streaks",
-                "message": f"You're on a {streak_result['streak_length']}-match win streak! Keep the momentum going.",
+                "message": f"You don't have any winning streaks this season.",
                 "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                 "priority": 5
             })
