@@ -39,6 +39,9 @@ function initMobileApp() {
     
     // Handle device orientation changes
     handleOrientationChanges();
+    
+    // Initialize auto-scroll functionality for mobile home page
+    initAutoScroll();
 }
 
 /**
@@ -419,4 +422,76 @@ function loadDynamicContent() {
 }
 
 // Initialize Socket.IO when the script loads
-initializeSocketIO(); 
+initializeSocketIO();
+
+/**
+ * Initialize auto-scroll functionality for mobile home page
+ */
+function initAutoScroll() {
+    console.log('🔍 Setting up auto-scroll for mobile home page...');
+    
+    // Only run on the main mobile home page
+    if (!window.location.pathname.endsWith('/mobile') && !window.location.pathname.endsWith('/mobile/')) {
+        console.log('⏭️ Not on mobile home page, skipping auto-scroll setup');
+        return;
+    }
+    
+    // Simple auto-scroll function
+    function autoScrollOnNavigation() {
+        console.log('🔄 Auto-scroll triggered - scrolling 200px');
+        window.scrollBy({
+            top: 200,
+            behavior: 'smooth'
+        });
+        console.log('✅ Auto-scroll completed');
+    }
+    
+    // Target section headers (Act, Analyze, Prepare, etc.)
+    const sectionHeaders = document.querySelectorAll('.section-header');
+    console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+    
+    if (sectionHeaders.length === 0) {
+        console.warn('⚠️ No section headers found! Checking for alternative selectors...');
+        
+        // Try alternative selectors
+        const alternativeSelectors = [
+            '.section-header',
+            '[class*="section"]',
+            '[class*="header"]',
+            'h2',
+            'h3',
+            '.text-xl',
+            '.font-bold'
+        ];
+        
+        for (const selector of alternativeSelectors) {
+            const elements = document.querySelectorAll(selector);
+            console.log(`🔍 Selector "${selector}": found ${elements.length} elements`);
+            if (elements.length > 0) {
+                console.log(`📋 Elements with "${selector}":`, elements);
+            }
+        }
+    }
+    
+    sectionHeaders.forEach((header, index) => {
+        console.log(`🎯 Adding click listener to section header ${index + 1}:`, header.textContent?.trim() || header.className);
+        header.addEventListener('click', function(e) {
+            console.log(`🖱️ Section header clicked:`, header.textContent?.trim() || header.className);
+            autoScrollOnNavigation();
+        });
+    });
+    
+    // Add auto-scroll to main menu buttons (Act, Analyze, Prepare, etc.)
+    const mainMenuButtons = document.querySelectorAll('.act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button');
+    console.log(`📋 Found ${mainMenuButtons.length} main menu buttons:`, mainMenuButtons);
+    
+    mainMenuButtons.forEach((button, index) => {
+        console.log(`🎯 Adding click listener to main menu button ${index + 1}:`, button.textContent?.trim() || button.className);
+        button.addEventListener('click', function(e) {
+            console.log(`🖱️ Main menu button clicked:`, button.textContent?.trim() || button.className);
+            autoScrollOnNavigation();
+        });
+    });
+    
+
+} 
