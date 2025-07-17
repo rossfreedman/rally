@@ -354,6 +354,59 @@
                 padding: 0 8px;
             }
         }
+        
+        /* Desktop responsive constraints for hamburger menu */
+        @media (min-width: 768px) {
+            .category-button {
+                max-width: 300px !important;
+                margin: 0 auto !important;
+            }
+            
+            .submenu-item {
+                max-width: 300px !important;
+                margin: 0 auto 0.5rem auto !important;
+            }
+            
+            .space-y-4 {
+                max-width: 350px !important;
+                margin: 0 auto !important;
+            }
+            
+            #navDrawer .px-4 {
+                padding-left: 2rem !important;
+                padding-right: 2rem !important;
+            }
+        }
+        
+        /* Large desktop constraints for hamburger menu */
+        @media (min-width: 1024px) {
+            .category-button {
+                max-width: 280px !important;
+            }
+            
+            .submenu-item {
+                max-width: 280px !important;
+            }
+            
+            .space-y-4 {
+                max-width: 330px !important;
+            }
+        }
+        
+        /* Extra large desktop constraints for hamburger menu */
+        @media (min-width: 1280px) {
+            .category-button {
+                max-width: 260px !important;
+            }
+            
+            .submenu-item {
+                max-width: 260px !important;
+            }
+            
+            .space-y-4 {
+                max-width: 310px !important;
+            }
+        }
     </style>
     
     <!-- Session data will be injected here -->
@@ -757,7 +810,7 @@
 
     <!-- Bottom Navigation Dock -->
     <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #045454;">
-        <div class="flex items-center justify-around h-full px-2">
+        <div class="flex items-center justify-around h-full px-2" style="max-width: 600px; margin: 0 auto;">
             <!-- Home -->
             <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-800 rounded-lg mx-1">
                 <i class="fas fa-home text-xl mb-1"></i>

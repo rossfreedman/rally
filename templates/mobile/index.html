@@ -89,6 +89,64 @@
   .layout-toggle-btn {
     display: none !important;
   }
+  
+  /* Responsive button width constraints */
+  .ios-card {
+    max-width: 300px !important;
+    width: 100% !important;
+  }
+  
+  /* Container constraints for button grids */
+  .icon-grid {
+    max-width: 100% !important;
+  }
+  
+  /* Desktop-specific constraints */
+  @media (min-width: 768px) {
+    .ios-card {
+      max-width: 280px !important;
+    }
+    
+    .icon-grid {
+      max-width: 600px !important;
+      margin: 0 auto !important;
+    }
+    
+    .icon-section {
+      max-width: 650px !important;
+      margin: 0 auto 2rem auto !important;
+    }
+  }
+  
+  /* Large desktop constraints */
+  @media (min-width: 1024px) {
+    .ios-card {
+      max-width: 260px !important;
+    }
+    
+    .icon-grid {
+      max-width: 560px !important;
+    }
+    
+    .icon-section {
+      max-width: 610px !important;
+    }
+  }
+  
+  /* Extra large desktop constraints */
+  @media (min-width: 1280px) {
+    .ios-card {
+      max-width: 240px !important;
+    }
+    
+    .icon-grid {
+      max-width: 520px !important;
+    }
+    
+    .icon-section {
+      max-width: 570px !important;
+    }
+  }
 </style>
 
 <!-- Icon Library - FontAwesome is already loaded in layout.html -->

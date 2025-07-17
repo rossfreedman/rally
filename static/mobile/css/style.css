@@ -1004,3 +1004,89 @@ a:hover {
         opacity: 0.7;
     }
 } 
+
+/* Extra large desktop constraints */
+@media (min-width: 1280px) {
+  .icon-btn {
+    width: 90px;
+  }
+  .icon-btn .icon-circle {
+    width: 64px;
+    height: 64px;
+    font-size: 1.7rem;
+  }
+  .icon-label {
+    font-size: 1.01rem;
+  }
+}
+
+/* Responsive button width constraints for all mobile pages */
+.ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+  max-width: 300px !important;
+  width: 100% !important;
+}
+
+.icon-grid {
+  max-width: 100% !important;
+}
+
+/* Desktop-specific constraints */
+@media (min-width: 768px) {
+  .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+    max-width: 280px !important;
+  }
+  
+  .icon-grid {
+    max-width: 600px !important;
+    margin: 0 auto !important;
+  }
+  
+  .icon-section {
+    max-width: 650px !important;
+    margin: 0 auto 2rem auto !important;
+  }
+  
+  /* Bottom navigation constraints */
+  .bottom-dock .flex {
+    max-width: 600px !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Large desktop constraints */
+@media (min-width: 1024px) {
+  .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+    max-width: 260px !important;
+  }
+  
+  .icon-grid {
+    max-width: 560px !important;
+  }
+  
+  .icon-section {
+    max-width: 610px !important;
+  }
+  
+  .bottom-dock .flex {
+    max-width: 560px !important;
+  }
+}
+
+/* Extra large desktop constraints */
+@media (min-width: 1280px) {
+  .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+    max-width: 240px !important;
+  }
+  
+  .icon-grid {
+    max-width: 520px !important;
+  }
+  
+  .icon-section {
+    max-width: 570px !important;
+  }
+  
+  .bottom-dock .flex {
+    max-width: 520px !important;
+  }
+} 
