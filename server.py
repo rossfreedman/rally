@@ -5018,6 +5018,37 @@ def delete_user_complete_production():
         }), 500
 
 
+@app.route("/debug/fix-staging-schema")
+def fix_staging_schema_debug():
+    """Debug route to fix staging schema issues"""
+    try:
+        # Import the fix function
+        from scripts.fix_staging_schema_internal import fix_staging_schema_internal
+        
+        # Run the fix
+        success = fix_staging_schema_internal()
+        
+        if success:
+            return jsonify({
+                "status": "success",
+                "message": "Staging schema fixes applied successfully",
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Failed to apply staging schema fixes",
+                "timestamp": datetime.now().isoformat()
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Error applying schema fixes: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
