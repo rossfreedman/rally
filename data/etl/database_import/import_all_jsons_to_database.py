@@ -3738,11 +3738,18 @@ class ComprehensiveETL:
                 league_row = cursor.fetchone()
                 league_db_id = league_row[0] if league_row else None
 
-                # Get team IDs from teams table
+                # Get team IDs from teams table with enhanced matching
                 home_team_id = None
                 away_team_id = None
 
+                def normalize_team_name_for_matching(team_name: str) -> str:
+                    """Normalize team name by removing ' - Series X' suffix for matching"""
+                    if " - Series " in team_name:
+                        return team_name.split(" - Series ")[0]
+                    return team_name
+
                 if home_team and home_team != "BYE":
+                    # Try exact match first
                     cursor.execute(
                         """
                         SELECT t.id FROM teams t
@@ -3752,9 +3759,24 @@ class ComprehensiveETL:
                         (league_id, home_team),
                     )
                     home_team_row = cursor.fetchone()
+                    
+                    if not home_team_row:
+                        # Try normalized match (remove " - Series X" suffix)
+                        normalized_home_team = normalize_team_name_for_matching(home_team)
+                        cursor.execute(
+                            """
+                            SELECT t.id FROM teams t
+                            JOIN leagues l ON t.league_id = l.id
+                            WHERE l.league_id = %s AND t.team_name = %s
+                        """,
+                            (league_id, normalized_home_team),
+                        )
+                        home_team_row = cursor.fetchone()
+                    
                     home_team_id = home_team_row[0] if home_team_row else None
 
                 if away_team and away_team != "BYE":
+                    # Try exact match first
                     cursor.execute(
                         """
                         SELECT t.id FROM teams t
@@ -3764,6 +3786,20 @@ class ComprehensiveETL:
                         (league_id, away_team),
                     )
                     away_team_row = cursor.fetchone()
+                    
+                    if not away_team_row:
+                        # Try normalized match (remove " - Series X" suffix)
+                        normalized_away_team = normalize_team_name_for_matching(away_team)
+                        cursor.execute(
+                            """
+                            SELECT t.id FROM teams t
+                            JOIN leagues l ON t.league_id = l.id
+                            WHERE l.league_id = %s AND t.team_name = %s
+                        """,
+                            (league_id, normalized_away_team),
+                        )
+                        away_team_row = cursor.fetchone()
+                    
                     away_team_id = away_team_row[0] if away_team_row else None
 
                 cursor.execute(
@@ -4233,6 +4269,10 @@ class ComprehensiveETL:
                     self.log("\n🔍 Step 8: Post-import validation and orphan prevention...")
                     orphan_fixes = self.validate_and_fix_team_hierarchy_relationships(conn)
                     
+                    # CRITICAL: Validate and fix schedule team mappings
+                    self.log("\n🔍 Step 8.5: Validating schedule team mappings...")
+                    schedule_fixes = self.validate_and_fix_schedule_team_mappings(conn)
+                    
                     # CRITICAL: Final series_id health check
                     self.log("\n🔍 Step 9: Final series_id health validation...")
                     final_series_health = self._validate_final_series_id_health(conn)
@@ -4253,6 +4293,8 @@ class ComprehensiveETL:
                     self.log(f"🛡️  Availability data: {restore_results['availability_records_preserved']:,} records preserved")
                     if orphan_fixes > 0:
                         self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
+                    if schedule_fixes > 0:
+                        self.log(f"📅 Schedule team mappings fixed: {schedule_fixes} entries corrected")
                     self.log(f"📊 Series_id health: {final_series_health:.1f}% ({'✅ Excellent' if final_series_health >= 95 else '⚠️ Needs attention' if final_series_health >= 85 else '🚨 Critical'})")
                     self.log("🎯 League selector and Find Subs functionality: ✅ Ready")
                     self.log("🔄 Session version incremented: ✅ Users will auto-refresh")
@@ -4308,6 +4350,135 @@ class ComprehensiveETL:
             self.print_summary()
 
         return True
+
+    def validate_and_fix_schedule_team_mappings(self, conn) -> int:
+        """
+        Post-import validation to check for and fix any schedule entries with NULL team_ids.
+        This prevents the issue where team names with " - Series X" suffixes don't match
+        team names in the teams table.
+        
+        Note: This primarily fixes NSTF league issues. Other leagues (CITA, CNSWPL) may have
+        fundamental data mismatches between schedule and teams data that require manual intervention.
+        
+        Returns:
+            int: Number of schedule entries that were fixed
+        """
+        cursor = conn.cursor()
+        total_fixes = 0
+        
+        # Check for schedule entries with NULL team_ids
+        cursor.execute("""
+            SELECT COUNT(*) as null_count
+            FROM schedule 
+            WHERE (home_team_id IS NULL OR away_team_id IS NULL)
+        """)
+        null_count = cursor.fetchone()[0]
+        
+        if null_count == 0:
+            self.log("   ✅ All schedule entries have valid team mappings")
+            return 0
+        
+        self.log(f"   🔧 Found {null_count} schedule entries with NULL team_ids - fixing...")
+        
+        def normalize_team_name_for_matching(team_name: str) -> str:
+            """Normalize team name by removing ' - Series X' suffix for matching"""
+            if " - Series " in team_name:
+                return team_name.split(" - Series ")[0]
+            return team_name
+        
+        # Fix home team mappings
+        cursor.execute("""
+            SELECT DISTINCT s.id, s.home_team, s.league_id, l.league_id as league_code
+            FROM schedule s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE s.home_team_id IS NULL AND s.home_team != 'BYE'
+        """)
+        home_team_fixes = cursor.fetchall()
+        
+        for schedule_id, team_name, league_db_id, league_code in home_team_fixes:
+            # Try exact match first
+            cursor.execute("""
+                SELECT t.id FROM teams t
+                WHERE t.league_id = %s AND t.team_name = %s
+            """, (league_db_id, team_name))
+            team_row = cursor.fetchone()
+            
+            if not team_row:
+                # Try normalized match (remove " - Series X" suffix)
+                normalized_team_name = normalize_team_name_for_matching(team_name)
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    WHERE t.league_id = %s AND t.team_name = %s
+                """, (league_db_id, normalized_team_name))
+                team_row = cursor.fetchone()
+            
+            if team_row:
+                cursor.execute("""
+                    UPDATE schedule SET home_team_id = %s WHERE id = %s
+                """, (team_row[0], schedule_id))
+                total_fixes += 1
+                self.log(f"     Fixed home team: {team_name} → team_id {team_row[0]}")
+        
+        # Fix away team mappings
+        cursor.execute("""
+            SELECT DISTINCT s.id, s.away_team, s.league_id, l.league_id as league_code
+            FROM schedule s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE s.away_team_id IS NULL AND s.away_team != 'BYE'
+        """)
+        away_team_fixes = cursor.fetchall()
+        
+        for schedule_id, team_name, league_db_id, league_code in away_team_fixes:
+            # Try exact match first
+            cursor.execute("""
+                SELECT t.id FROM teams t
+                WHERE t.league_id = %s AND t.team_name = %s
+            """, (league_db_id, team_name))
+            team_row = cursor.fetchone()
+            
+            if not team_row:
+                # Try normalized match (remove " - Series X" suffix)
+                normalized_team_name = normalize_team_name_for_matching(team_name)
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    WHERE t.league_id = %s AND t.team_name = %s
+                """, (league_db_id, normalized_team_name))
+                team_row = cursor.fetchone()
+            
+            if team_row:
+                cursor.execute("""
+                    UPDATE schedule SET away_team_id = %s WHERE id = %s
+                """, (team_row[0], schedule_id))
+                total_fixes += 1
+                self.log(f"     Fixed away team: {team_name} → team_id {team_row[0]}")
+        
+        # Check final status by league
+        cursor.execute("""
+            SELECT l.league_name, COUNT(*) as remaining_null_count
+            FROM schedule s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE (s.home_team_id IS NULL OR s.away_team_id IS NULL)
+            GROUP BY l.league_name
+            ORDER BY remaining_null_count DESC
+        """)
+        remaining_by_league = cursor.fetchall()
+        
+        total_remaining = sum(count for _, count in remaining_by_league)
+        
+        if total_remaining > 0:
+            self.log(f"   ⚠️  {total_remaining} schedule entries still have NULL team_ids after fixes", "WARNING")
+            self.log("   📊 Breakdown by league:")
+            for league_name, count in remaining_by_league:
+                self.log(f"      {league_name}: {count:,} entries")
+            
+            # Provide guidance for manual intervention
+            if any('CITA' in league_name or 'CNSWPL' in league_name for league_name, _ in remaining_by_league):
+                self.log("   💡 Note: CITA and CNSWPL leagues have fundamental data mismatches", "INFO")
+                self.log("      between schedule and teams data that require manual intervention", "INFO")
+        else:
+            self.log(f"   ✅ All schedule team mappings fixed successfully")
+        
+        return total_fixes
 
 
 def main():

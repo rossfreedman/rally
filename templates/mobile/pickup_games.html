@@ -17,6 +17,36 @@
         </div>
     </div>
 
+    <!-- Pickup Games Notifications Section -->
+    <div class="px-4 py-4">
+        <div class="flex items-center justify-center mb-4">
+            <div class="flex-grow border-t-2 border-gray-400"></div>
+            <div class="section-header text-lg font-bold px-4 text-center">
+                🎾 Available Games
+            </div>
+            <div class="flex-grow border-t-2 border-gray-400"></div>
+        </div>
+        
+        <!-- Notifications Container -->
+        <div id="pickup-notifications-container" class="space-y-4">
+            <!-- Loading state -->
+            <div id="pickup-notifications-loading" class="text-center py-4">
+                <div class="loading-spinner loading-md mx-auto mb-2"></div>
+                <p class="text-gray-500 text-sm">Loading available games...</p>
+            </div>
+            
+            <!-- Empty state -->
+            <div id="pickup-notifications-empty" class="text-center py-4 hidden">
+                <i class="fas fa-info-circle text-gray-400 text-2xl mb-2"></i>
+                <p class="text-gray-500 text-sm">No pickup games available for you right now</p>
+                <p class="text-gray-400 text-xs mt-1">Check back later or create a new game!</p>
+            </div>
+            
+            <!-- Notifications will be populated here -->
+            <div id="pickup-notifications-list" class="space-y-3 hidden"></div>
+        </div>
+    </div>
+
     <!-- Tab Navigation -->
     <div class="bg-gray-100 p-2">
         <div class="flex bg-white rounded-xl shadow-sm overflow-hidden">
@@ -2340,10 +2370,131 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Load pickup games notifications specifically for this page
+    async function loadPickupGamesNotifications() {
+        try {
+            // Show loading state
+            const loading = document.getElementById('pickup-notifications-loading');
+            const empty = document.getElementById('pickup-notifications-empty');
+            const list = document.getElementById('pickup-notifications-list');
+            
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            list.classList.add('hidden');
+            
+            // Fetch pickup games notifications from the API
+            const response = await fetch('/api/home/notifications');
+            const data = await response.json();
+            
+            // Hide loading
+            loading.classList.add('hidden');
+            
+            if (data.error) {
+                console.error('Error fetching notifications:', data.error);
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            const notifications = data.notifications || [];
+            
+            // Filter for pickup games notifications only
+            const pickupNotifications = notifications.filter(notification => 
+                notification.type === 'match' && 
+                notification.title && 
+                notification.title.includes('Pickup Game')
+            );
+            
+            if (pickupNotifications.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            // Render pickup games notifications
+            renderPickupNotifications(pickupNotifications);
+            
+        } catch (error) {
+            console.error('Error loading pickup games notifications:', error);
+            const loading = document.getElementById('pickup-notifications-loading');
+            const empty = document.getElementById('pickup-notifications-empty');
+            
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+        }
+    }
+    
+    // Render pickup games notifications
+    function renderPickupNotifications(notifications) {
+        const list = document.getElementById('pickup-notifications-list');
+        const empty = document.getElementById('pickup-notifications-empty');
+        
+        if (notifications.length === 0) {
+            empty.classList.remove('hidden');
+            list.classList.add('hidden');
+            return;
+        }
+        
+        empty.classList.add('hidden');
+        list.classList.remove('hidden');
+        
+        const notificationsHTML = notifications.map((notification, index) => {
+            const icon = getPickupNotificationIcon(notification.type);
+            
+            return `
+                <div class="notification-card bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0" 
+                     style="animation-delay: ${index * 100}ms;" 
+                     data-type="${notification.type}">
+                    
+                    <div class="flex items-start space-x-3">
+                        <!-- Icon -->
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background-color: #085454;">
+                            ${icon}
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-1">${notification.title}</h3>
+                            <p class="text-sm text-gray-600 mb-3">${notification.message}</p>
+                            
+                            <!-- Action Button -->
+                            ${notification.cta ? `
+                                <a href="${notification.cta.href}" 
+                                   class="inline-flex items-center px-3 py-2 text-xs font-medium text-white rounded-lg transition-colors duration-200 shadow-sm" 
+                                   style="background-color: #085454;">
+                                    ${notification.cta.label}
+                                    <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        list.innerHTML = notificationsHTML;
+    }
+    
+    // Get icon for pickup games notifications
+    function getPickupNotificationIcon(type) {
+        // Tennis Court Icon for pickup games
+        return `<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Outer court -->
+            <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+            <!-- Net (center line) -->
+            <line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/>
+            <!-- Service lines -->
+            <line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.2"/>
+            <!-- Service boxes -->
+            <line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1"/>
+            <line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/>
+        </svg>`;
+    }
+
     // Initialize page
     function initializePage() {
         setupEventListeners();
         initializeTabs();
+        loadPickupGamesNotifications();
         console.log('Pickup games page initialized with tabs');
     }
 
@@ -2448,6 +2599,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the page
     initializePage();
+    
+    // Auto-refresh pickup games notifications every 2 minutes
+    setInterval(() => {
+        loadPickupGamesNotifications();
+    }, 2 * 60 * 1000);
     
     // Add global test functions for easy console testing
     window.testSuccess = function() {

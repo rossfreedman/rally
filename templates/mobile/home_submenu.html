@@ -934,12 +934,20 @@ function generateWeatherIcons(weatherData) {
 
             // Get weather icon URL
             const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+            
+            // Apply yellow filter only to sun/clear weather icons
+            let iconStyle = '';
+            if (forecast.icon.includes('01d') || forecast.icon.includes('01n') || 
+                forecast.condition.toLowerCase().includes('clear') || 
+                forecast.condition.toLowerCase().includes('sun')) {
+                iconStyle = 'filter: brightness(0) saturate(100%) invert(84%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%);';
+            }
 
             icons += `
                 <div class="flex flex-col items-center gap-2 ${bgColor} border ${borderColor} rounded-lg px-4 py-3 min-w-[120px]">
                     <!-- Weather Icon and Condition -->
                     <div class="flex flex-col items-center gap-1">
-                        <img src="${iconUrl}" alt="${forecast.condition}" class="w-12 h-12" onerror="this.style.display='none'">
+                        <img src="${iconUrl}" alt="${forecast.condition}" class="w-12 h-12" style="${iconStyle}" onerror="this.style.display='none'">
                         <span class="text-xs font-semibold ${textColor} capitalize text-center">
                             ${forecast.condition}
                         </span>
@@ -1034,11 +1042,19 @@ function generateHorizontalWeatherCard(forecast) {
 
     // Get weather icon URL
     const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+    
+    // Apply yellow filter only to sun/clear weather icons
+    let iconStyle = '';
+    if (forecast.icon.includes('01d') || forecast.icon.includes('01n') || 
+        forecast.condition.toLowerCase().includes('clear') || 
+        forecast.condition.toLowerCase().includes('sun')) {
+        iconStyle = 'filter: brightness(0) saturate(100%) invert(84%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%);';
+    }
 
     return `
         <div class="flex items-center gap-2 ${bgColor} border ${borderColor} rounded-lg px-3 py-2 min-w-[140px]">
             <!-- Weather Icon -->
-            <img src="${iconUrl}" alt="${forecast.condition}" class="w-8 h-8" onerror="this.style.display='none'">
+            <img src="${iconUrl}" alt="${forecast.condition}" class="w-8 h-8" style="${iconStyle}" onerror="this.style.display='none'">
             
             <!-- Weather Info -->
             <div class="flex flex-col gap-1">
@@ -1108,11 +1124,19 @@ function generateCompactHorizontalWeatherCard(forecast) {
 
     // Get weather icon URL
     const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+    
+    // Apply yellow filter only to sun/clear weather icons
+    let iconStyle = '';
+    if (forecast.icon.includes('01d') || forecast.icon.includes('01n') || 
+        forecast.condition.toLowerCase().includes('clear') || 
+        forecast.condition.toLowerCase().includes('sun')) {
+        iconStyle = 'filter: brightness(0) saturate(100%) invert(84%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%);';
+    }
 
     return `
         <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
             <!-- Weather Icon -->
-            <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" onerror="this.style.display='none'">
+            <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" style="${iconStyle}" onerror="this.style.display='none'">
             
             <!-- Weather Info -->
             <div class="flex flex-col gap-0.5 justify-center h-full flex-1">

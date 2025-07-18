@@ -3936,7 +3936,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
 
         for match in team_matches:
             is_home = match.get("Home Team") == team
-            winner_is_home = match.get("Winner", "").lower() == "home"
+            winner = match.get("Winner", "")
+            winner_is_home = winner and winner.lower() == "home"
             team_won = (is_home and winner_is_home) or (
                 not is_home and not winner_is_home
             )
@@ -4066,7 +4067,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
 
                 for match in court_matches:
                     is_home = match.get("Home Team") == team
-                    winner_is_home = match.get("Winner", "").lower() == "home"
+                    winner = match.get("Winner", "")
+                    winner_is_home = winner and winner.lower() == "home"
                     team_won = (is_home and winner_is_home) or (
                         not is_home and not winner_is_home
                     )
@@ -4162,7 +4164,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     if is_home
                     else match.get("Away Player 2")
                 )
-                winner_is_home = match.get("Winner", "").lower() == "home"
+                winner = match.get("Winner", "")
+                winner_is_home = winner and winner.lower() == "home"
                 team_won = (is_home and winner_is_home) or (
                     not is_home and not winner_is_home
                 )
