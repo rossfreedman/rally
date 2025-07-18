@@ -363,6 +363,11 @@ def get_team_last_3_matches():
         if not user_club or not user_series:
             return jsonify({"error": "Team information not found"}), 404
 
+        # Normalize series name (convert "Series 2B" to "S2B" for NSTF)
+        normalized_series = user_series
+        if user_series.startswith("Series "):
+            normalized_series = user_series.replace("Series ", "S")
+
         # Convert league_id to integer foreign key for database queries
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != "":
@@ -392,7 +397,7 @@ def get_team_last_3_matches():
         """
 
         team_record = execute_query_one(
-            team_query, [user_club, user_series, league_id_int]
+            team_query, [user_club, normalized_series, league_id_int]
         )
 
         if not team_record:
@@ -6134,9 +6139,9 @@ def get_home_notifications():
         except Exception as e:
             logger.error(f"Error getting pickup games notifications: {str(e)}")
         
-        # Sort by priority and limit to 6 notifications
+        # Sort by priority and limit to 8 notifications (increased to ensure pickup games show)
         notifications.sort(key=lambda x: x["priority"])
-        notifications = notifications[:6]
+        notifications = notifications[:8]
         
         # Ensure there are always notifications by adding fallbacks if needed
         try:
@@ -6621,7 +6626,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
                 "message": f"{recent_poll['question']}",
                 "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
                 "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{recent_poll['id']}"},
-                "priority": 3
+                "priority": 4
             })
             
     except Exception as e:
@@ -7006,22 +7011,24 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
     notifications = []
     
     try:
-        # Get user's PTI and series information
+        # Get user's PTI and series information from all player associations
+        # Find a player record with a valid PTI (not None)
         user_info_query = """
             SELECT 
                 p.pti as user_pti,
                 p.series_id as user_series_id,
                 s.name as user_series_name,
                 c.name as user_club_name
-            FROM players p
+            FROM user_player_associations upa
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN clubs c ON p.club_id = c.id
-            WHERE p.tenniscores_player_id = %s
-            ORDER BY p.id DESC
+            WHERE upa.user_id = %s AND p.pti IS NOT NULL
+            ORDER BY p.pti DESC
             LIMIT 1
         """
         
-        user_info = execute_query_one(user_info_query, [player_id])
+        user_info = execute_query_one(user_info_query, [user_id])
         
         if not user_info or not user_info.get("user_pti"):
             return notifications
@@ -7051,8 +7058,8 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
                 COUNT(pgp.id) as current_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
-            WHERE (pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s)
-            AND pg.pti_low <= %s AND pg.pti_high >= %s
+            WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
+            AND (pg.pti_low <= %s AND pg.pti_high >= %s)
             AND (
                 (pg.series_low IS NULL AND pg.series_high IS NULL) OR
                 (pg.series_low IS NOT NULL AND pg.series_low <= %s) OR
@@ -7114,7 +7121,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
                 "message": f"{game['description']} - {date_display} at {time_display} ({available_slots} spots left)",
                 "cta": {"label": "Join Game", "href": "/mobile/pickup-games"},
                 "detail_link": {"label": "View Game", "href": f"/mobile/pickup-games/{game['id']}"},
-                "priority": 6
+                "priority": 5
             })
             
     except Exception as e:
@@ -7128,10 +7135,31 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
     notifications = []
     
     try:
-        if not team_id or not league_id:
+        if not team_id:
             return notifications
             
-        # Get team standings information
+        # Get team information first to get series_id and league_id
+        team_info_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                t.series_id,
+                t.league_id,
+                s.name as series_name,
+                c.name as club_name
+            FROM teams t
+            JOIN series s ON t.series_id = s.id
+            JOIN clubs c ON t.club_id = c.id
+            WHERE t.id = %s
+        """
+        
+        team_info = execute_query_one(team_info_query, [team_id])
+        
+        if not team_info:
+            return notifications
+            
+        # Get team standings information using series_id and league_id (same logic as /api/series-stats)
+        # Strategy 1: Try direct series_id lookup
         standings_query = """
             SELECT 
                 ss.team,
@@ -7139,26 +7167,43 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
                 ss.matches_won,
                 ss.matches_lost,
                 ss.matches_tied,
-                t.team_name,
-                t.series_id,
-                s.name as series_name,
-                c.name as club_name
+                ss.league_id,
+                ss.series_id
             FROM series_stats ss
-            JOIN teams t ON ss.team_id = t.id
-            JOIN series s ON t.series_id = s.id
-            JOIN clubs c ON t.club_id = c.id
-            WHERE ss.team_id = %s 
-            AND ss.league_id = %s
+            WHERE ss.series_id = %s AND ss.league_id = %s
+            AND ss.team = %s
             ORDER BY ss.updated_at DESC
             LIMIT 1
         """
         
-        team_stats = execute_query_one(standings_query, [team_id, league_id])
+        team_stats = execute_query_one(standings_query, [team_info["series_id"], team_info["league_id"], team_info["team_name"]])
+        
+        # Strategy 2: Fallback to series name matching if direct lookup failed
+        if not team_stats:
+            # Try to find series_stats by team name and league_id (ignore series_id mismatch)
+            fallback_query = """
+                SELECT 
+                    ss.team,
+                    ss.points,
+                    ss.matches_won,
+                    ss.matches_lost,
+                    ss.matches_tied,
+                    ss.league_id,
+                    ss.series_id
+                FROM series_stats ss
+                WHERE ss.league_id = %s
+                AND ss.team = %s
+                ORDER BY ss.updated_at DESC
+                LIMIT 1
+            """
+            
+            team_stats = execute_query_one(fallback_query, [team_info["league_id"], team_info["team_name"]])
         
         if not team_stats:
             return notifications
             
         # Get all teams in the same series for ranking
+        # Use the series_id from team_stats (which might be different from team_info)
         all_teams_query = """
             SELECT 
                 ss.team,
@@ -7167,15 +7212,11 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
                 ss.matches_lost,
                 ss.matches_tied
             FROM series_stats ss
-            WHERE ss.league_id = %s
-            AND ss.team_id IN (
-                SELECT t.id FROM teams t 
-                WHERE t.series_id = %s
-            )
+            WHERE ss.series_id = %s AND ss.league_id = %s
             ORDER BY ss.points DESC
         """
         
-        all_teams = execute_query(all_teams_query, [league_id, team_stats.get("series_id")])
+        all_teams = execute_query(all_teams_query, [team_stats["series_id"], team_stats["league_id"]])
         
         if not all_teams:
             return notifications
@@ -7185,7 +7226,7 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
         first_place_points = all_teams[0]["points"] if all_teams else 0
         
         for i, team in enumerate(all_teams, 1):
-            if team["team"] == team_stats["team"]:
+            if team["team"] == team_info["team_name"]:
                 team_position = i
                 break
         
@@ -7197,7 +7238,7 @@ def get_team_position_notifications(user_id, player_id, league_id, team_id):
         points_back = first_place_points - team_stats["points"]
         
         # Format team name
-        team_display_name = team_stats["team_name"] or team_stats["team"]
+        team_display_name = team_info["team_name"]
         
         # Create notification message
         if points_back == 0:
@@ -7315,7 +7356,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Great job {user_name}, you're on a {current_streak_length}-match win streak! Keep the momentum going.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 5
+                    "priority": 6
                 })
             elif best_win_streak_length >= 3:
                 # Show best season streak message
@@ -7337,7 +7378,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Your best win streak this season was {best_win_streak_length}, which ended on {date_str}.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 5
+                    "priority": 6
                 })
             else:
                 # Show no streaks message
@@ -7348,7 +7389,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"You don't have any winning streaks this season.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 5
+                    "priority": 6
                 })
         else:
             # No match data available
@@ -7359,7 +7400,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 "message": f"You don't have any winning streaks this season.",
                 "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                 "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                "priority": 5
+                "priority": 6
             })
             
     except Exception as e:

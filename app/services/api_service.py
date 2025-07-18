@@ -312,7 +312,18 @@ def get_series_stats_data():
             if not resolved_series_name:
                 return jsonify({"error": "User series not found"}), 400
 
-            # Query series stats using series name
+            # NORMALIZE SERIES NAME: Convert "Series 2B" to "S2B" for database compatibility
+            # This fixes the same issue we had in the my-team page
+            normalized_series_name = resolved_series_name
+            if resolved_series_name and resolved_series_name.startswith("Series "):
+                # Extract the number and letter from "Series 2B" -> "S2B"
+                series_parts = resolved_series_name.split(" ", 1)
+                if len(series_parts) > 1:
+                    series_number = series_parts[1]
+                    normalized_series_name = f"S{series_number}"
+                    print(f"[DEBUG] Normalized series name: '{resolved_series_name}' -> '{normalized_series_name}'")
+
+            # Query series stats using normalized series name
             if user_league_id:
                 series_stats_query = """
                     SELECT 
@@ -335,10 +346,10 @@ def get_series_stats_data():
                     FROM series_stats s
                     LEFT JOIN leagues l ON s.league_id = l.id
                     LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
-                    WHERE s.series = %s AND s.league_id = %s
-                    ORDER BY s.points DESC, s.team ASC
+                                    WHERE s.series = %s AND s.league_id = %s
+                ORDER BY s.points DESC, s.team ASC
                 """
-                db_results = execute_query(series_stats_query, [resolved_series_name, user_league_id])
+                db_results = execute_query(series_stats_query, [normalized_series_name, user_league_id])
             else:
                 series_stats_query = """
                     SELECT 
@@ -359,10 +370,10 @@ def get_series_stats_data():
                         t.display_name
                     FROM series_stats s
                     LEFT JOIN teams t ON s.team = t.team_name
-                    WHERE s.series = %s
-                    ORDER BY s.points DESC, s.team ASC
+                                    WHERE s.series = %s
+                ORDER BY s.points DESC, s.team ASC
                 """
-                db_results = execute_query(series_stats_query, [resolved_series_name])
+                db_results = execute_query(series_stats_query, [normalized_series_name])
             
             print(f"[DEBUG] Series name fallback found {len(db_results)} teams")
 
