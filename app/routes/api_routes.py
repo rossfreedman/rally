@@ -6083,6 +6083,13 @@ def send_group_message():
 def get_home_notifications():
     """Get personalized notifications for the home page in the specified order"""
     try:
+        # TEMPORARY: Fix schema issues if they exist
+        try:
+            from scripts.fix_staging_schema_internal import fix_staging_schema_internal
+            fix_staging_schema_internal()
+        except Exception as e:
+            logger.warning(f"Schema fix attempt failed (this is normal): {str(e)}")
+        
         user = session["user"]
         user_id = user.get("id")
         player_id = user.get("tenniscores_player_id")
