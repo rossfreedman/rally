@@ -41,10 +41,10 @@
         </div>
     </div>
 
-    <!-- Main Content Container - Desktop Only -->
+    <!-- Main Content Container -->
     <div id="create-team-content" class="hidden" style="display: none !important;">
-        <!-- Force 3-Column Layout Always -->
-        <div class="grid grid-cols-3 gap-6 min-h-screen">
+        <!-- Responsive Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 min-h-screen">
             
             <!-- Column 1: Interactive PTI Range Control -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 h-fit">
@@ -480,21 +480,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize session data
     window.sessionData = {{ session_data | tojson | safe }};
 
-    // Mobile Detection - Show message if on mobile
+    // Mobile Detection - Show warning but allow access
     function isMobileDevice() {
         return window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
-    if (isMobileDevice()) {
-        console.log('Mobile device detected - showing mobile message');
-        document.getElementById('loading-state').style.display = 'none';
-        document.getElementById('mobile-only-message').classList.remove('hidden');
-        document.getElementById('mobile-only-message').style.display = 'block';
-        return; // Don't initialize the rest of the page
+    const isMobile = isMobileDevice();
+    
+    if (isMobile) {
+        console.log('Mobile device detected - showing mobile warning but allowing access');
+        // Show a mobile warning banner instead of blocking access
+        const mobileWarning = document.createElement('div');
+        mobileWarning.className = 'bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 mx-4';
+        mobileWarning.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-yellow-600 mr-3"></i>
+                <div>
+                    <h3 class="text-sm font-semibold text-yellow-800">Mobile Experience</h3>
+                    <p class="text-xs text-yellow-700">This page works best on desktop. You can still use it on mobile, but some features may be limited.</p>
+                </div>
+            </div>
+        `;
+        document.querySelector('.min-h-screen').insertBefore(mobileWarning, document.querySelector('.min-h-screen').firstChild);
     }
 
-    // Desktop detected - proceed with normal initialization
-    console.log('Desktop device detected - initializing team creation page');
+    console.log('Initializing team creation page');
 
     // Immediate element check
     console.log('DOM loaded, checking elements...');
