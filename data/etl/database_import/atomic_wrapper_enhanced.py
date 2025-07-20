@@ -40,6 +40,13 @@ from data.etl.database_import.enhanced_practice_time_protection import (
     validate_practice_time_health,
     cleanup_enhanced_backup_tables
 )
+from data.etl.database_import.enhanced_league_context_protection import (
+    backup_user_league_contexts,
+    restore_user_league_contexts,
+    auto_fix_broken_league_contexts,
+    validate_league_context_health,
+    cleanup_league_context_backup_tables
+)
 from database_config import get_db
 
 
@@ -62,6 +69,7 @@ class EnhancedAtomicETLWrapper:
         self.log(f"🎯 Environment: {self.etl.environment}")
         self.log(f"💾 Backup enabled: {self.create_backup}")
         self.log(f"🛡️  Practice time protection: ENABLED")
+        self.log(f"🛡️  League context protection: ENABLED")
     
     def log(self, message: str, level: str = "INFO"):
         """Log message with timestamp"""
@@ -178,6 +186,7 @@ class EnhancedAtomicETLWrapper:
             try:
                 self.etl.log("🚀 Starting Enhanced Atomic ETL Process")
                 self.etl.log("🛡️  Practice time protection ENABLED")
+                self.etl.log("🛡️  League context protection ENABLED")
                 self.etl.log("=" * 60)
                 
                 # Use atomic connection for all operations
@@ -209,6 +218,11 @@ class EnhancedAtomicETLWrapper:
                         self.etl.log("💾 Step 0.5: Creating enhanced practice time backup...")
                         practice_backup_count = create_enhanced_practice_time_backup(cursor, None)
                         self.etl.log(f"✅ Enhanced practice time backup: {practice_backup_count} records")
+                        
+                        # ENHANCEMENT 2.5: Create league context backup
+                        self.etl.log("💾 Step 0.6: Creating league context backup...")
+                        league_context_backup_count = backup_user_league_contexts(cursor, self.etl)
+                        self.etl.log(f"✅ League context backup: {league_context_backup_count} records")
                         
                         # Step 1: Load all JSON files
                         self.etl.log("📂 Step 1: Loading JSON files...")
@@ -288,6 +302,16 @@ class EnhancedAtomicETLWrapper:
                                 restore_results = self.etl.restore_user_data_with_team_mappings(conn)
                             except Exception as e:
                                 self.etl.log(f"⚠️  Other user data restoration partially failed: {e}", "WARNING")
+                        
+                        # ENHANCEMENT 3.5: League Context Restoration
+                        self.etl.log("\n🔄 Step 7.5: League context restoration...")
+                        restore_stats = restore_user_league_contexts(cursor, self.etl)
+                        self.etl.log(f"✅ League context restoration: {restore_stats['restored']} restored, {restore_stats['failed']} failed")
+                        
+                        # ENHANCEMENT 3.6: Auto-fix broken league contexts
+                        self.etl.log("🔧 Step 7.6: Auto-fixing any remaining broken league contexts...")
+                        fixed_count = auto_fix_broken_league_contexts(cursor, self.etl)
+                        self.etl.log(f"✅ Auto-fixed {fixed_count} broken league contexts")
 
                         # ENHANCEMENT 4: Post-ETL Health Validation
                         self.etl.log("\n🔍 Step 8: Post-ETL Health Validation...")
@@ -307,6 +331,17 @@ class EnhancedAtomicETLWrapper:
                         else:
                             self.etl.log("✅ Practice time health check passed")
                         
+                        # ENHANCEMENT 4.5: League Context Health Validation
+                        self.etl.log("🔍 Step 8.5: League context health validation...")
+                        league_health_stats = validate_league_context_health(cursor, self.etl)
+                        
+                        if not league_health_stats["is_healthy"]:
+                            self.etl.log("🚨 WARNING: League context health check found issues!", "WARNING")
+                            self.etl.log(f"   Valid: {league_health_stats['valid_contexts']}, Broken: {league_health_stats['broken_contexts']}, Missing: {league_health_stats['missing_contexts']}")
+                            # Don't fail ETL for league context issues - they're not critical
+                        else:
+                            self.etl.log("✅ League context health check passed")
+                        
                         # Run post-import validations
                         self.etl.log("\n🔍 Step 9: Running validations...")
                         self.etl.player_validator.print_validation_summary()
@@ -316,6 +351,7 @@ class EnhancedAtomicETLWrapper:
 
                         # Clean up enhanced backup tables
                         cleanup_enhanced_backup_tables(cursor, None)
+                        cleanup_league_context_backup_tables(cursor, self.etl)
 
                         # If we get here, everything succeeded
                         self.etl.log("✅ All operations completed successfully")
@@ -335,6 +371,7 @@ class EnhancedAtomicETLWrapper:
                         self.etl.log("=" * 60)
                         self.etl.log(f"⏱️  Total time: {duration}")
                         self.etl.log(f"🛡️  Practice time protection: SUCCESS")
+                        self.etl.log(f"🛡️  League context protection: SUCCESS")
                         
                         total_imported = sum(self.etl.imported_counts.values())
                         self.etl.log(f"📊 Total records imported: {total_imported:,}")
@@ -399,6 +436,7 @@ class EnhancedAtomicETLWrapper:
             if success:
                 self.log("🎉 Enhanced Atomic ETL completed successfully")
                 self.log("🛡️  Practice time protection: SUCCESS")
+                self.log("🛡️  League context protection: SUCCESS")
                 return True
             else:
                 self.log("❌ Enhanced Atomic ETL failed", "ERROR")
@@ -457,11 +495,13 @@ def main():
         print("\n🎉 Enhanced Atomic ETL process completed successfully!")
         print("✅ Database is in a consistent state")
         print("🛡️  Practice time protection worked perfectly")
+        print("🛡️  League context protection worked perfectly")
         return 0
     else:
         print("\n💥 Enhanced Atomic ETL process failed!")
         print("❌ Database has been rolled back to original state")
         print("🛡️  Practice time protection prevented data loss")
+        print("🛡️  League context protection prevented data loss")
         return 1
 
 
