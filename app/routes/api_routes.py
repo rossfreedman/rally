@@ -6903,8 +6903,10 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 s.location,
                 c.club_address,
                 CASE 
-                    WHEN s.home_team_id = %s THEN 'practice'
-                    ELSE 'match'
+                    WHEN s.home_team_id = %s AND s.away_team_id IS NULL THEN 'practice'
+                    WHEN s.home_team_id = %s AND s.away_team_id IS NOT NULL THEN 'match'
+                    WHEN s.away_team_id = %s THEN 'match'
+                    ELSE 'unknown'
                 END as type
             FROM schedule s
             LEFT JOIN teams t ON (s.home_team_id = t.id OR s.away_team_id = t.id)
@@ -6915,10 +6917,15 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             LIMIT 10
         """
         
-        schedule_entries = execute_query(schedule_query, [team_id, team_id, team_id, current_date])
+        schedule_entries = execute_query(schedule_query, [team_id, team_id, team_id, team_id, team_id, current_date])
         
         if not schedule_entries:
             return notifications
+        
+        # Debug logging
+        logger.info(f"Schedule notification debug - team_id: {team_id}, found {len(schedule_entries)} entries")
+        for entry in schedule_entries:
+            logger.info(f"  {entry['match_date']} {entry['match_time']}: {entry['home_team']} vs {entry['away_team']} (type: {entry['type']})")
         
         # Find next practice and next match
         next_practice = None
@@ -6966,11 +6973,19 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         match_text = "No upcoming matches"
         
         if next_practice:
-            practice_date = next_practice["match_date"].strftime("%b %d")
-            practice_time = next_practice["match_time"].strftime("%I:%M %p").lstrip("0") if next_practice["match_time"] else ""
-            practice_text = f"Practice: {practice_date}"
-            if practice_time:
-                practice_text += f" at {practice_time}"
+            # Only show practices that are within the next 30 days
+            practice_date = next_practice["match_date"]
+            days_until_practice = (practice_date - current_date).days
+            
+            if days_until_practice <= 30:
+                practice_date_str = practice_date.strftime("%b %d")
+                practice_time = next_practice["match_time"].strftime("%I:%M %p").lstrip("0") if next_practice["match_time"] else ""
+                practice_text = f"Practice: {practice_date_str}"
+                if practice_time:
+                    practice_text += f" at {practice_time}"
+                logger.info(f"Schedule notification: Showing practice on {practice_date_str} ({days_until_practice} days away)")
+            else:
+                logger.info(f"Schedule notification: Practice on {practice_date} is too far away ({days_until_practice} days), not showing")
         
         if next_match:
             match_date = next_match["match_date"].strftime("%b %d")
