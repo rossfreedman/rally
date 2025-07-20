@@ -63,8 +63,8 @@ def validate_etl_safety_preconditions(cursor, logger=None):
     # Check 3: Verify practice times exist and have valid team references
     cursor.execute("""
         SELECT COUNT(*) as total_practices,
-               SUM(CASE WHEN home_team_id IS NULL THEN 1 ELSE 0 END) as orphaned_practices,
-               SUM(CASE WHEN t.id IS NULL THEN 1 ELSE 0 END) as invalid_team_refs
+               COALESCE(SUM(CASE WHEN home_team_id IS NULL THEN 1 ELSE 0 END), 0) as orphaned_practices,
+               COALESCE(SUM(CASE WHEN t.id IS NULL THEN 1 ELSE 0 END), 0) as invalid_team_refs
         FROM schedule s
         LEFT JOIN teams t ON s.home_team_id = t.id
         WHERE s.home_team ILIKE '%practice%'

@@ -781,21 +781,48 @@ class ComprehensiveETL:
         # Step 3: Restore practice times with preserved team IDs (direct restore)
         self.log("⏰ Restoring practice times with preserved team IDs...")
         
-        # First, map old league IDs to new ones in the backup table
+        # First, map old league IDs to new ones using dynamic mapping
         self.log("   🔄 Mapping old league IDs to new ones...")
+        
+        # Create dynamic league ID mapping by matching to current leagues
         cursor.execute("""
-            UPDATE practice_times_backup 
-            SET league_id = CASE 
-                WHEN league_id = 4811 THEN (SELECT id FROM leagues WHERE league_id = 'APTA_CHICAGO')
-                WHEN league_id = 4814 THEN (SELECT id FROM leagues WHERE league_id = 'NSTF')
-                ELSE league_id
-            END
-            WHERE league_id IN (4811, 4814)
+            UPDATE practice_times_backup pt
+            SET league_id = l_new.id
+            FROM leagues l_old, leagues l_new
+            WHERE pt.league_id = l_old.id 
+            AND l_new.league_name = l_old.league_name
+            AND pt.league_id != l_new.id
         """)
         
         mapped_count = cursor.rowcount
         if mapped_count > 0:
             self.log(f"   ✅ Mapped {mapped_count} practice times to new league IDs")
+        else:
+            # Fallback: If no mapping worked, try to map by league string ID  
+            cursor.execute("""
+                SELECT COUNT(*) FROM practice_times_backup pt
+                LEFT JOIN leagues l ON pt.league_id = l.id
+                WHERE l.id IS NULL
+            """)
+            
+            orphaned_count = cursor.fetchone()[0]
+            if orphaned_count > 0:
+                self.log(f"   ⚠️ Found {orphaned_count} practice times with orphaned league IDs")
+                
+                # Try to fix orphaned league IDs by finding the best match
+                cursor.execute("""
+                    UPDATE practice_times_backup pt
+                    SET league_id = (
+                        SELECT l.id FROM leagues l 
+                        ORDER BY l.id 
+                        LIMIT 1
+                    )
+                    WHERE pt.league_id NOT IN (SELECT id FROM leagues)
+                """)
+                
+                fixed_count = cursor.rowcount
+                if fixed_count > 0:
+                    self.log(f"   🔧 Fixed {fixed_count} orphaned league IDs with fallback mapping")
         
         # Now restore with enhanced team name matching for practice times
         cursor.execute("""
