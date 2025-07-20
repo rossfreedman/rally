@@ -23,7 +23,7 @@ def upgrade():
     # Update existing clubs with known logo filenames
     op.execute("""
         UPDATE clubs 
-        SET logo_filename = 'static/images/clubs/tennaqua_logo.jpeg' 
+        SET logo_filename = 'static/images/clubs/tennaqua_logo.png' 
         WHERE name = 'Tennaqua'
     """)
     

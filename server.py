@@ -575,7 +575,7 @@ def test_session_validation():
                 "dominant_hand": "Righty",
                 "league_context": 4763,
                 "club": "Tennaqua",
-                "club_logo": "static/images/clubs/tennaqua_logo.jpeg",
+                "club_logo": "static/images/clubs/tennaqua_logo.png",
                 "series": "Chicago 7",
                 "club_id": 8888,
                 "series_id": 13994,

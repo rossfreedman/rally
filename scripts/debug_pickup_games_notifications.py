@@ -141,7 +141,7 @@ def debug_pickup_games_notifications():
         print("   - Pickup games API is working")
         print("   - Notifications API is working")
         print("   - Pickup games notifications have priority 1 (highest)")
-        print("   - Notification limit is 8")
+        print("   - Notification limit is removed (no limit)")
         print("   - To see notifications in action, log in and visit /mobile")
         
         # Check if we found pickup notifications

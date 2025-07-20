@@ -6104,51 +6104,50 @@ def get_home_notifications():
             
         notifications = []
         
-        # 1. Captains Message (highest priority)
+        # 1. Captains Message (priority 1)
         try:
             captain_notifications = get_captain_messages(user_id, player_id, league_id, team_id)
             notifications.extend(captain_notifications)
         except Exception as e:
             logger.error(f"Error getting captain messages: {str(e)}")
         
-        # 2. Upcoming Schedule (always include)
+        # 2. Upcoming Schedule (priority 2)
         try:
             schedule_notifications = get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(schedule_notifications)
         except Exception as e:
             logger.error(f"Error getting schedule notifications: {str(e)}")
         
-        # 3. Team Position (new notification)
+        # 3. Team Position (priority 3)
         try:
             team_position_notifications = get_team_position_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(team_position_notifications)
         except Exception as e:
             logger.error(f"Error getting team position notifications: {str(e)}")
         
-        # 4. Team Poll
+        # 4. Team Poll (priority 4)
         try:
             poll_notifications = get_team_poll_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(poll_notifications)
         except Exception as e:
             logger.error(f"Error getting poll notifications: {str(e)}")
         
-        # 5. My Win Streaks (new notification)
-        try:
-            win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
-            notifications.extend(win_streaks_notifications)
-        except Exception as e:
-            logger.error(f"Error getting win streaks notifications: {str(e)}")
-        
-        # 6. Pickup Games Available
+        # 5. Pickup Games Available (priority 5)
         try:
             pickup_notifications = get_pickup_games_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(pickup_notifications)
         except Exception as e:
             logger.error(f"Error getting pickup games notifications: {str(e)}")
         
-        # Sort by priority and limit to 8 notifications (increased to ensure pickup games show)
+        # 6. My Win Streaks (priority 6)
+        try:
+            win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(win_streaks_notifications)
+        except Exception as e:
+            logger.error(f"Error getting win streaks notifications: {str(e)}")
+        
+        # Sort by priority and show all notifications (no limit)
         notifications.sort(key=lambda x: x["priority"])
-        notifications = notifications[:8]
         
         # Ensure there are always notifications by adding fallbacks if needed
         try:
@@ -6655,7 +6654,14 @@ def create_captain_message():
             return jsonify({"error": "User ID not found"}), 400
             
         if not team_id:
-            return jsonify({"error": "Team ID not found"}), 400
+            # Enhanced error message with context
+            club = user.get("club", "Unknown")
+            series = user.get("series", "Unknown")
+            league = user.get("league_name", "Unknown")
+            return jsonify({
+                "error": "Team ID not found when creating captain's message",
+                "details": f"You are logged in as {club} - {series} ({league}), but this player record is not assigned to a team. Please contact support to fix your team assignment."
+            }), 400
         
         data = request.get_json()
         message = data.get("message", "").strip()
@@ -6711,7 +6717,14 @@ def remove_captain_message():
             return jsonify({"error": "User ID not found"}), 400
             
         if not team_id:
-            return jsonify({"error": "Team ID not found"}), 400
+            # Enhanced error message with context
+            club = user.get("club", "Unknown")
+            series = user.get("series", "Unknown")
+            league = user.get("league_name", "Unknown")
+            return jsonify({
+                "error": "Team ID not found when removing captain's message",
+                "details": f"You are logged in as {club} - {series} ({league}), but this player record is not assigned to a team. Please contact support to fix your team assignment."
+            }), 400
         
         # Get the most recent captain message for the team
         message_query = """

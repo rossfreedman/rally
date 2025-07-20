@@ -601,166 +601,291 @@ class ComprehensiveETL:
             self.log(f"❌ Error loading {filename}: {str(e)}", "ERROR")
             raise
 
-    def backup_user_associations(self, conn):
-        """Backup user-player associations, league contexts, and availability data before clearing tables"""
-        self.log("💾 Backing up user-player associations, league contexts, and availability data...")
+    def backup_user_data_and_team_mappings(self, conn):
+        """
+        Comprehensive backup system for user data that depends on team_id references.
+        
+        This method:
+        1. Backs up polls with team IDs (direct ID-based backup)
+        2. Backs up captain messages with team IDs (direct ID-based backup)
+        3. Backs up practice times with team IDs (direct ID-based backup)
+        4. Backs up user associations and league contexts
+        5. Backs up availability data
+        """
+        self.log("💾 Starting comprehensive user data backup with team ID preservation...")
         
         cursor = conn.cursor()
         
-        # Create temporary backup table for associations
+        # Step 1: Backup polls with team IDs (direct backup)
+        self.log("📊 Backing up polls with team IDs...")
         cursor.execute("""
-            DROP TABLE IF EXISTS user_player_associations_backup;
-            CREATE TABLE user_player_associations_backup AS 
-            SELECT * FROM user_player_associations;
+            DROP TABLE IF EXISTS polls_backup;
+            CREATE TABLE polls_backup AS
+            SELECT * FROM polls
         """)
         
-        # Create temporary backup table for user league contexts
+        cursor.execute("SELECT COUNT(*) FROM polls_backup")
+        polls_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {polls_backup_count:,} polls with team IDs")
+        
+        # Step 2: Backup captain messages with team IDs (direct backup)
+        self.log("💬 Backing up captain messages with team IDs...")
+        cursor.execute("""
+            DROP TABLE IF EXISTS captain_messages_backup;
+            CREATE TABLE captain_messages_backup AS
+            SELECT * FROM captain_messages
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM captain_messages_backup")
+        captain_messages_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {captain_messages_backup_count:,} captain messages with team IDs")
+        
+        # Step 3: Backup practice times with team IDs (direct backup)
+        self.log("⏰ Backing up practice times with team IDs...")
+        cursor.execute("""
+            DROP TABLE IF EXISTS practice_times_backup;
+            CREATE TABLE practice_times_backup AS
+            SELECT * FROM schedule WHERE home_team ILIKE '%practice%'
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM practice_times_backup")
+        practice_times_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {practice_times_backup_count:,} practice times with team IDs")
+        
+        # Step 4: Backup user associations
+        self.log("👥 Backing up user associations...")
+        cursor.execute("""
+            DROP TABLE IF EXISTS user_player_associations_backup;
+            CREATE TABLE user_player_associations_backup AS
+            SELECT * FROM user_player_associations
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
+        associations_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {associations_backup_count:,} user associations")
+        
+        # Step 5: Backup league contexts
+        self.log("🏆 Backing up league contexts...")
         cursor.execute("""
             DROP TABLE IF EXISTS user_league_contexts_backup;
-            CREATE TABLE user_league_contexts_backup AS 
+            CREATE TABLE user_league_contexts_backup AS
             SELECT u.id as user_id, u.email, u.first_name, u.last_name, 
                    u.league_context, l.league_id as league_string_id, l.league_name
             FROM users u
             LEFT JOIN leagues l ON u.league_context = l.id
-            WHERE u.league_context IS NOT NULL;
+            WHERE u.league_context IS NOT NULL
         """)
-        
-        # CRITICAL: Also backup availability data as additional protection
-        # Even though we don't clear it, backup as safety measure
-        cursor.execute("""
-            DROP TABLE IF EXISTS player_availability_backup;
-            CREATE TABLE player_availability_backup AS 
-            SELECT * FROM player_availability;
-        """)
-        
-        # Count backed up data
-        cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
-        associations_backup_count = cursor.fetchone()[0]
         
         cursor.execute("SELECT COUNT(*) FROM user_league_contexts_backup")
         contexts_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {contexts_backup_count:,} league contexts")
+        
+        # Step 6: Backup availability data
+        self.log("📅 Backing up availability data...")
+        cursor.execute("""
+            DROP TABLE IF EXISTS player_availability_backup;
+            CREATE TABLE player_availability_backup AS
+            SELECT * FROM player_availability
+        """)
         
         cursor.execute("SELECT COUNT(*) FROM player_availability_backup")
         availability_backup_count = cursor.fetchone()[0]
-        
-        self.log(f"✅ Backed up {associations_backup_count:,} user-player associations")
-        self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
         self.log(f"✅ Backed up {availability_backup_count:,} availability records")
+        
         conn.commit()
-        return associations_backup_count, contexts_backup_count, availability_backup_count
-    
-    def _backup_league_contexts(self, conn):
-        """Backup only user league contexts (user associations are now protected)"""
-        self.log("💾 Backing up user league contexts...")
+        
+        # Summary
+        self.log("📊 Backup Summary:")
+        self.log(f"   📊 Polls with team IDs: {polls_backup_count:,}")
+        self.log(f"   💬 Captain messages with team IDs: {captain_messages_backup_count:,}")
+        self.log(f"   ⏰ Practice times with team IDs: {practice_times_backup_count:,}")
+        self.log(f"   👥 User associations: {associations_backup_count:,}")
+        self.log(f"   🏆 League contexts: {contexts_backup_count:,}")
+        self.log(f"   📅 Availability records: {availability_backup_count:,}")
+        
+        return {
+            'polls_backup_count': polls_backup_count,
+            'captain_messages_backup_count': captain_messages_backup_count,
+            'practice_times_backup_count': practice_times_backup_count,
+            'associations_backup_count': associations_backup_count,
+            'contexts_backup_count': contexts_backup_count,
+            'availability_backup_count': availability_backup_count
+        }
+
+    def restore_user_data_with_team_mappings(self, conn):
+        """
+        Simple restore system for user data using team ID preservation.
+        
+        This method:
+        1. Restores polls with preserved team IDs (direct restore)
+        2. Restores captain messages with preserved team IDs (direct restore)
+        3. Restores practice times with preserved team IDs (direct restore)
+        4. Restores league contexts and fixes any issues
+        5. Validates all restorations
+        """
+        self.log("🔄 Starting simple user data restoration with team ID preservation...")
         
         cursor = conn.cursor()
         
-        # Create temporary backup table for user league contexts only
+        # Step 1: Restore polls with preserved team IDs (direct restore)
+        self.log("📊 Restoring polls with preserved team IDs...")
         cursor.execute("""
-            DROP TABLE IF EXISTS user_league_contexts_backup;
-            CREATE TABLE user_league_contexts_backup AS 
-            SELECT u.id as user_id, u.email, u.first_name, u.last_name, 
-                   u.league_context, l.league_id as league_string_id, l.league_name
-            FROM users u
-            LEFT JOIN leagues l ON u.league_context = l.id
-            WHERE u.league_context IS NOT NULL;
+            INSERT INTO polls 
+            SELECT * FROM polls_backup
+            ON CONFLICT (id) DO UPDATE SET
+                team_id = EXCLUDED.team_id
         """)
         
-        # Count backed up data
-        cursor.execute("SELECT COUNT(*) FROM user_league_contexts_backup")
-        contexts_backup_count = cursor.fetchone()[0]
+        polls_restored = cursor.rowcount
+        self.log(f"✅ Restored {polls_restored} polls with preserved team IDs")
         
-        self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
-        conn.commit()
-        return contexts_backup_count
-
-    def restore_user_associations(self, conn):
-        """Restore league contexts after import (user associations are now protected)"""
-        self.log("🔄 Restoring user league contexts...")
-        
-        cursor = conn.cursor()
-        
-        # Check if backup table exists
+        # Step 2: Restore captain messages with preserved team IDs (direct restore)
+        self.log("💬 Restoring captain messages with preserved team IDs...")
         cursor.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'user_league_contexts_backup'
+            INSERT INTO captain_messages 
+            SELECT * FROM captain_messages_backup
+            ON CONFLICT (id) DO UPDATE SET
+                team_id = EXCLUDED.team_id
+        """)
+        
+        captain_messages_restored = cursor.rowcount
+        self.log(f"✅ Restored {captain_messages_restored} captain messages with preserved team IDs")
+        
+        # Step 2.5: Fix team ID mappings for restored data
+        self.log("🔧 Fixing team ID mappings for restored data...")
+        self._fix_restored_team_id_mappings(conn)
+        
+        # Step 3: Restore practice times with preserved team IDs (direct restore)
+        self.log("⏰ Restoring practice times with preserved team IDs...")
+        
+        # First, map old league IDs to new ones in the backup table
+        self.log("   🔄 Mapping old league IDs to new ones...")
+        cursor.execute("""
+            UPDATE practice_times_backup 
+            SET league_id = CASE 
+                WHEN league_id = 4811 THEN (SELECT id FROM leagues WHERE league_id = 'APTA_CHICAGO')
+                WHEN league_id = 4814 THEN (SELECT id FROM leagues WHERE league_id = 'NSTF')
+                ELSE league_id
+            END
+            WHERE league_id IN (4811, 4814)
+        """)
+        
+        mapped_count = cursor.rowcount
+        if mapped_count > 0:
+            self.log(f"   ✅ Mapped {mapped_count} practice times to new league IDs")
+        
+        # Now restore with enhanced team name matching for practice times
+        cursor.execute("""
+            INSERT INTO schedule (
+                id, league_id, match_date, match_time, home_team, away_team, 
+                location, created_at, home_team_id, away_team_id
+            )
+            SELECT 
+                pt.id, pt.league_id, pt.match_date, pt.match_time, pt.home_team, pt.away_team,
+                pt.location, pt.created_at,
+                COALESCE(
+                    -- Strategy 1: Exact team name match
+                    (SELECT t.id FROM teams t WHERE t.team_name = pt.home_team LIMIT 1),
+                    -- Strategy 2: Exact alias match
+                    (SELECT t.id FROM teams t WHERE t.team_alias = pt.home_team LIMIT 1),
+                    -- Strategy 3: Practice time pattern matching for "Tennaqua Practice - Series X"
+                    (SELECT t.id FROM teams t 
+                     WHERE pt.home_team LIKE 'Tennaqua Practice - %' 
+                       AND (t.team_name LIKE 'Tennaqua - %' OR t.team_name LIKE 'Tennaqua S%')
+                       AND (
+                           (pt.home_team LIKE '%Chicago 22%' AND t.team_alias = 'Series 22')
+                           OR (pt.home_team LIKE '%Series 2B%' AND t.team_alias = 'Series 2B')
+                           OR (pt.home_team LIKE '%Series 2A%' AND t.team_alias = 'Series 2A')
+                           OR (pt.home_team LIKE '%Series 1%' AND t.team_alias = 'Series 1')
+                           OR (pt.home_team LIKE '%Series 3%' AND t.team_alias = 'Series 3')
+                       )
+                     LIMIT 1),
+                    -- Strategy 4: Generic practice time matching for same team names
+                    (SELECT t.id FROM teams t 
+                     WHERE pt.home_team = pt.away_team 
+                       AND t.team_name = pt.home_team 
+                     LIMIT 1)
+                ) as home_team_id,
+                pt.away_team_id
+            FROM practice_times_backup pt
+            ON CONFLICT (id) DO UPDATE SET
+                home_team_id = EXCLUDED.home_team_id,
+                away_team_id = EXCLUDED.away_team_id
+        """)
+        
+        practice_times_restored = cursor.rowcount
+        self.log(f"✅ Restored {practice_times_restored} practice times with preserved team IDs")
+        
+        # Step 4: Restore league contexts
+        self.log("🏆 Restoring league contexts...")
+        cursor.execute("""
+            UPDATE users 
+            SET league_context = (
+                SELECT l.id 
+                FROM user_league_contexts_backup backup
+                JOIN leagues l ON l.league_id = backup.league_string_id
+                WHERE backup.user_id = users.id
+                LIMIT 1
+            )
+            WHERE id IN (
+                SELECT backup.user_id
+                FROM user_league_contexts_backup backup
+                JOIN leagues l ON l.league_id = backup.league_string_id
+                WHERE backup.user_id = users.id
             )
         """)
         
-        contexts_backup_exists = cursor.fetchone()[0]
+        contexts_restored = cursor.rowcount
+        self.log(f"✅ Restored {contexts_restored} league contexts")
         
-        restored_associations = 0  # Always 0 since we don't restore associations anymore
-        restored_contexts = 0
-        
-        # User associations are now protected and never cleared, so no restoration needed
-        self.log("🛡️  User associations preserved - no restoration needed")
-        
-        # Restore league contexts
-        if contexts_backup_exists:
-            self.log("🔄 Restoring league contexts...")
-            
-            # Restore league contexts where the league still exists
-            cursor.execute("""
-                UPDATE users 
-                SET league_context = (
-                    SELECT l.id 
-                    FROM user_league_contexts_backup backup
-                    JOIN leagues l ON l.league_id = backup.league_string_id
-                    WHERE backup.user_id = users.id
-                    LIMIT 1
-                )
-                WHERE id IN (
-                    SELECT backup.user_id
-                    FROM user_league_contexts_backup backup
-                    JOIN leagues l ON l.league_id = backup.league_string_id
-                    WHERE backup.user_id = users.id
-                )
-            """)
-            
-            restored_contexts = cursor.rowcount
-            self.log(f"✅ Restored {restored_contexts:,} league contexts")
-            
-            # Check for contexts that couldn't be restored (league no longer exists)
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM user_league_contexts_backup backup
-                LEFT JOIN leagues l ON l.league_id = backup.league_string_id
-                WHERE l.id IS NULL
-            """)
-            broken_contexts = cursor.fetchone()[0]
-            
-            if broken_contexts > 0:
-                self.log(f"⚠️  {broken_contexts:,} league contexts couldn't be restored (leagues no longer exist)", "WARNING")
-        else:
-            self.log("⚠️  No league contexts backup table found", "WARNING")
-        
-        # Clean up backup tables
-        cursor.execute("DROP TABLE IF EXISTS user_league_contexts_backup")
-        
-        # Auto-fix any remaining NULL league contexts
+        # Step 5: Auto-fix any remaining NULL league contexts
         self.log("🔧 Auto-fixing any remaining NULL league contexts...")
         null_contexts_fixed = self._auto_fix_null_league_contexts(conn)
         
-        # Verify final data integrity
-        cursor.execute("SELECT COUNT(*) FROM user_player_associations")
-        final_associations_count = cursor.fetchone()[0]
+        # Step 6: Validate all restorations
+        self.log("🔍 Validating all restorations...")
+        validation_results = self._validate_user_data_restoration(conn)
         
-        cursor.execute("SELECT COUNT(*) FROM player_availability")
-        final_availability_count = cursor.fetchone()[0]
+        # Step 7: Fix any orphaned references
+        self.log("🔧 Fixing orphaned references...")
+        orphaned_polls_fixed = self.fix_orphaned_poll_references(conn)
+        orphaned_messages_fixed = self.fix_orphaned_captain_message_references(conn)
         
-        self.log(f"✅ User associations preserved: {final_associations_count:,} records intact")
-        if final_availability_count > 0:
-            self.log(f"✅ Availability data preserved: {final_availability_count:,} records intact")
+        # Step 7.5: Fix any remaining orphaned data with intelligent matching
+        remaining_orphaned_fixed = self._fix_remaining_orphaned_data(conn)
+        
+        # Step 8: Clean up backup tables
+        self.log("🧹 Cleaning up backup tables...")
+        cursor.execute("DROP TABLE IF EXISTS polls_backup")
+        cursor.execute("DROP TABLE IF EXISTS captain_messages_backup")
+        cursor.execute("DROP TABLE IF EXISTS practice_times_backup")
+        cursor.execute("DROP TABLE IF EXISTS user_league_contexts_backup")
+        cursor.execute("DROP TABLE IF EXISTS user_player_associations_backup")
+        cursor.execute("DROP TABLE IF EXISTS player_availability_backup")
         
         conn.commit()
         
+        # Final summary
+        self.log("📊 Restoration Summary:")
+        self.log(f"   📊 Polls restored: {polls_restored}")
+        self.log(f"   💬 Captain messages restored: {captain_messages_restored}")
+        self.log(f"   ⏰ Practice times restored: {practice_times_restored}")
+        self.log(f"   🏆 League contexts restored: {contexts_restored}")
+        self.log(f"   🔧 NULL contexts auto-fixed: {null_contexts_fixed}")
+        self.log(f"   🔧 Orphaned polls fixed: {orphaned_polls_fixed}")
+        self.log(f"   🔧 Orphaned messages fixed: {orphaned_messages_fixed}")
+        self.log(f"   🔧 Remaining orphaned fixed: {remaining_orphaned_fixed}")
+        
         return {
-            "associations_restored": restored_associations,
-            "contexts_restored": restored_contexts,
+            "polls_restored": polls_restored,
+            "captain_messages_restored": captain_messages_restored,
+            "practice_times_restored": practice_times_restored,
+            "contexts_restored": contexts_restored,
             "null_contexts_fixed": null_contexts_fixed,
-            "availability_records_preserved": final_availability_count,
-            "associations_preserved": final_associations_count
+            "orphaned_polls_fixed": orphaned_polls_fixed,
+            "orphaned_messages_fixed": orphaned_messages_fixed,
+            "remaining_orphaned_fixed": remaining_orphaned_fixed,
+            "validation_results": validation_results
         }
 
     def _auto_fix_null_league_contexts(self, conn):
@@ -964,6 +1089,326 @@ class ComprehensiveETL:
         
         return health_score
 
+    def fix_orphaned_poll_references(self, conn):
+        """Fix orphaned team_id references in polls table after ETL"""
+        self.log("🔧 Fixing orphaned poll team_id references...")
+        
+        cursor = conn.cursor()
+        
+        # Find polls with orphaned team_id references
+        cursor.execute("""
+            SELECT p.id, p.team_id, p.question, p.created_at, p.created_by
+            FROM polls p
+            LEFT JOIN teams t ON p.team_id = t.id
+            WHERE p.team_id IS NOT NULL AND t.id IS NULL
+            ORDER BY p.created_at DESC
+        """)
+        
+        orphaned_polls = cursor.fetchall()
+        
+        if not orphaned_polls:
+            self.log("✅ No orphaned poll references found")
+            return 0
+        
+        self.log(f"⚠️  Found {len(orphaned_polls)} polls with orphaned team_id references")
+        
+        fixed_count = 0
+        
+        for poll in orphaned_polls:
+            poll_id, old_team_id, question, created_at, created_by = poll
+            
+            # Try to find the correct team based on poll creator and question content
+            new_team_id = self._find_correct_team_for_poll(cursor, created_by, question, old_team_id)
+            
+            if new_team_id:
+                # Update the poll to reference the correct team
+                cursor.execute("""
+                    UPDATE polls 
+                    SET team_id = %s 
+                    WHERE id = %s
+                """, [new_team_id, poll_id])
+                
+                self.log(f"   ✅ Fixed poll {poll_id}: {old_team_id} → {new_team_id}")
+                fixed_count += 1
+            else:
+                # If no correct team found, delete the orphaned record to maintain data integrity
+                cursor.execute("""
+                    DELETE FROM polls 
+                    WHERE id = %s
+                """, [poll_id])
+                
+                self.log(f"   🗑️  Deleted poll {poll_id} (no matching team found)")
+                fixed_count += 1
+        
+        conn.commit()
+        self.log(f"✅ Fixed {fixed_count} orphaned poll references")
+        return fixed_count
+
+    def _find_correct_team_for_poll(self, cursor, created_by, question, old_team_id):
+        """Find the correct team_id for a poll based on creator and content"""
+        
+        # Get all teams the user has access to
+        cursor.execute("""
+            SELECT p.team_id, t.team_name, t.team_alias, t.series_id, l.league_id, s.name as series_name
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN series s ON t.series_id = s.id
+            WHERE upa.user_id = %s AND p.is_active = TRUE
+            ORDER BY l.league_id, t.team_name
+        """, [created_by])
+        
+        user_teams = cursor.fetchall()
+        
+        if not user_teams:
+            return None
+        
+        # Strategy 1: Look for specific series mentions in the question
+        question_lower = question.lower()
+        
+        # Check for NSTF Series 2B references (must be exact to avoid confusion with Series 22)
+        if "2b" in question_lower or "series 2b" in question_lower:
+            for team in user_teams:
+                team_id, team_name, team_alias, series_id, league_id, series_name = team
+                if league_id == 'NSTF' and ('2b' in team_alias.lower() or '2b' in team_name.lower() or '2b' in series_name.lower()):
+                    return team_id
+        
+        # Check for APTA Series 22 references (must be exact to avoid confusion with Series 2B)
+        if ("22" in question_lower or "series 22" in question_lower) and "2b" not in question_lower:
+            for team in user_teams:
+                team_id, team_name, team_alias, series_id, league_id, series_name = team
+                if league_id == 'APTA_CHICAGO' and ('22' in team_alias or '22' in team_name or '22' in series_name):
+                    return team_id
+        
+        # Strategy 2: Look for league-specific keywords
+        if "nstf" in question_lower or "north shore" in question_lower:
+            for team in user_teams:
+                team_id, team_name, team_alias, series_id, league_id, series_name = team
+                if league_id == 'NSTF':
+                    return team_id
+        
+        if "apta" in question_lower or "chicago" in question_lower:
+            for team in user_teams:
+                team_id, team_name, team_alias, series_id, league_id, series_name = team
+                if league_id == 'APTA_CHICAGO':
+                    return team_id
+        
+        # Strategy 3: Default to primary team (APTA_CHICAGO preferred)
+        for team in user_teams:
+            team_id, team_name, team_alias, series_id, league_id, series_name = team
+            if league_id == 'APTA_CHICAGO':
+                return team_id
+        
+        # If no APTA team, use first available
+        if user_teams:
+            return user_teams[0][0]  # Return first team_id
+        
+        return None
+
+    def fix_orphaned_captain_message_references(self, conn):
+        """Fix orphaned team_id references in captain_messages table after ETL"""
+        self.log("🔧 Fixing orphaned captain message team_id references...")
+        
+        cursor = conn.cursor()
+        
+        # Find captain messages with orphaned team_id references
+        cursor.execute("""
+            SELECT cm.id, cm.team_id, cm.message, cm.captain_user_id, cm.created_at
+            FROM captain_messages cm
+            LEFT JOIN teams t ON cm.team_id = t.id
+            WHERE cm.team_id IS NOT NULL AND t.id IS NULL
+            ORDER BY cm.created_at DESC
+        """)
+        
+        orphaned_messages = cursor.fetchall()
+        
+        if not orphaned_messages:
+            self.log("✅ No orphaned captain message references found")
+            return 0
+        
+        self.log(f"⚠️  Found {len(orphaned_messages)} captain messages with orphaned team_id references")
+        
+        fixed_count = 0
+        
+        for msg in orphaned_messages:
+            msg_id, old_team_id, message, captain_user_id, created_at = msg
+            
+            # Try to find the correct team based on captain and message content
+            new_team_id = self._find_correct_team_for_captain_message(cursor, captain_user_id, message, old_team_id)
+            
+            if new_team_id:
+                # Update the captain message to reference the correct team
+                cursor.execute("""
+                    UPDATE captain_messages 
+                    SET team_id = %s 
+                    WHERE id = %s
+                """, [new_team_id, msg_id])
+                
+                self.log(f"   ✅ Fixed captain message {msg_id}: {old_team_id} → {new_team_id}")
+                fixed_count += 1
+            else:
+                # If no correct team found, delete the orphaned record since team_id is NOT NULL
+                cursor.execute("""
+                    DELETE FROM captain_messages 
+                    WHERE id = %s
+                """, [msg_id])
+                
+                self.log(f"   🗑️  Deleted captain message {msg_id} (no matching team found)")
+                fixed_count += 1
+        
+        conn.commit()
+        self.log(f"✅ Fixed {fixed_count} orphaned captain message references")
+        return fixed_count
+
+    def _find_correct_team_for_captain_message(self, cursor, captain_user_id, message, old_team_id):
+        """Find the correct team_id for a captain message based on captain and content"""
+        
+        # Strategy 1: Find captain's team based on message content (e.g., "Series 22", "Series 2B")
+        message_lower = message.lower()
+        
+        # Check for NSTF Series 2B references (must be exact to avoid confusion with Series 22)
+        if "2b" in message_lower or "series 2b" in message_lower:
+            cursor.execute("""
+                SELECT p.team_id, t.team_name, t.team_alias, s.name as series_name
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN series s ON t.series_id = s.id
+                WHERE upa.user_id = %s AND l.league_id = 'NSTF' 
+                AND (t.team_name LIKE '%%2B%%' OR t.team_alias LIKE '%%2B%%' OR s.name LIKE '%%2B%%')
+                LIMIT 1
+            """, [captain_user_id])
+            
+            result = cursor.fetchone()
+            if result:
+                team_id, team_name, team_alias, series_name = result
+                return team_id
+        
+        # Check for APTA Series 22 references (must be exact to avoid confusion with Series 2B)
+        if ("22" in message_lower or "series 22" in message_lower) and "2b" not in message_lower:
+            cursor.execute("""
+                SELECT p.team_id, t.team_name, t.team_alias, s.name as series_name
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN series s ON t.series_id = s.id
+                WHERE upa.user_id = %s AND l.league_id = 'APTA_CHICAGO' 
+                AND (t.team_name LIKE '%%22%%' OR t.team_alias LIKE '%%22%%' OR s.name LIKE '%%22%%')
+                LIMIT 1
+            """, [captain_user_id])
+            
+            result = cursor.fetchone()
+            if result:
+                team_id, team_name, team_alias, series_name = result
+                return team_id
+        
+        # Strategy 2: Find captain's primary team (APTA_CHICAGO preferred)
+        cursor.execute("""
+            SELECT p.team_id, t.team_name, t.team_alias, l.league_id
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            ORDER BY 
+                CASE WHEN l.league_id = 'APTA_CHICAGO' THEN 1 ELSE 2 END,
+                p.id
+            LIMIT 1
+        """, [captain_user_id])
+        
+        result = cursor.fetchone()
+        if result:
+            team_id, team_name, team_alias, league_id = result
+            return team_id
+        
+        return None
+
+    def _fix_remaining_orphaned_data(self, conn):
+        """
+        Fix any remaining orphaned polls and captain messages using intelligent matching.
+        This method runs after the main restore to catch any data that couldn't be matched
+        with the precise team matching approach.
+        """
+        self.log("🔧 Running intelligent orphan fixing for remaining data...")
+        
+        cursor = conn.cursor()
+        total_fixed = 0
+        
+        # Fix orphaned polls
+        cursor.execute("""
+            SELECT COUNT(*) FROM polls WHERE team_id IS NULL
+        """)
+        orphaned_polls = cursor.fetchone()[0]
+        
+        if orphaned_polls > 0:
+            self.log(f"🔧 Found {orphaned_polls} orphaned polls, fixing with intelligent matching...")
+            
+            # Get all orphaned polls with user context
+            cursor.execute("""
+                SELECT p.id, p.created_by, p.question, p.created_at, u.first_name, u.last_name
+                FROM polls p
+                JOIN users u ON p.created_by = u.id
+                WHERE p.team_id IS NULL
+            """)
+            
+            orphaned_poll_records = cursor.fetchall()
+            
+            for poll_record in orphaned_poll_records:
+                poll_id, created_by, question, created_at, first_name, last_name = poll_record
+                
+                # Find the correct team for this poll
+                correct_team_id = self._find_correct_team_for_poll(cursor, created_by, question, None)
+                
+                if correct_team_id:
+                    cursor.execute("""
+                        UPDATE polls SET team_id = %s WHERE id = %s
+                    """, [correct_team_id, poll_id])
+                    total_fixed += 1
+                    self.log(f"   ✅ Fixed poll {poll_id} ({first_name} {last_name}) → team_id {correct_team_id}")
+                else:
+                    self.log(f"   ⚠️  Could not find team for poll {poll_id} ({first_name} {last_name})")
+        
+        # Fix orphaned captain messages
+        cursor.execute("""
+            SELECT COUNT(*) FROM captain_messages WHERE team_id IS NULL
+        """)
+        orphaned_messages = cursor.fetchone()[0]
+        
+        if orphaned_messages > 0:
+            self.log(f"🔧 Found {orphaned_messages} orphaned captain messages, fixing with intelligent matching...")
+            
+            # Get all orphaned captain messages with user context
+            cursor.execute("""
+                SELECT cm.id, cm.captain_user_id, cm.message, cm.created_at, u.first_name, u.last_name
+                FROM captain_messages cm
+                JOIN users u ON cm.captain_user_id = u.id
+                WHERE cm.team_id IS NULL
+            """)
+            
+            orphaned_message_records = cursor.fetchall()
+            
+            for message_record in orphaned_message_records:
+                message_id, captain_user_id, message, created_at, first_name, last_name = message_record
+                
+                # Find the correct team for this captain message
+                correct_team_id = self._find_correct_team_for_captain_message(cursor, captain_user_id, message, None)
+                
+                if correct_team_id:
+                    cursor.execute("""
+                        UPDATE captain_messages SET team_id = %s WHERE id = %s
+                    """, [correct_team_id, message_id])
+                    total_fixed += 1
+                    self.log(f"   ✅ Fixed captain message {message_id} ({first_name} {last_name}) → team_id {correct_team_id}")
+                else:
+                    self.log(f"   ⚠️  Could not find team for captain message {message_id} ({first_name} {last_name})")
+        
+        conn.commit()
+        self.log(f"✅ Intelligent orphan fixing completed: {total_fixed} records fixed")
+        return total_fixed
+
     def increment_session_version(self, conn):
         """Increment session version to trigger automatic user session refresh"""
         self.log("🔄 Incrementing session version to trigger user session refresh...")
@@ -1045,8 +1490,8 @@ class ComprehensiveETL:
         """Clear existing data from target tables in reverse dependency order"""
         self.log("🗑️  Clearing existing data from target tables...")
 
-        # ENHANCEMENT: Backup user associations and league contexts before clearing
-        associations_backup_count, contexts_backup_count, availability_backup_count = self.backup_user_associations(conn)
+        # ENHANCEMENT: Backup user data before clearing
+        backup_results = self.backup_user_data_and_team_mappings(conn)
 
         # CRITICAL: These tables are NEVER cleared - they use stable user_id references
         # that are never orphaned during ETL imports
@@ -1066,12 +1511,12 @@ class ComprehensiveETL:
         ]
         
         # CRITICAL VERIFICATION: Ensure critical user data tables are NEVER in the clear list
-        protected_tables = ["player_availability", "user_player_associations"]
+        protected_tables = ["player_availability", "user_player_associations", "polls", "poll_choices", "poll_responses", "captain_messages"]
         for protected_table in protected_tables:
             if protected_table in tables_to_clear:
                 raise Exception(f"CRITICAL ERROR: {protected_table} should NEVER be cleared - it uses stable user_id references!")
         
-        self.log(f"🛡️  PROTECTED: player_availability and user_player_associations tables will be preserved (prevent session logout)")
+        self.log(f"🛡️  PROTECTED: player_availability, user_player_associations, polls, and captain_messages tables will be preserved (prevent session logout and data loss)")
         self.log(f"🗑️  Clearing {len(tables_to_clear)} tables: {', '.join(tables_to_clear)}")
 
         try:
@@ -1092,9 +1537,12 @@ class ComprehensiveETL:
             cursor.execute("SET session_replication_role = DEFAULT;")
             conn.commit()
             self.log("✅ All target tables cleared successfully")
-            self.log(f"💾 User associations backed up: {associations_backup_count:,} records")
-            self.log(f"💾 League contexts backed up: {contexts_backup_count:,} records")
-            self.log(f"💾 Availability records backed up: {availability_backup_count:,} records")
+            self.log(f"💾 Polls backed up: {backup_results['polls_backup_count']:,} records")
+            self.log(f"💾 Captain messages backed up: {backup_results['captain_messages_backup_count']:,} records")
+            self.log(f"💾 Practice times backed up: {backup_results['practice_times_backup_count']:,} records")
+            self.log(f"💾 User associations backed up: {backup_results['associations_backup_count']:,} records")
+            self.log(f"💾 League contexts backed up: {backup_results['contexts_backup_count']:,} records")
+            self.log(f"💾 Availability records backed up: {backup_results['availability_backup_count']:,} records")
 
         except Exception as e:
             self.log(f"❌ Error clearing tables: {str(e)}", "ERROR")
@@ -1654,7 +2102,7 @@ class ComprehensiveETL:
                             (SELECT logo_filename FROM clubs WHERE LOWER(name) = LOWER(%s) LIMIT 1),
                             CASE 
                                 WHEN LOWER(%s) = 'glenbrook rc' THEN 'static/images/clubs/glenbrook_rc_logo.png'
-                                WHEN LOWER(%s) = 'tennaqua' THEN 'static/images/clubs/tennaqua_logo.jpeg'
+                                WHEN LOWER(%s) = 'tennaqua' THEN 'static/images/clubs/tennaqua_logo.png'
                                 ELSE NULL
                             END
                         )
@@ -1778,8 +2226,8 @@ class ComprehensiveETL:
         self.log(f"✅ Imported {imported} series-league relationships")
 
     def import_teams(self, conn, teams_data: List[Dict]):
-        """Import teams into database with enhanced duplicate handling"""
-        self.log("📥 Importing teams...")
+        """Import teams into database with team ID preservation using UPSERT"""
+        self.log("📥 Importing teams with ID preservation...")
 
         cursor = conn.cursor()
         imported = 0
@@ -1897,72 +2345,55 @@ class ComprehensiveETL:
                 # Create team alias for display (optional)
                 team_alias = self.generate_team_alias(team_name, series_name)
 
-                # Check if team already exists by constraint (club_id, series_id, league_id)
+                # Verify that the club, series, and league exist
                 cursor.execute(
                     """
-                    SELECT t.id, t.team_name FROM teams t
-                    JOIN clubs c ON t.club_id = c.id
-                    JOIN series s ON t.series_id = s.id
-                    JOIN leagues l ON t.league_id = l.id
+                    SELECT c.id, s.id, l.id 
+                    FROM clubs c, series s, leagues l
                     WHERE c.name = %s AND s.name = %s AND l.league_id = %s
                 """,
                     (club_name, series_name, league_id),
                 )
 
-                existing_team = cursor.fetchone()
+                refs = cursor.fetchone()
 
-                if existing_team:
-                    # Team already exists, update it if needed
-                    existing_id, existing_name = existing_team
-                    display_name = team_name  # Can be customized later if needed
-                    cursor.execute(
-                        """
-                        UPDATE teams SET 
-                            team_name = %s,
-                            team_alias = %s,
-                            display_name = %s,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE id = %s
-                    """,
-                        (team_name, team_alias, display_name, existing_id),
+                if not refs:
+                    self.log(
+                        f"⚠️  Skipping team {team_name}: missing references (club: {club_name}, series: {series_name}, league: {league_id})",
+                        "WARNING",
                     )
-                    updated += 1
+                    skipped += 1
+                    continue
 
-                    if existing_name != team_name:
-                        self.log(f"📝 Updated team name: {existing_name} → {team_name}")
-                else:
-                    # Verify that the club, series, and league exist
-                    cursor.execute(
-                        """
-                        SELECT c.id, s.id, l.id 
-                        FROM clubs c, series s, leagues l
-                        WHERE c.name = %s AND s.name = %s AND l.league_id = %s
-                    """,
-                        (club_name, series_name, league_id),
-                    )
+                club_id, series_id, league_db_id = refs
 
-                    refs = cursor.fetchone()
-
-                    if not refs:
-                        self.log(
-                            f"⚠️  Skipping team {team_name}: missing references (club: {club_name}, series: {series_name}, league: {league_id})",
-                            "WARNING",
-                        )
-                        skipped += 1
-                        continue
-
-                    club_id, series_id, league_db_id = refs
-
-                    # Create new team with display_name (use team_name as default)
-                    display_name = team_name  # Can be customized later if needed
-                    cursor.execute(
-                        """
-                        INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, display_name, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                    """,
-                        (club_id, series_id, league_db_id, team_name, team_alias, display_name),
-                    )
+                # ENHANCEMENT: Use UPSERT to preserve team IDs
+                # This allows direct backup/restore using team IDs instead of complex matching
+                display_name = team_name  # Can be customized later if needed
+                
+                cursor.execute(
+                    """
+                    INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, display_name, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT (club_id, series_id, league_id) DO UPDATE SET
+                        team_name = EXCLUDED.team_name,
+                        team_alias = EXCLUDED.team_alias,
+                        display_name = EXCLUDED.display_name,
+                        updated_at = CURRENT_TIMESTAMP
+                    RETURNING id, (xmax = 0) as is_insert
+                """,
+                    (club_id, series_id, league_db_id, team_name, team_alias, display_name),
+                )
+                
+                result = cursor.fetchone()
+                team_id, is_insert = result
+                
+                if is_insert:
                     imported += 1
+                    self.log(f"   ✅ Created team: {team_name} (ID: {team_id})")
+                else:
+                    updated += 1
+                    self.log(f"   📝 Updated team: {team_name} (ID: {team_id})")
 
             except Exception as e:
                 errors += 1
@@ -1979,15 +2410,8 @@ class ComprehensiveETL:
                     raise Exception(f"Too many team import errors ({errors})")
 
         conn.commit()
-        self.imported_counts["teams"] = imported + updated
-        self.log(
-            f"✅ Team import complete: {imported} new, {updated} updated, {skipped} skipped, {errors} errors"
-        )
-
-        if duplicates_found_1 > 0 or duplicates_found_2 > 0:
-            self.log(
-                f"🔧 Successfully handled {duplicates_found_1 + duplicates_found_2} total constraint duplicates"
-            )
+        self.log(f"✅ Team import completed: {imported} created, {updated} updated, {skipped} skipped, {errors} errors")
+        return imported + updated
 
     def generate_team_alias(self, team_name: str, series_name: str) -> str:
         """Generate a user-friendly team alias"""
@@ -2167,7 +2591,17 @@ class ComprehensiveETL:
                     FROM leagues l
                     LEFT JOIN clubs c ON LOWER(c.name) = LOWER(%s)
                     LEFT JOIN series s ON LOWER(s.name) = LOWER(%s)
-                    LEFT JOIN teams t ON t.club_id = c.id AND t.series_id = s.id AND t.league_id = l.id
+                    LEFT JOIN teams t ON (
+                        t.club_id = c.id AND 
+                        t.league_id = l.id AND
+                        (
+                            -- Direct series match
+                            t.series_id = s.id
+                            OR
+                            -- NSTF fallback: match team_alias to series name
+                            (t.team_alias IS NOT NULL AND t.team_alias = s.name)
+                        )
+                    )
                     WHERE l.league_id = %s
                     ON CONFLICT ON CONSTRAINT unique_player_in_league_club_series DO UPDATE SET
                         first_name = EXCLUDED.first_name,
@@ -2229,6 +2663,43 @@ class ComprehensiveETL:
 
         conn.commit()
         self.imported_counts["players"] = imported + updated
+        
+        # Validate team assignments
+        self.log("🔍 Validating team assignments...")
+        try:
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM players 
+                WHERE team_id IS NULL AND is_active = TRUE
+            """)
+            unassigned_count = cursor.fetchone()[0]
+            
+            if unassigned_count > 0:
+                self.log(f"⚠️  WARNING: {unassigned_count} players still have no team_id assigned", "WARNING")
+                
+                # Log some examples for debugging
+                cursor.execute("""
+                    SELECT p.first_name, p.last_name, c.name as club, s.name as series, l.league_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN leagues l ON p.league_id = l.id
+                    WHERE p.team_id IS NULL AND p.is_active = TRUE
+                    LIMIT 5
+                """)
+                examples = cursor.fetchall()
+                
+                self.log("   Examples of players without team assignments:")
+                for example in examples:
+                    if len(example) >= 5:
+                        self.log(f"     - {example[0]} {example[1]} ({example[2]} - {example[3]} - {example[4]})", "WARNING")
+                    else:
+                        self.log(f"     - Incomplete data: {example}", "WARNING")
+            else:
+                self.log("✅ All players have team_id assigned successfully")
+        except Exception as e:
+            self.log(f"⚠️  Warning: Could not validate team assignments: {str(e)}", "WARNING")
+        
         self.log(
             f"✅ Player import complete: {imported:,} new, {updated:,} updated, {errors} errors"
         )
@@ -3960,6 +4431,74 @@ class ComprehensiveETL:
             self.log(f"❌ Error calculating series_id health: {str(e)}", "ERROR")
             return 0.0
 
+    def _validate_poll_references(self, conn) -> int:
+        """Validate that all polls have valid team_id references"""
+        cursor = conn.cursor()
+        
+        # Count orphaned poll references
+        cursor.execute("""
+            SELECT COUNT(*) as count
+            FROM polls p
+            LEFT JOIN teams t ON p.team_id = t.id
+            WHERE p.team_id IS NOT NULL AND t.id IS NULL
+        """)
+        
+        orphaned_count = cursor.fetchone()[0]
+        
+        if orphaned_count > 0:
+            self.log(f"   ⚠️  Found {orphaned_count} polls with orphaned team_id references", "WARNING")
+        else:
+            self.log(f"   ✅ All polls have valid team_id references")
+        
+        return orphaned_count
+
+    def _restore_practice_times(self, conn) -> int:
+        """Restore practice times after schedule import"""
+        cursor = conn.cursor()
+        
+        # Check if backup exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'practice_times_backup'
+            )
+        """)
+        
+        backup_exists = cursor.fetchone()[0]
+        
+        if not backup_exists:
+            self.log("   ⚠️  No practice times backup found")
+            return 0
+        
+        # Restore practice times with updated team_id references
+        cursor.execute("""
+            INSERT INTO schedule (
+                league_id, match_date, match_time, home_team, away_team, 
+                home_team_id, location, created_at
+            )
+            SELECT 
+                pt.league_id, pt.match_date, pt.match_time, pt.home_team, pt.away_team,
+                t.id as home_team_id, pt.location, pt.created_at
+            FROM practice_times_backup pt
+            LEFT JOIN teams t ON (
+                t.team_name = pt.home_team 
+                OR (t.team_alias IS NOT NULL AND t.team_alias = pt.home_team)
+            )
+            ON CONFLICT DO NOTHING
+        """)
+        
+        restored_count = cursor.rowcount
+        
+        # Clean up backup
+        cursor.execute("DROP TABLE IF EXISTS practice_times_backup")
+        
+        if restored_count > 0:
+            self.log(f"   ✅ Restored {restored_count} practice times")
+        else:
+            self.log(f"   ℹ️  No practice times restored (may already exist)")
+        
+        return restored_count
+
     def _create_pre_etl_backup(self) -> str:
         """Create a full database backup before ETL process"""
         try:
@@ -4226,9 +4765,15 @@ class ComprehensiveETL:
                     self.import_series_stats(conn, series_stats_data)
                     self.import_schedules(conn, schedules_data)
 
-                    # ENHANCEMENT: Restore user associations and league contexts after import
-                    self.log("\n🔄 Step 7: Restoring user data...")
-                    restore_results = self.restore_user_associations(conn)
+                    # ENHANCEMENT: Create missing teams from schedule data
+                    self.log("\n🔧 Step 6.5: Creating missing teams from schedule data...")
+                    missing_teams_created = self.create_missing_teams_from_schedule(conn)
+                    if missing_teams_created > 0:
+                        self.log(f"   ✅ Created {missing_teams_created} missing teams from schedule data")
+
+                    # ENHANCEMENT: Restore user data with team ID preservation after import
+                    self.log("\n🔄 Step 7: Restoring user data with team ID preservation...")
+                    restore_results = self.restore_user_data_with_team_mappings(conn)
                     
                     # ENHANCED: Run comprehensive association discovery for all users
                     # This ensures users with multiple leagues are properly linked
@@ -4262,6 +4807,9 @@ class ComprehensiveETL:
                     else:
                         self.log(f"✅ League context health score: {final_health_score:.1f}%")
 
+                    # User data restoration is now handled by the comprehensive restore system
+                    # No additional orphan fixing needed - everything is handled in restore_user_data_with_team_mappings
+
                     # CRITICAL FIX: Print player validation summary
                     self.player_validator.print_validation_summary()
 
@@ -4288,14 +4836,21 @@ class ComprehensiveETL:
 
                     # Success!
                     self.log("\n✅ ETL process completed successfully!")
-                    self.log(f"🔗 User associations: {restore_results['associations_restored']:,} restored")
+                    self.log(f"📊 Polls: {restore_results['polls_restored']:,} restored with team ID preservation")
+                    self.log(f"💬 Captain messages: {restore_results['captain_messages_restored']:,} restored with team ID preservation")
+                    self.log(f"⏰ Practice times: {restore_results['practice_times_restored']:,} restored with team ID preservation")
                     self.log(f"🎯 League contexts: {restore_results['contexts_restored']:,} restored, {restore_results['null_contexts_fixed']:,} auto-fixed")
-                    self.log(f"🛡️  Availability data: {restore_results['availability_records_preserved']:,} records preserved")
                     if orphan_fixes > 0:
                         self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
+                    if missing_teams_created > 0:
+                        self.log(f"🏆 Missing teams created: {missing_teams_created} teams from schedule data")
                     if schedule_fixes > 0:
                         self.log(f"📅 Schedule team mappings fixed: {schedule_fixes} entries corrected")
                     self.log(f"📊 Series_id health: {final_series_health:.1f}% ({'✅ Excellent' if final_series_health >= 95 else '⚠️ Needs attention' if final_series_health >= 85 else '🚨 Critical'})")
+                    
+                    # Final validation is now handled by the simple restore system
+                    # Validation results are included in restore_results['validation_results']
+                    
                     self.log("🎯 League selector and Find Subs functionality: ✅ Ready")
                     self.log("🔄 Session version incremented: ✅ Users will auto-refresh")
 
@@ -4479,6 +5034,313 @@ class ComprehensiveETL:
             self.log(f"   ✅ All schedule team mappings fixed successfully")
         
         return total_fixes
+
+    def create_missing_teams_from_schedule(self, conn) -> int:
+        """
+        Create missing teams from schedule data to ensure all teams referenced in schedules
+        exist in the teams table. This prevents the issue where schedule entries have NULL team_ids
+        because the referenced teams don't exist in the teams table.
+        
+        Returns:
+            int: Number of teams that were created
+        """
+        cursor = conn.cursor()
+        teams_created = 0
+        
+        self.log("   🔧 Creating missing teams from schedule data...")
+        
+        # Get all unique team names from schedule that don't exist in teams table
+        cursor.execute("""
+            SELECT DISTINCT 
+                s.home_team as team_name,
+                s.league_id,
+                l.league_id as league_code
+            FROM schedule s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE s.home_team != 'BYE'
+            AND NOT EXISTS (
+                SELECT 1 FROM teams t 
+                WHERE t.team_name = s.home_team 
+                AND t.league_id = s.league_id
+            )
+            
+            UNION
+            
+            SELECT DISTINCT 
+                s.away_team as team_name,
+                s.league_id,
+                l.league_id as league_code
+            FROM schedule s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE s.away_team != 'BYE'
+            AND NOT EXISTS (
+                SELECT 1 FROM teams t 
+                WHERE t.team_name = s.away_team 
+                AND t.league_id = s.league_id
+            )
+        """)
+        
+        missing_teams = cursor.fetchall()
+        
+        if not missing_teams:
+            self.log("   ✅ All teams from schedule already exist in teams table")
+            return 0
+        
+        self.log(f"   📊 Found {len(missing_teams)} missing teams to create")
+        
+        for team_name, league_db_id, league_code in missing_teams:
+            try:
+                # Parse team name to extract club and series
+                club_name, series_name = self.parse_schedule_team_name(team_name)
+                
+                if not club_name or not series_name:
+                    self.log(f"     ⚠️  Could not parse team name: {team_name}")
+                    continue
+                
+                # Get club_id
+                cursor.execute("""
+                    SELECT id FROM clubs WHERE name = %s
+                """, (club_name,))
+                club_result = cursor.fetchone()
+                
+                if not club_result:
+                    self.log(f"     ⚠️  Club not found: {club_name}")
+                    continue
+                
+                club_id = club_result[0]
+                
+                # Get series_id
+                cursor.execute("""
+                    SELECT id FROM series WHERE name = %s
+                """, (series_name,))
+                series_result = cursor.fetchone()
+                
+                if not series_result:
+                    self.log(f"     ⚠️  Series not found: {series_name}")
+                    continue
+                
+                series_id = series_result[0]
+                
+                # Create the team
+                cursor.execute("""
+                    INSERT INTO teams (team_name, club_id, series_id, league_id, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
+                """, (team_name, club_id, series_id, league_db_id))
+                
+                teams_created += 1
+                
+                if teams_created % 10 == 0:
+                    self.log(f"     ✅ Created {teams_created} teams...")
+                
+            except Exception as e:
+                self.log(f"     ❌ Error creating team {team_name}: {str(e)}")
+                continue
+        
+        if teams_created > 0:
+            self.log(f"   ✅ Created {teams_created} missing teams from schedule data")
+        else:
+            self.log("   ⚠️  No teams were created (parsing issues)")
+        
+        return teams_created
+
+    def _fix_restored_team_id_mappings(self, conn):
+        """Fix team ID mappings for restored polls and captain messages"""
+        cursor = conn.cursor()
+        
+        # Get team mapping backup data
+        cursor.execute("""
+            SELECT 
+                old_team_id,
+                old_team_name,
+                old_team_alias,
+                old_league_string_id,
+                old_club_id,
+                old_series_id
+            FROM team_mapping_backup
+        """)
+        mappings = cursor.fetchall()
+        
+        # Create mapping dictionary
+        team_id_mapping = {}
+        for mapping in mappings:
+            old_team_id, old_team_name, old_team_alias, old_league_string_id, old_club_id, old_series_id = mapping
+            
+            # Find new team ID based on context
+            cursor.execute("""
+                SELECT t.id 
+                FROM teams t
+                JOIN leagues l ON t.league_id = l.id
+                WHERE l.league_id = %s 
+                AND t.club_id = %s 
+                AND t.series_id = %s
+                AND (t.team_name = %s OR t.team_alias = %s)
+            """, (old_league_string_id, old_club_id, old_series_id, old_team_name, old_team_alias))
+            
+            new_team = cursor.fetchone()
+            if new_team:
+                team_id_mapping[old_team_id] = new_team[0]
+        
+        # Handle missing teams with fallback mappings
+        # Map Tennaqua Series 22 to Tennaqua Series 22 (teams with users)
+        cursor.execute("""
+            SELECT t.id 
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            WHERE l.league_id = 'APTA_CHICAGO' 
+            AND t.team_name LIKE 'Tennaqua - 22'
+            LIMIT 1
+        """)
+        tennaqua_22 = cursor.fetchone()
+        if tennaqua_22:
+            team_id_mapping[67600] = tennaqua_22[0]  # Tennaqua - 22
+            team_id_mapping[67854] = tennaqua_22[0]  # Test Chicago 22 @ Tennaqua
+        
+        # Map Tennaqua S2B to Tennaqua S2B (teams with users)
+        cursor.execute("""
+            SELECT t.id 
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            WHERE l.league_id = 'NSTF' 
+            AND t.team_name LIKE 'Tennaqua S2B'
+            LIMIT 1
+        """)
+        tennaqua_s2b = cursor.fetchone()
+        if tennaqua_s2b:
+            team_id_mapping[67620] = tennaqua_s2b[0]  # Tennaqua S2B
+            team_id_mapping[67855] = tennaqua_s2b[0]  # Test Series 2B @ Tennaqua
+        
+        # Fix polls
+        polls_fixed = 0
+        cursor.execute("SELECT id, team_id FROM polls WHERE team_id IS NOT NULL")
+        polls = cursor.fetchall()
+        for poll_id, old_team_id in polls:
+            if old_team_id in team_id_mapping:
+                new_team_id = team_id_mapping[old_team_id]
+                cursor.execute("UPDATE polls SET team_id = %s WHERE id = %s", (new_team_id, poll_id))
+                polls_fixed += 1
+        
+        # Fix captain messages
+        messages_fixed = 0
+        cursor.execute("SELECT id, team_id FROM captain_messages WHERE team_id IS NOT NULL")
+        messages = cursor.fetchall()
+        for msg_id, old_team_id in messages:
+            if old_team_id in team_id_mapping:
+                new_team_id = team_id_mapping[old_team_id]
+                cursor.execute("UPDATE captain_messages SET team_id = %s WHERE id = %s", (new_team_id, msg_id))
+                messages_fixed += 1
+        
+        self.log(f"   🔧 Fixed {polls_fixed} polls and {messages_fixed} captain messages")
+
+    def _validate_user_data_restoration(self, conn):
+        """
+        Comprehensive validation of user data restoration.
+        
+        Returns a dictionary with validation results for all data types.
+        """
+        self.log("🔍 Validating user data restoration...")
+        
+        cursor = conn.cursor()
+        validation_results = {}
+        
+        # Validate polls
+        cursor.execute("""
+            SELECT COUNT(*) as total_polls,
+                   COUNT(CASE WHEN team_id IS NOT NULL THEN 1 END) as polls_with_team,
+                   COUNT(CASE WHEN team_id IS NULL THEN 1 END) as polls_without_team
+            FROM polls
+        """)
+        
+        poll_stats = cursor.fetchone()
+        validation_results['polls'] = {
+            'total': poll_stats[0],
+            'with_team': poll_stats[1],
+            'without_team': poll_stats[2],
+            'orphaned': 0
+        }
+        
+        # Check for orphaned poll references
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM polls p 
+            LEFT JOIN teams t ON p.team_id = t.id 
+            WHERE p.team_id IS NOT NULL AND t.id IS NULL
+        """)
+        
+        orphaned_polls = cursor.fetchone()[0]
+        validation_results['polls']['orphaned'] = orphaned_polls
+        
+        # Validate captain messages
+        cursor.execute("""
+            SELECT COUNT(*) as total_messages,
+                   COUNT(CASE WHEN team_id IS NOT NULL THEN 1 END) as messages_with_team,
+                   COUNT(CASE WHEN team_id IS NULL THEN 1 END) as messages_without_team
+            FROM captain_messages
+        """)
+        
+        message_stats = cursor.fetchone()
+        validation_results['captain_messages'] = {
+            'total': message_stats[0],
+            'with_team': message_stats[1],
+            'without_team': message_stats[2],
+            'orphaned': 0
+        }
+        
+        # Check for orphaned captain message references
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM captain_messages cm 
+            LEFT JOIN teams t ON cm.team_id = t.id 
+            WHERE cm.team_id IS NOT NULL AND t.id IS NULL
+        """)
+        
+        orphaned_messages = cursor.fetchone()[0]
+        validation_results['captain_messages']['orphaned'] = orphaned_messages
+        
+        # Validate practice times
+        cursor.execute("""
+            SELECT COUNT(*) as total_practice_times
+            FROM schedule 
+            WHERE home_team LIKE '%Practice%' OR home_team LIKE '%practice%'
+        """)
+        
+        practice_times_count = cursor.fetchone()[0]
+        validation_results['practice_times'] = {
+            'total': practice_times_count
+        }
+        
+        # Validate user associations
+        cursor.execute("SELECT COUNT(*) FROM user_player_associations")
+        associations_count = cursor.fetchone()[0]
+        validation_results['user_associations'] = {
+            'total': associations_count
+        }
+        
+        # Validate availability data
+        cursor.execute("SELECT COUNT(*) FROM player_availability")
+        availability_count = cursor.fetchone()[0]
+        validation_results['availability'] = {
+            'total': availability_count
+        }
+        
+        # Log validation results
+        self.log("📊 Validation Results:")
+        self.log(f"   📊 Polls: {validation_results['polls']['total']} total, {validation_results['polls']['with_team']} with team, {validation_results['polls']['orphaned']} orphaned")
+        self.log(f"   💬 Captain Messages: {validation_results['captain_messages']['total']} total, {validation_results['captain_messages']['with_team']} with team, {validation_results['captain_messages']['orphaned']} orphaned")
+        self.log(f"   ⏰ Practice Times: {validation_results['practice_times']['total']} total")
+        self.log(f"   👥 User Associations: {validation_results['user_associations']['total']} total")
+        self.log(f"   📅 Availability: {validation_results['availability']['total']} total")
+        
+        # Check for critical issues
+        total_orphaned = validation_results['polls']['orphaned'] + validation_results['captain_messages']['orphaned']
+        
+        if total_orphaned > 0:
+            self.log(f"⚠️  WARNING: {total_orphaned} orphaned references found", "WARNING")
+            validation_results['has_issues'] = True
+        else:
+            self.log("✅ No orphaned references found - all data properly restored")
+            validation_results['has_issues'] = False
+        
+        return validation_results
 
 
 def main():

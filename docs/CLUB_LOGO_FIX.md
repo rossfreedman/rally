@@ -29,7 +29,7 @@ The mobile site at `http://localhost:8080/mobile` was showing the wrong logo for
 Updated the database directly to set correct logo filenames:
 ```sql
 UPDATE clubs SET logo_filename = 'static/images/clubs/glenbrook_rc_logo.png' WHERE name = 'Glenbrook RC';
-UPDATE clubs SET logo_filename = 'static/images/clubs/tennaqua_logo.jpeg' WHERE name = 'Tennaqua';
+UPDATE clubs SET logo_filename = 'static/images/clubs/tennaqua_logo.png' WHERE name = 'Tennaqua';
 ```
 
 ### 2. Automated Fix Script

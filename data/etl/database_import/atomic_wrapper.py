@@ -233,7 +233,7 @@ class AtomicETLWrapper:
 
                         # Restore user data
                         self.etl.log("\n🔄 Step 7: Restoring user data...")
-                        restore_results = self.etl.restore_user_associations(conn)
+                        restore_results = self.etl.restore_user_data_with_team_mappings(conn)
                         
                         # Run post-import validations
                         self.etl.log("\n🔍 Step 8: Running validations...")

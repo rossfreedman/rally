@@ -261,6 +261,7 @@ class AtomicETL:
         self.log("🧹 Clearing target tables...")
         
         # Define tables to clear in reverse dependency order
+        # CRITICAL: polls, poll_choices, poll_responses are PROTECTED and never cleared
         tables_to_clear = [
             'schedule',
             'series_stats', 
@@ -297,6 +298,99 @@ class AtomicETL:
         
         self.log("✅ All target tables cleared")
         return cleared_counts
+
+    def _fix_orphaned_poll_references(self, cursor):
+        """Fix orphaned team_id references in polls table after ETL"""
+        self.log("🔧 Fixing orphaned poll team_id references...")
+        
+        # Find polls with orphaned team_id references
+        cursor.execute("""
+            SELECT p.id, p.team_id, p.question, p.created_at, p.created_by
+            FROM polls p
+            LEFT JOIN teams t ON p.team_id = t.id
+            WHERE p.team_id IS NOT NULL AND t.id IS NULL
+            ORDER BY p.created_at DESC
+        """)
+        
+        orphaned_polls = cursor.fetchall()
+        
+        if not orphaned_polls:
+            self.log("✅ No orphaned poll references found")
+            return 0
+        
+        self.log(f"⚠️  Found {len(orphaned_polls)} polls with orphaned team_id references")
+        
+        fixed_count = 0
+        
+        for poll in orphaned_polls:
+            poll_id, old_team_id, question, created_at, created_by = poll
+            
+            # Try to find the correct team based on poll creator and question content
+            new_team_id = self._find_correct_team_for_poll(cursor, created_by, question, old_team_id)
+            
+            if new_team_id:
+                # Update the poll to reference the correct team
+                cursor.execute("""
+                    UPDATE polls 
+                    SET team_id = %s 
+                    WHERE id = %s
+                """, [new_team_id, poll_id])
+                
+                self.log(f"   ✅ Fixed poll {poll_id}: {old_team_id} → {new_team_id}")
+                fixed_count += 1
+            else:
+                # If no correct team found, set to NULL to prevent errors
+                cursor.execute("""
+                    UPDATE polls 
+                    SET team_id = NULL 
+                    WHERE id = %s
+                """, [poll_id])
+                
+                self.log(f"   ⚠️  Set poll {poll_id} team_id to NULL (no matching team found)")
+                fixed_count += 1
+        
+        self.log(f"✅ Fixed {fixed_count} orphaned poll references")
+        return fixed_count
+
+    def _find_correct_team_for_poll(self, cursor, created_by, question, old_team_id):
+        """Find the correct team_id for a poll based on creator and content"""
+        
+        # Strategy 1: Find creator's team based on question content (e.g., "Series 22")
+        if "22" in question or "Series 22" in question:
+            cursor.execute("""
+                SELECT p.team_id, t.team_name, t.team_alias
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                WHERE upa.user_id = %s AND (t.team_name LIKE '%%22%%' OR t.team_alias LIKE '%%22%%')
+                LIMIT 1
+            """, [created_by])
+            
+            result = cursor.fetchone()
+            if result:
+                team_id, team_name, team_alias = result
+                return team_id
+        
+        # Strategy 2: Find creator's primary team (APTA_CHICAGO preferred)
+        cursor.execute("""
+            SELECT p.team_id, t.team_name, t.team_alias, l.league_id
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            ORDER BY 
+                CASE WHEN l.league_id = 'APTA_CHICAGO' THEN 1 ELSE 2 END,
+                p.id
+            LIMIT 1
+        """, [created_by])
+        
+        result = cursor.fetchone()
+        if result:
+            team_id, team_name, team_alias, league_id = result
+            return team_id
+        
+        return None
     
     def _import_leagues(self, cursor, players_data: List[Dict]) -> int:
         """Import leagues data"""
@@ -528,6 +622,18 @@ class AtomicETL:
                         # Validate import results
                         if import_results['total'] == 0:
                             raise ValueError("No data was imported")
+                        
+                        # ENHANCEMENT: Fix orphaned poll references after import
+                        self.log("🔧 Fixing orphaned poll team_id references...")
+                        try:
+                            poll_fixes = self._fix_orphaned_poll_references(cursor)
+                            if poll_fixes > 0:
+                                self.log(f"✅ Fixed {poll_fixes} orphaned poll references")
+                            else:
+                                self.log("✅ No orphaned poll references found")
+                        except Exception as e:
+                            self.log(f"❌ Error fixing orphaned polls: {str(e)}", "ERROR")
+                            self.log("⚠️  Polls may have orphaned team_id references - manual fix may be needed", "WARNING")
                         
                         # If we get here, everything succeeded
                         self.log("✅ All operations completed successfully")
