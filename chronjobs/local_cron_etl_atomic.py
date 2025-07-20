@@ -87,14 +87,14 @@ def test_database_connection(logger):
 def run_atomic_etl_import(logger, skip_backup=False):
     """Run the ATOMIC ETL import process locally"""
     try:
-        # Import atomic ETL wrapper
+        # Import enhanced atomic ETL wrapper with practice time protection
         sys.path.append(os.path.join(project_root, 'data', 'etl', 'database_import'))
-        from atomic_wrapper import AtomicETLWrapper
+        from atomic_wrapper_enhanced import EnhancedAtomicETLWrapper
         
         logger.info("🔄 Initializing ATOMIC ETL wrapper for LOCAL development...")
         
-        # Create atomic ETL wrapper with local-specific settings
-        atomic_etl = AtomicETLWrapper(
+        # Create enhanced atomic ETL wrapper with local-specific settings
+        atomic_etl = EnhancedAtomicETLWrapper(
             environment='local',
             create_backup=not skip_backup  # Default to create backup for safety
         )

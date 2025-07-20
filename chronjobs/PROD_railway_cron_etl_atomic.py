@@ -86,15 +86,15 @@ def test_database_connection(logger):
 def run_atomic_etl_import(logger):
     """Run the ATOMIC ETL import process on PRODUCTION"""
     try:
-        # Import atomic ETL wrapper
+        # Import enhanced atomic ETL wrapper with practice time protection
         sys.path.append(os.path.join(project_root, 'data', 'etl', 'database_import'))
-        from atomic_wrapper import AtomicETLWrapper
+        from atomic_wrapper_enhanced import EnhancedAtomicETLWrapper
         
         logger.info("🔄 Initializing ATOMIC ETL wrapper for PRODUCTION...")
         
-        # Create atomic ETL wrapper with production-specific settings
+        # Create enhanced atomic ETL wrapper with production-specific settings
         # ALWAYS create backup in production
-        atomic_etl = AtomicETLWrapper(
+        atomic_etl = EnhancedAtomicETLWrapper(
             environment='railway_production',
             create_backup=True  # ALWAYS backup in production
         )

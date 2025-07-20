@@ -189,7 +189,7 @@ class EnhancedAtomicETLWrapper:
                     try:
                         # ENHANCEMENT 1: Pre-ETL Safety Validation
                         self.etl.log("🛡️  Step 0: Pre-ETL Safety Validation...")
-                        is_safe, issues = validate_etl_safety_preconditions(cursor, self)
+                        is_safe, issues = validate_etl_safety_preconditions(cursor, None)
                         
                         if not is_safe:
                             self.etl.log("🚨 ETL SAFETY ISSUES FOUND:", "ERROR")
@@ -207,7 +207,7 @@ class EnhancedAtomicETLWrapper:
                         
                         # ENHANCEMENT 2: Create enhanced practice time backup
                         self.etl.log("💾 Step 0.5: Creating enhanced practice time backup...")
-                        practice_backup_count = create_enhanced_practice_time_backup(cursor, self)
+                        practice_backup_count = create_enhanced_practice_time_backup(cursor, None)
                         self.etl.log(f"✅ Enhanced practice time backup: {practice_backup_count} records")
                         
                         # Step 1: Load all JSON files
@@ -226,25 +226,8 @@ class EnhancedAtomicETLWrapper:
                         # Ensure schema requirements
                         self.etl.ensure_schema_requirements(conn)
 
-                        # Clear existing data (backup already created above)
-                        self.etl.log("\n🗑️  Step 3: Clearing existing data...")
-                        tables_to_clear = [
-                            "schedule",  # No dependencies
-                            "series_stats",  # References leagues, teams
-                            "match_scores",  # References players, teams
-                            "player_history",  # References players
-                            "players",  # References teams, clubs
-                            "teams",  # References clubs, series, leagues
-                            "series_leagues",  # References series, leagues
-                            "club_leagues",  # References clubs, leagues
-                            "series",  # References leagues
-                            "clubs",  # References leagues
-                            "leagues"  # No dependencies (cleared last to avoid constraint issues)
-                        ]
-                        
-                        for table in tables_to_clear:
-                            cursor.execute(f"DELETE FROM {table}")
-                            self.etl.log(f"   ✅ Cleared {table}")
+                        # Clear existing data using the proper ETL method
+                        self.etl.clear_target_tables(conn)
 
                         # Import basic reference data
                         self.etl.log("\n📥 Step 4: Importing reference data...")
@@ -279,7 +262,7 @@ class EnhancedAtomicETLWrapper:
                         self.etl.log("\n🔄 Step 7: Enhanced practice time restoration...")
                         
                         # Validate team ID preservation first
-                        preservation_success, preservation_stats = validate_team_id_preservation_post_etl(cursor, self)
+                        preservation_success, preservation_stats = validate_team_id_preservation_post_etl(cursor, None)
                         
                         if preservation_success:
                             self.etl.log("✅ Team ID preservation successful - using direct restoration")
@@ -290,12 +273,12 @@ class EnhancedAtomicETLWrapper:
                             except Exception as e:
                                 self.etl.log(f"⚠️  Direct restoration failed: {e}", "WARNING")
                                 # Fall back to enhanced restoration
-                                restoration_stats = restore_practice_times_with_fallback(cursor, self, dry_run=False)
+                                restoration_stats = restore_practice_times_with_fallback(cursor, None, dry_run=False)
                                 self.etl.log(f"✅ Fallback restoration: {restoration_stats['total']} practice times restored")
                         else:
                             self.etl.log("⚠️  Team ID preservation failed - using enhanced fallback restoration")
                             # Use enhanced fallback restoration
-                            restoration_stats = restore_practice_times_with_fallback(cursor, self, dry_run=False)
+                            restoration_stats = restore_practice_times_with_fallback(cursor, None, dry_run=False)
                             self.etl.log(f"✅ Fallback restoration: {restoration_stats['direct']} direct + {restoration_stats['fallback']} fallback = {restoration_stats['total']} total")
                             
                             # Also restore other user data (polls, captain messages)
@@ -309,7 +292,7 @@ class EnhancedAtomicETLWrapper:
                         # ENHANCEMENT 4: Post-ETL Health Validation
                         self.etl.log("\n🔍 Step 8: Post-ETL Health Validation...")
                         health_stats = validate_practice_time_health(
-                            cursor, self.practice_time_count_pre_etl, self
+                            cursor, self.practice_time_count_pre_etl, None
                         )
                         
                         if not health_stats["is_healthy"]:
@@ -332,7 +315,7 @@ class EnhancedAtomicETLWrapper:
                         self.etl.increment_session_version(conn)
 
                         # Clean up enhanced backup tables
-                        cleanup_enhanced_backup_tables(cursor, self)
+                        cleanup_enhanced_backup_tables(cursor, None)
 
                         # If we get here, everything succeeded
                         self.etl.log("✅ All operations completed successfully")
