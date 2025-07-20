@@ -43,8 +43,10 @@
 
     <!-- Main Content Container -->
     <div id="create-team-content" class="hidden" style="display: none !important;">
-        <!-- Responsive Grid Layout -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 min-h-screen">
+
+        
+        <!-- Grid Layout - Always 3 Columns -->
+        <div class="grid grid-cols-3 gap-6 min-h-screen">
             
             <!-- Column 1: Interactive PTI Range Control -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 h-fit">
@@ -179,7 +181,60 @@
 </div>
 
 <style>
+/* Force 3-column layout always */
+.grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+}
+
+.grid > div {
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
 /* Mobile-specific styles for create team */
+/* Mobile responsive improvements */
+@media (max-width: 640px) {
+    .grid {
+        gap: 1rem !important;
+    }
+    
+    .player-card {
+        width: calc(50% - 0.25rem) !important;
+        min-width: 80px !important;
+        font-size: 0.75rem !important;
+        padding: 0.25rem !important;
+    }
+    
+    .drop-zone {
+        min-height: 80px !important;
+        padding: 0.5rem !important;
+    }
+    
+    /* Make buttons more touch-friendly on mobile */
+    button {
+        min-height: 44px !important;
+        padding: 0.75rem 1rem !important;
+    }
+    
+    /* Improve text readability on mobile */
+    .text-sm {
+        font-size: 0.875rem !important;
+    }
+    
+    .text-xs {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Ensure columns stack properly on mobile */
+    .grid > div {
+        width: 100% !important;
+        margin-bottom: 1rem !important;
+    }
+    
+
+}
 .player-card {
     transition: all 0.2s ease;
     cursor: pointer;
@@ -505,6 +560,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     console.log('Initializing team creation page');
+
+
 
     // Immediate element check
     console.log('DOM loaded, checking elements...');
