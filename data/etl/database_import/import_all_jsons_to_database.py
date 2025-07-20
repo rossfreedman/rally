@@ -692,6 +692,27 @@ class ComprehensiveETL:
         availability_backup_count = cursor.fetchone()[0]
         self.log(f"✅ Backed up {availability_backup_count:,} availability records")
         
+        # Step 7: Backup team mapping data for restoration
+        self.log("🏆 Backing up team mapping data...")
+        cursor.execute("""
+            DROP TABLE IF EXISTS team_mapping_backup;
+            CREATE TABLE team_mapping_backup AS
+            SELECT 
+                t.id as old_team_id,
+                t.team_name as old_team_name,
+                t.team_alias as old_team_alias,
+                l.league_id as old_league_string_id,
+                t.club_id as old_club_id,
+                t.series_id as old_series_id
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            WHERE t.is_active = true
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM team_mapping_backup")
+        team_mapping_backup_count = cursor.fetchone()[0]
+        self.log(f"✅ Backed up {team_mapping_backup_count:,} team mappings")
+        
         conn.commit()
         
         # Summary
@@ -702,6 +723,7 @@ class ComprehensiveETL:
         self.log(f"   👥 User associations: {associations_backup_count:,}")
         self.log(f"   🏆 League contexts: {contexts_backup_count:,}")
         self.log(f"   📅 Availability records: {availability_backup_count:,}")
+        self.log(f"   🏆 Team mappings: {team_mapping_backup_count:,}")
         
         return {
             'polls_backup_count': polls_backup_count,
@@ -709,7 +731,8 @@ class ComprehensiveETL:
             'practice_times_backup_count': practice_times_backup_count,
             'associations_backup_count': associations_backup_count,
             'contexts_backup_count': contexts_backup_count,
-            'availability_backup_count': availability_backup_count
+            'availability_backup_count': availability_backup_count,
+            'team_mapping_backup_count': team_mapping_backup_count
         }
 
     def restore_user_data_with_team_mappings(self, conn):
@@ -5147,6 +5170,17 @@ class ComprehensiveETL:
         """Fix team ID mappings for restored polls and captain messages"""
         cursor = conn.cursor()
         
+        # Check if team_mapping_backup table exists and has data
+        cursor.execute("""
+            SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_name = 'team_mapping_backup'
+        """)
+        table_exists = cursor.fetchone()[0] > 0
+        
+        if not table_exists:
+            self.log("   ⚠️  team_mapping_backup table not found - skipping team ID mapping fix")
+            return
+        
         # Get team mapping backup data
         cursor.execute("""
             SELECT 
@@ -5159,6 +5193,12 @@ class ComprehensiveETL:
             FROM team_mapping_backup
         """)
         mappings = cursor.fetchall()
+        
+        if not mappings:
+            self.log("   ⚠️  No team mapping data found in backup - skipping team ID mapping fix")
+            return
+        
+        self.log(f"   🔧 Processing {len(mappings)} team mappings for restoration...")
         
         # Create mapping dictionary
         team_id_mapping = {}
@@ -5211,23 +5251,29 @@ class ComprehensiveETL:
         
         # Fix polls
         polls_fixed = 0
-        cursor.execute("SELECT id, team_id FROM polls WHERE team_id IS NOT NULL")
-        polls = cursor.fetchall()
-        for poll_id, old_team_id in polls:
-            if old_team_id in team_id_mapping:
-                new_team_id = team_id_mapping[old_team_id]
-                cursor.execute("UPDATE polls SET team_id = %s WHERE id = %s", (new_team_id, poll_id))
-                polls_fixed += 1
+        try:
+            cursor.execute("SELECT id, team_id FROM polls WHERE team_id IS NOT NULL")
+            polls = cursor.fetchall()
+            for poll_id, old_team_id in polls:
+                if old_team_id in team_id_mapping:
+                    new_team_id = team_id_mapping[old_team_id]
+                    cursor.execute("UPDATE polls SET team_id = %s WHERE id = %s", (new_team_id, poll_id))
+                    polls_fixed += 1
+        except Exception as e:
+            self.log(f"   ⚠️  Error fixing polls: {e}")
         
         # Fix captain messages
         messages_fixed = 0
-        cursor.execute("SELECT id, team_id FROM captain_messages WHERE team_id IS NOT NULL")
-        messages = cursor.fetchall()
-        for msg_id, old_team_id in messages:
-            if old_team_id in team_id_mapping:
-                new_team_id = team_id_mapping[old_team_id]
-                cursor.execute("UPDATE captain_messages SET team_id = %s WHERE id = %s", (new_team_id, msg_id))
-                messages_fixed += 1
+        try:
+            cursor.execute("SELECT id, team_id FROM captain_messages WHERE team_id IS NOT NULL")
+            messages = cursor.fetchall()
+            for msg_id, old_team_id in messages:
+                if old_team_id in team_id_mapping:
+                    new_team_id = team_id_mapping[old_team_id]
+                    cursor.execute("UPDATE captain_messages SET team_id = %s WHERE id = %s", (new_team_id, msg_id))
+                    messages_fixed += 1
+        except Exception as e:
+            self.log(f"   ⚠️  Error fixing captain messages: {e}")
         
         self.log(f"   🔧 Fixed {polls_fixed} polls and {messages_fixed} captain messages")
 
