@@ -66,9 +66,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'rally-blue': '#0f1727',
-                        'rally-green': '#10b981',
-                        'rally-orange': '#f59e0b',
+                        'rally-teal': '#0d4f4c',
+                        'rally-teal-dark': '#0a3d3a',
+                        'rally-green': '#84cc16',
+                        'rally-lime': '#a3e635',
+                        'rally-cream': '#f7f3e9',
                         'rally-dark': '#1f2937',
                     }
                 }
@@ -114,7 +116,7 @@
             transition: all 0.3s ease;
         }
         .nav-solid {
-            background: linear-gradient(to bottom right, #0f1727, #0b1220) !important;
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
         }
@@ -130,11 +132,11 @@
     </script>
     
     <!-- Hero Section with Overlaid Navigation -->
-    <section class="hero-section bg-gradient-to-br from-rally-blue to-slate-900 text-white">
+    <section class="hero-section bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white">
         <!-- Background Image -->
         <div class="absolute inset-0">
             <img src="images/hero.jpg" alt="Rally Sports Action" class="hero-bg">
-            <div class="absolute inset-0 bg-gradient-to-br from-rally-blue/80 to-slate-900/80"></div>
+            <div class="absolute inset-0 bg-gradient-to-br from-rally-teal/90 to-rally-teal-dark/90"></div>
         </div>
         
         <!-- Overlaid Navigation -->
@@ -143,7 +145,7 @@
                 <!-- Centered Logo -->
                 <div class="flex justify-center items-center py-6">
                     <a href="index.html" class="flex items-center">
-                        <img class="h-12 w-auto drop-shadow-lg" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <img class="h-28 w-auto drop-shadow-lg" src="images/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                         <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
                     </a>
                 </div>
@@ -163,18 +165,20 @@
         <!-- Hero Content -->
         <div class="relative z-10 max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pt-52 pb-6 lg:pt-60 lg:pb-10 flex-1 flex items-center">
             <div class="text-center w-full">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg text-center">
-                    Built by Players, <br><span class="text-yellow-300">for Players</span>
+                <p class="text-lg md:text-xl mb-4 text-white max-w-3xl mx-auto drop-shadow-md text-center">
+                    Rally is the Premier Club Racquet Sports App.
+                </p>
+                <h1 class="text-4xl md:text-6xl font-bold mb-8 drop-shadow-lg text-center">
+                    Built by Players, <br><span class="text-rally-lime">for Players</span>
                 </h1>
-                <p class="text-xl md:text-2xl mb-4 text-white max-w-3xl mx-auto drop-shadow-md font-bold text-center">
-                    Rally is the premier club racquet sports app.
-                </p>
-                <p class="text-lg md:text-xl mb-8 text-blue-100 max-w-4xl mx-auto drop-shadow-md text-center">
-                    Rally makes it easy to track match scores, update your schedule, find other players, and scout competition—without the email chains, spreadsheets, or group texts. Whether you play paddle, tennis, or pickleball, everything you need lives here.
-                </p>
-                <div class="text-center">
-                    <a href="#pricing" class="inline-block bg-slate-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-slate-700 border-2 border-yellow-400 hover:border-yellow-300 transition duration-300 shadow-lg transform hover:scale-105">
+                <div class="text-center mb-6">
+                    <a href="#pricing" class="inline-block bg-rally-green hover:bg-rally-lime text-black px-8 py-4 rounded-lg text-lg font-semibold transition duration-300 shadow-lg transform hover:scale-105">
                         Try Rally Free
+                    </a>
+                </div>
+                <div class="text-center">
+                    <a href="#leagues" class="text-sm text-white/80 hover:text-white underline transition duration-300">
+                        Don't See your League?
                     </a>
                 </div>
             </div>
@@ -182,33 +186,35 @@
     </section>
 
     <!-- About Rally Section -->
-    <section class="pt-24 pb-20 bg-gray-50">
+    <section class="pt-24 pb-20 bg-rally-cream">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div class="text-center lg:text-left">
-                    <h2 class="text-4xl font-bold text-gray-900 mb-6 text-center">About Rally</h2>
-                    <p class="text-xl font-bold text-gray-900 mb-4 text-center">Made for players who ❤️ racquet sports.</p>
-                    <p class="text-lg text-gray-600 mb-8 text-center lg:text-left">
-                        One app to run your season. We understand the unique challenges of platform tennis (paddle), tennis, and pickleball - from team scheduling to scouting competition and tracking performance across different leagues and seasons. Everything you need to play, improve, and stay on top of your game.
+            <div class="text-center mb-16">
+                <p class="text-lg text-gray-600 max-w-4xl mx-auto">
+                    Rally makes it easy for both match scores, update your competition — without the email chains, 
+                    spreadsheets, or group texts. Whether you play paddle, tennis, or pickleball, everything you need lives here.
+                </p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6">About Rally</h2>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Made for players who ❤️ racquet sports.</h3>
+                    <p class="text-gray-600 mb-6">
+                        One app to run your season. We understand the unique challenges of platform tennis (paddle), tennis, and pickleball - from team scheduling to scouting competition and tracking performance across different leagues and seasons.
                     </p>
-
+                    <p class="text-gray-600">
+                        Built for club leagues in paddle, tennis, and pickleball, Rally understands the distinct challenges of platform tennis scheduling and tournament management, helping players, captains, and clubs stay organized and engaged.
+                    </p>
                 </div>
                 <div class="relative">
-                    <div class="bg-gradient-to-br from-rally-blue to-slate-900 rounded-2xl p-8 text-white text-center">
-                        <div class="flex justify-center gap-4 mb-4">
-                            <div class="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center" title="Platform Tennis (Paddle)">
-                                <img src="images/icon_paddle_ball.png" alt="Platform Tennis Paddle" class="w-8 h-8 filter brightness-0 invert">
-                            </div>
-                            <div class="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center" title="Tennis">
-                                <img src="images/icon_tennis_ball.png" alt="Tennis" class="w-8 h-8 filter invert">
-                            </div>
-                            <div class="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center" title="Pickleball">
-                                <img src="images/icon_pickleball_ball.png" alt="Pickleball" class="w-14 h-14 filter invert">
-                            </div>
+                    <div class="bg-gradient-to-br from-rally-teal to-rally-teal-dark rounded-2xl p-8 text-white">
+                        <div class="flex justify-center gap-2 mb-6">
+                            <div class="w-3 h-3 bg-white rounded-full"></div>
+                            <div class="w-3 h-3 bg-white rounded-full"></div>
+                            <div class="w-3 h-3 bg-white rounded-full"></div>
                         </div>
                         <h3 class="text-2xl font-bold mb-4 text-center">Built for Paddle, Tennis, and Pickleball</h3>
-                        <p class="text-blue-100 text-center">
-                            Built for club leagues in paddle, tennis, and pickleball, Rally understands the distinct scoring systems, match formats, and scheduling needs of each sport.
+                        <p class="text-white/90 text-center text-sm leading-relaxed">
+                            Built for club leagues in paddle, tennis, and pickleball, Rally understands the distinct scoring systems, match formats, and scheduling needs of each sport. Everything you need to play, improve, and stay on top of your game.
                         </p>
                     </div>
                 </div>
@@ -217,7 +223,7 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="py-20 bg-white">
+    <section id="features" class="py-20 bg-rally-cream">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Features</h2>
@@ -275,7 +281,7 @@
                 <!-- Hidden features - shown after clicking "View More Features" -->
 
                 <!-- Update Availability Feature -->
-                <a href="update-availability.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden text-center">
+                <a href="update-availability.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 text-center">
                     <div class="w-16 h-16 bg-rally-green rounded-lg flex items-center justify-center mb-6 mx-auto">
                         <i class="fas fa-check-circle text-white text-2xl"></i>
                     </div>
@@ -284,7 +290,7 @@
                 </a>
 
                 <!-- Team Polls Feature -->
-                <a href="team-polls.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden text-center">
+                <a href="team-polls.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 text-center">
                     <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                         <i class="fas fa-poll text-white text-2xl"></i>
                     </div>
@@ -293,7 +299,7 @@
                 </a>
 
                 <!-- PTI Calculator Feature -->
-                <a href="pti-calculator.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden text-center">
+                <a href="pti-calculator.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 text-center">
                     <div class="w-16 h-16 bg-yellow-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                         <i class="fas fa-calculator text-white text-2xl"></i>
                     </div>
@@ -302,7 +308,7 @@
                 </a>
 
                 <!-- Match Simulator Feature -->
-                <a href="match-simulator.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden text-center">
+                <a href="match-simulator.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 text-center">
                     <div class="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                         <i class="fas fa-chart-line text-white text-2xl"></i>
                     </div>
@@ -311,17 +317,12 @@
                 </a>
             </div>
 
-            <div class="text-center mt-12">
-                <button id="view-more-btn" class="bg-gray-100 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-200 transition duration-300" onclick="toggleFeatures()">
-                    <span id="btn-text">View More Features</span>
-                    <i id="btn-icon" class="fas fa-chevron-down ml-2"></i>
-                </button>
-            </div>
+
         </div>
     </section>
 
     <!-- Explore Leagues Section -->
-    <section id="leagues" class="py-20 bg-gray-50">
+    <section id="leagues" class="py-20 bg-rally-cream">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Explore Leagues</h2>
@@ -378,14 +379,19 @@
     </section>
 
     <!-- League Interest Section -->
-    <section class="py-16 bg-gradient-to-r from-rally-blue to-slate-900 text-white">
-        <div class="max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+    <section class="py-16 bg-gradient-to-r from-rally-teal to-rally-teal-dark text-white relative overflow-hidden">
+        <!-- Background Image -->
+        <div class="absolute inset-0">
+            <img src="images/hero.jpg" alt="Tennis Ball Background" class="w-full h-full object-cover opacity-30">
+            <div class="absolute inset-0 bg-gradient-to-r from-rally-teal/90 to-rally-teal-dark/90"></div>
+        </div>
+        <div class="relative z-10 max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <h2 class="text-3xl font-bold mb-6">Don't see your league?</h2>
-            <p class="text-xl text-blue-100 mb-8">
+            <p class="text-xl text-white/90 mb-8">
                 Click here to let us know you are interested in getting your league online in Rally.
             </p>
-            <button onclick="openLeagueInterestModal()" class="bg-rally-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
-                Tell us about your league
+            <button onclick="openLeagueInterestModal()" class="bg-rally-green hover:bg-rally-lime text-black px-8 py-4 rounded-lg text-lg font-semibold transition duration-300 shadow-lg transform hover:scale-105">
+                Tell Us About Your League
             </button>
         </div>
     </section>
@@ -466,7 +472,7 @@
     </div>
 
     <!-- Pricing Section -->
-    <section id="pricing" class="py-20 bg-white">
+    <section id="pricing" class="py-20 bg-rally-cream">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Pricing</h2>
@@ -547,7 +553,7 @@
                 </div>
 
                 <!-- Rally Pro -->
-                <div class="bg-gradient-to-br from-rally-blue to-slate-900 text-white rounded-xl p-8 shadow-xl transform scale-105 relative">
+                <div class="bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white rounded-xl p-8 shadow-xl transform scale-105 relative">
                     <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
                         <span class="bg-rally-orange text-white px-4 py-2 rounded-full text-sm font-semibold">Popular</span>
                     </div>
@@ -612,7 +618,7 @@
                         </div>
                     </div>
 
-                    <button class="w-full bg-white text-rally-blue py-3 rounded-lg hover:bg-gray-100 transition duration-300 font-semibold">
+                    <button class="w-full bg-white text-rally-teal py-3 rounded-lg hover:bg-gray-100 transition duration-300 font-semibold">
                         Upgrade to Pro
                     </button>
                 </div>
@@ -621,17 +627,22 @@
     </section>
 
     <!-- Love to Rally Section -->
-    <section class="py-20 bg-gradient-to-br from-rally-green to-green-700 text-white">
-        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+    <section class="py-20 bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white relative overflow-hidden">
+        <!-- Background Image -->
+        <div class="absolute inset-0">
+            <img src="images/hero.jpg" alt="Tennis Court Background" class="w-full h-full object-cover opacity-20">
+            <div class="absolute inset-0 bg-gradient-to-br from-rally-teal/90 to-rally-teal-dark/90"></div>
+        </div>
+        <div class="relative z-10 max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <h2 class="text-4xl font-bold mb-6 text-center">Love to Rally</h2>
-            <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto text-center">
+            <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto text-center">
                 Join thousands of racquet sports players who have elevated their game with Rally. Start your journey today and experience the difference.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a href="/login" class="bg-white text-rally-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                <a href="/login" class="bg-white text-rally-teal px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
                     Register Now
                 </a>
-                <button class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-green transition duration-300">
+                <button class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-teal transition duration-300">
                     Learn More
                 </button>
             </div>
@@ -639,7 +650,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-16">
+    <footer class="bg-rally-teal-dark text-white py-16">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="flex items-center justify-center mb-8">
                 <a href="index.html" class="flex items-center">
