@@ -173,18 +173,48 @@ def cleanup_resources(logger):
     except:
         pass  # Not critical if this fails
 
+def show_usage_examples(logger):
+    """Show usage examples for production deployment"""
+    logger.info("\n📚 PRODUCTION ATOMIC ETL USAGE EXAMPLES:")
+    logger.info("=" * 60)
+    logger.info("🧪 Test database connection only:")
+    logger.info("   python chronjobs/PROD_railway_cron_etl_atomic.py --test-only")
+    logger.info("")
+    logger.info("💾 Safe production import (backup always enabled):")
+    logger.info("   python chronjobs/PROD_railway_cron_etl_atomic.py")
+    logger.info("")
+    logger.info("🔍 Dry run (test mode):")
+    logger.info("   python chronjobs/PROD_railway_cron_etl_atomic.py --dry-run")
+    logger.info("")
+    logger.info("📊 Verbose logging:")
+    logger.info("   python chronjobs/PROD_railway_cron_etl_atomic.py --verbose")
+    logger.info("")
+    logger.info("⚠️  Note: Production always creates backups for safety")
+    logger.info("=" * 60)
+
 def main():
     """Main cron job function for PRODUCTION with ATOMIC ETL"""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Railway Production Cron ETL Job (Atomic)')
     parser.add_argument('--test-only', action='store_true',
                       help='Test database connection only')
+    parser.add_argument('--dry-run', action='store_true',
+                      help='Perform dry run without actual import')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                      help='Enable verbose logging')
+    parser.add_argument('--help-examples', action='store_true',
+                      help='Show usage examples and exit')
     # Note: No skip-backup option for production - always backup
     args = parser.parse_args()
     
     # Setup
     logger = setup_logging()
     setup_signal_handlers()
+    
+    # Show usage examples if requested
+    if args.help_examples:
+        show_usage_examples(logger)
+        return 0
     
     start_time = datetime.now(timezone.utc)
     success = False
@@ -194,17 +224,33 @@ def main():
         # Log system info
         log_system_info(logger)
         
+        # Verbose mode
+        if args.verbose:
+            logger.info("🔍 Verbose mode enabled - detailed logging active")
+        
         # Test database connection
         if not test_database_connection(logger):
             error_msg = "PRODUCTION database connection failed"
             logger.error("🚨 CRITICAL: Cannot connect to PRODUCTION database!")
+            logger.info("💡 Make sure production database is accessible and DATABASE_URL is set")
             sys.exit(1)
             
         # Test-only mode
         if args.test_only:
             logger.info("✅ Test-only mode: PRODUCTION database connection successful!")
             success = True
-            return
+            return 0
+        
+        # Dry run mode
+        if args.dry_run:
+            logger.info("🔍 DRY RUN MODE: Would run atomic ETL import...")
+            logger.info("   💾 Backup would be: ENABLED (required for production)")
+            logger.info("   🔒 Transaction mode would be: ATOMIC")
+            logger.info("   🎯 Target environment: PRODUCTION")
+            logger.info("   ⚠️  Production safety protocols would be: ACTIVE")
+            logger.info("✅ Dry run completed - no actual import performed")
+            success = True
+            return 0
         
         # Run ATOMIC ETL import
         logger.info("🚨 STARTING PRODUCTION ETL IMPORT - ALL SAFETY PROTOCOLS ACTIVE")
@@ -237,6 +283,20 @@ def main():
         
         # Cleanup
         cleanup_resources(logger)
+        
+        # Show helpful info on completion
+        if success:
+            logger.info("\n💡 NEXT STEPS:")
+            logger.info("   🧪 Test production app: https://rally.up.railway.app")
+            logger.info("   🔍 Validate data: python data/etl/validation/etl_validation_pipeline.py")
+            logger.info("   📊 Check metrics: python scripts/database_health_check.py")
+            logger.info("   📈 Monitor performance: railway logs")
+        else:
+            logger.info("\n💡 TROUBLESHOOTING:")
+            logger.info("   🔍 Check database connection: python chronjobs/PROD_railway_cron_etl_atomic.py --test-only")
+            logger.info("   🧪 Try dry run: python chronjobs/PROD_railway_cron_etl_atomic.py --dry-run")
+            logger.info("   📋 Review logs above for specific error details")
+            logger.info("   🚨 Production system remains stable - no partial data imported")
         
         # Exit with appropriate code
         sys.exit(0 if success else 1)

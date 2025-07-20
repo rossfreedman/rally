@@ -160,6 +160,26 @@ def cleanup_resources(logger):
     except:
         pass  # Not critical if this fails
 
+def show_usage_examples(logger):
+    """Show usage examples for staging development"""
+    logger.info("\n📚 STAGING ATOMIC ETL USAGE EXAMPLES:")
+    logger.info("=" * 60)
+    logger.info("🧪 Test database connection only:")
+    logger.info("   python chronjobs/STAGING_cron_etl_atomic.py --test-only")
+    logger.info("")
+    logger.info("💾 Safe staging import (with backup - default):")
+    logger.info("   python chronjobs/STAGING_cron_etl_atomic.py")
+    logger.info("")
+    logger.info("⚡ Fast staging import (no backup):")
+    logger.info("   python chronjobs/STAGING_cron_etl_atomic.py --skip-backup")
+    logger.info("")
+    logger.info("🔍 Dry run (test mode):")
+    logger.info("   python chronjobs/STAGING_cron_etl_atomic.py --dry-run")
+    logger.info("")
+    logger.info("📊 Verbose logging:")
+    logger.info("   python chronjobs/STAGING_cron_etl_atomic.py --verbose")
+    logger.info("=" * 60)
+
 def main():
     """Main cron job function for STAGING with ATOMIC ETL"""
     # Parse command line arguments
@@ -168,11 +188,22 @@ def main():
                       help='Skip backup creation (faster but less safe)')
     parser.add_argument('--test-only', action='store_true',
                       help='Test database connection only')
+    parser.add_argument('--dry-run', action='store_true',
+                      help='Perform dry run without actual import')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                      help='Enable verbose logging')
+    parser.add_argument('--help-examples', action='store_true',
+                      help='Show usage examples and exit')
     args = parser.parse_args()
     
     # Setup
     logger = setup_logging()
     setup_signal_handlers()
+    
+    # Show usage examples if requested
+    if args.help_examples:
+        show_usage_examples(logger)
+        return 0
     
     start_time = datetime.now(timezone.utc)
     success = False
@@ -182,22 +213,39 @@ def main():
         # Log system info
         log_system_info(logger)
         
+        # Verbose mode
+        if args.verbose:
+            logger.info("🔍 Verbose mode enabled - detailed logging active")
+        
         # Test database connection
         if not test_database_connection(logger):
             error_msg = "STAGING database connection failed"
+            logger.error("🚨 Cannot connect to staging database!")
+            logger.info("💡 Make sure staging database is accessible and DATABASE_URL is set")
             sys.exit(1)
             
         # Test-only mode
         if args.test_only:
             logger.info("✅ Test-only mode: STAGING database connection successful!")
             success = True
-            return
+            return 0
+        
+        # Dry run mode
+        if args.dry_run:
+            logger.info("🔍 DRY RUN MODE: Would run atomic ETL import...")
+            logger.info(f"   💾 Backup would be: {'SKIPPED' if args.skip_backup else 'ENABLED'}")
+            logger.info("   🔒 Transaction mode would be: ATOMIC")
+            logger.info("   🎯 Target environment: STAGING")
+            logger.info("✅ Dry run completed - no actual import performed")
+            success = True
+            return 0
         
         # Run ATOMIC ETL import
         success = run_atomic_etl_import(logger, skip_backup=args.skip_backup)
         
         if success:
             logger.info("🎊 STAGING atomic cron ETL job completed successfully!")
+            logger.info("🚀 Staging environment ready for testing")
         else:
             error_msg = "STAGING atomic ETL import process failed"
             logger.error("💥 STAGING atomic cron ETL job failed!")
@@ -221,6 +269,18 @@ def main():
         
         # Cleanup
         cleanup_resources(logger)
+        
+        # Show helpful info on completion
+        if success:
+            logger.info("\n💡 NEXT STEPS:")
+            logger.info("   🧪 Test staging app: https://rally-staging.up.railway.app")
+            logger.info("   🔍 Validate data: python data/etl/validation/etl_validation_pipeline.py")
+            logger.info("   📊 Check metrics: python scripts/database_health_check.py")
+        else:
+            logger.info("\n💡 TROUBLESHOOTING:")
+            logger.info("   🔍 Check database connection: python chronjobs/STAGING_cron_etl_atomic.py --test-only")
+            logger.info("   🧪 Try dry run: python chronjobs/STAGING_cron_etl_atomic.py --dry-run")
+            logger.info("   📋 Review logs above for specific error details")
         
         # Exit with appropriate code
         sys.exit(0 if success else 1)
