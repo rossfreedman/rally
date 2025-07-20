@@ -9,6 +9,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     Date,
     DateTime,
@@ -1026,3 +1027,70 @@ class CaptainMessage(Base):
 
     def __repr__(self):
         return f"<CaptainMessage(id={self.id}, team_id={self.team_id}, captain_user_id={self.captain_user_id})>"
+
+
+class PickupGame(Base):
+    """
+    Pickup games for organizing casual tennis/paddle tennis matches
+    """
+
+    __tablename__ = "pickup_games"
+
+    id = Column(Integer, primary_key=True)
+    description = Column(Text, nullable=False)
+    game_date = Column(Date, nullable=False)
+    game_time = Column(Time, nullable=False)
+    players_requested = Column(Integer, nullable=False)
+    players_committed = Column(Integer, nullable=False, server_default='0')
+    pti_low = Column(Integer, nullable=False, server_default='-30')
+    pti_high = Column(Integer, nullable=False, server_default='100')
+    series_low = Column(Integer, nullable=True)
+    series_high = Column(Integer, nullable=True)
+    club_only = Column(Boolean, nullable=False, server_default='false')
+    is_private = Column(Boolean, nullable=False, server_default='false')
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
+    creator_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    club = relationship("Club", backref="pickup_games")
+    creator = relationship("User", backref="created_pickup_games")
+    participants = relationship("PickupGameParticipant", back_populates="pickup_game")
+
+    # Constraints
+    __table_args__ = (
+        CheckConstraint('players_requested > 0', name='ck_players_requested_positive'),
+        CheckConstraint('players_committed >= 0', name='ck_players_committed_non_negative'),
+        CheckConstraint('players_committed <= players_requested', name='ck_valid_player_counts'),
+        CheckConstraint('pti_low <= pti_high', name='ck_valid_pti_range'),
+        CheckConstraint('series_low IS NULL OR series_high IS NULL OR series_low <= series_high', name='ck_valid_series_range'),
+    )
+
+    def __repr__(self):
+        return f"<PickupGame(id={self.id}, description='{self.description[:30]}...', club_id={self.club_id})>"
+
+
+class PickupGameParticipant(Base):
+    """
+    Junction table for pickup game participants
+    """
+
+    __tablename__ = "pickup_game_participants"
+
+    id = Column(Integer, primary_key=True)
+    pickup_game_id = Column(Integer, ForeignKey("pickup_games.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    joined_at = Column(DateTime, server_default=func.now())
+
+    # Relationships
+    pickup_game = relationship("PickupGame", back_populates="participants")
+    user = relationship("User", backref="pickup_game_participations")
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('pickup_game_id', 'user_id', name='uc_unique_game_participant'),
+    )
+
+    def __repr__(self):
+        return f"<PickupGameParticipant(id={self.id}, game_id={self.pickup_game_id}, user_id={self.user_id})>"

@@ -4621,6 +4621,26 @@ def get_pickup_games():
         current_date = now.date()
         current_time = now.time()
         
+        # Get current user's clubs for filtering
+        user = session.get("user", {})
+        user_id = user.get("id")
+        
+        # Build club filtering condition
+        club_filter = ""
+        if user_id:
+            club_filter = """
+                AND (
+                    pg.club_only = false OR 
+                    pg.club_id IS NULL OR
+                    (pg.club_only = true AND pg.club_id IN (
+                        SELECT DISTINCT p.club_id 
+                        FROM user_player_associations upa
+                        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                        WHERE upa.user_id = %s AND p.club_id IS NOT NULL
+                    ))
+                )
+            """
+        
         # Query for upcoming games (future date or today but future time)
         upcoming_query = f"""
             SELECT 
@@ -4638,11 +4658,13 @@ def get_pickup_games():
                 pg.is_private,
                 pg.creator_user_id,
                 pg.created_at,
+                pg.club_id,
                 COUNT(pgp.id) as actual_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
             WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
             {is_private_filter}
+            {club_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date ASC, pg.game_time ASC
         """
@@ -4664,17 +4686,24 @@ def get_pickup_games():
                 pg.is_private,
                 pg.creator_user_id,
                 pg.created_at,
+                pg.club_id,
                 COUNT(pgp.id) as actual_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
             WHERE ((pg.game_date < %s) OR (pg.game_date = %s AND pg.game_time <= %s))
             {is_private_filter}
+            {club_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date DESC, pg.game_time DESC
         """
         
-        upcoming_games = execute_query(upcoming_query, [current_date, current_date, current_time])
-        past_games = execute_query(past_query, [current_date, current_date, current_time])
+        # Build parameters list for queries
+        query_params = [current_date, current_date, current_time]
+        if user_id and club_filter:
+            query_params.append(user_id)
+        
+        upcoming_games = execute_query(upcoming_query, query_params)
+        past_games = execute_query(past_query, query_params)
         
         # Helper function to get participants for a game
         def get_game_participants(game_id):
@@ -4757,8 +4786,12 @@ def get_pickup_games():
         
         # Helper function to format game data
         def format_game(game):
-            # Get user's club name for display
-            user_club = user.get("club", "My Club")
+            # Get pickup game's club name for display
+            game_club_name = "All Clubs"  # Default for games without specific club
+            if game.get("club_id"):
+                club_record = execute_query_one("SELECT name FROM clubs WHERE id = %s", [game["club_id"]])
+                if club_record:
+                    game_club_name = club_record["name"]
             
             # Get participants
             participants = get_game_participants(game["id"])
@@ -4779,7 +4812,8 @@ def get_pickup_games():
                 "pti_range": f"{game['pti_low']}-{game['pti_high']}",
                 "series_criteria": get_series_criteria_display(game["series_low"], game["series_high"]),
                 "club_only": game["club_only"],
-                "club_name": user_club,
+                "club_name": game_club_name,
+                "club_id": game.get("club_id"),
                 "creator_user_id": game["creator_user_id"],
                 "user_has_joined": user_has_joined(game["id"]),
                 # New fields for participants and slots
@@ -7103,12 +7137,12 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
             )
             AND (
                 pg.club_only = false OR 
-                (pg.club_only = true AND EXISTS (
-                    SELECT 1 FROM players p2 
-                    WHERE p2.tenniscores_player_id = %s 
-                    AND p2.club_id = (
-                        SELECT club_id FROM players WHERE tenniscores_player_id = %s LIMIT 1
-                    )
+                pg.club_id IS NULL OR
+                (pg.club_only = true AND pg.club_id IN (
+                    SELECT DISTINCT p.club_id 
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    WHERE upa.user_id = %s AND p.club_id IS NOT NULL
                 ))
             )
             AND NOT EXISTS (
@@ -7125,7 +7159,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
             current_date, current_date, current_time,
             user_pti, user_pti,
             user_series_id, user_series_id, user_series_id, user_series_id,
-            player_id, player_id,
+            user_id,
             user_id
         ])
         
