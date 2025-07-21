@@ -312,6 +312,18 @@ class EnhancedAtomicETLWrapper:
                         self.etl.log("🔧 Step 7.6: Auto-fixing any remaining broken league contexts...")
                         fixed_count = auto_fix_broken_league_contexts(cursor, self.etl)
                         self.etl.log(f"✅ Auto-fixed {fixed_count} broken league contexts")
+                        
+                        # ENHANCEMENT 3.7: Create session refresh signals for affected users
+                        self.etl.log("🔄 Step 7.7: Creating session refresh signals for affected users...")
+                        from data.etl.database_import.session_refresh_service import SessionRefreshService
+                        session_refresh = SessionRefreshService()
+                        signals_created = session_refresh.create_refresh_signals_after_etl(cursor)
+                        
+                        if signals_created > 0:
+                            self.etl.log(f"✅ Created {signals_created} session refresh signals")
+                            self.etl.log("🎯 Users will get automatic session refresh on next page load")
+                        else:
+                            self.etl.log("ℹ️  No session refresh signals needed (no league ID changes)")
 
                         # ENHANCEMENT 4: Post-ETL Health Validation
                         self.etl.log("\n🔍 Step 8: Post-ETL Health Validation...")

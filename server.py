@@ -152,6 +152,11 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 TemporaryPasswordMiddleware(app)
 print("✅ Temporary password middleware initialized - users with temporary passwords will be redirected to change password page")
 
+# Initialize session refresh middleware
+from app.middleware.session_refresh_middleware import SessionRefreshMiddleware
+SessionRefreshMiddleware(app)
+print("✅ Session refresh middleware initialized - users will get automatic session refresh after ETL imports")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,

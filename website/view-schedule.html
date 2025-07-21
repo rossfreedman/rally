@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Schedule - Rally Features</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="/static/images/rally_favicon.png?v=2025">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -11,9 +21,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'rally-blue': '#0f1727',
-                        'rally-green': '#10b981',
-                        'rally-orange': '#f59e0b',
+                        'rally-teal': '#0d4f4c',
+                        'rally-teal-dark': '#0a3d3a',
+                        'rally-green': '#84cc16',
+                        'rally-lime': '#a3e635',
+                        'rally-cream': '#f7f3e9',
                         'rally-dark': '#1f2937',
                     }
                 }
@@ -22,25 +34,44 @@
     </script>
     <style>
         .nav-solid {
-            background: linear-gradient(to bottom right, #0f1727, #0b1220) !important;
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk {
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .logo-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-links {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk .logo-container {
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+        }
+        .nav-shrunk .nav-links {
+            padding-bottom: 8px !important;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-rally-cream">
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 nav-solid">
+    <nav id="main-nav" class="fixed top-0 w-full z-50 nav-solid">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <!-- Centered Logo -->
-            <div class="flex justify-center items-center py-6">
+            <div class="logo-container flex justify-center items-center py-0">
                 <a href="index.html" class="flex items-center">
-                    <img class="h-12 w-auto drop-shadow-lg" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img class="logo-image h-28 w-auto drop-shadow-lg" src="images/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
                 </a>
             </div>
             
             <!-- Navigation Links -->
-            <div class="flex justify-center items-center pb-4">
+            <div class="nav-links flex justify-center items-center pb-4">
                 <div class="flex items-center space-x-8">
                     <a href="index.html#features" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Features</a>
                     <a href="index.html#leagues" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Leagues</a>
@@ -52,13 +83,13 @@
     </nav>
 
     <!-- Header Section -->
-    <section class="bg-gradient-to-br from-rally-blue to-slate-900 text-white py-20" style="padding-top: 185px;">
+    <section class="bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white py-20" style="padding-top: 175px;">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-calendar-alt text-3xl text-white"></i>
             </div>
             <h1 class="text-4xl md:text-5xl font-bold mb-6">View Schedule</h1>
-            <p class="text-xl text-blue-100 max-w-3xl mx-auto">
+            <p class="text-xl text-white/90 max-w-3xl mx-auto">
                 Never miss a match again. View your complete schedule with match details, opponent information, court assignments, and real-time updates.
             </p>
         </div>
@@ -98,129 +129,68 @@
                             </div>
                             <div>
                                 <h3 class="font-semibold text-gray-900">Real-Time Updates</h3>
-                                <p class="text-gray-600">Get instant notifications for schedule changes, weather updates, and match postponements.</p>
+                                <p class="text-gray-600">Get notified instantly when match times, courts, or opponents change.</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="bg-gray-100 rounded-xl p-8">
-                    <img src="screenshots/view_schedule.png" alt="Rally View Schedule Interface" class="w-full rounded-lg shadow-lg">
+                <div class="relative">
+                    <div class="bg-gradient-to-br from-rally-teal/10 to-rally-teal-dark/10 rounded-2xl p-8">
+                        <img src="screenshots/view_schedule.png" alt="Rally Schedule Interface" class="w-full rounded-lg shadow-lg">
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Key Features -->
-    <section class="py-16 bg-gray-50">
-        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
-            <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Schedule Features</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-rally-blue rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-clock text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Match Times</h3>
-                    <p class="text-gray-600">Clear display of start times, estimated duration, and warm-up periods for optimal preparation.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-map-marker-alt text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Court Locations</h3>
-                    <p class="text-gray-600">Detailed venue information with addresses, court numbers, and facility amenities.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-rally-orange rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-users text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Team Information</h3>
-                    <p class="text-gray-600">Complete opponent details, player lineups, and team statistics for strategic planning.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-bell text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Notifications</h3>
-                    <p class="text-gray-600">Customizable alerts for upcoming matches, schedule changes, and important announcements.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-sync-alt text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Calendar Sync</h3>
-                    <p class="text-gray-600">Export to Google Calendar, Apple Calendar, or Outlook for seamless integration.</p>
-                </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mb-4">
-                        <i class="fas fa-filter text-white text-xl"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Smart Filters</h3>
-                    <p class="text-gray-600">Filter by league, date range, home/away games, and match importance levels.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Benefits Section -->
-    <section class="py-16 bg-white">
+    <!-- How It Works -->
+    <section class="py-16 bg-rally-cream">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Rally's Schedule Matters</h2>
-                <p class="text-xl text-gray-600">More than just a calendar - it's your competitive advantage</p>
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
+                <p class="text-xl text-gray-600">Simple steps to stay on top of your game schedule</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="flex items-start">
-                    <div class="w-8 h-8 bg-rally-blue rounded-full flex items-center justify-center mr-4 mt-1">
-                        <i class="fas fa-trophy text-white text-sm"></i>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-teal rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">1</span>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Improve Performance</h3>
-                        <p class="text-gray-600">Better preparation leads to better results. Know your opponents, plan your strategy, and arrive ready to compete.</p>
-                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Connect Your League</h3>
+                    <p class="text-gray-600">Link your Rally account to your league and team for automatic schedule syncing.</p>
                 </div>
-                <div class="flex items-start">
-                    <div class="w-8 h-8 bg-rally-green rounded-full flex items-center justify-center mr-4 mt-1">
-                        <i class="fas fa-clock text-white text-sm"></i>
+                
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-teal rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">2</span>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Save Time</h3>
-                        <p class="text-gray-600">No more digging through emails or group chats. All your match information is organized and accessible in one place.</p>
-                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">View Your Matches</h3>
+                    <p class="text-gray-600">Access your complete schedule with all match details in one convenient location.</p>
                 </div>
-                <div class="flex items-start">
-                    <div class="w-8 h-8 bg-rally-orange rounded-full flex items-center justify-center mr-4 mt-1">
-                        <i class="fas fa-handshake text-white text-sm"></i>
+                
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-teal rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">3</span>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Team Coordination</h3>
-                        <p class="text-gray-600">Keep your entire team synchronized with shared schedules and automatic reminders for all players.</p>
-                    </div>
-                </div>
-                <div class="flex items-start">
-                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-4 mt-1">
-                        <i class="fas fa-chart-line text-white text-sm"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Strategic Planning</h3>
-                        <p class="text-gray-600">Analyze upcoming matches, track patterns, and make informed decisions about lineups and strategies.</p>
-                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Stay Updated</h3>
+                    <p class="text-gray-600">Get real-time notifications for any schedule changes or important updates.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="py-16 bg-gradient-to-br from-rally-green to-green-700 text-white">
-        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+    <!-- Call to Action -->
+    <section class="py-16 bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white">
+        <div class="max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <h2 class="text-3xl font-bold mb-6">Ready to Take Control of Your Schedule?</h2>
-            <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
-                Join thousands of players who never miss a match with Rally's comprehensive schedule management.
+            <p class="text-xl text-white/90 mb-8">
+                Join thousands of players who never miss a match with Rally's schedule management.
             </p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/login" class="bg-white text-rally-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
-                    Start Free Trial
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="/login" class="bg-white text-rally-teal px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                    Get Started Free
                 </a>
-                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-green transition duration-300">
+                <a href="index.html#features" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-teal transition duration-300">
                     View All Features
                 </a>
             </div>
@@ -228,19 +198,72 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
-            <div class="flex items-center justify-center mb-4">
+    <footer class="bg-rally-teal-dark text-white py-16 pt-16 pb-32 relative overflow-hidden">
+        <!-- Footer Logo -->
+        <div class="absolute bottom-0 right-0">
+            <img src="images/footer_logo.png" alt="Rally Footer Logo" class="h-auto max-h-[200px] opacity-80">
+        </div>
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 relative z-10">
+            <div class="flex items-center justify-center mb-8">
                 <a href="index.html" class="flex items-center">
-                    <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+                    <img class="h-[82px] w-auto mr-2" src="images/rallylogobug.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xl font-bold">🏓 Rally</div>
                 </a>
             </div>
-            <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
-            <div class="border-t border-gray-700 pt-6">
-                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made for players who ❤️ racquet sports.</p>
+            <p class="text-gray-400 text-center mb-12">The ultimate club racquet sports app.</p>
+            
+            <div class="grid grid-cols-2 gap-16 mb-12 max-w-2xl mx-auto">
+                <!-- Column 1: Product -->
+                <div class="text-center">
+                    <h4 class="text-lg font-semibold mb-4 text-white">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html#features" class="hover:text-white transition">Features</a></li>
+                        <li><a href="index.html#pricing" class="hover:text-white transition">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white transition">Updates</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Column 2: Support -->
+                <div class="text-center">
+                    <h4 class="text-lg font-semibold mb-4 text-white">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-white transition">Contact Us</a></li>
+                        <li><a href="/terms" class="hover:text-white transition">Terms of Service</a></li>
+                        <li><a href="/privacy" class="hover:text-white transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Connect Section - Full Width Below Columns -->
+            <div class="text-center">
+                <h4 class="text-lg font-semibold mb-6 text-white">Connect</h4>
+                <div class="flex space-x-4 justify-center mb-8">
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+                <div class="text-gray-400">
+                    <p class="mb-4">Made for players who ❤️ racquet sports.</p>
+                </div>
+                
+                <!-- Copyright moved above logo area -->
+                <div class="mt-12 mb-16 text-center text-gray-400">
+                    <p>&copy; 2025 Rally LLC. All rights reserved.</p>
+                </div>
             </div>
         </div>
     </footer>
+
+    <!-- No shrinking behavior - dock stays consistent height -->
+    <script>
+        // Feature pages maintain consistent dock height
+    </script>
 </body>
 </html> 

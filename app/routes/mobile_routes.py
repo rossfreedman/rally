@@ -62,41 +62,6 @@ logger = logging.getLogger(__name__)
 mobile_bp = Blueprint("mobile", __name__)
 
 
-def has_valid_team_context_post_etl(current_session):
-    """
-    Enhanced validation that detects stale post-ETL sessions.
-    
-    Checks not only that session has required fields, but also verifies
-    that the team_id actually exists in the database (preventing stale
-    session data from being used after ETL runs).
-    """
-    # Basic field validation
-    has_basic_context = bool(
-        current_session.get("team_id") is not None and
-        current_session.get("league_id") is not None and
-        current_session.get("club") and
-        current_session.get("series")
-    )
-    
-    if not has_basic_context:
-        return False
-    
-    # Enhanced: Verify team_id actually exists (detect stale post-ETL sessions)
-    try:
-        from database_utils import execute_query_one
-        team_exists = execute_query_one(
-            "SELECT 1 FROM teams WHERE id = %s", 
-            [current_session.get("team_id")]
-        )
-        if not team_exists:
-            print(f"[DEBUG] Stale session detected: team_id {current_session.get('team_id')} no longer exists after ETL")
-            return False
-        return True
-    except Exception as e:
-        print(f"[DEBUG] Error checking team_id validity: {e}")
-        return False  # Force refresh on error
-
-
 @mobile_bp.route("/mobile/admin")
 @login_required
 def serve_mobile_admin():
@@ -135,7 +100,12 @@ def serve_mobile():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 # Current session already has valid team context (likely from team switch)
@@ -215,7 +185,12 @@ def serve_mobile_alt1():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 # Current session already has valid team context (likely from team switch)
@@ -295,7 +270,12 @@ def serve_mobile_classic():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 # Current session already has valid team context (likely from team switch)
@@ -678,7 +658,12 @@ def serve_mobile_view_schedule():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 session_user = current_session
@@ -739,7 +724,12 @@ def serve_mobile_analyze_me():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 # Current session already has valid team context (likely from team switch)
@@ -1843,7 +1833,12 @@ def serve_mobile_my_team():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 session_user = current_session
@@ -1945,7 +1940,12 @@ def serve_mobile_settings():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 # Current session already has valid team context (likely from team switch)
@@ -2003,7 +2003,12 @@ def serve_mobile_my_series():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 session_user = current_session
@@ -2275,7 +2280,12 @@ def my_club():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = has_valid_team_context_post_etl(current_session)
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
             if has_valid_team_context:
                 session_user = current_session

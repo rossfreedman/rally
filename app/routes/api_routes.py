@@ -3359,6 +3359,142 @@ def switch_league():
         return jsonify({"success": False, "error": f"League switch failed: {str(e)}"}), 500
 
 
+@api_bp.route("/api/session-refresh-status", methods=["GET"])
+@login_required
+def get_session_refresh_status():
+    """
+    Get session refresh status for current user and system-wide statistics
+    Useful for debugging ETL-related session issues
+    """
+    try:
+        from data.etl.database_import.session_refresh_service import SessionRefreshService
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        user_email = session["user"]["email"]
+        
+        # Get user-specific refresh status
+        user_needs_refresh = SessionRefreshService.should_refresh_session(user_email)
+        
+        # Get system-wide refresh status
+        system_status = SessionRefreshService.get_refresh_status()
+        
+        # Get refresh signal details for current user if exists
+        user_signal = None
+        if user_needs_refresh:
+            from database_utils import execute_query_one
+            user_signal = execute_query_one("""
+                SELECT user_id, old_league_id, new_league_id, league_name, 
+                       created_at, is_refreshed, refreshed_at
+                FROM user_session_refresh_signals
+                WHERE email = %s AND is_refreshed = FALSE
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, [user_email])
+            
+            if user_signal:
+                user_signal = dict(user_signal)
+        
+        response_data = {
+            "user_email": user_email,
+            "user_needs_refresh": user_needs_refresh,
+            "user_signal": user_signal,
+            "system_status": system_status
+        }
+        
+        return jsonify({
+            "success": True,
+            "data": response_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting session refresh status: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to get refresh status: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/api/refresh-session", methods=["POST"])
+@login_required  
+def manual_refresh_session():
+    """
+    Manually refresh user's session (for testing/debugging)
+    This forces a session refresh regardless of signals
+    """
+    try:
+        from app.services.session_service import get_session_data_for_user
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        user_email = session["user"]["email"]
+        
+        # Get fresh session data
+        fresh_session_data = get_session_data_for_user(user_email)
+        
+        if fresh_session_data:
+            # Update current session
+            old_league_name = session["user"].get("league_name", "Unknown")
+            session["user"] = fresh_session_data
+            session.modified = True
+            
+            new_league_name = fresh_session_data.get("league_name", "Unknown")
+            
+            logger.info(f"Manual session refresh for {user_email}: {old_league_name} → {new_league_name}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Session refreshed successfully",
+                "old_league": old_league_name,
+                "new_league": new_league_name,
+                "user": fresh_session_data
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Failed to get fresh session data"
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error manually refreshing session: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Session refresh failed: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/api/cleanup-session-refresh-signals", methods=["POST"])
+@login_required
+def cleanup_session_refresh_signals():
+    """
+    Admin endpoint to cleanup old session refresh signals
+    """
+    try:
+        user = session["user"]
+        if not user.get("is_admin"):
+            return jsonify({"success": False, "error": "Admin access required"}), 403
+        
+        from data.etl.database_import.session_refresh_service import SessionRefreshService
+        
+        # Get days parameter (default 7)
+        data = request.get_json() or {}
+        days_old = data.get("days_old", 7)
+        
+        cleaned_count = SessionRefreshService.cleanup_old_refresh_signals(days_old)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Cleaned up session refresh signals older than {days_old} days",
+            "cleaned_count": cleaned_count
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"Cleanup failed: {str(e)}"
+        }), 500
+
+
 @api_bp.route("/api/get-user-teams", methods=["GET"])
 @login_required
 def get_user_teams():
@@ -3455,86 +3591,6 @@ def get_user_teams():
             "teams": [],
             "current_team": None
         }), 500
-
-
-@api_bp.route("/api/get-session-version")
-@login_required
-def get_session_version():
-    """Get current session version and cache versions for ETL detection"""
-    try:
-        from database_utils import execute_query_one
-        
-        # Get session version and cache versions from system_settings
-        session_version_query = """
-            SELECT 
-                COALESCE(MAX(CASE WHEN key = 'session_version' THEN value::int END), 1) as session_version,
-                COALESCE(MAX(CASE WHEN key = 'series_cache_version' THEN value::int END), 1) as series_cache_version,
-                MAX(CASE WHEN key = 'last_etl_run' THEN value END) as last_etl_run
-            FROM system_settings 
-            WHERE key IN ('session_version', 'series_cache_version', 'last_etl_run')
-        """
-        
-        result = execute_query_one(session_version_query)
-        
-        if result:
-            return jsonify({
-                "success": True,
-                "session_version": result["session_version"],
-                "series_cache_version": result["series_cache_version"],
-                "last_etl_run": result["last_etl_run"]
-            })
-        else:
-            # No system_settings found, return defaults
-            return jsonify({
-                "success": True,
-                "session_version": 1,
-                "series_cache_version": 1,
-                "last_etl_run": None
-            })
-    
-    except Exception as e:
-        print(f"Error getting session version: {str(e)}")
-        return jsonify({"error": "Could not get session version"}), 500
-
-
-@api_bp.route("/api/refresh-session", methods=["POST"])
-@login_required
-def refresh_session():
-    """Refresh user session with fresh data from database"""
-    try:
-        from app.services.session_service import get_session_data_for_user
-        
-        user_email = session["user"]["email"]
-        
-        # Get fresh session data from database
-        fresh_session_data = get_session_data_for_user(user_email)
-        
-        if fresh_session_data:
-            # Update Flask session with fresh data
-            session["user"] = fresh_session_data
-            session.modified = True
-            
-            print(f"[API] Session refreshed for {user_email}: {fresh_session_data.get('club')} - {fresh_session_data.get('series')}")
-            
-            return jsonify({
-                "success": True,
-                "message": "Session refreshed successfully",
-                "user": {
-                    "club": fresh_session_data.get("club"),
-                    "series": fresh_session_data.get("series"),
-                    "league_name": fresh_session_data.get("league_name"),
-                    "team_id": fresh_session_data.get("team_id")
-                }
-            })
-        else:
-            return jsonify({
-                "success": False,
-                "error": "Could not refresh session data"
-            }), 500
-    
-    except Exception as e:
-        print(f"Error refreshing session: {str(e)}")
-        return jsonify({"error": "Session refresh failed"}), 500
 
 
 @api_bp.route("/api/get-user-leagues", methods=["GET"])
