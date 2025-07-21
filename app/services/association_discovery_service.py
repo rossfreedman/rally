@@ -373,13 +373,18 @@ class AssociationDiscoveryService:
         """
         logger.info(f"🔍 Running association discovery for up to {limit} users")
         
-        # Get users who might benefit from discovery
+        # PRODUCTION FIX: Enhanced filtering for users most likely to succeed
+        # Prioritize users with complete registration data and real names
         users_query = """
             SELECT u.id, u.email, u.first_name, u.last_name,
                    COUNT(upa.tenniscores_player_id) as association_count
             FROM users u
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             WHERE u.first_name IS NOT NULL AND u.last_name IS NOT NULL
+            AND u.first_name != '' AND u.last_name != ''
+            AND LENGTH(TRIM(u.first_name)) >= 2 AND LENGTH(TRIM(u.last_name)) >= 2
+            AND u.email NOT LIKE '%@placeholder.rally'
+            AND u.email NOT LIKE '%test%' AND u.email NOT LIKE '%demo%'
             GROUP BY u.id, u.email, u.first_name, u.last_name
             HAVING COUNT(upa.tenniscores_player_id) < 2  -- Users with 0 or 1 associations
             ORDER BY association_count ASC, u.created_at DESC
@@ -396,33 +401,47 @@ class AssociationDiscoveryService:
             "details": []
         }
         
-        for user in users_to_check:
-            try:
-                discovery_result = AssociationDiscoveryService.discover_missing_associations(
-                    user['id'], user['email']
-                )
-                
-                results["users_processed"] += 1
-                
-                if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
-                    results["users_with_new_associations"] += 1
-                    results["total_associations_created"] += discovery_result["associations_created"]
+        # PRODUCTION FIX: Reduce logging verbosity during batch processing
+        # Temporarily set association discovery to quiet mode
+        original_log_level = logger.level
+        logger.setLevel(logging.WARNING)  # Only log warnings and errors
+        
+        try:
+            for user in users_to_check:
+                try:
+                    discovery_result = AssociationDiscoveryService.discover_missing_associations(
+                        user['id'], user['email']
+                    )
                     
-                    results["details"].append({
-                        "user_id": user['id'],
-                        "email": user['email'],
-                        "name": f"{user['first_name']} {user['last_name']}",
-                        "new_associations": discovery_result["associations_created"],
-                        "associations_details": discovery_result.get("new_associations", [])
-                    })
-                
-                if not discovery_result.get("success"):
-                    results["errors"].append(f"User {user['id']}: {discovery_result.get('error', 'Unknown error')}")
+                    results["users_processed"] += 1
                     
-            except Exception as e:
-                error_msg = f"Error processing user {user['id']}: {e}"
-                logger.error(error_msg)
-                results["errors"].append(error_msg)
+                    if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
+                        results["users_with_new_associations"] += 1
+                        results["total_associations_created"] += discovery_result["associations_created"]
+                        
+                        # Only log successful associations at INFO level
+                        logger.warning(f"✅ Created {discovery_result['associations_created']} associations for {user['first_name']} {user['last_name']}")
+                        
+                        results["details"].append({
+                            "user_id": user['id'],
+                            "email": user['email'],
+                            "name": f"{user['first_name']} {user['last_name']}",
+                            "new_associations": discovery_result["associations_created"],
+                            "associations_details": discovery_result.get("new_associations", [])
+                        })
+                    
+                    if not discovery_result.get("success"):
+                        # Count errors but don't log individual failures (too verbose)
+                        results["errors"].append(f"User {user['id']}: {discovery_result.get('error', 'Unknown error')}")
+                        
+                except Exception as e:
+                    error_msg = f"Error processing user {user['id']}: {e}"
+                    logger.error(error_msg)
+                    results["errors"].append(error_msg)
+                    
+        finally:
+            # Restore original log level
+            logger.setLevel(original_log_level)
         
         logger.info(f"🏁 Discovery complete: {results['users_with_new_associations']}/{results['users_processed']} users gained associations")
         

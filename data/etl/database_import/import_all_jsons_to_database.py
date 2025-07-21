@@ -4830,8 +4830,14 @@ class ComprehensiveETL:
                     self.log("🔍 Running comprehensive association discovery...")
                     try:
                         from app.services.association_discovery_service import AssociationDiscoveryService
-                        # Run discovery for all users to catch cross-league associations
-                        discovery_result = AssociationDiscoveryService.discover_for_all_users(limit=None)
+                        
+                        # PRODUCTION FIX: Limit discovery to prevent timeout and excessive logging
+                        # Only process users most likely to benefit from discovery
+                        discovery_limit = 50 if self.environment in ['railway_production', 'railway_staging'] else 100
+                        
+                        self.log(f"   🎯 Processing up to {discovery_limit} users for association discovery...")
+                        discovery_result = AssociationDiscoveryService.discover_for_all_users(limit=discovery_limit)
+                        
                         if discovery_result.get("total_associations_created", 0) > 0:
                             self.log(f"   ✅ Discovery found {discovery_result['total_associations_created']} additional associations")
                             
@@ -4843,11 +4849,21 @@ class ComprehensiveETL:
                         else:
                             self.log("   ℹ️  No additional associations needed")
                         
+                        # Log summary stats instead of individual failures
+                        users_processed = discovery_result.get("users_processed", 0)
+                        users_with_new = discovery_result.get("users_with_new_associations", 0)
+                        error_count = len(discovery_result.get("errors", []))
+                        
+                        self.log(f"   📊 Discovery summary: {users_with_new}/{users_processed} users gained associations")
+                        if error_count > 0:
+                            self.log(f"   ⚠️  {error_count} users could not be matched (likely incomplete registration data)")
+                        
                         # ENHANCEMENT: Validate multi-league users have proper league selectors
                         self._validate_multi_league_contexts(conn)
                         
                     except Exception as discovery_error:
                         self.log(f"   ⚠️  Association discovery failed: {discovery_error}", "WARNING")
+                        self.log("   ℹ️  ETL will continue - association discovery can be run separately later", "INFO")
 
                     # Auto-run final league context health check
                     self.log("🔧 Running final league context health check...")
