@@ -100,7 +100,7 @@ def serve_mobile():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = (
+            has_valid_team_context = bool(
                 current_session.get("team_id") is not None and
                 current_session.get("league_id") is not None and
                 current_session.get("club") and
@@ -185,7 +185,7 @@ def serve_mobile_alt1():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = (
+            has_valid_team_context = bool(
                 current_session.get("team_id") is not None and
                 current_session.get("league_id") is not None and
                 current_session.get("club") and
@@ -270,7 +270,7 @@ def serve_mobile_classic():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = (
+            has_valid_team_context = bool(
                 current_session.get("team_id") is not None and
                 current_session.get("league_id") is not None and
                 current_session.get("club") and
@@ -645,9 +645,42 @@ def serve_mobile_player_detail(player_id):
 def serve_mobile_view_schedule():
     """Serve the mobile View Schedule page with the user's schedule."""
     try:
-        schedule_data = get_mobile_schedule_data(session["user"])
+        # Use session service to get fresh session data (same pattern as working routes)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Check if we're currently impersonating - if so, preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            session_user = session["user"]
+        else:
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = bool(
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            
+            if has_valid_team_context:
+                session_user = current_session
+            else:
+                # Session is incomplete or invalid, refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                else:
+                    session_user = session["user"]
 
-        session_data = {"user": session["user"], "authenticated": True}
+        schedule_data = get_mobile_schedule_data(session_user)
+
+        session_data = {"user": session_user, "authenticated": True}
 
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_view_schedule"
@@ -663,7 +696,7 @@ def serve_mobile_view_schedule():
 
         print(f"Full traceback: {traceback.format_exc()}")
 
-        session_data = {"user": session["user"], "authenticated": True}
+        session_data = {"user": session.get("user", {}), "authenticated": True}
 
         return render_template(
             "mobile/view_schedule.html",
@@ -691,7 +724,7 @@ def serve_mobile_analyze_me():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = (
+            has_valid_team_context = bool(
                 current_session.get("team_id") is not None and
                 current_session.get("league_id") is not None and
                 current_session.get("club") and
@@ -1787,11 +1820,44 @@ def get_player_season_history(player_name):
 def serve_mobile_my_team():
     """Serve the mobile My Team page"""
     try:
-        result = get_mobile_team_data(session["user"])
+        # Use session service to get fresh session data (same pattern as working routes)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Check if we're currently impersonating - if so, preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            session_user = session["user"]
+        else:
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = bool(
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            
+            if has_valid_team_context:
+                session_user = current_session
+            else:
+                # Session is incomplete or invalid, refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                else:
+                    session_user = session["user"]
 
-        session_data = {"user": session["user"], "authenticated": True}
+        result = get_mobile_team_data(session_user)
 
-        log_user_activity(session["user"]["email"], "page_visit", page="mobile_my_team")
+        session_data = {"user": session_user, "authenticated": True}
+
+        log_user_activity(session_user["email"], "page_visit", page="mobile_my_team")
 
         # Extract all data from result
         team_data = result.get("team_data")
@@ -1874,7 +1940,7 @@ def serve_mobile_settings():
         else:
             # Check if current session has valid team context - if so, preserve it
             current_session = session.get("user", {})
-            has_valid_team_context = (
+            has_valid_team_context = bool(
                 current_session.get("team_id") is not None and
                 current_session.get("league_id") is not None and
                 current_session.get("club") and
@@ -1924,20 +1990,53 @@ def serve_mobile_my_series():
     """Serve the mobile My Series page"""
     print(f"🏆 MY-SERIES ROUTE CALLED for user: {session.get('user', {}).get('email', 'unknown')}")
     try:
-        print(f"🔍 Getting series data for user: {session['user']}")
-        series_data = get_mobile_series_data(session["user"])
+        # Use session service to get fresh session data (same pattern as working routes)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Check if we're currently impersonating - if so, preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            session_user = session["user"]
+        else:
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = bool(
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            
+            if has_valid_team_context:
+                session_user = current_session
+            else:
+                # Session is incomplete or invalid, refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                else:
+                    session_user = session["user"]
+
+        print(f"🔍 Getting series data for user: {session_user}")
+        series_data = get_mobile_series_data(session_user)
         print(f"✅ Series data retrieved: {'error' in series_data}")
 
-        session_data = {"user": session["user"], "authenticated": True}
+        session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
         print(f"📱 Calling log_user_activity for my-series...")
         log_result = log_user_activity(
-            session["user"]["email"], 
+            session_user["email"], 
             "page_visit", 
             page="mobile_my_series",
-            first_name=session["user"].get("first_name"),
-            last_name=session["user"].get("last_name")
+            first_name=session_user.get("first_name"),
+            last_name=session_user.get("last_name")
         )
         print(f"✅ Activity logged: {log_result}")
 
@@ -1951,7 +2050,7 @@ def serve_mobile_my_series():
         import traceback
         print(f"❌ Full traceback: {traceback.format_exc()}")
 
-        session_data = {"user": session["user"], "authenticated": True}
+        session_data = {"user": session.get("user", {}), "authenticated": True}
 
         return render_template(
             "mobile/my_series.html",
@@ -2168,15 +2267,48 @@ def my_club():
     """Serve the mobile My Club page"""
     print(f"🏆 MY-CLUB ROUTE CALLED for user: {session.get('user', {}).get('email', 'unknown')}")
     try:
-        print(f"🔍 Getting club data for user: {session['user']}")
-        club_data = get_mobile_club_data(session["user"])
+        # Use session service to get fresh session data (same pattern as working routes)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Check if we're currently impersonating - if so, preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            session_user = session["user"]
+        else:
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = bool(
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            
+            if has_valid_team_context:
+                session_user = current_session
+            else:
+                # Session is incomplete or invalid, refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                else:
+                    session_user = session["user"]
+
+        print(f"🔍 Getting club data for user: {session_user}")
+        club_data = get_mobile_club_data(session_user)
         print(f"✅ Club data retrieved: {'error' in club_data}")
 
-        session_data = {"user": session["user"], "authenticated": True}
+        session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
         print(f"📱 Calling log_user_activity for my-club...")
-        log_result = log_user_activity(session["user"]["email"], "page_visit", page="mobile_my_club")
+        log_result = log_user_activity(session_user["email"], "page_visit", page="mobile_my_club")
         print(f"✅ Activity logged: {log_result}")
 
         print(f"🎨 Rendering template...")
@@ -2189,7 +2321,7 @@ def my_club():
         import traceback
         print(f"❌ Full traceback: {traceback.format_exc()}")
 
-        session_data = {"user": session["user"], "authenticated": True}
+        session_data = {"user": session.get("user", {}), "authenticated": True}
 
         return render_template(
             "mobile/my_club.html",

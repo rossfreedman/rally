@@ -3457,6 +3457,86 @@ def get_user_teams():
         }), 500
 
 
+@api_bp.route("/api/get-session-version")
+@login_required
+def get_session_version():
+    """Get current session version and cache versions for ETL detection"""
+    try:
+        from database_utils import execute_query_one
+        
+        # Get session version and cache versions from system_settings
+        session_version_query = """
+            SELECT 
+                COALESCE(MAX(CASE WHEN key = 'session_version' THEN value::int END), 1) as session_version,
+                COALESCE(MAX(CASE WHEN key = 'series_cache_version' THEN value::int END), 1) as series_cache_version,
+                MAX(CASE WHEN key = 'last_etl_run' THEN value END) as last_etl_run
+            FROM system_settings 
+            WHERE key IN ('session_version', 'series_cache_version', 'last_etl_run')
+        """
+        
+        result = execute_query_one(session_version_query)
+        
+        if result:
+            return jsonify({
+                "success": True,
+                "session_version": result["session_version"],
+                "series_cache_version": result["series_cache_version"],
+                "last_etl_run": result["last_etl_run"]
+            })
+        else:
+            # No system_settings found, return defaults
+            return jsonify({
+                "success": True,
+                "session_version": 1,
+                "series_cache_version": 1,
+                "last_etl_run": None
+            })
+    
+    except Exception as e:
+        print(f"Error getting session version: {str(e)}")
+        return jsonify({"error": "Could not get session version"}), 500
+
+
+@api_bp.route("/api/refresh-session", methods=["POST"])
+@login_required
+def refresh_session():
+    """Refresh user session with fresh data from database"""
+    try:
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Get fresh session data from database
+        fresh_session_data = get_session_data_for_user(user_email)
+        
+        if fresh_session_data:
+            # Update Flask session with fresh data
+            session["user"] = fresh_session_data
+            session.modified = True
+            
+            print(f"[API] Session refreshed for {user_email}: {fresh_session_data.get('club')} - {fresh_session_data.get('series')}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Session refreshed successfully",
+                "user": {
+                    "club": fresh_session_data.get("club"),
+                    "series": fresh_session_data.get("series"),
+                    "league_name": fresh_session_data.get("league_name"),
+                    "team_id": fresh_session_data.get("team_id")
+                }
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Could not refresh session data"
+            }), 500
+    
+    except Exception as e:
+        print(f"Error refreshing session: {str(e)}")
+        return jsonify({"error": "Session refresh failed"}), 500
+
+
 @api_bp.route("/api/get-user-leagues", methods=["GET"])
 @login_required
 def get_user_leagues():
