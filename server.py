@@ -99,6 +99,16 @@ print(
     "✅ Act routes initialized - Find Sub, Availability, Schedule, Rally AI routes enabled"
 )
 
+# Add template context processor for database mode
+@app.context_processor
+def inject_database_mode():
+    """Make database mode available in all templates"""
+    from database_config import get_database_mode, is_local_development
+    return {
+        'get_database_mode': get_database_mode,
+        'is_local_development': is_local_development
+    }
+
 # Validate routes to detect conflicts
 print("=== Validating Routes for Conflicts ===")
 has_no_conflicts = validate_routes_on_startup(app)
@@ -5023,6 +5033,56 @@ def delete_user_complete_production():
         }), 500
 
 
+@app.route("/api/switch-database", methods=["POST"])
+def switch_database():
+    """Switch between main and test databases"""
+    try:
+        from flask import request, jsonify
+        import subprocess
+        import os
+        
+        # Only allow in local development
+        if os.getenv("RAILWAY_ENVIRONMENT") is not None or os.path.exists('/app'):
+            return jsonify({
+                'success': False,
+                'error': 'Database switching only available in local development'
+            }), 403
+        
+        data = request.get_json()
+        new_mode = data.get('database_mode')
+        
+        if new_mode not in ['main', 'test']:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid database mode. Must be "main" or "test"'
+            }), 400
+        
+        # Get current mode
+        from database_config import get_database_mode
+        current_mode = get_database_mode()
+        
+        if current_mode == new_mode:
+            return jsonify({
+                'success': False,
+                'error': f'Already using {new_mode} database'
+            }), 400
+        
+        # Set the new environment variable
+        os.environ['RALLY_DATABASE'] = new_mode
+        
+        return jsonify({
+            'success': True,
+            'message': f'Switched from {current_mode} to {new_mode} database',
+            'new_mode': new_mode
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to switch database: {str(e)}'
+        }), 500
+
+
 @app.route("/debug/fix-staging-schema")
 def fix_staging_schema_debug():
     """Debug route to fix staging schema issues"""
@@ -5084,3 +5144,218 @@ if __name__ == "__main__":
 
 import os
 print("DEBUG: PORT ENV =", os.environ.get("PORT"))
+
+@app.route("/admin/run-saved-lineups-migration")
+def run_saved_lineups_migration():
+    """
+    Web endpoint to run saved lineups migration on production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This migration endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the migration"
+        }), 403
+    
+    try:
+        from database_utils import execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "migration_steps": []
+        }
+        
+        # Step 1: Check if saved_lineups table already exists
+        results["migration_steps"].append("🔍 Checking if saved_lineups table exists...")
+        
+        try:
+            table_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'saved_lineups'
+                )
+            """)
+            
+            if table_check and table_check["exists"]:
+                results["migration_steps"].append("✅ saved_lineups table already exists")
+                results["table_exists"] = True
+                return jsonify({
+                    "status": "success",
+                    "message": "saved_lineups table already exists - no migration needed",
+                    "results": results
+                })
+            else:
+                results["migration_steps"].append("📋 saved_lineups table needs to be created")
+                results["table_exists"] = False
+                
+        except Exception as e:
+            results["migration_steps"].append(f"⚠️ Could not check table: {str(e)}")
+            results["table_exists"] = False
+        
+        # Step 2: Also check for lineup_escrow table (part of same migration)
+        results["migration_steps"].append("🔍 Checking if lineup_escrow table exists...")
+        
+        try:
+            escrow_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'lineup_escrow'
+                )
+            """)
+            
+            escrow_exists = escrow_check and escrow_check["exists"]
+            results["migration_steps"].append(f"📋 lineup_escrow table exists: {escrow_exists}")
+            results["escrow_table_exists"] = escrow_exists
+                
+        except Exception as e:
+            results["migration_steps"].append(f"⚠️ Could not check lineup_escrow: {str(e)}")
+            results["escrow_table_exists"] = False
+        
+        # Step 3: Run the migration
+        results["migration_steps"].append("🔄 Running saved lineups migration...")
+        
+        migration_sql = """
+        -- Migration: Add Lineup Escrow and Saved Lineups Tables
+        -- Date: 2025-01-15 12:00:00
+        -- Description: Adds tables for lineup escrow functionality and saved lineups
+
+        -- Create lineup_escrow table
+        CREATE TABLE IF NOT EXISTS lineup_escrow (
+            id SERIAL PRIMARY KEY,
+            escrow_token VARCHAR(255) NOT NULL UNIQUE,
+            initiator_user_id INTEGER NOT NULL REFERENCES users(id),
+            recipient_name VARCHAR(255) NOT NULL,
+            recipient_contact VARCHAR(255) NOT NULL,
+            contact_type VARCHAR(20) NOT NULL,
+            initiator_lineup TEXT NOT NULL,
+            recipient_lineup TEXT,
+            status VARCHAR(50) NOT NULL DEFAULT 'pending',
+            initiator_submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            recipient_submitted_at TIMESTAMP WITH TIME ZONE,
+            expires_at TIMESTAMP WITH TIME ZONE,
+            subject VARCHAR(255),
+            message_body TEXT NOT NULL,
+            initiator_notified BOOLEAN DEFAULT FALSE,
+            recipient_notified BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        -- Create lineup_escrow_views table
+        CREATE TABLE IF NOT EXISTS lineup_escrow_views (
+            id SERIAL PRIMARY KEY,
+            escrow_id INTEGER NOT NULL REFERENCES lineup_escrow(id),
+            viewer_user_id INTEGER REFERENCES users(id),
+            viewer_contact VARCHAR(255) NOT NULL,
+            viewed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            ip_address VARCHAR(45)
+        );
+
+        -- Create saved_lineups table
+        CREATE TABLE IF NOT EXISTS saved_lineups (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            team_id INTEGER NOT NULL REFERENCES teams(id),
+            lineup_name VARCHAR(255) NOT NULL,
+            lineup_data TEXT NOT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(user_id, team_id, lineup_name)
+        );
+
+        -- Create indexes for better performance
+        CREATE INDEX IF NOT EXISTS idx_lineup_escrow_token ON lineup_escrow(escrow_token);
+        CREATE INDEX IF NOT EXISTS idx_lineup_escrow_status ON lineup_escrow(status);
+        CREATE INDEX IF NOT EXISTS idx_lineup_escrow_initiator ON lineup_escrow(initiator_user_id);
+        CREATE INDEX IF NOT EXISTS idx_lineup_escrow_views_escrow_id ON lineup_escrow_views(escrow_id);
+        CREATE INDEX IF NOT EXISTS idx_saved_lineups_user_team ON saved_lineups(user_id, team_id);
+        CREATE INDEX IF NOT EXISTS idx_saved_lineups_active ON saved_lineups(is_active);
+
+        -- Add comments for documentation
+        COMMENT ON TABLE lineup_escrow IS 'Stores lineup escrow sessions for fair lineup disclosure between captains';
+        COMMENT ON TABLE lineup_escrow_views IS 'Tracks who has viewed lineup escrow results';
+        COMMENT ON TABLE saved_lineups IS 'Stores saved lineup configurations for users and teams';
+        """
+        
+        execute_update(migration_sql)
+        results["migration_steps"].append("✅ Migration SQL executed successfully")
+        
+        # Step 4: Verify the migration
+        results["migration_steps"].append("🧪 Verifying migration...")
+        
+        # Check saved_lineups table
+        verify_saved_lineups = execute_query_one("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'saved_lineups'
+            )
+        """)
+        
+        saved_lineups_exists = verify_saved_lineups and verify_saved_lineups["exists"]
+        results["migration_steps"].append(f"📋 saved_lineups table exists: {saved_lineups_exists}")
+        
+        # Check lineup_escrow table
+        verify_escrow = execute_query_one("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'lineup_escrow'
+            )
+        """)
+        
+        escrow_exists_after = verify_escrow and verify_escrow["exists"]
+        results["migration_steps"].append(f"📋 lineup_escrow table exists: {escrow_exists_after}")
+        
+        # Check lineup_escrow_views table
+        verify_escrow_views = execute_query_one("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'lineup_escrow_views'
+            )
+        """)
+        
+        escrow_views_exists = verify_escrow_views and verify_escrow_views["exists"]
+        results["migration_steps"].append(f"📋 lineup_escrow_views table exists: {escrow_views_exists}")
+        
+        results["verification"] = {
+            "saved_lineups_exists": saved_lineups_exists,
+            "lineup_escrow_exists": escrow_exists_after,
+            "lineup_escrow_views_exists": escrow_views_exists
+        }
+        
+        if all(results["verification"].values()):
+            results["migration_steps"].append("✅ Migration verification successful")
+            results["success"] = True
+            
+            return jsonify({
+                "status": "success",
+                "message": "Saved lineups migration completed successfully!",
+                "results": results,
+                "next_steps": [
+                    "✅ Migration complete",
+                    "👉 Test the lineup page: https://www.lovetorally.com/mobile/lineup",
+                    "🎯 The 'Saved Lineups' section should now work without errors"
+                ]
+            })
+        else:
+            results["migration_steps"].append("❌ Migration verification failed")
+            results["success"] = False
+            
+            return jsonify({
+                "status": "error",
+                "message": "Migration ran but verification failed",
+                "results": results
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Migration endpoint error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
