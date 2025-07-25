@@ -22,6 +22,9 @@ def get_db_url():
     """Get database URL from environment or use default"""
     global _connection_logged
     
+    # Database switching mechanism - use RALLY_DATABASE to choose database
+    database_mode = os.getenv("RALLY_DATABASE", "main")  # "main" or "test"
+    
     # Check if we're running on Railway
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
 
@@ -40,13 +43,25 @@ def get_db_url():
             if not _connection_logged:
                 logger.info("Using Railway internal database connection (server execution)")
     else:
-        # For local development, prefer public URL or local connection
-        url = os.getenv("DATABASE_PUBLIC_URL") or os.getenv(
-            "DATABASE_URL", "postgresql://localhost/rally"
-        )
+        # For local development, use database switching
+        if database_mode == "test":
+            url = os.getenv("DATABASE_TEST_URL", "postgresql://postgres:postgres@localhost:5432/rally_test")
+            if not _connection_logged:
+                logger.info("Using TEST database (rally_test)")
+        else:
+            # Default to main database
+            url = os.getenv("DATABASE_PUBLIC_URL") or os.getenv(
+                "DATABASE_URL", "postgresql://localhost/rally"
+            )
+            if not _connection_logged:
+                logger.info("Using MAIN database (rally)")
 
     if not url:
-        url = "postgresql://localhost/rally"
+        # Fallback based on mode
+        if database_mode == "test":
+            url = "postgresql://postgres:postgres@localhost:5432/rally_test"
+        else:
+            url = "postgresql://localhost/rally"
 
     # Handle Railway's postgres:// URLs
     if url.startswith("postgres://"):
@@ -54,10 +69,19 @@ def get_db_url():
 
     # Only log database URL selection once to avoid spam
     if not _connection_logged:
-        logger.info(
-            f"Using database URL with host: {url.split('@')[1].split('/')[0] if '@' in url else 'unknown'}"
-        )
+        database_name = url.split('/')[-1] if '/' in url else 'unknown'
+        logger.info(f"Database mode: {database_mode} | Database: {database_name}")
     return url
+
+
+def get_database_mode():
+    """Get current database mode for display purposes"""
+    return os.getenv("RALLY_DATABASE", "main")
+
+
+def is_local_development():
+    """Check if running in local development environment"""
+    return os.getenv("RAILWAY_ENVIRONMENT") is None and not os.path.exists('/app')
 
 
 def get_db_engine():
