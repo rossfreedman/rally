@@ -5359,3 +5359,182 @@ def run_saved_lineups_migration():
             "traceback": traceback.format_exc(),
             "railway_env": railway_env
         }), 500
+
+
+@app.route("/admin/run-alembic-migration")
+def run_alembic_migration():
+    """
+    Web endpoint to run Alembic migration on production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This migration endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the migration"
+        }), 403
+    
+    try:
+        import subprocess
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "migration_steps": []
+        }
+        
+        # Step 1: Check current migration status
+        results["migration_steps"].append("🔍 Checking current Alembic revision...")
+        
+        try:
+            current_result = subprocess.run(
+                ["python", "-m", "alembic", "current"], 
+                capture_output=True, 
+                text=True, 
+                cwd="/app",
+                timeout=30
+            )
+            
+            if current_result.returncode == 0:
+                current_output = current_result.stdout.strip()
+                results["current_revision"] = current_output
+                results["migration_steps"].append(f"📊 Current revision: {current_output}")
+                
+                # Check if already at the latest revision
+                if "c28892a55e1d" in current_output:
+                    results["migration_steps"].append("✅ Already at latest revision - checking tables...")
+                    
+                    # Verify tables exist
+                    from database_utils import execute_query_one
+                    
+                    saved_lineups_check = execute_query_one("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'saved_lineups'
+                        )
+                    """)
+                    
+                    session_refresh_check = execute_query_one("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'user_session_refresh_signals'
+                        )
+                    """)
+                    
+                    if saved_lineups_check and saved_lineups_check["exists"] and session_refresh_check and session_refresh_check["exists"]:
+                        return jsonify({
+                            "status": "success",
+                            "message": "Migration already complete - all tables exist",
+                            "results": results,
+                            "next_step": "Test https://www.lovetorally.com/mobile/lineup"
+                        })
+                        
+            else:
+                results["migration_steps"].append(f"⚠️ Could not check current revision: {current_result.stderr}")
+                
+        except Exception as e:
+            results["migration_steps"].append(f"❌ Error checking revision: {str(e)}")
+        
+        # Step 2: Run the migration
+        results["migration_steps"].append("🔄 Running Alembic upgrade to head...")
+        
+        upgrade_result = subprocess.run(
+            ["python", "-m", "alembic", "upgrade", "head"], 
+            capture_output=True, 
+            text=True,
+            cwd="/app",
+            timeout=120
+        )
+        
+        if upgrade_result.returncode == 0:
+            results["migration_steps"].append("✅ Alembic upgrade completed!")
+            results["upgrade_output"] = upgrade_result.stdout
+            results["migration_steps"].append("📋 Migration output captured")
+            
+            # Verify the migration worked
+            results["migration_steps"].append("🧪 Verifying tables were created...")
+            
+            from database_utils import execute_query_one
+            
+            # Check saved_lineups table
+            saved_lineups_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'saved_lineups'
+                )
+            """)
+            
+            saved_lineups_exists = saved_lineups_check and saved_lineups_check["exists"]
+            results["saved_lineups_table_exists"] = saved_lineups_exists
+            results["migration_steps"].append(f"📋 saved_lineups table exists: {saved_lineups_exists}")
+            
+            # Check user_session_refresh_signals table
+            session_refresh_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'user_session_refresh_signals'
+                )
+            """)
+            
+            session_refresh_exists = session_refresh_check and session_refresh_check["exists"]
+            results["session_refresh_table_exists"] = session_refresh_exists
+            results["migration_steps"].append(f"📋 user_session_refresh_signals table exists: {session_refresh_exists}")
+            
+            # Final verification
+            if saved_lineups_exists and session_refresh_exists:
+                results["migration_steps"].append("🎉 Migration successful - all tables created!")
+                
+                # Check final revision
+                final_result = subprocess.run(
+                    ["python", "-m", "alembic", "current"], 
+                    capture_output=True, 
+                    text=True,
+                    cwd="/app",
+                    timeout=30
+                )
+                
+                if final_result.returncode == 0:
+                    final_revision = final_result.stdout.strip()
+                    results["final_revision"] = final_revision
+                    results["migration_steps"].append(f"✅ Final revision: {final_revision}")
+                
+                return jsonify({
+                    "status": "success",
+                    "message": "Alembic migration completed successfully!",
+                    "results": results,
+                    "next_steps": [
+                        "✅ Migration complete",
+                        "👉 Test saved lineups: https://www.lovetorally.com/mobile/lineup",
+                        "🎯 Both saved_lineups and session_refresh errors should be fixed"
+                    ]
+                })
+            else:
+                results["migration_steps"].append("❌ Tables verification failed")
+                return jsonify({
+                    "status": "partial_success", 
+                    "message": "Migration ran but table verification failed",
+                    "results": results
+                }), 500
+                
+        else:
+            results["migration_steps"].append("❌ Alembic upgrade failed")
+            results["upgrade_error"] = upgrade_result.stderr
+            results["upgrade_output"] = upgrade_result.stdout
+            
+            return jsonify({
+                "status": "error",
+                "message": "Migration failed",
+                "results": results,
+                "error_details": upgrade_result.stderr
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Migration endpoint error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
