@@ -994,22 +994,6 @@
   {
     "league_id": "NSTF",
     "Date": "29-May-25",
-    "Home Team": "Exmoor S2A",
-    "Away Team": "Old Willow S2A",
-    "Home Player 1": "",
-    "Home Player 1 ID": null,
-    "Home Player 2": "",
-    "Home Player 2 ID": null,
-    "Away Player 1": "",
-    "Away Player 1 ID": null,
-    "Away Player 2": "",
-    "Away Player 2 ID": null,
-    "Scores": "0-6, 0-6",
-    "Winner": "away"
-  },
-  {
-    "league_id": "NSTF",
-    "Date": "29-May-25",
     "Home Team": "Midtown S2A",
     "Away Team": "Skokie S2A",
     "Home Player 1": "Bruce Friedman",
@@ -1066,7 +1050,7 @@
     "Home Player 2 ID": "nndz-WkMrNng3Nytodz09",
     "Away Player 1": "Michael OBrien",
     "Away Player 1 ID": "nndz-WkMrNnhMbndqUT09",
-    "Away Player 2": "Keegan O\u2019Brian",
+    "Away Player 2": "Keegan O’Brian",
     "Away Player 2 ID": "nndz-WkMrOHc3NzZoQT09",
     "Scores": "7-5, 6-7, 5-7",
     "Winner": "away"
@@ -1437,22 +1421,6 @@
     "Away Player 2": "Seth Hopkins",
     "Away Player 2 ID": "nndz-WkMrNng3ejhnZz09",
     "Scores": "4-6, 6-7 [5-7]",
-    "Winner": "away"
-  },
-  {
-    "league_id": "NSTF",
-    "Date": "12-Jun-25",
-    "Home Team": "Exmoor S2A",
-    "Away Team": "Tennaqua S2A",
-    "Home Player 1": "",
-    "Home Player 1 ID": null,
-    "Home Player 2": "",
-    "Home Player 2 ID": null,
-    "Away Player 1": "",
-    "Away Player 1 ID": null,
-    "Away Player 2": "",
-    "Away Player 2 ID": null,
-    "Scores": "0-6, 0-6",
     "Winner": "away"
   },
   {
@@ -2269,22 +2237,6 @@
     "Away Player 2": "RJ Bukovac",
     "Away Player 2 ID": "nndz-WkMrNnhMci9oZz09",
     "Scores": "6-1, 6-3",
-    "Winner": "home"
-  },
-  {
-    "league_id": "NSTF",
-    "Date": "17-Jul-25",
-    "Home Team": "Tennaqua S2A",
-    "Away Team": "Skokie S2A",
-    "Home Player 1": "",
-    "Home Player 1 ID": null,
-    "Home Player 2": "",
-    "Home Player 2 ID": null,
-    "Away Player 1": "",
-    "Away Player 1 ID": null,
-    "Away Player 2": "",
-    "Away Player 2 ID": null,
-    "Scores": "1-0, 1-0",
     "Winner": "home"
   },
   {

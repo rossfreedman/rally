@@ -151,6 +151,10 @@ def append_to_consolidated_file(
         # Combine data
         combined_data = existing_data + data
 
+        # Handle duplicates for match_history.json (has match_id field)
+        if filename == "match_history.json":
+            combined_data = deduplicate_match_records(combined_data, league_name)
+
         # Write back to file
         with open(target_file, "w", encoding="utf-8") as f:
             json.dump(combined_data, f, indent=2, ensure_ascii=False)
@@ -159,6 +163,62 @@ def append_to_consolidated_file(
 
     except Exception as e:
         logger.error(f"Error appending to {filename}: {e}")
+
+
+def deduplicate_match_records(records: List[Dict[Any, Any]], league_name: str) -> List[Dict[Any, Any]]:
+    """Remove duplicate match records while preserving original match_id structure."""
+    
+    logger.info(f"Deduplicating match records for {league_name}...")
+    
+    # Step 1: Create unique identifiers for deduplication without modifying original match_id
+    # Use a combination of match_id + Line + key player details for uniqueness
+    seen_records = {}
+    duplicates_found = []
+    
+    for i, record in enumerate(records):
+        match_id = record.get('match_id', '')
+        line = record.get('Line', '')
+        home_player_1 = record.get('Home Player 1', '')
+        away_player_1 = record.get('Away Player 1', '')
+        date = record.get('Date', '')
+        
+        # Create a composite key for duplicate detection (but don't modify the original match_id)
+        composite_key = f"{match_id}_{line}_{home_player_1}_{away_player_1}_{date}"
+        
+        if composite_key in seen_records:
+            duplicates_found.append(composite_key)
+            logger.debug(f"Duplicate found: {composite_key}")
+        else:
+            seen_records[composite_key] = i
+    
+    if duplicates_found:
+        unique_duplicates = list(set(duplicates_found))
+        logger.warning(f"Found {len(unique_duplicates)} exact duplicate records in {league_name}")
+        
+        # Keep only unique records based on composite key
+        final_records = []
+        processed_keys = set()
+        
+        for record in records:
+            match_id = record.get('match_id', '')
+            line = record.get('Line', '')
+            home_player_1 = record.get('Home Player 1', '')
+            away_player_1 = record.get('Away Player 1', '')
+            date = record.get('Date', '')
+            
+            composite_key = f"{match_id}_{line}_{home_player_1}_{away_player_1}_{date}"
+            
+            if composite_key not in processed_keys:
+                # PRESERVE the original match_id - do NOT modify it
+                final_records.append(record)
+                processed_keys.add(composite_key)
+        
+        logger.info(f"Removed {len(records) - len(final_records)} exact duplicate records while preserving original match_id structure")
+        return final_records
+    else:
+        logger.info(f"No duplicates found in {league_name}")
+    
+    return records
 
 
 def process_league_folder(league_folder: Path) -> None:

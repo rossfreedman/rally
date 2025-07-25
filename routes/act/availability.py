@@ -608,87 +608,9 @@ def init_availability_routes(app):
         """Debug route to test availability functionality"""
         return f"<h1>Debug Availability</h1><p>This route works!</p><p>Session keys: {list(session.keys()) if session else 'No session'}</p>"
 
-    @app.route("/mobile/availability", methods=["GET", "POST"])
-    @login_required
-    def mobile_availability():
-        """Handle mobile availability page and updates"""
-        if request.method == "POST":
-            try:
-                data = request.json
-                player_name = data.get("player_name")
-                match_date = data.get("match_date")
-                availability_status = data.get("availability_status")
-                series = data.get("series")
-
-                # Validate required fields
-                required_fields = [
-                    "player_name",
-                    "match_date",
-                    "availability_status",
-                    "series",
-                ]
-                if not all(field in data for field in required_fields):
-                    missing = [f for f in required_fields if f not in data]
-                    print(f"Missing required fields: {missing}")
-                    return jsonify({"error": "Missing required fields"}), 400
-
-                # Validate availability_status is in valid range
-                if availability_status not in [1, 2, 3]:
-                    return jsonify({"error": "Invalid availability status"}), 400
-
-                # Get user_id from session for proper user-player associations
-                user = session.get("user")
-                user_id = user.get("id") if user else None
-
-                notes = data.get("notes", "")  # Get notes from request data
-                success = update_player_availability(
-                    player_name, match_date, availability_status, series, user_id, notes
-                )
-                if success:
-                    return jsonify({"status": "success"})
-                return jsonify({"error": "Failed to update availability"}), 500
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-        else:
-            try:
-                user = session.get("user")
-                if not user:
-                    return jsonify({"error": "No user in session"}), 400
-
-                user_id = user.get("id")
-                player_name = f"{user['first_name']} {user['last_name']}"
-                series = user["series"]
-
-                # Get matches for the user's club/series
-                matches = get_matches_for_user_club(user)
-
-                # Get this user's availability for each match using proper user-player associations
-                availability = get_user_availability(
-                    player_name, matches, series, user_id
-                )
-
-                # Create match-availability pairs
-                match_avail_pairs = list(zip(matches, availability))
-
-                session_data = {
-                    "user": user,
-                    "authenticated": True,
-                    "matches": matches,
-                    "availability": availability,
-                    "players": [{"name": player_name}],
-                }
-
-                return render_template(
-                    "mobile/availability.html",
-                    session_data=session_data,
-                    match_avail_pairs=match_avail_pairs,
-                    players=[{"name": player_name}],
-                )
-
-            except Exception as e:
-                print(f"ERROR in mobile_availability: {str(e)}")
-                print(traceback.format_exc())
-                return f"Error: {str(e)}", 500
+    # REMOVED: Duplicate /mobile/availability route - now handled by mobile_bp in app/routes/mobile_routes.py
+    # This prevents route conflicts and infinite loops
+    pass
 
     # Route moved to mobile_routes.py blueprint
 

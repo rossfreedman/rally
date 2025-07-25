@@ -41,6 +41,8 @@ ENV/
 # Logs
 *.log
 logs/
+server.log
+server_debug.log
 
 # OS
 .DS_Store
@@ -80,7 +82,67 @@ railway_backup_*.sql
 # Centralized backups
 data/backups/
 data/backups/**/*
+data/etl_backup/
+data/backup_restore_local_db/
 
 # Reference directories
 rally_reference/
+
+# Temporary test files
+test_*.py
+test_*.sh
+demo_*.py
+fix_*.py
+analyze_*.py
+check_*.py
+diagnose_*.py
+debug_*.py
+compare_*.py
+find_*.py
+investigate_*.py
+deploy_*.py
+monitor_*.py
+post_*.py
+create_*.py
+populate_*.py
+add_*.py
+backfill_*.py
+implement_*.py
+run_*.py
+restore_*.py
+enable_*.py
+enhance_*.py
+verify_*.py
+
+# Temporary documentation
+MODERNIZED_*.md
+*_IMPLEMENTATION_SUMMARY.md
+
+# Debug screenshots and images
+registration_failure.png
+*.png.bak
+*.jpg.bak
+
+# Temporary cookies
+cookies.txt
+data/cookies.txt
+
+# Old migration files (superseded by alembic)
+migrations/
+
+# Helper scripts (temporary)
+Helper Scripts/
+
+# Test reports
+ui_tests/reports/
+tests/fixtures/
+
+# Backup images
+static/images/backups/
+
+# Archived documentation
+docs/archive/
+
+# Old scraper files
+data/etl/scrapers/old/
 

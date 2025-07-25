@@ -67,6 +67,66 @@
     <script src="/static/js/activity-tracker.js" defer></script>
     <script src="/static/mobile/js/main.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Database Switching Script -->
+    <script>
+        function switchDatabase() {
+            const currentMode = '{{ get_database_mode() }}';
+            const newMode = currentMode === 'test' ? 'main' : 'test';
+            
+            // Show confirmation dialog
+            const confirmMessage = `Switch from ${currentMode.toUpperCase()} to ${newMode.toUpperCase()} database?\n\nThis will restart the server.`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '⏳ Switching...';
+            button.disabled = true;
+            button.style.opacity = '0.7';
+            
+            // Make API call to switch database
+            fetch('/api/switch-database', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    database_mode: newMode
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    button.innerHTML = '✅ Switched!';
+                    button.style.backgroundColor = newMode === 'test' ? '#fbbf24' : '#10b981';
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Failed to switch database');
+                }
+            })
+            .catch(error => {
+                console.error('Database switch error:', error);
+                button.innerHTML = '❌ Failed';
+                button.style.backgroundColor = '#ef4444';
+                
+                // Reset button after error
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.style.backgroundColor = currentMode === 'test' ? '#fbbf24' : '#10b981';
+                }, 2000);
+            });
+        }
+    </script>
 
     <style>
         /* Modern Navigation Drawer Styles */
@@ -440,6 +500,16 @@
         
         <!-- Right side -->
         <div class="flex items-center justify-end" style="flex: 1;">
+            <!-- Database Indicator (Local Development Only) -->
+            {% if config.get('ENV') == 'development' or request.host.startswith('localhost') or request.host.startswith('127.0.0.1') %}
+                {% set db_mode = get_database_mode() %}
+                <button onclick="switchDatabase()" 
+                        class="database-indicator mr-3 px-2 py-1 rounded-full text-xs font-semibold {% if db_mode == 'test' %}bg-yellow-500 text-black hover:bg-yellow-400{% else %}bg-green-500 text-white hover:bg-green-400{% endif %} transition-colors duration-200 cursor-pointer" 
+                        title="Click to switch database (currently: {{ 'TEST' if db_mode == 'test' else 'MAIN' }})">
+                    {% if db_mode == 'test' %}🧪 TEST{% else %}🚀 MAIN{% endif %}
+                </button>
+            {% endif %}
+            
             <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
                 <span class="bar"></span>
                 <span class="bar"></span>

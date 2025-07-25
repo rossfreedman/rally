@@ -1211,16 +1211,18 @@ def get_mobile_availability_data(user):
         
         # Get simple schedule query for all matches (including completed seasons)
         # ENHANCED: Show all matches for team instead of restricting to 30 days to support completed seasons
+        # FIXED: Added DISTINCT and LIMIT to handle corrupted duplicate data
         simple_query = """
-        SELECT 
+        SELECT DISTINCT
             match_date as date, 
             match_time as time, 
             home_team, 
             away_team, 
             location
         FROM schedule 
-        WHERE home_team_id = %s OR away_team_id = %s
+        WHERE (home_team_id = %s OR away_team_id = %s)
         ORDER BY match_date ASC, match_time ASC
+        LIMIT 100  -- Prevent processing thousands of duplicate records
         """
         
         print(f"[DEBUG] Executing simple query with params: {(team_id, team_id)}")
@@ -1250,7 +1252,7 @@ def get_mobile_availability_data(user):
                     print(f"[DEBUG] Trying team name pattern: '{pattern}'")
                     
                     fallback_query = """
-                    SELECT 
+                    SELECT DISTINCT
                         match_date as date, 
                         match_time as time, 
                         home_team, 
@@ -1259,7 +1261,9 @@ def get_mobile_availability_data(user):
                     FROM schedule 
                     WHERE (home_team = %s OR away_team = %s)
                     AND league_id = %s
+                    AND match_date >= CURRENT_DATE - INTERVAL '30 days'  -- Only show recent/future matches
                     ORDER BY match_date ASC, match_time ASC
+                    LIMIT 100  -- Prevent processing thousands of duplicate records
                     """
                     
                     user_matches = execute_query(fallback_query, (pattern, pattern, league_id))
@@ -1329,8 +1333,9 @@ def get_mobile_availability_data(user):
             is_home_match = (match_location == current_club_name)
             
             # If it's a home match, get other teams at the same club with home matches on this date
+            # OPTIMIZATION: Only call this function for actual matches, not practices, to avoid infinite loops
             other_home_teams = []
-            if is_home_match and raw_date and match.get("type") == "match":  # Only for actual matches, not practices
+            if is_home_match and raw_date and match.get("type") == "match" and match.get("away_team"):  # Only for actual matches with opponents, not practices
                 other_home_teams = get_other_home_teams_at_club_on_date(team_id, raw_date, user_email)
             
             match_data = {
@@ -1345,10 +1350,11 @@ def get_mobile_availability_data(user):
             }
             formatted_matches.append(match_data)
             
-            if match.get("type") == "practice":
-                print(f"  ✓ Practice found: {match.get('home_team')} on {match.get('date')}")
-            else:
-                print(f"  ✓ Match found: {match.get('home_team')} vs {match.get('away_team')} on {match.get('date')}")
+            # OPTIMIZATION: Reduced debug output to prevent spam
+            # if match.get("type") == "practice":
+            #     print(f"  ✓ Practice found: {match.get('home_team')} on {match.get('date')}")
+            # else:
+            #     print(f"  ✓ Match found: {match.get('home_team')} vs {match.get('away_team')} on {match.get('date')}")
         
         # Get the user's player ID for availability lookup
         player_record = None
@@ -5348,35 +5354,10 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
         league_id = team_info["league_id"]
         club_name = team_info["club_name"]
         
-        print(f"[DEBUG] get_other_home_teams_at_club_on_date: Looking for other teams at {club_name} (club_id {club_id}), league_id {league_id} on {match_date}")
+        # OPTIMIZATION: Reduced debug output to prevent spam
+        # print(f"[DEBUG] get_other_home_teams_at_club_on_date: Looking for other teams at {club_name} (club_id {club_id}), league_id {league_id} on {match_date}")
         
-        # ENHANCED DEBUG: Let's see ALL matches on this date at this club first
-        debug_query = """
-            SELECT 
-                sc.match_date,
-                sc.home_team,
-                sc.away_team,
-                sc.location,
-                t_home.id as home_team_id,
-                t_away.id as away_team_id,
-                s_home.display_name as home_series,
-                s_away.display_name as away_series
-            FROM schedule sc
-            LEFT JOIN teams t_home ON sc.home_team_id = t_home.id
-            LEFT JOIN teams t_away ON sc.away_team_id = t_away.id
-            LEFT JOIN series s_home ON t_home.series_id = s_home.id
-            LEFT JOIN series s_away ON t_away.series_id = s_away.id
-            WHERE sc.match_date = %s 
-                AND (sc.location = %s OR sc.home_team LIKE %s OR sc.away_team LIKE %s)
-            ORDER BY sc.home_team, sc.away_team
-        """
-        
-        club_pattern = f"%{club_name}%"
-        all_matches = execute_query(debug_query, [match_date, club_name, club_pattern, club_pattern])
-        
-        print(f"[DEBUG] ALL matches on {match_date} involving {club_name}:")
-        for match in all_matches:
-            print(f"  {match['home_team']} vs {match['away_team']} at {match['location']} (Home: {match['home_series']}, Away: {match['away_series']})")
+        # REMOVED: Excessive debug query that was causing performance issues
         
         # Now find ONLY teams that are playing AT HOME (location matches club name)
         # This is more accurate than relying on home_team_id which might be inconsistent
@@ -5399,10 +5380,12 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
         
         if other_teams:
             series_names = [team["series_name"] for team in other_teams]
-            print(f"[DEBUG] get_other_home_teams_at_club_on_date: Found {len(series_names)} other teams playing at home at {club_name}: {series_names}")
+            # OPTIMIZATION: Reduced debug output
+            # print(f"[DEBUG] get_other_home_teams_at_club_on_date: Found {len(series_names)} other teams playing at home at {club_name}: {series_names}")
             return series_names
         else:
-            print(f"[DEBUG] get_other_home_teams_at_club_on_date: No other teams found playing at home at {club_name} on {match_date}")
+            # OPTIMIZATION: Reduced debug output
+            # print(f"[DEBUG] get_other_home_teams_at_club_on_date: No other teams found playing at home at {club_name} on {match_date}")
             return []
             
     except Exception as e:

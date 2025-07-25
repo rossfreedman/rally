@@ -3321,16 +3321,29 @@ class ComprehensiveETL:
                 if winner and winner.lower() not in ["home", "away"]:
                     winner = None
 
+                # Generate unique tenniscores_match_id by combining match_id + Line
+                base_match_id = record.get("match_id", "").strip()
+                line = record.get("Line", "").strip()
+                
+                # Create unique tenniscores_match_id
+                if base_match_id and line:
+                    # Extract line number (e.g., "Line 1" -> "Line1", "Line 2" -> "Line2")
+                    line_number = line.replace(" ", "")  # "Line 1" -> "Line1"
+                    tenniscores_match_id = f"{base_match_id}_{line_number}"
+                else:
+                    # Fallback: use original match_id if line info is missing
+                    tenniscores_match_id = base_match_id
+
                 # Use cached lookups instead of database queries
                 league_db_id = league_cache.get(league_id)
                 home_team_id = team_cache.get((league_id, home_team)) if home_team != "BYE" else None
                 away_team_id = team_cache.get((league_id, away_team)) if away_team != "BYE" else None
 
-                # Add to batch
+                # Add to batch (including tenniscores_match_id)
                 batch_data.append((
                     match_date, home_team, away_team, home_team_id, away_team_id,
                     home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
-                    str(scores), winner, league_db_id
+                    str(scores), winner, league_db_id, tenniscores_match_id
                 ))
 
                 # Process batch when it reaches batch_size or at the end
@@ -3408,9 +3421,23 @@ class ComprehensiveETL:
                 INSERT INTO match_scores (
                     match_date, home_team, away_team, home_team_id, away_team_id,
                     home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
-                    scores, winner, league_id, created_at
+                    scores, winner, league_id, tenniscores_match_id, created_at
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (tenniscores_match_id) WHERE tenniscores_match_id IS NOT NULL DO UPDATE
+                SET
+                    match_date = EXCLUDED.match_date,
+                    home_team = EXCLUDED.home_team,
+                    away_team = EXCLUDED.away_team,
+                    home_team_id = EXCLUDED.home_team_id,
+                    away_team_id = EXCLUDED.away_team_id,
+                    home_player_1_id = EXCLUDED.home_player_1_id,
+                    home_player_2_id = EXCLUDED.home_player_2_id,
+                    away_player_1_id = EXCLUDED.away_player_1_id,
+                    away_player_2_id = EXCLUDED.away_player_2_id,
+                    scores = EXCLUDED.scores,
+                    winner = EXCLUDED.winner,
+                    league_id = EXCLUDED.league_id
                 """,
                 batch_data
             )
@@ -3436,9 +3463,23 @@ class ComprehensiveETL:
                         INSERT INTO match_scores (
                             match_date, home_team, away_team, home_team_id, away_team_id,
                             home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
-                            scores, winner, league_id, created_at
+                            scores, winner, league_id, tenniscores_match_id, created_at
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (tenniscores_match_id) WHERE tenniscores_match_id IS NOT NULL DO UPDATE
+                        SET
+                            match_date = EXCLUDED.match_date,
+                            home_team = EXCLUDED.home_team,
+                            away_team = EXCLUDED.away_team,
+                            home_team_id = EXCLUDED.home_team_id,
+                            away_team_id = EXCLUDED.away_team_id,
+                            home_player_1_id = EXCLUDED.home_player_1_id,
+                            home_player_2_id = EXCLUDED.home_player_2_id,
+                            away_player_1_id = EXCLUDED.away_player_1_id,
+                            away_player_2_id = EXCLUDED.away_player_2_id,
+                            scores = EXCLUDED.scores,
+                            winner = EXCLUDED.winner,
+                            league_id = EXCLUDED.league_id
                         """,
                         record_data
                     )

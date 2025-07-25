@@ -3,6 +3,7 @@ import os
 import re
 import time
 from datetime import datetime, timedelta
+from urllib.parse import urljoin, urlparse, parse_qs, unquote
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -19,8 +20,11 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from stealth_browser import StealthBrowserManager
 
-print("🎾 TennisScores Match Scraper - Dynamic Discovery Mode")
-print("=" * 60)
+print("🎾 TennisScores Match Scraper - Best Practice Approach")
+print("=" * 80)
+print("✅ Only imports matches with legitimate match IDs - no synthetic IDs!")
+print("✅ Ensures data integrity and best practices for all leagues")
+print("=" * 80)
 
 
 # Dynamic League Configuration - User Input Based
@@ -86,6 +90,74 @@ def build_league_data_dir(league_id):
     os.makedirs(league_data_dir, exist_ok=True)
 
     return league_data_dir
+
+
+def deduplicate_matches(matches):
+    """
+    Remove duplicate matches using multiple strategies.
+    
+    Args:
+        matches (list): List of match dictionaries
+        
+    Returns:
+        tuple: (unique_matches, duplicates_removed, stats)
+    """
+    if not matches:
+        return [], 0, {"exact_duplicates": 0, "match_id_duplicates": 0}
+    
+    print(f"🔍 Deduplicating {len(matches)} matches...")
+    
+    # Strategy 1: Remove exact duplicates (same JSON representation)
+    seen_exact = set()
+    unique_matches = []
+    exact_duplicates = 0
+    
+    for match in matches:
+        record_str = json.dumps(match, sort_keys=True)
+        if record_str not in seen_exact:
+            seen_exact.add(record_str)
+            unique_matches.append(match)
+        else:
+            exact_duplicates += 1
+    
+    # Strategy 2: Remove duplicates based on match_id (if available)
+    match_id_duplicates = 0
+    if unique_matches and any(match.get('match_id') for match in unique_matches):
+        seen_match_ids = set()
+        final_matches = []
+        
+        for match in unique_matches:
+            match_id = match.get('match_id')
+            if match_id and match_id != 'None':
+                if match_id not in seen_match_ids:
+                    seen_match_ids.add(match_id)
+                    final_matches.append(match)
+                else:
+                    match_id_duplicates += 1
+            else:
+                # Keep matches without match_id (they'll be handled by exact deduplication)
+                final_matches.append(match)
+        
+        unique_matches = final_matches
+    
+    total_duplicates = exact_duplicates + match_id_duplicates
+    
+    stats = {
+        "exact_duplicates": exact_duplicates,
+        "match_id_duplicates": match_id_duplicates,
+        "total_duplicates": total_duplicates,
+        "final_count": len(unique_matches)
+    }
+    
+    if total_duplicates > 0:
+        print(f"✅ Removed {total_duplicates} duplicates:")
+        print(f"   - {exact_duplicates} exact duplicates")
+        print(f"   - {match_id_duplicates} match_id duplicates")
+        print(f"📊 Final unique matches: {len(unique_matches)}")
+    else:
+        print(f"✅ No duplicates found - all {len(unique_matches)} matches are unique")
+    
+    return unique_matches, total_duplicates, stats
 
 
 # Global variable to store players data for lookups
@@ -519,430 +591,537 @@ def lookup_player_id(series, team_name, first_name, last_name, league_id=None):
     )
 
 
+def extract_match_id_from_url(url):
+    """
+    Extract match ID from TennisScores URL.
+    Based on the birchwood scripts pattern - looks for sch= parameter.
+    Handles both direct and URL-encoded formats.
+    """
+    try:
+        # URL-decode the URL first to handle CNSWPL's encoded format
+        from urllib.parse import unquote
+        decoded_url = unquote(url)
+        
+        parsed_url = urlparse(decoded_url)
+        query_params = parse_qs(parsed_url.query)
+        
+        # Look for sch parameter (TennisScores match ID)
+        sch_param = query_params.get('sch', [None])[0]
+        if sch_param:
+            return sch_param
+        
+        # Look for other potential match ID parameters
+        for param_name in ['match_id', 'id', 'match']:
+            param_value = query_params.get(param_name, [None])[0]
+            if param_value:
+                return param_value
+        
+        return None
+        
+    except Exception as e:
+        print(f"Warning: Error extracting match ID from URL {url}: {e}")
+        return None
+
+
+def find_match_links(soup, base_url):
+    """
+    Find all match links on a page and extract their IDs.
+    Based on the birchwood scripts pattern.
+    """
+    match_links = []
+    
+    try:
+        # Look for links containing print_match.php?sch= (both direct and URL-encoded)
+        # CNSWPL uses URL-encoded format: print%5Fmatch.php?sch= (where %5F = _)
+        # Other leagues use direct format: print_match.php?sch=
+        match_link_elements = soup.find_all('a', href=re.compile(r'print%5F?match\.php\?sch='))
+        
+        for link in match_link_elements:
+            href = link.get('href')
+            if href:
+                # Create full URL
+                full_url = urljoin(base_url, href)
+                
+                # Extract match ID
+                match_id = extract_match_id_from_url(href)
+                
+                if match_id:
+                    # Get link text as description
+                    description = link.get_text(strip=True)
+                    if not description:
+                        # Try to get text from parent elements
+                        try:
+                            parent = link.parent
+                            description = parent.get_text(strip=True)
+                        except:
+                            description = f"Match_{match_id}"
+                    
+                    match_links.append({
+                        'match_id': match_id,
+                        'description': description,
+                        'url': href,
+                        'full_url': full_url
+                    })
+                    
+                    print(f"    Found match link: {description} -> {match_id}")
+        
+        print(f"    Found {len(match_links)} match links")
+        
+    except Exception as e:
+        print(f"Error finding match links: {e}")
+    
+    return match_links
+
+
+def scrape_individual_match_page(driver, match_link, series_name, league_id):
+    """
+    Scrape detailed information from an individual match page.
+    Each page contains 4 lines (matches), so we create separate match data for each line.
+    Returns a list of match data in the exact format of match_history.json with match_id added.
+    """
+    match_url = match_link['full_url']
+    match_id = match_link['match_id']
+    
+    print(f"    Scraping individual match: {match_id}")
+    
+    try:
+        # Navigate to the match page
+        driver.get(match_url)
+        time.sleep(2)  # Wait for page to load
+        
+        # Parse the page
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        
+        # Extract date from the page
+        date = extract_match_date_from_page(soup)
+        
+        # Extract teams from the page
+        home_team, away_team = extract_teams_from_page(soup, league_id, series_name)
+        
+        # Extract individual line scores with set details
+        line_scores = extract_line_scores_from_page(soup)
+        
+        if not line_scores:
+            print(f"    Warning: No line scores found for match {match_id}")
+            return []
+        
+        matches_data = []
+        
+        # Create a separate match for each line
+        for line_data in line_scores:
+            line_number = line_data.get('line_number', 1)
+            
+            # Create unique match_id for this specific line
+            unique_match_id = f"{match_id}_Line{line_number}"
+            
+            # Create match data for this line
+            match_data = {
+                'league_id': league_id,
+                'match_id': unique_match_id,  # Use unique match_id with line suffix
+                'source_league': league_id,
+                'Line': f"Line {line_number}"  # Add separate Line attribute
+            }
+            
+            # Add date
+            if date:
+                match_data['Date'] = date
+            
+            # Add teams
+            if home_team:
+                match_data['Home Team'] = home_team
+            if away_team:
+                match_data['Away Team'] = away_team
+            
+            # Extract individual players for this line
+            if len(line_data['home_players']) >= 2:
+                match_data['Home Player 1'] = line_data['home_players'][0]['name']
+                match_data['Home Player 2'] = line_data['home_players'][1]['name']
+                # Add player IDs (will be populated by player lookup)
+                match_data['Home Player 1 ID'] = line_data['home_players'][0].get('id', '')
+                match_data['Home Player 2 ID'] = line_data['home_players'][1].get('id', '')
+            
+            if len(line_data['away_players']) >= 2:
+                match_data['Away Player 1'] = line_data['away_players'][0]['name']
+                match_data['Away Player 2'] = line_data['away_players'][1]['name']
+                # Add player IDs (will be populated by player lookup)
+                match_data['Away Player 1 ID'] = line_data['away_players'][0].get('id', '')
+                match_data['Away Player 2 ID'] = line_data['away_players'][1].get('id', '')
+            
+            # Create legacy scores format for this specific line only
+            legacy_scores = create_legacy_scores_from_line_scores([line_data], line_number)
+            if legacy_scores:
+                match_data['Scores'] = legacy_scores
+                match_data['Winner'] = determine_winner_from_scores(legacy_scores)
+            
+            # Validate the match data
+            if validate_match_data(match_data):
+                matches_data.append(match_data)
+                print(f"    ✅ Created match for Line {line_number}")
+            else:
+                print(f"    ⚠️ Invalid match data for Line {line_number}")
+        
+        return matches_data
+            
+    except Exception as e:
+        print(f"    Error scraping individual match {match_id}: {e}")
+        return []
+
+
+def extract_match_date_from_page(soup):
+    """Extract match date from the page."""
+    
+    # First try to find date in the header area (more specific)
+    header_divs = soup.find_all('div', class_='datelocheader')
+    for header_div in header_divs:
+        header_text = header_div.get_text(strip=True)
+        
+        # Look for date patterns in the header
+        date_patterns = [
+            r'(\d{1,2}/\d{1,2}/\d{4})',  # MM/DD/YYYY
+            r'(\d{1,2}-\d{1,2}-\d{4})',  # MM-DD-YYYY
+            r'([A-Za-z]+ \d{1,2}, \d{4})',  # Month DD, YYYY
+            r'(\d{1,2}-[A-Za-z]+-\d{2,4})',  # DD-MMM-YY or DD-MMM-YYYY
+            r'(\d{1,2}/\d{1,2}/\d{2})',  # MM/DD/YY
+        ]
+        
+        for pattern in date_patterns:
+            match = re.search(pattern, header_text)
+            if match:
+                date_str = match.group(1)
+                # Try to parse and format consistently
+                try:
+                    parsed_date = parse_date_string(date_str)
+                    if parsed_date:
+                        # Format to match APTA_CHICAGO match_history.json format: DD-MMM-YY
+                        return parsed_date.strftime('%d-%b-%y')
+                except:
+                    pass
+                return date_str
+    
+    # Fallback to searching entire page if not found in header
+    page_text = soup.get_text()
+    
+    # Try different date patterns in full page text
+    date_patterns = [
+        r'(\d{1,2}/\d{1,2}/\d{4})',  # MM/DD/YYYY
+        r'(\d{1,2}-\d{1,2}-\d{4})',  # MM-DD-YYYY
+        r'([A-Za-z]+ \d{1,2}, \d{4})',  # Month DD, YYYY
+        r'(\d{1,2}-[A-Za-z]+-\d{2,4})',  # DD-MMM-YY or DD-MMM-YYYY
+        r'(\d{1,2}/\d{1,2}/\d{2})',  # MM/DD/YY
+    ]
+    
+    for pattern in date_patterns:
+        match = re.search(pattern, page_text)
+        if match:
+            date_str = match.group(1)
+            # Try to parse and format consistently
+            try:
+                parsed_date = parse_date_string(date_str)
+                if parsed_date:
+                    # Format to match APTA_CHICAGO match_history.json format: DD-MMM-YY
+                    return parsed_date.strftime('%d-%b-%y')
+            except:
+                pass
+            return date_str
+    
+    return None
+
+
+def extract_teams_from_page(soup, league_id, series_name=None):
+    """Extract home and away team names from the page."""
+    try:
+        # Look for the header that contains team names
+        # Format: "Salt Creek - 4 @ Westmoreland - 4: 4 - 10"
+        header_divs = soup.find_all('div', class_='datelocheader')
+        
+        for header_div in header_divs:
+            header_text = header_div.get_text(strip=True)
+            
+            # Extract team names from header
+            # Pattern: "Team1 - Series @ Team2 - Series: Score1 - Score2"
+            # Team1 is visiting (away), Team2 is home (after @)
+            match = re.search(r'(.+?)\s*-\s*\d+\s*@\s*(.+?)\s*-\s*\d+', header_text)
+            if match:
+                away_team_raw = match.group(1).strip()  # Team1 is away (visiting)
+                home_team_raw = match.group(2).strip()  # Team2 is home (after @)
+                
+                # Extract series number from series_name (e.g., "Chicago 22" -> "22")
+                series_number = ""
+                if series_name:
+                    series_match = re.search(r'(\d+)', series_name)
+                    if series_match:
+                        series_number = series_match.group(1)
+                
+                # Add series number to team names with proper formatting (Team - Number)
+                if series_number:
+                    home_team = f"{home_team_raw} - {series_number}"
+                    away_team = f"{away_team_raw} - {series_number}"
+                else:
+                    home_team = home_team_raw
+                    away_team = away_team_raw
+                
+                return home_team, away_team
+        
+        return None, None
+        
+    except Exception as e:
+        print(f"Error extracting teams: {e}")
+        return None, None
+
+
+def extract_line_scores_from_page(soup):
+    """Extract line scores from individual match page."""
+    try:
+        line_scores = []
+        
+        # Find all tables with class "standings-table2"
+        tables = soup.find_all('table', class_='standings-table2')
+        
+        for table in tables:
+            # Extract line number from the first cell
+            line_cell = table.find('td', class_='line_desc')
+            if not line_cell:
+                continue
+                
+            line_text = line_cell.get_text(strip=True)
+            line_match = re.search(r'Line (\d+)', line_text)
+            if not line_match:
+                continue
+                
+            line_number = int(line_match.group(1))
+            
+            # Extract player data from the table
+            player_cells = table.find_all('td', class_='card_names')
+            
+            home_players = []
+            away_players = []
+            
+            for cell in player_cells:
+                # Find player links
+                player_links = cell.find_all('a', href=re.compile(r'player\.php\?print&p='))
+                
+                for link in player_links:
+                    player_name = link.get_text(strip=True)
+                    player_id = extract_player_id_from_url(link.get('href', ''))
+                    
+                    player_data = {
+                        'name': player_name,
+                        'id': player_id
+                    }
+                    
+                    # Determine if this is home or away player based on position
+                    # NOTE: Since we swapped teams in extract_teams_from_page, we need to swap here too
+                    # First row is typically away team (visiting), second row is home team 
+                    row = link.find_parent('tr')
+                    if row and 'tr_line_desc' in row.get('class', []):
+                        away_players.append(player_data)  # First row is away (swapped)
+                    else:
+                        home_players.append(player_data)  # Second row is home (swapped)
+            
+            # Extract scores from the last columns - need to get home and away scores separately
+            rows = table.find_all('tr')
+            home_scores = []
+            away_scores = []
+            
+            for row in rows:
+                # Look for rows with score cells
+                score_cells = row.find_all('td', class_='pts2')
+                if score_cells:
+                    # NOTE: Since we swapped teams/players, we need to swap scores too
+                    # First row with scores is away team, second is home team
+                    if not away_scores:  # First row with scores is away (swapped)
+                        for cell in score_cells:
+                            score_text = cell.get_text(strip=True)
+                            if score_text and score_text.strip() and score_text.strip() != '&nbsp;':
+                                try:
+                                    away_scores.append(int(score_text.strip()))
+                                except ValueError:
+                                    pass
+                    elif not home_scores:  # Second row with scores is home (swapped)
+                        for cell in score_cells:
+                            score_text = cell.get_text(strip=True)
+                            if score_text and score_text.strip() and score_text.strip() != '&nbsp;':
+                                try:
+                                    home_scores.append(int(score_text.strip()))
+                                except ValueError:
+                                    pass
+            
+            # Create line score data with separate home and away scores
+            line_data = {
+                'line_number': line_number,
+                'home_players': home_players,
+                'away_players': away_players,
+                'home_scores': home_scores,
+                'away_scores': away_scores
+            }
+            
+            line_scores.append(line_data)
+        
+        return line_scores
+        
+    except Exception as e:
+        print(f"Error extracting line scores: {e}")
+        return []
+
+
+def extract_player_id_from_url(url):
+    """Extract player ID from player.php URL."""
+    try:
+        match = re.search(r'p=([^&]+)', url)
+        if match:
+            return match.group(1)
+    except:
+        pass
+    return None
+
+
+def generate_player_id(player_name):
+    """Generate a placeholder player ID for testing purposes."""
+    # This is a placeholder - in real implementation, this would look up the actual player ID
+    # The format appears to be base64-encoded strings like "WkNDOHlMdjZqUT09"
+    import base64
+    import hashlib
+    
+    # Create a hash of the player name
+    name_hash = hashlib.md5(player_name.encode()).hexdigest()[:12]
+    
+    # Convert to base64-like format (this is a simplified version)
+    # In real implementation, this would be the actual player ID from the database
+    encoded = base64.b64encode(name_hash.encode()).decode()
+    
+    # Remove padding and ensure it matches the pattern
+    encoded = encoded.replace('=', '')
+    
+    return encoded
+
+
+def create_legacy_scores_from_line_scores(line_scores, target_line_number=1):
+    """
+    Create legacy scores format from individual line scores.
+    Only use scores from the specified line number (default: 1 for first line).
+    """
+    if not line_scores:
+        return None
+    
+    # Find the target line
+    target_line = None
+    for line in line_scores:
+        if line.get('line_number') == target_line_number:
+            target_line = line
+            break
+    
+    if not target_line:
+        print(f"    Warning: Could not find line {target_line_number} in scores")
+        return None
+    
+    # Extract scores only from the target line
+    set_scores = []
+    
+    # Use the new home_scores and away_scores format
+    if 'home_scores' in target_line and 'away_scores' in target_line:
+        home_scores = target_line['home_scores']
+        away_scores = target_line['away_scores']
+        
+        # Pair up home and away scores for each set
+        for i in range(min(len(home_scores), len(away_scores))):
+            home_score = home_scores[i]
+            away_score = away_scores[i]
+            set_scores.append(f"{home_score}-{away_score}")
+    
+    # Fallback to old structure if needed
+    elif 'scores' in target_line and target_line['scores']:
+        # The scores array contains individual set scores
+        # We need to pair them up as home-away
+        scores = target_line['scores']
+        for i in range(0, len(scores), 2):
+            if i + 1 < len(scores):
+                home_score = scores[i]
+                away_score = scores[i + 1]
+                set_scores.append(f"{home_score}-{away_score}")
+    
+    # Handle old structure with separate home/away set scores
+    elif 'home_set_scores' in target_line and 'away_set_scores' in target_line:
+        for i, home_score in enumerate(target_line['home_set_scores']):
+            away_score = target_line['away_set_scores'][i] if i < len(target_line['away_set_scores']) else 0
+            set_scores.append(f"{home_score}-{away_score}")
+    
+    if set_scores:
+        return ", ".join(set_scores)
+    
+    return None
+
+
+def determine_winner_from_scores(scores):
+    """Determine winner from scores."""
+    if not scores:
+        return "unknown"
+    
+    try:
+        # Parse set scores
+        sets = scores.split(", ")
+        home_sets_won = 0
+        away_sets_won = 0
+        
+        for set_score in sets:
+            if "-" in set_score:
+                home_score, away_score = map(int, set_score.split("-"))
+                if home_score > away_score:
+                    home_sets_won += 1
+                else:
+                    away_sets_won += 1
+        
+        if home_sets_won > away_sets_won:
+            return "home"
+        elif away_sets_won > home_sets_won:
+            return "away"
+        else:
+            return "tie"
+    except:
+        return "unknown"
+
+
+def validate_match_data(match_data):
+    """Validate that match data has required fields."""
+    required_fields = [
+        'Date', 'Home Team', 'Away Team', 
+        'Home Player 1', 'Home Player 1 ID', 'Home Player 2', 'Home Player 2 ID',
+        'Away Player 1', 'Away Player 1 ID', 'Away Player 2', 'Away Player 2 ID',
+        'Scores', 'Winner', 'source_league', 'match_id'
+    ]
+    
+    for field in required_fields:
+        if field not in match_data or not match_data[field]:
+            print(f"    Missing required field: {field}")
+            return False
+    
+    return True
+
+
+def parse_date_string(date_str):
+    """Parse date string in various formats."""
+    date_formats = [
+        '%m/%d/%Y',    # MM/DD/YYYY
+        '%m-%d-%Y',    # MM-DD-YYYY
+        '%B %d, %Y',   # Month DD, YYYY
+        '%d-%b-%Y',    # DD-MMM-YYYY
+        '%d-%b-%y',    # DD-MMM-YY
+        '%m/%d/%y',    # MM/DD/YY
+    ]
+    
+    for fmt in date_formats:
+        try:
+            return datetime.strptime(date_str, fmt)
+        except ValueError:
+            continue
+    
+    return None
+
+
+
+
+
 # ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
 # See stealth_browser.py for the new implementation
-
-
-def parse_cnswpl_matches(container, series_name, league_id):
-    """Parse CNSWPL div-based match structure - container IS the match_results_table"""
-    matches_data = []
-
-    try:
-        print("🔍 Parsing CNSWPL div-based match structure...")
-
-        # Get the HTML content from the container
-        html_content = container.get_attribute("innerHTML")
-        soup = BeautifulSoup(html_content, "html.parser")
-
-        print(f"📊 HTML content length: {len(html_content)} characters")
-
-        # IMPORTANT: The container parameter IS already a match_results_table div
-        # We don't need to search for more - just parse this one directly
-        print(f"  📋 Processing this container as a single match table")
-
-        # Parse this container directly as a match table
-        match_data = parse_cnswpl_match_table(soup, None, series_name, league_id)
-        if match_data:
-            matches_data.extend(match_data)
-            print(f"    ✅ Container contributed {len(match_data)} matches")
-        else:
-            print(f"    ⚠️ Container contributed 0 matches")
-
-        print(
-            f"🎯 Successfully extracted {len(matches_data)} total matches from CNSWPL"
-        )
-        return matches_data
-
-    except Exception as e:
-        print(f"❌ Error parsing CNSWPL matches: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
-        return []
-
-
-def parse_cnswpl_match_table(table_element, match_date, series_name, league_id):
-    """Parse a single CNSWPL match table using the correct row-based structure"""
-    try:
-        # Handle both BeautifulSoup objects and WebDriver elements
-        if hasattr(table_element, "find_all"):
-            # It's already a BeautifulSoup object
-            all_divs = table_element.find_all("div")
-        else:
-            # It's a WebDriver element, convert to BeautifulSoup
-            soup = BeautifulSoup(
-                table_element.get_attribute("innerHTML"), "html.parser"
-            )
-            all_divs = soup.find_all("div")
-
-        # Organize divs by their CSS classes in sequential order
-        divs_by_class = {
-            "points": [],
-            "team_name": [],
-            "match_rest": [],
-            "team_name2": [],
-            "points2": [],
-        }
-
-        # Collect all divs and their content (including empty ones and images)
-        for div in all_divs:
-            div_classes = div.get("class", [])
-            div_text = div.get_text(strip=True)
-
-            # For points columns, also check for images (check marks)
-            has_check_mark = bool(div.find("img"))
-            if has_check_mark:
-                div_text = "check_mark"
-
-            # Categorize divs by their CSS classes
-            for class_name in divs_by_class.keys():
-                if class_name in div_classes:
-                    divs_by_class[class_name].append(div_text)
-                    break
-
-        print(
-            f"  📊 Found divs by class: points={len(divs_by_class['points'])}, team_name={len(divs_by_class['team_name'])}, match_rest={len(divs_by_class['match_rest'])}, team_name2={len(divs_by_class['team_name2'])}, points2={len(divs_by_class['points2'])}"
-        )
-
-        # Parse rows - each row consists of 5 divs (points, team_name, match_rest, team_name2, points2)
-        num_rows = min(
-            len(divs_by_class["team_name"]),
-            len(divs_by_class["team_name2"]),
-            len(divs_by_class["match_rest"]),
-        )
-
-        if num_rows == 0:
-            print(f"  ⚠️ No complete rows found in match table")
-            return []
-
-        print(f"  🔍 Processing {num_rows} rows...")
-
-        # Extract header information from Row 0
-        current_date = match_date  # Use the date passed in
-        home_team = None
-        away_team = None
-
-        if num_rows > 0:
-            try:
-                home_team = divs_by_class["team_name"][0].strip()
-                away_team = divs_by_class["team_name2"][0].strip()
-                match_rest_0 = divs_by_class["match_rest"][0].strip()
-
-                # Check if Row 0 contains date information and update current_date
-                date_pattern = r"(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}"
-                date_match = re.search(date_pattern, match_rest_0)
-                if date_match:
-                    current_date = date_match.group(0)
-                    print(f"  📅 Found date in header: {current_date}")
-
-                # Clean team names
-                home_team = re.sub(r"^\s*&nbsp;\s*", "", home_team).strip()
-                away_team = re.sub(r"\s*&nbsp;\s*$", "", away_team).strip()
-
-                print(f"  🏆 Header teams: {home_team} vs {away_team}")
-
-            except Exception as e:
-                print(f"  ⚠️ Error parsing header row: {e}")
-
-        if not home_team or not away_team:
-            print(f"  ⚠️ Could not extract team names from header")
-            return []
-
-        # Parse individual matches (start from Row 1, skip header Row 0)
-        individual_match_data = []
-
-        for i in range(1, num_rows):  # Skip Row 0 (header)
-            try:
-                # Get data for this row
-                points1 = (
-                    divs_by_class["points"][i]
-                    if i < len(divs_by_class["points"])
-                    else ""
-                )
-                team1 = (
-                    divs_by_class["team_name"][i]
-                    if i < len(divs_by_class["team_name"])
-                    else ""
-                )
-                match_rest = (
-                    divs_by_class["match_rest"][i]
-                    if i < len(divs_by_class["match_rest"])
-                    else ""
-                )
-                team2 = (
-                    divs_by_class["team_name2"][i]
-                    if i < len(divs_by_class["team_name2"])
-                    else ""
-                )
-                points2 = (
-                    divs_by_class["points2"][i]
-                    if i < len(divs_by_class["points2"])
-                    else ""
-                )
-
-                # Clean text
-                team1 = re.sub(r"^\s*&nbsp;\s*", "", team1).strip()
-                team2 = re.sub(r"\s*&nbsp;\s*$", "", team2).strip()
-                match_rest = match_rest.strip()
-
-                # ENHANCED LOGGING: Show exactly what we extracted for debugging
-                print(f"  🔍 Row {i} raw data: team1='{team1}', team2='{team2}', match_rest='{match_rest}'")
-
-                # Skip empty rows or rows that don't look like matches
-                if not team1 or not team2 or not match_rest:
-                    print(f"  ⏭️ Row {i} skipped: Empty data")
-                    continue
-
-                # RELAXED FILTERING: Check for player separators more flexibly
-                # Look for common separators: "/", " / ", "and", "&", ","
-                separators = ["/", " / ", " and ", " & ", ","]
-                has_separator_team1 = any(sep in team1 for sep in separators)
-                has_separator_team2 = any(sep in team2 for sep in separators)
-                
-                if not has_separator_team1 or not has_separator_team2:
-                    print(f"  ⚠️ Row {i} has unusual format - no common separators found:")
-                    print(f"    team1='{team1}' (separators: {[sep for sep in separators if sep in team1]})")
-                    print(f"    team2='{team2}' (separators: {[sep for sep in separators if sep in team2]})")
-                    print(f"  🔄 Attempting to parse anyway...")
-
-                # ENHANCED PARSING: Try multiple separator patterns
-                home_players = []
-                away_players = []
-                
-                # Try to split team1 (home players)
-                for sep in separators:
-                    if sep in team1:
-                        home_players = [p.strip() for p in team1.split(sep)]
-                        break
-                
-                # If no separator found, treat as single name (unusual but handle gracefully)
-                if not home_players:
-                    home_players = [team1.strip()]
-                    print(f"  ⚠️ Row {i}: No separator in team1, treating as single player: '{team1}'")
-
-                # Try to split team2 (away players)  
-                for sep in separators:
-                    if sep in team2:
-                        away_players = [p.strip() for p in team2.split(sep)]
-                        break
-                        
-                # If no separator found, treat as single name (unusual but handle gracefully)
-                if not away_players:
-                    away_players = [team2.strip()]
-                    print(f"  ⚠️ Row {i}: No separator in team2, treating as single player: '{team2}'")
-
-                # Check if we have enough players (require at least 1 per team, prefer 2)
-                if len(home_players) < 1 or len(away_players) < 1:
-                    print(f"  ⏭️ Row {i} skipped: Not enough players after parsing: home={home_players}, away={away_players}")
-                    continue
-
-                # Handle cases where we don't have exactly 2 players per team
-                if len(home_players) < 2:
-                    print(f"  ⚠️ Row {i}: Only {len(home_players)} home player(s), padding with empty")
-                    home_players.extend([""] * (2 - len(home_players)))
-                    
-                if len(away_players) < 2:
-                    print(f"  ⚠️ Row {i}: Only {len(away_players)} away player(s), padding with empty")
-                    away_players.extend([""] * (2 - len(away_players)))
-
-                # Determine winner from check marks or score
-                winner = "unknown"
-                if "check_mark" in points1:
-                    winner = "home"
-                elif "check_mark" in points2:
-                    winner = "away"
-                else:
-                    # Try to determine from score
-                    winner = determine_winner_from_score_cnswpl(
-                        match_rest, home_team, away_team, divs_by_class, i
-                    )
-
-                # Clean player names
-                home_p1 = clean_player_name(home_players[0])
-                home_p2 = clean_player_name(home_players[1])
-                away_p1 = clean_player_name(away_players[0])
-                away_p2 = clean_player_name(away_players[1])
-
-                # Split names for ID lookup
-                home_p1_first, home_p1_last = split_player_name_for_lookup(home_p1)
-                home_p2_first, home_p2_last = split_player_name_for_lookup(home_p2)
-                away_p1_first, away_p1_last = split_player_name_for_lookup(away_p1)
-                away_p2_first, away_p2_last = split_player_name_for_lookup(away_p2)
-
-                # Get series names for player lookup
-                home_series = extract_series_name_from_team(home_team)
-                away_series = extract_series_name_from_team(away_team)
-
-                # Lookup Player IDs
-                home_p1_id = lookup_player_id_enhanced(
-                    home_series or series_name,
-                    home_team,
-                    home_p1_first,
-                    home_p1_last,
-                    league_id,
-                )
-                home_p2_id = lookup_player_id_enhanced(
-                    home_series or series_name,
-                    home_team,
-                    home_p2_first,
-                    home_p2_last,
-                    league_id,
-                )
-                away_p1_id = lookup_player_id_enhanced(
-                    away_series or series_name,
-                    away_team,
-                    away_p1_first,
-                    away_p1_last,
-                    league_id,
-                )
-                away_p2_id = lookup_player_id_enhanced(
-                    away_series or series_name,
-                    away_team,
-                    away_p2_first,
-                    away_p2_last,
-                    league_id,
-                )
-
-                # Parse and format date
-                try:
-                    if current_date and re.search(r"\w+ \d+, \d{4}", current_date):
-                        date_obj = datetime.strptime(current_date, "%B %d, %Y")
-                        formatted_date = date_obj.strftime("%d-%b-%y")
-                    else:
-                        formatted_date = current_date or match_date
-                except:
-                    formatted_date = current_date or match_date
-
-                # Create match data
-                match_data = {
-                    "league_id": league_id,
-                    "Date": formatted_date,
-                    "Home Team": home_team,
-                    "Away Team": away_team,
-                    "Home Player 1": home_p1,
-                    "Home Player 1 ID": home_p1_id,
-                    "Home Player 2": home_p2,
-                    "Home Player 2 ID": home_p2_id,
-                    "Away Player 1": away_p1,
-                    "Away Player 1 ID": away_p1_id,
-                    "Away Player 2": away_p2,
-                    "Away Player 2 ID": away_p2_id,
-                    "Scores": match_rest,
-                    "Winner": winner,
-                }
-
-                individual_match_data.append(match_data)
-
-                # Log the match
-                id_status = []
-                if home_p1_id:
-                    id_status.append(f"H1✓")
-                else:
-                    id_status.append(f"H1✗")
-                if home_p2_id:
-                    id_status.append(f"H2✓")
-                else:
-                    id_status.append(f"H2✗")
-                if away_p1_id:
-                    id_status.append(f"A1✓")
-                else:
-                    id_status.append(f"A1✗")
-                if away_p2_id:
-                    id_status.append(f"A2✓")
-                else:
-                    id_status.append(f"A2✗")
-
-                print(
-                    f"    ✅ Row {i}: {home_p1}/{home_p2} vs {away_p1}/{away_p2} - {match_rest} (Winner: {winner}) [IDs: {' '.join(id_status)}]"
-                )
-
-            except Exception as e:
-                print(f"  ⚠️ Error parsing row {i}: {e}")
-                continue
-
-        print(f"  🎯 Extracted {len(individual_match_data)} matches from this table")
-        return individual_match_data
-
-    except Exception as e:
-        print(f"❌ Error parsing CNSWPL match table: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
-        return []
-
-
-def determine_winner_from_score_cnswpl(
-    score_text, home_team, away_team, divs_by_class, row_index
-):
-    """Determine winner from CNSWPL score and check mark indicators"""
-    try:
-        # Check for forfeit indicators first
-        if "forfeit" in score_text.lower() or "by forfeit" in score_text.lower():
-            return "home"  # Assuming forfeit wins for home team
-
-        # PRIORITY: Try to parse score to determine winner FIRST
-        # This is more reliable than check mark detection which can be inconsistent
-        if re.search(r"\d+-\d+", score_text):
-            sets = re.findall(r"(\d+)-(\d+)", score_text)
-            if sets:
-                home_sets_won = 0
-                away_sets_won = 0
-
-                for home_score, away_score in sets:
-                    home_games = int(home_score)
-                    away_games = int(away_score)
-
-                    # Determine set winner
-                    if home_games > away_games:
-                        home_sets_won += 1
-                    elif away_games > home_games:
-                        away_sets_won += 1
-
-                # Determine overall match winner based on sets won
-                if home_sets_won > away_sets_won:
-                    print(
-                        f"      Score analysis: {score_text} -> HOME wins ({home_sets_won}-{away_sets_won} sets)"
-                    )
-                    return "home"
-                elif away_sets_won > home_sets_won:
-                    print(
-                        f"      Score analysis: {score_text} -> AWAY wins ({away_sets_won}-{home_sets_won} sets)"
-                    )
-                    return "away"
-                else:
-                    print(
-                        f"      Score analysis: {score_text} -> TIE ({home_sets_won}-{away_sets_won} sets)"
-                    )
-
-        # FALLBACK: Check for check mark indicators only if score parsing fails
-        if row_index < len(divs_by_class["points"]) and row_index < len(
-            divs_by_class["points2"]
-        ):
-            home_points = divs_by_class["points"][row_index]
-            away_points = divs_by_class["points2"][row_index]
-
-            # Look for check mark indicators
-            if (
-                "check" in home_points.lower()
-                or "✓" in home_points
-                or "check_mark" in home_points.lower()
-            ):
-                print(f"      Check mark analysis: HOME check mark found")
-                return "home"
-            elif (
-                "check" in away_points.lower()
-                or "✓" in away_points
-                or "check_mark" in away_points.lower()
-            ):
-                print(f"      Check mark analysis: AWAY check mark found")
-                return "away"
-
-        print(f"      Winner determination failed for: {score_text}")
-        return "unknown"
-
-    except Exception as e:
-        print(f"      Error in winner determination: {e}")
-        return "unknown"
 
 
 def clean_player_name(name):
@@ -974,8 +1153,63 @@ def split_player_name_for_lookup(full_name):
     return "", ""
 
 
+def scrape_apta_chicago_standings(driver, url, series_name, league_id):
+    """Scrape match data from APTA Chicago standings page with individual match page extraction."""
+    matches_data = []
+    
+    try:
+        print(f"🎯 APTA Chicago detected - working directly with standings page")
+        print(f"Navigating to URL: {url}")
+        driver.get(url)
+        time.sleep(2)  # Wait for page to load
+        
+        # Wait for page to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "body"))
+        )
+        
+        # Look for match links directly on the standings page
+        print("🔍 Looking for match links on standings page...")
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        base_url = driver.current_url.split('?')[0]  # Get base URL without query params
+        match_links = find_match_links(soup, base_url)
+        
+        if match_links:
+            print(f"🎯 Found {len(match_links)} individual match links with IDs")
+            print("📋 Scraping individual match pages for detailed data with match IDs...")
+            
+            # Scrape each individual match page
+            for i, match_link in enumerate(match_links, 1):
+                try:
+                    print(f"    [{i}/{len(match_links)}] Scraping match {match_link['match_id']}...")
+                    individual_matches_data = scrape_individual_match_page(driver, match_link, series_name, league_id)
+                    if individual_matches_data:
+                        # Add all matches from this page to the main list
+                        matches_data.extend(individual_matches_data)
+                        print(f"    ✅ Successfully scraped {len(individual_matches_data)} matches from {match_link['match_id']}")
+                    else:
+                        print(f"    ⚠️ Failed to scrape match {match_link['match_id']}")
+                except Exception as e:
+                    print(f"    ❌ Error scraping match {match_link['match_id']}: {e}")
+            
+            print(f"🎯 Completed individual match page scraping: {len(matches_data)} matches with IDs")
+            return matches_data
+        else:
+            print("⚠️ No individual match links found on standings page")
+            return []
+            
+    except Exception as e:
+        print(f"❌ Error in APTA Chicago standings scraping: {e}")
+        return []
+
+
 def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_delay=5):
-    """Scrape match data from a single series URL with retries."""
+    """Scrape match data from a single series URL with retries, including individual match pages for match IDs."""
+    
+    # For APTA Chicago, use the standings page approach
+    if league_id == "APTA_CHICAGO":
+        return scrape_apta_chicago_standings(driver, url, series_name, league_id)
+    
     matches_data = []
 
     for attempt in range(max_retries):
@@ -1252,36 +1486,20 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     match_tables.extend(tables_strategy2)
                     print(f"Found {len(tables_strategy2)} tables using Strategy 2")
 
-            # Strategy 3: CNSWPL-specific div parsing (match_results_container) - run first for CNSWPL
-            if not match_tables and league_id == "CNSWPL":
-                print(
-                    "Looking for match tables using Strategy 3: CNSWPL div containers"
-                )
-                try:
-                    # CNSWPL uses div-based layout inside match_results_container
-                    match_container = driver.find_element(
-                        By.ID, "match_results_container"
-                    )
-                    if match_container:
-                        print("✅ Found CNSWPL match_results_container")
-                        match_tables.append(match_container)
-                except:
-                    print("❌ Could not find CNSWPL match_results_container")
-
-            # Strategy 4: Look for div containers that might contain match data
+            # Strategy 3: Look for div containers that might contain match data
             if not match_tables:
-                print("Looking for match tables using Strategy 4: div containers")
-                tables_strategy4 = driver.find_elements(
+                print("Looking for match tables using Strategy 3: div containers")
+                tables_strategy3 = driver.find_elements(
                     By.XPATH,
                     "//div[contains(@class, 'match') or contains(@class, 'result')]",
                 )
-                if tables_strategy4:
-                    match_tables.extend(tables_strategy4)
-                    print(f"Found {len(tables_strategy4)} containers using Strategy 4")
+                if tables_strategy3:
+                    match_tables.extend(tables_strategy3)
+                    print(f"Found {len(tables_strategy3)} containers using Strategy 3")
 
-            # Strategy 5: Look for any table elements on the page
+            # Strategy 4: Look for any table elements on the page
             if not match_tables:
-                print("Looking for match tables using Strategy 5: all table elements")
+                print("Looking for match tables using Strategy 4: all table elements")
                 all_tables = driver.find_elements(By.TAG_NAME, "table")
                 # Filter for tables that likely contain match data
                 for table in all_tables:
@@ -1293,12 +1511,12 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     except:
                         continue
                 if match_tables:
-                    print(f"Found {len(match_tables)} tables using Strategy 5")
+                    print(f"Found {len(match_tables)} tables using Strategy 4")
 
-            # Strategy 6: Look for structured div layouts (General fallback)
+            # Strategy 5: Look for structured div layouts (General fallback)
             if not match_tables:
                 print(
-                    "Looking for match tables using Strategy 6: structured div layouts"
+                    "Looking for match tables using Strategy 5: structured div layouts"
                 )
                 div_containers = driver.find_elements(
                     By.XPATH, "//div[count(./div) > 5]"
@@ -1321,263 +1539,37 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
 
             print(f"Found {len(match_tables)} match tables/containers to process")
 
-            for table_index, table in enumerate(match_tables, 1):
-                try:
-                    print(
-                        f"\nProcessing match table {table_index} of {len(match_tables)}"
-                    )
-                    
-                    # Initialize individual_match_data for this table
-                    individual_match_data = []
-
-                    # CNSWPL-specific div parsing
-                    if league_id == "CNSWPL":
-                        print("Using CNSWPL-specific div parsing logic")
-                        matches_data.extend(
-                            parse_cnswpl_matches(table, series_name, league_id)
-                        )
-                        continue
-
-                    # Standard table parsing for other leagues (NSTF, APTA, etc.)
-                    # Find the match header (contains date and club names)
-                    header_row = table.find_element(
-                        By.CSS_SELECTOR, "div[style*='background-color: #dcdcdc;']"
-                    )
-
-                    # Extract date from the header
-                    date_element = header_row.find_element(By.CLASS_NAME, "match_rest")
-                    date_text = date_element.text
-                    match_date = re.search(r"(\w+ \d+, \d{4})", date_text)
-                    if match_date:
-                        date_str = match_date.group(1)
-                        date_obj = datetime.strptime(date_str, "%B %d, %Y")
-                        date = date_obj.strftime("%d-%b-%y")
-                    else:
-                        date = "Unknown"
-
-                    # Extract club names from the header
-                    home_club_element = header_row.find_element(
-                        By.CLASS_NAME, "team_name"
-                    )
-                    away_club_element = header_row.find_element(
-                        By.CLASS_NAME, "team_name2"
-                    )
-
-                    # Get the full team names including the "- 22" suffix
-                    home_club_full = home_club_element.text.strip()
-                    away_club_full = away_club_element.text.strip()
-
-                    # Skip matches involving BYE teams - they are placeholders with no actual players
-                    if (
-                        "BYE" in home_club_full.upper()
-                        or "BYE" in away_club_full.upper()
-                    ):
-                        print(
-                            f"   Skipping BYE match: {home_club_full} vs {away_club_full}"
-                        )
-                        continue
-
-                    print(
-                        f"Processing matches for {home_club_full} vs {away_club_full} on {date}"
-                    )
-
-                    # Find all player rows in this table
-                    player_divs = table.find_elements(
-                        By.XPATH,
-                        ".//div[not(contains(@style, 'background-color')) and not(contains(@class, 'clear clearfix'))]",
-                    )
-
-                    i = 0
-                    while (
-                        i < len(player_divs) - 4
-                    ):  # Need at least 5 elements for a complete match row
-                        try:
-                            # Check if this is a player match row
-                            if (
-                                "points" in player_divs[i].get_attribute("class")
-                                and "team_name"
-                                in player_divs[i + 1].get_attribute("class")
-                                and "match_rest"
-                                in player_divs[i + 2].get_attribute("class")
-                                and "team_name2"
-                                in player_divs[i + 3].get_attribute("class")
-                            ):
-
-                                # Extract data
-                                points1 = player_divs[i].text.strip() if i < len(player_divs) else ""
-                                home_text = player_divs[i + 1].text.strip()
-                                score = player_divs[i + 2].text.strip()
-                                away_text = player_divs[i + 3].text.strip()
-                                points2 = player_divs[i + 4].text.strip() if i + 4 < len(player_divs) else ""
-
-                                # Skip if this is not a match
-                                if (
-                                    not score
-                                    or re.search(r"\d{1,2}:\d{2}", score)
-                                    or "Date" in score
-                                ):
-                                    i += 5
-                                    continue
-
-                                # Define variables for compatibility
-                                match_rest = score
-                                home_team = home_club_full
-                                away_team = away_club_full
-                                
-                                # Parse player names from the text
-                                home_players = [name.strip() for name in home_text.split("/") if name.strip()]
-                                away_players = [name.strip() for name in away_text.split("/") if name.strip()]
-                                
-                                # Ensure we have at least 2 players per team (pad with empty strings if needed)
-                                while len(home_players) < 2:
-                                    home_players.append("")
-                                while len(away_players) < 2:
-                                    away_players.append("")
-
-                                # Determine winner
-                                winner = "unknown"
-                                if "check_mark" in points1 or "✓" in points1:
-                                    winner = "home"
-                                elif "check_mark" in points2 or "✓" in points2:
-                                    winner = "away"
-                                else:
-                                    # Try to determine from score - simplified version
-                                    try:
-                                        # Basic score parsing - look for patterns like "6-4, 6-2"
-                                        if "-" in score:
-                                            sets = score.split(",")
-                                            home_sets_won = 0
-                                            away_sets_won = 0
-                                            
-                                            for set_score in sets:
-                                                set_score = set_score.strip()
-                                                if "-" in set_score:
-                                                    # Extract numbers before any brackets (tiebreaks)
-                                                    clean_score = set_score.split("[")[0].strip()
-                                                    try:
-                                                        home_score, away_score = map(int, clean_score.split("-"))
-                                                        if home_score > away_score:
-                                                            home_sets_won += 1
-                                                        else:
-                                                            away_sets_won += 1
-                                                    except (ValueError, IndexError):
-                                                        continue
-                                            
-                                            if home_sets_won > away_sets_won:
-                                                winner = "home"
-                                            elif away_sets_won > home_sets_won:
-                                                winner = "away"
-                                    except Exception:
-                                        pass
-
-                                # Clean player names
-                                home_p1 = clean_player_name(home_players[0])
-                                home_p2 = clean_player_name(home_players[1])
-                                away_p1 = clean_player_name(away_players[0])
-                                away_p2 = clean_player_name(away_players[1])
-
-                                # Split names for ID lookup
-                                home_p1_first, home_p1_last = split_player_name_for_lookup(home_p1)
-                                home_p2_first, home_p2_last = split_player_name_for_lookup(home_p2)
-                                away_p1_first, away_p1_last = split_player_name_for_lookup(away_p1)
-                                away_p2_first, away_p2_last = split_player_name_for_lookup(away_p2)
-
-                                # Get series names for player lookup
-                                home_series = extract_series_name_from_team(home_team)
-                                away_series = extract_series_name_from_team(away_team)
-
-                                # Lookup Player IDs
-                                home_p1_id = lookup_player_id_enhanced(
-                                    home_series or series_name,
-                                    home_team,
-                                    home_p1_first,
-                                    home_p1_last,
-                                    league_id,
-                                )
-                                home_p2_id = lookup_player_id_enhanced(
-                                    home_series or series_name,
-                                    home_team,
-                                    home_p2_first,
-                                    home_p2_last,
-                                    league_id,
-                                )
-                                away_p1_id = lookup_player_id_enhanced(
-                                    away_series or series_name,
-                                    away_team,
-                                    away_p1_first,
-                                    away_p1_last,
-                                    league_id,
-                                )
-                                away_p2_id = lookup_player_id_enhanced(
-                                    away_series or series_name,
-                                    away_team,
-                                    away_p2_first,
-                                    away_p2_last,
-                                    league_id,
-                                )
-
-                                # Parse and format date
-                                try:
-                                    formatted_date = date
-                                except:
-                                    formatted_date = date
-
-                                # Create match data
-                                match_data = {
-                                    "league_id": league_id,
-                                    "Date": formatted_date,
-                                    "Home Team": home_team,
-                                    "Away Team": away_team,
-                                    "Home Player 1": home_p1,
-                                    "Home Player 1 ID": home_p1_id,
-                                    "Home Player 2": home_p2,
-                                    "Home Player 2 ID": home_p2_id,
-                                    "Away Player 1": away_p1,
-                                    "Away Player 1 ID": away_p1_id,
-                                    "Away Player 2": away_p2,
-                                    "Away Player 2 ID": away_p2_id,
-                                    "Scores": score,
-                                    "Winner": winner,
-                                }
-
-                                individual_match_data.append(match_data)
-
-                                # Log the match
-                                id_status = []
-                                if home_p1_id:
-                                    id_status.append(f"H1✓")
-                                else:
-                                    id_status.append(f"H1✗")
-                                if home_p2_id:
-                                    id_status.append(f"H2✓")
-                                else:
-                                    id_status.append(f"H2✗")
-                                if away_p1_id:
-                                    id_status.append(f"A1✓")
-                                else:
-                                    id_status.append(f"A1✗")
-                                if away_p2_id:
-                                    id_status.append(f"A2✓")
-                                else:
-                                    id_status.append(f"A2✗")
-
-                                print(
-                                    f"    ✅ Row {i}: {home_p1}/{home_p2} vs {away_p1}/{away_p2} - {score} (Winner: {winner}) [IDs: {' '.join(id_status)}]"
-                                )
-
-                                i += 5  # Move to the next potential match row
-                            else:
-                                i += 1  # Move to the next div
-                        except Exception as e:
-                            print(f"  Error processing match row: {str(e)}")
-                            i += 1  # Skip this div if there's an error
-
-                    # Add the individual matches from this table to the main collection
-                    matches_data.extend(individual_match_data)
-                    print(f"Completed table {table_index} - Added {len(individual_match_data)} matches")
-
-                except Exception as e:
-                    print(f"Error processing match table {table_index}: {str(e)}")
+            # NEW: Look for individual match links on the page for match ID extraction
+            print("🔍 Looking for individual match links to extract match IDs...")
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            base_url = driver.current_url.split('?')[0]  # Get base URL without query params
+            match_links = find_match_links(soup, base_url)
+            
+            if match_links:
+                print(f"🎯 Found {len(match_links)} individual match links with IDs")
+                print("📋 Scraping individual match pages for detailed data with match IDs...")
+                
+                # Scrape each individual match page
+                for match_link in match_links:
+                    try:
+                        individual_match_data = scrape_individual_match_page(driver, match_link, series_name, league_id)
+                        if individual_match_data:
+                            matches_data.append(individual_match_data)
+                            print(f"    ✅ Successfully scraped match {match_link['match_id']}")
+                        else:
+                            print(f"    ⚠️ Failed to scrape match {match_link['match_id']}")
+                    except Exception as e:
+                        print(f"    ❌ Error scraping match {match_link['match_id']}: {e}")
+                
+                print(f"🎯 Completed individual match page scraping: {len(matches_data)} matches with IDs")
+                
+                # If we successfully scraped individual match pages, skip the table parsing
+                if matches_data:
+                    break  # Exit the retry loop since we have data
+            else:
+                print("⚠️ No individual match links found - skipping this series")
+                print("   Only matches with legitimate match IDs will be imported")
+                print("   This ensures data integrity and best practices")
 
             # If we successfully processed the page, break the retry loop
             break
@@ -1607,7 +1599,7 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
 # Removed load_active_series function - now uses dynamic discovery to process all series
 
 
-def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
+def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retry_delay=5):
     """Main function to scrape and save match data from all series."""
     # Record start time
     start_time = datetime.now()
@@ -1622,10 +1614,12 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
         config = get_league_config(league_subdomain)
         league_id = config["league_id"]
 
-        print(
-            f"🌟 Processing ALL discovered series from {config['subdomain']} dynamically"
-        )
-        print("🔍 No filtering - comprehensive discovery and processing of all series")
+        if series_filter and series_filter != "all":
+            print(f"🌟 Processing filtered series: {series_filter} from {config['subdomain']}")
+            print(f"🔍 Filtering for series containing: '{series_filter}'")
+        else:
+            print(f"🌟 Processing ALL discovered series from {config['subdomain']} dynamically")
+            print("🔍 No filtering - comprehensive discovery and processing of all series")
 
         # Load players data for Player ID lookups
         players_loaded = load_players_data(league_id)
@@ -2363,6 +2357,33 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
 
             series_urls.sort(key=sort_key)
 
+            # Apply series filtering if specified
+            original_count = len(series_urls)
+            if series_filter and series_filter != "all":
+                print(f"\n🔍 Applying series filter: '{series_filter}'")
+                print(f"📊 Before filtering: {original_count} series found")
+                
+                filtered_series = []
+                for series_name, series_url in series_urls:
+                    # Check if the series filter matches the series name
+                    if series_filter.lower() in series_name.lower():
+                        filtered_series.append((series_name, series_url))
+                        print(f"  ✅ Included: {series_name}")
+                    else:
+                        print(f"  ❌ Excluded: {series_name}")
+                
+                series_urls = filtered_series
+                print(f"📊 After filtering: {len(series_urls)} series to process")
+                
+                if not series_urls:
+                    print(f"⚠️ No series found matching filter '{series_filter}'")
+                    print("Available series were:")
+                    for series_name, _ in filtered_series:
+                        print(f"  • {series_name}")
+                    return
+            else:
+                print(f"📊 Processing all {original_count} discovered series")
+
             # Initialize tracking
             all_matches = []
             total_matches = 0
@@ -2457,9 +2478,12 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                     existing_matches = []
                     existing_league_ids = set()
 
-            # Save new matches (always overwrite for current league)
+            # Deduplicate matches before saving to prevent duplication issues
+            unique_matches, duplicates_removed, dedup_stats = deduplicate_matches(all_matches)
+            
+            # Save deduplicated matches (always overwrite for current league)
             with open(json_path, "w", encoding="utf-8") as jsonfile:
-                json.dump(all_matches, jsonfile, indent=2)
+                json.dump(unique_matches, jsonfile, indent=2)
 
             # For CNSWPL league, automatically fix player IDs after saving matches
             if league_id == "CNSWPL" and total_matches > 0:
@@ -2547,6 +2571,13 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
             print(f"📊 PERFORMANCE METRICS")
             print(f"🏆 Total series processed: {len(series_urls)}")
             print(f"📈 Total matches scraped: {total_matches}")
+            if duplicates_removed > 0:
+                print(f"🔍 Duplicates removed: {duplicates_removed}")
+                if dedup_stats["exact_duplicates"] > 0:
+                    print(f"   - {dedup_stats['exact_duplicates']} exact duplicates")
+                if dedup_stats["match_id_duplicates"] > 0:
+                    print(f"   - {dedup_stats['match_id_duplicates']} match_id duplicates")
+                print(f"📈 Final unique matches: {len(unique_matches)}")
             print(f"📈 Series per minute: {series_per_minute:.1f}")
             print(f"⚡ Matches per minute: {matches_per_minute:.1f}")
             print(
@@ -2597,9 +2628,11 @@ if __name__ == "__main__":
         print(f"📋 Using league from command line: {league_subdomain}")
     else:
         # Get league input from user interactively
-        print("Available options:")
+        print("Available league options:")
         print("  • aptachicago - APTA Chicago league")
         print("  • nstf - NSTF league")
+        print("  • cita - CITA league")
+        print("  • cnswpl - CNSWPL league")
         print("  • all - Process all known leagues")
         print()
         league_subdomain = (
@@ -2615,9 +2648,27 @@ if __name__ == "__main__":
         print("❌ No league subdomain provided. Exiting.")
         exit(1)
 
+    # Get series filter input from user
+    series_filter = None
+    if league_subdomain != "all":
+        print()
+        print("Series filtering options:")
+        print("  • Enter a number (e.g., '22') to scrape only series containing that number")
+        print("  • Enter 'all' to scrape all series for the selected league")
+        print("  • Examples: '22' for Chicago 22, '2A' for Series 2A, etc.")
+        print()
+        series_input = input("Enter series filter (number or 'all'): ").strip()
+        
+        if series_input and series_input.lower() != "all":
+            series_filter = series_input
+            print(f"🎯 Will filter for series containing: '{series_filter}'")
+        else:
+            series_filter = "all"
+            print("🌟 Will process all series for the selected league")
+
     # Handle 'all' option to process multiple leagues
     if league_subdomain == "all":
-        known_leagues = ["aptachicago", "nstf"]
+        known_leagues = ["aptachicago", "nstf", "cita", "cnswpl"]
         print(f"🌟 Processing all known leagues: {', '.join(known_leagues)}")
 
         for league in known_leagues:
@@ -2626,7 +2677,7 @@ if __name__ == "__main__":
             print(f"{'='*60}")
 
             try:
-                scrape_all_matches(league)
+                scrape_all_matches(league, "all")  # Process all series for each league
                 print(f"✅ Successfully completed {league}")
             except Exception as e:
                 print(f"❌ Error processing {league}: {str(e)}")
@@ -2639,4 +2690,4 @@ if __name__ == "__main__":
         print(f"🌐 Target URL: {target_url}")
         print()
 
-        scrape_all_matches(league_subdomain)
+        scrape_all_matches(league_subdomain, series_filter)
