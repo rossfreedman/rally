@@ -39,7 +39,13 @@ class TemporaryPasswordMiddleware:
         
         # Skip check for certain paths that should always be accessible
         allowed_paths = [
+            '/login',                     # Login page
+            '/register',                  # Registration page
+            '/forgot-password',           # Forgot password page
             '/change-password',           # Change password page
+            '/api/login',                 # Login API
+            '/api/register',              # Registration API
+            '/api/forgot-password',       # Forgot password API
             '/api/change-password',       # Change password API
             '/logout',                    # Logout
             '/api/logout',                # Logout API

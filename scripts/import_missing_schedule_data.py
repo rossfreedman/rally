@@ -15,7 +15,7 @@ from datetime import datetime
 # Add the project root to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from data.etl.database_import.import_all_jsons_to_database import ComprehensiveETL
+from data.etl.database_import.OLD.import_all_jsons_to_database import ComprehensiveETL
 from core.database import get_db
 
 def main():

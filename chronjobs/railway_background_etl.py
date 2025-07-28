@@ -50,7 +50,7 @@ def run_etl_background(force_environment=None):
     
     try:
         # Import the ETL class
-        from data.etl.database_import.import_all_jsons_to_database import ComprehensiveETL
+        from data.etl.database_import.OLD.import_all_jsons_to_database import ComprehensiveETL
         
         # Create and run ETL with environment settings
         etl = ComprehensiveETL(force_environment=force_environment)

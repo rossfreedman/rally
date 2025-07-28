@@ -23,7 +23,7 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
 
 print(f"Python path: {sys.path[:3]}")  # Debug: show first 3 paths
 
-from data.etl.database_import.import_all_jsons_to_database import ComprehensiveETL
+from data.etl.database_import.OLD.import_all_jsons_to_database import ComprehensiveETL
 from database_utils import execute_query_one
 
 def main():

@@ -228,7 +228,7 @@ def update_series_stats_table(team_stats, team_series_map):
         series_row = execute_query_one(series_id_query, [series_name, league_id])
         series_id = series_row["id"] if series_row else None
 
-        # Insert new record
+        # Insert new record with upsert logic
         insert_query = """
             INSERT INTO series_stats (
                 series, team, series_id, team_id, points, 
@@ -238,6 +238,22 @@ def update_series_stats_table(team_stats, team_series_map):
                 league_id, created_at
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (league_id, series, team) DO UPDATE SET
+                points = EXCLUDED.points,
+                matches_won = EXCLUDED.matches_won,
+                matches_lost = EXCLUDED.matches_lost,
+                matches_tied = EXCLUDED.matches_tied,
+                lines_won = EXCLUDED.lines_won,
+                lines_lost = EXCLUDED.lines_lost,
+                lines_for = EXCLUDED.lines_for,
+                lines_ret = EXCLUDED.lines_ret,
+                sets_won = EXCLUDED.sets_won,
+                sets_lost = EXCLUDED.sets_lost,
+                games_won = EXCLUDED.games_won,
+                games_lost = EXCLUDED.games_lost,
+                series_id = EXCLUDED.series_id,
+                team_id = EXCLUDED.team_id,
+                updated_at = CURRENT_TIMESTAMP
         """
 
         execute_query(

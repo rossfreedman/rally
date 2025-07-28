@@ -88,7 +88,13 @@ class SessionRefreshMiddleware:
             '/api/heartbeat',
             '/api/health',
             '/static/',
-            '/favicon.ico'
+            '/favicon.ico',
+            '/login',
+            '/register',
+            '/forgot-password',
+            '/api/login',
+            '/api/register',
+            '/api/forgot-password'
         ]
         
         for skip_path in skip_paths:

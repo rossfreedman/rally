@@ -23,7 +23,7 @@ def get_db_url():
     global _connection_logged
     
     # Database switching mechanism - use RALLY_DATABASE to choose database
-    database_mode = os.getenv("RALLY_DATABASE", "main")  # "main" or "test"
+    database_mode = os.getenv("RALLY_DATABASE", "test")  # "main" or "test"
     
     # Check if we're running on Railway
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
