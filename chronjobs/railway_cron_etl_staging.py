@@ -82,37 +82,37 @@ def test_database_connection(logger):
 def run_etl_import(logger, full_import=False):
     """Run the ETL import process on STAGING"""
     try:
-        # Import ETL module
+        # Import master ETL module
         sys.path.append(os.path.join(project_root, 'data', 'etl', 'database_import'))
-        from import_all_jsons_to_database import ComprehensiveETL
+        from master_etl import MasterETL
         
-        logger.info("🔄 Initializing ETL importer for STAGING...")
-        etl = ComprehensiveETL()
+        logger.info("🔄 Initializing Master ETL for STAGING...")
+        etl = MasterETL(environment="staging", full_import=full_import)
         
         # Log start
         start_time = datetime.now(timezone.utc)
-        logger.info(f"📥 Starting ETL import process on STAGING...")
+        logger.info(f"📥 Starting Master ETL process on STAGING...")
         logger.info(f"🎯 Full import mode: {'Yes' if full_import else 'No'}")
         
-        # Run the import
-        result = etl.run()
+        # Run the complete ETL process
+        result = etl.run_complete_etl()
         
         # Log completion
         end_time = datetime.now(timezone.utc)
         duration = end_time - start_time
         
         if result:
-            logger.info("🎉 STAGING ETL import completed successfully!")
+            logger.info("🎉 STAGING Master ETL completed successfully!")
             logger.info(f"⏱️ Total duration: {duration}")
-            logger.info("📊 Import summary logged above")
+            logger.info("📊 ETL summary logged above")
             return True
         else:
-            logger.error("❌ STAGING ETL import failed!")
+            logger.error("❌ STAGING Master ETL failed!")
             logger.error(f"⏱️ Duration before failure: {duration}")
             return False
             
     except Exception as e:
-        logger.error(f"❌ STAGING ETL import crashed: {str(e)}")
+        logger.error(f"❌ STAGING Master ETL crashed: {str(e)}")
         logger.error(traceback.format_exc())
         return False
 
