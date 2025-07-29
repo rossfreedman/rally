@@ -56,6 +56,18 @@ class MasterImporter:
     # Available leagues
     AVAILABLE_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
     
+    # League name mapping for case-insensitive input
+    LEAGUE_MAPPING = {
+        "APTACHICAGO": "APTA_CHICAGO",
+        "aptachicago": "APTA_CHICAGO",
+        "NSTF": "NSTF",
+        "nstf": "NSTF",
+        "CNSWPL": "CNSWPL",
+        "cnswpl": "CNSWPL",
+        "CITA": "CITA",
+        "cita": "CITA"
+    }
+    
     def __init__(self, environment="staging", league=None):
         self.environment = environment
         self.league = league
@@ -80,15 +92,16 @@ class MasterImporter:
         
         # Add stats import steps based on league parameter
         if self.league:
-            # Single league mode
-            if self.league.upper() not in self.AVAILABLE_LEAGUES:
+            # Single league mode - normalize league name
+            normalized_league = self.LEAGUE_MAPPING.get(self.league, self.league)
+            if normalized_league not in self.AVAILABLE_LEAGUES:
                 raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.AVAILABLE_LEAGUES)}")
             
             steps.append({
-                "name": f"Import Stats - {self.league.upper()}",
+                "name": f"Import Stats - {normalized_league}",
                 "script": "data/etl/database_import/import_stats.py",
-                "args": [self.league.upper()],
-                "description": f"Import series statistics for {self.league.upper()}"
+                "args": [normalized_league],
+                "description": f"Import series statistics for {normalized_league}"
             })
         else:
             # All leagues mode
@@ -346,10 +359,8 @@ def main():
     
     args = parser.parse_args()
     
-    # Normalize league argument
-    league = None
-    if args.league:
-        league = args.league.upper()
+    # Get league argument (normalization handled in MasterImporter class)
+    league = args.league
     
     try:
         # Create and run master importer
