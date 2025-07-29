@@ -60,19 +60,39 @@ Environment: [staging/production]
 
 ## 🔧 Usage
 
-### Basic Usage
+### Basic Usage (All Leagues)
 ```bash
-# Run for staging environment
+# Run for staging environment (all leagues)
 python3 data/etl/database_import/master_import.py
 
-# Run for production environment
+# Run for production environment (all leagues)
 python3 data/etl/database_import/master_import.py --environment production
 ```
 
+### Single League Mode
+```bash
+# Import specific league for staging
+python3 data/etl/database_import/master_import.py --league APTA_CHICAGO
+python3 data/etl/database_import/master_import.py --league aptachicago
+
+# Import specific league for production
+python3 data/etl/database_import/master_import.py --environment production --league NSTF
+python3 data/etl/database_import/master_import.py --environment production --league nstf
+```
+
+### Available Leagues
+- `APTA_CHICAGO` (or `aptachicago`)
+- `NSTF` (or `nstf`)
+- `CNSWPL` (or `cnswpl`)
+- `CITA` (or `cita`)
+
 ### Test Mode
 ```bash
-# Test the notification system without running actual imports
+# Test all leagues (first 2 for speed)
 python3 data/etl/database_import/master_import_test.py --environment staging
+
+# Test specific league
+python3 data/etl/database_import/master_import_test.py --environment staging --league APTA_CHICAGO
 ```
 
 ## 📊 Features

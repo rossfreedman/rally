@@ -53,44 +53,55 @@ ADMIN_PHONE = "7732138911"
 class MasterImporter:
     """Master importer that orchestrates all ETL processes"""
     
-    def __init__(self, environment="staging"):
+    # Available leagues
+    AVAILABLE_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
+    
+    def __init__(self, environment="staging", league=None):
         self.environment = environment
+        self.league = league
         self.start_time = datetime.now()
         self.results = {}
         self.failures = []
         
-        # Define import steps in order
-        self.import_steps = [
-            {
-                "name": "Consolidate League JSONs",
-                "script": "data/etl/database_import/consolidate_league_jsons_to_all.py",
-                "args": [],
-                "description": "Consolidate all league JSON files into unified data"
-            },
-            {
-                "name": "Import Stats - APTA_CHICAGO",
+        # Build import steps dynamically based on league parameter
+        self.import_steps = self._build_import_steps()
+    
+    def _build_import_steps(self):
+        """Build import steps based on league parameter"""
+        steps = []
+        
+        # Always include consolidation step
+        steps.append({
+            "name": "Consolidate League JSONs",
+            "script": "data/etl/database_import/consolidate_league_jsons_to_all.py",
+            "args": [],
+            "description": "Consolidate all league JSON files into unified data"
+        })
+        
+        # Add stats import steps based on league parameter
+        if self.league:
+            # Single league mode
+            if self.league.upper() not in self.AVAILABLE_LEAGUES:
+                raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.AVAILABLE_LEAGUES)}")
+            
+            steps.append({
+                "name": f"Import Stats - {self.league.upper()}",
                 "script": "data/etl/database_import/import_stats.py",
-                "args": ["APTA_CHICAGO"],
-                "description": "Import series statistics for APTA_CHICAGO"
-            },
-            {
-                "name": "Import Stats - NSTF",
-                "script": "data/etl/database_import/import_stats.py",
-                "args": ["NSTF"],
-                "description": "Import series statistics for NSTF"
-            },
-            {
-                "name": "Import Stats - CNSWPL",
-                "script": "data/etl/database_import/import_stats.py",
-                "args": ["CNSWPL"],
-                "description": "Import series statistics for CNSWPL"
-            },
-            {
-                "name": "Import Stats - CITA",
-                "script": "data/etl/database_import/import_stats.py",
-                "args": ["CITA"],
-                "description": "Import series statistics for CITA"
-            },
+                "args": [self.league.upper()],
+                "description": f"Import series statistics for {self.league.upper()}"
+            })
+        else:
+            # All leagues mode
+            for league in self.AVAILABLE_LEAGUES:
+                steps.append({
+                    "name": f"Import Stats - {league}",
+                    "script": "data/etl/database_import/import_stats.py",
+                    "args": [league],
+                    "description": f"Import series statistics for {league}"
+                })
+        
+        # Always include match scores and players import
+        steps.extend([
             {
                 "name": "Import Match Scores",
                 "script": "data/etl/database_import/import_match_scores.py",
@@ -103,7 +114,9 @@ class MasterImporter:
                 "args": [],
                 "description": "Import player data and associations"
             }
-        ]
+        ])
+        
+        return steps
     
     def send_notification(self, message, is_failure=False):
         """Send SMS notification to admin"""
@@ -223,6 +236,10 @@ class MasterImporter:
         logger.info("🎯 Master Import Script Starting")
         logger.info("=" * 60)
         logger.info(f"🌍 Environment: {self.environment}")
+        if self.league:
+            logger.info(f"🏆 League Mode: Single League ({self.league})")
+        else:
+            logger.info(f"🏆 League Mode: All Leagues ({', '.join(self.AVAILABLE_LEAGUES)})")
         logger.info(f"📱 Admin Phone: {ADMIN_PHONE}")
         logger.info(f"🕐 Start Time: {self.start_time}")
         logger.info("=" * 60)
@@ -321,20 +338,35 @@ def main():
         default="staging",
         help="Environment to run imports for"
     )
+    parser.add_argument(
+        "--league",
+        choices=["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA", "aptachicago", "nstf", "cnswpl", "cita"],
+        help="Specific league to import (if not specified, imports all leagues)"
+    )
     
     args = parser.parse_args()
     
-    # Create and run master importer
-    importer = MasterImporter(environment=args.environment)
-    importer.run_all_imports()
+    # Normalize league argument
+    league = None
+    if args.league:
+        league = args.league.upper()
     
-    # Exit with appropriate code
-    if importer.failures:
-        logger.error(f"❌ Master import completed with {len(importer.failures)} failures")
+    try:
+        # Create and run master importer
+        importer = MasterImporter(environment=args.environment, league=league)
+        importer.run_all_imports()
+        
+        # Exit with appropriate code
+        if importer.failures:
+            logger.error(f"❌ Master import completed with {len(importer.failures)} failures")
+            sys.exit(1)
+        else:
+            logger.info("✅ Master import completed successfully")
+            sys.exit(0)
+            
+    except ValueError as e:
+        logger.error(f"❌ Configuration error: {e}")
         sys.exit(1)
-    else:
-        logger.info("✅ Master import completed successfully")
-        sys.exit(0)
 
 if __name__ == "__main__":
     main() 
