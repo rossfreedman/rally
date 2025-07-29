@@ -1,0 +1,6 @@
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.27
+requests==2.31.0
+python-dotenv==1.0.1
+pandas==2.2.1
+rapidfuzz==3.13.0 
