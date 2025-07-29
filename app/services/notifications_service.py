@@ -567,4 +567,10 @@ def get_twilio_status() -> Dict:
 # Legacy function name for backwards compatibility
 def send_text_notification(to_number: str, message: str) -> Dict:
     """Legacy function name - calls send_sms_notification"""
+    return send_sms_notification(to_number, message)
+
+
+# Simple wrapper for master import script
+def send_sms(to_number: str, message: str) -> Dict:
+    """Simple wrapper for send_sms_notification - used by master import script"""
     return send_sms_notification(to_number, message) 
