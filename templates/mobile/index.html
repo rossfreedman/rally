@@ -104,16 +104,16 @@
   /* Desktop-specific constraints */
   @media (min-width: 768px) {
     .ios-card {
-      max-width: 280px !important;
+      max-width: 500px !important;
     }
     
     .icon-grid {
-      max-width: 600px !important;
+      max-width: 1100px !important;
       margin: 0 auto !important;
     }
     
     .icon-section {
-      max-width: 650px !important;
+      max-width: 1150px !important;
       margin: 0 auto 2rem auto !important;
     }
   }
@@ -121,30 +121,97 @@
   /* Large desktop constraints */
   @media (min-width: 1024px) {
     .ios-card {
-      max-width: 260px !important;
+      max-width: 500px !important;
     }
     
     .icon-grid {
-      max-width: 560px !important;
+      max-width: 1100px !important;
     }
     
     .icon-section {
-      max-width: 610px !important;
+      max-width: 1150px !important;
     }
   }
   
   /* Extra large desktop constraints */
   @media (min-width: 1280px) {
     .ios-card {
-      max-width: 240px !important;
+      max-width: 500px !important;
     }
     
     .icon-grid {
-      max-width: 520px !important;
+      max-width: 1100px !important;
     }
     
     .icon-section {
-      max-width: 570px !important;
+      max-width: 1150px !important;
+    }
+  }
+  
+  /* Mobile notification cards - make them 500px on desktop */
+  .notification-card {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  @media (min-width: 768px) {
+    .notification-card {
+      max-width: 500px !important;
+      margin: 0 auto !important;
+      width: 500px !important;
+    }
+    
+    #notifications-container {
+      max-width: 500px !important;
+      margin: 0 auto !important;
+      width: 500px !important;
+    }
+    
+    /* Override container constraints for desktop */
+    .container {
+      max-width: 1200px !important;
+      width: 100% !important;
+    }
+    
+    /* Force all cards to be 500px wide */
+    .bg-white.rounded-xl.shadow-lg.border.border-gray-200 {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+    }
+    
+    /* Force all menu buttons to be 500px wide */
+    .ios-card.act-button,
+    .ios-card.analyze-button,
+    .ios-card.prepare-button,
+    .ios-card.play-button,
+    .ios-card.improve-button,
+    .ios-card.captain-button,
+    .ios-card.admin-button {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+    }
+    
+    /* Force icon grids to accommodate 500px cards */
+    .icon-grid {
+      max-width: 1100px !important;
+      margin: 0 auto !important;
+      justify-content: center !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+    
+    /* Force grid items to be centered */
+    .icon-grid > * {
+      margin: 0 auto !important;
+    }
+    
+    /* Force icon sections to accommodate 500px cards */
+    .icon-section {
+      max-width: 1150px !important;
+      margin: 0 auto 2rem auto !important;
     }
   }
 </style>

@@ -1033,22 +1033,22 @@ a:hover {
 /* Desktop-specific constraints */
 @media (min-width: 768px) {
   .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
-    max-width: 280px !important;
+    max-width: 500px !important;
   }
   
   .icon-grid {
-    max-width: 600px !important;
+    max-width: 1100px !important;
     margin: 0 auto !important;
   }
   
   .icon-section {
-    max-width: 650px !important;
+    max-width: 1150px !important;
     margin: 0 auto 2rem auto !important;
   }
   
   /* Bottom navigation constraints */
   .bottom-dock .flex {
-    max-width: 600px !important;
+    max-width: 1100px !important;
     margin: 0 auto !important;
   }
 }
@@ -1056,37 +1056,37 @@ a:hover {
 /* Large desktop constraints */
 @media (min-width: 1024px) {
   .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
-    max-width: 260px !important;
+    max-width: 500px !important;
   }
   
   .icon-grid {
-    max-width: 560px !important;
+    max-width: 1100px !important;
   }
   
   .icon-section {
-    max-width: 610px !important;
+    max-width: 1150px !important;
   }
   
   .bottom-dock .flex {
-    max-width: 560px !important;
+    max-width: 1100px !important;
   }
 }
 
 /* Extra large desktop constraints */
 @media (min-width: 1280px) {
   .ios-card, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
-    max-width: 240px !important;
+    max-width: 500px !important;
   }
   
   .icon-grid {
-    max-width: 520px !important;
+    max-width: 1100px !important;
   }
   
   .icon-section {
-    max-width: 570px !important;
+    max-width: 1150px !important;
   }
   
   .bottom-dock .flex {
-    max-width: 520px !important;
+    max-width: 1100px !important;
   }
 } 

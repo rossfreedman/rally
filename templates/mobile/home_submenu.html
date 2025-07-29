@@ -15,8 +15,28 @@
     padding: 1.5rem !important;
     width: 100%;
     text-align: center;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
-  .category-button * { color: #045454 !important; font-weight: 500 !important; }
+  .category-button * { 
+    color: #045454 !important; 
+    font-weight: 500 !important; 
+    text-align: center !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Force center alignment for all elements inside category buttons */
+  .category-button svg {
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  
+  .category-button div {
+    text-align: center !important;
+    width: 100% !important;
+  }
   .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
   .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
   .category-button:hover * { color: #045454 !important; }
@@ -124,6 +144,65 @@
   
   .notification-card[data-type="captain"]:hover {
     background-color: #bbf7d0 !important; /* Slightly darker on hover */
+  }
+  
+  /* Desktop-specific constraints for 500px width */
+  @media (min-width: 768px) {
+    /* Make notification cards 500px wide on desktop */
+    .notification-card {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+    }
+    
+    /* Make category buttons 500px wide on desktop */
+    .category-button {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+    }
+    
+    /* Center the container */
+    .container {
+      max-width: 1200px !important;
+      width: 100% !important;
+    }
+    
+    /* Center category sections */
+    .category-section {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+    
+    /* Center the main categories grid */
+    .space-y-4 {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      width: 100% !important;
+    }
+    
+    /* Force center alignment for all category buttons */
+    .category-button {
+      text-align: center !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    /* Force center alignment for all elements inside category buttons */
+    .category-button svg {
+      margin: 0 auto !important;
+      display: block !important;
+    }
+    
+    .category-button div {
+      text-align: center !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+    }
   }
 </style>
 
