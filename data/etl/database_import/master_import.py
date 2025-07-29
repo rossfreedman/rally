@@ -85,7 +85,7 @@ class MasterImporter:
         # Always include consolidation step
         steps.append({
             "name": "Consolidate League JSONs",
-            "script": "data/etl/database_import/consolidate_league_jsons_to_all.py",
+            "script": "consolidate_league_jsons_to_all.py",
             "args": [],
             "description": "Consolidate all league JSON files into unified data"
         })
@@ -99,7 +99,7 @@ class MasterImporter:
             
             steps.append({
                 "name": f"Import Stats - {normalized_league}",
-                "script": "data/etl/database_import/import_stats.py",
+                "script": "import_stats.py",
                 "args": [normalized_league],
                 "description": f"Import series statistics for {normalized_league}"
             })
@@ -108,7 +108,7 @@ class MasterImporter:
             for league in self.AVAILABLE_LEAGUES:
                 steps.append({
                     "name": f"Import Stats - {league}",
-                    "script": "data/etl/database_import/import_stats.py",
+                    "script": "import_stats.py",
                     "args": [league],
                     "description": f"Import series statistics for {league}"
                 })
@@ -117,13 +117,13 @@ class MasterImporter:
         steps.extend([
             {
                 "name": "Import Match Scores",
-                "script": "data/etl/database_import/import_match_scores.py",
+                "script": "import_match_scores.py",
                 "args": [],
                 "description": "Import match scores and results"
             },
             {
                 "name": "Import Players",
-                "script": "data/etl/database_import/import_players.py",
+                "script": "import_players.py",
                 "args": [],
                 "description": "Import player data and associations"
             }
