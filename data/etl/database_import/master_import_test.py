@@ -60,10 +60,16 @@ class TestMasterImporter:
                 "description": "Consolidate all league JSON files into unified data"
             },
             {
-                "name": "Import Stats",
+                "name": "Import Stats - APTA_CHICAGO",
                 "script": "data/etl/database_import/import_stats.py",
                 "args": ["APTA_CHICAGO"],
                 "description": "Import series statistics for APTA_CHICAGO"
+            },
+            {
+                "name": "Import Stats - NSTF",
+                "script": "data/etl/database_import/import_stats.py",
+                "args": ["NSTF"],
+                "description": "Import series statistics for NSTF"
             },
             {
                 "name": "Import Match Scores",

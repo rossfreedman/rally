@@ -68,10 +68,28 @@ class MasterImporter:
                 "description": "Consolidate all league JSON files into unified data"
             },
             {
-                "name": "Import Stats",
+                "name": "Import Stats - APTA_CHICAGO",
                 "script": "data/etl/database_import/import_stats.py",
-                "args": ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"],
-                "description": "Import series statistics for all leagues"
+                "args": ["APTA_CHICAGO"],
+                "description": "Import series statistics for APTA_CHICAGO"
+            },
+            {
+                "name": "Import Stats - NSTF",
+                "script": "data/etl/database_import/import_stats.py",
+                "args": ["NSTF"],
+                "description": "Import series statistics for NSTF"
+            },
+            {
+                "name": "Import Stats - CNSWPL",
+                "script": "data/etl/database_import/import_stats.py",
+                "args": ["CNSWPL"],
+                "description": "Import series statistics for CNSWPL"
+            },
+            {
+                "name": "Import Stats - CITA",
+                "script": "data/etl/database_import/import_stats.py",
+                "args": ["CITA"],
+                "description": "Import series statistics for CITA"
             },
             {
                 "name": "Import Match Scores",
