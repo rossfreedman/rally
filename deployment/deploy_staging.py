@@ -360,8 +360,9 @@ def run_staging_tests():
     
     if os.path.exists('deployment/test_staging_session_refresh.py'):
         try:
+            # Add timeout to prevent hanging
             result = subprocess.run([sys.executable, 'deployment/test_staging_session_refresh.py'], 
-                                  capture_output=True, text=True)
+                                  capture_output=True, text=True, timeout=60)
             if result.returncode == 0:
                 print("✅ Staging tests passed")
                 return True
@@ -370,6 +371,9 @@ def run_staging_tests():
                 print(result.stdout)
                 print(result.stderr)
                 return False
+        except subprocess.TimeoutExpired:
+            print("❌ Staging tests timed out after 60 seconds")
+            return False
         except Exception as e:
             print(f"❌ Error running staging tests: {e}")
             return False
@@ -400,6 +404,11 @@ def main():
     print("🚀 Rally Staging Deployment")
     print(f"📅 {datetime.now()}")
     print("=" * 60)
+    
+    # Check for skip tests flag
+    skip_tests = '--skip-tests' in sys.argv
+    if skip_tests:
+        print("⚠️  Skipping staging tests (--skip-tests flag provided)")
     
     # Check prerequisites
     if not check_prerequisites():
@@ -436,8 +445,11 @@ def main():
     steps = [
         ("Merge to staging" if current_branch != 'staging' else "Push staging", merge_step),
         ("Check deployment", check_staging_deployment),
-        ("Run staging tests", run_staging_tests),
     ]
+    
+    # Add staging tests unless skipped
+    if not skip_tests:
+        steps.append(("Run staging tests", run_staging_tests))
     
     for step_name, step_func in steps:
         print(f"\n{step_name}:")
