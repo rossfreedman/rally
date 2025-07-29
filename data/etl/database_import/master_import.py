@@ -48,7 +48,7 @@ except ImportError:
     logger.warning("SMS service not available, notifications will be logged only")
     send_sms = None
 
-ADMIN_PHONE = "7732138911"
+ADMIN_PHONE = "17736121115"
 
 class MasterImporter:
     """Master importer that orchestrates all ETL processes"""

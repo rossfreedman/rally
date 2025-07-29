@@ -40,7 +40,7 @@ except ImportError:
     logger.warning("SMS service not available, notifications will be logged only")
     send_sms = None
 
-ADMIN_PHONE = "7732138911"
+ADMIN_PHONE = "17736121115"
 
 class TestMasterImporter:
     """Test master importer that simulates the import process"""
