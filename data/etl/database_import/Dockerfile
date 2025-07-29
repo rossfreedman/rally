@@ -19,12 +19,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py ./
 COPY runtime.txt ./
 
-# Copy required modules from project root (using relative paths)
-COPY database_config.py ./
-COPY database_utils.py ./
-COPY config.py ./
-COPY utils/ ./utils/
-COPY app/ ./app/
+# Copy required modules from project root
+COPY ../../../database_config.py ./
+COPY ../../../database_utils.py ./
+COPY ../../../config.py ./
+COPY ../../../utils/ ./utils/
+COPY ../../../app/ ./app/
 
 # Create logs directory
 RUN mkdir -p logs
