@@ -16,6 +16,13 @@ COPY *.py ./
 # Copy runtime.txt
 COPY runtime.txt ./
 
+# Copy required modules from project root
+COPY ../../../database_config.py ./
+COPY ../../../database_utils.py ./
+COPY ../../../config.py ./
+COPY ../../../utils/ ./utils/
+COPY ../../../app/ ./app/
+
 # Create logs directory
 RUN mkdir -p logs
 
