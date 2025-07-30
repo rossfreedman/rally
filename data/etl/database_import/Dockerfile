@@ -1,8 +1,11 @@
-# Use Python 3.11 slim image for smaller size
-FROM python:3.11-slim
+# Use Python 3.11 alpine image for smaller size and better reliability
+FROM python:3.11-alpine
 
 # Set working directory
 WORKDIR /app
+
+# Install system dependencies for Alpine
+RUN apk add --no-cache gcc musl-dev libffi-dev
 
 # Copy requirements first for better caching
 COPY requirements.txt .
