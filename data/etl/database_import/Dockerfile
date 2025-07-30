@@ -26,6 +26,9 @@ COPY ../../../config.py ./
 COPY ../../../utils/ ./utils/
 COPY ../../../app/ ./app/
 
+# Copy data files needed for ETL imports
+COPY ../../../data/ ./data/
+
 # Create logs directory
 RUN mkdir -p logs
 
