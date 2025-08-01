@@ -1,9 +1,7 @@
 [build]
-builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
-startCommand = "gunicorn server:app -c gunicorn.conf.py"
 healthcheckPath = "/health"
 healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
@@ -12,12 +10,12 @@ restartPolicyMaxRetries = 5
 # Production ETL Cron Job Services
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "python chronjobs/railway_cron_etl.py"
+command = "python cronjobs/run_pipeline.py"
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
-command = "python chronjobs/railway_cron_etl.py --full-import"
+command = "python cronjobs/run_pipeline.py"
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
