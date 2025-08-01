@@ -5,4 +5,4 @@ nixPkgs = ["python311", "python311Packages.pip"]
 cmds = ["pip install --break-system-packages -r requirements.txt"]
 
 [start]
-cmd = "gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance" 
+cmd = "gunicorn simple_server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance" 
