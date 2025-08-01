@@ -5,7 +5,10 @@ nixPkgs = ["python311", "python311Packages.pip", "nodejs"]
 cmds = ["pip install --break-system-packages -r requirements.txt"]
 
 [phases.build]
-cmds = ["npm ci"]
+cmds = [
+    "rm -rf node_modules/.cache",
+    "npm ci --no-optional"
+]
 
 [start]
 cmd = "gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance" 
