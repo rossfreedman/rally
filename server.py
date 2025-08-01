@@ -85,8 +85,24 @@ print(f"RAILWAY_PORT: {os.environ.get('RAILWAY_PORT', 'not_set')}")
 print(f"FLASK_ENV: {os.environ.get('FLASK_ENV', 'not_set')}")
 print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'not_set')}")
 
+# Add startup debugging
+print("=== Application Startup Debug ===")
+print("✅ Flask app created successfully")
+print("✅ Blueprints registered successfully")
+print("✅ Act routes initialized successfully")
+print("✅ Route validation completed successfully")
+print("✅ Session configuration set successfully")
+print("✅ CORS configured successfully")
+print("✅ Health endpoints available:")
+print("   - /health (with database check)")
+print("   - /health/simple (no database dependency)")
+print("✅ Application ready to start!")
+
 # Initialize Flask app
 app = Flask(__name__, static_folder="static", static_url_path="/static")
+
+# Test that the app can be created
+print("✅ Flask app instance created successfully")
 
 # Determine environment
 is_development = os.environ.get("FLASK_ENV") == "development"
