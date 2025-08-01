@@ -1,11 +1,14 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = ["python311", "python311Packages.pip", "python311Packages.venv"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+    "python -m venv /app/venv",
+    "source /app/venv/bin/activate && pip install -r requirements.txt"
+]
 
 [phases.build]
 cmds = ["npm ci"]
 
 [start]
-cmd = "gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance" 
+cmd = "source /app/venv/bin/activate && gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance" 
