@@ -161,9 +161,10 @@ class MasterScraper:
         import time
         
         max_retries = 3
-        retry_delay = 60  # 1 minute between retries
+        retry_delay = 10  # 10 seconds between retries (much faster)
         
-        logger.info("🔍 Testing proxy connectivity and IP rotation...")
+        logger.info("🔍 Testing proxy connectivity and IP rotation capabilities...")
+        logger.info("📡 Using Decodo residential proxy service with automatic rotation")
         
         for attempt in range(max_retries):
             try:
@@ -171,51 +172,80 @@ class MasterScraper:
                 from data.etl.scrapers.proxy_manager import get_proxy_rotator
                 rotator = get_proxy_rotator()
                 
-                # Test proxy connectivity using the proxy manager
-                proxies = rotator.get_proxies_dict()
-                response = requests.get('https://httpbin.org/ip', proxies=proxies, timeout=10)
+                # Test proxy connectivity using the proxy manager's validation
+                ip_info = rotator.validate_ip()
                 
-                if response.status_code == 200:
-                    ip_data = response.json()
-                    current_ip = ip_data.get('origin', 'unknown')
+                if ip_info:
+                    current_ip = ip_info.get('proxy', {}).get('ip', 'unknown')
+                    country = ip_info.get('country', {}).get('code', 'Unknown')
+                    city = ip_info.get('city', {}).get('name', 'Unknown')
+                    
                     logger.info(f"✅ Proxy connectivity test successful (attempt {attempt + 1}/{max_retries})")
-                    logger.info(f"🌐 Current IP: {current_ip}")
+                    logger.info(f"🌐 Current IP Address: {current_ip}")
+                    logger.info(f"📍 Location: {city}, {country} (Residential Proxy)")
+                    logger.info(f"🔒 Connection: Encrypted HTTPS via Decodo")
+                    logger.info(f"🏢 ISP: {ip_info.get('isp', {}).get('isp', 'Unknown')}")
                     
-                    # Test IP rotation by making another request (this will trigger rotation)
-                    time.sleep(2)
+                    # Test IP rotation using the proxy manager's built-in validation
+                    time.sleep(1)  # Brief delay
                     rotator._rotate_ip()  # Force rotation
-                    proxies2 = rotator.get_proxies_dict()
-                    response2 = requests.get('https://httpbin.org/ip', proxies=proxies2, timeout=10)
                     
-                    if response2.status_code == 200:
-                        ip_data2 = response2.json()
-                        new_ip = ip_data2.get('origin', 'unknown')
+                    # Use the proxy manager's validation instead of httpbin
+                    ip_info = rotator.validate_ip()
+                    if ip_info:
+                        new_ip = ip_info.get('proxy', {}).get('ip', 'unknown')
                         if new_ip != current_ip:
-                            logger.info(f"✅ IP rotation working: {current_ip} → {new_ip}")
+                            logger.info(f"✅ IP rotation successful: {current_ip} → {new_ip}")
+                            logger.info(f"🔄 Rotation mechanism: Automatic port switching")
+                            logger.info(f"⏱️ Rotation interval: Every 30 requests or 10 minutes")
                             return True
                         else:
-                            logger.warning(f"⚠️ IP rotation not working - same IP: {current_ip}")
+                            logger.warning(f"⚠️ IP rotation failed - IP stuck on: {current_ip}")
+                            logger.warning(f"🔧 Possible causes: Proxy service issue or rate limiting")
                             if attempt == max_retries - 1:
                                 self._send_urgent_proxy_alert("IP rotation failure", f"IP stuck on {current_ip}")
                                 return False
                     else:
-                        logger.warning(f"⚠️ IP rotation test failed (status {response2.status_code})")
+                        logger.warning(f"⚠️ IP rotation validation failed")
+                        logger.warning(f"🔍 Validation method: Decodo internal API")
+                        logger.warning(f"💡 This may indicate temporary proxy service issues")
                         
                 else:
-                    logger.warning(f"⚠️ Proxy test returned status {response.status_code} (attempt {attempt + 1}/{max_retries})")
+                    logger.warning(f"⚠️ Proxy connectivity test failed (attempt {attempt + 1}/{max_retries})")
+                    logger.warning(f"🔍 Validation method: Decodo internal API")
+                    logger.warning(f"💡 This may indicate temporary proxy service issues")
                     
             except Exception as e:
                 logger.warning(f"⚠️ Proxy connectivity test failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
             
             if attempt < max_retries - 1:
                 logger.info(f"⏳ Waiting {retry_delay} seconds before retry...")
+                logger.info(f"🔄 Retry {attempt + 2}/{max_retries} will test different proxy endpoint")
                 time.sleep(retry_delay)
         
         # All attempts failed
         self._send_urgent_proxy_alert("Proxy connectivity failure", "All proxy connectivity tests failed")
         logger.warning("⚠️ All proxy connectivity tests failed. Scraping may be limited or blocked.")
         logger.info("💡 Proxy services often have temporary outages. Try again in a few minutes.")
+        logger.info("🔧 Troubleshooting: Check proxy credentials, network connectivity, or try later")
+        logger.info("📞 Admin notification sent for immediate attention")
         return False
+    
+    def _get_status_description(self, status_code):
+        """Get descriptive text for HTTP status codes"""
+        descriptions = {
+            200: "Success - Proxy working correctly",
+            400: "Bad Request - Invalid proxy configuration",
+            401: "Unauthorized - Invalid proxy credentials",
+            403: "Forbidden - Access denied by proxy service",
+            404: "Not Found - Test URL unavailable",
+            429: "Too Many Requests - Rate limited",
+            500: "Internal Server Error - Proxy service issue",
+            502: "Bad Gateway - Proxy service unavailable",
+            503: "Service Unavailable - Proxy service overloaded",
+            504: "Gateway Timeout - Proxy service timeout"
+        }
+        return descriptions.get(status_code, f"Unknown error (code {status_code})")
     
     def _send_urgent_proxy_alert(self, alert_type, details):
         """Send urgent alert to admin about proxy/IP rotation issues"""
@@ -514,7 +544,7 @@ class MasterScraper:
                     # Add proxy retry logic
                     if self._should_retry_proxy_step(step_name):
                         logger.info(f"🔄 Retrying {step_name} after proxy failure...")
-                        time.sleep(30)  # Wait 30 seconds before retry
+                        time.sleep(5)  # Wait 5 seconds before retry (much faster)
                         return self.run_scraping_step(step)  # Recursive retry
                     else:
                         # Max retries reached - send urgent alert
