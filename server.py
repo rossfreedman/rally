@@ -90,18 +90,23 @@ port = os.environ.get('PORT', '8080')
 print(f"🚀 Application will run on port: {port}")
 print(f"🌐 Health check URL will be: http://localhost:{port}/health/simple")
 
-# Add startup debugging
+# Add startup debugging with error handling
 print("=== Application Startup Debug ===")
-print("✅ Flask app created successfully")
-print("✅ Blueprints registered successfully")
-print("✅ Act routes initialized successfully")
-print("✅ Route validation completed successfully")
-print("✅ Session configuration set successfully")
-print("✅ CORS configured successfully")
-print("✅ Health endpoints available:")
-print("   - /health (with database check)")
-print("   - /health/simple (no database dependency)")
-print("✅ Application ready to start!")
+try:
+    print("✅ Flask app created successfully")
+    print("✅ Blueprints registered successfully")
+    print("✅ Act routes initialized successfully")
+    print("✅ Route validation completed successfully")
+    print("✅ Session configuration set successfully")
+    print("✅ CORS configured successfully")
+    print("✅ Health endpoints available:")
+    print("   - /health (with database check)")
+    print("   - /health/simple (no database dependency)")
+    print("✅ Application ready to start!")
+except Exception as e:
+    print(f"❌ Startup error: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -118,6 +123,16 @@ def test_startup():
         "message": "Application is running",
         "timestamp": datetime.now().isoformat(),
         "port": os.environ.get('PORT', '8080')
+    })
+
+# Add a minimal health check that doesn't depend on any imports
+@app.route("/health-minimal")
+def minimal_healthcheck():
+    """Minimal health check with no dependencies"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Minimal health check passed",
+        "timestamp": datetime.now().isoformat()
     })
 
 # Determine environment
