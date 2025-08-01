@@ -7,6 +7,8 @@ This is the main server file for the Rally platform tennis management applicatio
 Most routes have been moved to blueprints for better organization.
 """
 
+print("🚀 Starting Rally application import...")
+
 import json
 import logging
 import os
@@ -109,10 +111,16 @@ except Exception as e:
     traceback.print_exc()
 
 # Initialize Flask app
+print("🔧 Creating Flask app instance...")
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 # Test that the app can be created
 print("✅ Flask app instance created successfully")
+
+# Add a basic test route immediately
+@app.route("/basic-test")
+def basic_test():
+    return "Rally app is running!"
 
 # Add a simple test route to verify the app is working
 @app.route("/test-startup")
