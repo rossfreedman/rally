@@ -85,6 +85,11 @@ print(f"RAILWAY_PORT: {os.environ.get('RAILWAY_PORT', 'not_set')}")
 print(f"FLASK_ENV: {os.environ.get('FLASK_ENV', 'not_set')}")
 print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'not_set')}")
 
+# Add port debugging
+port = os.environ.get('PORT', '8080')
+print(f"🚀 Application will run on port: {port}")
+print(f"🌐 Health check URL will be: http://localhost:{port}/health/simple")
+
 # Add startup debugging
 print("=== Application Startup Debug ===")
 print("✅ Flask app created successfully")
@@ -103,6 +108,17 @@ app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 # Test that the app can be created
 print("✅ Flask app instance created successfully")
+
+# Add a simple test route to verify the app is working
+@app.route("/test-startup")
+def test_startup():
+    """Simple test route to verify the app is running"""
+    return jsonify({
+        "status": "success",
+        "message": "Application is running",
+        "timestamp": datetime.now().isoformat(),
+        "port": os.environ.get('PORT', '8080')
+    })
 
 # Determine environment
 is_development = os.environ.get("FLASK_ENV") == "development"
