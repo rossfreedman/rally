@@ -77,6 +77,14 @@ except Exception as e:
     print(f"⚠️ Database test error: {e}")
     print("⚠️ Application will start anyway - database connectivity will be retried as needed")
 
+# Debug environment variables
+print("=== Environment Debug ===")
+print(f"RAILWAY_ENVIRONMENT: {os.environ.get('RAILWAY_ENVIRONMENT', 'not_set')}")
+print(f"PORT: {os.environ.get('PORT', 'not_set')}")
+print(f"RAILWAY_PORT: {os.environ.get('RAILWAY_PORT', 'not_set')}")
+print(f"FLASK_ENV: {os.environ.get('FLASK_ENV', 'not_set')}")
+print(f"PYTHONPATH: {os.environ.get('PYTHONPATH', 'not_set')}")
+
 # Initialize Flask app
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
@@ -525,6 +533,8 @@ def healthcheck():
             "api_routes",
             "rally_ai_routes",
         ],
+        "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set"),
+        "timestamp": datetime.now().isoformat()
     }
     
     # Test database connectivity (non-blocking)
@@ -535,16 +545,24 @@ def healthcheck():
         health_status["database"] = {
             "status": "connected" if db_success else "warning",
             "message": "Database connection successful" if db_success else f"Database warning: {db_error}",
-            "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
         }
     except Exception as e:
         health_status["database"] = {
             "status": "warning", 
             "message": f"Database test error: {str(e)}",
-            "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
         }
     
     return jsonify(health_status)
+
+@app.route("/health/simple")
+def simple_healthcheck():
+    """Simple health check that doesn't depend on database"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Rally server is running",
+        "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set"),
+        "timestamp": datetime.now().isoformat()
+    })
 
 
 @app.route("/health/routes")
