@@ -31,6 +31,13 @@ except Exception as e:
 assistant_id = os.getenv("OPENAI_ASSISTANT_ID")
 
 
+def get_openai_client():
+    """Get the initialized OpenAI client instance"""
+    if not client:
+        raise Exception("OpenAI client not available. Please set OPENAI_API_KEY environment variable.")
+    return client
+
+
 def get_or_create_assistant():
     """Get the paddle tennis assistant (do not set or update instructions here)"""
     if not client:
