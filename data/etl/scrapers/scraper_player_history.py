@@ -7,8 +7,14 @@ import re
 import sys
 import tempfile
 import time
+import warnings
 from datetime import datetime, timedelta
 from io import StringIO
+
+# Suppress deprecation warnings - CRITICAL for production stability
+warnings.filterwarnings("ignore", category=UserWarning, module="_distutils_hack")
+warnings.filterwarnings("ignore", category=UserWarning, module="setuptools")
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
 
 import pandas as pd
 import requests
@@ -22,11 +28,24 @@ from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# Import stealth browser manager for fingerprint evasion
-from stealth_browser import StealthBrowserManager
+# Import enhanced stealth browser with all features
+from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip, make_decodo_request
 
 from utils.league_utils import standardize_league_id
 from utils.player_id_utils import create_player_id, extract_tenniscores_player_id
+
+"""
+👥 Player History Scraper - Enhanced Production-Ready Approach
+
+📊 REQUEST VOLUME ANALYSIS:
+- Estimated requests per run: ~100-500 (varies by league size and player count)
+- Cron frequency: daily
+- Estimated daily volume: 100-500 requests
+- Status: ✅ Within safe limits
+
+🌐 IP ROTATION: Enabled via Decodo residential proxies + Selenium Wire
+⏳ THROTTLING: 1.5-4.5 second delays between requests
+"""
 
 # Removed hardcoded division and location lookups - now using dynamic discovery
 
@@ -262,7 +281,7 @@ def discover_all_leagues_and_series(driver, config, max_exploration_pages=5):
 
 
 def get_player_stats(player_url, driver, config, max_retries=3, retry_delay=2):
-    """Get detailed player statistics including match history."""
+    """Get detailed player statistics including match history using Decodo residential proxy or Chrome WebDriver."""
     for attempt in range(max_retries):
         try:
             # Use dynamic league configuration
@@ -273,20 +292,26 @@ def get_player_stats(player_url, driver, config, max_retries=3, retry_delay=2):
                 else player_url
             )
 
-            # Verify driver health before making request
+            # Try Decodo residential proxy first, fall back to Chrome WebDriver
             try:
-                driver.current_url
-            except Exception:
-                raise Exception("Driver session is invalid")
+                print(f"   🌐 Using Decodo residential proxy for player stats")
+                response = make_decodo_request(full_url, timeout=30)
+                soup = BeautifulSoup(response.content, "html.parser")
+            except Exception as e:
+                print(f"   🚗 Decodo failed, using Chrome WebDriver for player stats: {e}")
+                # Verify driver health before making request
+                try:
+                    driver.current_url
+                except Exception:
+                    raise Exception("Driver session is invalid")
 
-            driver.get(full_url)
-            time.sleep(retry_delay)
+                driver.get(full_url)
+                time.sleep(retry_delay)
+                soup = BeautifulSoup(driver.page_source, "html.parser")
 
             wins = 0
             losses = 0
             match_details = []  # List of dicts: {date, end_pti, series}
-
-            soup = BeautifulSoup(driver.page_source, "html.parser")
 
             # Extract match info from rbox_top divs
             for rbox in soup.find_all("div", class_="rbox_top"):
@@ -355,6 +380,17 @@ def scrape_player_history(league_subdomain):
     Args:
         league_subdomain (str): League subdomain (e.g., 'aptachicago', 'nstf')
     """
+    print("[Scraper] Starting scrape: scraper_player_history")
+    
+    # Initialize enhanced scraper with request volume tracking
+    # Estimate: 100-500 requests depending on league size and player count
+    estimated_requests = 300  # Conservative estimate
+    scraper_enhancements = create_enhanced_scraper(
+        scraper_name="Player History Scraper",
+        estimated_requests=estimated_requests,
+        cron_frequency="daily"
+    )
+    
     # Record start time
     start_time = datetime.now()
     print(f"🕐 Session Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -375,6 +411,11 @@ def scrape_player_history(league_subdomain):
 
         # Use stealth browser manager to avoid bot detection
         with StealthBrowserManager(headless=True) as driver:
+            # Validate IP region after browser launch
+            print("🌐 Validating IP region for ScraperAPI proxy...")
+            ip_validation = scraper_enhancements.validate_ip_region(driver)
+            if not ip_validation.get('validation_successful', False):
+                print("⚠️ IP validation failed, but continuing with scraping...")
 
             # Create dynamic data directory based on league
             data_dir = build_league_data_dir(league_id)
@@ -414,6 +455,10 @@ def scrape_player_history(league_subdomain):
                     print(
                         f"   📋 Processing team {team_count}/{len(discovery_results['teams'])}: {team_name}"
                     )
+
+                    # Track request and add throttling before team page load
+                    scraper_enhancements.track_request(f"team_{team_count}_load")
+                    add_throttling_to_loop()
 
                     driver.get(team_url)
                     time.sleep(2)
@@ -693,8 +738,15 @@ def scrape_player_history(league_subdomain):
                 print(f"  {series}: {count} players ({percentage:.1f}%)")
 
             print("=" * 70)
+            
+                    # Log enhanced session summary
+        scraper_enhancements.log_session_summary()
+        print("[Scraper] Finished scrape successfully")
 
     except Exception as e:
+        print("[Scraper] Scrape failed with an exception")
+        import traceback
+        traceback.print_exc()
         error_time = datetime.now()
         elapsed_time = error_time - start_time
         print(f"\n❌ ERROR OCCURRED!")

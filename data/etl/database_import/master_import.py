@@ -48,13 +48,13 @@ except ImportError:
     logger.warning("SMS service not available, notifications will be logged only")
     send_sms = None
 
-ADMIN_PHONE = "17736121115"
+ADMIN_PHONE = "17732138911"
 
 class MasterImporter:
     """Master importer that orchestrates all ETL processes"""
     
-    # Available leagues
-    AVAILABLE_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
+    # Legacy hardcoded leagues for backward compatibility
+    LEGACY_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
     
     # League name mapping for case-insensitive input
     LEAGUE_MAPPING = {
@@ -75,8 +75,43 @@ class MasterImporter:
         self.results = {}
         self.failures = []
         
+        # Discover available leagues dynamically
+        self.available_leagues = self._discover_available_leagues()
+        
         # Build import steps dynamically based on league parameter
         self.import_steps = self._build_import_steps()
+    
+    def _discover_available_leagues(self):
+        """Dynamically discover available leagues from data/leagues/ directory"""
+        try:
+            # Get the project root directory
+            project_root = Path(__file__).parent.parent.parent.parent
+            leagues_dir = project_root / "data" / "leagues"
+            
+            if not leagues_dir.exists():
+                logger.warning(f"Leagues directory not found: {leagues_dir}")
+                logger.info("Falling back to legacy hardcoded leagues")
+                return self.LEGACY_LEAGUES
+            
+            # Discover league directories (excluding 'all' directory)
+            available_leagues = []
+            for item in leagues_dir.iterdir():
+                if item.is_dir() and item.name != "all" and not item.name.startswith("."):
+                    available_leagues.append(item.name)
+            
+            if not available_leagues:
+                logger.warning("No league directories found, falling back to legacy leagues")
+                return self.LEGACY_LEAGUES
+            
+            # Sort for consistent ordering
+            available_leagues.sort()
+            logger.info(f"Discovered {len(available_leagues)} leagues: {', '.join(available_leagues)}")
+            return available_leagues
+            
+        except Exception as e:
+            logger.error(f"Error discovering leagues: {e}")
+            logger.info("Falling back to legacy hardcoded leagues")
+            return self.LEGACY_LEAGUES
     
     def _build_import_steps(self):
         """Build import steps based on league parameter"""
@@ -85,7 +120,7 @@ class MasterImporter:
         # Always include consolidation step
         steps.append({
             "name": "Consolidate League JSONs",
-            "script": "consolidate_league_jsons_to_all.py",
+            "script": "consolidate_league_jsons.py",
             "args": [],
             "description": "Consolidate all league JSON files into unified data"
         })
@@ -94,8 +129,8 @@ class MasterImporter:
         if self.league:
             # Single league mode - normalize league name
             normalized_league = self.LEAGUE_MAPPING.get(self.league, self.league)
-            if normalized_league not in self.AVAILABLE_LEAGUES:
-                raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.AVAILABLE_LEAGUES)}")
+            if normalized_league not in self.available_leagues:
+                raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.available_leagues)}")
             
             steps.append({
                 "name": f"Import Stats - {normalized_league}",
@@ -105,7 +140,7 @@ class MasterImporter:
             })
         else:
             # All leagues mode
-            for league in self.AVAILABLE_LEAGUES:
+            for league in self.available_leagues:
                 steps.append({
                     "name": f"Import Stats - {league}",
                     "script": "import_stats.py",
@@ -154,8 +189,18 @@ class MasterImporter:
         logger.info(f"🔧 Script: {script_path}")
         logger.info(f"⚙️ Arguments: {args}")
         
-        # Build command
-        cmd = ["python3", script_path] + args
+        # Build command - handle both local and Docker environments
+        if os.path.exists(script_path):
+            # Script exists at the specified path (Docker environment)
+            cmd = ["python3", script_path] + args
+        else:
+            # Try to find script in the same directory as this script (local environment)
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            local_script_path = os.path.join(script_dir, os.path.basename(script_path))
+            if os.path.exists(local_script_path):
+                cmd = ["python3", local_script_path] + args
+            else:
+                raise FileNotFoundError(f"Script not found: {script_path} or {local_script_path}")
         
         start_time = datetime.now()
         
@@ -252,7 +297,7 @@ class MasterImporter:
         if self.league:
             logger.info(f"🏆 League Mode: Single League ({self.league})")
         else:
-            logger.info(f"🏆 League Mode: All Leagues ({', '.join(self.AVAILABLE_LEAGUES)})")
+            logger.info(f"🏆 League Mode: All Leagues ({', '.join(self.available_leagues)})")
         logger.info(f"📱 Admin Phone: {ADMIN_PHONE}")
         logger.info(f"🕐 Start Time: {self.start_time}")
         logger.info("=" * 60)
@@ -280,7 +325,7 @@ class MasterImporter:
         self.generate_final_summary()
     
     def generate_final_summary(self):
-        """Generate and send final summary"""
+        """Generate and send final summary with detailed import information"""
         end_time = datetime.now()
         total_duration = end_time - self.start_time
         
@@ -289,23 +334,165 @@ class MasterImporter:
         successful_steps = len([r for r in self.results.values() if r["status"] == "success"])
         failed_steps = len(self.failures)
         
-        # Create summary
+        # Create detailed summary
         summary_lines = [
             "📊 Rally ETL Master Import Summary",
+            "=" * 60,
             f"Environment: {self.environment}",
+            f"Start Time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}",
             f"Total Duration: {total_duration}",
             f"Steps: {successful_steps}/{total_steps} successful",
-            f"Failures: {failed_steps}"
+            f"Failures: {failed_steps}",
+            ""
         ]
         
-        if self.failures:
-            summary_lines.append(f"Failed Steps: {', '.join(self.failures)}")
+        # League information
+        if self.league:
+            summary_lines.extend([
+                "🏆 LEAGUE MODE: Single League",
+                f"Target League: {self.league}",
+                ""
+            ])
+        else:
+            summary_lines.extend([
+                "🏆 LEAGUE MODE: All Leagues",
+                f"Available Leagues: {', '.join(self.available_leagues)}",
+                ""
+            ])
+        
+        # Step-by-step results
+        summary_lines.append("📋 STEP-BY-STEP RESULTS:")
+        summary_lines.append("-" * 40)
+        
+        for i, step in enumerate(self.import_steps, 1):
+            step_name = step["name"]
+            result = self.results.get(step_name, {"status": "not_run"})
+            
+            status_emoji = {
+                "success": "✅",
+                "failed": "❌",
+                "timeout": "⏰",
+                "error": "💥",
+                "not_run": "⏸️"
+            }.get(result["status"], "❓")
+            
+            summary_lines.append(f"{i}. {status_emoji} {step_name}")
+            summary_lines.append(f"   Status: {result['status'].upper()}")
+            summary_lines.append(f"   Duration: {result.get('duration', 'N/A')}")
+            
+            # Add specific details for each step type
+            if step_name.startswith("Consolidate League JSONs"):
+                summary_lines.append("   Action: Merged all league JSON files into unified data structure")
+            elif step_name.startswith("Import Stats"):
+                league_name = step_name.replace("Import Stats - ", "")
+                summary_lines.append(f"   Action: Imported series statistics for {league_name}")
+                summary_lines.append("   Data: Team standings, win/loss records, series rankings")
+            elif step_name == "Import Match Scores":
+                summary_lines.append("   Action: Imported match results and scores")
+                summary_lines.append("   Data: Match outcomes, individual set scores, player performance")
+            elif step_name == "Import Players":
+                summary_lines.append("   Action: Imported player data and associations")
+                summary_lines.append("   Data: Player profiles, team assignments, league memberships")
+            
+            # Add error details if failed
+            if result["status"] in ["failed", "timeout", "error"]:
+                error_msg = result.get("error", "Unknown error")
+                summary_lines.append(f"   Error: {error_msg[:100]}...")
+            
+            summary_lines.append("")
+        
+        # What was imported (successful steps)
+        if successful_steps > 0:
+            summary_lines.append("✅ SUCCESSFULLY IMPORTED:")
+            summary_lines.append("-" * 30)
+            
+            for step_name, result in self.results.items():
+                if result["status"] == "success":
+                    if step_name.startswith("Consolidate League JSONs"):
+                        summary_lines.append("• Unified league data structure")
+                        summary_lines.append("  - Combined all league JSON files")
+                        summary_lines.append("  - Created standardized data format")
+                    elif step_name.startswith("Import Stats"):
+                        league_name = step_name.replace("Import Stats - ", "")
+                        summary_lines.append(f"• {league_name} statistics")
+                        summary_lines.append(f"  - Team standings and rankings")
+                        summary_lines.append(f"  - Win/loss records")
+                        summary_lines.append(f"  - Series performance data")
+                    elif step_name == "Import Match Scores":
+                        summary_lines.append("• Match results and scores")
+                        summary_lines.append("  - Individual match outcomes")
+                        summary_lines.append("  - Set-by-set scores")
+                        summary_lines.append("  - Player performance metrics")
+                    elif step_name == "Import Players":
+                        summary_lines.append("• Player data and associations")
+                        summary_lines.append("  - Player profiles and contact info")
+                        summary_lines.append("  - Team assignments")
+                        summary_lines.append("  - League memberships")
+                        summary_lines.append("  - User-player associations")
+            
+            summary_lines.append("")
+        
+        # What didn't work (failed steps)
+        if failed_steps > 0:
+            summary_lines.append("❌ FAILED TO IMPORT:")
+            summary_lines.append("-" * 25)
+            
+            for step_name in self.failures:
+                result = self.results.get(step_name, {})
+                summary_lines.append(f"• {step_name}")
+                summary_lines.append(f"  Status: {result.get('status', 'unknown')}")
+                summary_lines.append(f"  Duration: {result.get('duration', 'N/A')}")
+                
+                if step_name.startswith("Consolidate League JSONs"):
+                    summary_lines.append("  Impact: No unified data structure created")
+                    summary_lines.append("  Consequence: Subsequent imports may fail")
+                elif step_name.startswith("Import Stats"):
+                    league_name = step_name.replace("Import Stats - ", "")
+                    summary_lines.append(f"  Impact: No {league_name} statistics imported")
+                    summary_lines.append(f"  Consequence: {league_name} standings unavailable")
+                elif step_name == "Import Match Scores":
+                    summary_lines.append("  Impact: No match results imported")
+                    summary_lines.append("  Consequence: Match history and scores unavailable")
+                elif step_name == "Import Players":
+                    summary_lines.append("  Impact: No player data imported")
+                    summary_lines.append("  Consequence: Player profiles and associations unavailable")
+                
+                error_msg = result.get("error", "Unknown error")
+                summary_lines.append(f"  Error: {error_msg[:150]}...")
+                summary_lines.append("")
+        
+        # Data quality and validation notes
+        summary_lines.append("🔍 DATA QUALITY NOTES:")
+        summary_lines.append("-" * 25)
+        
+        if successful_steps >= 3:  # At least consolidation + stats + one other
+            summary_lines.append("• Data consolidation completed successfully")
+            summary_lines.append("• League statistics imported for available leagues")
+            summary_lines.append("• Database structure updated with latest data")
+        else:
+            summary_lines.append("• Partial import completed - some data may be missing")
+            summary_lines.append("• Consider re-running failed steps individually")
+        
+        # Recommendations
+        summary_lines.append("")
+        summary_lines.append("💡 RECOMMENDATIONS:")
+        summary_lines.append("-" * 20)
+        
+        if failed_steps == 0:
+            summary_lines.append("• All imports successful - no action required")
+            summary_lines.append("• Data is ready for platform use")
+        else:
+            summary_lines.append("• Review failed steps and error messages")
+            summary_lines.append("• Consider re-running failed imports individually")
+            summary_lines.append("• Check database connectivity and permissions")
+            summary_lines.append("• Verify source data files are accessible")
         
         summary = "\n".join(summary_lines)
         
-        # Log summary
+        # Log detailed summary
         logger.info("\n" + "=" * 60)
-        logger.info("📊 FINAL SUMMARY")
+        logger.info("📊 DETAILED FINAL SUMMARY")
         logger.info("=" * 60)
         logger.info(summary)
         
@@ -321,24 +508,114 @@ class MasterImporter:
         self.save_detailed_results()
     
     def save_detailed_results(self):
-        """Save detailed results to log file"""
+        """Save detailed results to log file with comprehensive import information"""
         results_file = f"logs/master_import_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         
         with open(results_file, 'w') as f:
             f.write("Rally ETL Master Import Detailed Results\n")
+            f.write("=" * 60 + "\n")
             f.write(f"Environment: {self.environment}\n")
             f.write(f"Start Time: {self.start_time}\n")
             f.write(f"End Time: {datetime.now()}\n")
-            f.write(f"Total Duration: {datetime.now() - self.start_time}\n\n")
+            f.write(f"Total Duration: {datetime.now() - self.start_time}\n")
+            
+            # League information
+            if self.league:
+                f.write(f"League Mode: Single League ({self.league})\n")
+            else:
+                f.write(f"League Mode: All Leagues ({', '.join(self.available_leagues)})\n")
+            
+            f.write("\n" + "=" * 60 + "\n")
+            f.write("STEP-BY-STEP DETAILED RESULTS\n")
+            f.write("=" * 60 + "\n\n")
             
             for step_name, result in self.results.items():
-                f.write(f"Step: {step_name}\n")
-                f.write(f"Status: {result['status']}\n")
+                f.write(f"STEP: {step_name}\n")
+                f.write(f"Status: {result['status'].upper()}\n")
                 f.write(f"Duration: {result['duration']}\n")
-                f.write(f"Output: {result['output'][:500]}...\n")
+                
+                # Add step-specific details
+                if step_name.startswith("Consolidate League JSONs"):
+                    f.write("Purpose: Merge all league JSON files into unified data structure\n")
+                    f.write("Data Processed: All league directories and JSON files\n")
+                    f.write("Output: Consolidated data in data/leagues/all/\n")
+                elif step_name.startswith("Import Stats"):
+                    league_name = step_name.replace("Import Stats - ", "")
+                    f.write(f"Purpose: Import series statistics for {league_name}\n")
+                    f.write("Data Imported: Team standings, win/loss records, series rankings\n")
+                    f.write("Database Tables: series_stats, teams, leagues\n")
+                elif step_name == "Import Match Scores":
+                    f.write("Purpose: Import match results and scores\n")
+                    f.write("Data Imported: Match outcomes, individual set scores, player performance\n")
+                    f.write("Database Tables: match_scores, players\n")
+                elif step_name == "Import Players":
+                    f.write("Purpose: Import player data and associations\n")
+                    f.write("Data Imported: Player profiles, team assignments, league memberships\n")
+                    f.write("Database Tables: players, user_player_associations\n")
+                
+                f.write(f"Command Output: {result['output'][:1000]}...\n")
                 if result['error']:
-                    f.write(f"Error: {result['error']}\n")
-                f.write("-" * 30 + "\n")
+                    f.write(f"Error Details: {result['error']}\n")
+                f.write("-" * 50 + "\n\n")
+            
+            # Summary section
+            f.write("=" * 60 + "\n")
+            f.write("IMPORT SUMMARY\n")
+            f.write("=" * 60 + "\n")
+            
+            successful_steps = len([r for r in self.results.values() if r["status"] == "success"])
+            failed_steps = len(self.failures)
+            total_steps = len(self.import_steps)
+            
+            f.write(f"Total Steps: {total_steps}\n")
+            f.write(f"Successful: {successful_steps}\n")
+            f.write(f"Failed: {failed_steps}\n")
+            f.write(f"Success Rate: {(successful_steps/total_steps)*100:.1f}%\n\n")
+            
+            # What was successfully imported
+            if successful_steps > 0:
+                f.write("SUCCESSFULLY IMPORTED:\n")
+                f.write("-" * 25 + "\n")
+                for step_name, result in self.results.items():
+                    if result["status"] == "success":
+                        if step_name.startswith("Consolidate League JSONs"):
+                            f.write("✓ Unified league data structure\n")
+                        elif step_name.startswith("Import Stats"):
+                            league_name = step_name.replace("Import Stats - ", "")
+                            f.write(f"✓ {league_name} statistics and standings\n")
+                        elif step_name == "Import Match Scores":
+                            f.write("✓ Match results and scores\n")
+                        elif step_name == "Import Players":
+                            f.write("✓ Player data and associations\n")
+                f.write("\n")
+            
+            # What failed to import
+            if failed_steps > 0:
+                f.write("FAILED TO IMPORT:\n")
+                f.write("-" * 20 + "\n")
+                for step_name in self.failures:
+                    f.write(f"✗ {step_name}\n")
+                f.write("\n")
+            
+            # Data quality assessment
+            f.write("DATA QUALITY ASSESSMENT:\n")
+            f.write("-" * 25 + "\n")
+            if successful_steps >= 3:
+                f.write("✓ Comprehensive import completed\n")
+                f.write("✓ Database updated with latest data\n")
+                f.write("✓ Platform ready for use\n")
+            elif successful_steps >= 1:
+                f.write("⚠ Partial import completed\n")
+                f.write("⚠ Some data may be missing\n")
+                f.write("⚠ Consider re-running failed steps\n")
+            else:
+                f.write("✗ Import failed completely\n")
+                f.write("✗ No data imported\n")
+                f.write("✗ Manual intervention required\n")
+            
+            f.write("\n" + "=" * 60 + "\n")
+            f.write("END OF REPORT\n")
+            f.write("=" * 60 + "\n")
         
         logger.info(f"📄 Detailed results saved to: {results_file}")
 

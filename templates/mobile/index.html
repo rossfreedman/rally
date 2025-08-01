@@ -279,6 +279,19 @@
           </div>
         </div>
         {% endif %}
+        
+        <!-- Database Mode Indicator (only in local development) -->
+        {% if is_local_development() %}
+        <div class="flex items-center justify-center mt-2">
+          <button id="databaseModeChip" 
+                  onclick="switchDatabase()" 
+                  class="database-indicator px-3 py-1 rounded-full text-xs font-semibold transition-colors duration-200 cursor-pointer flex items-center gap-2"
+                  title="Click to switch database">
+            <span id="databaseModeIcon">🧪</span>
+            <span id="databaseModeText">TEST</span>
+          </button>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -446,9 +459,9 @@
         </div>
       </a>
       
-      <!-- Team Polls (Act section) -->
+              <!-- Team Polls (Act section) -->
       <a href="/mobile/polls" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <!-- Survey Choices Icon -->
+        <!-- Survey Choices Icon (matching submenu) -->
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
           <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
@@ -746,7 +759,7 @@
       </a>
       <!-- Team Polls (Captain's Corner) -->
       <a href="/mobile/polls" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <!-- Survey Choices Icon -->
+        <!-- Survey Choices Icon (matching submenu) -->
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
           <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
@@ -1608,7 +1621,7 @@ function getNotificationIcon(type) {
         <line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/>
     </svg>`;
     
-    // Team Polls - Use the same SVG as the Respond to Polls button
+    // Team Polls - Use the same SVG as the Respond to Polls button (matching submenu)
     const teamPollIcon = `<svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-8 w-8 mb-4\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"6\" cy=\"7\" r=\"1.5\" stroke=\"currentColor\" stroke-width=\"2\" fill=\"#fff\"/><line x1=\"10\" y1=\"7\" x2=\"20\" y2=\"7\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"6\" cy=\"12\" r=\"1.5\" stroke=\"currentColor\" stroke-width=\"2\" fill=\"#fff\"/><line x1=\"10\" y1=\"12\" x2=\"20\" y2=\"12\" stroke=\"currentColor\" stroke-width=\"2\"/><circle cx=\"6\" cy=\"17\" r=\"1.5\" stroke=\"currentColor\" stroke-width=\"2\" fill=\"#fff\"/><line x1=\"10\" y1=\"17\" x2=\"20\" y2=\"17\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>`;
     
     // Captain/Calendar Icon (matches calendar buttons)
@@ -1625,14 +1638,14 @@ function getNotificationIcon(type) {
         <path d="M12 9v3l2 2" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
-    // Trophy Icon for Team Position
+    // Ranking/Position Icon for Team Position
     const trophyIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" stroke="currentColor" stroke-width="2"/>
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" stroke="currentColor" stroke-width="2"/>
-        <path d="M4 22h16" stroke="currentColor" stroke-width="2"/>
-        <path d="M10 14.66V17c0 1.1.9 2 2 2s2-.9 2-2v-2.34" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14.66V9c0-1.1-.9-2-2-2H8" stroke="currentColor" stroke-width="2"/>
-        <path d="M12 14.66V9c0-1.1.9-2 2-2h2" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 6h8" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 10h8" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 14h6" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 18h4" stroke="currentColor" stroke-width="2"/>
+        <path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="2" fill="none"/>
+        <path d="M7 3v18" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     // Fire Icon for Win Streaks
@@ -1648,7 +1661,8 @@ function getNotificationIcon(type) {
         'result': captainIcon,         // Results use calendar icon
         'personal': fireIcon,          // Personal notifications (win streaks) use fire icon
         'team': trophyIcon,            // Team notifications (position) use trophy icon
-        'schedule': scheduleIcon       // Schedule notifications use calendar with clock icon
+        'schedule': scheduleIcon,      // Schedule notifications use calendar with clock icon
+        'poll': teamPollIcon           // Team poll notifications use survey icon
     };
     
     return icons[type] || captainIcon;
@@ -1671,6 +1685,105 @@ function getNotificationBgColor(type) {
 setInterval(() => {
     initializeHomePageNotifications();
 }, 5 * 60 * 1000);
+
+// Database Switching Functionality
+function switchDatabase() {
+    const currentMode = '{{ get_database_mode() }}';
+    const newMode = currentMode === 'test' ? 'main' : 'test';
+    
+    // Show confirmation dialog
+    const confirmMessage = `Switch from ${currentMode.toUpperCase()} to ${newMode.toUpperCase()} database?\n\nThis will restart the server.`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = document.getElementById('databaseModeChip');
+    const icon = document.getElementById('databaseModeIcon');
+    const text = document.getElementById('databaseModeText');
+    const originalIcon = icon.innerHTML;
+    const originalText = text.innerHTML;
+    
+    icon.innerHTML = '⏳';
+    text.innerHTML = 'Switching...';
+    button.disabled = true;
+    button.style.opacity = '0.7';
+    
+    // Make API call to switch database
+    fetch('/api/switch-database', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            database_mode: newMode
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            icon.innerHTML = '✅';
+            text.innerHTML = 'Switched!';
+            
+            // Update button colors
+            if (newMode === 'test') {
+                button.style.backgroundColor = '#fbbf24';
+                button.style.color = '#000000';
+            } else {
+                button.style.backgroundColor = '#10b981';
+                button.style.color = '#ffffff';
+            }
+            
+            // Reload page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            throw new Error(data.error || 'Failed to switch database');
+        }
+    })
+    .catch(error => {
+        console.error('Database switch error:', error);
+        icon.innerHTML = '❌';
+        text.innerHTML = 'Failed';
+        button.style.backgroundColor = '#ef4444';
+        button.style.color = '#ffffff';
+        
+        // Reset button after error
+        setTimeout(() => {
+            icon.innerHTML = originalIcon;
+            text.innerHTML = originalText;
+            button.disabled = false;
+            button.style.opacity = '1';
+            updateDatabaseModeDisplay();
+        }, 2000);
+    });
+}
+
+function updateDatabaseModeDisplay() {
+    const currentMode = '{{ get_database_mode() }}';
+    const icon = document.getElementById('databaseModeIcon');
+    const text = document.getElementById('databaseModeText');
+    const button = document.getElementById('databaseModeChip');
+    
+    if (currentMode === 'test') {
+        icon.innerHTML = '🧪';
+        text.innerHTML = 'TEST';
+        button.style.backgroundColor = '#fbbf24';
+        button.style.color = '#000000';
+    } else {
+        icon.innerHTML = '🚀';
+        text.innerHTML = 'MAIN';
+        button.style.backgroundColor = '#10b981';
+        button.style.color = '#ffffff';
+    }
+}
+
+// Initialize database mode display
+document.addEventListener('DOMContentLoaded', function() {
+    updateDatabaseModeDisplay();
+});
 
 // Team Poll Card Module
 async function initializeTeamPollCard() {

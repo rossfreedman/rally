@@ -6,6 +6,7 @@ Performance improvements:
 - Intelligent caching to avoid redundant requests
 - Reduced sleep delays with smart retry logic
 - Memory-efficient data structures
+Enhanced with IP validation, request volume tracking, and intelligent throttling.
 """
 
 import hashlib
@@ -16,10 +17,16 @@ import sys
 import tempfile
 import threading
 import time
+import warnings
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from threading import Lock
+
+# Suppress deprecation warnings - CRITICAL for production stability
+warnings.filterwarnings("ignore", category=UserWarning, module="_distutils_hack")
+warnings.filterwarnings("ignore", category=UserWarning, module="setuptools")
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
 
 import pandas as pd
 import requests
@@ -32,6 +39,60 @@ from selenium.webdriver.common.by import By
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.league_utils import standardize_league_id
 from utils.player_id_utils import create_player_id, extract_tenniscores_player_id
+
+# Import enhanced stealth browser with all features
+from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip, make_decodo_request
+
+# Import notification service
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import requests
+import os
+
+# Admin phone number for notifications
+ADMIN_PHONE = "17732138911"  # Ross's phone number
+
+
+def send_sms_notification(to_number: str, message: str, test_mode: bool = False) -> dict:
+    """
+    Standalone SMS notification function for scrapers
+    """
+    try:
+        # Get Twilio credentials from environment
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        sender_phone = os.getenv("TWILIO_SENDER_PHONE")
+        
+        if not all([account_sid, auth_token, sender_phone]):
+            print(f"📱 SMS notification (Twilio not configured): {message[:50]}...")
+            return {"success": True, "message": "Twilio not configured"}
+        
+        # Test mode - don't actually send
+        if test_mode:
+            print(f"📱 SMS notification (test mode): {message[:50]}...")
+            return {"success": True, "message": "Test mode"}
+        
+        # Send via Twilio API
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+        auth = (account_sid, auth_token)
+        data = {
+            "To": to_number,
+            "From": sender_phone,
+            "Body": message
+        }
+        
+        response = requests.post(url, auth=auth, data=data, timeout=30)
+        
+        if response.status_code == 201:
+            print(f"📱 SMS notification sent: {message[:50]}...")
+            return {"success": True, "message_sid": response.json().get("sid")}
+        else:
+            print(f"❌ Failed to send SMS: {response.status_code} - {response.text}")
+            return {"success": False, "error": f"HTTP {response.status_code}"}
+            
+    except Exception as e:
+        print(f"❌ Error sending SMS: {e}")
+        return {"success": False, "error": str(e)}
 
 
 class OptimizedChromeManager:
@@ -467,6 +528,14 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
         f"🚀 OPTIMIZED Player History Scraper Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}"
     )
 
+    # Initialize enhanced scraper with request volume tracking
+    estimated_requests = 300  # Conservative estimate for optimized scraper
+    scraper_enhancements = create_enhanced_scraper(
+        scraper_name="Optimized Player History Scraper",
+        estimated_requests=estimated_requests,
+        cron_frequency="daily"
+    )
+
     # Initialize components
     config = get_league_config(league_subdomain)
     league_id = config["league_id"]
@@ -483,6 +552,10 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
             print("\n🔍 PHASE 1: Optimized Team Discovery")
             discovery_start = datetime.now()
 
+            # Track request and add throttling before discovery
+            scraper_enhancements.track_request("discovery_phase")
+            add_throttling_to_loop()
+
             discovery_results = discover_teams_optimized(discovery_driver, config)
 
             discovery_duration = datetime.now() - discovery_start
@@ -493,6 +566,10 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
             # Phase 2: Concurrent Team Processing
             print(f"\n⚡ PHASE 2: Concurrent Team Processing ({max_workers} workers)")
             mapping_start = datetime.now()
+
+            # Track request and add throttling before team processing
+            scraper_enhancements.track_request("team_processing_phase")
+            add_throttling_to_loop()
 
             player_to_team_map = {}
             teams_list = list(discovery_results["teams"].items())
@@ -648,6 +725,9 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
             f"⚡ Players per minute: {(len(all_players_json) / total_duration.total_seconds() * 60):.1f}"
         )
         print(f"💾 Data saved to: {filename}")
+
+        # Log enhanced session summary
+        scraper_enhancements.log_session_summary()
 
     except Exception as e:
         print(f"❌ Error: {e}")

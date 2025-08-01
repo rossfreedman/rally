@@ -54,8 +54,23 @@
   .category-button.active svg { 
     color: #bff863 !important; 
   }
-  .submenu { display: none; background: transparent; margin-top: 0.5rem; overflow: hidden; }
-  .submenu.active { display: block; }
+  .submenu { 
+    display: none !important; 
+    background: transparent; 
+    margin-top: 0.5rem; 
+    overflow: hidden; 
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+  }
+  .submenu.active { 
+    display: block !important; 
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    max-height: none !important;
+  }
   .submenu-item { 
     display: flex; 
     flex-direction: column; 
@@ -72,6 +87,7 @@
     text-align: center;
     min-height: 120px;
     background: #797979 !important;
+    width: 100%;
   }
   .submenu-item:last-child { margin-bottom: 0; }
   .submenu-item:hover { 
@@ -183,25 +199,34 @@
       width: 100% !important;
     }
     
-    /* Force center alignment for all category buttons */
+    /* Force all category buttons to be centered */
     .category-button {
-      text-align: center !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
+      text-align: center !important;
     }
     
-    /* Force center alignment for all elements inside category buttons */
-    .category-button svg {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-    
-    .category-button div {
+    /* Ensure the menu header is also centered */
+    .section-header {
       text-align: center !important;
       width: 100% !important;
+    }
+    
+    /* Make submenu items the same width as category buttons */
+    .submenu-item {
+      max-width: 500px !important;
+      width: 500px !important;
       margin: 0 auto !important;
+    }
+    
+    /* Center submenu containers */
+    .submenu {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      width: 100% !important;
     }
   }
 </style>
@@ -539,6 +564,46 @@
 </div>
 
 <script>
+// Ensure all submenus are closed when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  const allSubmenus = document.querySelectorAll('.submenu');
+  const allCategoryButtons = document.querySelectorAll('.category-button');
+  
+  // Force close all submenus with multiple approaches
+  allSubmenus.forEach(menu => {
+    menu.classList.remove('active');
+    menu.style.display = 'none';
+    menu.style.visibility = 'hidden';
+    menu.style.opacity = '0';
+    menu.style.height = '0';
+    menu.style.maxHeight = '0';
+  });
+  
+  // Remove active class from all category buttons
+  allCategoryButtons.forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Remove submenu-active class from body
+  document.body.classList.remove('submenu-active');
+  
+  console.log('🔍 SUBMENU DEBUG: All submenus forcefully closed on page load');
+  
+  // Double-check after a short delay
+  setTimeout(() => {
+    const stillOpen = document.querySelectorAll('.submenu.active');
+    if (stillOpen.length > 0) {
+      console.log('⚠️ SUBMENU DEBUG: Found submenus still open, forcing closure...');
+      stillOpen.forEach(menu => {
+        menu.classList.remove('active');
+        menu.style.display = 'none';
+      });
+    } else {
+      console.log('✅ SUBMENU DEBUG: All submenus confirmed closed');
+    }
+  }, 100);
+});
+
 function toggleSubmenu(submenuId) {
   const submenu = document.getElementById(submenuId);
   const allSubmenus = document.querySelectorAll('.submenu');
@@ -1251,11 +1316,14 @@ function getNotificationIcon(type) {
         <line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/>
     </svg>`;
     
-    // Team Polls - Question Mark Icon
+    // Team Polls - Survey Choices Icon (matching submenu)
     const teamPollIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <!-- Question mark -->
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2"/>
-        <circle cx="12" cy="17" r="1" stroke="currentColor" stroke-width="2"/>
+        <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+        <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
+        <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+        <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
+        <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+        <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     // Captain/Calendar Icon (matches calendar buttons)
@@ -1272,16 +1340,14 @@ function getNotificationIcon(type) {
         <path d="M12 9v3l2 2" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
-    // Trophy Icon for Team Position and Win Streaks
+    // Ranking/Position Icon for Team Position
     const trophyIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <!-- Trophy cup -->
-        <path d="M8 6h8v8c0 2.2-1.8 4-4 4s-4-1.8-4-4V6z" stroke="currentColor" stroke-width="2"/>
-        <!-- Trophy handles -->
-        <path d="M6 8c0-1.1.9-2 2-2h2" stroke="currentColor" stroke-width="2"/>
-        <path d="M16 8c0-1.1-.9-2-2-2h-2" stroke="currentColor" stroke-width="2"/>
-        <!-- Trophy base -->
-        <path d="M7 18h10" stroke="currentColor" stroke-width="2"/>
-        <path d="M9 18v4h6v-4" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 6h8" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 10h8" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 14h6" stroke="currentColor" stroke-width="2"/>
+        <path d="M8 18h4" stroke="currentColor" stroke-width="2"/>
+        <path d="M3 3h18v18H3z" stroke="currentColor" stroke-width="2" fill="none"/>
+        <path d="M7 3v18" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     // Star Icon for Win Streaks

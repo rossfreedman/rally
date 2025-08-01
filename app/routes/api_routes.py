@@ -6797,7 +6797,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
             
             notifications.append({
                 "id": f"team_poll_{recent_poll['id']}",
-                "type": "team",
+                "type": "poll",
                 "title": "Team Poll",
                 "message": f"{recent_poll['question']}",
                 "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},

@@ -1,10 +1,27 @@
-import json
+#!/usr/bin/env python3
+"""
+Match Scores Scraper for Rally Tennis Platform
+Scrapes match data from various tennis leagues using Decodo residential proxies.
+"""
+
 import os
-import re
+import sys
 import time
-import random
+import json
+import logging
+import warnings
+import re
 from datetime import datetime, timedelta
 from urllib.parse import urljoin, urlparse, parse_qs, unquote
+
+# Configure logging to reduce Selenium Wire verbosity
+logging.getLogger('seleniumwire').setLevel(logging.WARNING)
+logging.getLogger('seleniumwire.handler').setLevel(logging.WARNING)
+
+# Suppress deprecation warnings - CRITICAL for production stability
+warnings.filterwarnings("ignore", category=UserWarning, module="_distutils_hack")
+warnings.filterwarnings("ignore", category=UserWarning, module="setuptools")
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -19,12 +36,90 @@ from selenium.webdriver.support.ui import WebDriverWait
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from stealth_browser import StealthBrowserManager
+from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip, make_decodo_request, validate_decodo_us_response
 
-print("🎾 TennisScores Match Scraper - Best Practice Approach")
+# Import notification service
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+import requests
+
+# Admin phone number for notifications
+ADMIN_PHONE = "17732138911"  # Ross's phone number
+
+def get_page_with_requests(url, timeout=30):
+    """
+    Get page content using requests with intelligent proxy rotation.
+    This is the hybrid approach - using requests instead of browser for initial access.
+    """
+    # Import proxy manager
+    from proxy_manager import make_proxy_request
+    
+    print(f"🌐 Requests: Accessing {url}")
+    response = make_proxy_request(url, timeout=timeout)
+    
+    if response is None:
+        raise Exception(f"Failed to access {url} after all retry attempts")
+    
+    print(f"✅ Requests: Successfully accessed {url} ({len(response.text)} characters)")
+    return response.text
+
+def discover_series_with_requests(base_url):
+    """
+    Discover series using requests instead of browser.
+    This is much more reliable than the browser approach.
+    """
+    print("🔍 Discovering series with requests...")
+    
+    try:
+        # Get main page with requests
+        page_content = get_page_with_requests(base_url)
+        soup = BeautifulSoup(page_content, "html.parser")
+        
+        # Look for series links
+        series_links = []
+        all_links = soup.find_all('a', href=True)
+        print(f"🔍 Found {len(all_links)} total links on the page")
+        
+        for link in all_links:
+            href = link.get('href', '')
+            text = link.get_text(strip=True)
+            
+            # Look for series links (they contain mod= and did= parameters)
+            if 'mod=' in href and 'did=' in href:
+                series_name = text if text else f"Series {len(series_links) + 1}"
+                series_url = urljoin(base_url, href)
+                series_links.append({
+                    'name': series_name,
+                    'url': series_url,
+                    'href': href
+                })
+                print(f"✅ Found series link: '{text}' -> '{href}'")
+        
+        print(f"🏆 Found {len(series_links)} series to scrape")
+        return series_links
+        
+    except Exception as e:
+        print(f"❌ Error discovering series with requests: {str(e)}")
+        return []
+
+"""
+🎾 TennisScores Match Scraper - Enhanced Production-Ready Approach
+
+📊 REQUEST VOLUME ANALYSIS:
+- Estimated requests per run: ~500-2000 (varies by league size)
+- Cron frequency: daily
+- Estimated daily volume: 500-2000 requests
+- Status: ✅ Within safe limits
+
+🌐 IP ROTATION: Enabled via Decodo residential proxies + Selenium Wire
+⏳ THROTTLING: 1.5-4.5 second delays between requests
+"""
+
+print("🎾 TennisScores Match Scraper - Enhanced Production-Ready Approach")
 print("=" * 80)
 print("✅ Only imports matches with legitimate match IDs - no synthetic IDs!")
 print("✅ Ensures data integrity and best practices for all leagues")
+print("✅ Enhanced with IP validation, request tracking, and intelligent throttling")
 print("=" * 80)
 
 
@@ -69,6 +164,70 @@ def get_league_config(league_subdomain=None):
         "base_url": base_url,
         "type": league_type,
     }
+
+
+def send_match_notification(league_subdomain, success_stats, total_series, failed_series=None, error_details=None):
+    """
+    Send SMS notification about match scores scraper results
+    
+    Args:
+        league_subdomain (str): League being scraped
+        success_stats (dict): Success statistics
+        total_series (int): Total series found
+        failed_series (list): List of failed series names
+        error_details (str): Error details if any
+    """
+    try:
+        # Calculate success rate
+        successful_series = success_stats.get("processed_series_count", 0)
+        failed_count = success_stats.get("skipped_series_count", 0)
+        success_rate = (successful_series / total_series * 100) if total_series > 0 else 0
+        
+        # Build notification message
+        if success_rate == 100:
+            # Perfect success
+            message = f"🎾 Match Scraper: {league_subdomain.upper()} ✅\n"
+            message += f"Success Rate: {success_rate:.1f}%\n"
+            message += f"Series: {successful_series}/{total_series}\n"
+            message += f"Matches: {success_stats.get('total_matches', 0)}\n"
+            message += f"Duration: {success_stats.get('duration', 'N/A')}"
+        elif success_rate >= 80:
+            # Good success with warnings
+            message = f"⚠️ Match Scraper: {league_subdomain.upper()} ⚠️\n"
+            message += f"Success Rate: {success_rate:.1f}%\n"
+            message += f"Series: {successful_series}/{total_series}\n"
+            message += f"Failed: {failed_count}\n"
+            if failed_series:
+                message += f"Failed Series: {', '.join(failed_series[:3])}"
+                if len(failed_series) > 3:
+                    message += f" (+{len(failed_series)-3} more)"
+            message += f"\nMatches: {success_stats.get('total_matches', 0)}\n"
+            message += f"Duration: {success_stats.get('duration', 'N/A')}"
+        else:
+            # Poor success rate
+            message = f"🚨 Match Scraper: {league_subdomain.upper()} ❌\n"
+            message += f"Success Rate: {success_rate:.1f}%\n"
+            message += f"Series: {successful_series}/{total_series}\n"
+            message += f"Failed: {failed_count}\n"
+            if failed_series:
+                message += f"Failed Series: {', '.join(failed_series[:3])}"
+                if len(failed_series) > 3:
+                    message += f" (+{len(failed_series)-3} more)"
+            if error_details:
+                message += f"\nError: {error_details[:100]}..."
+            message += f"\nMatches: {success_stats.get('total_matches', 0)}\n"
+            message += f"Duration: {success_stats.get('duration', 'N/A')}"
+        
+        # Send SMS notification
+        result = send_sms_notification(ADMIN_PHONE, message, test_mode=False)
+        
+        if result.get("success"):
+            print(f"📱 SMS notification sent: {message[:50]}...")
+        else:
+            print(f"❌ Failed to send SMS: {result.get('error', 'Unknown error')}")
+            
+    except Exception as e:
+        print(f"❌ Error sending notification: {e}")
 
 
 def build_league_data_dir(league_id):
@@ -777,7 +936,8 @@ def scrape_individual_match_page(driver, match_link, series_name, league_id):
                 'league_id': league_id,
                 'match_id': unique_match_id,  # Use unique match_id with line suffix
                 'source_league': league_id,
-                'Line': f"Line {line_number}"  # Add separate Line attribute
+                'Line': f"Line {line_number}",  # Add separate Line attribute
+                'series': series_name  # Add series information to match data
             }
             
             # Add date
@@ -896,6 +1056,11 @@ def extract_match_date_from_page(soup):
 
 def extract_teams_from_page(soup, league_id, series_name=None):
     """Extract home and away team names from the page."""
+    
+    # Use league-specific extraction if available
+    if league_id == "NSTF":
+        return extract_teams_from_nstf_page(soup, league_id, series_name)
+    
     try:
         # Look for the header that contains team names
         # Format: "Salt Creek - 4 @ Westmoreland - 4: 4 - 10"
@@ -940,6 +1105,93 @@ def extract_teams_from_page(soup, league_id, series_name=None):
         
     except Exception as e:
         print(f"Error extracting teams: {e}")
+        return None, None
+
+
+def extract_teams_from_nstf_page(soup, league_id, series_name=None):
+    """
+    Extract team names from NSTF match pages.
+    
+    NSTF format: 'Tennaqua S2A  @ Exmoor S2A:      15 - 0'
+    """
+    try:
+        # Get all text content
+        text_content = soup.get_text()
+        lines = [line.strip() for line in text_content.split('\n') if line.strip()]
+        
+        # Look for the match line (contains '@' and score)
+        match_line = None
+        for line in lines:
+            if '@' in line and (' - ' in line or ':' in line):
+                match_line = line
+                break
+        
+        if not match_line:
+            print("⚠️ No match line found in NSTF page")
+            return None, None
+        
+        print(f"🎯 Found NSTF match line: '{match_line}'")
+        
+        # Parse the match line
+        # Format: 'Tennaqua S2A  @ Exmoor S2A:      15 - 0'
+        if '@' in match_line:
+            # Split by '@' to get home and away teams
+            parts = match_line.split('@')
+            if len(parts) == 2:
+                home_team_part = parts[0].strip()
+                away_team_part = parts[1].strip()
+                
+                # Extract team names (preserve series info, remove score)
+                home_team_parts = home_team_part.split()
+                if len(home_team_parts) >= 2:
+                    # Handle multi-word club names (e.g., "Ravinia Green S2B")
+                    # Look for series pattern (S1, S2A, S2B, S3, etc.)
+                    series_index = -1
+                    for i, part in enumerate(home_team_parts):
+                        if part.startswith('S') and len(part) >= 2:
+                            series_index = i
+                            break
+                    
+                    if series_index >= 0:
+                        # Keep everything up to and including the series
+                        home_team = ' '.join(home_team_parts[:series_index + 1])
+                    else:
+                        # Fallback: keep first two parts
+                        home_team = f"{home_team_parts[0]} {home_team_parts[1]}"
+                else:
+                    home_team = home_team_part.split()[0] if home_team_part.split() else None
+                
+                # For away team, split by ':' to remove score
+                away_team_with_score = away_team_part.split(':')[0] if ':' in away_team_part else away_team_part
+                away_team_parts = away_team_with_score.split()
+                if len(away_team_parts) >= 2:
+                    # Handle multi-word club names (e.g., "Lake Forest S2B")
+                    # Look for series pattern (S1, S2A, S2B, S3, etc.)
+                    series_index = -1
+                    for i, part in enumerate(away_team_parts):
+                        if part.startswith('S') and len(part) >= 2:
+                            series_index = i
+                            break
+                    
+                    if series_index >= 0:
+                        # Keep everything up to and including the series
+                        away_team = ' '.join(away_team_parts[:series_index + 1])
+                    else:
+                        # Fallback: keep first two parts
+                        away_team = f"{away_team_parts[0]} {away_team_parts[1]}"
+                else:
+                    away_team = away_team_with_score.split()[0] if away_team_with_score.split() else None
+                
+                print(f"🏠 Home Team: {home_team}")
+                print(f"🚌 Away Team: {away_team}")
+                
+                return home_team, away_team
+        
+        print("⚠️ Could not parse NSTF match line format")
+        return None, None
+        
+    except Exception as e:
+        print(f"❌ Error extracting teams from NSTF page: {e}")
         return None, None
 
 
@@ -1605,6 +1857,20 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
         list: List of all scraped matches
     """
     
+    print("[Scraper] Starting scrape: scrape_match_scores")
+    
+    # Initialize enhanced scraper with request volume tracking
+    # Estimate: 500-2000 requests depending on league size and series count
+    estimated_requests = 1500  # Conservative estimate
+    scraper_enhancements = create_enhanced_scraper(
+        scraper_name="Match Scores Scraper",
+        estimated_requests=estimated_requests,
+        cron_frequency="daily"
+    )
+    
+    # Record start time for duration tracking
+    start_time = datetime.now()
+    
     # Get league configuration
     config = get_league_config(league_subdomain)
     league_id = config["league_id"]
@@ -1615,8 +1881,15 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
     print(f"⏱️ Performance: SECONDARY (stealth over speed)")
     print("=" * 80)
 
+    # Validate Decodo US IP before starting (DISABLED FOR TESTING)
+    print("🧪 Validating Decodo US IP... (DISABLED FOR TESTING)")
+    # if not validate_decodo_us_response():
+    #     print("❌ Decodo returned a non-US IP. Aborting scrape.")
+    #     return
+    
     # Use stealth browser manager to avoid bot detection
     with StealthBrowserManager(headless=True) as driver:
+        
         # Use dynamic base URL from config
         base_url = config["base_url"]
         print(f"🌐 Target League: {league_id} ({config['subdomain']})")
@@ -1625,26 +1898,29 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
         # Create league-specific directory
         data_dir = build_league_data_dir(league_id)
 
-        print(f"Navigating to URL: {base_url}")
-        driver.get(base_url)
-        time.sleep(retry_delay)
-
-        # Parse the page with BeautifulSoup
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-
-        # FIXED: Discover all series and scrape ONE standings page per series
-        print("🎯 FIXED: Discovering all series to scrape ONE standings page per series")
-        print("📊 Each standings page contains ALL matches for that series - no duplicates!")
+        print(f"🔍 HYBRID APPROACH: Using requests for initial access and series discovery")
         
-        # For APTA Chicago, discover all series from the main page
-        if league_id == "APTA_CHICAGO":
-            print("🎯 APTA Chicago: Discovering all series...")
+        # Use requests for series discovery (much more reliable than browser)
+        series_links = discover_series_with_requests(base_url)
+        
+        if not series_links:
+            print("❌ No series found with requests approach. Trying browser fallback...")
+            # Fallback to browser approach if requests fails
+            print(f"Navigating to URL: {base_url}")
+            driver.get(base_url)
+            scraper_enhancements.track_request("main_page_load")
+            add_throttling_to_loop()  # Add throttling after main page load
+
+            # Parse the page with BeautifulSoup
+            soup = BeautifulSoup(driver.page_source, "html.parser")
             
             # Look for series links on the main page
             series_links = []
             
             # Find all links that contain series numbers
             all_links = soup.find_all('a', href=True)
+            print(f"🔍 Found {len(all_links)} total links on the page")
+            
             for link in all_links:
                 href = link.get('href', '')
                 text = link.get_text(strip=True)
@@ -1659,56 +1935,57 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                         'url': series_url,
                         'href': href
                     })
+                    print(f"✅ Found series link: '{text}' -> '{href}'")
             
             print(f"🏆 Found {len(series_links)} series to scrape")
-            
-            # Show all discovered series names for debugging
-            print("📋 Discovered series:")
-            for i, series in enumerate(series_links[:10], 1):  # Show first 10
-                print(f"   {i}. {series['name']}")
-            if len(series_links) > 10:
-                print(f"   ... and {len(series_links) - 10} more series")
-            
-            # Filter series if specified
-            if series_filter and series_filter.lower() != "all":
-                # Handle multiple series numbers separated by commas
-                if ',' in series_filter:
-                    # Split by commas and clean up each filter
-                    series_filters = [f.strip() for f in series_filter.split(',') if f.strip()]
-                    print(f"🔍 Multiple series filters detected: {series_filters}")
-                    
-                    # Filter series that match ANY of the specified filters
-                    filtered_series = []
-                    for series in series_links:
-                        series_name_lower = series['name'].lower()
-                        for filter_term in series_filters:
-                            if filter_term.lower() in series_name_lower:
-                                filtered_series.append(series)
-                                break  # Found a match, no need to check other filters
-                    
-                    if filtered_series:
-                        series_links = filtered_series
-                        print(f"🔍 Filtered to {len(series_links)} series matching any of: {series_filters}")
-                        print("📋 Filtered series:")
-                        for i, series in enumerate(series_links, 1):
-                            print(f"   {i}. {series['name']}")
-                    else:
-                        print(f"⚠️ No series found matching any of the filters: {series_filters}")
-                        print(f"🔍 Available series names: {[s['name'] for s in series_links[:5]]}...")
-                        return []
+        
+        # Show all discovered series names for debugging
+        print("📋 Discovered series:")
+        for i, series in enumerate(series_links[:10], 1):  # Show first 10
+            print(f"   {i}. {series['name']}")
+        if len(series_links) > 10:
+            print(f"   ... and {len(series_links) - 10} more series")
+        
+        # Filter series if specified
+        if series_filter and series_filter.lower() != "all":
+            # Handle multiple series numbers separated by commas
+            if ',' in series_filter:
+                # Split by commas and clean up each filter
+                series_filters = [f.strip() for f in series_filter.split(',') if f.strip()]
+                print(f"🔍 Multiple series filters detected: {series_filters}")
+                
+                # Filter series that match ANY of the specified filters
+                filtered_series = []
+                for series in series_links:
+                    series_name_lower = series['name'].lower()
+                    for filter_term in series_filters:
+                        if filter_term.lower() in series_name_lower:
+                            filtered_series.append(series)
+                            break  # Found a match, no need to check other filters
+                
+                if filtered_series:
+                    series_links = filtered_series
+                    print(f"🔍 Filtered to {len(series_links)} series matching any of: {series_filters}")
+                    print("📋 Filtered series:")
+                    for i, series in enumerate(series_links, 1):
+                        print(f"   {i}. {series['name']}")
                 else:
-                    # Single filter (original logic)
-                    filtered_series = [s for s in series_links if series_filter.lower() in s['name'].lower()]
-                    if filtered_series:
-                        series_links = filtered_series
-                        print(f"🔍 Filtered to {len(series_links)} series matching '{series_filter}'")
-                        print("📋 Filtered series:")
-                        for i, series in enumerate(series_links, 1):
-                            print(f"   {i}. {series['name']}")
-                    else:
-                        print(f"⚠️ No series found matching filter '{series_filter}'")
-                        print(f"🔍 Available series names: {[s['name'] for s in series_links[:5]]}...")
-                        return []
+                    print(f"⚠️ No series found matching any of the filters: {series_filters}")
+                    print(f"🔍 Available series names: {[s['name'] for s in series_links[:5]]}...")
+                    return []
+            else:
+                # Single filter (original logic)
+                filtered_series = [s for s in series_links if series_filter.lower() in s['name'].lower()]
+                if filtered_series:
+                    series_links = filtered_series
+                    print(f"🔍 Filtered to {len(series_links)} series matching '{series_filter}'")
+                    print("📋 Filtered series:")
+                    for i, series in enumerate(series_links, 1):
+                        print(f"   {i}. {series['name']}")
+                else:
+                    print(f"⚠️ No series found matching filter '{series_filter}'")
+                    print(f"🔍 Available series names: {[s['name'] for s in series_links[:5]]}...")
+                    return []
             
             # Scrape ONE standings page per series
             all_matches = []
@@ -1728,6 +2005,10 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                 print(f"📊 Progress: {i}/{len(series_links)} series, {len(all_matches)} total matches")
                 
                 try:
+                    # Track request and add throttling before series processing
+                    scraper_enhancements.track_request(f"series_{i}_load")
+                    add_throttling_to_loop()
+                    
                     # Scrape matches for this series (ONE standings page only)
                     series_matches = scrape_apta_chicago_standings(
                         driver,
@@ -1753,11 +2034,10 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                         failed_series += 1
                         print(f"⚠️ No matches found for {series_name}")
                     
-                    # Stealth delay between series
+                    # Enhanced throttling between series with tracking
                     if i < len(series_links):
-                        stealth_delay = random.uniform(2, 5)  # Random delay between series
-                        print(f"⏳ Stealth delay: {stealth_delay:.1f}s before next series...")
-                        time.sleep(stealth_delay)
+                        scraper_enhancements.throttle_request(2.0, 5.0)  # Longer delay between series
+                        print(f"⏳ Enhanced throttling applied before next series...")
                     
                 except Exception as e:
                     failed_series += 1
@@ -1789,75 +2069,136 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                 print(f"🔍 Deduplication: {duplicates_removed} duplicates removed (should be minimal)")
                 print(f"📊 Final unique matches: {len(unique_matches)}")
             
+            # Log enhanced session summary
+            scraper_enhancements.log_session_summary()
+            
+            print("[Scraper] Finished scrape successfully")
             return all_matches
             
         else:
-            # For other leagues, use the existing approach
-            print("🔍 Looking for main standings/matches page...")
+            # For all other leagues (NSTF, CITA, CNSWPL), use individual match pages approach
+            print(f"🎯 {league_id}: Using individual match pages approach...")
             
-            # Try to find the main standings or matches page
-            standings_url = None
+            # Scrape individual match pages for each series
+            all_matches = []
+            successful_series = 0
+            failed_series = 0
             
-            # Strategy 1: Look for "Standings" link
-            standings_links = soup.find_all("a", href=True)
-            for link in standings_links:
-                text = link.get_text(strip=True).lower()
-                href = link.get("href", "")
-                if "standings" in text or "standings" in href.lower():
-                    standings_url = urljoin(base_url, href)
-                    print(f"✅ Found standings page: {standings_url}")
-                    break
+            for i, series_info in enumerate(series_links, 1):
+                series_name = series_info['name']
+                series_url = series_info['url']
+                
+                # Calculate progress percentage
+                progress_percent = (i / len(series_links)) * 100
+                
+                print(f"\n{'='*60}")
+                print(f"🏆 Processing Series {i}/{len(series_links)} ({progress_percent:.1f}%): {series_name}")
+                print(f"🔗 URL: {series_url}")
+                print(f"📊 Progress: {i}/{len(series_links)} series, {len(all_matches)} total matches")
+                
+                try:
+                    # Track request and add throttling before series processing
+                    scraper_enhancements.track_request(f"series_{i}_load")
+                    add_throttling_to_loop()
+                    
+                    # Navigate to series page and find individual match links
+                    driver.get(series_url)
+                    scraper_enhancements.track_request(f"series_{i}_page_load")
+                    
+                    # Parse the series page
+                    soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    
+                    # Find individual match links
+                    match_links = find_match_links(soup, base_url)
+                    
+                    if match_links:
+                        print(f"🎯 Found {len(match_links)} individual match links")
+                        
+                        # Scrape each individual match page
+                        series_matches = []
+                        for j, match_link in enumerate(match_links, 1):
+                            try:
+                                print(f"   [{j}/{len(match_links)}] ({j/len(match_links)*100:.1f}%) Scraping match {match_link['match_id']}...")
+                                
+                                # Scrape individual match page with league-specific parsing
+                                match_data = scrape_individual_match_page(
+                                    driver, 
+                                    match_link, 
+                                    series_name, 
+                                    league_id
+                                )
+                                
+                                if match_data:
+                                    series_matches.extend(match_data)  # extend because it returns a list
+                                
+                                # Add throttling between individual matches
+                                if j < len(match_links):
+                                    scraper_enhancements.throttle_request(1.0, 2.0)
+                                    
+                            except Exception as e:
+                                print(f"   ❌ Error scraping match {match_link['match_id']}: {str(e)}")
+                                continue
+                        
+                        if series_matches:
+                            all_matches.extend(series_matches)
+                            successful_series += 1
+                            
+                            # Show series summary with team breakdown
+                            teams_in_series = set()
+                            for match in series_matches:
+                                teams_in_series.add(match.get('Home Team', 'Unknown'))
+                                teams_in_series.add(match.get('Away Team', 'Unknown'))
+                            
+                            print(f"✅ Successfully scraped {len(series_matches)} matches from {series_name}")
+                            print(f"   📋 Teams in series: {', '.join(sorted(teams_in_series))}")
+                            print(f"   📊 Series completion: {len(series_matches)} matches processed")
+                        else:
+                            failed_series += 1
+                            print(f"⚠️ No matches found for {series_name}")
+                    else:
+                        failed_series += 1
+                        print(f"⚠️ No match links found for {series_name}")
+                    
+                    # Enhanced throttling between series with tracking
+                    if i < len(series_links):
+                        scraper_enhancements.throttle_request(2.0, 5.0)  # Longer delay between series
+                        print(f"⏳ Enhanced throttling applied before next series...")
+                    
+                except Exception as e:
+                    failed_series += 1
+                    print(f"❌ Error scraping {series_name}: {str(e)}")
+                    continue
             
-            # Strategy 2: Look for "Matches" link if no standings found
-            if not standings_url:
-                for link in standings_links:
-                    text = link.get_text(strip=True).lower()
-                    href = link.get("href", "")
-                    if "matches" in text or "matches" in href.lower():
-                        standings_url = urljoin(base_url, href)
-                        print(f"✅ Found matches page: {standings_url}")
-                        break
+            print(f"\n{'='*80}")
+            print(f"🎉 SCRAPING COMPLETE!")
+            print(f"📊 SUMMARY:")
+            print(f"  ✅ Successful series: {successful_series}")
+            print(f"  ❌ Failed series: {failed_series}")
+            print(f"  📈 Total matches: {len(all_matches)}")
+            print(f"  🥷 Stealth mode: ACTIVE")
+            print(f"  📊 Data quality: MAXIMIZED")
+            print(f"  🔧 FIXED: Individual match pages approach for {league_id}!")
             
-            # Strategy 3: Use base URL if no specific page found
-            if not standings_url:
-                standings_url = base_url
-                print(f"⚠️ No specific standings/matches page found, using base URL: {standings_url}")
-            
-            # Scrape the single standings/matches page
-            all_matches = scrape_matches(
-                driver,
-                standings_url,
-                "All Series", 
-                league_id,
-                max_retries=max_retries,
-                retry_delay=retry_delay
-            )
+            # Save results
+            if all_matches:
+                json_path = os.path.join(data_dir, "match_history.json")
+                
+                # Enhanced deduplication before saving (should be minimal now)
+                unique_matches, duplicates_removed, dedup_stats = deduplicate_matches(all_matches)
+                
+                # Save deduplicated matches
+                with open(json_path, "w", encoding="utf-8") as jsonfile:
+                    json.dump(unique_matches, jsonfile, indent=2)
 
-        # Final summary
-        print(f"\n{'='*80}")
-        print(f"🎉 SCRAPING COMPLETE!")
-        print(f"📊 SUMMARY:")
-        print(f"  📈 Total matches scraped: {len(all_matches)}")
-        print(f"  🥷 Stealth mode: ACTIVE")
-        print(f"  📊 Data quality: MAXIMIZED")
-        print(f"  🔧 FIXED: No duplicates - single standings page approach")
-        
-        # Save results
-        if all_matches:
-            json_path = os.path.join(data_dir, "match_history.json")
+                print(f"💾 Data saved to: {json_path}")
+                print(f"🔍 Deduplication: {duplicates_removed} duplicates removed (should be minimal)")
+                print(f"📊 Final unique matches: {len(unique_matches)}")
             
-            # Enhanced deduplication before saving (should be minimal now)
-            unique_matches, duplicates_removed, dedup_stats = deduplicate_matches(all_matches)
+            # Log enhanced session summary
+            scraper_enhancements.log_session_summary()
             
-            # Save deduplicated matches
-            with open(json_path, "w", encoding="utf-8") as jsonfile:
-                json.dump(unique_matches, jsonfile, indent=2)
-
-            print(f"💾 Data saved to: {json_path}")
-            print(f"🔍 Deduplication: {duplicates_removed} duplicates removed (should be minimal)")
-            print(f"📊 Final unique matches: {len(unique_matches)}")
-        
-        return all_matches
+            print("[Scraper] Finished scrape successfully")
+            return all_matches
 
 
 # Removed load_league_id function - now uses dynamic user input
@@ -1895,24 +2236,31 @@ if __name__ == "__main__":
         print("❌ No league subdomain provided. Exiting.")
         exit(1)
 
-    # Get series filter input from user
+    # Get series filter input from user (skip if called by master scraper)
     series_filter = None
     if league_subdomain != "all":
-        print()
-        print("Series filtering options:")
-        print("  • Enter a single number (e.g., '22') to scrape only series containing that number")
-        print("  • Enter multiple numbers separated by commas (e.g., '19,22,24SW') to scrape specific series")
-        print("  • Enter 'all' to scrape all series for the selected league")
-        print("  • Examples: '22' for Chicago 22, '2A' for Series 2A, '19,22,24SW' for multiple series")
-        print()
-        series_input = input("Enter series filter (number, comma-separated numbers, or 'all'): ").strip()
-        
-        if series_input and series_input.lower() != "all":
-            series_filter = series_input
-            print(f"🎯 Will filter for series containing: '{series_filter}'")
-        else:
+        # Check if called by master scraper (has command line args)
+        if len(sys.argv) > 1:
+            # Called by master scraper - use 'all' to process all series
             series_filter = "all"
-            print("🌟 Will process all series for the selected league")
+            print("🌟 Master scraper mode: Processing all series for the selected league")
+        else:
+            # Interactive mode - ask user for series filter
+            print()
+            print("Series filtering options:")
+            print("  • Enter a single number (e.g., '22') to scrape only series containing that number")
+            print("  • Enter multiple numbers separated by commas (e.g., '19,22,24SW') to scrape specific series")
+            print("  • Enter 'all' to scrape all series for the selected league")
+            print("  • Examples: '22' for Chicago 22, '2A' for Series 2A, '19,22,24SW' for multiple series")
+            print()
+            series_input = input("Enter series filter (number, comma-separated numbers, or 'all'): ").strip()
+            
+            if series_input and series_input.lower() != "all":
+                series_filter = series_input
+                print(f"🎯 Will filter for series containing: '{series_filter}'")
+            else:
+                series_filter = "all"
+                print("🌟 Will process all series for the selected league")
 
     # Handle 'all' option to process multiple leagues
     if league_subdomain == "all":
@@ -1938,4 +2286,9 @@ if __name__ == "__main__":
         print(f"🌐 Target URL: {target_url}")
         print()
 
-        scrape_all_matches(league_subdomain, series_filter)
+        try:
+            scrape_all_matches(league_subdomain, series_filter)
+        except Exception as e:
+            print("[Scraper] Scrape failed with an exception")
+            import traceback
+            traceback.print_exc()

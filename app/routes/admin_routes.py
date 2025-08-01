@@ -565,7 +565,7 @@ def enhance_scraper_message(message, scraper_type):
         return message
 
     # Enhanced descriptions for stats scraper
-    if scraper_type == "scraper_stats":
+    if scraper_type == "scrape_stats":
         if "Found" in message and "series" in message:
             return f"🏆 Discovery: {message}"
         elif "Processing" in message and "Series" in message:
@@ -1015,7 +1015,7 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
                     elapsed = current_time - scraper_start_time
                     elapsed_str = f"{int(elapsed.total_seconds())}s"
                     if output_count > 0:
-                        if scraper == "scraper_stats":
+                        if scraper == "scrape_stats":
                             status_msg = f"⏱️ Statistics extraction running for {elapsed_str} - processed {output_count} data points"
                         elif scraper == "scraper_schedule":
                             status_msg = f"⏱️ Schedule scraping running for {elapsed_str} - processed {output_count} schedule entries"

@@ -296,7 +296,7 @@
                         <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
                     </div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Matches</h3>
-                    <p class="text-gray-500">No match data available yet</p>
+                    <p class="text-gray-500" id="noMatchesMessage">No match data available yet</p>
                 </div>
                 
                 <!-- Matches List -->
@@ -368,8 +368,13 @@
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-chart-bar text-gray-400 text-2xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Match Data</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Match Data Available</h3>
+            {% if session_data.user.series and "2B" in session_data.user.series %}
+            <p class="text-gray-500 mb-4">Series 2B doesn't have any completed matches yet.</p>
+            <p class="text-sm text-gray-400">Check back after your first match is played!</p>
+            {% else %}
             <p class="text-gray-500">Start playing matches to see your analysis here!</p>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -860,6 +865,17 @@ async function loadLast3Matches() {
 // Initialize analyze-me page with auto-refresh capabilities
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Analyze Me page loaded');
+    
+    // Update no matches message based on series
+    const noMatchesMessage = document.getElementById('noMatchesMessage');
+    if (noMatchesMessage) {
+        const seriesText = '{{ session_data.user.series }}';
+        if (seriesText && seriesText.includes('2B')) {
+            noMatchesMessage.textContent = 'Series 2B doesn\'t have any completed matches yet.';
+        } else {
+            noMatchesMessage.textContent = 'No match data available yet';
+        }
+    }
     
     // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league switching)
     document.addEventListener('visibilitychange', function() {
