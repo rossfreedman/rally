@@ -19,6 +19,9 @@ from database_config import get_db
 
 logger = logging.getLogger(__name__)
 
+# Global counter to reduce constraint violation logging frequency
+_constraint_violation_count = 0
+
 
 @contextmanager
 def get_db_cursor(commit=True):
@@ -41,9 +44,13 @@ def get_db_cursor(commit=True):
                 conn.commit()
         except psycopg2.Error as e:
             conn.rollback()
-            # Reduce logging verbosity to prevent Railway rate limit during ETL
+            # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
             if "unique or exclusion constraint" in str(e):
-                logger.warning(f"Constraint violation (common during ETL): {str(e)[:100]}...")
+                global _constraint_violation_count
+                _constraint_violation_count += 1
+                # Only log every 50th constraint violation to prevent log spam
+                if _constraint_violation_count % 50 == 1:
+                    logger.warning(f"Constraint violations occurring (#{_constraint_violation_count}). Suppressing similar logs to prevent rate limit.")
             else:
                 logger.error(f"Database error: {str(e)}")
                 logger.error(
@@ -77,9 +84,13 @@ def execute_query(query, params=None, commit=True):
                 return cursor.fetchall()
             return None
     except Exception as e:
-        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
         if "unique or exclusion constraint" in str(e):
-            logger.warning(f"Constraint violation in query (common during ETL)")
+            global _constraint_violation_count
+            _constraint_violation_count += 1
+            # Suppress most constraint violation logs
+            if _constraint_violation_count % 50 == 1:
+                logger.warning(f"Constraint violations in queries (#{_constraint_violation_count}). Suppressing similar logs.")
         else:
             logger.error(f"Query execution failed: {query}")
             logger.error(f"Parameters: {params}")
@@ -105,9 +116,13 @@ def execute_query_one(query, params=None, commit=True):
                 return cursor.fetchone()
             return None
     except Exception as e:
-        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
         if "unique or exclusion constraint" in str(e):
-            logger.warning(f"Constraint violation in query (common during ETL)")
+            global _constraint_violation_count
+            _constraint_violation_count += 1
+            # Suppress most constraint violation logs
+            if _constraint_violation_count % 50 == 1:
+                logger.warning(f"Constraint violations in queries (#{_constraint_violation_count}). Suppressing similar logs.")
         else:
             logger.error(f"Query execution failed: {query}")
             logger.error(f"Parameters: {params}")
@@ -130,9 +145,13 @@ def execute_update(query, params=None):
             cursor.execute(query, params)
             return True
     except Exception as e:
-        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
         if "unique or exclusion constraint" in str(e):
-            logger.warning(f"Constraint violation in update (common during ETL)")
+            global _constraint_violation_count
+            _constraint_violation_count += 1
+            # Suppress most constraint violation logs
+            if _constraint_violation_count % 50 == 1:
+                logger.warning(f"Constraint violations in updates (#{_constraint_violation_count}). Suppressing similar logs.")
         else:
             logger.error(f"Update failed: {query}")
             logger.error(f"Parameters: {params}")
@@ -152,9 +171,13 @@ def execute_many(query, params_list, commit=True):
         with get_db_cursor(commit=commit) as cursor:
             cursor.executemany(query, params_list)
     except Exception as e:
-        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
         if "unique or exclusion constraint" in str(e):
-            logger.warning(f"Constraint violation in batch execution (common during ETL)")
+            global _constraint_violation_count
+            _constraint_violation_count += 1
+            # Suppress most constraint violation logs
+            if _constraint_violation_count % 50 == 1:
+                logger.warning(f"Constraint violations in batch execution (#{_constraint_violation_count}). Suppressing similar logs.")
         else:
             logger.error(f"Batch execution failed: {query}")
             logger.error(

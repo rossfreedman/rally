@@ -26,6 +26,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Local counter for constraint violations
+_constraint_violation_count = 0
+
 # Global flag to track if we've already logged a successful connection
 _connection_logged = False
 
@@ -271,9 +274,13 @@ def get_db():
                 retry_delay *= 2  # Exponential backoff
 
         except Exception as e:
-            # Reduce logging verbosity to prevent Railway rate limit during ETL
+            # Drastically reduce logging verbosity to prevent Railway rate limit during ETL
             if "unique or exclusion constraint" in str(e):
-                logger.warning(f"Constraint violation during database operation (common during ETL)")
+                global _constraint_violation_count
+                _constraint_violation_count += 1
+                # Only log every 50th constraint violation to prevent log spam
+                if _constraint_violation_count % 50 == 1:
+                    logger.warning(f"Database constraint violations occurring (#{_constraint_violation_count}). Suppressing similar logs to prevent rate limit.")
             else:
                 logger.error(f"Unexpected database error: {str(e)}")
                 logger.error(
