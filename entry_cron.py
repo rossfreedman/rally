@@ -104,6 +104,30 @@ def send_start_sms(start_time):
     except Exception as e:
         print(f"⚠️ Failed to send start SMS: {e}")
 
+def run_constraint_fix():
+    """Run database constraint fixer to resolve ETL import issues"""
+    try:
+        print("🔧 Starting Database Constraint Fix...")
+        
+        # Import the constraint fixer
+        from scripts.fix_missing_database_constraints import DatabaseConstraintFixer
+        
+        fixer = DatabaseConstraintFixer()
+        success = fixer.fix_all_constraints()
+        
+        if success:
+            print("✅ Database constraints fixed successfully!")
+            return True
+        else:
+            print("❌ Failed to fix some database constraints")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Constraint fix failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 def main():
     """
     Main entry point for cron job execution.
@@ -120,8 +144,34 @@ def main():
     )
     logger = logging.getLogger(__name__)
     
-    # Pipeline start
+    # Check if we should only run constraint fix
+    fix_constraints_mode = os.environ.get('FIX_CONSTRAINTS', '').lower() == 'true'
+    
     start_time = datetime.now()
+    
+    if fix_constraints_mode:
+        print("🔧 Rally Database Constraint Fix Mode")
+        print("=" * 60)
+        print(f"🕐 Start Time: {start_time}")
+        print("📋 Mode: Fix Database Constraints Only")
+        print("🔧 Running from entry_cron.py (constraint fix mode)")
+        print("=" * 60)
+        
+        success = run_constraint_fix()
+        
+        end_time = datetime.now()
+        duration = end_time - start_time
+        total_seconds = duration.total_seconds()
+        
+        if success:
+            print(f"🎉 Constraint fix completed successfully in {int(total_seconds)}s")
+            print("💡 You can now run the normal ETL pipeline")
+            sys.exit(0)
+        else:
+            print(f"❌ Constraint fix failed after {int(total_seconds)}s")
+            sys.exit(1)
+    
+    # Normal pipeline mode
     print("🚀 Rally Data Pipeline Starting (Standalone Entry Point)")
     print("=" * 60)
     print(f"🕐 Start Time: {start_time}")
