@@ -3,14 +3,20 @@ nixPkgs = [
     "python311", 
     "python311Packages.pip",
     "zlib",
+    "zlib.dev",
     "postgresql_15",
-    "openssl"
+    "postgresql_15.lib",
+    "openssl",
+    "pkg-config"
 ]
 
 [phases.install]
 cmds = [
     "pip install --break-system-packages -r requirements.txt"
 ]
+
+[variables]
+LD_LIBRARY_PATH = "/nix/store/*-zlib-*/lib:/nix/store/*-postgresql-*/lib:$LD_LIBRARY_PATH"
 
 [start]
 # Smart start command that detects cron jobs vs web deployment
