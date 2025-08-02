@@ -24,6 +24,7 @@ Railway Configuration:
 # CRITICAL: Set environment variables BEFORE any other imports
 import os
 import sys
+import subprocess
 
 # Prevent Flask startup immediately
 os.environ['CRON_JOB_MODE'] = 'true'
@@ -43,32 +44,142 @@ print(f"🔧 FLASK_ENV: {os.environ.get('FLASK_ENV')}")
 print(f"📁 Project Root: {project_root}")
 print("=" * 50)
 
+def run_master_scraper():
+    """Run the enhanced master scraper step using subprocess to avoid Flask imports"""
+    try:
+        # Run enhanced master scraper as subprocess to avoid Flask app startup
+        result = subprocess.run([
+            sys.executable, 
+            "data/etl/scrapers/master_scraper.py",
+            "--max-retries", "5",
+            "--min-delay", "3.0",
+            "--max-delay", "8.0", 
+            "--requests-per-proxy", "25",
+            "--session-duration", "900",
+            "--timeout", "45"
+        ], capture_output=True, text=True, cwd=project_root)
+        
+        if result.returncode != 0:
+            print(f"❌ Enhanced scraper failed with return code {result.returncode}")
+            print(f"STDOUT: {result.stdout}")
+            print(f"STDERR: {result.stderr}")
+            raise Exception(f"Enhanced scraper subprocess failed with return code {result.returncode}")
+        
+        print("✅ Enhanced scraper complete: Data scraping finished successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Enhanced scraper failed: {str(e)}")
+        raise
+
+def run_etl_import():
+    """Run the ETL import step using subprocess to avoid Flask imports"""
+    try:
+        # Run master importer as subprocess to avoid Flask app startup
+        result = subprocess.run([
+            sys.executable, 
+            "data/etl/database_import/master_import.py"
+        ], capture_output=True, text=True, cwd=project_root)
+        
+        if result.returncode != 0:
+            print(f"❌ ETL import failed with return code {result.returncode}")
+            print(f"STDOUT: {result.stdout}")
+            print(f"STDERR: {result.stderr}")
+            raise Exception(f"ETL import subprocess failed with return code {result.returncode}")
+        
+        print("✅ ETL complete: Database import successful")
+        return True
+        
+    except Exception as e:
+        print(f"❌ ETL import failed: {str(e)}")
+        raise
+
+def send_start_sms(start_time):
+    """Send start SMS notification with isolated import"""
+    try:
+        from app.services.notifications_service import send_sms
+        start_time_formatted = start_time.strftime("%m-%d-%y @ %I:%M:%S %p")
+        send_sms("17732138911", f"Rally Cronjob:\nSTARTING Cronjob a {start_time_formatted}")
+        print("📱 Start SMS sent")
+    except Exception as e:
+        print(f"⚠️ Failed to send start SMS: {e}")
+
 def main():
     """
     Main entry point for cron job execution.
-    Imports and runs the pipeline directly without Flask startup risk.
+    Standalone pipeline implementation that doesn't depend on cronjobs/run_pipeline.py
     """
+    import logging
+    from datetime import datetime
+    
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        handlers=[logging.StreamHandler(sys.stdout)]
+    )
+    logger = logging.getLogger(__name__)
+    
+    # Pipeline start
+    start_time = datetime.now()
+    print("🚀 Rally Data Pipeline Starting (Standalone Entry Point)")
+    print("=" * 60)
+    print(f"🕐 Start Time: {start_time}")
+    print("📋 Pipeline Steps: Scraper → ETL Import")
+    print("🔧 Running from entry_cron.py (no cronjobs dependency)")
+    print("=" * 60)
+    
+    # Send start SMS
+    send_start_sms(start_time)
+    
+    # Step 1: Enhanced Master Scraper
     try:
-        print("📋 Importing pipeline module...")
+        print("🔍 Starting enhanced master scraper with stealth measures...")
+        print("🛡️ Features: Auto-detection, proxy rotation, CAPTCHA detection, retry logic")
         
-        # Import the pipeline main function directly
-        # This import is safe because we've set CRON_JOB_MODE=true above
-        from cronjobs.run_pipeline import main as pipeline_main
+        run_master_scraper()
         
-        print("✅ Pipeline module imported successfully")
-        print("🚀 Starting pipeline execution...")
+        print("✅ Enhanced scraper complete: Data scraping finished successfully")
         
-        # Run the pipeline
-        pipeline_main()
-        
-    except ImportError as e:
-        print(f"❌ Failed to import pipeline module: {e}")
-        sys.exit(1)
     except Exception as e:
-        print(f"❌ Pipeline execution failed: {e}")
+        error_msg = f"❌ Scraper failed: {str(e)}"
+        print(error_msg)
         import traceback
         traceback.print_exc()
         sys.exit(1)
+    
+    # Step 2: ETL Import
+    try:
+        print("📥 Starting ETL import...")
+        
+        run_etl_import()
+        
+        print("✅ ETL complete: Database import successful")
+        
+    except Exception as e:
+        error_msg = f"❌ ETL import failed: {str(e)}"
+        print(error_msg)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+    
+    # Pipeline completion
+    end_time = datetime.now()
+    duration = end_time - start_time
+    total_seconds = duration.total_seconds()
+    
+    if total_seconds < 60:
+        formatted_duration = f"{int(total_seconds)}s"
+    else:
+        minutes = int(total_seconds // 60)
+        seconds = int(total_seconds % 60)
+        formatted_duration = f"{minutes}m {seconds}s"
+    
+    print("🎉 All done: Rally cron job completed successfully")
+    print(f"📊 Total Pipeline Duration: {formatted_duration}")
+    print("📱 Note: ETL import has already sent completion notification")
+    
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()

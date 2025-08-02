@@ -105,6 +105,11 @@ class StealthConfig:
     timeout: int = 30
     requests_per_proxy: int = 30
     session_duration: int = 600
+    # Delta mode configuration
+    delta_mode: bool = False
+    delta_start_date: Optional[str] = None
+    delta_end_date: Optional[str] = None
+    delta_config_file: str = "data/etl/scrapers/delta_scraper_config.json"
 
 class IncrementalScrapingManager:
     """Manages incremental scraping using 10-day sliding window approach"""
@@ -159,25 +164,65 @@ class IncrementalScrapingManager:
         logger.info(f"📅 Scrape window: {start_date_str} to {today.strftime('%Y-%m-%d')} ({self.sliding_window_days} days)")
         return start_date_str
     
-    def scrape_matches_since(self, start_date: str) -> List[Dict]:
+    def scrape_matches_since(self, start_date: str, stealth_config: Optional[StealthConfig] = None) -> List[Dict]:
         """
-        Scrape matches since the given start date.
+        Scrape matches since the given start date using delta mode.
         
         Args:
             start_date: Date string in YYYY-MM-DD format
+            stealth_config: Optional stealth configuration for delta mode
             
         Returns:
             List of match dictionaries with 'id', 'date', 'score' fields
         """
-        # TODO: This is a placeholder - implement actual scraping logic
-        # This should call your existing scraping functions with date filtering
         logger.info(f"🔍 Scraping matches since {start_date}...")
         
-        # For now, return empty list - this needs to be implemented with actual scraper
-        scraped_matches = []
+        # Calculate end date (today)
+        end_date = datetime.today().strftime('%Y-%m-%d')
         
-        logger.info(f"📥 Scraped {len(scraped_matches)} matches since {start_date}")
-        return scraped_matches
+        try:
+            # Build command for delta scraping
+            cmd = [
+                "python3", "data/etl/scrapers/scrape_match_scores.py",
+                "all",  # Scrape all leagues
+                "--delta-mode",
+                "--start-date", start_date,
+                "--end-date", end_date
+            ]
+            
+            # Add stealth config parameters if available
+            if stealth_config:
+                if stealth_config.fast_mode:
+                    cmd.append("--fast-mode")
+                if stealth_config.verbose:
+                    cmd.append("--verbose")
+            
+            logger.info(f"🚀 Running delta scraper: {' '.join(cmd)}")
+            
+            # Run the delta scraper
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+            
+            if result.returncode == 0:
+                logger.info(f"✅ Delta scraping completed successfully")
+                logger.info(f"📥 Output: {result.stdout[:200]}...")
+                
+                # Load the scraped results from the output file
+                # The scraper should have updated the match_scores.json file
+                if os.path.exists(self.match_scores_file):
+                    with open(self.match_scores_file, 'r') as f:
+                        scraped_matches = json.load(f)
+                    logger.info(f"📥 Loaded {len(scraped_matches)} matches from scraper output")
+                    return scraped_matches
+                else:
+                    logger.warning(f"⚠️ No output file found after scraping")
+                    return []
+            else:
+                logger.error(f"❌ Delta scraping failed: {result.stderr}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Error during delta scraping: {e}")
+            return []
     
     def compare_and_merge_matches(self, existing_matches: List[Dict], existing_ids: Set[str], 
                                 id_to_match: Dict[str, Dict], scraped_matches: List[Dict]) -> Tuple[List[Dict], int, int]:
@@ -281,9 +326,12 @@ class IncrementalScrapingManager:
             logger.error(f"❌ Error saving matches: {e}")
             return False
     
-    def run_incremental_scrape(self) -> Dict[str, Any]:
+    def run_incremental_scrape(self, stealth_config: Optional[StealthConfig] = None) -> Dict[str, Any]:
         """
         Run the complete incremental scraping process.
+        
+        Args:
+            stealth_config: Optional stealth configuration for delta mode
         
         Returns:
             Dictionary with scraping results and statistics
@@ -293,11 +341,15 @@ class IncrementalScrapingManager:
         # Step 1: Load existing matches
         existing_matches, existing_ids, id_to_match = self.load_existing_matches()
         
-        # Step 2: Define scrape window
-        start_date = self.get_scrape_window()
+        # Step 2: Define scrape window (or use delta mode dates)
+        if stealth_config and stealth_config.delta_mode and stealth_config.delta_start_date:
+            start_date = stealth_config.delta_start_date
+            logger.info(f"🎯 Using delta mode start date: {start_date}")
+        else:
+            start_date = self.get_scrape_window()
         
-        # Step 3: Scrape recent matches
-        scraped_matches = self.scrape_matches_since(start_date)
+        # Step 3: Scrape recent matches using delta mode
+        scraped_matches = self.scrape_matches_since(start_date, stealth_config)
         
         # Step 4: Compare and merge
         updated_matches, new_count, updated_count = self.compare_and_merge_matches(
@@ -355,6 +407,9 @@ class EnhancedMasterScraper:
         logger.info(f"   Mode: {'FAST' if stealth_config.fast_mode else 'STEALTH'}")
         logger.info(f"   Environment: {stealth_config.environment}")
         logger.info(f"   Verbose: {stealth_config.verbose}")
+        logger.info(f"   Delta Mode: {stealth_config.delta_mode}")
+        if stealth_config.delta_mode and stealth_config.delta_start_date and stealth_config.delta_end_date:
+            logger.info(f"   Delta Range: {stealth_config.delta_start_date} to {stealth_config.delta_end_date}")
     
     def analyze_scraping_strategy(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> Dict[str, Any]:
         """Analyze and determine the scraping strategy using 10-day sliding window."""
@@ -403,8 +458,8 @@ class EnhancedMasterScraper:
         logger.info(f"   Goal: Capture new and updated matches efficiently")
         
         try:
-            # Run the incremental scraping process
-            results = self.incremental_manager.run_incremental_scrape()
+            # Run the incremental scraping process with stealth config
+            results = self.incremental_manager.run_incremental_scrape(self.config)
             
             # Check if scraping was successful
             if results["success"]:
@@ -431,14 +486,29 @@ class EnhancedMasterScraper:
         logger.info(f"   Scope: All series and teams")
         logger.info(f"   Goal: Complete data refresh")
         
-        # For full scraping, we run the scraper without date restrictions
+        # For full scraping, we run the scraper (with delta mode if enabled)
         try:
-            result = subprocess.run([
+            cmd = [
                 "python3", "data/etl/scrapers/scrape_match_scores.py",
-                "all",  # Scrape all leagues
-                "--fast" if self.config.fast_mode else "",
-                "--verbose" if self.config.verbose else ""
-            ], capture_output=True, text=True, timeout=3600)
+                "all"  # Scrape all leagues
+            ]
+            
+            # Add delta mode parameters if enabled
+            if self.config.delta_mode:
+                cmd.extend(["--delta-mode"])
+                if self.config.delta_start_date:
+                    cmd.extend(["--start-date", self.config.delta_start_date])
+                if self.config.delta_end_date:
+                    cmd.extend(["--end-date", self.config.delta_end_date])
+            
+            # Add other configuration parameters
+            if self.config.fast_mode:
+                cmd.append("--fast-mode")
+            if self.config.verbose:
+                cmd.append("--verbose")
+            
+            logger.info(f"🚀 Running full scraper: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
             
             if result.returncode == 0:
                 logger.info("✅ Full scraping completed successfully")
@@ -571,6 +641,13 @@ def main():
     parser.add_argument("--session-duration", type=int, default=600, help="Session duration in seconds")
     parser.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")
     
+    # Delta mode arguments
+    parser.add_argument("--delta-mode", action="store_true", help="Enable delta scraping mode")
+    parser.add_argument("--delta-start-date", help="Start date for delta scraping (YYYY-MM-DD)")
+    parser.add_argument("--delta-end-date", help="End date for delta scraping (YYYY-MM-DD)")
+    parser.add_argument("--delta-config", default="data/etl/scrapers/delta_scraper_config.json", 
+                       help="Path to delta configuration file")
+    
     args = parser.parse_args()
     
     # Create stealth configuration
@@ -583,7 +660,12 @@ def main():
         max_delay=args.max_delay,
         timeout=args.timeout,
         requests_per_proxy=args.requests_per_proxy,
-        session_duration=args.session_duration
+        session_duration=args.session_duration,
+        # Delta mode configuration
+        delta_mode=args.delta_mode,
+        delta_start_date=args.delta_start_date,
+        delta_end_date=args.delta_end_date,
+        delta_config_file=args.delta_config
     )
     
     # Create enhanced master scraper
@@ -596,6 +678,9 @@ def main():
     logger.info(f"   League: {args.league or 'All'}")
     logger.info(f"   Force Full: {args.force_full}")
     logger.info(f"   Force Incremental: {args.force_incremental}")
+    logger.info(f"   Delta Mode: {args.delta_mode}")
+    if args.delta_mode and args.delta_start_date and args.delta_end_date:
+        logger.info(f"   Delta Range: {args.delta_start_date} to {args.delta_end_date}")
     
     try:
         # Run scraping step

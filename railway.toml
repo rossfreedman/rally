@@ -7,17 +7,17 @@ healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-# Production ETL Cron Job Services - Use smart start with cron job detection
+# Production ETL Cron Job Services - Use entry_cron.py (no directory dependencies)
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "CRON_JOB_MODE=true FLASK_APP='' python smart_start.py"
-# Smart start script handles file path resolution and cron job detection
+command = "python entry_cron.py"
+# Uses entry_cron.py which is deployed to /app root directory
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
-command = "CRON_JOB_MODE=true FLASK_APP='' python smart_start.py"
-# Smart start script handles file path resolution and cron job detection
+command = "python entry_cron.py"
+# Uses entry_cron.py which is deployed to /app root directory
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
