@@ -41,10 +41,14 @@ def get_db_cursor(commit=True):
                 conn.commit()
         except psycopg2.Error as e:
             conn.rollback()
-            logger.error(f"Database error: {str(e)}")
-            logger.error(
-                f"Query failed: {getattr(cursor, 'query', 'No query available')}"
-            )
+            # Reduce logging verbosity to prevent Railway rate limit during ETL
+            if "unique or exclusion constraint" in str(e):
+                logger.warning(f"Constraint violation (common during ETL): {str(e)[:100]}...")
+            else:
+                logger.error(f"Database error: {str(e)}")
+                logger.error(
+                    f"Query failed: {getattr(cursor, 'query', 'No query available')}"
+                )
             raise
         except Exception as e:
             conn.rollback()
@@ -73,8 +77,12 @@ def execute_query(query, params=None, commit=True):
                 return cursor.fetchall()
             return None
     except Exception as e:
-        logger.error(f"Query execution failed: {query}")
-        logger.error(f"Parameters: {params}")
+        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        if "unique or exclusion constraint" in str(e):
+            logger.warning(f"Constraint violation in query (common during ETL)")
+        else:
+            logger.error(f"Query execution failed: {query}")
+            logger.error(f"Parameters: {params}")
         raise
 
 
@@ -97,8 +105,12 @@ def execute_query_one(query, params=None, commit=True):
                 return cursor.fetchone()
             return None
     except Exception as e:
-        logger.error(f"Query execution failed: {query}")
-        logger.error(f"Parameters: {params}")
+        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        if "unique or exclusion constraint" in str(e):
+            logger.warning(f"Constraint violation in query (common during ETL)")
+        else:
+            logger.error(f"Query execution failed: {query}")
+            logger.error(f"Parameters: {params}")
         raise
 
 
@@ -118,8 +130,12 @@ def execute_update(query, params=None):
             cursor.execute(query, params)
             return True
     except Exception as e:
-        logger.error(f"Update failed: {query}")
-        logger.error(f"Parameters: {params}")
+        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        if "unique or exclusion constraint" in str(e):
+            logger.warning(f"Constraint violation in update (common during ETL)")
+        else:
+            logger.error(f"Update failed: {query}")
+            logger.error(f"Parameters: {params}")
         raise
 
 
@@ -136,8 +152,12 @@ def execute_many(query, params_list, commit=True):
         with get_db_cursor(commit=commit) as cursor:
             cursor.executemany(query, params_list)
     except Exception as e:
-        logger.error(f"Batch execution failed: {query}")
-        logger.error(
-            f"First set of parameters: {params_list[0] if params_list else None}"
-        )
+        # Reduce logging verbosity to prevent Railway rate limit during ETL
+        if "unique or exclusion constraint" in str(e):
+            logger.warning(f"Constraint violation in batch execution (common during ETL)")
+        else:
+            logger.error(f"Batch execution failed: {query}")
+            logger.error(
+                f"First set of parameters: {params_list[0] if params_list else None}"
+            )
         raise
