@@ -4212,7 +4212,7 @@ def get_court_assignments_data(user):
         # This is a simplified version - could be expanded for more complex court assignment tracking
         return {
             "assignments_summary": "Court assignments based on historical match data",
-            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "last_updated": datetime.now().strftime("%m-%d-%y @ %I:%M %p"),
             "data_source": "Database match records"
         }
         

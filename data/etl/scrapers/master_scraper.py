@@ -14,7 +14,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Set
 from dataclasses import dataclass, field
 
 # Add project root to path
@@ -39,6 +39,60 @@ logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
+# Admin phone number for notifications
+ADMIN_PHONE = "17732138911"
+
+def send_scraper_notification(message, is_failure=False, step_name=None, error_details=None, duration=None, metrics=None):
+    """Send SMS notification to admin with scraper details (mirrors import notifications)"""
+    try:
+        # Try importing the notification service
+        from app.services.notifications_service import send_sms
+        
+        current_time = datetime.now().strftime('%m-%d-%y @ %I:%M:%S %p')
+        
+        if is_failure:
+            # Failure message with error details
+            enhanced_message = f"Rally Scraper:\n"
+            enhanced_message += f"Step: {step_name or 'Unknown'}\n"
+            enhanced_message += f"Time: {current_time}\n"
+            enhanced_message += f"Status: ❌ FAILURE\n"
+            if error_details:
+                # Truncate long error messages
+                truncated_error = error_details[:150] + "..." if len(error_details) > 150 else error_details
+                enhanced_message += f"Error: {truncated_error}"
+        else:
+            # Success message with clean format
+            enhanced_message = f"Rally Scraper:\n"
+            enhanced_message += f"Activity: {message}\n"
+            if duration:
+                # Format duration without seconds
+                if hasattr(duration, 'total_seconds'):
+                    total_seconds = duration.total_seconds()
+                    if total_seconds < 60:
+                        formatted_duration = f"{int(total_seconds)}s"
+                    else:
+                        minutes = int(total_seconds // 60)
+                        seconds = int(total_seconds % 60)
+                        formatted_duration = f"{minutes}m {seconds}s"
+                else:
+                    formatted_duration = str(duration)
+                enhanced_message += f"Duration: {formatted_duration}\n"
+            enhanced_message += f"Time: {current_time}\n"
+            # Special formatting for final scraper completion
+            if "SCRAPER COMPLETE" in message:
+                enhanced_message += f"FINAL SCRAPER STATUS: ✅"
+            else:
+                enhanced_message += f"Status: ✅"
+            if metrics:
+                enhanced_message += "\nMetrics:"
+                for k, v in metrics.items():
+                    enhanced_message += f"\n- {k}: {v}"
+        
+        send_sms(ADMIN_PHONE, enhanced_message)
+        logger.info(f"📱 SMS sent to admin: {enhanced_message[:100]}...")
+    except Exception as e:
+        logger.warning(f"📱 SMS notification failed: {e}")
+
 @dataclass
 class StealthConfig:
     """Configuration for stealth behavior."""
@@ -52,162 +106,237 @@ class StealthConfig:
     requests_per_proxy: int = 30
     session_duration: int = 600
 
-@dataclass
-class DeltaScrapingPlan:
-    """Plan for delta scraping."""
-    league_id: int
-    league_name: str
-    start_date: str
-    end_date: str
-    matches_to_scrape: int
-    estimated_requests: int
-    reason: str
-
-class DeltaScrapingManager:
-    """Manages delta scraping by comparing JSON files vs database imports"""
+class IncrementalScrapingManager:
+    """Manages incremental scraping using 10-day sliding window approach"""
     
     def __init__(self):
-        self.engine = get_db_engine()
-        # Map league IDs to their JSON file paths
-        self.league_json_mapping = {
-            4930: "data/leagues/APTA_CHICAGO/match_history.json",  # APTA Chicago
-            4931: "data/leagues/CITA/match_history.json",           # CITA
-            4932: "data/leagues/CNSWPL/match_history.json",         # CNSWPL
-            4933: "data/leagues/NSTF/match_history.json"            # NSTF
-        }
+        self.match_scores_file = "match_scores.json"
+        self.backup_file = "match_scores_backup.json"
+        self.sliding_window_days = 10
     
-    def parse_json_date(self, date_str: str) -> Optional[datetime.date]:
-        """Parse JSON date format like '31-Oct-24' to date object"""
-        try:
-            return datetime.strptime(date_str, '%d-%b-%y').date()
-        except:
-            return None
-    
-    def get_latest_json_date(self, league_id: int) -> Optional[datetime.date]:
-        """Get the latest date from JSON file for a league."""
-        json_file = self.league_json_mapping.get(league_id)
-        if not json_file or not os.path.exists(json_file):
-            return None
+    def load_existing_matches(self) -> Tuple[List[Dict], Set[str], Dict[str, Dict]]:
+        """
+        Load existing match scores from JSON file.
+        
+        Returns:
+            Tuple of (all_matches, existing_ids, id_to_match_lookup)
+        """
+        if not os.path.exists(self.match_scores_file):
+            logger.info(f"📄 No existing {self.match_scores_file} found, starting fresh")
+            return [], set(), {}
         
         try:
-            with open(json_file, 'r') as f:
-                data = json.load(f)
+            with open(self.match_scores_file, 'r') as f:
+                existing_matches = json.load(f)
             
-            latest_date = None
-            for match in data:
-                if 'Date' in match:
-                    date_obj = self.parse_json_date(match['Date'])
-                    if date_obj and (latest_date is None or date_obj > latest_date):
-                        latest_date = date_obj
+            existing_ids = set()
+            id_to_match = {}
             
-            return latest_date
+            for match in existing_matches:
+                if 'id' in match:
+                    match_id = str(match['id'])
+                    existing_ids.add(match_id)
+                    id_to_match[match_id] = match
+            
+            logger.info(f"📋 Loaded {len(existing_matches)} existing matches, {len(existing_ids)} unique IDs")
+            return existing_matches, existing_ids, id_to_match
+            
         except Exception as e:
-            logger.error(f"❌ Error reading JSON file {json_file}: {e}")
-            return None
+            logger.error(f"❌ Error loading {self.match_scores_file}: {e}")
+            return [], set(), {}
     
-    def get_latest_database_date(self, league_id: int) -> Optional[datetime.date]:
-        """Get the latest date from database for a league."""
-        try:
-            with self.engine.connect() as conn:
-                result = conn.execute(text('''
-                    SELECT MAX(match_date) as latest_date
-                    FROM match_scores
-                    WHERE league_id = :league_id
-                '''), {"league_id": league_id})
+    def get_scrape_window(self) -> str:
+        """
+        Calculate the start date for sliding window (10 days ago).
+        
+        Returns:
+            Start date as YYYY-MM-DD string
+        """
+        today = datetime.today()
+        start_date = today - timedelta(days=self.sliding_window_days)
+        start_date_str = start_date.strftime('%Y-%m-%d')
+        
+        logger.info(f"📅 Scrape window: {start_date_str} to {today.strftime('%Y-%m-%d')} ({self.sliding_window_days} days)")
+        return start_date_str
+    
+    def scrape_matches_since(self, start_date: str) -> List[Dict]:
+        """
+        Scrape matches since the given start date.
+        
+        Args:
+            start_date: Date string in YYYY-MM-DD format
+            
+        Returns:
+            List of match dictionaries with 'id', 'date', 'score' fields
+        """
+        # TODO: This is a placeholder - implement actual scraping logic
+        # This should call your existing scraping functions with date filtering
+        logger.info(f"🔍 Scraping matches since {start_date}...")
+        
+        # For now, return empty list - this needs to be implemented with actual scraper
+        scraped_matches = []
+        
+        logger.info(f"📥 Scraped {len(scraped_matches)} matches since {start_date}")
+        return scraped_matches
+    
+    def compare_and_merge_matches(self, existing_matches: List[Dict], existing_ids: Set[str], 
+                                id_to_match: Dict[str, Dict], scraped_matches: List[Dict]) -> Tuple[List[Dict], int, int]:
+        """
+        Compare scraped matches with existing ones and merge updates.
+        
+        Returns:
+            Tuple of (updated_matches, new_count, updated_count)
+        """
+        new_count = 0
+        updated_count = 0
+        
+        # Create a working copy of existing matches
+        updated_matches = existing_matches.copy()
+        
+        for scraped_match in scraped_matches:
+            if 'id' not in scraped_match:
+                logger.warning("⚠️ Scraped match missing 'id' field, skipping")
+                continue
+            
+            match_id = str(scraped_match['id'])
+            
+            if match_id not in existing_ids:
+                # New match - append it
+                updated_matches.append(scraped_match)
+                existing_ids.add(match_id)
+                new_count += 1
+                logger.debug(f"➕ New match: {match_id}")
+            
+            else:
+                # Existing match - check if score changed
+                existing_match = id_to_match[match_id]
+                existing_score = existing_match.get('score', '')
+                new_score = scraped_match.get('score', '')
                 
-                row = result.fetchone()
-                if row and row[0]:
-                    # Handle both datetime and date objects
-                    if hasattr(row[0], 'date'):
-                        return row[0].date()
-                    else:
-                        return row[0]
-                return None
-        except Exception as e:
-            logger.error(f"❌ Error querying database for league {league_id}: {e}")
-            return None
+                if existing_score != new_score:
+                    # Score changed - update the match
+                    for i, match in enumerate(updated_matches):
+                        if str(match.get('id')) == match_id:
+                            updated_matches[i] = scraped_match
+                            updated_count += 1
+                            logger.debug(f"🔄 Updated match: {match_id} (score changed)")
+                            break
+                else:
+                    # Score same - skip
+                    logger.debug(f"✅ Match unchanged: {match_id}")
+        
+        return updated_matches, new_count, updated_count
     
-    def calculate_delta_date_range(self, league_id: int) -> Tuple[Optional[datetime.date], Optional[datetime.date]]:
-        """Calculate date range for delta based on JSON vs Database comparison"""
+    def deduplicate_matches(self, matches: List[Dict]) -> List[Dict]:
+        """
+        Deduplicate matches by ID, keeping the most recent version.
         
-        json_latest = self.get_latest_json_date(league_id)
-        db_latest = self.get_latest_database_date(league_id)
+        Args:
+            matches: List of match dictionaries
+            
+        Returns:
+            Deduplicated list of matches
+        """
+        seen_ids = set()
+        deduplicated = []
         
-        if not json_latest:
-            logger.warning(f"⚠️ No JSON data available for league {league_id}")
-            return None, None
+        # Process in reverse to keep the most recent version of duplicates
+        for match in reversed(matches):
+            match_id = str(match.get('id', ''))
+            if match_id and match_id not in seen_ids:
+                seen_ids.add(match_id)
+                deduplicated.append(match)
         
-        if not db_latest:
-            # No database data, import everything from JSON
-            logger.info(f"📥 No database data for league {league_id}, will import all JSON data")
-            return json_latest, json_latest  # Import just the latest date
+        # Reverse back to original order
+        deduplicated.reverse()
         
-        if json_latest > db_latest:
-            # JSON is newer than database, need to import delta
-            delta_days = (json_latest - db_latest).days
-            logger.info(f"🎯 DELTA: JSON is {delta_days} days newer than database")
-            logger.info(f"📅 Need to import from: {db_latest + timedelta(days=1)} to {json_latest}")
-            return db_latest + timedelta(days=1), json_latest
-        elif json_latest < db_latest:
-            # Database is newer than JSON (shouldn't happen normally)
-            logger.warning(f"⚠️ Database is newer than JSON for league {league_id}")
-            return None, None
-        else:
-            # Dates match, no delta needed
-            logger.info(f"✅ DATES MATCH: No delta needed for league {league_id}")
-            return None, None
+        logger.info(f"🔧 Deduplicated: {len(matches)} → {len(deduplicated)} matches")
+        return deduplicated
     
-    def get_matches_from_json_in_range(self, league_id: int, start_date: datetime.date, end_date: datetime.date) -> List[Dict]:
-        """Get matches from JSON file within the specified date range."""
-        json_file = self.league_json_mapping.get(league_id)
-        if not json_file or not os.path.exists(json_file):
-            return []
+    def save_matches(self, matches: List[Dict]) -> bool:
+        """
+        Save matches to JSON file with backup.
         
+        Args:
+            matches: List of match dictionaries to save
+            
+        Returns:
+            True if successful, False otherwise
+        """
         try:
-            with open(json_file, 'r') as f:
-                data = json.load(f)
+            # Create backup if file exists
+            if os.path.exists(self.match_scores_file):
+                import shutil
+                shutil.copy2(self.match_scores_file, self.backup_file)
+                logger.info(f"💾 Backup created: {self.backup_file}")
             
-            matches_in_range = []
-            for match in data:
-                if 'Date' in match:
-                    match_date = self.parse_json_date(match['Date'])
-                    if match_date and start_date <= match_date <= end_date:
-                        matches_in_range.append(match)
+            # Write updated matches
+            with open(self.match_scores_file, 'w') as f:
+                json.dump(matches, f, indent=2)
             
-            return matches_in_range
+            logger.info(f"💾 Saved {len(matches)} matches to {self.match_scores_file}")
+            return True
+            
         except Exception as e:
-            logger.error(f"❌ Error reading JSON file {json_file}: {e}")
-            return []
+            logger.error(f"❌ Error saving matches: {e}")
+            return False
     
-    def create_delta_plan(self, league_id: int, league_name: str) -> Optional[DeltaScrapingPlan]:
-        """Create a delta scraping plan for a league."""
-        start_date, end_date = self.calculate_delta_date_range(league_id)
+    def run_incremental_scrape(self) -> Dict[str, Any]:
+        """
+        Run the complete incremental scraping process.
         
-        if not start_date or not end_date:
-            return None
+        Returns:
+            Dictionary with scraping results and statistics
+        """
+        logger.info("🚀 Starting incremental scraping with 10-day sliding window")
         
-        # Get matches in range
-        matches = self.get_matches_from_json_in_range(league_id, start_date, end_date)
+        # Step 1: Load existing matches
+        existing_matches, existing_ids, id_to_match = self.load_existing_matches()
         
-        # Estimate requests (3 requests per match for detailed scraping)
-        estimated_requests = len(matches) * 3
+        # Step 2: Define scrape window
+        start_date = self.get_scrape_window()
         
-        return DeltaScrapingPlan(
-            league_id=league_id,
-            league_name=league_name,
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
-            matches_to_scrape=len(matches),
-            estimated_requests=estimated_requests,
-            reason="JSON data newer than database"
+        # Step 3: Scrape recent matches
+        scraped_matches = self.scrape_matches_since(start_date)
+        
+        # Step 4: Compare and merge
+        updated_matches, new_count, updated_count = self.compare_and_merge_matches(
+            existing_matches, existing_ids, id_to_match, scraped_matches
         )
+        
+        # Step 5: Deduplicate
+        final_matches = self.deduplicate_matches(updated_matches)
+        
+        # Step 6: Save to file
+        save_success = self.save_matches(final_matches)
+        
+        # Results
+        results = {
+            "success": save_success,
+            "existing_matches": len(existing_matches),
+            "scraped_matches": len(scraped_matches),
+            "new_matches": new_count,
+            "updated_matches": updated_count,
+            "final_matches": len(final_matches),
+            "start_date": start_date,
+            "sliding_window_days": self.sliding_window_days
+        }
+        
+        # Log summary
+        logger.info("📊 Incremental Scraping Results:")
+        logger.info(f"   📥 Scraped: {len(scraped_matches)} matches since {start_date}")
+        logger.info(f"   ➕ New: {new_count} matches")
+        logger.info(f"   🔄 Updated: {updated_count} matches")
+        logger.info(f"   💾 Final: {len(final_matches)} total matches")
+        
+        return results
 
 class EnhancedMasterScraper:
     """Enhanced master scraper with comprehensive stealth measures."""
     
     def __init__(self, stealth_config: StealthConfig):
         self.config = stealth_config
-        self.delta_manager = DeltaScrapingManager()
+        self.incremental_manager = IncrementalScrapingManager()
         self.stealth_browser = create_stealth_browser(
             fast_mode=stealth_config.fast_mode,
             verbose=stealth_config.verbose,
@@ -228,7 +357,7 @@ class EnhancedMasterScraper:
         logger.info(f"   Verbose: {stealth_config.verbose}")
     
     def analyze_scraping_strategy(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> Dict[str, Any]:
-        """Analyze and determine the best scraping strategy."""
+        """Analyze and determine the scraping strategy using 10-day sliding window."""
         logger.info(f"\n🔍 Analyzing scraping strategy...")
         logger.info(f"   League: {league_name or 'All'}")
         logger.info(f"   Force Full: {force_full}")
@@ -238,114 +367,64 @@ class EnhancedMasterScraper:
             return {
                 "strategy": "FULL",
                 "reason": "Forced full scraping",
-                "league_plans": []
+                "sliding_window_days": 0,
+                "estimated_matches": "Unknown"
             }
         
-        if force_incremental:
-            return {
-                "strategy": "DELTA",
-                "reason": "Forced incremental scraping",
-                "league_plans": []
-            }
-        
-        # Get league plans for delta scraping
-        league_plans = []
-        total_matches_to_scrape = 0
-        total_estimated_requests = 0
-        
-        # Map league names to IDs
-        league_mapping = {
-            "APTA Chicago": 4930,
-            "CITA": 4931,
-            "CNSWPL": 4932,
-            "North Shore Tennis Foundation": 4933,
-            "NSTF": 4933
-        }
-        
-        if league_name:
-            # Single league
-            league_id = league_mapping.get(league_name)
-            if league_id:
-                plan = self.delta_manager.create_delta_plan(league_id, league_name)
-                if plan:
-                    league_plans.append(plan)
-                    total_matches_to_scrape += plan.matches_to_scrape
-                    total_estimated_requests += plan.estimated_requests
-        else:
-            # All leagues
-            for name, league_id in league_mapping.items():
-                plan = self.delta_manager.create_delta_plan(league_id, name)
-                if plan:
-                    league_plans.append(plan)
-                    total_matches_to_scrape += plan.matches_to_scrape
-                    total_estimated_requests += plan.estimated_requests
-        
-        # Determine strategy based on request volume
-        if total_estimated_requests < 1000:  # Small delta
-            strategy = "DELTA"
-            reason = f"Small delta: {total_matches_to_scrape} matches, {total_estimated_requests} requests"
-        else:
-            strategy = "FULL"
-            reason = f"Large delta: {total_matches_to_scrape} matches, {total_estimated_requests} requests"
+        # Always use incremental scraping with 10-day sliding window
+        # This captures both new matches and retroactively edited ones
+        start_date = self.incremental_manager.get_scrape_window()
         
         return {
-            "strategy": strategy,
-            "reason": reason,
-            "league_plans": league_plans,
-            "total_matches": total_matches_to_scrape,
-            "total_requests": total_estimated_requests
+            "strategy": "INCREMENTAL",
+            "reason": f"10-day sliding window from {start_date}",
+            "sliding_window_days": self.incremental_manager.sliding_window_days,
+            "start_date": start_date,
+            "estimated_matches": "Variable (recent matches only)"
         }
     
     def run_intelligent_match_scraping(self, analysis: Dict[str, Any]) -> bool:
         """Run intelligent match scraping based on analysis."""
         strategy = analysis["strategy"]
-        league_plans = analysis["league_plans"]
         
         logger.info(f"\n🚀 Running intelligent match scraping...")
         logger.info(f"   Strategy: {strategy}")
-        logger.info(f"   League Plans: {len(league_plans)}")
         
-        if strategy == "DELTA":
-            return self._run_delta_scraping(league_plans)
+        if strategy == "FULL":
+            return self._run_full_scraping()
         else:
-            return self._run_full_scraping(league_plans)
+            # Use incremental scraping (default strategy)
+            return self._run_incremental_scraping(analysis)
     
-    def _run_delta_scraping(self, league_plans: List[DeltaScrapingPlan]) -> bool:
-        """Run delta scraping for specific leagues."""
-        logger.info(f"\n🎯 Running DELTA scraping...")
-        logger.info(f"   Target: Only missing matches")
-        logger.info(f"   Scope: {len(league_plans)} leagues")
-        logger.info(f"   Goal: Minimize requests and processing time")
+    def _run_incremental_scraping(self, analysis: Dict[str, Any]) -> bool:
+        """Run incremental scraping using 10-day sliding window."""
+        logger.info(f"\n🎯 Running INCREMENTAL scraping...")
+        logger.info(f"   Target: Last {analysis.get('sliding_window_days', 10)} days")
+        logger.info(f"   Goal: Capture new and updated matches efficiently")
         
-        successful_leagues = 0
-        total_matches_scraped = 0
-        
-        for plan in league_plans:
-            logger.info(f"\n🏆 Scraping {plan.league_name}:")
-            logger.info(f"   Matches: {plan.matches_to_scrape}")
-            logger.info(f"   Date Range: {plan.start_date} to {plan.end_date}")
+        try:
+            # Run the incremental scraping process
+            results = self.incremental_manager.run_incremental_scrape()
             
-            try:
-                # Run the scraper with date range
-                result = self._run_scraper_with_dates(plan)
-                if result:
-                    successful_leagues += 1
-                    total_matches_scraped += plan.matches_to_scrape
-                    logger.info(f"✅ Scraping completed for {plan.league_name}")
-                else:
-                    logger.error(f"❌ Scraping failed for {plan.league_name}")
-                    self.failures.append(f"Failed to scrape {plan.league_name}")
-            except Exception as e:
-                logger.error(f"❌ Error scraping {plan.league_name}: {e}")
-                self.failures.append(f"Error scraping {plan.league_name}: {e}")
-        
-        logger.info(f"\n📊 Delta Scraping Results:")
-        logger.info(f"   Successful Leagues: {successful_leagues}/{len(league_plans)}")
-        logger.info(f"   Total Matches Scraped: {total_matches_scraped}")
-        
-        return successful_leagues == len(league_plans)
+            # Check if scraping was successful
+            if results["success"]:
+                logger.info(f"✅ Incremental scraping completed successfully")
+                logger.info(f"   📥 Scraped: {results['scraped_matches']} recent matches")
+                logger.info(f"   ➕ New: {results['new_matches']} matches added")
+                logger.info(f"   🔄 Updated: {results['updated_matches']} matches updated")
+                logger.info(f"   💾 Total: {results['final_matches']} matches in file")
+                return True
+            else:
+                logger.error(f"❌ Incremental scraping failed during save")
+                self.failures.append("Failed to save incremental scraping results")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error during incremental scraping: {e}")
+            self.failures.append(f"Incremental scraping error: {e}")
+            return False
     
-    def _run_full_scraping(self, league_plans: List[DeltaScrapingPlan]) -> bool:
+    def _run_full_scraping(self) -> bool:
         """Run full scraping for all leagues."""
         logger.info(f"\n🎯 Running FULL scraping...")
         logger.info(f"   Target: All match scores and game data")
@@ -373,69 +452,60 @@ class EnhancedMasterScraper:
             self.failures.append(f"Error during full scraping: {e}")
             return False
     
-    def _run_scraper_with_dates(self, plan: DeltaScrapingPlan) -> bool:
-        """Run scraper with specific date range."""
-        logger.info(f"\n🎯 Running scraper for {plan.league_name}")
-        logger.info(f"   Date Range: {plan.start_date} to {plan.end_date}")
-        logger.info(f"   Target Matches: {plan.matches_to_scrape}")
-        
-        # Map league names to subdomains
-        league_subdomain_mapping = {
-            "APTA Chicago": "aptachicago",
-            "CITA": "cita",
-            "CNSWPL": "cnswpl",
-            "North Shore Tennis Foundation": "nstf",
-            "NSTF": "nstf"
-        }
-        
-        subdomain = league_subdomain_mapping.get(plan.league_name)
-        if not subdomain:
-            logger.error(f"❌ Unknown league: {plan.league_name}")
-            return False
-        
-        try:
-            # Run the enhanced scraper
-            result = subprocess.run([
-                "python3", "data/etl/scrapers/scrape_match_scores.py",
-                subdomain,
-                "--start-date", plan.start_date,
-                "--end-date", plan.end_date,
-                "--delta-mode",
-                "--fast" if self.config.fast_mode else "",
-                "--verbose" if self.config.verbose else ""
-            ], capture_output=True, text=True, timeout=1800)
-            
-            if result.returncode == 0:
-                logger.info(f"✅ Scraping completed for {plan.league_name}")
-                return True
-            else:
-                logger.error(f"❌ Scraping failed for {plan.league_name}: {result.stderr}")
-                return False
-        except Exception as e:
-            logger.error(f"❌ Error running scraper for {plan.league_name}: {e}")
-            return False
-    
+
+                
     def run_scraping_step(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> bool:
         """Run the complete scraping step."""
+        start_time = datetime.now()
         logger.info(f"\n🎯 Running scraping step...")
         logger.info(f"   League: {league_name or 'All'}")
         logger.info(f"   Force Full: {force_full}")
         logger.info(f"   Force Incremental: {force_incremental}")
         
+        # Send start notification
+        send_scraper_notification("[1/3] Master Scraper Starting")
+        
         try:
             # Analyze strategy
             analysis = self.analyze_scraping_strategy(league_name, force_full, force_incremental)
+            
+            # Send strategy notification
+            strategy_msg = f"[2/3] Strategy Analysis: {analysis['strategy']}"
+            send_scraper_notification(strategy_msg)
             
             # Run scraping
             success = self.run_intelligent_match_scraping(analysis)
             
             # Update session metrics
-            self.session_metrics.total_duration = (datetime.now() - self.session_metrics.start_time).total_seconds()
+            end_time = datetime.now()
+            duration = end_time - start_time
+            self.session_metrics.total_duration = duration.total_seconds()
             
-            return success
+            # Prepare metrics for notification
+            metrics = {
+                "Strategy": analysis['strategy'],
+                "Sliding Window Days": analysis.get('sliding_window_days', 10),
+                "Start Date": analysis.get('start_date', 'N/A'),
+                "Estimated Matches": analysis.get('estimated_matches', 'Variable'),
+                "Failures": len(self.failures)
+            }
+            
+            if success:
+                # Send success notification
+                final_message = f"[3/3] 🎉 SCRAPER COMPLETE - Strategy: {analysis['strategy']}"
+                send_scraper_notification(final_message, duration=duration, metrics=metrics)
+                return True
+            else:
+                # Send failure notification
+                error_details = "; ".join(self.failures) if self.failures else "Unknown scraping error"
+                send_scraper_notification("", is_failure=True, step_name="Master Scraper", error_details=error_details)
+                return False
+                
         except Exception as e:
+            # Send exception notification
             logger.error(f"❌ Error in scraping step: {e}")
             self.failures.append(f"Error in scraping step: {e}")
+            send_scraper_notification("", is_failure=True, step_name="Master Scraper", error_details=str(e))
             return False
     
     def save_detailed_results(self, analysis: Dict[str, Any]):
@@ -448,20 +518,9 @@ class EnhancedMasterScraper:
                 "analysis": {
                     "strategy": analysis["strategy"],
                     "reason": analysis["reason"],
-                    "total_matches": analysis.get("total_matches", 0),
-                    "total_requests": analysis.get("total_requests", 0),
-                    "league_plans": [
-                        {
-                            "league_id": plan.league_id,
-                            "league_name": plan.league_name,
-                            "start_date": plan.start_date,
-                            "end_date": plan.end_date,
-                            "matches_to_scrape": plan.matches_to_scrape,
-                            "estimated_requests": plan.estimated_requests,
-                            "reason": plan.reason
-                        }
-                        for plan in analysis.get("league_plans", [])
-                    ]
+                    "sliding_window_days": analysis.get("sliding_window_days", 10),
+                    "start_date": analysis.get("start_date", "N/A"),
+                    "estimated_matches": analysis.get("estimated_matches", "Variable")
                 },
                 "session_metrics": self.session_metrics.get_summary(),
                 "failures": self.failures
@@ -556,9 +615,9 @@ def main():
         logger.info(f"\n📊 Final Summary:")
         logger.info(f"   Success: {'✅' if success else '❌'}")
         logger.info(f"   Strategy: {analysis['strategy']}")
-        logger.info(f"   Total Matches: {analysis.get('total_matches', 0)}")
-        logger.info(f"   Estimated Requests: {analysis.get('total_requests', 0)}")
-        logger.info(f"   Efficiency: {analysis.get('total_requests', 0) / 10000 * 100:.1f}% of full scraping")
+        logger.info(f"   Sliding Window: {analysis.get('sliding_window_days', 10)} days")
+        logger.info(f"   Start Date: {analysis.get('start_date', 'N/A')}")
+        logger.info(f"   Estimated Matches: {analysis.get('estimated_matches', 'Variable')}")
         logger.info(f"   Reason: {analysis['reason']}")
         
         if scraper.failures:

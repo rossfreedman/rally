@@ -393,7 +393,7 @@ def scrape_player_history(league_subdomain):
     
     # Record start time
     start_time = datetime.now()
-    print(f"🕐 Session Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"🕐 Session Start: {start_time.strftime('%m-%d-%y @ %I:%M:%S %p')}")
 
     # Track timing milestones
     discovery_start_time = None

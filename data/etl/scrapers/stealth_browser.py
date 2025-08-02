@@ -181,7 +181,7 @@ class EnhancedStealthBrowser:
         logger.info(f"   Environment: {config.environment}")
         logger.info(f"   Delays: {config.min_delay}-{config.max_delay}s")
     
-    def _create_driver(self) -> webdriver.Chrome:
+    def _create_driver(self):
         """Create a new Chrome driver with stealth settings."""
         options = uc.ChromeOptions()
         
@@ -199,8 +199,8 @@ class EnhancedStealthBrowser:
         
         # Set window size
         options.add_argument(f"--window-size={self.config.window_width},{self.config.window_height}")
-        
-        # Set user agent
+
+    # Set user agent
         user_agent = UserAgentManager.get_random_user_agent()
         options.add_argument(f"--user-agent={user_agent}")
         
@@ -209,15 +209,19 @@ class EnhancedStealthBrowser:
             options.add_argument("--headless")
         
         # Configure Selenium Wire for proxy
-        if SELENIUM_WIRE_AVAILABLE:
-            seleniumwire_options = {
-                'proxy': {
-                    'http': self.current_proxy,
-                    'https': self.current_proxy
-                },
-                'verify_ssl': False
-            }
-            driver = webdriver.Chrome(options=options, seleniumwire_options=seleniumwire_options)
+        if SELENIUM_WIRE_AVAILABLE and self.current_proxy:
+            try:
+                seleniumwire_options = {
+                    'proxy': {
+                        'http': self.current_proxy,
+                        'https': self.current_proxy
+                    },
+                    'verify_ssl': False
+                }
+                driver = webdriver.Chrome(options=options, seleniumwire_options=seleniumwire_options)
+            except Exception as e:
+                logger.warning(f"⚠️ Selenium Wire failed, falling back to undetected-chromedriver: {e}")
+                driver = uc.Chrome(options=options)
         else:
             driver = uc.Chrome(options=options)
         
@@ -226,7 +230,7 @@ class EnhancedStealthBrowser:
         
         return driver
     
-    def _inject_stealth_scripts(self, driver: webdriver.Chrome):
+    def _inject_stealth_scripts(self, driver):
         """Inject JavaScript to hide automation indicators."""
         stealth_scripts = [
             # Remove webdriver property
@@ -357,7 +361,7 @@ class EnhancedStealthBrowser:
                 else:
                     self.session_metrics.add_detection(DetectionType.TIMEOUT)
                     return False, "", DetectionType.TIMEOUT
-                    
+                
             except Exception as e:
                 logger.error(f"❌ Error on {url}: {e}")
                 if attempt < max_retries:

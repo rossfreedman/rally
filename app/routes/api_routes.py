@@ -1346,7 +1346,7 @@ def update_availability():
             utc_midnight = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
             utc_timezone = pytz.UTC
             utc_date = utc_timezone.localize(utc_midnight)
-            formatted_date = utc_date.strftime("%Y-%m-%d %H:%M:%S%z")
+            formatted_date = utc_date.strftime("%m-%d-%y @ %I:%M:%S %p %z")
         except ValueError:
             return jsonify({"error": "Invalid date format. Expected YYYY-MM-DD"}), 400
 

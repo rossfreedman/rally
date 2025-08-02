@@ -309,7 +309,7 @@ def maintenance_control_page():
                                 current_reason=current_reason,
                                 current_eta=current_eta,
                                 admin_name=admin_name or 'Unknown Admin',
-                                current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                                current_time=datetime.now().strftime('%m-%d-%y @ %I:%M:%S %p'))
 
 
 @admin_maintenance.route('/etl-control')
@@ -400,4 +400,4 @@ def etl_control_page():
     
     return render_template_string(html_template,
                                 admin_name=admin_name or 'Unknown Admin',
-                                current_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S')) 
+                                current_time=datetime.now().strftime('%m-%d-%y @ %I:%M:%S %p')) 

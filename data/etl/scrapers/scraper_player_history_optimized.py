@@ -525,7 +525,7 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
     """
     start_time = datetime.now()
     print(
-        f"🚀 OPTIMIZED Player History Scraper Started: {start_time.strftime('%Y-%m-%d %H:%M:%S')}"
+        f"🚀 OPTIMIZED Player History Scraper Started: {start_time.strftime('%m-%d-%y @ %I:%M:%S %p')}"
     )
 
     # Initialize enhanced scraper with request volume tracking

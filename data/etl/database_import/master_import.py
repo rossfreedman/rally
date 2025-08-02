@@ -62,6 +62,25 @@ except ImportError:
 
 ADMIN_PHONE = "17732138911"
 
+def parse_metrics_from_output(output: str) -> dict:
+    """Parse key metrics from script output (imported, updated, errors, etc.)"""
+    metrics = {}
+    for line in output.splitlines():
+        line = line.strip()
+        if any(key in line.lower() for key in ["imported", "updated", "errors", "skipped", "new records", "players", "matches", "stats"]):
+            # Try to extract key-value pairs
+            if ":" in line:
+                parts = line.split(":", 1)
+                key = parts[0].strip().capitalize()
+                value = parts[1].strip()
+                metrics[key] = value
+            elif "=" in line:
+                parts = line.split("=", 1)
+                key = parts[0].strip().capitalize()
+                value = parts[1].strip()
+                metrics[key] = value
+    return metrics
+
 class MasterImporter:
     """Master importer that orchestrates all ETL processes"""
     
@@ -187,10 +206,10 @@ class MasterImporter:
         
         return steps
     
-    def send_notification(self, message, is_failure=False, step_name=None, error_details=None, duration=None):
+    def send_notification(self, message, is_failure=False, step_name=None, error_details=None, duration=None, metrics=None):
         """Send SMS notification to admin with enhanced error details"""
         try:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            current_time = datetime.now().strftime('%m-%d-%y @ %I:%M:%S %p')
             
             # Enhance failure messages with more context
             if is_failure and step_name and error_details:
@@ -211,10 +230,29 @@ class MasterImporter:
                 enhanced_message = f"Rally ETL:\n"
                 enhanced_message += f"Activity: {message}\n"
                 if duration:
-                    enhanced_message += f"Duration: {duration}\n"
+                    # Format duration without seconds
+                    if hasattr(duration, 'total_seconds'):
+                        total_seconds = duration.total_seconds()
+                        if total_seconds < 60:
+                            formatted_duration = f"{int(total_seconds)}s"
+                        else:
+                            minutes = int(total_seconds // 60)
+                            seconds = int(total_seconds % 60)
+                            formatted_duration = f"{minutes}m {seconds}s"
+                    else:
+                        formatted_duration = str(duration)
+                    enhanced_message += f"Duration: {formatted_duration}\n"
                 enhanced_message += f"Environment: {self.environment}\n"
                 enhanced_message += f"Time: {current_time}\n"
-                enhanced_message += f"Status: ✅"
+                # Special formatting for final ETL completion
+                if "ETL COMPLETE" in message:
+                    enhanced_message += f"FINAL ETL STATUS: ✅"
+                else:
+                    enhanced_message += f"Status: ✅"
+                if metrics:
+                    enhanced_message += "\nMetrics:"
+                    for k, v in metrics.items():
+                        enhanced_message += f"\n- {k}: {v}"
             
             if send_sms:
                 send_sms(ADMIN_PHONE, enhanced_message)
@@ -282,14 +320,19 @@ class MasterImporter:
                 success_msg = f"✅ {step_name} completed successfully in {duration}"
                 logger.info(success_msg)
                 
-                # Send success notification
-                self.send_notification(step_name, duration=duration)
+                # Parse metrics from output
+                metrics = parse_metrics_from_output(result.stdout)
+                # Send success notification with step number
+                step_number = getattr(self, '_current_step_number', 0)
+                total_steps = getattr(self, '_total_steps', 0)
+                self.send_notification(f"[{step_number}/{total_steps}] {step_name}", duration=duration, metrics=metrics)
                 
                 self.results[step_name] = {
                     "status": "success",
                     "duration": duration,
                     "output": result.stdout,
-                    "error": result.stderr
+                    "error": result.stderr,
+                    "metrics": metrics
                 }
                 
                 return True
@@ -299,8 +342,10 @@ class MasterImporter:
                 logger.error(error_msg)
                 logger.error(f"Error output: {result.stderr}")
                 
-                # Send immediate failure notification
-                self.send_notification("", is_failure=True, step_name=step_name, error_details=result.stderr)
+                # Send immediate failure notification with step number
+                step_number = getattr(self, '_current_step_number', 0)
+                total_steps = getattr(self, '_total_steps', 0)
+                self.send_notification("", is_failure=True, step_name=f"[{step_number}/{total_steps}] {step_name}", error_details=result.stderr)
                 
                 self.results[step_name] = {
                     "status": "failed",
@@ -317,7 +362,10 @@ class MasterImporter:
             timeout_msg = f"⏰ {step_name} timed out after 1 hour"
             logger.error(timeout_msg)
             
-            self.send_notification("", is_failure=True, step_name=step_name, error_details="Script timed out after 1 hour")
+            # Send timeout notification with step number
+            step_number = getattr(self, '_current_step_number', 0)
+            total_steps = getattr(self, '_total_steps', 0)
+            self.send_notification("", is_failure=True, step_name=f"[{step_number}/{total_steps}] {step_name}", error_details="Script timed out after 1 hour")
             
             self.results[step_name] = {
                 "status": "timeout",
@@ -334,7 +382,10 @@ class MasterImporter:
             error_msg = f"💥 {step_name} failed with unexpected error: {e}"
             logger.error(error_msg)
             
-            self.send_notification("", is_failure=True, step_name=step_name, error_details=str(e))
+            # Send exception notification with step number
+            step_number = getattr(self, '_current_step_number', 0)
+            total_steps = getattr(self, '_total_steps', 0)
+            self.send_notification("", is_failure=True, step_name=f"[{step_number}/{total_steps}] {step_name}", error_details=str(e))
             
             self.results[step_name] = {
                 "status": "error",
@@ -360,12 +411,19 @@ class MasterImporter:
         logger.info("=" * 60)
         
         # Send start notification
-        self.send_notification("Master Import Starting")
+        total_steps = len(self.import_steps)
+        self.send_notification(f"[1/{total_steps + 2}] Master Import Starting")
+        
+        # Store step numbers for notifications
+        self._total_steps = total_steps + 2  # +2 for start and end notifications
         
         # Run each import step
         for i, step in enumerate(self.import_steps, 1):
             logger.info(f"\n📋 Step {i}/{len(self.import_steps)}: {step['name']}")
             logger.info("-" * 50)
+            
+            # Set current step number for notifications (start=1, steps=2..n+1, end=n+2)
+            self._current_step_number = i + 1
             
             success = self.run_import_step(step)
             
@@ -395,8 +453,8 @@ class MasterImporter:
             "📊 Rally ETL Master Import Summary",
             "=" * 60,
             f"Environment: {self.environment}",
-            f"Start Time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}",
-            f"End Time: {end_time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Start Time: {self.start_time.strftime('%m-%d-%y @ %I:%M:%S %p')}",
+            f"End Time: {end_time.strftime('%m-%d-%y @ %I:%M:%S %p')}",
             f"Total Duration: {total_duration}",
             f"Steps: {successful_steps}/{total_steps} successful",
             f"Failures: {failed_steps}",
@@ -553,19 +611,20 @@ class MasterImporter:
         logger.info(summary)
         
         # Send final notification
+        final_step_number = getattr(self, '_total_steps', len(self.import_steps) + 2)
         if failed_steps == 0:
-            final_message = f"Complete! {successful_steps}/{total_steps} steps successful"
+            final_message = f"[{final_step_number}/{final_step_number}] 🎉 ETL COMPLETE - {successful_steps}/{total_steps} steps successful"
         else:
-            final_message = f"Complete with Issues - {successful_steps}/{total_steps} steps successful"
-        
-        self.send_notification(final_message, duration=total_duration)
+            final_message = f"[{final_step_number}/{final_step_number}] ⚠️ ETL COMPLETE with Issues - {successful_steps}/{total_steps} steps successful"
+        last_metrics = self.results[list(self.results)[-1]].get('metrics') if self.results else None
+        self.send_notification(final_message, duration=total_duration, metrics=last_metrics)
         
         # Save detailed results to file
         self.save_detailed_results()
     
     def save_detailed_results(self):
         """Save detailed results to log file with comprehensive import information"""
-        results_file = f"logs/master_import_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        results_file = f"logs/master_import_results_{datetime.now().strftime('%m-%d-%y_%I-%M-%S_%p')}.txt"
         
         with open(results_file, 'w') as f:
             f.write("Rally ETL Master Import Detailed Results\n")
