@@ -7,17 +7,17 @@ healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-# Production ETL Cron Job Services - Use entry_cron.py (no directory dependencies)
+# Production ETL Cron Job Services - Direct entry_cron.py execution  
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "python entry_cron.py"
-# Uses entry_cron.py which is deployed to /app root directory
+command = "cd /app && python entry_cron.py"
+# Absolute paths to ensure Railway uses correct script
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
-schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
-command = "python entry_cron.py"
-# Uses entry_cron.py which is deployed to /app root directory
+schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC  
+command = "cd /app && python entry_cron.py"
+# Absolute paths to ensure Railway uses correct script
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]

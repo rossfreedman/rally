@@ -106,18 +106,36 @@ def run_cron_job(context):
         except Exception as e:
             print(f"   ❌ Could not list directory: {e}")
         
-        print("\n🔄 Attempting direct import fallback...")
+        print("\n🔄 Using entry_cron.py as final fallback...")
         try:
-            # Fallback: Try to import and run the pipeline directly
-            sys.path.insert(0, os.getcwd())
-            from cronjobs.run_pipeline import main as pipeline_main
-            print("✅ Successfully imported pipeline via direct import")
-            print("🚀 Running pipeline via direct import...")
-            pipeline_main()
-            print("✅ Pipeline completed successfully via direct import")
-            sys.exit(0)
+            # Ultimate fallback: Use the standalone entry_cron.py script
+            entry_cron_path = os.path.join(os.getcwd(), "entry_cron.py")
+            if os.path.exists(entry_cron_path):
+                print(f"✅ Found entry_cron.py at: {entry_cron_path}")
+                print("🚀 Executing entry_cron.py directly...")
+                
+                result = subprocess.run([
+                    sys.executable, 
+                    "entry_cron.py"
+                ], cwd=os.getcwd())
+                
+                print(f"🏁 entry_cron.py execution completed with exit code: {result.returncode}")
+                sys.exit(result.returncode)
+            else:
+                print(f"❌ entry_cron.py not found at: {entry_cron_path}")
+                
+                # Final fallback: Direct import from entry_cron
+                print("🔄 Attempting direct import from entry_cron...")
+                sys.path.insert(0, os.getcwd())
+                from entry_cron import main as entry_main
+                print("✅ Successfully imported entry_cron.main")
+                print("🚀 Running pipeline via entry_cron.main...")
+                entry_main()
+                print("✅ Pipeline completed successfully via entry_cron")
+                sys.exit(0)
+                
         except Exception as ie:
-            print(f"❌ Direct import fallback also failed: {ie}")
+            print(f"❌ All fallback methods failed: {ie}")
             import traceback
             traceback.print_exc()
             sys.exit(1)

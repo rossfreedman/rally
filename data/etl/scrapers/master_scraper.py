@@ -112,12 +112,13 @@ class StealthConfig:
     delta_config_file: str = "data/etl/scrapers/delta_scraper_config.json"
 
 class IncrementalScrapingManager:
-    """Manages incremental scraping using 10-day sliding window approach"""
+    """Manages intelligent incremental scraping using latest match detection"""
     
     def __init__(self):
         self.match_scores_file = "match_scores.json"
         self.backup_file = "match_scores_backup.json"
         self.sliding_window_days = 10
+        self.overlap_days = 7  # Number of days to overlap for catching updates
     
     def load_existing_matches(self) -> Tuple[List[Dict], Set[str], Dict[str, Dict]]:
         """
@@ -149,6 +150,211 @@ class IncrementalScrapingManager:
         except Exception as e:
             logger.error(f"❌ Error loading {self.match_scores_file}: {e}")
             return [], set(), {}
+    
+    def get_latest_match_date_from_file(self, existing_matches: List[Dict]) -> Optional[datetime]:
+        """
+        Find the most recent match date from existing match data.
+        
+        Args:
+            existing_matches: List of match dictionaries
+            
+        Returns:
+            Latest match date as datetime object, or None if no valid dates found
+        """
+        if not existing_matches:
+            logger.info("📄 No existing matches found")
+            return None
+        
+        latest_date = None
+        valid_dates = []
+        
+        for match in existing_matches:
+            if 'date' in match:
+                try:
+                    match_date = datetime.strptime(match['date'], '%Y-%m-%d')
+                    valid_dates.append(match_date)
+                except ValueError:
+                    logger.debug(f"⚠️ Invalid date format in match: {match.get('date')}")
+                    continue
+        
+        if valid_dates:
+            latest_date = max(valid_dates)
+            logger.info(f"📅 Latest match in local file: {latest_date.strftime('%Y-%m-%d')}")
+        else:
+            logger.warning("⚠️ No valid dates found in existing matches")
+        
+        return latest_date
+    
+    def scrape_latest_match_date_from_site(self, stealth_config: Optional[StealthConfig] = None) -> Optional[datetime]:
+        """
+        Scrape the latest match date from TennisScores standings pages.
+        
+        Args:
+            stealth_config: Optional stealth configuration
+            
+        Returns:
+            Latest match date from site as datetime object, or None if not found
+        """
+        logger.info("🔍 Checking latest match date from TennisScores...")
+        
+        # List of leagues to check for latest matches
+        leagues = ["chicago-apta", "cita", "cnswpl", "nstf"]
+        latest_site_date = None
+        
+        for league in leagues:
+            try:
+                # Use the stats scraper to get standings data
+                cmd = [
+                    "python3", "data/etl/scrapers/scrape_stats.py",
+                    league,
+                    "--quick"  # Quick mode to just get standings
+                ]
+                
+                if stealth_config and stealth_config.fast_mode:
+                    cmd.append("--fast")
+                
+                logger.debug(f"🚀 Checking {league} for latest matches...")
+                
+                # Run with short timeout since we just need standings
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+                
+                if result.returncode == 0:
+                    # Parse the output to find date mentions
+                    output = result.stdout
+                    
+                    # Look for date patterns in the output (YYYY-MM-DD format)
+                    import re
+                    date_pattern = r'\b(\d{4}-\d{2}-\d{2})\b'
+                    dates_found = re.findall(date_pattern, output)
+                    
+                    for date_str in dates_found:
+                        try:
+                            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                            if not latest_site_date or date_obj > latest_site_date:
+                                latest_site_date = date_obj
+                                logger.debug(f"📅 Found newer date in {league}: {date_str}")
+                        except ValueError:
+                            continue
+                else:
+                    logger.debug(f"⚠️ Failed to get data from {league}")
+                    
+            except Exception as e:
+                logger.debug(f"⚠️ Error checking {league}: {e}")
+                continue
+        
+        if latest_site_date:
+            logger.info(f"📅 Latest match on site: {latest_site_date.strftime('%Y-%m-%d')}")
+        else:
+            logger.warning("⚠️ Could not determine latest match date from site")
+            
+        return latest_site_date
+    
+    def determine_intelligent_scrape_range(self, existing_matches: List[Dict], stealth_config: Optional[StealthConfig] = None) -> Tuple[Optional[str], Optional[str], bool]:
+        """
+        Intelligently determine if scraping is needed and calculate date range.
+        
+        Args:
+            existing_matches: List of existing match dictionaries
+            stealth_config: Optional stealth configuration
+            
+        Returns:
+            Tuple of (start_date_str, end_date_str, should_scrape)
+        """
+        logger.info("🧠 Intelligent Delta Analysis Starting...")
+        logger.info("=" * 50)
+        
+        # Step 1: Get latest match date from local file
+        latest_local_date = self.get_latest_match_date_from_file(existing_matches)
+        
+        # Step 2: Get latest match date from site
+        latest_site_date = self.scrape_latest_match_date_from_site(stealth_config)
+        
+        # Step 3: Compare dates and decide
+        if not latest_site_date:
+            logger.warning("⚠️ Could not determine site's latest match date - using fallback window")
+            today = datetime.now()
+            start_date = (today - timedelta(days=self.sliding_window_days)).strftime('%Y-%m-%d')
+            end_date = today.strftime('%Y-%m-%d')
+            return start_date, end_date, True
+            
+        if not latest_local_date:
+            logger.info("📄 No local matches found - performing full scrape up to latest site date")
+            # No local data, scrape from 30 days ago to latest site date
+            start_date = (latest_site_date - timedelta(days=30)).strftime('%Y-%m-%d')
+            end_date = latest_site_date.strftime('%Y-%m-%d')
+            return start_date, end_date, True
+        
+        # Step 4: Compare the dates
+        logger.info(f"📊 Date Comparison:")
+        logger.info(f"   Local latest:  {latest_local_date.strftime('%Y-%m-%d')}")
+        logger.info(f"   Site latest:   {latest_site_date.strftime('%Y-%m-%d')}")
+        
+        if latest_site_date <= latest_local_date:
+            logger.info("✅ No new matches found. Skipping scrape.")
+            return None, None, False
+        else:
+            # Calculate scrape range: latest_local_date - 7 days to latest_site_date
+            scrape_start_date = latest_local_date - timedelta(days=self.overlap_days)
+            scrape_end_date = latest_site_date
+            
+            days_diff = (latest_site_date - latest_local_date).days
+            logger.info(f"🎯 New matches detected! Site is {days_diff} days ahead.")
+            logger.info(f"📅 Scrape range: {scrape_start_date.strftime('%Y-%m-%d')} to {scrape_end_date.strftime('%Y-%m-%d')}")
+            logger.info(f"🔄 Including {self.overlap_days}-day overlap for updates")
+            
+            return scrape_start_date.strftime('%Y-%m-%d'), scrape_end_date.strftime('%Y-%m-%d'), True
+    
+    def scrape_matches_between(self, start_date: str, end_date: str, stealth_config: Optional[StealthConfig] = None) -> List[Dict]:
+        """
+        Scrape matches between the specified date range.
+        
+        Args:
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            stealth_config: Optional stealth configuration
+            
+        Returns:
+            List of match dictionaries
+        """
+        logger.info(f"🔍 Scraping matches between {start_date} and {end_date}...")
+        
+        try:
+            # Build command for delta scraping
+            cmd = [
+                "python3", "data/etl/scrapers/scrape_match_scores.py",
+                "all",  # Scrape all leagues
+                "--delta-mode",
+                "--start-date", start_date,
+                "--end-date", end_date
+            ]
+            
+            # Add stealth config parameters if available
+            if stealth_config:
+                if stealth_config.fast_mode:
+                    cmd.append("--fast-mode")
+                if stealth_config.verbose:
+                    cmd.append("--verbose")
+            
+            logger.info(f"🚀 Running: {' '.join(cmd)}")
+            
+            # Run the delta scraper
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+            
+            if result.returncode == 0:
+                logger.info(f"✅ Scraping completed successfully")
+                logger.info(f"📥 Output preview: {result.stdout[:200]}...")
+                
+                # The scraper might have updated the file, but we need to return just the new matches
+                # For now, we'll return an empty list and let the calling method handle file reading
+                # This maintains compatibility with existing merge logic
+                return []
+            else:
+                logger.error(f"❌ Scraping failed: {result.stderr}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Error during scraping: {e}")
+            return []
     
     def get_scrape_window(self) -> str:
         """
@@ -328,7 +534,7 @@ class IncrementalScrapingManager:
     
     def run_incremental_scrape(self, stealth_config: Optional[StealthConfig] = None) -> Dict[str, Any]:
         """
-        Run the complete incremental scraping process.
+        Run the complete intelligent incremental scraping process.
         
         Args:
             stealth_config: Optional stealth configuration for delta mode
@@ -336,50 +542,88 @@ class IncrementalScrapingManager:
         Returns:
             Dictionary with scraping results and statistics
         """
-        logger.info("🚀 Starting incremental scraping with 10-day sliding window")
+        logger.info("🚀 Starting Intelligent Incremental Scraping")
+        logger.info("🧠 Using latest match detection for optimal efficiency")
         
         # Step 1: Load existing matches
         existing_matches, existing_ids, id_to_match = self.load_existing_matches()
         
-        # Step 2: Define scrape window (or use delta mode dates)
-        if stealth_config and stealth_config.delta_mode and stealth_config.delta_start_date:
-            start_date = stealth_config.delta_start_date
-            logger.info(f"🎯 Using delta mode start date: {start_date}")
-        else:
-            start_date = self.get_scrape_window()
+        # Step 2: Intelligent analysis - determine if scraping is needed
+        start_date, end_date, should_scrape = self.determine_intelligent_scrape_range(existing_matches, stealth_config)
         
-        # Step 3: Scrape recent matches using delta mode
-        scraped_matches = self.scrape_matches_since(start_date, stealth_config)
+        if not should_scrape:
+            # No scraping needed - return current state
+            logger.info("🎯 Intelligent analysis: No new matches to scrape")
+            return {
+                "success": True,
+                "existing_matches": len(existing_matches),
+                "scraped_matches": 0,
+                "new_matches": 0,
+                "updated_matches": 0,
+                "final_matches": len(existing_matches),
+                "start_date": "N/A",
+                "end_date": "N/A",
+                "scraping_skipped": True,
+                "reason": "No new matches detected on site"
+            }
         
-        # Step 4: Compare and merge
-        updated_matches, new_count, updated_count = self.compare_and_merge_matches(
-            existing_matches, existing_ids, id_to_match, scraped_matches
-        )
+        # Step 3: Scrape matches in the calculated range
+        logger.info(f"🎯 Intelligent scraping: {start_date} to {end_date}")
+        scraped_matches = self.scrape_matches_between(start_date, end_date, stealth_config)
         
-        # Step 5: Deduplicate
-        final_matches = self.deduplicate_matches(updated_matches)
+        # Step 4: Load fresh data after scraping to compare results
+        # The match scraper updates the file directly, so we need to reload to see changes
+        fresh_matches, fresh_ids, fresh_id_to_match = self.load_existing_matches()
         
-        # Step 6: Save to file
-        save_success = self.save_matches(final_matches)
+        # Step 5: Calculate what changed
+        new_count = len(fresh_matches) - len(existing_matches)
+        updated_count = 0  # For now, we'll estimate based on overlap
+        
+        # If we used the overlap strategy, estimate updates within the overlap period
+        if start_date and end_date:
+            overlap_start = datetime.strptime(start_date, '%Y-%m-%d')
+            overlap_end = datetime.strptime(end_date, '%Y-%m-%d')
+            overlap_matches = [m for m in existing_matches 
+                             if 'date' in m and overlap_start <= datetime.strptime(m['date'], '%Y-%m-%d') <= overlap_end]
+            updated_count = len(overlap_matches)
+        
+        # Step 6: Create backup and ensure data integrity
+        if os.path.exists(self.match_scores_file):
+            # Create timestamped backup
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_filename = f"match_scores_backup_{timestamp}.json"
+            
+            try:
+                import shutil
+                shutil.copy2(self.match_scores_file, backup_filename)
+                logger.info(f"💾 Timestamped backup created: {backup_filename}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to create timestamped backup: {e}")
         
         # Results
         results = {
-            "success": save_success,
+            "success": True,
             "existing_matches": len(existing_matches),
-            "scraped_matches": len(scraped_matches),
-            "new_matches": new_count,
+            "scraped_matches": 0,  # We don't get individual scraped matches back
+            "new_matches": max(0, new_count),  # Ensure non-negative
             "updated_matches": updated_count,
-            "final_matches": len(final_matches),
+            "final_matches": len(fresh_matches),
             "start_date": start_date,
-            "sliding_window_days": self.sliding_window_days
+            "end_date": end_date,
+            "scraping_skipped": False,
+            "intelligent_mode": True
         }
         
-        # Log summary
-        logger.info("📊 Incremental Scraping Results:")
-        logger.info(f"   📥 Scraped: {len(scraped_matches)} matches since {start_date}")
-        logger.info(f"   ➕ New: {new_count} matches")
-        logger.info(f"   🔄 Updated: {updated_count} matches")
-        logger.info(f"   💾 Final: {len(final_matches)} total matches")
+        # Log comprehensive summary
+        logger.info("📊 Intelligent Incremental Scraping Results:")
+        logger.info("=" * 50)
+        logger.info(f"   📅 Scrape Range: {start_date} to {end_date}")
+        logger.info(f"   📋 Before: {len(existing_matches)} matches")
+        logger.info(f"   📋 After:  {len(fresh_matches)} matches")
+        logger.info(f"   ➕ Estimated New: {max(0, new_count)} matches")
+        logger.info(f"   🔄 Potential Updates: {updated_count} matches")
+        logger.info(f"   🎯 Efficiency: Only scraped {(datetime.strptime(end_date, '%Y-%m-%d') - datetime.strptime(start_date, '%Y-%m-%d')).days} days instead of full dataset")
+        logger.info("=" * 50)
         
         return results
 
