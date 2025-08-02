@@ -72,8 +72,23 @@ def get_decodo_credentials(session_id=None):
     
     # Extract host and port from proxy URL
     # Format: http://user:pass@host:port
-    proxy_parts = proxy_url.replace("http://", "").split("@")[1]
-    host, port = proxy_parts.split(":")
+    try:
+        # Remove http:// prefix
+        clean_url = proxy_url.replace("http://", "")
+        
+        # Split by @ to separate credentials from host:port
+        if "@" in clean_url:
+            credentials_part, host_port_part = clean_url.split("@", 1)
+            host, port = host_port_part.split(":")
+        else:
+            # Fallback if no credentials in URL
+            host_port_part = clean_url
+            host, port = host_port_part.split(":")
+    except Exception as e:
+        logger.error(f"❌ Error parsing proxy URL {proxy_url}: {e}")
+        # Fallback to default values
+        host = "us.decodo.com"
+        port = "10001"
     
     return {
         "username": user,
@@ -97,6 +112,73 @@ def get_decodo_proxy_url(session_id=None):
     return f"http://{creds['username']}:{creds['password']}@{creds['host']}:{creds['port']}"
 
 
+def parse_url_context(url):
+    """
+    Parse URL to provide context about what's being scraped.
+    
+    Args:
+        url (str): URL to analyze
+        
+    Returns:
+        str: Descriptive context about the scraping operation
+    """
+    try:
+        # Extract domain and path information
+        if "tenniscores.com" in url:
+            domain = url.split("tenniscores.com")[0].split("//")[-1]
+            
+            # Parse the URL parameters to understand what's being scraped
+            if "mod=" in url and "did=" in url:
+                # Extract mod parameter (usually contains series/team info)
+                mod_start = url.find("mod=") + 4
+                mod_end = url.find("&", mod_start) if "&" in url[mod_start:] else len(url)
+                mod_param = url[mod_start:mod_end]
+                
+                # Extract did parameter (usually contains specific data ID)
+                did_start = url.find("did=") + 4
+                did_end = url.find("&", did_start) if "&" in url[did_start:] else len(url)
+                did_param = url[did_start:did_end]
+                
+                # Decode the did parameter to get more specific information
+                import urllib.parse
+                try:
+                    decoded_did = urllib.parse.unquote(did_param)
+                    # Extract series/team info from the decoded parameter
+                    if "WnkrNXhi" in decoded_did:
+                        series_info = "Chicago Series"
+                    elif "WnkrNXdy" in decoded_did:
+                        series_info = "Chicago Series"
+                    elif "WnkrNXhy" in decoded_did:
+                        series_info = "Chicago Series"
+                    elif "WnkrOHhM" in decoded_did:
+                        series_info = "Chicago Series"
+                    elif "WnkrNXhM" in decoded_did:
+                        series_info = "Chicago Series"
+                    else:
+                        series_info = "Unknown Series"
+                except:
+                    series_info = "Unknown Series"
+                
+                # Determine the type of data being scraped based on URL patterns
+                if "TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx" in url:
+                    return f"📊 Scraping TEAM STATISTICS for {domain.upper()} - {series_info}"
+                elif "TjJiOWtOR3QzTU4yakRrY1U4UEtOUGNkcGc9PQ" in url:
+                    return f"📈 Scraping SERIES STANDINGS for {domain.upper()} - {series_info}"
+                elif "match" in url.lower() or "score" in url.lower():
+                    return f"🎾 Scraping MATCH SCORES for {domain.upper()} - {series_info}"
+                elif "player" in url.lower():
+                    return f"👤 Scraping PLAYER DATA for {domain.upper()} - {series_info}"
+                elif "schedule" in url.lower():
+                    return f"📅 Scraping SCHEDULE DATA for {domain.upper()} - {series_info}"
+                else:
+                    return f"🔍 Scraping GENERAL DATA for {domain.upper()} - {series_info}"
+            else:
+                return f"🌐 Scraping MAIN PAGE for {domain.upper()}"
+        else:
+            return f"🌐 Scraping: {url[:50]}..."
+    except Exception:
+        return f"🌐 Scraping: {url[:50]}..."
+
 def make_decodo_request(url, session_id=None, timeout=30):
     """
     Make a request through Decodo residential proxy.
@@ -118,11 +200,24 @@ def make_decodo_request(url, session_id=None, timeout=30):
         "https": proxy
     }
     
-    logger.info(f"🌐 Decodo Request: {url}")
-    response = requests.get(url, proxies=proxies, timeout=timeout)
-    response.raise_for_status()
-    logger.info("✅ Decodo request successful")
-    return response
+    # Parse URL to provide context
+    context = parse_url_context(url)
+    logger.info(f"\n{context}")
+    logger.info(f"   🔗 URL: {url}")
+    
+    try:
+        response = requests.get(url, proxies=proxies, timeout=timeout)
+        response.raise_for_status()
+        
+        # Provide more detailed success information
+        content_length = len(response.content)
+        logger.info(f"   ✅ Success: {content_length:,} bytes retrieved\n")
+        
+        return response
+    except Exception as e:
+        logger.error(f"   ❌ Request failed: {str(e)}")
+        logger.error(f"   🔄 Proxy status: {proxies}")
+        raise
 
 
 def validate_decodo_us_response(session_id=None):
@@ -203,18 +298,18 @@ def apply_decodo_proxy_to_chrome(options):
     Args:
         options: Chrome options object to modify
     """
-    # Get the full proxy URL with credentials
-    proxy_url = get_decodo_proxy_url()
+    # Get credentials and host/port
+    creds = get_decodo_credentials()
     
-    # Extract credentials and host from the URL
-    # Format: http://username:password@host:port
-    if '@' in proxy_url:
-        # Remove http:// prefix and extract the proxy server part
-        proxy_server = proxy_url.replace("http://", "")
-        options.add_argument(f'--proxy-server={proxy_server}')
-        logger.info(f"🌐 Applied Decodo proxy to Chrome: {proxy_server}")
-    else:
-        logger.error("❌ Invalid Decodo proxy URL format")
+    # Chrome expects proxy in format: host:port
+    proxy_server = f"{creds['host']}:{creds['port']}"
+    options.add_argument(f'--proxy-server={proxy_server}')
+    
+    # Add proxy authentication
+    options.add_argument(f'--proxy-auth={creds["username"]}:{creds["password"]}')
+    
+    logger.info(f"🌐 Applied Decodo proxy to Chrome: {creds['host']}:{creds['port']}")
+    logger.info(f"🔐 Proxy auth: {creds['username']}:***")
 
 
 def configure_seleniumwire_options():
@@ -473,6 +568,9 @@ class StealthBrowserManager:
             seleniumwire_options = None
             if SELENIUM_WIRE_AVAILABLE:
                 seleniumwire_options = configure_seleniumwire_options()
+            else:
+                # Apply proxy directly to Chrome options if Selenium Wire not available
+                apply_decodo_proxy_to_chrome(options)
 
             # Get Chrome driver path using webdriver_manager
             driver_path = ChromeDriverManager().install()
@@ -518,7 +616,9 @@ class StealthBrowserManager:
 
             # Log proxy usage for debugging
             if seleniumwire_options:
-                self.logger.info("✅ Decodo proxy configured and active")
+                self.logger.info("✅ Decodo proxy configured via Selenium Wire")
+            elif hasattr(options, 'arguments') and any('--proxy-server' in arg for arg in options.arguments):
+                self.logger.info("✅ Decodo proxy configured via Chrome options")
             else:
                 self.logger.info("⚠️ No proxy configured - using direct connection")
 

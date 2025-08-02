@@ -573,4 +573,362 @@ def send_text_notification(to_number: str, message: str) -> Dict:
 # Simple wrapper for master import script
 def send_sms(to_number: str, message: str) -> Dict:
     """Simple wrapper for send_sms_notification - used by master import script"""
-    return send_sms_notification(to_number, message) 
+    return send_sms_notification(to_number, message)
+
+
+def send_pickup_game_join_notifications(game_id: int, joining_user_id: int, joining_user_name: str) -> Dict:
+    """
+    Send SMS notifications when a user joins a pickup game
+    
+    Args:
+        game_id (int): ID of the pickup game
+        joining_user_id (int): ID of the user who joined
+        joining_user_name (str): Name of the user who joined
+        
+    Returns:
+        Dict: Results of notification sending
+    """
+    try:
+        from database_utils import execute_query_one, execute_query
+        
+        # Get pickup game details
+        game_query = """
+            SELECT pg.*, c.name as club_name
+            FROM pickup_games pg
+            LEFT JOIN clubs c ON pg.club_id = c.id
+            WHERE pg.id = %s
+        """
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return {
+                "success": False,
+                "error": f"Pickup game {game_id} not found"
+            }
+        
+        # Get all participants (excluding the joining user)
+        participants_query = """
+            SELECT u.id, u.first_name, u.last_name, u.phone_number, u.email
+            FROM pickup_game_participants pgp
+            JOIN users u ON pgp.user_id = u.id
+            WHERE pgp.pickup_game_id = %s AND u.id != %s
+        """
+        participants = execute_query(participants_query, [game_id, joining_user_id])
+        
+        # Format game details
+        game_date = game["game_date"].strftime("%m/%d/%Y") if game["game_date"] else "TBD"
+        game_time = game["game_time"].strftime("%I:%M %p") if game["game_time"] else "TBD"
+        club_name = game["club_name"] or "TBD"
+        
+        # Create message for other participants
+        game_url = f"https://www.lovetorally.com/mobile/pickup-games"
+        message = f"🎾 Rally Pickup Game Update:\n\n{joining_user_name} just joined this pickup game:\n\n\"{game['description']}\" on {game_date} at {game_time}.\n\nCurrent players: {game['players_committed']}/{game['players_requested']}\n\nClick here to view the game: {game_url}"
+        
+        # Send notifications to all other participants
+        results = {
+            "success": True,
+            "message": f"Sent notifications to {len(participants)} participants",
+            "participants_notified": 0,
+            "participants_failed": 0,
+            "details": []
+        }
+        
+        for participant in participants:
+            if not participant["phone_number"]:
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "status": "skipped",
+                    "reason": "No phone number"
+                })
+                continue
+            
+            # Send SMS notification
+            sms_result = send_sms_notification(
+                to_number=participant["phone_number"],
+                message=message,
+                test_mode=False
+            )
+            
+            if sms_result["success"]:
+                results["participants_notified"] += 1
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "phone": participant["phone_number"],
+                    "status": "sent",
+                    "message_sid": sms_result.get("message_sid")
+                })
+            else:
+                results["participants_failed"] += 1
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "phone": participant["phone_number"],
+                    "status": "failed",
+                    "error": sms_result.get("error")
+                })
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error sending pickup game join notifications: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to send notifications: {str(e)}"
+        }
+
+
+def send_pickup_game_leave_notifications(game_id: int, leaving_user_id: int, leaving_user_name: str) -> Dict:
+    """
+    Send SMS notifications when a user leaves a pickup game
+    
+    Args:
+        game_id (int): ID of the pickup game
+        leaving_user_id (int): ID of the user who left
+        leaving_user_name (str): Name of the user who left
+        
+    Returns:
+        Dict: Results of notification sending
+    """
+    try:
+        from database_utils import execute_query_one, execute_query
+        
+        # Get pickup game details
+        game_query = """
+            SELECT pg.*, c.name as club_name
+            FROM pickup_games pg
+            LEFT JOIN clubs c ON pg.club_id = c.id
+            WHERE pg.id = %s
+        """
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return {
+                "success": False,
+                "error": f"Pickup game {game_id} not found"
+            }
+        
+        # Get all remaining participants
+        participants_query = """
+            SELECT u.id, u.first_name, u.last_name, u.phone_number, u.email
+            FROM pickup_game_participants pgp
+            JOIN users u ON pgp.user_id = u.id
+            WHERE pgp.pickup_game_id = %s
+        """
+        participants = execute_query(participants_query, [game_id])
+        
+        # Format game details
+        game_date = game["game_date"].strftime("%m/%d/%Y") if game["game_date"] else "TBD"
+        game_time = game["game_time"].strftime("%I:%M %p") if game["game_time"] else "TBD"
+        club_name = game["club_name"] or "TBD"
+        
+        # Create message for remaining participants
+        game_url = f"https://www.lovetorally.com/mobile/pickup-games"
+        message = f"🎾 Rally Pickup Game Update:\n\n{leaving_user_name} just left this pickup game:\n\n\"{game['description']}\" on {game_date} at {game_time}.\n\nCurrent players: {game['players_committed']}/{game['players_requested']}\n\nClick here to view the game: {game_url}"
+        
+        # Send notifications to all remaining participants
+        results = {
+            "success": True,
+            "message": f"Sent notifications to {len(participants)} participants",
+            "participants_notified": 0,
+            "participants_failed": 0,
+            "details": []
+        }
+        
+        for participant in participants:
+            if not participant["phone_number"]:
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "status": "skipped",
+                    "reason": "No phone number"
+                })
+                continue
+            
+            # Send SMS notification
+            sms_result = send_sms_notification(
+                to_number=participant["phone_number"],
+                message=message,
+                test_mode=False
+            )
+            
+            if sms_result["success"]:
+                results["participants_notified"] += 1
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "phone": participant["phone_number"],
+                    "status": "sent",
+                    "message_sid": sms_result.get("message_sid")
+                })
+            else:
+                results["participants_failed"] += 1
+                results["details"].append({
+                    "user": f"{participant['first_name']} {participant['last_name']}",
+                    "phone": participant["phone_number"],
+                    "status": "failed",
+                    "error": sms_result.get("error")
+                })
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error sending pickup game leave notifications: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to send notifications: {str(e)}"
+        }
+
+
+def send_pickup_game_join_confirmation(user_id: int, game_id: int) -> Dict:
+    """
+    Send confirmation SMS to the user who just joined a pickup game
+    
+    Args:
+        user_id (int): ID of the user who joined
+        game_id (int): ID of the pickup game
+        
+    Returns:
+        Dict: Result of confirmation SMS
+    """
+    try:
+        from database_utils import execute_query_one
+        
+        # Get user details
+        user_query = """
+            SELECT u.first_name, u.last_name, u.phone_number, u.email
+            FROM users u
+            WHERE u.id = %s
+        """
+        user = execute_query_one(user_query, [user_id])
+        
+        if not user or not user["phone_number"]:
+            return {
+                "success": False,
+                "error": "User not found or no phone number"
+            }
+        
+        # Get pickup game details
+        game_query = """
+            SELECT pg.*, c.name as club_name
+            FROM pickup_games pg
+            LEFT JOIN clubs c ON pg.club_id = c.id
+            WHERE pg.id = %s
+        """
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return {
+                "success": False,
+                "error": f"Pickup game {game_id} not found"
+            }
+        
+        # Format game details
+        game_date = game["game_date"].strftime("%m/%d/%Y") if game["game_date"] else "TBD"
+        game_time = game["game_time"].strftime("%I:%M %p") if game["game_time"] else "TBD"
+        club_name = game["club_name"] or "TBD"
+        
+        # Create confirmation message
+        game_url = f"https://www.lovetorally.com/mobile/pickup-games"
+        message = f"🎾 Rally Pickup Game Confirmation:\n\nYou've successfully joined this pickup game:\n\n\"{game['description']}\" on {game_date} at {game_time}.\n\nCurrent players: {game['players_committed']}/{game['players_requested']}\n\nClick here to view the game: {game_url}\n\nYou'll be notified when other players join or leave."
+        
+        # Send confirmation SMS
+        sms_result = send_sms_notification(
+            to_number=user["phone_number"],
+            message=message,
+            test_mode=False
+        )
+        
+        if sms_result["success"]:
+            return {
+                "success": True,
+                "message": "Confirmation SMS sent successfully",
+                "message_sid": sms_result.get("message_sid")
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Failed to send confirmation SMS: {sms_result.get('error')}"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error sending pickup game join confirmation: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to send confirmation: {str(e)}"
+        }
+
+
+def send_pickup_game_leave_confirmation(user_id: int, game_id: int) -> Dict:
+    """
+    Send confirmation SMS to the user who just left a pickup game
+    
+    Args:
+        user_id (int): ID of the user who left
+        game_id (int): ID of the pickup game
+        
+    Returns:
+        Dict: Result of confirmation SMS
+    """
+    try:
+        from database_utils import execute_query_one
+        
+        # Get user details
+        user_query = """
+            SELECT u.first_name, u.last_name, u.phone_number, u.email
+            FROM users u
+            WHERE u.id = %s
+        """
+        user = execute_query_one(user_query, [user_id])
+        
+        if not user or not user["phone_number"]:
+            return {
+                "success": False,
+                "error": "User not found or no phone number"
+            }
+        
+        # Get pickup game details
+        game_query = """
+            SELECT pg.*, c.name as club_name
+            FROM pickup_games pg
+            LEFT JOIN clubs c ON pg.club_id = c.id
+            WHERE pg.id = %s
+        """
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return {
+                "success": False,
+                "error": f"Pickup game {game_id} not found"
+            }
+        
+        # Format game details
+        game_date = game["game_date"].strftime("%m/%d/%Y") if game["game_date"] else "TBD"
+        game_time = game["game_time"].strftime("%I:%M %p") if game["game_time"] else "TBD"
+        club_name = game["club_name"] or "TBD"
+        
+        # Create confirmation message
+        game_url = f"https://www.lovetorally.com/mobile/pickup-games"
+        message = f"🎾 Rally Pickup Game Confirmation:\n\nYou've successfully left this pickup game:\n\n\"{game['description']}\" on {game_date} at {game_time}.\n\nCurrent players: {game['players_committed']}/{game['players_requested']}\n\nClick here to view the game: {game_url}"
+        
+        # Send confirmation SMS
+        sms_result = send_sms_notification(
+            to_number=user["phone_number"],
+            message=message,
+            test_mode=False
+        )
+        
+        if sms_result["success"]:
+            return {
+                "success": True,
+                "message": "Confirmation SMS sent successfully",
+                "message_sid": sms_result.get("message_sid")
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Failed to send confirmation SMS: {sms_result.get('error')}"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error sending pickup game leave confirmation: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Failed to send confirmation: {str(e)}"
+        } 

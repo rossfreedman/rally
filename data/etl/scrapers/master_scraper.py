@@ -1,773 +1,649 @@
 #!/usr/bin/env python3
 """
-Master Scraper Script for Rally Platform
-========================================
+Master Scraper - Unified Intelligent Scraping System
+====================================================
 
-Runs all scrapers for all discovered leagues in the correct order with SMS notifications:
-1. Scrape stats for each league
-2. Scrape match scores for each league
-3. Scrape players for each league
-4. Scrape schedules for each league
-
-Sends detailed status messages to admin (7732138911) after each step.
-Sends immediate failure notifications if any scraper fails.
-
-Usage:
-    python data/etl/scrapers/master_scraper.py [--environment staging|production]
-    python data/etl/scrapers/master_scraper.py --environment staging
+This unified scraper intelligently determines whether to perform incremental or full scraping
+based on data analysis, schedule information, and existing match data.
 """
 
-import argparse
-import logging
 import os
 import sys
+import json
+import logging
+import argparse
 import subprocess
-import time
-import warnings
-from datetime import datetime
-from pathlib import Path
-
-# Suppress deprecation warnings - CRITICAL for production stability
-warnings.filterwarnings("ignore", category=UserWarning, module="_distutils_hack")
-warnings.filterwarnings("ignore", category=UserWarning, module="setuptools")
-warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
+from datetime import datetime, timedelta, date
+from typing import Dict, List, Optional, Tuple, Set
+from dataclasses import dataclass
 
 # Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, project_root)
 
-# Import enhanced scraper functionality
+# Import database utilities
 try:
-    from data.etl.scrapers.stealth_browser import create_enhanced_scraper, add_throttling_to_loop
-except ImportError:
-    # Fallback if stealth_browser not available
-    create_enhanced_scraper = None
-    add_throttling_to_loop = lambda: time.sleep(2)
+    from database_config import get_db_engine
+    # Avoid importing app.models.database_models which triggers Flask app startup
+    # Instead, define the models we need directly
+    from sqlalchemy import Column, Integer, String, Date, Time, Text, ForeignKey
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import sessionmaker
+    
+    Base = declarative_base()
+    
+    # Define minimal models for scraper use only
+    class Schedule(Base):
+        __tablename__ = "schedule"
+        id = Column(Integer, primary_key=True)
+        league_id = Column(Integer, ForeignKey("leagues.id"))
+        match_date = Column(Date)
+        match_time = Column(Time)
+        home_team = Column(Text)
+        away_team = Column(Text)
+        home_team_id = Column(Integer, ForeignKey("teams.id"))
+        away_team_id = Column(Integer, ForeignKey("teams.id"))
+        location = Column(Text)
+    
+    class MatchScore(Base):
+        __tablename__ = "match_scores"
+        id = Column(Integer, primary_key=True)
+        league_id = Column(Integer, ForeignKey("leagues.id"))
+        match_date = Column(Date)
+        home_team = Column(Text)
+        away_team = Column(Text)
+        home_team_id = Column(Integer, ForeignKey("teams.id"))
+        away_team_id = Column(Integer, ForeignKey("teams.id"))
+        home_player_1_id = Column(Text)
+        home_player_2_id = Column(Text)
+        away_player_1_id = Column(Text)
+        away_player_2_id = Column(Text)
+        scores = Column(Text)
+        winner = Column(Text)
+    
+    class League(Base):
+        __tablename__ = "leagues"
+        id = Column(Integer, primary_key=True)
+        league_id = Column(String(255), nullable=False, unique=True)
+        league_name = Column(String(255), nullable=False)
+        league_url = Column(String(512))
+        
+except ImportError as e:
+    print(f"❌ Import error: {e}")
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Project root: {project_root}")
+    print(f"Python path: {sys.path}")
+    sys.exit(1)
 
 # Configure logging
-os.makedirs("logs", exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler("logs/master_scraper.log"),
         logging.StreamHandler(),
-    ],
+        logging.FileHandler('logs/master_scraper.log')
+    ]
 )
-
 logger = logging.getLogger(__name__)
 
-# Import SMS notification service
-try:
-    from app.services.notifications_service import send_sms
-except ImportError:
-    logger.warning("SMS service not available, notifications will be logged only")
-    send_sms = None
+@dataclass
+class DeltaScrapingPlan:
+    """Plan for delta scraping"""
+    league_id: str
+    league_name: str
+    start_date: date
+    end_date: date
+    matches_to_scrape: List[Dict]
+    estimated_requests: int
+    reason: str
 
-ADMIN_PHONE = "17732138911"
+class DeltaScrapingManager:
+    """Manages delta scraping by comparing JSON files vs database imports"""
+    
+    def __init__(self):
+        self.engine = get_db_engine()
+        # Map league IDs to their JSON file paths
+        self.league_json_mapping = {
+            4930: "data/leagues/APTA_CHICAGO/match_history.json",  # APTA Chicago
+            4931: "data/leagues/CITA/match_history.json",           # CITA
+            4932: "data/leagues/CNSWPL/match_history.json",         # CNSWPL
+            4933: "data/leagues/NSTF/match_history.json"            # NSTF
+        }
+    
+    def parse_json_date(self, date_str: str) -> date:
+        """Parse JSON date format like '31-Oct-24' to date object"""
+        try:
+            return datetime.strptime(date_str, '%d-%b-%y').date()
+        except:
+            return None
+    
+    def get_latest_json_date(self, league_id: int) -> date:
+        """Get the latest date from JSON file for a league"""
+        
+        json_file = self.league_json_mapping.get(league_id)
+        if not json_file:
+            logger.warning(f"⚠️ No JSON file mapping for league {league_id}")
+            return None
+        
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    # Find the latest date in the JSON
+                    json_dates = []
+                    for match in data:
+                        if 'Date' in match and match['Date']:
+                            parsed_date = self.parse_json_date(match['Date'])
+                            if parsed_date:
+                                json_dates.append(parsed_date)
+                    
+                    if json_dates:
+                        latest_date = max(json_dates)
+                        logger.info(f"📄 JSON latest date for league {league_id}: {latest_date}")
+                        return latest_date
+                    else:
+                        logger.warning(f"⚠️ No valid dates found in JSON for league {league_id}")
+                        return None
+                else:
+                    logger.warning(f"⚠️ Invalid JSON format for league {league_id}")
+                    return None
+        except FileNotFoundError:
+            logger.warning(f"⚠️ JSON file not found: {json_file}")
+            return None
+        except Exception as e:
+            logger.error(f"❌ Error reading JSON for league {league_id}: {e}")
+            return None
+    
+    def get_latest_database_date(self, league_id: int) -> date:
+        """Get the latest date from database for a league"""
+        
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        
+        try:
+            # Get the latest match date from database
+            latest_match = session.query(MatchScore.match_date).filter(
+                MatchScore.league_id == league_id
+            ).order_by(MatchScore.match_date.desc()).first()
+            
+            if latest_match and latest_match[0]:
+                latest_date = latest_match[0]
+                logger.info(f"🗄️ Database latest date for league {league_id}: {latest_date}")
+                return latest_date
+            else:
+                logger.info(f"🗄️ No matches in database for league {league_id}")
+                return None
+                
+        finally:
+            session.close()
+    
+    def calculate_delta_date_range(self, league_id: int) -> Tuple[date, date]:
+        """Calculate date range for delta based on JSON vs Database comparison"""
+        
+        json_latest = self.get_latest_json_date(league_id)
+        db_latest = self.get_latest_database_date(league_id)
+        
+        if not json_latest:
+            logger.warning(f"⚠️ No JSON data available for league {league_id}")
+            return None, None
+        
+        if not db_latest:
+            # No database data, import everything from JSON
+            logger.info(f"📥 No database data for league {league_id}, will import all JSON data")
+            return json_latest, json_latest  # Import just the latest date
+        
+        if json_latest > db_latest:
+            # JSON is newer than database, need to import delta
+            delta_days = (json_latest - db_latest).days
+            logger.info(f"🎯 DELTA: JSON is {delta_days} days newer than database")
+            logger.info(f"📅 Need to import from: {db_latest + timedelta(days=1)} to {json_latest}")
+            return db_latest + timedelta(days=1), json_latest
+        elif json_latest < db_latest:
+            # Database is newer than JSON (shouldn't happen normally)
+            logger.warning(f"⚠️ Database is newer than JSON for league {league_id}")
+            return None, None
+        else:
+            # Dates match, no delta needed
+            logger.info(f"✅ DATES MATCH: No delta needed for league {league_id}")
+            return None, None
+    
+    def create_delta_plan(self, league_id: int) -> DeltaScrapingPlan:
+        """Create a comprehensive delta plan based on JSON vs Database comparison"""
+        
+        # Get league info
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        
+        try:
+            league = session.query(League).filter(League.id == league_id).first()
+            if not league:
+                raise ValueError(f"League {league_id} not found")
+            
+            league_name = league.league_name
+            
+        finally:
+            session.close()
+        
+        # Calculate delta date range
+        start_date, end_date = self.calculate_delta_date_range(league_id)
+        
+        if not start_date or not end_date:
+            # No delta needed
+            return DeltaScrapingPlan(
+                league_id=str(league_id),
+                league_name=league_name,
+                start_date=date.today(),
+                end_date=date.today(),
+                matches_to_scrape=[],
+                estimated_requests=0,
+                reason="No delta needed - JSON and database dates match"
+            )
+        
+        # Get matches from JSON file in the delta range
+        matches_to_scrape = self.get_matches_from_json_in_range(league_id, start_date, end_date)
+        
+        # Calculate estimated requests (each match might need multiple requests)
+        estimated_requests = len(matches_to_scrape) * 3  # Conservative estimate
+        
+        logger.info(f"\n🎯 Delta Plan for {league_name}:")
+        logger.info(f"   Date Range: {start_date} to {end_date}")
+        logger.info(f"   Matches to Import: {len(matches_to_scrape)}")
+        logger.info(f"   Estimated Requests: {estimated_requests}")
+        logger.info(f"   Reason: JSON data newer than database")
+        
+        return DeltaScrapingPlan(
+            league_id=str(league_id),
+            league_name=league_name,
+            start_date=start_date,
+            end_date=end_date,
+            matches_to_scrape=matches_to_scrape,
+            estimated_requests=estimated_requests,
+            reason="JSON data newer than database - need to import delta"
+        )
+    
+    def get_matches_from_json_in_range(self, league_id: int, start_date: date, end_date: date) -> List[Dict]:
+        """Get matches from JSON file within the specified date range"""
+        
+        json_file = self.league_json_mapping.get(league_id)
+        if not json_file:
+            return []
+        
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+                if not isinstance(data, list):
+                    return []
+                
+                matches_in_range = []
+                for match in data:
+                    if 'Date' in match and match['Date']:
+                        parsed_date = self.parse_json_date(match['Date'])
+                        if parsed_date and start_date <= parsed_date <= end_date:
+                            matches_in_range.append(match)
+                
+                logger.info(f"📄 Found {len(matches_in_range)} matches in JSON for date range {start_date} to {end_date}")
+                return matches_in_range
+                
+        except Exception as e:
+            logger.error(f"❌ Error reading JSON for league {league_id}: {e}")
+            return []
 
 class MasterScraper:
-    """Master scraper that orchestrates all scraping processes"""
+    """Unified intelligent scraper that determines scraping strategy"""
     
-    # Legacy hardcoded leagues for backward compatibility
-    LEGACY_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
+    def __init__(self):
+        self.delta_manager = DeltaScrapingManager()
+        self.engine = get_db_engine()
+        self.failures = []  # Track failures for cron job compatibility
     
-    # League name mapping for case-insensitive input
-    LEAGUE_MAPPING = {
-        "APTACHICAGO": "APTA_CHICAGO",
-        "aptachicago": "APTA_CHICAGO",
-        "NSTF": "NSTF",
-        "nstf": "NSTF",
-        "CNSWPL": "CNSWPL",
-        "cnswpl": "CNSWPL",
-        "CITA": "CITA",
-        "cita": "CITA"
-    }
-    
-    # League subdomain mapping
-    LEAGUE_SUBDOMAINS = {
-        "APTA_CHICAGO": "aptachicago",
-        "NSTF": "nstf", 
-        "CNSWPL": "cnswpl",
-        "CITA": "cita"
-    }
-    
-    def __init__(self, environment=None, league=None):
-        self.environment = environment or self._detect_environment()
-        self.league = league
-        self.start_time = datetime.now()
-        self.results = {}
-        self.failures = []
+    def analyze_scraping_strategy(self, league: str = None, force_full: bool = False, force_incremental: bool = False) -> Dict:
+        """
+        Analyze and determine the best scraping strategy
         
-        # Initialize enhanced scraper with request volume tracking and proxy retry logic
-        if create_enhanced_scraper:
-            self.scraper_enhancements = create_enhanced_scraper(
-                scraper_name="Master Scraper",
-                estimated_requests=800,  # Conservative estimate for all scrapers
-                cron_frequency="daily"
-            )
-            # Test proxy connectivity with retry logic
-            proxy_working = self._test_proxy_connectivity()
-            if not proxy_working:
-                logger.warning("⚠️ Proxy connectivity issues detected - scraping may be limited")
-                # Don't abort immediately, but track for escalation
-                self.proxy_issues_detected = True
-            else:
-                self.proxy_issues_detected = False
-        else:
-            self.scraper_enhancements = None
-            self.proxy_issues_detected = False
-        
-        # Discover available leagues dynamically
-        self.available_leagues = self._discover_available_leagues()
-        
-        # Build scraping steps dynamically based on league parameter
-        self.scraping_steps = self._build_scraping_steps()
-    
-    def _detect_environment(self) -> str:
-        """Detect current environment automatically"""
-        # Check for Railway environment
-        if os.getenv('RAILWAY_ENVIRONMENT'):
-            railway_env = os.getenv('RAILWAY_ENVIRONMENT_NAME', '').lower()
-            if 'production' in railway_env:
-                return 'production'
-            elif 'staging' in railway_env:
-                return 'staging'
-            else:
-                # Default to staging for Railway
-                return 'staging'
-        
-        # Check for /app directory (Railway indicator)
-        if os.path.exists('/app'):
-            return 'production'
-        
-        # Check for common production indicators
-        if os.getenv('DATABASE_URL') and 'railway' in os.getenv('DATABASE_URL', '').lower():
-            return 'production'
-        
-        # Check for local development indicators
-        if os.path.exists('.env') or os.path.exists('venv') or os.path.exists('.venv'):
-            return 'local'
-        
-        # Check if we're in a development directory structure
-        if os.path.exists('data/etl') and os.path.exists('app') and os.path.exists('static'):
-            return 'local'
-        
-        # Default to staging for unknown environments
-        return 'staging'
-    
-    def _test_proxy_connectivity(self):
-        """Test proxy connectivity with automatic retry logic"""
-        import requests
-        import time
-        
-        max_retries = 3
-        retry_delay = 10  # 10 seconds between retries (much faster)
-        
-        logger.info("🔍 Testing proxy connectivity and IP rotation capabilities...")
-        logger.info("📡 Using Decodo residential proxy service with automatic rotation")
-        
-        for attempt in range(max_retries):
-            try:
-                # Import and use the proxy manager
-                from data.etl.scrapers.proxy_manager import get_proxy_rotator
-                rotator = get_proxy_rotator()
-                
-                # Test proxy connectivity using the proxy manager's validation
-                ip_info = rotator.validate_ip()
-                
-                if ip_info:
-                    current_ip = ip_info.get('proxy', {}).get('ip', 'unknown')
-                    country = ip_info.get('country', {}).get('code', 'Unknown')
-                    city = ip_info.get('city', {}).get('name', 'Unknown')
-                    
-                    logger.info(f"✅ Proxy connectivity test successful (attempt {attempt + 1}/{max_retries})")
-                    logger.info(f"🌐 Current IP Address: {current_ip}")
-                    logger.info(f"📍 Location: {city}, {country} (Residential Proxy)")
-                    logger.info(f"🔒 Connection: Encrypted HTTPS via Decodo")
-                    logger.info(f"🏢 ISP: {ip_info.get('isp', {}).get('isp', 'Unknown')}")
-                    
-                    # Test IP rotation using the proxy manager's built-in validation
-                    time.sleep(1)  # Brief delay
-                    rotator._rotate_ip()  # Force rotation
-                    
-                    # Use the proxy manager's validation instead of httpbin
-                    ip_info = rotator.validate_ip()
-                    if ip_info:
-                        new_ip = ip_info.get('proxy', {}).get('ip', 'unknown')
-                        if new_ip != current_ip:
-                            logger.info(f"✅ IP rotation successful: {current_ip} → {new_ip}")
-                            logger.info(f"🔄 Rotation mechanism: Automatic port switching")
-                            logger.info(f"⏱️ Rotation interval: Every 30 requests or 10 minutes")
-                            return True
-                        else:
-                            logger.warning(f"⚠️ IP rotation failed - IP stuck on: {current_ip}")
-                            logger.warning(f"🔧 Possible causes: Proxy service issue or rate limiting")
-                            if attempt == max_retries - 1:
-                                self._send_urgent_proxy_alert("IP rotation failure", f"IP stuck on {current_ip}")
-                                return False
-                    else:
-                        logger.warning(f"⚠️ IP rotation validation failed")
-                        logger.warning(f"🔍 Validation method: Decodo internal API")
-                        logger.warning(f"💡 This may indicate temporary proxy service issues")
-                        
-                else:
-                    logger.warning(f"⚠️ Proxy connectivity test failed (attempt {attempt + 1}/{max_retries})")
-                    logger.warning(f"🔍 Validation method: Decodo internal API")
-                    logger.warning(f"💡 This may indicate temporary proxy service issues")
-                    
-            except Exception as e:
-                logger.warning(f"⚠️ Proxy connectivity test failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+        Args:
+            league: Specific league to scrape (optional)
+            force_full: Force full scraping regardless of analysis
+            force_incremental: Force incremental scraping regardless of analysis
             
-            if attempt < max_retries - 1:
-                logger.info(f"⏳ Waiting {retry_delay} seconds before retry...")
-                logger.info(f"🔄 Retry {attempt + 2}/{max_retries} will test different proxy endpoint")
-                time.sleep(retry_delay)
+        Returns:
+            Dict with strategy analysis and recommendations
+        """
         
-        # All attempts failed
-        self._send_urgent_proxy_alert("Proxy connectivity failure", "All proxy connectivity tests failed")
-        logger.warning("⚠️ All proxy connectivity tests failed. Scraping may be limited or blocked.")
-        logger.info("💡 Proxy services often have temporary outages. Try again in a few minutes.")
-        logger.info("🔧 Troubleshooting: Check proxy credentials, network connectivity, or try later")
-        logger.info("📞 Admin notification sent for immediate attention")
-        return False
-    
-    def _get_status_description(self, status_code):
-        """Get descriptive text for HTTP status codes"""
-        descriptions = {
-            200: "Success - Proxy working correctly",
-            400: "Bad Request - Invalid proxy configuration",
-            401: "Unauthorized - Invalid proxy credentials",
-            403: "Forbidden - Access denied by proxy service",
-            404: "Not Found - Test URL unavailable",
-            429: "Too Many Requests - Rate limited",
-            500: "Internal Server Error - Proxy service issue",
-            502: "Bad Gateway - Proxy service unavailable",
-            503: "Service Unavailable - Proxy service overloaded",
-            504: "Gateway Timeout - Proxy service timeout"
-        }
-        return descriptions.get(status_code, f"Unknown error (code {status_code})")
-    
-    def _send_urgent_proxy_alert(self, alert_type, details):
-        """Send urgent alert to admin about proxy/IP rotation issues"""
-        urgent_message = f"🚨 URGENT: {alert_type}\n\n"
-        urgent_message += f"Environment: {self.environment}\n"
-        urgent_message += f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-        urgent_message += f"Details: {details}\n\n"
-        urgent_message += "⚠️ Scraping operations may be blocked or limited.\n"
-        urgent_message += "🔧 Immediate action required to restore proxy service."
+        logger.info(f"\n🔍 Analyzing scraping strategy...")
+        logger.info(f"   League: {league or 'All leagues'}")
+        logger.info(f"   Force Full: {force_full}")
+        logger.info(f"   Force Incremental: {force_incremental}")
         
-        logger.error(f"🚨 URGENT PROXY ALERT: {alert_type}")
-        logger.error(f"Details: {details}")
+        # Get all leagues or specific league
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
         
-        # Send urgent SMS notification
         try:
-            if send_sms:
-                send_sms(ADMIN_PHONE, urgent_message)
-                logger.info("📱 Urgent proxy alert sent to admin")
+            if league:
+                leagues = session.query(League).filter(League.league_name.ilike(f"%{league}%")).all()
             else:
-                logger.info("📱 Urgent proxy alert (mock): " + urgent_message[:100] + "...")
-        except Exception as e:
-            logger.error(f"❌ Failed to send urgent proxy alert: {e}")
-        
-        # Also log to file for persistence
-        alert_log_file = f"logs/proxy_alerts_{datetime.now().strftime('%Y%m%d')}.log"
-        try:
-            with open(alert_log_file, 'a') as f:
-                f.write(f"[{datetime.now()}] {alert_type}: {details}\n")
-        except Exception as e:
-            logger.error(f"❌ Failed to log proxy alert: {e}")
+                leagues = session.query(League).all()
+            
+            if not leagues:
+                logger.error(f"❌ No leagues found matching: {league}")
+                return {"error": f"No leagues found matching: {league}"}
+            
+            # Analyze each league
+            league_plans = []
+            total_matches_to_scrape = 0
+            total_estimated_requests = 0
+            
+            for league_obj in leagues:
+                try:
+                    plan = self.delta_manager.create_delta_plan(league_obj.id)
+                    league_plans.append(plan)
+                    total_matches_to_scrape += len(plan.matches_to_scrape)
+                    total_estimated_requests += plan.estimated_requests
+                except Exception as e:
+                    logger.error(f"❌ Error analyzing league {league_obj.league_name}: {e}")
+                    continue
+            
+            # Determine strategy
+            if force_full:
+                strategy = "FORCE_FULL"
+                reason = "User forced full scraping"
+            elif force_incremental:
+                strategy = "FORCE_INCREMENTAL"
+                reason = "User forced incremental scraping"
+            elif total_matches_to_scrape == 0:
+                strategy = "SKIP"
+                reason = "No new matches to scrape"
+            elif total_estimated_requests < 1000:  # Small delta (increased from 100)
+                strategy = "DELTA"
+                reason = f"Small delta: {total_matches_to_scrape} matches, {total_estimated_requests} requests"
+            else:
+                strategy = "FULL"
+                reason = f"Large delta: {total_matches_to_scrape} matches, {total_estimated_requests} requests"
+            
+            analysis = {
+                "strategy": strategy,
+                "reason": reason,
+                "league_plans": league_plans,
+                "total_matches_to_scrape": total_matches_to_scrape,
+                "total_estimated_requests": total_estimated_requests,
+                "efficiency_percentage": (total_estimated_requests / 80000) * 100 if total_estimated_requests > 0 else 0
+            }
+            
+            logger.info(f"\n📊 Strategy Analysis:")
+            logger.info(f"   Strategy: {strategy}")
+            logger.info(f"   Reason: {reason}")
+            logger.info(f"   Total Matches: {total_matches_to_scrape}")
+            logger.info(f"   Estimated Requests: {total_estimated_requests}")
+            logger.info(f"   Efficiency: {analysis['efficiency_percentage']:.1f}% of full scraping")
+            
+            return analysis
+            
+        finally:
+            session.close()
     
-    def _should_retry_proxy_step(self, step_name):
-        """Determine if a step should be retried after proxy failure"""
-        # Track retry attempts per step
-        if not hasattr(self, '_proxy_retry_counts'):
-            self._proxy_retry_counts = {}
+    def run_intelligent_match_scraping(self, analysis: Dict) -> bool:
+        """
+        Run match scraping based on intelligent analysis
         
-        if step_name not in self._proxy_retry_counts:
-            self._proxy_retry_counts[step_name] = 0
+        Args:
+            analysis: Strategy analysis from analyze_scraping_strategy
+            
+        Returns:
+            bool: Success status
+        """
         
-        # Allow up to 2 retries per step
-        max_retries = 2
-        if self._proxy_retry_counts[step_name] < max_retries:
-            self._proxy_retry_counts[step_name] += 1
-            logger.info(f"🔄 Proxy retry attempt {self._proxy_retry_counts[step_name]}/{max_retries} for {step_name}")
+        strategy = analysis.get("strategy")
+        league_plans = analysis.get("league_plans", [])
+        
+        logger.info(f"\n🚀 Running intelligent match scraping...")
+        logger.info(f"   Strategy: {strategy}")
+        logger.info(f"   League Plans: {len(league_plans)}")
+        
+        if strategy == "SKIP":
+            logger.info(f"✅ Skipping scraping - no new matches to scrape")
             return True
-        else:
-            logger.warning(f"⚠️ Max proxy retries ({max_retries}) reached for {step_name}")
-            
-            # Check if we should abort the entire scraping process
-            if self._should_abort_due_to_proxy_issues():
-                self._send_urgent_proxy_alert(
-                    "CRITICAL: Scraping abort due to proxy issues",
-                    f"Multiple steps failed due to proxy issues. Aborting scraping process."
-                )
-                logger.error("🚨 CRITICAL: Aborting scraping process due to persistent proxy issues")
-                return False
-            
+        
+        try:
+            if strategy in ["DELTA", "FORCE_INCREMENTAL"]:
+                return self._run_delta_scraping(league_plans)
+            else:
+                return self._run_full_scraping(league_plans)
+                
+        except Exception as e:
+            logger.error(f"❌ Error in intelligent match scraping: {e}")
             return False
     
-    def _should_abort_due_to_proxy_issues(self):
-        """Determine if scraping should be aborted due to critical proxy issues"""
-        # Count total proxy failures
-        total_proxy_failures = len(self._proxy_retry_counts)
-        failed_steps = len([step for step, count in self._proxy_retry_counts.items() if count >= 2])
+    def _run_delta_scraping(self, league_plans: List[DeltaScrapingPlan]) -> bool:
+        """Run delta scraping for specific matches"""
         
-        # Abort if more than 50% of steps have proxy issues or if we have proxy issues from startup
-        abort_threshold = len(self.scraping_steps) * 0.5
+        logger.info(f"\n🎯 Running DELTA scraping...")
+        logger.info(f"   Target: Only missing matches")
+        logger.info(f"   Scope: {len(league_plans)} leagues")
+        logger.info(f"   Goal: Minimize requests and processing time")
         
-        if failed_steps >= abort_threshold or (self.proxy_issues_detected and failed_steps >= 2):
-            logger.error(f"🚨 CRITICAL: {failed_steps}/{len(self.scraping_steps)} steps failed due to proxy issues")
-            logger.error(f"🚨 Abort threshold: {abort_threshold}, Failed steps: {failed_steps}")
-            return True
+        total_success = 0
+        total_matches = 0
         
-        return False
-    
-    def _discover_available_leagues(self):
-        """Dynamically discover available leagues from data/leagues/ directory"""
-        try:
-            # Get the project root directory
-            project_root = Path(__file__).parent.parent.parent.parent
-            leagues_dir = project_root / "data" / "leagues"
+        for plan in league_plans:
+            if len(plan.matches_to_scrape) == 0:
+                logger.info(f"✅ {plan.league_name}: No matches to scrape")
+                continue
             
-            if not leagues_dir.exists():
-                logger.warning(f"Leagues directory not found: {leagues_dir}")
-                logger.info("Falling back to legacy hardcoded leagues")
-                return self.LEGACY_LEAGUES
+            logger.info(f"\n🏆 Scraping {plan.league_name}:")
+            logger.info(f"   Matches: {len(plan.matches_to_scrape)}")
+            logger.info(f"   Date Range: {plan.start_date} to {plan.end_date}")
             
-            # Discover league directories (excluding 'all' directory)
-            available_leagues = []
-            for item in leagues_dir.iterdir():
-                if item.is_dir() and item.name != "all" and not item.name.startswith("."):
-                    available_leagues.append(item.name)
-            
-            if not available_leagues:
-                logger.warning("No league directories found, falling back to legacy leagues")
-                return self.LEGACY_LEAGUES
-            
-            # Sort for consistent ordering
-            available_leagues.sort()
-            logger.info(f"Discovered {len(available_leagues)} leagues: {', '.join(available_leagues)}")
-            return available_leagues
-            
-        except Exception as e:
-            logger.error(f"Error discovering leagues: {e}")
-            logger.info("Falling back to legacy hardcoded leagues")
-            return self.LEGACY_LEAGUES
-    
-    def _get_league_subdomain(self, league_id):
-        """Get subdomain for a league ID"""
-        return self.LEAGUE_SUBDOMAINS.get(league_id, league_id.lower())
-    
-    def _build_scraping_steps(self):
-        """Build scraping steps based on league parameter"""
-        steps = []
-        
-        # Add scraping steps based on league parameter
-        if self.league:
-            # Single league mode - normalize league name
-            normalized_league = self.LEAGUE_MAPPING.get(self.league, self.league)
-            if normalized_league not in self.available_leagues:
-                raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.available_leagues)}")
-            
-            league_subdomain = self._get_league_subdomain(normalized_league)
-            
-            # Step 1: Scrape stats
-            steps.append({
-                "name": f"Scrape Stats - {normalized_league}",
-                "script": "scrape_stats.py",
-                "args": [league_subdomain],
-                "description": f"Scrape team statistics for {normalized_league}"
-            })
-            
-            # Step 2: Scrape match scores
-            steps.append({
-                "name": f"Scrape Match Scores - {normalized_league}",
-                "script": "scrape_match_scores.py",
-                "args": [league_subdomain],
-                "description": f"Scrape match scores and results for {normalized_league}"
-            })
-            
-            # Step 3: Scrape players
-            steps.append({
-                "name": f"Scrape Players - {normalized_league}",
-                "script": "scrape_players.py",
-                "args": [league_subdomain],
-                "description": f"Scrape player data for {normalized_league}"
-            })
-            
-            # Step 4: Scrape schedules
-            steps.append({
-                "name": f"Scrape Schedules - {normalized_league}",
-                "script": "scrape_schedule.py",
-                "args": [league_subdomain],
-                "description": f"Scrape team schedules for {normalized_league}"
-            })
-        else:
-            # All leagues mode - create steps for each league
-            for league_id in self.available_leagues:
-                league_subdomain = self._get_league_subdomain(league_id)
-                
-                # Step 1: Scrape stats
-                steps.append({
-                    "name": f"Scrape Stats - {league_id}",
-                    "script": "scrape_stats.py",
-                    "args": [league_subdomain],
-                    "description": f"Scrape team statistics for {league_id}"
-                })
-                
-                # Step 2: Scrape match scores
-                steps.append({
-                    "name": f"Scrape Match Scores - {league_id}",
-                    "script": "scrape_match_scores.py",
-                    "args": [league_subdomain],
-                    "description": f"Scrape match scores and results for {league_id}"
-                })
-                
-                # Step 3: Scrape players
-                steps.append({
-                    "name": f"Scrape Players - {league_id}",
-                    "script": "scrape_players.py",
-                    "args": [league_subdomain],
-                    "description": f"Scrape player data for {league_id}"
-                })
-                
-                # Step 4: Scrape schedules
-                steps.append({
-                    "name": f"Scrape Schedules - {league_id}",
-                    "script": "scrape_schedule.py",
-                    "args": [league_subdomain],
-                    "description": f"Scrape team schedules for {league_id}"
-                })
-        
-        return steps
-    
-    def send_notification(self, message, is_failure=False):
-        """Send SMS notification to admin"""
-        try:
-            if send_sms:
-                send_sms(ADMIN_PHONE, message)
-                logger.info(f"📱 SMS sent to admin: {message[:100]}...")
-            else:
-                logger.info(f"📱 SMS notification (mock): {message}")
-        except Exception as e:
-            logger.error(f"❌ Failed to send SMS: {e}")
-    
-    def run_scraping_step(self, step):
-        """Run a single scraping step with enhanced stealth functionality"""
-        step_name = step["name"]
-        script_path = step["script"]
-        args = step["args"]
-        description = step["description"]
-        
-        logger.info(f"🚀 Starting: {step_name}")
-        logger.info(f"📝 Description: {description}")
-        logger.info(f"🔧 Script: {script_path}")
-        logger.info(f"⚙️ Arguments: {args}")
-        
-        # Track request and add throttling before step execution
-        if self.scraper_enhancements:
-            self.scraper_enhancements.track_request(f"step_{step_name.lower().replace(' ', '_')}")
-            add_throttling_to_loop()
-        
-        # Build command - handle both local and Docker environments
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        local_script_path = os.path.join(script_dir, script_path)
-        
-        if os.path.exists(local_script_path):
-            cmd = ["python3", local_script_path] + args
-        else:
-            raise FileNotFoundError(f"Script not found: {local_script_path}")
-        
-        start_time = datetime.now()
-        
-        try:
-            # Run the scraping script with real-time output
-            print(f"🚀 Starting subprocess: {' '.join(cmd)}")
-            print("=" * 60)
-            
-            # Use Popen to get real-time output
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                universal_newlines=True,
-                bufsize=1
+            # Run scraper for this league with specific date range
+            success = self._run_scraper_for_league(
+                plan.league_name,
+                plan.start_date,
+                plan.end_date,
+                plan.matches_to_scrape
             )
             
-            # Capture output in real-time
-            output_lines = []
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    print(output.rstrip())
-                    output_lines.append(output)
-            
-            # Wait for completion and get return code
-            return_code = process.poll()
-            result = subprocess.CompletedProcess(
-                args=cmd,
-                returncode=return_code,
-                stdout=''.join(output_lines),
-                stderr=''
-            )
-            
-            end_time = datetime.now()
-            duration = end_time - start_time
+            if success:
+                total_success += 1
+                total_matches += len(plan.matches_to_scrape)
+        
+        logger.info(f"\n📊 Delta Scraping Results:")
+        logger.info(f"   Successful Leagues: {total_success}/{len(league_plans)}")
+        logger.info(f"   Total Matches Scraped: {total_matches}")
+        
+        return total_success > 0
+    
+    def _run_full_scraping(self, league_plans: List[DeltaScrapingPlan]) -> bool:
+        """Run full scraping for all leagues"""
+        
+        logger.info(f"\n🎯 Running FULL scraping...")
+        logger.info(f"   Target: All match scores and game data")
+        logger.info(f"   Scope: All series and teams")
+        logger.info(f"   Goal: Complete data refresh")
+        
+        # Run the original scrape_match_scores.py for full scraping
+        try:
+            result = subprocess.run([
+                sys.executable, "data/etl/scrapers/scrape_match_scores.py"
+            ], capture_output=True, text=True, cwd=project_root)
             
             if result.returncode == 0:
-                # Success
-                success_msg = f"✅ {step_name} completed successfully in {duration}"
-                logger.info(success_msg)
-                
-                # Send success notification
-                notification = f"Rally Scraper: {step_name} ✅\nDuration: {duration}\nEnvironment: {self.environment}"
-                self.send_notification(notification)
-                
-                self.results[step_name] = {
-                    "status": "success",
-                    "duration": duration,
-                    "output": result.stdout,
-                    "error": result.stderr
-                }
-                
+                logger.info(f"✅ Full scraping completed successfully")
                 return True
             else:
-                # Check if failure is proxy-related
-                error_output = result.stderr.lower()
-                if any(proxy_error in error_output for proxy_error in ['proxy', 'connection', 'timeout', 'unavailable']):
-                    logger.warning(f"⚠️ {step_name} failed due to proxy issues")
-                    logger.info("💡 Proxy services often have temporary outages. Consider retrying in a few minutes.")
-                    
-                    # Add proxy retry logic
-                    if self._should_retry_proxy_step(step_name):
-                        logger.info(f"🔄 Retrying {step_name} after proxy failure...")
-                        time.sleep(5)  # Wait 5 seconds before retry (much faster)
-                        return self.run_scraping_step(step)  # Recursive retry
-                    else:
-                        # Max retries reached - send urgent alert
-                        self._send_urgent_proxy_alert(
-                            "Scraping step proxy failure", 
-                            f"Step '{step_name}' failed after max proxy retries. Error: {result.stderr[:200]}"
-                        )
-                
-                # Failure
-                error_msg = f"❌ {step_name} failed after {duration}"
-                logger.error(error_msg)
-                logger.error(f"Error output: {result.stderr}")
-                
-                # Send immediate failure notification
-                failure_notification = f"🚨 Rally Scraper FAILURE: {step_name}\nError: {result.stderr[:200]}...\nEnvironment: {self.environment}"
-                self.send_notification(failure_notification, is_failure=True)
-                
-                self.results[step_name] = {
-                    "status": "failed",
-                    "duration": duration,
-                    "output": result.stdout,
-                    "error": result.stderr
-                }
-                
-                self.failures.append(step_name)
+                logger.error(f"❌ Full scraping failed: {result.stderr}")
                 return False
                 
-        except subprocess.TimeoutExpired:
-            # Timeout
-            timeout_msg = f"⏰ {step_name} timed out after 2 hours"
-            logger.error(timeout_msg)
-            
-            timeout_notification = f"⏰ Rally Scraper TIMEOUT: {step_name}\nEnvironment: {self.environment}"
-            self.send_notification(timeout_notification, is_failure=True)
-            
-            self.results[step_name] = {
-                "status": "timeout",
-                "duration": "2 hours+",
-                "output": "",
-                "error": "Script timed out after 2 hours"
-            }
-            
-            self.failures.append(step_name)
-            return False
-            
         except Exception as e:
-            # Unexpected error
-            error_msg = f"💥 {step_name} failed with unexpected error: {e}"
-            logger.error(error_msg)
-            
-            error_notification = f"💥 Rally Scraper ERROR: {step_name}\nError: {str(e)}\nEnvironment: {self.environment}"
-            self.send_notification(error_notification, is_failure=True)
-            
-            self.results[step_name] = {
-                "status": "error",
-                "duration": "unknown",
-                "output": "",
-                "error": str(e)
-            }
-            
-            self.failures.append(step_name)
+            logger.error(f"❌ Error running full scraping: {e}")
             return False
     
-    def run_all_scrapers(self):
-        """Run all scraping steps in order"""
-        logger.info("🎯 Master Scraper Script Starting")
-        logger.info("=" * 60)
-        logger.info(f"🌍 Environment: {self.environment}")
-        league_info = f"League: {self.league}" if self.league else f"All Leagues ({', '.join(self.available_leagues)})"
-        logger.info(f"🏆 {league_info}")
-        logger.info(f"📱 Admin Phone: {ADMIN_PHONE}")
-        logger.info(f"🕐 Start Time: {self.start_time}")
-        logger.info("=" * 60)
+    def _run_scraper_for_league(self, league_name: str, start_date: date, end_date: date, matches: List[Dict]) -> bool:
+        """Run scraper for a specific league with date range"""
         
-        # Send start notification
-        league_info = f"League: {self.league}" if self.league else f"All Leagues ({', '.join(self.available_leagues)})"
-        start_notification = f"🚀 Rally Master Scraper Starting\n{league_info}\nEnvironment: {self.environment}\nTime: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        self.send_notification(start_notification)
+        logger.info(f"\n🎯 Running scraper for {league_name}")
+        logger.info(f"   Date Range: {start_date} to {end_date}")
+        logger.info(f"   Target Matches: {len(matches)}")
         
-        # Run each scraping step
-        for i, step in enumerate(self.scraping_steps, 1):
-            logger.info(f"\n📋 Step {i}/{len(self.scraping_steps)}: {step['name']}")
-            logger.info("-" * 50)
+        # Import and run the scraper with specific parameters
+        try:
+            # This would need to be implemented in scrape_match_scores.py
+            # For now, we'll run the full scraper but log the intent
+            logger.info(f"   Note: Running full scraper for {league_name} (delta filtering to be implemented)")
             
-            success = self.run_scraping_step(step)
+            result = subprocess.run([
+                sys.executable, "data/etl/scrapers/scrape_match_scores.py",
+                league_name,  # Positional argument for league
+                "--start-date", start_date.isoformat(),
+                "--end-date", end_date.isoformat(),
+                "--delta-mode"  # Enable delta mode
+            ], capture_output=True, text=True, cwd=project_root)
             
-            if not success:
-                logger.warning(f"⚠️ {step['name']} failed, but continuing with next step...")
+            if result.returncode == 0:
+                logger.info(f"✅ Scraping completed for {league_name}")
+                return True
+            else:
+                logger.error(f"❌ Scraping failed for {league_name}: {result.stderr}")
+                return False
                 
-                # Check if we should abort due to critical proxy issues
-                if hasattr(self, '_proxy_retry_counts') and self._should_abort_due_to_proxy_issues():
-                    logger.error("🚨 CRITICAL: Aborting scraping process due to persistent proxy issues")
-                    self._send_urgent_proxy_alert(
-                        "CRITICAL: Scraping process aborted",
-                        f"Aborted after {i}/{len(self.scraping_steps)} steps due to proxy issues"
-                    )
-                    # Add remaining steps as failures
-                    for remaining_step in self.scraping_steps[i:]:
-                        self.failures.append(remaining_step['name'])
-                        self.results[remaining_step['name']] = {
-                            "status": "aborted",
-                            "duration": "0:00:00",
-                            "output": "",
-                            "error": "Process aborted due to proxy issues"
-                        }
-                    break
-            
-            # Brief pause between steps
-            if i < len(self.scraping_steps):
-                logger.info("⏳ Pausing 10 seconds before next step...")
-                time.sleep(10)
-        
-        # Generate final summary
-        self.generate_final_summary()
+        except Exception as e:
+            logger.error(f"❌ Error running scraper for {league_name}: {e}")
+            return False
     
-    def generate_final_summary(self):
-        """Generate and send final summary"""
-        end_time = datetime.now()
-        total_duration = end_time - self.start_time
+    def run_scraping_step(self, league: str = None, force_full: bool = False, force_incremental: bool = False) -> bool:
+        """
+        Run the scraping step with intelligent strategy determination
         
-        # Count results
-        total_steps = len(self.scraping_steps)
-        successful_steps = len([r for r in self.results.values() if r["status"] == "success"])
-        failed_steps = len(self.failures)
+        Args:
+            league: Specific league to scrape (optional)
+            force_full: Force full scraping
+            force_incremental: Force incremental scraping
+            
+        Returns:
+            bool: Success status
+        """
         
-        # Create summary
-        league_info = f"League: {self.league}" if self.league else f"All Leagues ({', '.join(self.available_leagues)})"
-        summary_lines = [
-            "📊 Rally Master Scraper Summary",
-            league_info,
-            f"Environment: {self.environment}",
-            f"Total Duration: {total_duration}",
-            f"Steps: {successful_steps}/{total_steps} successful",
-            f"Failures: {failed_steps}"
-        ]
+        logger.info(f"\n🎯 Running scraping step...")
+        logger.info(f"   League: {league or 'All leagues'}")
+        logger.info(f"   Force Full: {force_full}")
+        logger.info(f"   Force Incremental: {force_incremental}")
         
-        if self.failures:
-            summary_lines.append(f"Failed Steps: {', '.join(self.failures)}")
+        # Analyze strategy
+        analysis = self.analyze_scraping_strategy(league, force_full, force_incremental)
         
-        summary = "\n".join(summary_lines)
+        if "error" in analysis:
+            logger.error(f"❌ Strategy analysis failed: {analysis['error']}")
+            return False
         
-        # Log summary
-        logger.info("\n" + "=" * 60)
-        logger.info("📊 FINAL SUMMARY")
-        logger.info("=" * 60)
-        logger.info(summary)
+        # Run intelligent scraping
+        success = self.run_intelligent_match_scraping(analysis)
         
-        # Send final notification
-        if failed_steps == 0:
-            final_notification = f"🎉 Rally Scraper Complete!\n{league_info}\n{successful_steps}/{total_steps} steps successful\nDuration: {total_duration}\nEnvironment: {self.environment}"
+        if success:
+            logger.info(f"✅ Scraping step completed successfully")
         else:
-            final_notification = f"⚠️ Rally Scraper Complete with Issues\n{league_info}\n{successful_steps}/{total_steps} steps successful\nFailures: {', '.join(self.failures)}\nDuration: {total_duration}\nEnvironment: {self.environment}"
+            logger.error(f"❌ Scraping step failed")
         
-        self.send_notification(final_notification)
-        
-        # Log enhanced session summary if available
-        if self.scraper_enhancements:
-            self.scraper_enhancements.log_session_summary()
-        
-        # Save detailed results to file
-        self.save_detailed_results()
+        return success
     
-    def save_detailed_results(self):
-        """Save detailed results to log file"""
-        results_file = f"logs/master_scraper_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    def save_detailed_results(self, analysis: Dict, success: bool):
+        """Save detailed scraping results"""
         
-        with open(results_file, 'w') as f:
-            f.write("Rally Master Scraper Detailed Results\n")
-            f.write(f"{league_info}\n")
-            f.write(f"Environment: {self.environment}\n")
-            f.write(f"Start Time: {self.start_time}\n")
-            f.write(f"End Time: {datetime.now()}\n")
-            f.write(f"Total Duration: {datetime.now() - self.start_time}\n\n")
-            
-            for step_name, result in self.results.items():
-                f.write(f"Step: {step_name}\n")
-                f.write(f"Status: {result['status']}\n")
-                f.write(f"Duration: {result['duration']}\n")
-                f.write(f"Output: {result['output'][:500]}...\n")
-                if result['error']:
-                    f.write(f"Error: {result['error']}\n")
-                f.write("-" * 30 + "\n")
+        # Convert DeltaScrapingPlan objects to dicts for JSON serialization
+        league_plans = analysis.get("league_plans", [])
+        serializable_plans = []
+        for plan in league_plans:
+            serializable_plans.append({
+                "league_id": plan.league_id,
+                "league_name": plan.league_name,
+                "start_date": plan.start_date.isoformat(),
+                "end_date": plan.end_date.isoformat(),
+                "matches_to_scrape": plan.matches_to_scrape,
+                "estimated_requests": plan.estimated_requests,
+                "reason": plan.reason
+            })
         
-        logger.info(f"📄 Detailed results saved to: {results_file}")
+        results = {
+            "timestamp": datetime.now().isoformat(),
+            "success": success,
+            "analysis": {
+                "strategy": analysis.get("strategy"),
+                "reason": analysis.get("reason"),
+                "total_matches_to_scrape": analysis.get("total_matches_to_scrape", 0),
+                "total_estimated_requests": analysis.get("total_estimated_requests", 0),
+                "efficiency_percentage": analysis.get("efficiency_percentage", 0),
+                "league_plans": serializable_plans
+            },
+            "strategy": analysis.get("strategy"),
+            "total_matches": analysis.get("total_matches_to_scrape", 0),
+            "total_requests": analysis.get("total_estimated_requests", 0),
+            "efficiency": analysis.get("efficiency_percentage", 0)
+        }
+        
+        # Save to results file
+        results_file = "logs/scraping_results.json"
+        os.makedirs(os.path.dirname(results_file), exist_ok=True)
+        
+        try:
+            with open(results_file, 'w') as f:
+                json.dump(results, f, indent=2)
+            logger.info(f"✅ Results saved to: {results_file}")
+        except Exception as e:
+            logger.error(f"❌ Error saving results: {e}")
+    
+    def generate_final_summary(self, analysis: Dict, success: bool):
+        """Generate final summary of scraping operation"""
+        
+        logger.info(f"\n📊 Final Summary:")
+        logger.info(f"   Success: {'✅' if success else '❌'}")
+        logger.info(f"   Strategy: {analysis.get('strategy', 'Unknown')}")
+        logger.info(f"   Total Matches: {analysis.get('total_matches_to_scrape', 0)}")
+        logger.info(f"   Estimated Requests: {analysis.get('total_estimated_requests', 0)}")
+        logger.info(f"   Efficiency: {analysis.get('efficiency_percentage', 0):.1f}%")
+        logger.info(f"   Reason: {analysis.get('reason', 'Unknown')}")
 
 def main():
-    """Main function"""
-    parser = argparse.ArgumentParser(description="Master Scraper Script")
-    parser.add_argument(
-        "--environment",
-        choices=["local", "staging", "production"],
-        help="Environment to run scrapers for (auto-detected if not specified)"
-    )
-    parser.add_argument(
-        "league",
-        nargs="?",
-        help="Specific league subdomain to scrape (e.g., aptachicago, nstf, cnswpl, cita). If not provided, all discovered leagues will be scraped."
-    )
+    """Main entry point for the master scraper"""
+    
+    parser = argparse.ArgumentParser(description="Unified Intelligent Scraper")
+    parser.add_argument("--league", help="Specific league to scrape")
+    parser.add_argument("--force-full", action="store_true", help="Force full scraping")
+    parser.add_argument("--force-incremental", action="store_true", help="Force incremental scraping")
+    parser.add_argument("--environment", choices=["local", "staging", "production"], default="local", help="Environment")
     
     args = parser.parse_args()
     
-    try:
-        # Create and run master scraper
-        scraper = MasterScraper(
-            environment=args.environment,
-            league=args.league
-        )
-        scraper.run_all_scrapers()
-        
-        # Exit with appropriate code
-        if scraper.failures:
-            logger.error(f"❌ Master scraper completed with {len(scraper.failures)} failures")
-            sys.exit(1)
-        else:
-            logger.info("✅ Master scraper completed successfully")
-            sys.exit(0)
-            
-    except ValueError as e:
-        logger.error(f"❌ Configuration error: {e}")
-        sys.exit(1)
-    except Exception as e:
-        logger.error(f"❌ Unexpected error: {e}")
-        sys.exit(1)
+    logger.info(f"\n🎯 Master Scraper Started")
+    logger.info(f"   Time: {datetime.now()}")
+    logger.info(f"   Environment: {args.environment}")
+    logger.info(f"   League: {args.league or 'All leagues'}")
+    logger.info(f"   Force Full: {args.force_full}")
+    logger.info(f"   Force Incremental: {args.force_incremental}")
+    
+    # Initialize scraper
+    scraper = MasterScraper()
+    
+    # Run scraping step
+    success = scraper.run_scraping_step(
+        league=args.league,
+        force_full=args.force_full,
+        force_incremental=args.force_incremental
+    )
+    
+    # Generate analysis for summary
+    analysis = scraper.analyze_scraping_strategy(
+        league=args.league,
+        force_full=args.force_full,
+        force_incremental=args.force_incremental
+    )
+    
+    # Save results and generate summary
+    scraper.save_detailed_results(analysis, success)
+    scraper.generate_final_summary(analysis, success)
+    
+    if success:
+        logger.info(f"\n✅ Master scraper completed successfully")
+        return 0
+    else:
+        logger.error(f"\n❌ Master scraper failed")
+        return 1
 
 if __name__ == "__main__":
-    main() 
+    exit(main()) 

@@ -496,8 +496,8 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                 }
                 response = requests.get(url, headers=headers, timeout=30)
             else:
-                # Decodo request successful
-                print(f"   ✅ Decodo request successful")
+                # Decodo request successful - logging is now handled in make_decodo_request
+                pass
             
             response.raise_for_status()
 
@@ -519,8 +519,8 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                     print(f"   📡 Using direct request for statistics page (Decodo failed)")
                     stats_response = requests.get(stats_url, headers=headers, timeout=30)
                 else:
-                    # Decodo request successful for statistics page
-                    print(f"   ✅ Decodo request successful for statistics page")
+                    # Decodo request successful for statistics page - logging handled in make_decodo_request
+                    pass
                 
                 stats_response.raise_for_status()
                 soup = BeautifulSoup(stats_response.content, "html.parser")

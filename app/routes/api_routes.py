@@ -5182,6 +5182,30 @@ def join_pickup_game(game_id):
             log_user_activity(user_email, "pickup_game_joined", 
                             details=f"Joined pickup game ID: {game_id}")
             
+            # Send SMS notifications
+            try:
+                from app.services.notifications_service import send_pickup_game_join_notifications, send_pickup_game_join_confirmation
+                
+                # Get user's full name for notifications
+                user_name_query = """
+                    SELECT CONCAT(first_name, ' ', last_name) as full_name
+                    FROM users WHERE id = %s
+                """
+                user_name_result = execute_query_one(user_name_query, [user_id])
+                user_full_name = user_name_result["full_name"] if user_name_result else user_email
+                
+                # Send notifications to other participants
+                notification_result = send_pickup_game_join_notifications(game_id, user_id, user_full_name)
+                print(f"[JOIN_PICKUP_GAME] Notification result: {notification_result}")
+                
+                # Send confirmation to the joining user
+                confirmation_result = send_pickup_game_join_confirmation(user_id, game_id)
+                print(f"[JOIN_PICKUP_GAME] Confirmation result: {confirmation_result}")
+                
+            except Exception as e:
+                print(f"[JOIN_PICKUP_GAME] Error sending notifications: {str(e)}")
+                # Don't fail the join operation if notifications fail
+            
             return jsonify({
                 "success": True,
                 "message": "Successfully joined pickup game"
@@ -5634,6 +5658,30 @@ def leave_pickup_game(game_id):
             
             log_user_activity(user_email, "pickup_game_left", 
                             details=f"Left pickup game ID: {game_id}")
+            
+            # Send SMS notifications to remaining participants
+            try:
+                from app.services.notifications_service import send_pickup_game_leave_notifications, send_pickup_game_leave_confirmation
+                
+                # Get user's full name for notifications
+                user_name_query = """
+                    SELECT CONCAT(first_name, ' ', last_name) as full_name
+                    FROM users WHERE id = %s
+                """
+                user_name_result = execute_query_one(user_name_query, [user_id])
+                user_full_name = user_name_result["full_name"] if user_name_result else user_email
+                
+                # Send notifications to remaining participants
+                notification_result = send_pickup_game_leave_notifications(game_id, user_id, user_full_name)
+                print(f"[LEAVE_PICKUP_GAME] Notification result: {notification_result}")
+                
+                # Send confirmation to the leaving user
+                confirmation_result = send_pickup_game_leave_confirmation(user_id, game_id)
+                print(f"[LEAVE_PICKUP_GAME] Confirmation result: {confirmation_result}")
+                
+            except Exception as e:
+                print(f"[LEAVE_PICKUP_GAME] Error sending notifications: {str(e)}")
+                # Don't fail the leave operation if notifications fail
             
             return jsonify({
                 "success": True,

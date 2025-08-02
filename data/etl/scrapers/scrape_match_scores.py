@@ -1840,7 +1840,7 @@ def cleanup_progress(data_dir):
         print(f"⚠️ Could not cleanup progress file: {e}")
 
 
-def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retry_delay=5):
+def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retry_delay=5, start_date=None, end_date=None):
     """
     Scrape all matches from a league with enhanced stealth and session management.
     
@@ -1852,6 +1852,8 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
             - All series: 'all' or None
         max_retries (int): Maximum retry attempts per series
         retry_delay (int): Base delay between retries
+        start_date (str, optional): Start date for delta scraping (YYYY-MM-DD)
+        end_date (str, optional): End date for delta scraping (YYYY-MM-DD)
     
     Returns:
         list: List of all scraped matches
@@ -1986,6 +1988,21 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                     print(f"⚠️ No series found matching filter '{series_filter}'")
                     print(f"🔍 Available series names: {[s['name'] for s in series_links[:5]]}...")
                     return []
+        
+        # Add date filtering logic
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+                end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+                print(f"📅 DELTA MODE: Filtering matches between {start_date} and {end_date}")
+                print(f"🎯 Will only scrape matches within this date range")
+            except ValueError as e:
+                print(f"❌ Invalid date format: {e}")
+                print(f"📅 Expected format: YYYY-MM-DD (e.g., 2025-02-20)")
+                return []
+        else:
+            start_date_obj = None
+            end_date_obj = None
             
             # Scrape ONE standings page per series
             all_matches = []
@@ -2018,8 +2035,32 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                     )
                     
                     if series_matches:
-                        all_matches.extend(series_matches)
-                        successful_series += 1
+                        # Apply date filtering if specified
+                        if start_date_obj and end_date_obj:
+                            filtered_matches = []
+                            for match in series_matches:
+                                match_date_str = match.get('Date', '')
+                                if match_date_str:
+                                    try:
+                                        match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
+                                        if start_date_obj <= match_date <= end_date_obj:
+                                            filtered_matches.append(match)
+                                    except ValueError:
+                                        # If date parsing fails, include the match (better to include than exclude)
+                                        filtered_matches.append(match)
+                                else:
+                                    # If no date, include the match (better to include than exclude)
+                                    filtered_matches.append(match)
+                            
+                            if filtered_matches:
+                                all_matches.extend(filtered_matches)
+                                successful_series += 1
+                                print(f"📅 Date filtered: {len(filtered_matches)}/{len(series_matches)} matches within range")
+                            else:
+                                print(f"📅 No matches found within date range for {series_name}")
+                        else:
+                            all_matches.extend(series_matches)
+                            successful_series += 1
                         
                         # Show series summary with team breakdown
                         teams_in_series = set()
@@ -2075,6 +2116,10 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
             print("[Scraper] Finished scrape successfully")
             return all_matches
             
+        # Check if this is APTA Chicago (use standings approach) or other leagues (use individual match pages)
+        if league_id == "APTA_CHICAGO":
+            # APTA Chicago uses standings page approach (already handled above)
+            pass
         else:
             # For all other leagues (NSTF, CITA, CNSWPL), use individual match pages approach
             print(f"🎯 {league_id}: Using individual match pages approach...")
@@ -2140,8 +2185,32 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
                                 continue
                         
                         if series_matches:
-                            all_matches.extend(series_matches)
-                            successful_series += 1
+                            # Apply date filtering if specified
+                            if start_date_obj and end_date_obj:
+                                filtered_matches = []
+                                for match in series_matches:
+                                    match_date_str = match.get('Date', '')
+                                    if match_date_str:
+                                        try:
+                                            match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
+                                            if start_date_obj <= match_date <= end_date_obj:
+                                                filtered_matches.append(match)
+                                        except ValueError:
+                                            # If date parsing fails, include the match (better to include than exclude)
+                                            filtered_matches.append(match)
+                                    else:
+                                        # If no date, include the match (better to include than exclude)
+                                        filtered_matches.append(match)
+                                
+                                if filtered_matches:
+                                    all_matches.extend(filtered_matches)
+                                    successful_series += 1
+                                    print(f"📅 Date filtered: {len(filtered_matches)}/{len(series_matches)} matches within range")
+                                else:
+                                    print(f"📅 No matches found within date range for {series_name}")
+                            else:
+                                all_matches.extend(series_matches)
+                                successful_series += 1
                             
                             # Show series summary with team breakdown
                             teams_in_series = set()
@@ -2205,14 +2274,31 @@ def scrape_all_matches(league_subdomain, series_filter=None, max_retries=3, retr
 
 if __name__ == "__main__":
     import sys
+    import argparse
+    from datetime import datetime, date
+
+    # Set up argument parser for command line options
+    parser = argparse.ArgumentParser(description="Match Scores Scraper with Delta Support")
+    parser.add_argument("league", nargs="?", help="League subdomain (e.g., aptachicago, nstf)")
+    parser.add_argument("--start-date", help="Start date for delta scraping (YYYY-MM-DD)")
+    parser.add_argument("--end-date", help="End date for delta scraping (YYYY-MM-DD)")
+    parser.add_argument("--series-filter", help="Series filter (e.g., '22', 'all')")
+    parser.add_argument("--delta-mode", action="store_true", help="Enable delta scraping mode")
+    
+    args = parser.parse_args()
 
     print("🔍 Dynamically discovering ALL series from any TennisScores website")
     print("📊 No more hardcoded values - everything is discovered automatically!")
+    
+    if args.delta_mode:
+        print("🎯 DELTA MODE: Only scraping matches within specified date range")
+        if args.start_date and args.end_date:
+            print(f"📅 Date Range: {args.start_date} to {args.end_date}")
     print()
 
-    # Check if league was provided as command line argument
-    if len(sys.argv) > 1:
-        league_subdomain = sys.argv[1].strip().lower()
+    # Get league subdomain
+    if args.league:
+        league_subdomain = args.league.strip().lower()
         print(f"📋 Using league from command line: {league_subdomain}")
     else:
         # Get league input from user interactively
@@ -2236,11 +2322,14 @@ if __name__ == "__main__":
         print("❌ No league subdomain provided. Exiting.")
         exit(1)
 
-    # Get series filter input from user (skip if called by master scraper)
+    # Get series filter
     series_filter = None
     if league_subdomain != "all":
-        # Check if called by master scraper (has command line args)
-        if len(sys.argv) > 1:
+        if args.series_filter:
+            # Use series filter from command line
+            series_filter = args.series_filter
+            print(f"🎯 Using series filter from command line: '{series_filter}'")
+        elif len(sys.argv) > 1:
             # Called by master scraper - use 'all' to process all series
             series_filter = "all"
             print("🌟 Master scraper mode: Processing all series for the selected league")
@@ -2273,7 +2362,12 @@ if __name__ == "__main__":
             print(f"{'='*60}")
 
             try:
-                scrape_all_matches(league, "all")  # Process all series for each league
+                scrape_all_matches(
+                    league, 
+                    "all",  # Process all series for each league
+                    start_date=args.start_date,
+                    end_date=args.end_date
+                )
                 print(f"✅ Successfully completed {league}")
             except Exception as e:
                 print(f"❌ Error processing {league}: {str(e)}")
@@ -2287,7 +2381,13 @@ if __name__ == "__main__":
         print()
 
         try:
-            scrape_all_matches(league_subdomain, series_filter)
+            # Pass date parameters for delta scraping
+            scrape_all_matches(
+                league_subdomain, 
+                series_filter,
+                start_date=args.start_date,
+                end_date=args.end_date
+            )
         except Exception as e:
             print("[Scraper] Scrape failed with an exception")
             import traceback

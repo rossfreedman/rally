@@ -78,6 +78,54 @@ except Exception as e:
     print(f"⚠️ AI import warning: {e}")
     print("📝 AI functionality will be limited")
 
+# Step 5: Import and register blueprints
+try:
+    from app.routes.admin_routes import admin_bp
+    from app.routes.api_routes import api_bp
+    from app.routes.auth_routes import auth_bp
+    from app.routes.mobile_routes import mobile_bp
+    from app.routes.background_jobs import background_bp
+    from app.routes.schema_fix_routes import schema_fix_bp
+    from app.routes.player_routes import player_bp
+    from app.routes.polls_routes import polls_bp
+    
+    # Register blueprints
+    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(mobile_bp, url_prefix='/mobile')
+    app.register_blueprint(background_bp, url_prefix='/background')
+    app.register_blueprint(schema_fix_bp, url_prefix='/schema-fix')
+    app.register_blueprint(player_bp, url_prefix='/player')
+    app.register_blueprint(polls_bp, url_prefix='/polls')
+    
+    print("✅ All blueprints registered successfully")
+except Exception as e:
+    print(f"⚠️ Blueprint import warning: {e}")
+    print("📝 Some application features may be limited")
+
+# Step 6: Import additional utilities
+try:
+    from utils.auth import login_required
+    from utils.logging import log_user_activity
+    from routes.act import init_act_routes
+    
+    # Initialize act routes
+    init_act_routes(app)
+    
+    print("✅ Additional utilities imported successfully")
+except Exception as e:
+    print(f"⚠️ Utility import warning: {e}")
+    print("📝 Some features may be limited")
+
+# Add user loader for Flask-Login (outside try block to ensure it's always registered)
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login"""
+    # For now, return None to avoid errors
+    # This will be properly implemented when we integrate with the full auth system
+    return None
+
 # Health endpoints
 @app.route("/health")
 def health():
@@ -121,10 +169,37 @@ def health_minimal():
         "ai": "available" if ai_available else "unavailable"
     })
 
+# Main application routes
 @app.route("/")
-def home():
-    """Home page"""
-    return "Rally server is running! 🎾"
+def serve_index():
+    """Serve the index page - redirect to login or mobile"""
+    if "user" not in session:
+        return redirect("/login")
+    return redirect("/mobile")
+
+@app.route("/login")
+def serve_login():
+    """Serve the login page"""
+    return render_template("login.html", default_tab="login")
+
+@app.route("/register")
+def serve_register():
+    """Serve the registration page"""
+    return render_template("login.html", default_tab="register")
+
+@app.route("/mobile")
+@login_required
+def serve_mobile_home():
+    """Serve the mobile home page"""
+    session_data = {"user": session["user"], "authenticated": True}
+    return render_template("mobile/home.html", session_data=session_data)
+
+@app.route("/mobile/home")
+@login_required
+def serve_mobile_home_alt():
+    """Alternative mobile home route"""
+    session_data = {"user": session["user"], "authenticated": True}
+    return render_template("mobile/home.html", session_data=session_data)
 
 @app.route("/basic-test")
 def basic_test():

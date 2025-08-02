@@ -19,7 +19,44 @@ logger = logging.getLogger(__name__)
 DECODO_USER = os.getenv("DECODO_USER", "sp2lv5ti3g")
 DECODO_PASS = os.getenv("DECODO_PASS", "zU0Pdl~7rcGqgxuM69")
 DECODO_ENDPOINT = "us.decodo.com"
-DECODO_PORTS = list(range(10001, 10011))  # 10 sticky US ports
+
+def load_decodo_ips():
+    """
+    Load all 100 Decodo IP addresses from ips.txt file.
+    
+    Returns:
+        list: List of port numbers for all available IPs
+    """
+    try:
+        # Try to load from ips.txt file
+        if os.path.exists("ips.txt"):
+            with open("ips.txt", "r") as f:
+                lines = f.readlines()
+            
+            ports = []
+            for line in lines:
+                line = line.strip()
+                if line and ":" in line:
+                    # Format: us.decodo.com:10001:sp2lv5ti3g:zU0Pdl~7rcGqgxuM69
+                    parts = line.split(":")
+                    if len(parts) >= 2:
+                        port = int(parts[1])
+                        ports.append(port)
+            
+            if ports:
+                logger.info(f"📊 Loaded {len(ports)} Decodo IP addresses from ips.txt")
+                return ports
+            else:
+                logger.warning("⚠️ No valid IPs found in ips.txt, using default range")
+        else:
+            logger.warning("⚠️ ips.txt not found, using default range")
+    except Exception as e:
+        logger.error(f"❌ Error loading ips.txt: {e}")
+    
+    # Fallback to default range if file not found or invalid
+    return list(range(10001, 10011))  # 10 sticky US ports
+
+DECODO_PORTS = load_decodo_ips()
 
 class ProxyRotator:
     """
@@ -48,10 +85,13 @@ class ProxyRotator:
         self.current_port = random.choice(self.ports)
         self.session_start_time = time.time()
         self.current_ip = None
+        self.total_rotations = 0
+        self.total_requests = 0
         
         logger.info(f"🔄 Proxy Rotator initialized with {len(ports)} endpoints")
         logger.info(f"📊 Rotation: Every {rotate_every} requests")
         logger.info(f"⏱️ Session duration: {session_duration} seconds")
+        logger.info(f"🌐 IP Pool: {min(ports)}-{max(ports)} ({len(ports)} total IPs)")
     
     def _should_rotate(self) -> bool:
         """Determine if we should rotate to a new IP."""
@@ -71,8 +111,12 @@ class ProxyRotator:
         self.current_port = random.choice(self.ports)
         self.session_start_time = time.time()
         self.request_count = 0
+        self.total_rotations += 1
         
-        logger.info(f"🔄 Rotating IP: {old_port} → {self.current_port}")
+        logger.info(f"\n🔄 Rotating IP: {old_port} → {self.current_port}")
+        logger.info(f"📊 Rotation #{self.total_rotations} (Total requests: {self.total_requests})")
+        logger.info(f"🌐 Proxy Pool: {len(self.ports)} US-based residential IPs")
+        logger.info(f"📈 Performance: {self.total_requests/self.total_rotations:.1f} requests per rotation\n")
     
     def get_proxy(self) -> str:
         """
@@ -85,6 +129,7 @@ class ProxyRotator:
             self._rotate_ip()
         
         self.request_count += 1
+        self.total_requests += 1
         
         proxy_url = f"http://{DECODO_USER}:{DECODO_PASS}@{DECODO_ENDPOINT}:{self.current_port}"
         
@@ -123,7 +168,10 @@ class ProxyRotator:
             country = ip_data.get("country", {})
             country_code = country.get("code", "") if isinstance(country, dict) else str(country)
             
-            logger.info(f"✅ IP Validation: {self.current_ip} ({country_code})")
+            logger.info(f"\n✅ IP Validation: {self.current_ip} ({country_code})")
+            logger.info(f"🌍 Location: US-based residential proxy")
+            logger.info(f"🔒 Security: Anti-detection enabled")
+            logger.info(f"📊 Status: Ready for scraping operations\n")
             return ip_data
             
         except Exception as e:
@@ -142,10 +190,14 @@ class ProxyRotator:
             "current_port": self.current_port,
             "current_ip": self.current_ip,
             "request_count": self.request_count,
+            "total_requests": self.total_requests,
+            "total_rotations": self.total_rotations,
             "session_age_seconds": session_age,
             "session_age_minutes": session_age / 60,
             "rotate_every": self.rotate_every,
-            "session_duration": self.session_duration
+            "session_duration": self.session_duration,
+            "available_ips": len(self.ports),
+            "ip_pool_range": f"{min(self.ports)}-{max(self.ports)}"
         }
 
 # Global proxy rotator instance
