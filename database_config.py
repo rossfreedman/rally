@@ -4,7 +4,19 @@ import time
 from contextlib import contextmanager
 from urllib.parse import urlparse
 
-import psycopg2
+try:
+    import psycopg2
+except ImportError as e:
+    if "libz.so.1" in str(e):
+        raise ImportError(
+            "Missing system library libz.so.1 required for psycopg2. "
+            "This indicates a Railway deployment issue. "
+            "Please check nixpacks.toml has zlib and postgresql dependencies. "
+            f"Original error: {e}"
+        )
+    else:
+        raise
+
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 

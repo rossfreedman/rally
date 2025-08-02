@@ -1,8 +1,19 @@
 import logging
 from contextlib import contextmanager
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError as e:
+    if "libz.so.1" in str(e):
+        raise ImportError(
+            "Missing system library libz.so.1 required for psycopg2. "
+            "Railway deployment missing zlib dependency. "
+            "Check nixpacks.toml configuration. "
+            f"Original error: {e}"
+        )
+    else:
+        raise
 
 from database_config import get_db
 
