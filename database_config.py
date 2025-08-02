@@ -271,10 +271,14 @@ def get_db():
                 retry_delay *= 2  # Exponential backoff
 
         except Exception as e:
-            logger.error(f"Unexpected database error: {str(e)}")
-            logger.error(
-                f"Connection params (excluding password): {dict(dbname=db_params['dbname'], user=db_params['user'], host=db_params['host'], port=db_params['port'], sslmode=db_params['sslmode'])}"
-            )
+            # Reduce logging verbosity to prevent Railway rate limit during ETL
+            if "unique or exclusion constraint" in str(e):
+                logger.warning(f"Constraint violation during database operation (common during ETL)")
+            else:
+                logger.error(f"Unexpected database error: {str(e)}")
+                logger.error(
+                    f"Connection params (excluding password): {dict(dbname=db_params['dbname'], user=db_params['user'], host=db_params['host'], port=db_params['port'], sslmode=db_params['sslmode'])}"
+                )
             raise
         finally:
             if "conn" in locals():
