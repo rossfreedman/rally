@@ -47,6 +47,10 @@ def fix_constraints():
 def health():
     return jsonify({"status": "ok", "service": "constraint-fixer"})
 
+@app.route('/health-minimal')
+def health_minimal():
+    return "OK"
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
