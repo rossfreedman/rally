@@ -31,6 +31,36 @@
   },
   {
     "series": "Series 1",
+    "team": "Birchwood S1",
+    "league_id": "NSTF",
+    "points": 57,
+    "matches": {
+      "won": 4,
+      "lost": 3,
+      "tied": 0,
+      "percentage": "57.1%"
+    },
+    "lines": {
+      "won": 18,
+      "lost": 16,
+      "for": 0,
+      "ret": 0,
+      "percentage": "52.9%"
+    },
+    "sets": {
+      "won": 37,
+      "lost": 41,
+      "percentage": "47.4%"
+    },
+    "games": {
+      "won": 334,
+      "lost": 377,
+      "percentage": "47.0%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 1",
     "team": "Wilmette S1 T1",
     "league_id": "NSTF",
     "points": 56,
@@ -61,61 +91,31 @@
   },
   {
     "series": "Series 1",
-    "team": "Birchwood S1",
-    "league_id": "NSTF",
-    "points": 48,
-    "matches": {
-      "won": 3,
-      "lost": 3,
-      "tied": 0,
-      "percentage": "50.0%"
-    },
-    "lines": {
-      "won": 15,
-      "lost": 14,
-      "for": 0,
-      "ret": 0,
-      "percentage": "51.7%"
-    },
-    "sets": {
-      "won": 31,
-      "lost": 35,
-      "percentage": "47.0%"
-    },
-    "games": {
-      "won": 278,
-      "lost": 321,
-      "percentage": "46.4%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 1",
     "team": "Tennaqua S1",
     "league_id": "NSTF",
-    "points": 44,
+    "points": 52,
     "matches": {
       "won": 3,
-      "lost": 3,
+      "lost": 4,
       "tied": 1,
-      "percentage": "42.9%"
+      "percentage": "37.5%"
     },
     "lines": {
-      "won": 9,
-      "lost": 17,
+      "won": 11,
+      "lost": 20,
       "for": 0,
       "ret": 0,
-      "percentage": "34.6%"
+      "percentage": "35.5%"
     },
     "sets": {
-      "won": 24,
-      "lost": 38,
-      "percentage": "38.7%"
+      "won": 30,
+      "lost": 44,
+      "percentage": "40.5%"
     },
     "games": {
-      "won": 258,
-      "lost": 308,
-      "percentage": "45.6%"
+      "won": 314,
+      "lost": 364,
+      "percentage": "46.3%"
     },
     "source_league": "NSTF"
   },
@@ -481,61 +481,61 @@
   },
   {
     "series": "Series 2A",
-    "team": "Tennaqua S2A",
-    "league_id": "NSTF",
-    "points": 100,
-    "matches": {
-      "won": 7,
-      "lost": 1,
-      "tied": 0,
-      "percentage": "87.5%"
-    },
-    "lines": {
-      "won": 32,
-      "lost": 8,
-      "for": 0,
-      "ret": 0,
-      "percentage": "80.0%"
-    },
-    "sets": {
-      "won": 68,
-      "lost": 21,
-      "percentage": "76.4%"
-    },
-    "games": {
-      "won": 428,
-      "lost": 277,
-      "percentage": "60.7%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 2A",
     "team": "Midtown S2A",
     "league_id": "NSTF",
-    "points": 99,
+    "points": 109,
     "matches": {
-      "won": 8,
+      "won": 9,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 32,
-      "lost": 8,
+      "won": 35,
+      "lost": 10,
       "for": 0,
       "ret": 0,
-      "percentage": "80.0%"
+      "percentage": "77.8%"
     },
     "sets": {
-      "won": 67,
-      "lost": 23,
-      "percentage": "74.4%"
+      "won": 73,
+      "lost": 28,
+      "percentage": "72.3%"
     },
     "games": {
-      "won": 487,
-      "lost": 282,
-      "percentage": "63.3%"
+      "won": 550,
+      "lost": 339,
+      "percentage": "61.9%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 2A",
+    "team": "Tennaqua S2A",
+    "league_id": "NSTF",
+    "points": 107,
+    "matches": {
+      "won": 7,
+      "lost": 2,
+      "tied": 0,
+      "percentage": "77.8%"
+    },
+    "lines": {
+      "won": 34,
+      "lost": 11,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.6%"
+    },
+    "sets": {
+      "won": 73,
+      "lost": 27,
+      "percentage": "73.0%"
+    },
+    "games": {
+      "won": 485,
+      "lost": 340,
+      "percentage": "58.8%"
     },
     "source_league": "NSTF"
   },

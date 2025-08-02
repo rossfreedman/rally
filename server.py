@@ -1323,6 +1323,12 @@ def switch_database():
 # ==========================================
 
 if __name__ == "__main__":
+    # Check if running as cron job
+    if os.environ.get("CRON_JOB_MODE") == "true":
+        print("🚫 Cron job mode detected - skipping Flask app startup")
+        print("📋 This script is being run as a cron job, not a web server")
+        sys.exit(0)
+    
     # Get port from environment variable (Railway sets this)
     port = int(os.environ.get("PORT", 8080))
 
