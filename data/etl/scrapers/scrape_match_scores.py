@@ -362,15 +362,36 @@ def main():
         verbose=args.verbose
     )
             
-            # Save results
+            # Save results - APPEND to existing data, don't overwrite
     output_file = f"data/leagues/{args.league.upper()}/match_history.json"
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
+    # Load existing matches to preserve data
+    existing_matches = []
+    if os.path.exists(output_file):
+        try:
+            with open(output_file, 'r') as f:
+                existing_matches = json.load(f)
+            logger.info(f"📄 Loaded {len(existing_matches):,} existing matches")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not load existing data: {e}")
+            existing_matches = []
+    
+    # Merge new matches with existing ones (deduplicate by match_id)
+    existing_ids = {match.get('match_id') for match in existing_matches if match.get('match_id')}
+    new_matches = [match for match in matches if match.get('match_id') not in existing_ids]
+    
+    # Combine all matches
+    all_matches = existing_matches + new_matches
+    
+    # Write combined data
     with open(output_file, 'w') as f:
-        json.dump(matches, f, indent=2)
+        json.dump(all_matches, f, indent=2)
     
     logger.info(f"✅ Results saved to: {output_file}")
-    logger.info(f"📊 Total matches scraped: {len(matches)}")
+    logger.info(f"📊 Existing matches: {len(existing_matches):,}")
+    logger.info(f"📊 New matches added: {len(new_matches):,}")
+    logger.info(f"📊 Total matches: {len(all_matches):,}")
 
 if __name__ == "__main__":
     main()

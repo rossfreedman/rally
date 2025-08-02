@@ -150,210 +150,319 @@ class IncrementalScrapingManager:
             logger.error(f"❌ Error loading {self.match_scores_file}: {e}")
             return [], set(), {}
     
-    def get_latest_match_date_from_file(self, existing_matches: List[Dict]) -> Optional[datetime]:
+    def get_latest_match_date_by_league(self) -> Dict[str, Optional[datetime]]:
         """
-        Find the most recent match date from existing match data.
+        Find the most recent match date for each league separately.
         
-        Args:
-            existing_matches: List of match dictionaries
-            
         Returns:
-            Latest match date as datetime object, or None if no valid dates found
+            Dictionary mapping league names to their latest match dates
         """
-        if not existing_matches:
-            logger.info("📄 No existing matches found")
-            return None
+        league_configs = {
+            "APTA_CHICAGO": {
+                "file": "data/leagues/APTA_CHICAGO/match_history.json",
+                "site_id": "57043"
+            },
+            "NSTF": {
+                "file": "data/leagues/NSTF/match_history.json", 
+                "site_id": "57045"
+            },
+            "CNSWPL": {
+                "file": "data/leagues/CNSWPL/match_history.json",
+                "site_id": "57046"
+            },
+            "CITA": {
+                "file": "data/leagues/CITA/match_history.json",
+                "site_id": "57047"
+            }
+        }
         
-        latest_date = None
-        valid_dates = []
+        league_dates = {}
         
-        for match in existing_matches:
-            if 'date' in match:
+        for league_name, config in league_configs.items():
+            latest_date = None
+            file_path = config["file"]
+            
+            if os.path.exists(file_path):
                 try:
-                    match_date = datetime.strptime(match['date'], '%Y-%m-%d')
-                    valid_dates.append(match_date)
-                except ValueError:
-                    logger.debug(f"⚠️ Invalid date format in match: {match.get('date')}")
+                    logger.info(f"📋 Analyzing {league_name}: {file_path}...")
+                    with open(file_path, 'r') as f:
+                        league_matches = json.load(f)
+                    
+                    file_matches = len(league_matches)
+                    logger.info(f"   📊 Found {file_matches:,} matches")
+                    
+                    # Sample recent matches for performance (last 1000 matches)
+                    sample_matches = league_matches[-1000:] if len(league_matches) > 1000 else league_matches
+                    
+                    for match in sample_matches:
+                        date_field = match.get('Date') or match.get('date')
+                        if date_field:
+                            try:
+                                match_date = None
+                                
+                                # Try DD-MMM-YY format first (e.g., "11-Feb-25")
+                                if '-' in date_field and len(date_field.split('-')) == 3:
+                                    try:
+                                        match_date = datetime.strptime(date_field, '%d-%b-%y')
+                                    except ValueError:
+                                        pass
+                                
+                                # Try YYYY-MM-DD format
+                                if not match_date:
+                                    try:
+                                        match_date = datetime.strptime(date_field, '%Y-%m-%d')
+                                    except ValueError:
+                                        pass
+                                
+                                # Try MM/DD/YYYY format
+                                if not match_date:
+                                    try:
+                                        match_date = datetime.strptime(date_field, '%m/%d/%Y')
+                                    except ValueError:
+                                        pass
+                                
+                                if match_date and (latest_date is None or match_date > latest_date):
+                                    latest_date = match_date
+                                    
+                            except Exception:
+                                continue
+                                
+                except Exception as e:
+                    logger.warning(f"⚠️ Error reading {file_path}: {e}")
                     continue
+            else:
+                logger.info(f"📄 No file found for {league_name}: {file_path}")
+            
+            league_dates[league_name] = latest_date
+            if latest_date:
+                logger.info(f"   📅 Latest {league_name} match: {latest_date.strftime('%Y-%m-%d')}")
+            else:
+                logger.info(f"   📅 No valid dates found for {league_name}")
         
-        if valid_dates:
-            latest_date = max(valid_dates)
-            logger.info(f"📅 Latest match in local file: {latest_date.strftime('%Y-%m-%d')}")
-        else:
-            logger.warning("⚠️ No valid dates found in existing matches")
-        
-        return latest_date
+        return league_dates
     
-    def scrape_latest_match_date_from_site(self, stealth_config: Optional[StealthConfig] = None) -> Optional[datetime]:
+    def scrape_latest_match_dates_by_league(self, stealth_config: Optional[StealthConfig] = None) -> Dict[str, Optional[datetime]]:
         """
-        Get the latest match date directly from TennisScores standings pages.
-        Uses lightweight direct HTTP requests to check recent match activity.
+        Get the latest match date for each league from their TennisScores standings pages.
+        Uses lightweight direct HTTP requests to check recent match activity per league.
         
         Args:
             stealth_config: Optional stealth configuration
             
         Returns:
-            Latest match date from site as datetime object, or None if not found
+            Dictionary mapping league names to their latest site dates
         """
-        logger.info("🔍 Checking latest match date from TennisScores...")
+        logger.info("🔍 Checking latest match dates from TennisScores by league...")
         
-        try:
-            import requests
-            import re
-            
-            # Define league standings URLs to check for recent activity
-            standings_urls = [
-                "https://www.tenniscores.com/league-standings/57043",  # APTA Chicago
-                "https://www.tenniscores.com/league-standings/57045",  # NSTF  
-                "https://www.tenniscores.com/league-standings/57046",  # CNSWPL
-                "https://www.tenniscores.com/league-standings/57047"   # CITA
-            ]
-            
+        league_configs = {
+            "APTA_CHICAGO": {
+                "url": "https://www.tenniscores.com/league-standings/57043",
+                "name": "APTA Chicago"
+            },
+            "NSTF": {
+                "url": "https://www.tenniscores.com/league-standings/57045", 
+                "name": "NSTF"
+            },
+            "CNSWPL": {
+                "url": "https://www.tenniscores.com/league-standings/57046",
+                "name": "CNSWPL"
+            },
+            "CITA": {
+                "url": "https://www.tenniscores.com/league-standings/57047",
+                "name": "CITA"
+            }
+        }
+        
+        league_site_dates = {}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        
+        for league_name, config in league_configs.items():
             latest_match_date = None
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            url = config["url"]
+            
+            try:
+                logger.info(f"🌐 Checking {league_name}: {url}")
+                
+                import requests
+                import re
+                response = requests.get(url, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    content = response.text
+                    
+                    # Look for various date patterns in the page content
+                    date_patterns = [
+                        r'(\d{4}-\d{2}-\d{2})',           # 2025-07-31
+                        r'(\d{1,2}/\d{1,2}/\d{4})',       # 7/31/2025 or 07/31/2025
+                        r'(\d{1,2}-\d{1,2}-\d{4})',       # 7-31-2025 or 07-31-2025
+                        r'(\d{1,2}/\d{1,2}/\d{2})',       # 7/31/25 or 07/31/25
+                    ]
+                    
+                    for pattern in date_patterns:
+                        matches = re.findall(pattern, content)
+                        for match in matches:
+                            try:
+                                # Parse different date formats
+                                if '-' in match and len(match.split('-')[0]) == 4:  # YYYY-MM-DD
+                                    date_obj = datetime.strptime(match, '%Y-%m-%d')
+                                elif '/' in match and len(match.split('/')[2]) == 4:  # MM/DD/YYYY
+                                    date_obj = datetime.strptime(match, '%m/%d/%Y')
+                                elif '/' in match and len(match.split('/')[2]) == 2:  # MM/DD/YY
+                                    date_obj = datetime.strptime(match, '%m/%d/%y')
+                                elif '-' in match:  # MM-DD-YYYY
+                                    date_obj = datetime.strptime(match, '%m-%d-%Y')
+                                else:
+                                    continue
+                                
+                                # Only consider reasonable dates (within last 90 days, not future)
+                                today = datetime.now()
+                                if (today - timedelta(days=90)) <= date_obj <= today:
+                                    if latest_match_date is None or date_obj > latest_match_date:
+                                        latest_match_date = date_obj
+                            except ValueError:
+                                continue
+                else:
+                    logger.warning(f"⚠️ Failed to fetch {league_name}: HTTP {response.status_code}")
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Error checking {league_name}: {str(e)}")
+            
+            # Store result for this league
+            if latest_match_date:
+                logger.info(f"   ✅ Latest {league_name} site date: {latest_match_date.strftime('%Y-%m-%d')}")
+            else:
+                logger.warning(f"   ⚠️ No recent dates found for {league_name}")
+                # Use fallback for this league
+                today = datetime.now()
+                latest_match_date = today - timedelta(days=3)
+                logger.info(f"   📅 Using fallback for {league_name}: {latest_match_date.strftime('%Y-%m-%d')}")
+            
+            league_site_dates[league_name] = latest_match_date
+        
+        return league_site_dates
+    
+    def determine_league_scrape_decisions(self, existing_matches: List[Dict], stealth_config: Optional[StealthConfig] = None) -> Dict[str, Dict]:
+        """
+        Determine scraping decisions for each league separately using intelligent delta analysis.
+        
+        Args:
+            existing_matches: List of existing match dictionaries (legacy parameter, ignored)
+            stealth_config: Optional stealth configuration
+            
+        Returns:
+            Dictionary mapping league names to their scraping decisions
+        """
+        logger.info("🧠 League-Specific Intelligent Delta Analysis Starting...")
+        logger.info("=" * 70)
+        
+        # Step 1: Get latest match dates by league from local files
+        logger.info("📋 STEP 1: Analyzing league-specific match history files...")
+        local_dates_by_league = self.get_latest_match_date_by_league()
+        
+        # Step 2: Get latest match dates by league from site
+        logger.info("🌐 STEP 2: Checking latest match dates on TennisScores by league...")
+        site_dates_by_league = self.scrape_latest_match_dates_by_league(stealth_config)
+        
+        # Step 3: Make decisions for each league
+        league_decisions = {}
+        
+        logger.info("🔍 STEP 3: League-by-League Analysis:")
+        logger.info("=" * 70)
+        
+        for league_name in ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]:
+            local_date = local_dates_by_league.get(league_name)
+            site_date = site_dates_by_league.get(league_name)
+            
+            logger.info(f"🏆 {league_name} Analysis:")
+            logger.info("-" * 50)
+            
+            # Display current status for this league
+            if local_date:
+                logger.info(f"   📅 LOCAL FILE:  {local_date.strftime('%Y-%m-%d')}")
+            else:
+                logger.info(f"   📅 LOCAL FILE:  NO MATCHES FOUND")
+                
+            if site_date:
+                logger.info(f"   🌐 WEBSITE:     {site_date.strftime('%Y-%m-%d')}")
+            else:
+                logger.info(f"   🌐 WEBSITE:     DETECTION FAILED")
+            
+            # Decision logic for this league
+            decision = {
+                "league": league_name,
+                "local_date": local_date,
+                "site_date": site_date,
+                "should_scrape": False,
+                "start_date": None,
+                "end_date": None,
+                "reason": "Unknown"
             }
             
-            for url in standings_urls:
-                try:
-                    logger.debug(f"🌐 Checking standings: {url}")
-                    response = requests.get(url, headers=headers, timeout=10)
-                    
-                    if response.status_code == 200:
-                        content = response.text
-                        
-                        # Look for various date patterns in the page content
-                        date_patterns = [
-                            r'(\d{4}-\d{2}-\d{2})',           # 2025-07-31
-                            r'(\d{1,2}/\d{1,2}/\d{4})',       # 7/31/2025 or 07/31/2025
-                            r'(\d{1,2}-\d{1,2}-\d{4})',       # 7-31-2025 or 07-31-2025
-                            r'(\d{1,2}/\d{1,2}/\d{2})',       # 7/31/25 or 07/31/25
-                        ]
-                        
-                        for pattern in date_patterns:
-                            matches = re.findall(pattern, content)
-                            for match in matches:
-                                try:
-                                    # Parse different date formats
-                                    if '-' in match and len(match.split('-')[0]) == 4:  # YYYY-MM-DD
-                                        date_obj = datetime.strptime(match, '%Y-%m-%d')
-                                    elif '/' in match and len(match.split('/')[2]) == 4:  # MM/DD/YYYY
-                                        date_obj = datetime.strptime(match, '%m/%d/%Y')
-                                    elif '/' in match and len(match.split('/')[2]) == 2:  # MM/DD/YY
-                                        date_obj = datetime.strptime(match, '%m/%d/%y')
-                                    elif '-' in match:  # MM-DD-YYYY
-                                        date_obj = datetime.strptime(match, '%m-%d-%Y')
-                                    else:
-                                        continue
-                                    
-                                    # Only consider reasonable dates (within last 90 days, not future)
-                                    today = datetime.now()
-                                    if (today - timedelta(days=90)) <= date_obj <= today:
-                                        if latest_match_date is None or date_obj > latest_match_date:
-                                            latest_match_date = date_obj
-                                            logger.debug(f"✅ Found potential latest date: {date_obj.strftime('%Y-%m-%d')}")
-                                except ValueError:
-                                    continue
-                    else:
-                        logger.debug(f"⚠️ Failed to fetch {url}: HTTP {response.status_code}")
-                        
-                except Exception as e:
-                    logger.debug(f"⚠️ Error checking {url}: {str(e)}")
-                    continue
-            
-            if latest_match_date:
-                logger.info(f"✅ Successfully detected latest site date: {latest_match_date.strftime('%Y-%m-%d')}")
-                return latest_match_date
-            else:
-                logger.warning("⚠️ No recent match dates found on standings pages")
+            if not site_date:
+                # Site detection failed - use fallback window
+                logger.info("   ⚠️ DECISION: Site detection failed - using fallback window")
+                today = datetime.now()
+                decision.update({
+                    "should_scrape": True,
+                    "start_date": (today - timedelta(days=14)).strftime('%Y-%m-%d'),
+                    "end_date": today.strftime('%Y-%m-%d'),
+                    "reason": "Site detection failed - fallback window"
+                })
+                logger.info(f"   📅 Fallback range: {decision['start_date']} to {decision['end_date']}")
                 
-        except Exception as e:
-            logger.warning(f"⚠️ Exception during direct site check: {str(e)}")
-        
-        # Fallback: Use a reasonable estimate based on typical league activity
-        today = datetime.now()
-        reasonable_latest = today - timedelta(days=3)  # Most leagues have matches within 3 days
-        
-        logger.info(f"📅 Using fallback estimate for latest match: {reasonable_latest.strftime('%Y-%m-%d')}")
-        logger.info("   🧠 This ensures intelligent scraping still works even when detection fails")
-        
-        return reasonable_latest
-    
-    def determine_intelligent_scrape_range(self, existing_matches: List[Dict], stealth_config: Optional[StealthConfig] = None) -> Tuple[Optional[str], Optional[str], bool]:
-        """
-        Intelligently determine if scraping is needed and calculate date range.
-        
-        Args:
-            existing_matches: List of existing match dictionaries
-            stealth_config: Optional stealth configuration
+            elif not local_date:
+                # No local data - perform initial scrape
+                logger.info("   ✅ DECISION: No local data - performing initial scrape")
+                decision.update({
+                    "should_scrape": True,
+                    "start_date": (site_date - timedelta(days=30)).strftime('%Y-%m-%d'),
+                    "end_date": site_date.strftime('%Y-%m-%d'),
+                    "reason": "No local data - initial scrape"
+                })
+                logger.info(f"   📅 Initial range: {decision['start_date']} to {decision['end_date']}")
+                
+            elif site_date <= local_date:
+                # Up to date
+                logger.info("   ✅ DECISION: Local data is up-to-date - SKIPPING")
+                logger.info(f"   🧠 Reasoning: Site ({site_date.strftime('%Y-%m-%d')}) ≤ Local ({local_date.strftime('%Y-%m-%d')})")
+                decision.update({
+                    "should_scrape": False,
+                    "reason": f"Up-to-date (site: {site_date.strftime('%Y-%m-%d')}, local: {local_date.strftime('%Y-%m-%d')})"
+                })
+                
+            else:
+                # New matches detected
+                scrape_start_date = local_date - timedelta(days=self.overlap_days)
+                scrape_end_date = site_date
+                days_diff = (site_date - local_date).days
+                
+                logger.info("   🎯 DECISION: New matches detected - PROCEEDING WITH SCRAPE")
+                logger.info(f"   🧠 Reasoning: Site ({site_date.strftime('%Y-%m-%d')}) > Local ({local_date.strftime('%Y-%m-%d')})")
+                logger.info(f"   📈 Site is {days_diff} days ahead of local data")
+                logger.info(f"   📅 Scrape range: {scrape_start_date.strftime('%Y-%m-%d')} to {scrape_end_date.strftime('%Y-%m-%d')}")
+                logger.info(f"   🔄 Including {self.overlap_days}-day overlap to catch updates")
+                
+                decision.update({
+                    "should_scrape": True,
+                    "start_date": scrape_start_date.strftime('%Y-%m-%d'),
+                    "end_date": scrape_end_date.strftime('%Y-%m-%d'),
+                    "reason": f"New matches detected ({days_diff} days behind)"
+                })
             
-        Returns:
-            Tuple of (start_date_str, end_date_str, should_scrape)
-        """
-        logger.info("🧠 Intelligent Delta Analysis Starting...")
-        logger.info("=" * 60)
+            league_decisions[league_name] = decision
+            logger.info("")  # Add spacing between leagues
         
-        # Step 1: Get latest match date from local file
-        logger.info("📋 STEP 1: Analyzing local match_scores.json file...")
-        latest_local_date = self.get_latest_match_date_from_file(existing_matches)
+        # Summary
+        scrape_count = sum(1 for d in league_decisions.values() if d["should_scrape"])
+        logger.info("📊 SUMMARY:")
+        logger.info("=" * 70)
+        logger.info(f"   Total leagues analyzed: {len(league_decisions)}")
+        logger.info(f"   Leagues requiring scraping: {scrape_count}")
+        logger.info(f"   Leagues up-to-date: {len(league_decisions) - scrape_count}")
         
-        # Step 2: Get latest match date from site
-        logger.info("🌐 STEP 2: Checking latest match date on TennisScores...")
-        latest_site_date = self.scrape_latest_match_date_from_site(stealth_config)
-        
-        # Step 3: Debug output - show both dates clearly
-        logger.info("🔍 STEP 3: Date Comparison Results:")
-        logger.info("=" * 60)
-        if latest_local_date:
-            logger.info(f"   📅 LOCAL FILE (match_scores.json):  {latest_local_date.strftime('%Y-%m-%d')}")
-        else:
-            logger.info(f"   📅 LOCAL FILE (match_scores.json):  NO MATCHES FOUND")
-            
-        if latest_site_date:
-            logger.info(f"   🌐 WEBSITE (TennisScores.com):      {latest_site_date.strftime('%Y-%m-%d')}")
-        else:
-            logger.info(f"   🌐 WEBSITE (TennisScores.com):      DETECTION FAILED")
-        
-        logger.info("=" * 60)
-        
-        # Step 4: Decision logic with clear reasoning
-        if not latest_site_date:
-            logger.warning("⚠️ DECISION: Site detection failed - using fallback window")
-            today = datetime.now()
-            start_date = (today - timedelta(days=14)).strftime('%Y-%m-%d')  # 14-day fallback window
-            end_date = today.strftime('%Y-%m-%d')
-            logger.info(f"   📅 Fallback range: {start_date} to {end_date}")
-            return start_date, end_date, True
-            
-        if not latest_local_date:
-            logger.info("✅ DECISION: No local data - performing initial scrape")
-            # No local data, scrape from 30 days ago to latest site date
-            start_date = (latest_site_date - timedelta(days=30)).strftime('%Y-%m-%d')
-            end_date = latest_site_date.strftime('%Y-%m-%d')
-            logger.info(f"   📅 Initial scrape range: {start_date} to {end_date}")
-            return start_date, end_date, True
-        
-        # Step 5: Compare the dates with detailed logic
-        local_date_str = latest_local_date.strftime('%Y-%m-%d')
-        site_date_str = latest_site_date.strftime('%Y-%m-%d')
-        
-        if latest_site_date <= latest_local_date:
-            logger.info("✅ DECISION: Local data is up-to-date - SKIPPING SCRAPE")
-            logger.info(f"   🧠 Reasoning: Site date ({site_date_str}) ≤ Local date ({local_date_str})")
-            return None, None, False
-        else:
-            # Calculate scrape range: latest_local_date - 7 days to latest_site_date
-            scrape_start_date = latest_local_date - timedelta(days=self.overlap_days)
-            scrape_end_date = latest_site_date
-            
-            days_diff = (latest_site_date - latest_local_date).days
-            logger.info("🎯 DECISION: New matches detected - PROCEEDING WITH SCRAPE")
-            logger.info(f"   🧠 Reasoning: Site date ({site_date_str}) > Local date ({local_date_str})")
-            logger.info(f"   📈 Site is {days_diff} days ahead of local data")
-            logger.info(f"   📅 Scrape range: {scrape_start_date.strftime('%Y-%m-%d')} to {scrape_end_date.strftime('%Y-%m-%d')}")
-            logger.info(f"   🔄 Including {self.overlap_days}-day overlap to catch updates")
-            
-            return scrape_start_date.strftime('%Y-%m-%d'), scrape_end_date.strftime('%Y-%m-%d'), True
+        return league_decisions
     
     def scrape_matches_between(self, start_date: str, end_date: str, stealth_config: Optional[StealthConfig] = None) -> List[Dict]:
         """
@@ -585,7 +694,7 @@ class IncrementalScrapingManager:
     
     def run_incremental_scrape(self, stealth_config: Optional[StealthConfig] = None) -> Dict[str, Any]:
         """
-        Run the complete intelligent incremental scraping process.
+        Run league-specific intelligent incremental scraping process.
         
         Args:
             stealth_config: Optional stealth configuration for delta mode
@@ -593,18 +702,21 @@ class IncrementalScrapingManager:
         Returns:
             Dictionary with scraping results and statistics
         """
-        logger.info("🚀 Starting Intelligent Incremental Scraping")
-        logger.info("🧠 Using latest match detection for optimal efficiency")
+        logger.info("🚀 Starting League-Specific Intelligent Incremental Scraping")
+        logger.info("🧠 Using per-league match detection for optimal efficiency")
         
-        # Step 1: Load existing matches
+        # Step 1: Load existing matches (for legacy compatibility)
         existing_matches, existing_ids, id_to_match = self.load_existing_matches()
         
-        # Step 2: Intelligent analysis - determine if scraping is needed
-        start_date, end_date, should_scrape = self.determine_intelligent_scrape_range(existing_matches, stealth_config)
+        # Step 2: Get league-specific scraping decisions
+        league_decisions = self.determine_league_scrape_decisions(existing_matches, stealth_config)
         
-        if not should_scrape:
-            # No scraping needed - return current state
-            logger.info("🎯 Intelligent analysis: No new matches to scrape")
+        # Check if any leagues need scraping
+        leagues_to_scrape = {name: decision for name, decision in league_decisions.items() if decision["should_scrape"]}
+        
+        if not leagues_to_scrape:
+            # No scraping needed for any league - return current state
+            logger.info("🎯 League analysis: No new matches to scrape across all leagues")
             return {
                 "success": True,
                 "existing_matches": len(existing_matches),
@@ -612,35 +724,74 @@ class IncrementalScrapingManager:
                 "new_matches": 0,
                 "updated_matches": 0,
                 "final_matches": len(existing_matches),
-                "start_date": "N/A",
-                "end_date": "N/A",
+                "leagues_analyzed": len(league_decisions),
+                "leagues_scraped": 0,
+                "leagues_skipped": len(league_decisions),
                 "scraping_skipped": True,
-                "reason": "No new matches detected on site"
+                "reason": "All leagues up-to-date"
             }
         
-        # Step 3: Scrape matches in the calculated range
-        logger.info(f"🎯 Intelligent scraping: {start_date} to {end_date}")
-        scraped_matches = self.scrape_matches_between(start_date, end_date, stealth_config)
+        # Step 3: Scrape each league that needs updating
+        logger.info(f"🎯 Scraping {len(leagues_to_scrape)} league(s) that need updates...")
         
-        # Step 4: Load fresh data after scraping to compare results
-        # The match scraper updates the file directly, so we need to reload to see changes
+        total_before_scraping = len(existing_matches)
+        scraped_leagues = []
+        
+        for league_name, decision in leagues_to_scrape.items():
+            logger.info(f"🏆 Scraping {league_name}: {decision['start_date']} to {decision['end_date']}")
+            
+            try:
+                # Scrape this specific league
+                scraped_matches = self.scrape_league_matches(
+                    league_name, 
+                    decision['start_date'], 
+                    decision['end_date'], 
+                    stealth_config
+                )
+                
+                scraped_leagues.append({
+                    "league": league_name,
+                    "start_date": decision['start_date'],
+                    "end_date": decision['end_date'],
+                    "reason": decision['reason'],
+                    "success": True
+                })
+                
+                logger.info(f"   ✅ {league_name} scraping completed")
+                
+            except Exception as e:
+                logger.error(f"   ❌ {league_name} scraping failed: {e}")
+                scraped_leagues.append({
+                    "league": league_name,
+                    "start_date": decision['start_date'],
+                    "end_date": decision['end_date'],
+                    "reason": decision['reason'],
+                    "success": False,
+                    "error": str(e)
+                })
+        
+        # Step 4: Load fresh data after scraping to see total impact
         fresh_matches, fresh_ids, fresh_id_to_match = self.load_existing_matches()
         
-        # Step 5: Calculate what changed
-        new_count = len(fresh_matches) - len(existing_matches)
-        updated_count = 0  # For now, we'll estimate based on overlap
+        # Step 5: Calculate aggregate results
+        total_new_matches = len(fresh_matches) - total_before_scraping
+        total_updated_matches = 0  # Estimate based on overlap across all leagues
         
-        # If we used the overlap strategy, estimate updates within the overlap period
-        if start_date and end_date:
-            overlap_start = datetime.strptime(start_date, '%Y-%m-%d')
-            overlap_end = datetime.strptime(end_date, '%Y-%m-%d')
-            overlap_matches = [m for m in existing_matches 
-                             if 'date' in m and overlap_start <= datetime.strptime(m['date'], '%Y-%m-%d') <= overlap_end]
-            updated_count = len(overlap_matches)
+        # Calculate estimated updates across all scraped leagues
+        for league_name, decision in leagues_to_scrape.items():
+            if decision["should_scrape"]:
+                # Estimate updates for this league's overlap period
+                try:
+                    overlap_start = datetime.strptime(decision['start_date'], '%Y-%m-%d')
+                    overlap_end = datetime.strptime(decision['end_date'], '%Y-%m-%d')
+                    overlap_matches = [m for m in existing_matches 
+                                     if 'date' in m and overlap_start <= datetime.strptime(m['date'], '%Y-%m-%d') <= overlap_end]
+                    total_updated_matches += len(overlap_matches)
+                except Exception:
+                    continue
         
-        # Step 6: Create backup and ensure data integrity
+        # Step 6: Create backup of consolidated results
         if os.path.exists(self.match_scores_file):
-            # Create timestamped backup
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             backup_filename = f"match_scores_backup_{timestamp}.json"
             
@@ -652,31 +803,99 @@ class IncrementalScrapingManager:
                 logger.warning(f"⚠️ Failed to create timestamped backup: {e}")
         
         # Results
+        successful_leagues = sum(1 for sl in scraped_leagues if sl["success"])
         results = {
             "success": True,
-            "existing_matches": len(existing_matches),
-            "scraped_matches": 0,  # We don't get individual scraped matches back
-            "new_matches": max(0, new_count),  # Ensure non-negative
-            "updated_matches": updated_count,
+            "existing_matches": total_before_scraping,
+            "scraped_matches": 0,  # Individual scrape counts not tracked
+            "new_matches": max(0, total_new_matches),
+            "updated_matches": total_updated_matches,
             "final_matches": len(fresh_matches),
-            "start_date": start_date,
-            "end_date": end_date,
+            "leagues_analyzed": len(league_decisions),
+            "leagues_scraped": successful_leagues,
+            "leagues_skipped": len(league_decisions) - len(leagues_to_scrape),
+            "scraped_league_details": scraped_leagues,
             "scraping_skipped": False,
-            "intelligent_mode": True
+            "league_specific_mode": True
         }
         
         # Log comprehensive summary
-        logger.info("📊 Intelligent Incremental Scraping Results:")
-        logger.info("=" * 50)
-        logger.info(f"   📅 Scrape Range: {start_date} to {end_date}")
-        logger.info(f"   📋 Before: {len(existing_matches)} matches")
-        logger.info(f"   📋 After:  {len(fresh_matches)} matches")
-        logger.info(f"   ➕ Estimated New: {max(0, new_count)} matches")
-        logger.info(f"   🔄 Potential Updates: {updated_count} matches")
-        logger.info(f"   🎯 Efficiency: Only scraped {(datetime.strptime(end_date, '%Y-%m-%d') - datetime.strptime(start_date, '%Y-%m-%d')).days} days instead of full dataset")
-        logger.info("=" * 50)
+        logger.info("📊 League-Specific Incremental Scraping Results:")
+        logger.info("=" * 60)
+        logger.info(f"   🏆 Leagues analyzed: {len(league_decisions)}")
+        logger.info(f"   🏆 Leagues scraped: {successful_leagues}")
+        logger.info(f"   🏆 Leagues skipped: {len(league_decisions) - len(leagues_to_scrape)}")
+        logger.info(f"   📋 Total matches before: {total_before_scraping:,}")
+        logger.info(f"   📋 Total matches after: {len(fresh_matches):,}")
+        logger.info(f"   ➕ Estimated new matches: {max(0, total_new_matches):,}")
+        logger.info(f"   🔄 Potential updates: {total_updated_matches:,}")
+        
+        for sl in scraped_leagues:
+            status = "✅" if sl["success"] else "❌"
+            logger.info(f"   {status} {sl['league']}: {sl['start_date']} to {sl['end_date']}")
+        
+        logger.info("=" * 60)
         
         return results
+    
+    def scrape_league_matches(self, league_name: str, start_date: str, end_date: str, stealth_config: Optional[StealthConfig] = None) -> List[Dict]:
+        """
+        Scrape matches for a specific league within the given date range.
+        
+        Args:
+            league_name: Name of the league to scrape (e.g., "APTA_CHICAGO")
+            start_date: Start date in YYYY-MM-DD format
+            end_date: End date in YYYY-MM-DD format
+            stealth_config: Optional stealth configuration
+        
+        Returns:
+            List of scraped match dictionaries
+        """
+        try:
+            # Map directory names to scraper league arguments
+            league_mapping = {
+                "APTA_CHICAGO": "aptachicago",
+                "NSTF": "nstf", 
+                "CNSWPL": "cnswpl",
+                "CITA": "cita"
+            }
+            
+            scraper_league_name = league_mapping.get(league_name, league_name.lower())
+            
+            # Build command for league-specific scraping
+            cmd = [
+                "python3", "data/etl/scrapers/scrape_match_scores.py",
+                scraper_league_name,
+                "--delta-mode",
+                "--start-date", start_date,
+                "--end-date", end_date
+            ]
+            
+            # Add stealth options
+            if stealth_config:
+                if stealth_config.fast_mode:
+                    cmd.append("--fast")
+                if stealth_config.verbose:
+                    cmd.append("--verbose")
+            
+            logger.debug(f"🚀 Running league scraper: {' '.join(cmd)}")
+            logger.info(f"   🎯 Command: {scraper_league_name} from {start_date} to {end_date}")
+            
+            # Run the league-specific scraper
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+            
+            if result.returncode == 0:
+                logger.debug(f"✅ {league_name} scraping completed successfully")
+                return []  # Match data is written directly to files, not returned
+            else:
+                logger.warning(f"⚠️ {league_name} scraping failed with return code {result.returncode}")
+                if result.stderr:
+                    logger.warning(f"⚠️ {league_name} stderr: {result.stderr[:200]}...")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Error during {league_name} scraping: {e}")
+            return []
 
 class EnhancedMasterScraper:
     """Enhanced master scraper with comprehensive stealth measures."""
