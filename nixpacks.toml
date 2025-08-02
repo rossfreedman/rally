@@ -4,7 +4,6 @@ nixPkgs = [
     "python311Packages.pip",
     "zlib",
     "postgresql_15",
-    "libpq",
     "openssl"
 ]
 
