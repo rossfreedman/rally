@@ -117,7 +117,6 @@ class IncrementalScrapingManager:
     def __init__(self):
         self.match_scores_file = "match_scores.json"
         self.backup_file = "match_scores_backup.json"
-        self.sliding_window_days = 10
         self.overlap_days = 7  # Number of days to overlap for catching updates
     
     def load_existing_matches(self) -> Tuple[List[Dict], Set[str], Dict[str, Dict]]:
@@ -321,7 +320,7 @@ class IncrementalScrapingManager:
         if not latest_site_date:
             logger.warning("⚠️ DECISION: Site detection failed - using fallback window")
             today = datetime.now()
-            start_date = (today - timedelta(days=self.sliding_window_days)).strftime('%Y-%m-%d')
+            start_date = (today - timedelta(days=14)).strftime('%Y-%m-%d')  # 14-day fallback window
             end_date = today.strftime('%Y-%m-%d')
             logger.info(f"   📅 Fallback range: {start_date} to {end_date}")
             return start_date, end_date, True
@@ -410,16 +409,16 @@ class IncrementalScrapingManager:
     
     def get_scrape_window(self) -> str:
         """
-        Calculate the start date for sliding window (10 days ago).
+        Calculate the start date for intelligent delta analysis window.
         
         Returns:
             Start date as YYYY-MM-DD string
         """
         today = datetime.today()
-        start_date = today - timedelta(days=self.sliding_window_days)
+        start_date = today - timedelta(days=14)  # Analysis window for strategy determination
         start_date_str = start_date.strftime('%Y-%m-%d')
         
-        logger.info(f"📅 Scrape window: {start_date_str} to {today.strftime('%Y-%m-%d')} ({self.sliding_window_days} days)")
+        logger.info(f"📅 Analysis window: {start_date_str} to {today.strftime('%Y-%m-%d')} (for strategy determination)")
         return start_date_str
     
     def scrape_matches_since(self, start_date: str, stealth_config: Optional[StealthConfig] = None) -> List[Dict]:
@@ -708,7 +707,7 @@ class EnhancedMasterScraper:
             logger.info(f"   Delta Range: {stealth_config.delta_start_date} to {stealth_config.delta_end_date}")
     
     def analyze_scraping_strategy(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> Dict[str, Any]:
-        """Analyze and determine the scraping strategy using 10-day sliding window."""
+        """Analyze and determine the scraping strategy using intelligent delta analysis."""
         logger.info(f"\n🔍 Analyzing scraping strategy...")
         logger.info(f"   League: {league_name or 'All'}")
         logger.info(f"   Force Full: {force_full}")
@@ -718,20 +717,20 @@ class EnhancedMasterScraper:
             return {
                 "strategy": "FULL",
                 "reason": "Forced full scraping",
-                "sliding_window_days": 0,
+                "overlap_days": 0,
                 "estimated_matches": "Unknown"
             }
         
-        # Always use incremental scraping with 10-day sliding window
-        # This captures both new matches and retroactively edited ones
+        # Always use intelligent incremental scraping with delta analysis
+        # This compares local vs site dates to determine optimal scrape range
         start_date = self.incremental_manager.get_scrape_window()
         
         return {
             "strategy": "INCREMENTAL",
-            "reason": f"10-day sliding window from {start_date}",
-            "sliding_window_days": self.incremental_manager.sliding_window_days,
+            "reason": f"Intelligent delta analysis from {start_date}",
+            "overlap_days": self.incremental_manager.overlap_days,
             "start_date": start_date,
-            "estimated_matches": "Variable (recent matches only)"
+            "estimated_matches": "Variable (determined by delta analysis)"
         }
     
     def run_intelligent_match_scraping(self, analysis: Dict[str, Any]) -> bool:
@@ -748,9 +747,9 @@ class EnhancedMasterScraper:
             return self._run_incremental_scraping(analysis)
     
     def _run_incremental_scraping(self, analysis: Dict[str, Any]) -> bool:
-        """Run incremental scraping using 10-day sliding window."""
+        """Run incremental scraping using intelligent delta analysis."""
         logger.info(f"\n🎯 Running INCREMENTAL scraping...")
-        logger.info(f"   Target: Last {analysis.get('sliding_window_days', 10)} days")
+        logger.info(f"   Target: Latest matches via intelligent detection")
         logger.info(f"   Goal: Capture new and updated matches efficiently")
         
         try:
@@ -850,7 +849,7 @@ class EnhancedMasterScraper:
             # Prepare metrics for notification
             metrics = {
                 "Strategy": analysis['strategy'],
-                "Sliding Window Days": analysis.get('sliding_window_days', 10),
+                "Overlap Days": analysis.get('overlap_days', 7),
                 "Start Date": analysis.get('start_date', 'N/A'),
                 "Estimated Matches": analysis.get('estimated_matches', 'Variable'),
                 "Failures": len(self.failures)
@@ -884,7 +883,7 @@ class EnhancedMasterScraper:
                 "analysis": {
                     "strategy": analysis["strategy"],
                     "reason": analysis["reason"],
-                    "sliding_window_days": analysis.get("sliding_window_days", 10),
+                    "overlap_days": analysis.get("overlap_days", 7),
                     "start_date": analysis.get("start_date", "N/A"),
                     "estimated_matches": analysis.get("estimated_matches", "Variable")
                 },
@@ -996,7 +995,7 @@ def main():
         logger.info(f"\n📊 Final Summary:")
         logger.info(f"   Success: {'✅' if success else '❌'}")
         logger.info(f"   Strategy: {analysis['strategy']}")
-        logger.info(f"   Sliding Window: {analysis.get('sliding_window_days', 10)} days")
+        logger.info(f"   Overlap Days: {analysis.get('overlap_days', 7)} days")
         logger.info(f"   Start Date: {analysis.get('start_date', 'N/A')}")
         logger.info(f"   Estimated Matches: {analysis.get('estimated_matches', 'Variable')}")
         logger.info(f"   Reason: {analysis['reason']}")
