@@ -172,6 +172,7 @@ def embedded_pipeline_execution(context):
 def run_cron_job(context):
     """Execute the cron job pipeline"""
     print("🤖 Smart Start: Detected CRON JOB execution")
+    print("🔧 VERSION: Enhanced Smart Start v2.0 with embedded pipeline")
     print("=" * 60)
     print("🔍 Execution Context:")
     for key, value in context.items():
