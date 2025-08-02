@@ -273,6 +273,28 @@ Each scraping session tracks comprehensive metrics:
 
 ## 🔧 Configuration Options
 
+### Environment-Specific Behavior
+
+The scraper adapts its behavior based on the detected environment:
+
+- **Local Environment**:
+  - Faster delays (1-3s vs 2-6s)
+  - More verbose logging
+  - Test database usage
+  - Development-friendly settings
+
+- **Staging Environment**:
+  - Standard delays (2-6s)
+  - Moderate logging
+  - Staging database
+  - Production-like settings
+
+- **Production Environment**:
+  - Conservative delays (3-8s)
+  - Minimal logging
+  - Production database
+  - Maximum stealth settings
+
 ### Stealth Configuration
 
 ```python
@@ -289,6 +311,14 @@ class StealthConfig:
     session_duration: int = 600     # Session duration in seconds
 ```
 
+### Environment Auto-Detection
+
+The scraper automatically detects the current environment:
+
+- **Local**: Detected when `database_config.py` exists (development)
+- **Staging**: Detected when `STAGING` or `RAILWAY_STAGING` env vars are set
+- **Production**: Detected when `RAILWAY_ENVIRONMENT` is set or `DATABASE_URL` contains "railway"
+
 ### CLI Arguments
 
 ```bash
@@ -296,7 +326,7 @@ class StealthConfig:
 --league LEAGUE              # Specific league to scrape
 --force-full                # Force full scraping
 --force-incremental         # Force incremental scraping
---environment {local,staging,production}  # Environment mode
+--environment {local,staging,production}  # Environment mode (auto-detected)
 
 # Stealth configuration
 --fast                      # Enable fast mode (reduced delays)

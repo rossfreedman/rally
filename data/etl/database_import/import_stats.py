@@ -26,15 +26,22 @@ def normalize_league_id(league_id: str) -> str:
     if not league_id:
         return ""
     
-    league_id = league_id.strip().upper()
+    league_id = league_id.strip()
     
-    # Map common variations to standard IDs
+    # Map common variations to standard IDs (case-sensitive)
     league_mapping = {
-        "APTA": "APTA_CHICAGO",
-        "APTA_CHICAGO": "APTA_CHICAGO",
-        "NSTF": "NSTF",
-        "CITA": "CITA",
-        "CNSWPL": "CNSWPL",
+        "APTA": "aptachicago",
+        "APTA CHICAGO": "aptachicago",
+        "APTA_CHICAGO": "aptachicago",
+        "aptachicago": "aptachicago",
+        "APTACHICAGO": "aptachicago",
+        "NORTH SHORE TENNIS FOUNDATION": "nstf",
+        "NSTF": "nstf",
+        "nstf": "nstf",
+        "CITA": "cita",
+        "cita": "cita",
+        "CNSWPL": "cnswpl",
+        "cnswpl": "cnswpl",
     }
     
     return league_mapping.get(league_id, league_id)
@@ -45,12 +52,31 @@ def load_series_stats_json(league_id: str) -> List[Dict]:
     script_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     
+    # Map league names to directory names
+    league_dir_mapping = {
+        "aptachicago": "APTA_CHICAGO",
+        "nstf": "NSTF",
+        "cita": "CITA",
+        "cnswpl": "CNSWPL",
+        # Keep backward compatibility
+        "APTA CHICAGO": "APTA_CHICAGO",
+        "APTA_CHICAGO": "APTA_CHICAGO",
+        "NORTH SHORE TENNIS FOUNDATION": "NORTH SHORE TENNIS FOUNDATION",
+        "NSTF": "NSTF",
+        "CITA": "CITA",
+        "CNSWPL": "CNSWPL",
+    }
+    
+    # Get the correct directory name
+    league_dir = league_dir_mapping.get(league_id, league_id)
+    
     # Build path to league data directory
-    league_data_dir = os.path.join(project_root, "data", "leagues", league_id)
+    league_data_dir = os.path.join(project_root, "data", "leagues", league_dir)
     json_path = os.path.join(league_data_dir, "series_stats.json")
     
     if not os.path.exists(json_path):
         print(f"❌ Series stats file not found: {json_path}")
+        print(f"🔍 Tried directory: {league_data_dir}")
         return []
     
     try:
@@ -65,9 +91,20 @@ def load_series_stats_json(league_id: str) -> List[Dict]:
 
 def get_league_db_id(league_id: str) -> Optional[int]:
     """Get database ID for league"""
+    # Map lowercase league IDs to database league_ids
+    league_db_mapping = {
+        "aptachicago": "APTA_CHICAGO",
+        "nstf": "NSTF",
+        "cita": "CITA",
+        "cnswpl": "CNSWPL",
+    }
+    
+    # Use mapped league_id for database lookup
+    db_league_id = league_db_mapping.get(league_id, league_id)
+    
     result = execute_query_one(
         "SELECT id FROM leagues WHERE league_id = %s",
-        (league_id,)
+        (db_league_id,)
     )
     return result["id"] if result else None
 
@@ -273,8 +310,12 @@ def main():
     validation = validate_import(league_id)
     print(f"\n🔍 Validation Results:")
     print(f"   📊 Total records: {validation['total']}")
-    print(f"   🔗 With series_id: {validation['with_series_id']} ({validation['with_series_id']/validation['total']*100:.1f}%)")
-    print(f"   🔗 With team_id: {validation['with_team_id']} ({validation['with_team_id']/validation['total']*100:.1f}%)")
+    if validation['total'] > 0:
+        print(f"   🔗 With series_id: {validation['with_series_id']} ({validation['with_series_id']/validation['total']*100:.1f}%)")
+        print(f"   🔗 With team_id: {validation['with_team_id']} ({validation['with_team_id']/validation['total']*100:.1f}%)")
+    else:
+        print(f"   🔗 With series_id: {validation['with_series_id']} (0.0%)")
+        print(f"   🔗 With team_id: {validation['with_team_id']} (0.0%)")
     
     if results['errors'] > 0:
         print(f"\n⚠️  Import completed with {results['errors']} errors")

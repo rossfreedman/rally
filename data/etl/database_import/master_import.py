@@ -25,6 +25,18 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+def detect_environment():
+    """Auto-detect the current environment."""
+    if os.getenv("RAILWAY_ENVIRONMENT"):
+        return os.getenv("RAILWAY_ENVIRONMENT")
+    if os.getenv("DATABASE_URL") and "railway" in os.getenv("DATABASE_URL", "").lower():
+        return "production"
+    if os.getenv("STAGING") or os.getenv("RAILWAY_STAGING"):
+        return "staging"
+    if os.path.exists("database_config.py"):
+        return "local"
+    return "local"
+
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
@@ -58,14 +70,15 @@ class MasterImporter:
     
     # League name mapping for case-insensitive input
     LEAGUE_MAPPING = {
-        "APTACHICAGO": "APTA_CHICAGO",
-        "aptachicago": "APTA_CHICAGO",
-        "NSTF": "NSTF",
-        "nstf": "NSTF",
-        "CNSWPL": "CNSWPL",
-        "cnswpl": "CNSWPL",
-        "CITA": "CITA",
-        "cita": "CITA"
+        "APTACHICAGO": "aptachicago",
+        "aptachicago": "aptachicago",
+        "APTA_CHICAGO": "aptachicago",
+        "NSTF": "nstf",
+        "nstf": "nstf",
+        "CNSWPL": "cnswpl",
+        "cnswpl": "cnswpl",
+        "CITA": "cita",
+        "cita": "cita"
     }
     
     def __init__(self, environment="staging", league=None):
@@ -139,12 +152,20 @@ class MasterImporter:
                 "description": f"Import series statistics for {normalized_league}"
             })
         else:
-            # All leagues mode
+            # All leagues mode - map directory names to lowercase
+            league_mapping = {
+                "APTA_CHICAGO": "aptachicago",
+                "NSTF": "nstf",
+                "CITA": "cita",
+                "CNSWPL": "cnswpl",
+            }
+            
             for league in self.available_leagues:
+                lowercase_league = league_mapping.get(league, league.lower())
                 steps.append({
                     "name": f"Import Stats - {league}",
                     "script": "import_stats.py",
-                    "args": [league],
+                    "args": [lowercase_league],
                     "description": f"Import series statistics for {league}"
                 })
         
@@ -166,16 +187,56 @@ class MasterImporter:
         
         return steps
     
-    def send_notification(self, message, is_failure=False):
-        """Send SMS notification to admin"""
+    def send_notification(self, message, is_failure=False, step_name=None, error_details=None, duration=None):
+        """Send SMS notification to admin with enhanced error details"""
         try:
-            if send_sms:
-                send_sms(ADMIN_PHONE, message)
-                logger.info(f"📱 SMS sent to admin: {message[:100]}...")
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Enhance failure messages with more context
+            if is_failure and step_name and error_details:
+                enhanced_message = f"🚨 Rally ETL FAILURE\n"
+                enhanced_message += f"Activity: {step_name}\n"
+                enhanced_message += f"Environment: {self.environment}\n"
+                enhanced_message += f"Time: {current_time}\n"
+                enhanced_message += f"Error: {error_details[:200]}..." if len(error_details) > 200 else f"Error: {error_details}"
+                enhanced_message += f"\nImpact: {self._get_step_impact(step_name)}"
+                enhanced_message += f"\nAction: Check logs and re-run if needed"
+            elif is_failure:
+                enhanced_message = f"🚨 Rally ETL FAILURE\n"
+                enhanced_message += f"Environment: {self.environment}\n"
+                enhanced_message += f"Time: {current_time}\n"
+                enhanced_message += f"Error: {message}"
             else:
-                logger.info(f"📱 SMS notification (mock): {message}")
+                # Success message with clean format
+                enhanced_message = f"Rally ETL:\n"
+                enhanced_message += f"Activity: {message}\n"
+                if duration:
+                    enhanced_message += f"Duration: {duration}\n"
+                enhanced_message += f"Environment: {self.environment}\n"
+                enhanced_message += f"Time: {current_time}\n"
+                enhanced_message += f"Status: ✅"
+            
+            if send_sms:
+                send_sms(ADMIN_PHONE, enhanced_message)
+                logger.info(f"📱 SMS sent to admin: {enhanced_message[:100]}...")
+            else:
+                logger.info(f"📱 SMS notification (mock): {enhanced_message}")
         except Exception as e:
             logger.error(f"❌ Failed to send SMS: {e}")
+    
+    def _get_step_impact(self, step_name):
+        """Get human-readable impact description for a failed step"""
+        impact_map = {
+            "Consolidate League JSONs": "No unified data structure available",
+            "Import Stats": "Team standings and rankings unavailable",
+            "Import Match Scores": "Match results and scores unavailable", 
+            "Import Players": "Player data and associations unavailable"
+        }
+        
+        for key, impact in impact_map.items():
+            if key in step_name:
+                return impact
+        return "Data import step failed"
     
     def run_import_step(self, step):
         """Run a single import step"""
@@ -222,8 +283,7 @@ class MasterImporter:
                 logger.info(success_msg)
                 
                 # Send success notification
-                notification = f"Rally ETL: {step_name} ✅\nDuration: {duration}\nEnvironment: {self.environment}"
-                self.send_notification(notification)
+                self.send_notification(step_name, duration=duration)
                 
                 self.results[step_name] = {
                     "status": "success",
@@ -240,8 +300,7 @@ class MasterImporter:
                 logger.error(f"Error output: {result.stderr}")
                 
                 # Send immediate failure notification
-                failure_notification = f"🚨 Rally ETL FAILURE: {step_name}\nError: {result.stderr[:200]}...\nEnvironment: {self.environment}"
-                self.send_notification(failure_notification, is_failure=True)
+                self.send_notification("", is_failure=True, step_name=step_name, error_details=result.stderr)
                 
                 self.results[step_name] = {
                     "status": "failed",
@@ -258,8 +317,7 @@ class MasterImporter:
             timeout_msg = f"⏰ {step_name} timed out after 1 hour"
             logger.error(timeout_msg)
             
-            timeout_notification = f"⏰ Rally ETL TIMEOUT: {step_name}\nEnvironment: {self.environment}"
-            self.send_notification(timeout_notification, is_failure=True)
+            self.send_notification("", is_failure=True, step_name=step_name, error_details="Script timed out after 1 hour")
             
             self.results[step_name] = {
                 "status": "timeout",
@@ -276,8 +334,7 @@ class MasterImporter:
             error_msg = f"💥 {step_name} failed with unexpected error: {e}"
             logger.error(error_msg)
             
-            error_notification = f"💥 Rally ETL ERROR: {step_name}\nError: {str(e)}\nEnvironment: {self.environment}"
-            self.send_notification(error_notification, is_failure=True)
+            self.send_notification("", is_failure=True, step_name=step_name, error_details=str(e))
             
             self.results[step_name] = {
                 "status": "error",
@@ -303,8 +360,7 @@ class MasterImporter:
         logger.info("=" * 60)
         
         # Send start notification
-        start_notification = f"🚀 Rally ETL Master Import Starting\nEnvironment: {self.environment}\nTime: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}"
-        self.send_notification(start_notification)
+        self.send_notification("Master Import Starting")
         
         # Run each import step
         for i, step in enumerate(self.import_steps, 1):
@@ -498,11 +554,11 @@ class MasterImporter:
         
         # Send final notification
         if failed_steps == 0:
-            final_notification = f"🎉 Rally ETL Complete!\n{successful_steps}/{total_steps} steps successful\nDuration: {total_duration}\nEnvironment: {self.environment}"
+            final_message = f"Complete! {successful_steps}/{total_steps} steps successful"
         else:
-            final_notification = f"⚠️ Rally ETL Complete with Issues\n{successful_steps}/{total_steps} steps successful\nFailures: {', '.join(self.failures)}\nDuration: {total_duration}\nEnvironment: {self.environment}"
+            final_message = f"Complete with Issues - {successful_steps}/{total_steps} steps successful"
         
-        self.send_notification(final_notification)
+        self.send_notification(final_message, duration=total_duration)
         
         # Save detailed results to file
         self.save_detailed_results()
@@ -624,9 +680,9 @@ def main():
     parser = argparse.ArgumentParser(description="Master ETL Import Script")
     parser.add_argument(
         "--environment",
-        choices=["staging", "production"],
-        default="staging",
-        help="Environment to run imports for"
+        choices=["local", "staging", "production"],
+        default=detect_environment(),
+        help="Environment to run imports for (auto-detected)"
     )
     parser.add_argument(
         "--league",

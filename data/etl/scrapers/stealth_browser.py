@@ -133,9 +133,16 @@ class StealthConfig:
         self.verbose = verbose
         self.environment = environment
         
-        # Request pacing
-        self.min_delay = 1.0 if fast_mode else 2.0
-        self.max_delay = 3.0 if fast_mode else 6.0
+        # Environment-specific defaults
+        if environment == "local":
+            self.min_delay = 1.0 if fast_mode else 1.5
+            self.max_delay = 3.0 if fast_mode else 4.0
+        elif environment == "staging":
+            self.min_delay = 1.5 if fast_mode else 2.5
+            self.max_delay = 4.0 if fast_mode else 6.0
+        else:  # production
+            self.min_delay = 2.0 if fast_mode else 3.0
+            self.max_delay = 5.0 if fast_mode else 8.0
         
         # Retry settings
         self.max_retries = 3
@@ -406,7 +413,30 @@ class EnhancedStealthBrowser:
         logger.info(f"   Leagues Scraped: {summary['leagues_scraped']}")
 
 # Convenience function
-def create_stealth_browser(fast_mode: bool = False, verbose: bool = False, environment: str = "production") -> EnhancedStealthBrowser:
+def detect_environment():
+    """Auto-detect the current environment."""
+    # Check for Railway environment variables
+    if os.getenv("RAILWAY_ENVIRONMENT"):
+        return os.getenv("RAILWAY_ENVIRONMENT")
+    
+    # Check for common production indicators
+    if os.getenv("DATABASE_URL") and "railway" in os.getenv("DATABASE_URL", "").lower():
+        return "production"
+    
+    # Check for staging indicators
+    if os.getenv("STAGING") or os.getenv("RAILWAY_STAGING"):
+        return "staging"
+    
+    # Check if we're running locally (default)
+    if os.path.exists("database_config.py"):
+        return "local"
+    
+    # Fallback to local
+    return "local"
+
+def create_stealth_browser(fast_mode: bool = False, verbose: bool = False, environment: str = None) -> EnhancedStealthBrowser:
     """Create an enhanced stealth browser instance."""
+    if environment is None:
+        environment = detect_environment()
     config = StealthConfig(fast_mode=fast_mode, verbose=verbose, environment=environment)
     return EnhancedStealthBrowser(config)

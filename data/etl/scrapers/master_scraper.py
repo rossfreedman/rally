@@ -117,7 +117,11 @@ class DeltaScrapingManager:
                 
                 row = result.fetchone()
                 if row and row[0]:
-                    return row[0].date()
+                    # Handle both datetime and date objects
+                    if hasattr(row[0], 'date'):
+                        return row[0].date()
+                    else:
+                        return row[0]
                 return None
         except Exception as e:
             logger.error(f"❌ Error querying database for league {league_id}: {e}")
@@ -205,9 +209,9 @@ class EnhancedMasterScraper:
         self.config = stealth_config
         self.delta_manager = DeltaScrapingManager()
         self.stealth_browser = create_stealth_browser(
-            fast_mode=config.fast_mode,
-            verbose=config.verbose,
-            environment=config.environment
+            fast_mode=stealth_config.fast_mode,
+            verbose=stealth_config.verbose,
+            environment=stealth_config.environment
         )
         self.proxy_rotator = get_proxy_rotator()
         self.failures = []
@@ -219,9 +223,9 @@ class EnhancedMasterScraper:
         )
         
         logger.info(f"🚀 Enhanced Master Scraper initialized")
-        logger.info(f"   Mode: {'FAST' if config.fast_mode else 'STEALTH'}")
-        logger.info(f"   Environment: {config.environment}")
-        logger.info(f"   Verbose: {config.verbose}")
+        logger.info(f"   Mode: {'FAST' if stealth_config.fast_mode else 'STEALTH'}")
+        logger.info(f"   Environment: {stealth_config.environment}")
+        logger.info(f"   Verbose: {stealth_config.verbose}")
     
     def analyze_scraping_strategy(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> Dict[str, Any]:
         """Analyze and determine the best scraping strategy."""
@@ -470,6 +474,27 @@ class EnhancedMasterScraper:
         except Exception as e:
             logger.error(f"❌ Error saving results: {e}")
 
+def detect_environment():
+    """Auto-detect the current environment."""
+    # Check for Railway environment variables
+    if os.getenv("RAILWAY_ENVIRONMENT"):
+        return os.getenv("RAILWAY_ENVIRONMENT")
+    
+    # Check for common production indicators
+    if os.getenv("DATABASE_URL") and "railway" in os.getenv("DATABASE_URL", "").lower():
+        return "production"
+    
+    # Check for staging indicators
+    if os.getenv("STAGING") or os.getenv("RAILWAY_STAGING"):
+        return "staging"
+    
+    # Check if we're running locally (default)
+    if os.path.exists("database_config.py"):
+        return "local"
+    
+    # Fallback to local
+    return "local"
+
 def main():
     """Main function with enhanced CLI arguments."""
     parser = argparse.ArgumentParser(description="Enhanced Master Scraper with Stealth Measures")
@@ -477,7 +502,7 @@ def main():
     parser.add_argument("--force-full", action="store_true", help="Force full scraping")
     parser.add_argument("--force-incremental", action="store_true", help="Force incremental scraping")
     parser.add_argument("--environment", choices=["local", "staging", "production"], 
-                       default="production", help="Environment mode")
+                       default=detect_environment(), help="Environment mode (auto-detected)")
     parser.add_argument("--fast", action="store_true", help="Enable fast mode (reduced delays)")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument("--max-retries", type=int, default=3, help="Maximum retry attempts")
