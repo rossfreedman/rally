@@ -7,28 +7,26 @@ healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-# Production ETL Cron Job Services - Explicit command to prevent Flask startup
+# Production ETL Cron Job Services - With explicit environment variables
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "python cronjobs/run_pipeline.py"
-# Note: This command explicitly runs the pipeline script, NOT the Flask web server
-# Alternative: Use "python entry_cron.py" for extra Flask startup protection
+command = "CRON_JOB_MODE=true FLASK_APP='' python cronjobs/run_pipeline.py"
+# Explicit environment variables ensure cron job detection
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
-command = "python cronjobs/run_pipeline.py"
-# Note: This command explicitly runs the pipeline script, NOT the Flask web server
-# Alternative: Use "python entry_cron.py" for extra Flask startup protection
+command = "CRON_JOB_MODE=true FLASK_APP='' python cronjobs/run_pipeline.py"
+# Explicit environment variables ensure cron job detection
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
 schedule = "0 */4 * * *"  # Every 4 hours instead of every 30 minutes
-command = "python data/etl/database_import/master_import.py --league aptachicago"
+command = "CRON_JOB_MODE=true FLASK_APP='' python data/etl/database_import/master_import.py --league aptachicago"
 
 [deploy.cronJobs.staging_etl_full]
 schedule = "0 8 * * *"  # Daily at 8 AM UTC instead of every 6 hours
-command = "python data/etl/database_import/master_import.py"
+command = "CRON_JOB_MODE=true FLASK_APP='' python data/etl/database_import/master_import.py"
 
 [env]
 FLASK_ENV = "production"

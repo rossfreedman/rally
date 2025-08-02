@@ -5,4 +5,5 @@ nixPkgs = ["python311", "python311Packages.pip"]
 cmds = ["pip install --break-system-packages -r requirements.txt"]
 
 [start]
-cmd = "python server.py"  # Using main server.py for full Rally application 
+# Smart start command that detects cron jobs vs web deployment
+cmd = "python smart_start.py" 
