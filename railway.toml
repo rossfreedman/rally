@@ -7,15 +7,19 @@ healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
-# Production ETL Cron Job Services
+# Production ETL Cron Job Services - Explicit command to prevent Flask startup
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
 command = "python cronjobs/run_pipeline.py"
+# Note: This command explicitly runs the pipeline script, NOT the Flask web server
+# Alternative: Use "python entry_cron.py" for extra Flask startup protection
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
 command = "python cronjobs/run_pipeline.py"
+# Note: This command explicitly runs the pipeline script, NOT the Flask web server
+# Alternative: Use "python entry_cron.py" for extra Flask startup protection
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
@@ -34,4 +38,6 @@ WEB_CONCURRENCY = "1"
 SESSION_COOKIE_DOMAIN = ".lovetorally.com"
 PGCONNECT_TIMEOUT = "60"
 PGPOOL_MIN_CONNECTIONS = "1"
-PGPOOL_MAX_CONNECTIONS = "20" 
+PGPOOL_MAX_CONNECTIONS = "20"
+# Cron job environment variables (set by individual cron jobs)
+CRON_JOB_MODE = "false"  # Default to false for web server, overridden by cron scripts 
