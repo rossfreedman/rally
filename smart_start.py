@@ -69,8 +69,61 @@ def run_cron_job(context):
     for key, value in context.items():
         print(f"   {key}: {value}")
     print("=" * 60)
+    
+    # Find the correct path to the pipeline script
+    possible_paths = [
+        "cronjobs/run_pipeline.py",
+        "./cronjobs/run_pipeline.py", 
+        "/app/cronjobs/run_pipeline.py",
+        os.path.join(os.getcwd(), "cronjobs", "run_pipeline.py"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "cronjobs", "run_pipeline.py")
+    ]
+    
+    pipeline_script = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            pipeline_script = path
+            print(f"✅ Found pipeline script at: {path}")
+            break
+    
+    if not pipeline_script:
+        print("❌ Pipeline script not found! Checked paths:")
+        for path in possible_paths:
+            print(f"   ❌ {path} (exists: {os.path.exists(path)})")
+        
+        # List current directory contents for debugging
+        print(f"\n📁 Current directory contents ({os.getcwd()}):")
+        try:
+            for item in os.listdir(os.getcwd()):
+                print(f"   📄 {item}")
+                if os.path.isdir(item):
+                    print(f"      📁 {item}/ contents:")
+                    try:
+                        for subitem in os.listdir(item):
+                            print(f"         📄 {subitem}")
+                    except Exception as se:
+                        print(f"         ❌ Could not list subdirectory: {se}")
+        except Exception as e:
+            print(f"   ❌ Could not list directory: {e}")
+        
+        print("\n🔄 Attempting direct import fallback...")
+        try:
+            # Fallback: Try to import and run the pipeline directly
+            sys.path.insert(0, os.getcwd())
+            from cronjobs.run_pipeline import main as pipeline_main
+            print("✅ Successfully imported pipeline via direct import")
+            print("🚀 Running pipeline via direct import...")
+            pipeline_main()
+            print("✅ Pipeline completed successfully via direct import")
+            sys.exit(0)
+        except Exception as ie:
+            print(f"❌ Direct import fallback also failed: {ie}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
+    
     print("🚀 Starting Rally Data Pipeline (Cron Job Mode)")
-    print("📋 Command: python cronjobs/run_pipeline.py")
+    print(f"📋 Command: python {pipeline_script}")
     print("=" * 60)
     
     try:
@@ -81,8 +134,8 @@ def run_cron_job(context):
         # Execute the pipeline script directly
         result = subprocess.run([
             sys.executable, 
-            "cronjobs/run_pipeline.py"
-        ], cwd=os.path.dirname(os.path.abspath(__file__)))
+            pipeline_script
+        ], cwd=os.getcwd())
         
         print(f"🏁 Pipeline execution completed with exit code: {result.returncode}")
         sys.exit(result.returncode)

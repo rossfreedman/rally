@@ -94,8 +94,8 @@ class EnhancedMatchScraper:
                     time.sleep(delay)
                 
                 return html
-        
-    except Exception as e:
+                
+            except Exception as e:
                 self.metrics["failed_requests"] += 1
                 logger.warning(f"⚠️ Request failed (attempt {attempt + 1}): {e}")
                 
@@ -104,11 +104,11 @@ class EnhancedMatchScraper:
                     backoff = min(2 ** attempt, 10)
                     logger.info(f"⏳ Retrying in {backoff}s...")
                     time.sleep(backoff)
-                continue
-                    else:
+                    continue
+                else:
                     logger.error(f"❌ All retries failed for {url}")
-    return None
-
+                    break
+        
         return None
     
     def _detect_blocking(self, html: str) -> Optional[DetectionType]:
@@ -129,7 +129,7 @@ class EnhancedMatchScraper:
         if len(html) < 1000:
             return DetectionType.BLANK_PAGE
     
-    return None
+        return None
 
     def scrape_league_matches(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
         """Scrape matches for a specific league with enhanced stealth."""
@@ -145,14 +145,14 @@ class EnhancedMatchScraper:
                 main_html = self._safe_request(base_url, "main page")
                 if not main_html:
                     logger.error(f"❌ Failed to access main page for {league_subdomain}")
-            return []
-            
+                    return []
+                
                 # Check for blocking
                 detection = self._detect_blocking(main_html)
                 if detection:
                     self.metrics["detections"][detection.value] = self.metrics["detections"].get(detection.value, 0) + 1
                     logger.error(f"❌ Blocking detected: {detection.value}")
-        return []
+                    return []
 
                 # Parse series links (simplified for example)
                 series_links = self._extract_series_links(main_html)
@@ -189,7 +189,7 @@ class EnhancedMatchScraper:
                 
         except Exception as e:
             logger.error(f"❌ Error scraping {league_subdomain}: {e}")
-                return []
+            return []
 
     def _extract_series_links(self, html: str) -> List[Tuple[str, str]]:
         """Extract series links from main page (simplified implementation)."""
@@ -252,7 +252,7 @@ class EnhancedMatchScraper:
             logger.info(f"📅 Date filtered: {len(filtered_matches)}/{len(matches)} matches")
             return filtered_matches
         
-    except Exception as e:
+        except Exception as e:
             logger.error(f"❌ Error filtering by date: {e}")
             return matches
     
