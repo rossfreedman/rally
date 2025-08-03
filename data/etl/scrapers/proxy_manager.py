@@ -375,6 +375,8 @@ class ProxyInfo:
     """Information about a single proxy."""
     port: int
     host: str = "us.decodo.com"
+    username: str = ""
+    password: str = ""
     status: ProxyStatus = ProxyStatus.ACTIVE
     last_used: Optional[datetime] = None
     last_tested: Optional[datetime] = None
@@ -425,16 +427,28 @@ class EnhancedProxyRotator:
             test_url: URL to test proxy health
             usage_cap_per_proxy: Maximum requests per proxy per session (20-40)
         """
-        self.ports = ports or self._load_default_ports()
         self.rotate_every = rotate_every
         self.session_duration = session_duration
         self.test_url = test_url
         self.usage_cap_per_proxy = usage_cap_per_proxy
         
-        # Initialize proxy info
+        # Initialize proxy credentials storage BEFORE loading ports
+        self.proxy_credentials: Dict[int, Dict[str, str]] = {}
+        
+        # Load ports (this will populate proxy_credentials)
+        self.ports = ports or self._load_default_ports()
+        
+        # Initialize proxy info with loaded credentials
         self.proxies: Dict[int, ProxyInfo] = {}
         for port in self.ports:
-            self.proxies[port] = ProxyInfo(port=port)
+            # Get credentials if available
+            creds = self.proxy_credentials.get(port, {})
+            self.proxies[port] = ProxyInfo(
+                port=port,
+                host=creds.get('host', 'us.decodo.com'),
+                username=creds.get('username', ''),
+                password=creds.get('password', '')
+            )
         
         # Session tracking
         self.request_count = 0
@@ -490,7 +504,20 @@ class EnhancedProxyRotator:
                     line = line.strip()
                     if line and ":" in line:
                         parts = line.split(":")
-                        if len(parts) >= 2:
+                        if len(parts) >= 4:  # host:port:username:password
+                            host = parts[0]
+                            port = int(parts[1])
+                            username = parts[2]
+                            password = parts[3]
+                            
+                            # Store credentials in proxy info when creating
+                            self.proxy_credentials[port] = {
+                                'host': host,
+                                'username': username, 
+                                'password': password
+                            }
+                            ports.append(port)
+                        elif len(parts) >= 2:  # Fallback for host:port format
                             port = int(parts[1])
                             ports.append(port)
                 
@@ -506,7 +533,12 @@ class EnhancedProxyRotator:
     def _test_proxy(self, proxy_info: ProxyInfo) -> bool:
         """Test if a proxy is working."""
         try:
-            proxy_url = f"http://{proxy_info.host}:{proxy_info.port}"
+            # Create proxy URL with authentication if available
+            if proxy_info.username and proxy_info.password:
+                proxy_url = f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
+            else:
+                proxy_url = f"http://{proxy_info.host}:{proxy_info.port}"
+            
             proxies = {
                 "http": proxy_url,
                 "https": proxy_url
@@ -757,7 +789,7 @@ class EnhancedProxyRotator:
         logger.info(f"🔄 Rotating proxy: {old_port} → {self.current_port}")
     
     def get_proxy(self) -> str:
-        """Get current proxy URL."""
+        """Get current proxy URL with authentication."""
         if self._should_rotate():
             self._rotate_proxy()
         
@@ -773,7 +805,13 @@ class EnhancedProxyRotator:
         if self.current_port in self.proxies:
             self.proxies[self.current_port].last_used = datetime.now()
         
-        return f"http://us.decodo.com:{self.current_port}"
+        # Get proxy info with credentials
+        proxy_info = self.proxies.get(self.current_port)
+        if proxy_info and proxy_info.username and proxy_info.password:
+            return f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
+        else:
+            # Fallback to basic proxy (for backward compatibility)
+            return f"http://us.decodo.com:{self.current_port}"
     
     def report_success(self, port: int = None):
         """Report successful request for proxy."""

@@ -24,6 +24,7 @@ sys.path.insert(0, project_root)
 # Import stealth components
 from data.etl.scrapers.stealth_browser import create_stealth_browser, DetectionType, SessionMetrics
 from data.etl.scrapers.proxy_manager import get_proxy_rotator
+from data.etl.utils.json_backup_manager import backup_before_scraping, create_backup_manager
 
 # Import database components
 from database_config import get_db_engine
@@ -910,6 +911,7 @@ class EnhancedMasterScraper:
         )
         self.proxy_rotator = get_proxy_rotator()
         self.failures = []
+        self.backup_manager = None  # Will be initialized when needed
         
         # Metrics tracking
         self.session_metrics = SessionMetrics(
@@ -922,6 +924,7 @@ class EnhancedMasterScraper:
         logger.info(f"   Environment: {stealth_config.environment}")
         logger.info(f"   Verbose: {stealth_config.verbose}")
         logger.info(f"   Delta Mode: {stealth_config.delta_mode}")
+        logger.info(f"   JSON Backup: Enabled")
         if stealth_config.delta_mode and stealth_config.delta_start_date and stealth_config.delta_end_date:
             logger.info(f"   Delta Range: {stealth_config.delta_start_date} to {stealth_config.delta_end_date}")
     
@@ -1039,7 +1042,7 @@ class EnhancedMasterScraper:
 
                 
     def run_scraping_step(self, league_name: str = None, force_full: bool = False, force_incremental: bool = False) -> bool:
-        """Run the complete scraping step."""
+        """Run the complete scraping step with JSON backup protection."""
         start_time = datetime.now()
         logger.info(f"\n🎯 Running scraping step...")
         logger.info(f"   League: {league_name or 'All'}")
@@ -1047,14 +1050,30 @@ class EnhancedMasterScraper:
         logger.info(f"   Force Incremental: {force_incremental}")
         
         # Send start notification
-        send_scraper_notification("[1/3] Master Scraper Starting")
+        send_scraper_notification("[1/4] Master Scraper Starting")
         
         try:
+            # CRITICAL STEP: Create backup of JSON files before any scraping
+            logger.info("📦 Creating backup of JSON files before scraping...")
+            send_scraper_notification("[1/4] Creating JSON backup before scraping...")
+            
+            try:
+                self.backup_manager = backup_before_scraping(league_name)
+                backup_summary = self.backup_manager.get_backup_summary()
+                backup_msg = f"✅ Backup completed: {backup_summary['total_files']} files ({backup_summary['total_size_mb']:.1f}MB)"
+                logger.info(backup_msg)
+                send_scraper_notification(f"[1/4] {backup_msg}")
+            except Exception as e:
+                error_msg = f"❌ Backup failed: {e}"
+                logger.error(error_msg)
+                logger.warning("⚠️ Proceeding without backup - MANUAL BACKUP RECOMMENDED!")
+                send_scraper_notification(f"[1/4] ⚠️ Backup failed: {e} - Proceeding without backup")
+            
             # Analyze strategy
             analysis = self.analyze_scraping_strategy(league_name, force_full, force_incremental)
             
             # Send strategy notification
-            strategy_msg = f"[2/3] Strategy Analysis: {analysis['strategy']}"
+            strategy_msg = f"[2/4] Strategy Analysis: {analysis['strategy']}"
             send_scraper_notification(strategy_msg)
             
             # Run scraping
@@ -1075,14 +1094,21 @@ class EnhancedMasterScraper:
             }
             
             if success:
-                # Send success notification
-                final_message = f"[3/3] 🎉 SCRAPER COMPLETE - Strategy: {analysis['strategy']}"
+                # Send success notification with backup info
+                final_message = f"[4/4] 🎉 SCRAPER COMPLETE - Strategy: {analysis['strategy']}"
+                if self.backup_manager:
+                    backup_summary = self.backup_manager.get_backup_summary()
+                    final_message += f" (Backup: {backup_summary['backup_directory']})"
                 send_scraper_notification(final_message, duration=duration, metrics=metrics)
                 return True
             else:
-                # Send failure notification
+                # Send failure notification with backup info
                 error_details = "; ".join(self.failures) if self.failures else "Unknown scraping error"
-                send_scraper_notification("", is_failure=True, step_name="Master Scraper", error_details=error_details)
+                failure_message = f"[4/4] ❌ SCRAPER FAILED - {error_details}"
+                if self.backup_manager:
+                    backup_summary = self.backup_manager.get_backup_summary()
+                    failure_message += f" (Backup available: {backup_summary['backup_directory']})"
+                send_scraper_notification(failure_message, is_failure=True, step_name="Master Scraper", error_details=error_details)
                 return False
                 
         except Exception as e:

@@ -363,7 +363,13 @@ def main():
     )
             
             # Save results - APPEND to existing data, don't overwrite
-    output_file = f"data/leagues/{args.league.upper()}/match_history.json"
+    # Use standardized directory naming to prevent APTACHICAGO vs APTA_CHICAGO issues
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+    from data.etl.utils.league_directory_manager import get_league_file_path
+    
+    output_file = get_league_file_path(args.league, "match_history.json")
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
     # Load existing matches to preserve data

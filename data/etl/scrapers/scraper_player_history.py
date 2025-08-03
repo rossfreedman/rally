@@ -55,21 +55,23 @@ from utils.player_id_utils import create_player_id, extract_tenniscores_player_i
 def build_league_data_dir(league_id):
     """
     Build the dynamic data directory path based on the league ID.
+    Now uses standardized directory naming to prevent redundant directories.
 
     Args:
         league_id (str): The league identifier
 
     Returns:
-        str: The data directory path (e.g., 'data/leagues/APTACHICAGO')
+        str: The data directory path (e.g., 'data/leagues/APTA_CHICAGO')
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up three levels: scrapers -> etl -> data -> project_root
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-
-    league_data_dir = os.path.join(project_root, "data", "leagues", league_id)
-    os.makedirs(league_data_dir, exist_ok=True)
-
-    return league_data_dir
+    
+    import sys
+    sys.path.insert(0, project_root)
+    
+    from data.etl.utils.league_directory_manager import get_league_directory_path
+    return get_league_directory_path(league_id)
 
 
 # ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
