@@ -59,6 +59,215 @@ logger = logging.getLogger(__name__)
 # SMS Configuration
 ADMIN_PHONE = "17732138911"
 
+def get_random_headers() -> Dict[str, str]:
+    """
+    Get randomized, realistic browser headers for stealth requests.
+    
+    Returns:
+        Dict[str, str]: Dictionary of HTTP headers
+    """
+    # Pool of realistic User-Agent strings
+    user_agents = [
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+    ]
+    
+    # Pool of realistic Referer headers
+    referers = [
+        "https://www.google.com/",
+        "https://www.google.com/search?q=tennis+scores",
+        "https://www.google.com/search?q=platform+tennis",
+        "https://tenniscores.com/",
+        "https://tenniscores.com/home",
+        "https://www.bing.com/",
+        "https://www.yahoo.com/",
+        "https://duckduckgo.com/",
+        "",  # Sometimes no referer
+    ]
+    
+    # Pool of Accept-Language headers
+    accept_languages = [
+        "en-US,en;q=0.9",
+        "en-US,en;q=0.8,es;q=0.6",
+        "en-US,en;q=0.9,fr;q=0.8",
+        "en-GB,en-US;q=0.9,en;q=0.8",
+        "en-US,en;q=0.5",
+        "en,en-US;q=0.9",
+        "en-US",
+        "en-US,en;q=0.9,de;q=0.8"
+    ]
+    
+    # Pool of Accept headers
+    accept_headers = [
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
+    ]
+    
+    headers = {
+        "User-Agent": random.choice(user_agents),
+        "Accept": random.choice(accept_headers),
+        "Accept-Language": random.choice(accept_languages),
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0"
+    }
+    
+    # Randomly include referer (80% chance)
+    if random.random() < 0.8:
+        referer = random.choice(referers)
+        if referer:  # Only add if not empty
+            headers["Referer"] = referer
+    
+    return headers
+
+def validate_match_response(response: requests.Response) -> bool:
+    """
+    Validate if response contains expected Tenniscores match content.
+    
+    Args:
+        response: requests.Response object to validate
+        
+    Returns:
+        bool: True if response contains valid match content, False otherwise
+    """
+    try:
+        if response.status_code != 200:
+            logger.warning(f"❌ Invalid status code: {response.status_code}")
+            return False
+        
+        content = response.text.lower() if response.text else ""
+        
+        # Response must be substantial (not just error pages)
+        if len(content) < 500:
+            logger.warning(f"❌ Response too short: {len(content)} chars")
+            return False
+        
+        # Must contain key Tenniscores elements
+        required_patterns = [
+            "court",  # Court assignments
+            "match",  # Match data
+            "series"  # Series information
+        ]
+        
+        found_patterns = []
+        for pattern in required_patterns:
+            if pattern in content:
+                found_patterns.append(pattern)
+        
+        # Need at least 2 of 3 patterns for valid content
+        if len(found_patterns) >= 2:
+            logger.debug(f"✅ Valid content detected: {found_patterns}")
+            return True
+        
+        # Additional validation for specific Tenniscores pages
+        tenniscores_indicators = [
+            "tenniscores",
+            "match results",
+            "league standings", 
+            "playoff",
+            "schedule",
+            "team roster"
+        ]
+        
+        tenniscores_found = sum(1 for indicator in tenniscores_indicators if indicator in content)
+        
+        if tenniscores_found >= 2:
+            logger.debug(f"✅ Tenniscores content validated: {tenniscores_found} indicators")
+            return True
+        
+        logger.warning(f"❌ Content validation failed: only {len(found_patterns)} required patterns, {tenniscores_found} tenniscores indicators")
+        return False
+        
+    except Exception as e:
+        logger.error(f"❌ Error validating response: {e}")
+        return False
+
+def adaptive_throttle(recent_blocks: List[datetime], max_recent: int = 20) -> float:
+    """
+    Calculate adaptive throttling delay based on recent blocking patterns.
+    
+    Args:
+        recent_blocks: List of recent block timestamps
+        max_recent: Maximum number of recent requests to consider
+        
+    Returns:
+        float: Recommended delay in seconds (0 if no throttling needed)
+    """
+    try:
+        if not recent_blocks:
+            return 0.0
+        
+        # Only consider recent blocks (last 20 requests)
+        now = datetime.now()
+        recent_blocks = [block for block in recent_blocks[-max_recent:] 
+                        if (now - block).total_seconds() < 3600]  # Within last hour
+        
+        if not recent_blocks:
+            return 0.0
+        
+        # Calculate block rate
+        total_timespan = (now - recent_blocks[0]).total_seconds() if len(recent_blocks) > 1 else 60
+        block_rate = len(recent_blocks) / max(total_timespan / 60, 1)  # blocks per minute
+        
+        # Calculate percentage of recent requests that were blocked
+        block_percentage = (len(recent_blocks) / max_recent) * 100
+        
+        logger.info(f"📊 Adaptive throttling analysis: {len(recent_blocks)} blocks, {block_percentage:.1f}% rate")
+        
+        # Escalating throttling based on block rate
+        if block_percentage >= 50:  # 50%+ blocks = severe throttling
+            delay = random.uniform(45, 75)
+            logger.warning(f"🚨 SEVERE throttling: {delay:.1f}s delay (block rate: {block_percentage:.1f}%)")
+            return delay
+            
+        elif block_percentage >= 30:  # 30%+ blocks = heavy throttling
+            delay = random.uniform(20, 40)
+            logger.warning(f"⚠️ HEAVY throttling: {delay:.1f}s delay (block rate: {block_percentage:.1f}%)")
+            return delay
+            
+        elif block_percentage >= 20:  # 20%+ blocks = moderate throttling
+            delay = random.uniform(10, 20)
+            logger.warning(f"⏳ MODERATE throttling: {delay:.1f}s delay (block rate: {block_percentage:.1f}%)")
+            return delay
+            
+        elif block_percentage >= 10:  # 10%+ blocks = light throttling
+            delay = random.uniform(5, 10)
+            logger.info(f"⏳ Light throttling: {delay:.1f}s delay (block rate: {block_percentage:.1f}%)")
+            return delay
+        
+        return 0.0
+        
+    except Exception as e:
+        logger.error(f"❌ Error in adaptive throttling: {e}")
+        return 5.0  # Safe fallback
+
 def send_urgent_sms(message: str) -> bool:
     """Send urgent SMS alert using Twilio."""
     try:
@@ -204,7 +413,8 @@ class EnhancedProxyRotator:
                  ports: List[int] = None,
                  rotate_every: int = 30,
                  session_duration: int = 600,
-                 test_url: str = "https://httpbin.org/ip"):
+                 test_url: str = "https://httpbin.org/ip",
+                 usage_cap_per_proxy: int = 35):
         """
         Initialize enhanced proxy rotator.
         
@@ -213,11 +423,13 @@ class EnhancedProxyRotator:
             rotate_every: Rotate IP after this many requests
             session_duration: Session duration in seconds
             test_url: URL to test proxy health
+            usage_cap_per_proxy: Maximum requests per proxy per session (20-40)
         """
         self.ports = ports or self._load_default_ports()
         self.rotate_every = rotate_every
         self.session_duration = session_duration
         self.test_url = test_url
+        self.usage_cap_per_proxy = usage_cap_per_proxy
         
         # Initialize proxy info
         self.proxies: Dict[int, ProxyInfo] = {}
@@ -239,19 +451,29 @@ class EnhancedProxyRotator:
         self.last_sms_alert = None
         self.session_blocked_proxies = 0
         
+        # Adaptive throttling tracking
+        self.recent_blocks: List[datetime] = []
+        
+        # Usage cap tracking
+        self.proxy_usage: Dict[int, int] = {port: 0 for port in self.ports}
+        self.capped_proxies: Set[int] = set()
+        
         # Metrics
         self.session_metrics = {
             "total_requests": 0,
             "successful_requests": 0,
             "failed_requests": 0,
             "proxy_rotations": 0,
-            "dead_proxies_detected": 0
+            "dead_proxies_detected": 0,
+            "warmup_completed": False,
+            "usage_capped_proxies": 0
         }
         
         logger.info(f"🔄 Enhanced Proxy Rotator initialized")
         logger.info(f"📊 Total proxies: {len(self.ports)}")
         logger.info(f"🔄 Rotation: Every {rotate_every} requests")
         logger.info(f"⏱️ Session duration: {session_duration} seconds")
+        logger.info(f"🎯 Usage cap: {usage_cap_per_proxy} requests per proxy")
         
         # Test all proxies initially
         self._test_all_proxies()
@@ -331,10 +553,152 @@ class EnhancedProxyRotator:
         
         logger.info(f"✅ Proxy testing complete: {healthy_count}/{len(self.proxies)} healthy")
     
+    def run_proxy_warmup(self, test_tenniscores: bool = True) -> Dict[str, any]:
+        """
+        Run comprehensive proxy warmup to test all proxies before scraping session.
+        
+        Args:
+            test_tenniscores: Whether to test access to Tenniscores.com specifically
+            
+        Returns:
+            Dict: Warmup results and statistics
+        """
+        logger.info("🔥 Starting proxy warmup process...")
+        warmup_start = time.time()
+        
+        warmup_results = {
+            "total_proxies": len(self.ports),
+            "healthy_proxies": 0,
+            "slow_proxies": 0,
+            "dead_proxies": 0,
+            "tenniscores_accessible": 0,
+            "average_response_time": 0.0,
+            "warmup_duration": 0.0,
+            "detailed_results": []
+        }
+        
+        response_times = []
+        
+        for i, port in enumerate(self.ports):
+            proxy_info = self.proxies[port]
+            
+            logger.info(f"🧪 Warming up proxy {i+1}/{len(self.ports)}: Port {port}")
+            
+            proxy_result = {
+                "port": port,
+                "ip_test_success": False,
+                "ip_test_time": 0.0,
+                "tenniscores_test_success": False,
+                "tenniscores_test_time": 0.0,
+                "status": "unknown"
+            }
+            
+            # Test 1: Basic IP validation
+            try:
+                proxy_url = f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:{port}"
+                proxies = {"http": proxy_url, "https": proxy_url}
+                
+                start_time = time.time()
+                response = requests.get(
+                    "https://ip.decodo.com/json",
+                    proxies=proxies,
+                    timeout=15,
+                    headers=get_random_headers()
+                )
+                
+                ip_test_time = time.time() - start_time
+                proxy_result["ip_test_time"] = ip_test_time
+                
+                if response.status_code == 200:
+                    proxy_result["ip_test_success"] = True
+                    response_times.append(ip_test_time)
+                    
+                    # Check if response time is reasonable
+                    if ip_test_time > 10:
+                        warmup_results["slow_proxies"] += 1
+                        proxy_info.status = ProxyStatus.TESTING
+                        logger.warning(f"⚠️ Proxy {port} is slow: {ip_test_time:.2f}s")
+                    else:
+                        warmup_results["healthy_proxies"] += 1
+                        proxy_info.status = ProxyStatus.ACTIVE
+                        proxy_info.success_count += 1
+                        proxy_info.consecutive_failures = 0
+                        
+                else:
+                    raise Exception(f"Bad status code: {response.status_code}")
+                    
+            except Exception as e:
+                logger.warning(f"❌ Proxy {port} failed IP test: {e}")
+                proxy_info.failure_count += 1
+                proxy_info.consecutive_failures += 1
+                proxy_info.status = ProxyStatus.DEAD
+                self.dead_proxies.add(port)
+                warmup_results["dead_proxies"] += 1
+                proxy_result["status"] = "dead"
+                
+            # Test 2: Tenniscores accessibility (if proxy passed IP test)
+            if test_tenniscores and proxy_result["ip_test_success"]:
+                try:
+                    start_time = time.time()
+                    response = requests.get(
+                        "https://tenniscores.com/",
+                        proxies=proxies,
+                        timeout=15,
+                        headers=get_random_headers()
+                    )
+                    
+                    tenniscores_test_time = time.time() - start_time
+                    proxy_result["tenniscores_test_time"] = tenniscores_test_time
+                    
+                    if response.status_code == 200 and validate_match_response(response):
+                        proxy_result["tenniscores_test_success"] = True
+                        warmup_results["tenniscores_accessible"] += 1
+                        proxy_result["status"] = "excellent"
+                        logger.info(f"✅ Proxy {port} - Tenniscores accessible: {tenniscores_test_time:.2f}s")
+                    else:
+                        logger.warning(f"⚠️ Proxy {port} - Tenniscores blocked or invalid")
+                        proxy_result["status"] = "limited"
+                        
+                except Exception as e:
+                    logger.warning(f"❌ Proxy {port} failed Tenniscores test: {e}")
+                    proxy_result["status"] = "limited"
+            
+            warmup_results["detailed_results"].append(proxy_result)
+            
+            # Update proxy info
+            proxy_info.last_tested = datetime.now()
+            proxy_info.total_requests += 1
+            
+            # Brief delay between tests to avoid overwhelming
+            time.sleep(random.uniform(0.5, 1.5))
+        
+        # Calculate statistics
+        warmup_duration = time.time() - warmup_start
+        warmup_results["warmup_duration"] = warmup_duration
+        
+        if response_times:
+            warmup_results["average_response_time"] = sum(response_times) / len(response_times)
+        
+        # Update session metrics
+        self.session_metrics["warmup_completed"] = True
+        
+        # Log summary
+        logger.info(f"🔥 Proxy warmup completed in {warmup_duration:.1f}s")
+        logger.info(f"✅ Results: {warmup_results['healthy_proxies']} healthy, "
+                   f"{warmup_results['slow_proxies']} slow, "
+                   f"{warmup_results['dead_proxies']} dead")
+        logger.info(f"🎯 Tenniscores accessible: {warmup_results['tenniscores_accessible']}/{len(self.ports)}")
+        logger.info(f"⚡ Average response time: {warmup_results['average_response_time']:.2f}s")
+        
+        return warmup_results
+    
     def _get_healthy_proxies(self) -> List[int]:
-        """Get list of healthy proxy ports."""
+        """Get list of healthy proxy ports that haven't reached usage caps."""
         return [port for port, info in self.proxies.items() 
-                if info.is_healthy and port not in self.dead_proxies]
+                if info.is_healthy 
+                and port not in self.dead_proxies 
+                and port not in self.capped_proxies
+                and self.proxy_usage.get(port, 0) < self.usage_cap_per_proxy]
     
     def _should_rotate(self) -> bool:
         """Determine if we should rotate to a new proxy."""
@@ -345,6 +709,13 @@ class EnhancedProxyRotator:
         # Rotate if current proxy is unhealthy
         current_info = self.proxies.get(self.current_port)
         if current_info and not current_info.is_healthy:
+            return True
+        
+        # Rotate if current proxy has reached usage cap
+        if self.proxy_usage.get(self.current_port, 0) >= self.usage_cap_per_proxy:
+            logger.info(f"🎯 Proxy {self.current_port} reached usage cap ({self.usage_cap_per_proxy} requests)")
+            self.capped_proxies.add(self.current_port)
+            self.session_metrics["usage_capped_proxies"] += 1
             return True
         
         # Rotate if session is too old
@@ -395,6 +766,9 @@ class EnhancedProxyRotator:
         self.total_requests += 1
         self.session_metrics["total_requests"] += 1
         
+        # Update proxy usage count
+        self.proxy_usage[self.current_port] = self.proxy_usage.get(self.current_port, 0) + 1
+        
         # Update current proxy info
         if self.current_port in self.proxies:
             self.proxies[self.current_port].last_used = datetime.now()
@@ -438,6 +812,14 @@ class EnhancedProxyRotator:
         """Report blocked response for proxy."""
         port = port or self.current_port
         if port in self.proxies:
+            # Track block timestamp for adaptive throttling
+            block_time = datetime.now()
+            self.recent_blocks.append(block_time)
+            
+            # Keep only recent blocks (last 50 for efficiency)
+            if len(self.recent_blocks) > 50:
+                self.recent_blocks = self.recent_blocks[-50:]
+            
             # Update proxy-specific tracking
             if port not in self.proxy_health:
                 self.proxy_health[port] = {"success": 0, "blocked": 0, "failures": 0}
@@ -460,6 +842,10 @@ class EnhancedProxyRotator:
             self._check_sms_alert()
             
             logger.warning(f"🚫 Proxy {port} blocked (consecutive blocks: {self.consecutive_blocks})")
+    
+    def get_adaptive_throttle_delay(self) -> float:
+        """Get recommended throttling delay based on recent blocks."""
+        return adaptive_throttle(self.recent_blocks)
     
     def _check_sms_alert(self):
         """Check if we need to send urgent SMS alert."""
@@ -613,10 +999,10 @@ def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, **kwargs
             proxy_url = rotator.get_proxy()
             proxies = {"http": proxy_url, "https": proxy_url}
             
-            # Set default headers if not provided
+            # Use randomized headers for stealth
             headers = kwargs.get('headers', {})
-            if 'User-Agent' not in headers:
-                headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            if not headers or 'User-Agent' not in headers:
+                headers = get_random_headers()
             kwargs['headers'] = headers
             
             logger.debug(f"🌐 Attempting request to {url} via proxy {current_proxy_port}")
@@ -639,12 +1025,35 @@ def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, **kwargs
                 rotator._rotate_proxy()
                 
                 if attempt < max_retries - 1:
-                    backoff_delay = min(2 ** attempt, 10)  # Cap at 10 seconds
-                    logger.info(f"⏳ Waiting {backoff_delay}s before retry...")
-                    time.sleep(backoff_delay)
+                    # Apply adaptive throttling
+                    adaptive_delay = rotator.get_adaptive_throttle_delay()
+                    base_backoff = min(2 ** attempt, 10)  # Cap at 10 seconds
+                    total_delay = max(base_backoff, adaptive_delay)
+                    
+                    logger.info(f"⏳ Adaptive throttling: {total_delay:.1f}s delay (base: {base_backoff:.1f}s, adaptive: {adaptive_delay:.1f}s)")
+                    time.sleep(total_delay)
                     continue
                 else:
                     raise Exception(f"All {max_retries} proxy attempts blocked for {url}")
+            
+            # Additional content validation for Tenniscores pages
+            if "tenniscores.com" in url.lower() and not validate_match_response(response):
+                logger.warning(f"❌ Content validation failed for {url} via proxy {current_proxy_port}")
+                rotator.report_blocked(current_proxy_port)  # Treat invalid content as blocking
+                skipped_proxies.add(current_proxy_port)
+                rotator._rotate_proxy()
+                
+                if attempt < max_retries - 1:
+                    # Apply adaptive throttling for content validation failures too
+                    adaptive_delay = rotator.get_adaptive_throttle_delay()
+                    base_backoff = min(2 ** attempt, 10)
+                    total_delay = max(base_backoff, adaptive_delay)
+                    
+                    logger.info(f"⏳ Content validation failed - adaptive delay: {total_delay:.1f}s")
+                    time.sleep(total_delay)
+                    continue
+                else:
+                    raise Exception(f"All {max_retries} attempts failed content validation for {url}")
             
             # Success!
             rotator.report_success(current_proxy_port)
