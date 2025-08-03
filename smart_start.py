@@ -42,7 +42,7 @@ def detect_execution_context():
     
     # Multiple detection methods for cron job identification
     is_cron_job = (
-        # Explicit cron job mode
+        # Explicit cron job mode (most reliable)
         context['cron_job_mode'] == 'true' or
         
         # Flask app explicitly disabled
@@ -50,13 +50,10 @@ def detect_execution_context():
         
         # Command line arguments contain cron-related terms
         any('cron' in str(arg).lower() for arg in sys.argv) or
-        any('pipeline' in str(arg).lower() for arg in sys.argv) or
+        any('pipeline' in str(arg).lower() for arg in sys.argv)
         
-        # No PORT environment variable (web deployments typically have this)
-        not context['port'] or
-        
-        # Service name indicates cron job (Railway sometimes sets this)
-        (context['railway_service_name'] and 'cron' in context['railway_service_name'].lower())
+        # REMOVED: PORT check and service name check as they cause false positives
+        # Web deployments should start Flask unless explicitly disabled above
     )
     
     return is_cron_job, context
