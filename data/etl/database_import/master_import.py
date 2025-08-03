@@ -84,25 +84,22 @@ def parse_metrics_from_output(output: str) -> dict:
 class MasterImporter:
     """Master importer that orchestrates all ETL processes"""
     
-    # Legacy hardcoded leagues for backward compatibility
-    LEGACY_LEAGUES = ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]
+    # Legacy hardcoded leagues for backward compatibility (active leagues only)
+    LEGACY_LEAGUES = ["APTA_CHICAGO", "NSTF"]
     
-    # League name mapping for case-insensitive input
+    # League name mapping for case-insensitive input (active leagues only)
     LEAGUE_MAPPING = {
         "APTACHICAGO": "aptachicago",
         "aptachicago": "aptachicago",
         "APTA_CHICAGO": "aptachicago",
         "NSTF": "nstf",
-        "nstf": "nstf",
-        "CNSWPL": "cnswpl",
-        "cnswpl": "cnswpl",
-        "CITA": "cita",
-        "cita": "cita"
+        "nstf": "nstf"
     }
     
-    def __init__(self, environment="staging", league=None):
+    def __init__(self, environment="staging", league=None, no_sms=False):
         self.environment = environment
         self.league = league
+        self.no_sms = no_sms  # Flag to disable SMS notifications
         self.start_time = datetime.now()
         self.results = {}
         self.failures = []
@@ -125,10 +122,16 @@ class MasterImporter:
                 logger.info("Falling back to legacy hardcoded leagues")
                 return self.LEGACY_LEAGUES
             
-            # Discover league directories (excluding 'all' directory)
+            # Inactive leagues to exclude (empty data or not ready)
+            inactive_leagues = {"CITA", "CNSWPL"}
+            
+            # Discover league directories (excluding 'all' directory and inactive leagues)
             available_leagues = []
             for item in leagues_dir.iterdir():
-                if item.is_dir() and item.name != "all" and not item.name.startswith("."):
+                if (item.is_dir() and 
+                    item.name != "all" and 
+                    not item.name.startswith(".") and 
+                    item.name not in inactive_leagues):
                     available_leagues.append(item.name)
             
             if not available_leagues:
@@ -138,6 +141,8 @@ class MasterImporter:
             # Sort for consistent ordering
             available_leagues.sort()
             logger.info(f"Discovered {len(available_leagues)} leagues: {', '.join(available_leagues)}")
+            if inactive_leagues:
+                logger.info(f"Excluded inactive leagues: {', '.join(sorted(inactive_leagues))}")
             return available_leagues
             
         except Exception as e:
@@ -171,12 +176,10 @@ class MasterImporter:
                 "description": f"Import series statistics for {normalized_league}"
             })
         else:
-            # All leagues mode - map directory names to lowercase
+            # All leagues mode - map directory names to lowercase (active leagues only)
             league_mapping = {
                 "APTA_CHICAGO": "aptachicago",
                 "NSTF": "nstf",
-                "CITA": "cita",
-                "CNSWPL": "cnswpl",
             }
             
             for league in self.available_leagues:
@@ -208,6 +211,11 @@ class MasterImporter:
     
     def send_notification(self, message, is_failure=False, step_name=None, error_details=None, duration=None, metrics=None):
         """Send SMS notification to admin with enhanced error details"""
+        # Skip sending SMS if disabled (when called from cronjob)
+        if self.no_sms:
+            logger.info(f"📱 SMS notification skipped (no-sms mode): {message[:50]}...")
+            return
+            
         try:
             current_time = datetime.now().strftime('%m-%d-%y @ %I:%M:%S %p')
             
@@ -745,8 +753,13 @@ def main():
     )
     parser.add_argument(
         "--league",
-        choices=["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA", "aptachicago", "nstf", "cnswpl", "cita"],
+        choices=["APTA_CHICAGO", "NSTF", "aptachicago", "nstf"],
         help="Specific league to import (if not specified, imports all leagues)"
+    )
+    parser.add_argument(
+        "--no-sms",
+        action="store_true",
+        help="Disable SMS notifications for individual steps (used when called from cronjob)"
     )
     
     args = parser.parse_args()
@@ -756,7 +769,7 @@ def main():
     
     try:
         # Create and run master importer
-        importer = MasterImporter(environment=args.environment, league=league)
+        importer = MasterImporter(environment=args.environment, league=league, no_sms=args.no_sms)
         importer.run_all_imports()
         
         # Exit with appropriate code
