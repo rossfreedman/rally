@@ -10,14 +10,14 @@ restartPolicyMaxRetries = 5
 # Production ETL Cron Job Services - Direct entry_cron.py execution  
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "cd /app && python entry_cron.py"
-# Absolute paths to ensure Railway uses correct script
+command = "cd /app && FIX_CONSTRAINTS=false python entry_cron.py"
+# Explicitly disable constraint fix mode to run full ETL pipeline
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC  
-command = "cd /app && python entry_cron.py"
-# Absolute paths to ensure Railway uses correct script
+command = "cd /app && FIX_CONSTRAINTS=false python entry_cron.py"
+# Explicitly disable constraint fix mode to run full ETL pipeline
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
