@@ -8,5 +8,5 @@ cmds = [
 ]
 
 [start]
-# Smart start command that detects cron jobs vs web deployment  
-cmd = "python smart_start.py" 
+# Explicitly start the main Rally server
+cmd = "python server.py" 
