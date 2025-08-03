@@ -30,5 +30,5 @@ ENV PYTHONUNBUFFERED=1
 # Expose port
 EXPOSE 8080
 
-# Use smart start command
-CMD ["python", "smart_start.py"]
+# Start the main Rally server directly  
+CMD ["python", "server.py"]
