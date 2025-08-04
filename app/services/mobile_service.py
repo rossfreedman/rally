@@ -617,8 +617,7 @@ def get_player_analysis(user):
             """
             query_params = [player_id, player_id, player_id, player_id]
             print(f"[DEBUG] Player analysis (no league): showing ALL matches for player_id={player_id}")
-            
-        player_matches = execute_query(history_query, query_params)
+            player_matches = execute_query(history_query, query_params)
 
         # Calculate accurate match statistics
         total_matches = len(player_matches) if player_matches else 0
