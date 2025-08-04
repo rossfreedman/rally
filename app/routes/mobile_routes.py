@@ -521,12 +521,39 @@ def serve_mobile_player_detail(player_id):
 
     # Create player user dict with team context for mobile service
     if actual_player_id:
+        # CRITICAL FIX: Get target player's actual league_id instead of viewing user's league_id
+        # This ensures the analysis shows matches from the correct league for the target player
+        player_league_id = viewing_user.get("league_id")  # Default fallback
+        
+        # Try to get the target player's actual league from their player record
+        if 'player_record' in locals() and player_record:
+            # Use league_id from the player record we already found
+            target_league_record = execute_query_one(
+                "SELECT league_id FROM leagues WHERE id = %s", [player_record.get("league_id")]
+            )
+            if target_league_record:
+                player_league_id = target_league_record["league_id"]
+                print(f"[DEBUG] Using target player's league: {player_league_id}")
+        elif actual_player_id:
+            # Fallback: Look up any player record to get their league
+            fallback_player_query = """
+                SELECT l.league_id 
+                FROM players p 
+                JOIN leagues l ON p.league_id = l.id 
+                WHERE p.tenniscores_player_id = %s 
+                LIMIT 1
+            """
+            fallback_record = execute_query_one(fallback_player_query, [actual_player_id])
+            if fallback_record:
+                player_league_id = fallback_record["league_id"]
+                print(f"[DEBUG] Using fallback player league: {player_league_id}")
+        
         # Create a user dict with the specific player ID and team context
         player_user_dict = {
             "first_name": player_name.split()[0] if player_name else "",
             "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
             "tenniscores_player_id": actual_player_id,
-            "league_id": viewing_user.get("league_id"),
+            "league_id": player_league_id,  # Use target player's league, not viewing user's
             "email": viewing_user.get("email", "")
         }
         
