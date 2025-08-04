@@ -596,7 +596,9 @@ def get_player_analysis(user):
             """
             query_params = [player_id, player_id, player_id, player_id, league_id_int]
             print(f"[DEBUG] Player analysis showing ALL matches: player_id={player_id}, league_id={league_id_int}")
+            print(f"[DEBUG] Query params: {query_params}")
             player_matches = execute_query(history_query, query_params)
+            print(f"[DEBUG] Query returned {len(player_matches) if player_matches else 0} matches")
         else:
             # No league context - show all matches for this player across all leagues
             history_query = """
@@ -822,6 +824,7 @@ def get_player_analysis(user):
             "court_analysis": court_analysis,
             "career_stats": career_stats,
             "player_history": player_history,
+            "match_history": player_matches or [],  # CRITICAL FIX: Include match history in result
             "videos": {"match": [], "practice": []},
             "trends": {},
             "career_pti_change": "N/A",
