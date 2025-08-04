@@ -1,0 +1,200 @@
+{
+  "timestamp": "2025-08-04T16:55:05.398704",
+  "comparison_type": "local_vs_staging",
+  "schema_comparison": {
+    "tables_only_in_local": [
+      "user_contexts",
+      "practice_times",
+      "test_etl_runs",
+      "practice_times_corrupted_backup",
+      "enhanced_league_contexts_backup"
+    ],
+    "tables_only_in_railway_staging": [],
+    "column_differences": {
+      "lineup_escrow": {
+        "only_in_local": [
+          "recipient_team_id",
+          "initiator_team_id"
+        ],
+        "only_in_railway_staging": [],
+        "type_differences": []
+      },
+      "user_player_associations": {
+        "only_in_local": [],
+        "only_in_railway_staging": [
+          "is_primary"
+        ],
+        "type_differences": []
+      },
+      "match_scores": {
+        "only_in_local": [
+          "match_id"
+        ],
+        "only_in_railway_staging": [],
+        "type_differences": []
+      },
+      "users": {
+        "only_in_local": [
+          "notifications_hidden"
+        ],
+        "only_in_railway_staging": [
+          "team_id"
+        ],
+        "type_differences": []
+      }
+    },
+    "constraint_differences": {},
+    "summary": {
+      "total_tables_local": 41,
+      "total_tables_railway_staging": 36,
+      "common_tables": 36,
+      "tables_with_differences": 4,
+      "schema_identical": false
+    }
+  },
+  "data_comparison": {
+    "row_count_differences": {
+      "activity_log": {
+        "local_count": 62,
+        "railway_staging_count": 53,
+        "difference": 9
+      },
+      "user_activity_logs": {
+        "local_count": 9161,
+        "railway_staging_count": 3423,
+        "difference": 5738
+      },
+      "group_members": {
+        "local_count": 4,
+        "railway_staging_count": 10,
+        "difference": -6
+      },
+      "system_settings": {
+        "local_count": 5,
+        "railway_staging_count": 4,
+        "difference": 1
+      },
+      "weather_cache": {
+        "local_count": 16,
+        "railway_staging_count": 8,
+        "difference": 8
+      },
+      "lineup_escrow_views": {
+        "local_count": 37,
+        "railway_staging_count": 0,
+        "difference": 37
+      },
+      "schedule": {
+        "local_count": 7375,
+        "railway_staging_count": 7387,
+        "difference": -12
+      },
+      "polls": {
+        "local_count": 2,
+        "railway_staging_count": 6,
+        "difference": -4
+      },
+      "pickup_games": {
+        "local_count": 10,
+        "railway_staging_count": 7,
+        "difference": 3
+      },
+      "saved_lineups": {
+        "local_count": 1,
+        "railway_staging_count": 0,
+        "difference": 1
+      },
+      "lineup_escrow": {
+        "local_count": 22,
+        "railway_staging_count": 0,
+        "difference": 22
+      },
+      "user_player_associations": {
+        "local_count": 18,
+        "railway_staging_count": 45,
+        "difference": -27
+      },
+      "captain_messages": {
+        "local_count": 13,
+        "railway_staging_count": 5,
+        "difference": 8
+      },
+      "players": {
+        "local_count": 10329,
+        "railway_staging_count": 10298,
+        "difference": 31
+      },
+      "pickup_game_participants": {
+        "local_count": 6,
+        "railway_staging_count": 14,
+        "difference": -8
+      },
+      "poll_responses": {
+        "local_count": 1,
+        "railway_staging_count": 0,
+        "difference": 1
+      },
+      "groups": {
+        "local_count": 3,
+        "railway_staging_count": 5,
+        "difference": -2
+      },
+      "poll_choices": {
+        "local_count": 4,
+        "railway_staging_count": 12,
+        "difference": -8
+      },
+      "match_scores": {
+        "local_count": 18074,
+        "railway_staging_count": 44937,
+        "difference": -26863
+      },
+      "user_instructions": {
+        "local_count": 2,
+        "railway_staging_count": 0,
+        "difference": 2
+      },
+      "users": {
+        "local_count": 14,
+        "railway_staging_count": 31,
+        "difference": -17
+      },
+      "user_session_refresh_signals": {
+        "local_count": 15,
+        "railway_staging_count": 31,
+        "difference": -16
+      },
+      "player_availability": {
+        "local_count": 21,
+        "railway_staging_count": 13,
+        "difference": 8
+      },
+      "player_season_tracking": {
+        "local_count": 23,
+        "railway_staging_count": 26,
+        "difference": -3
+      }
+    },
+    "tables_only_in_local": [
+      "user_contexts",
+      "practice_times",
+      "test_etl_runs",
+      "practice_times_corrupted_backup",
+      "enhanced_league_contexts_backup"
+    ],
+    "tables_only_in_railway_staging": [],
+    "summary": {
+      "total_tables_local": 41,
+      "total_tables_railway_staging": 36,
+      "common_tables": 36,
+      "total_rows_local": 3911739,
+      "total_rows_railway_staging": 462705,
+      "tables_with_count_differences": 24,
+      "data_identical": false
+    }
+  },
+  "databases": {
+    "local": "localhost:5432/rally_test",
+    "railway_staging": "switchback.proxy.rlwy.net:28473/railway"
+  }
+}

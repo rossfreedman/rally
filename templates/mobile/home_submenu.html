@@ -405,7 +405,7 @@
   </div>
 
   <!-- Notifications Container (Hidden by default) -->
-  <div id="notifications-container" class="hidden mb-24">
+  <div id="notifications-container" class="hidden mb-28">
     <!-- Notifications will be loaded here dynamically as notification cards -->
     <div id="notifications-content" class="space-y-4">
       <!-- Notifications will be dynamically added here -->
@@ -430,7 +430,7 @@
   </div>
 
   <!-- Main Categories Grid -->
-  <div class="space-y-4">
+  <div class="space-y-4 mt-6">
     <!-- Act Category -->
     <div class="category-section">
       <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" onclick="toggleSubmenu('act-submenu')">
@@ -1353,31 +1353,44 @@ function toggleNotifications() {
         if (container.classList.contains('hidden')) {
             // Show notifications
             container.classList.remove('hidden');
-            // Replace button with "Hide Notifications" button
+            
+            // Update button state and content
             button.classList.add('active');
-            button.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <div class="font-semibold text-lg">Hide Notifications</div>
-            `;
-            // Re-add onclick handler after innerHTML change
-            button.onclick = toggleNotifications;
+            button.setAttribute('data-state', 'hide');
+            
+            // Update SVG
+            const svg = button.querySelector('svg');
+            if (svg) {
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+            }
+            
+            // Update text
+            const textDiv = button.querySelector('div');
+            if (textDiv) {
+                textDiv.textContent = 'Hide Notifications';
+            }
+            
             // Initialize and load notifications
             initializeHomePageNotifications();
         } else {
             // Hide notifications
             container.classList.add('hidden');
-            // Restore original "Notifications" button
+            
+            // Update button state and content
             button.classList.remove('active');
-            button.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <div class="font-semibold text-lg">Notifications</div>
-            `;
-            // Re-add onclick handler after innerHTML change
-            button.onclick = toggleNotifications;
+            button.setAttribute('data-state', 'show');
+            
+            // Update SVG
+            const svg = button.querySelector('svg');
+            if (svg) {
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
+            }
+            
+            // Update text
+            const textDiv = button.querySelector('div');
+            if (textDiv) {
+                textDiv.textContent = 'Notifications';
+            }
         }
     }
 }
@@ -1389,16 +1402,22 @@ function hideNotifications() {
     
     if (container && button && !container.classList.contains('hidden')) {
         container.classList.add('hidden');
-        // Restore original "Notifications" button
+        
+        // Update button state and content
         button.classList.remove('active');
-        button.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <div class="font-semibold text-lg">Notifications</div>
-        `;
-        // Re-add onclick handler after innerHTML change
-        button.onclick = toggleNotifications;
+        button.setAttribute('data-state', 'show');
+        
+        // Update SVG
+        const svg = button.querySelector('svg');
+        if (svg) {
+            svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
+        }
+        
+        // Update text
+        const textDiv = button.querySelector('div');
+        if (textDiv) {
+            textDiv.textContent = 'Notifications';
+        }
     }
 }
 

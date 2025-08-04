@@ -444,7 +444,7 @@
   </div>
 
   <!-- Notifications Container (Hidden by default) -->
-  <div id="notifications-container" class="hidden mb-12">
+  <div id="notifications-container" class="hidden mb-16">
     <!-- Notifications will be loaded here dynamically as notification cards -->
     <div id="notifications-content" class="space-y-4">
       <!-- Notifications will be dynamically added here -->
@@ -469,7 +469,7 @@
   </div>
 
   <!-- Act Section -->
-  <div class="icon-section mb-8">
+  <div class="icon-section mb-8 mt-6">
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
       <div class="section-header text-xl font-bold px-4 text-center">
@@ -1366,16 +1366,22 @@ function toggleNotifications() {
             console.log('Hidden class removed. Container classes now:', container.className);
             console.log('Container display style:', window.getComputedStyle(container).display);
             
-            // Replace button with "Hide Notifications" button
+            // Update button state and content
             button.classList.add('active');
-            button.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                <div class="font-semibold text-lg">Hide Notifications</div>
-            `;
-            // Re-add onclick handler after innerHTML change
-            button.onclick = toggleNotifications;
+            button.setAttribute('data-state', 'hide');
+            
+            // Update SVG
+            const svg = button.querySelector('svg');
+            if (svg) {
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+            }
+            
+            // Update text
+            const textDiv = button.querySelector('div');
+            if (textDiv) {
+                textDiv.textContent = 'Hide Notifications';
+            }
+            
             // Initialize and load notifications
             console.log('Calling initializeHomePageNotifications...');
             initializeHomePageNotifications();
@@ -1383,16 +1389,22 @@ function toggleNotifications() {
             console.log('Hiding notifications...');
             // Hide notifications
             container.classList.add('hidden');
-            // Restore original "Notifications" button
+            
+            // Update button state and content
             button.classList.remove('active');
-            button.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <div class="font-semibold text-lg">Notifications</div>
-            `;
-            // Re-add onclick handler after innerHTML change
-            button.onclick = toggleNotifications;
+            button.setAttribute('data-state', 'show');
+            
+            // Update SVG
+            const svg = button.querySelector('svg');
+            if (svg) {
+                svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
+            }
+            
+            // Update text
+            const textDiv = button.querySelector('div');
+            if (textDiv) {
+                textDiv.textContent = 'Notifications';
+            }
         }
     } else {
         console.error('Container or button not found');
