@@ -1,0 +1,864 @@
+{
+  "timestamp": "2025-08-04T15:53:50.403647",
+  "comparison_type": "multi_environment",
+  "environments": {
+    "local": {
+      "name": "Local",
+      "description": "Local development database",
+      "connected": true
+    },
+    "staging": {
+      "name": "Staging",
+      "description": "Railway staging database",
+      "connected": true
+    },
+    "production": {
+      "name": "Production",
+      "description": "Railway production database",
+      "connected": true
+    }
+  },
+  "schema_comparison": {
+    "tables_by_environment": {
+      "test_etl_runs": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "pickup_games": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_season_tracking": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "alembic_version": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "clubs": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_instructions": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "lineup_escrow": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "activity_log": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "pickup_game_participants": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "system_settings": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_contexts": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "user_session_refresh_signals": {
+        "local": true,
+        "staging": true,
+        "production": false
+      },
+      "club_leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "teams": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "schedule": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_player_associations": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_availability": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "weather_cache": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "poll_responses": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "team_mapping_backup": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "lineup_escrow_views": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "practice_times": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "series_leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "practice_times_corrupted_backup": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "polls": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "match_scores": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "pros": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "groups": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "captain_messages": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "players": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "series_stats": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "series": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "group_members": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "poll_choices": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "enhanced_league_contexts_backup": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "pro_lessons": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "users": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "saved_lineups": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_history": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_activity_logs": {
+        "local": true,
+        "staging": true,
+        "production": true
+      }
+    },
+    "column_differences": {
+      "lineup_escrow": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "column_presence": {
+          "local": "{'expires_at', 'message_body', 'id', 'initiator_lineup', 'recipient_contact', 'escrow_token', 'subject', 'contact_type', 'recipient_lineup', 'initiator_notified', 'initiator_team_id', 'updated_at', 'initiator_user_id', 'recipient_submitted_at', 'recipient_team_id', 'initiator_submitted_at', 'created_at', 'status', 'recipient_name', 'recipient_notified'}",
+          "staging": "{'contact_type', 'initiator_submitted_at', 'recipient_lineup', 'initiator_notified', 'expires_at', 'created_at', 'status', 'message_body', 'recipient_name', 'recipient_contact', 'initiator_user_id', 'escrow_token', 'id', 'subject', 'recipient_submitted_at', 'initiator_lineup', 'recipient_notified', 'updated_at'}",
+          "production": "{'contact_type', 'initiator_submitted_at', 'recipient_lineup', 'initiator_notified', 'expires_at', 'created_at', 'status', 'message_body', 'recipient_name', 'recipient_contact', 'initiator_user_id', 'escrow_token', 'id', 'subject', 'recipient_submitted_at', 'initiator_lineup', 'recipient_notified', 'updated_at'}"
+        },
+        "missing_columns": {
+          "staging": [
+            "recipient_team_id",
+            "initiator_team_id"
+          ],
+          "production": [
+            "recipient_team_id",
+            "initiator_team_id"
+          ]
+        },
+        "type_differences": {}
+      },
+      "user_player_associations": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "column_presence": {
+          "local": "{'user_id', 'tenniscores_player_id', 'created_at'}",
+          "staging": "{'user_id', 'tenniscores_player_id', 'created_at', 'is_primary'}",
+          "production": "{'user_id', 'tenniscores_player_id', 'created_at', 'is_primary'}"
+        },
+        "missing_columns": {
+          "local": [
+            "is_primary"
+          ]
+        },
+        "type_differences": {}
+      },
+      "match_scores": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "column_presence": {
+          "local": "{'league_id', 'home_player_1_id', 'winner', 'scores', 'match_date', 'created_at', 'away_player_1_id', 'away_team', 'away_team_id', 'away_player_2_id', 'match_id', 'tenniscores_match_id', 'id', 'home_player_2_id', 'home_team_id', 'home_team'}",
+          "staging": "{'league_id', 'home_player_1_id', 'winner', 'scores', 'match_date', 'created_at', 'away_player_1_id', 'away_team', 'away_team_id', 'away_player_2_id', 'tenniscores_match_id', 'id', 'home_player_2_id', 'home_team_id', 'home_team'}",
+          "production": "{'league_id', 'home_player_1_id', 'winner', 'scores', 'match_date', 'created_at', 'away_player_1_id', 'away_team', 'away_team_id', 'away_player_2_id', 'id', 'home_player_2_id', 'home_team_id', 'home_team'}"
+        },
+        "missing_columns": {
+          "staging": [
+            "match_id"
+          ],
+          "production": [
+            "tenniscores_match_id",
+            "match_id"
+          ]
+        },
+        "type_differences": {}
+      },
+      "users": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "column_presence": {
+          "local": "{'league_id', 'league_context', 'last_name', 'is_admin', 'last_login', 'ad_deuce_preference', 'temporary_password_set_at', 'club_automation_password', 'created_at', 'has_temporary_password', 'phone_number', 'email', 'password_hash', 'first_name', 'id', 'tenniscores_player_id', 'dominant_hand', 'notifications_hidden'}",
+          "staging": "{'league_id', 'league_context', 'last_name', 'is_admin', 'last_login', 'ad_deuce_preference', 'temporary_password_set_at', 'club_automation_password', 'created_at', 'has_temporary_password', 'phone_number', 'email', 'password_hash', 'team_id', 'first_name', 'id', 'tenniscores_player_id', 'dominant_hand'}",
+          "production": "{'league_id', 'league_context', 'last_name', 'is_admin', 'last_login', 'ad_deuce_preference', 'temporary_password_set_at', 'club_automation_password', 'created_at', 'has_temporary_password', 'phone_number', 'email', 'password_hash', 'first_name', 'id', 'tenniscores_player_id', 'dominant_hand'}"
+        },
+        "missing_columns": {
+          "local": [
+            "team_id"
+          ],
+          "staging": [
+            "notifications_hidden"
+          ],
+          "production": [
+            "team_id",
+            "notifications_hidden"
+          ]
+        },
+        "type_differences": {}
+      }
+    },
+    "constraint_differences": {},
+    "index_differences": {},
+    "summary": {
+      "environments_compared": [
+        "local",
+        "staging",
+        "production"
+      ],
+      "total_tables_by_environment": {
+        "local": 41,
+        "staging": 36,
+        "production": 35
+      },
+      "tables_with_differences": 4,
+      "schema_identical": false
+    }
+  },
+  "data_comparison": {
+    "row_count_differences": {
+      "pickup_games": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 10,
+          "staging": 7,
+          "production": 6
+        }
+      },
+      "player_season_tracking": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 23,
+          "staging": 26,
+          "production": 25
+        }
+      },
+      "user_instructions": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 2,
+          "staging": 0,
+          "production": 0
+        }
+      },
+      "lineup_escrow": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 22,
+          "staging": 0,
+          "production": 0
+        }
+      },
+      "activity_log": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 62,
+          "staging": 53,
+          "production": 50
+        }
+      },
+      "pickup_game_participants": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 6,
+          "staging": 14,
+          "production": 16
+        }
+      },
+      "system_settings": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 5,
+          "staging": 4,
+          "production": 4
+        }
+      },
+      "user_session_refresh_signals": {
+        "environments": [
+          "local",
+          "staging"
+        ],
+        "counts": {
+          "local": 15,
+          "staging": 31
+        }
+      },
+      "schedule": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 7375,
+          "staging": 7387,
+          "production": 7368
+        }
+      },
+      "user_player_associations": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 18,
+          "staging": 45,
+          "production": 53
+        }
+      },
+      "player_availability": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 21,
+          "staging": 13,
+          "production": 12
+        }
+      },
+      "weather_cache": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 16,
+          "staging": 8,
+          "production": 8
+        }
+      },
+      "poll_responses": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 1,
+          "staging": 0,
+          "production": 3
+        }
+      },
+      "lineup_escrow_views": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 37,
+          "staging": 0,
+          "production": 0
+        }
+      },
+      "polls": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 2,
+          "staging": 6,
+          "production": 5
+        }
+      },
+      "match_scores": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 18074,
+          "staging": 44937,
+          "production": 26882
+        }
+      },
+      "groups": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 3,
+          "staging": 5,
+          "production": 5
+        }
+      },
+      "captain_messages": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 13,
+          "staging": 5,
+          "production": 6
+        }
+      },
+      "players": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 10329,
+          "staging": 10298,
+          "production": 10298
+        }
+      },
+      "series_stats": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 961,
+          "staging": 961,
+          "production": 978
+        }
+      },
+      "group_members": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 4,
+          "staging": 10,
+          "production": 10
+        }
+      },
+      "poll_choices": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 4,
+          "staging": 12,
+          "production": 10
+        }
+      },
+      "users": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 14,
+          "staging": 31,
+          "production": 37
+        }
+      },
+      "saved_lineups": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 1,
+          "staging": 0,
+          "production": 1
+        }
+      },
+      "user_activity_logs": {
+        "environments": [
+          "local",
+          "staging",
+          "production"
+        ],
+        "counts": {
+          "local": 9102,
+          "staging": 3407,
+          "production": 3851
+        }
+      }
+    },
+    "tables_by_environment": {
+      "test_etl_runs": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "pickup_games": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_season_tracking": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "alembic_version": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "clubs": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_instructions": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "lineup_escrow": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "activity_log": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "pickup_game_participants": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "system_settings": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_contexts": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "user_session_refresh_signals": {
+        "local": true,
+        "staging": true,
+        "production": false
+      },
+      "club_leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "teams": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "schedule": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_player_associations": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_availability": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "weather_cache": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "poll_responses": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "team_mapping_backup": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "lineup_escrow_views": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "practice_times": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "series_leagues": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "practice_times_corrupted_backup": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "polls": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "match_scores": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "pros": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "groups": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "captain_messages": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "players": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "series_stats": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "series": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "group_members": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "poll_choices": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "enhanced_league_contexts_backup": {
+        "local": true,
+        "staging": false,
+        "production": false
+      },
+      "pro_lessons": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "users": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "saved_lineups": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "player_history": {
+        "local": true,
+        "staging": true,
+        "production": true
+      },
+      "user_activity_logs": {
+        "local": true,
+        "staging": true,
+        "production": true
+      }
+    },
+    "summary": {
+      "environments_compared": [
+        "local",
+        "staging",
+        "production"
+      ],
+      "total_rows_by_environment": {
+        "local": 3911680,
+        "staging": 462689,
+        "production": 445057
+      },
+      "tables_with_count_differences": 25,
+      "data_identical": false
+    }
+  },
+  "connected_environments": [
+    "local",
+    "staging",
+    "production"
+  ]
+}

@@ -14,6 +14,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -21,6 +22,7 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
     create_engine,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
@@ -549,14 +551,18 @@ class PlayerAvailability(Base):
     notes = Column(
         Text, nullable=True
     )  # Optional notes from user about their availability
+    user_id = Column(Integer, ForeignKey("users.id"))  # Stable user reference
+
     # Relationships
     player = relationship("Player")
     series = relationship("Series")
+    user = relationship("User")
 
     __table_args__ = (
         UniqueConstraint(
             "player_name", "match_date", "series_id", name="unique_player_availability"
         ),
+        Index("idx_availability_user_date", "user_id", "match_date", postgresql_where=text("user_id IS NOT NULL")),
     )
 
 

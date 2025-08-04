@@ -2,6 +2,11 @@
 
 {% block content %}
 <style>
+  /* Hidden class definition */
+  .hidden {
+    display: none !important;
+  }
+  
   body { background-color: #f8f4f4 !important; }
   #main-content { background-color: #f8f4f4 !important; }
   .category-button {
@@ -356,92 +361,6 @@
       </div>
   </div>
 
-  <!-- HomePageNotifications Section -->
-  <div id="homepage-notifications" class="mb-20">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Notifications
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    
-    <!-- Notifications Container -->
-    <div id="notifications-container" class="space-y-6">
-      <!-- Notifications will be loaded here dynamically -->
-      
-      <!-- Team Poll Card -->
-      <div id="team-poll-card" class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0 relative hidden">
-      <div class="relative">
-        <div class="absolute top-0 right-0 z-10">
-          <a href="/mobile/polls" 
-             style="
-                 display: inline-flex; 
-                 align-items: center; 
-                 padding: 8px 12px; 
-                 border-radius: 25px; 
-                 background: #bff863; 
-                 color: #045454; 
-                 text-decoration: none;
-                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                 font-size: 12px;
-                 font-weight: 600;
-                 transition: all 0.2s ease;
-             "
-             onmouseover="this.style.transform='scale(1.05)'" 
-             onmouseout="this.style.transform='scale(1)'">
-            <svg style="width: 14px; height: 14px; color: #045454;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-          </a>
-        </div>
-        
-        <div class="flex items-start gap-4">
-          <!-- Icon -->
-          <div class="flex-shrink-0">
-            <div class="w-12 h-12 flex items-center justify-center">
-              <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-                <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
-                <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-                <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
-                <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-                <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
-              </svg>
-            </div>
-          </div>
-          
-          <!-- Content -->
-          <div class="flex-1 min-w-0">
-            <h3 class="font-semibold text-gray-900 text-base mb-1" id="poll-title">
-              Team Poll
-            </h3>
-            <p class="text-gray-600 text-sm leading-relaxed mb-3" id="poll-message">
-              Loading recent team poll...
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Loading State -->
-    <div id="notifications-loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
-      <p class="mt-2 text-gray-600">Loading your highlights...</p>
-    </div>
-    
-    <!-- Empty State (Hidden - we always show notifications) -->
-    <div id="notifications-empty" class="text-center py-8 hidden" style="display: none;">
-      <div class="text-gray-500">
-        <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p class="text-lg font-medium">All caught up!</p>
-        <p class="text-sm">Check back later for new highlights and updates.</p>
-      </div>
-    </div>
-  </div>
-
   <!-- Menu Separator -->
   <div class="flex items-center justify-center mb-6" style="margin-top: 42px;">
     <div class="flex-grow border-t-2 border-gray-400"></div>
@@ -471,6 +390,42 @@
           <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
       </button>
+    </div>
+  </div>
+
+  <!-- Notifications Button Container -->
+  <div id="notifications-button-container" class="flex justify-center mb-6">
+    <button id="notifications-button" onclick="toggleNotifications()" 
+            class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+      <div class="font-semibold text-lg">Notifications</div>
+    </button>
+  </div>
+
+  <!-- Notifications Container (Hidden by default) -->
+  <div id="notifications-container" class="hidden mb-24">
+    <!-- Notifications will be loaded here dynamically as notification cards -->
+    <div id="notifications-content" class="space-y-4">
+      <!-- Notifications will be dynamically added here -->
+    </div>
+    
+    <!-- Loading State -->
+    <div id="notifications-loading" class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
+      <p class="mt-2 text-gray-600">Loading your highlights...</p>
+    </div>
+    
+    <!-- Empty State (Hidden - we always show notifications) -->
+    <div id="notifications-empty" class="text-center py-8 hidden" style="display: none;">
+      <div class="text-gray-500">
+        <svg class="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-lg font-medium">All caught up!</p>
+        <p class="text-sm">Check back later for new highlights and updates.</p>
+      </div>
     </div>
   </div>
 
@@ -796,16 +751,20 @@ function renderNotifications(notifications) {
     
     // Re-get elements to ensure we have fresh references
     const container = document.getElementById('notifications-container');
+    const content = document.getElementById('notifications-content');
     const empty = document.getElementById('notifications-empty');
     
     console.log('Container element:', container);
+    console.log('Content element:', content);
     console.log('Empty element:', empty);
     console.log('Container exists:', !!container);
+    console.log('Content exists:', !!content);
     console.log('Empty exists:', !!empty);
     
-    if (!container || !empty) {
-        console.error('Container or empty element not found in renderNotifications');
+    if (!container || !content || !empty) {
+        console.error('Container, content, or empty element not found in renderNotifications');
         console.log('Container:', container);
+        console.log('Content:', content);
         console.log('Empty:', empty);
         return;
     }
@@ -813,8 +772,8 @@ function renderNotifications(notifications) {
     // Hide empty state
     empty.classList.add('hidden');
     
-    // Clear container
-    container.innerHTML = '';
+    // Clear content
+    content.innerHTML = '';
     
     // Ensure we have notifications (fallback if empty)
     if (!notifications || notifications.length === 0) {
@@ -830,56 +789,60 @@ function renderNotifications(notifications) {
         ];
     }
     
-    // Render each notification
-    console.log('About to render', notifications.length, 'notifications');
+    // Render each notification as detailed card
+    console.log('About to render', notifications.length, 'notifications as detailed cards');
     notifications.forEach((notification, index) => {
-        console.log('Creating notification element for:', notification.title);
-        const notificationElement = createNotificationElement(notification, index);
-        container.appendChild(notificationElement);
-        console.log('Notification element added to container');
+        console.log('Creating notification card for:', notification.title);
+        const notificationElement = createNotificationCard(notification, index);
+        content.appendChild(notificationElement);
+        console.log('Notification card added to container');
         
         // Elements are now visible immediately
-        console.log('Notification element created and visible');
+        console.log('Notification card created and visible');
     });
 }
 
-function createNotificationElement(notification, index) {
-    // 🔍 DEBUG: Log the entire notification object
-    console.log('🔍 Creating notification element for:', notification.title);
-    console.log('🔍 Full notification object:', notification);
-    console.log('🔍 Notification type:', notification.type);
-    console.log('🔍 Weather property:', notification.weather);
-    console.log('🔍 All notification keys:', Object.keys(notification));
-    
+function createNotificationCard(notification, index) {
     const element = document.createElement('div');
-    element.className = `notification-card bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;
+    
+    // Add special background color for captain messages
+    let bgClass = 'bg-white';
+    if (notification.type === 'captain') {
+        bgClass = 'bg-blue-50 border-blue-200';
+    }
+    
+    element.className = `notification-card ${bgClass} rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;
     element.style.animationDelay = `${index * 100}ms`;
-    element.setAttribute('data-type', notification.type); // Add data-type attribute for CSS targeting
     
     const icon = getNotificationIcon(notification.type);
-    const bgColor = getNotificationBgColor(notification.type);
+    
+    // Generate weather icons if available
+    let weatherIcons = '';
+    if (notification.type === 'schedule' && notification.weather) {
+        weatherIcons = generateWeatherIcons(notification.weather);
+    }
     
     // Determine which link to show (detail_link takes priority, then cta)
     const linkToShow = notification.detail_link || notification.cta;
     
     element.innerHTML = `
-        <div class="notification-content relative">
-            <div class="flex items-start gap-4">
+        <div class="relative">
+            <div class="flex items-start gap-3">
                 <!-- Icon -->
                 <div class="flex-shrink-0">
-                    <div class="w-12 h-12 flex items-center justify-center">
+                    <div class="w-10 h-10 flex items-center justify-center">
                         ${icon}
                     </div>
                 </div>
                 
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-semibold text-gray-900 text-base mb-1">
+                    <h3 class="font-semibold text-gray-900 text-sm mb-1">
                         ${notification.title}
                     </h3>
-                    <p class="text-gray-600 text-sm leading-relaxed mb-3">
+                    <div class="text-gray-600 text-sm leading-relaxed mb-2">
                         ${notification.type === 'schedule' ? renderScheduleWithWeather(notification) : notification.message}
-                    </p>
+                    </div>
                     ${notification.cta ? `
                         <div class="mt-3">
                             <a href="${notification.cta.href}" 
@@ -1381,10 +1344,66 @@ function getNotificationBgColor(type) {
     return colors[type] || 'bg-gray-500';
 }
 
+// Toggle Notifications Function
+function toggleNotifications() {
+    const container = document.getElementById('notifications-container');
+    const button = document.getElementById('notifications-button');
+    
+    if (container && button) {
+        if (container.classList.contains('hidden')) {
+            // Show notifications
+            container.classList.remove('hidden');
+            // Replace button with "Hide Notifications" button
+            button.classList.add('active');
+            button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <div class="font-semibold text-lg">Hide Notifications</div>
+            `;
+            // Re-add onclick handler after innerHTML change
+            button.onclick = toggleNotifications;
+            // Initialize and load notifications
+            initializeHomePageNotifications();
+        } else {
+            // Hide notifications
+            container.classList.add('hidden');
+            // Restore original "Notifications" button
+            button.classList.remove('active');
+            button.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <div class="font-semibold text-lg">Notifications</div>
+            `;
+            // Re-add onclick handler after innerHTML change
+            button.onclick = toggleNotifications;
+        }
+    }
+}
+
+// Hide notifications when other elements are clicked
+function hideNotifications() {
+    const container = document.getElementById('notifications-container');
+    const button = document.getElementById('notifications-button');
+    
+    if (container && button && !container.classList.contains('hidden')) {
+        container.classList.add('hidden');
+        // Restore original "Notifications" button
+        button.classList.remove('active');
+        button.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <div class="font-semibold text-lg">Notifications</div>
+        `;
+        // Re-add onclick handler after innerHTML change
+        button.onclick = toggleNotifications;
+    }
+}
+
 // Initialize notifications when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    initializeHomePageNotifications();
-    
     // Initialize Team Poll Card
     initializeTeamPollCard();
     
@@ -1393,6 +1412,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check if user has multiple clubs in current league
     checkMultipleClubs();
+    
+    // Add event listeners to hide notifications when other elements are clicked
+    document.addEventListener('click', function(event) {
+        // Don't hide if clicking on the notifications button or container
+        if (event.target.closest('button[onclick="toggleNotifications()"]') || 
+            event.target.closest('#notifications-container')) {
+            return;
+        }
+        
+        // Hide notifications if clicking elsewhere
+        hideNotifications();
+    });
 });
 
 async function checkMultipleLeagues() {
@@ -1632,10 +1663,7 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
   }
 }
 
-// Auto-refresh notifications every 5 minutes
-setInterval(() => {
-    initializeHomePageNotifications();
-}, 5 * 60 * 1000);
+// Auto-refresh notifications every 5 minutes (removed since notifications are now user-triggered)
 
 // Team Poll Card Module
 async function initializeTeamPollCard() {

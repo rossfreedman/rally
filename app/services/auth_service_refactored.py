@@ -557,6 +557,19 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                                 db_session.delete(log)
                                 logger.info(f"Registration: Deleted activity log {log.id} for placeholder user")
                             
+                            # Delete player availability records for this user (if user_id column exists)
+                            try:
+                                from app.models.database_models import PlayerAvailability
+                                availability_records = db_session.query(PlayerAvailability).filter(
+                                    PlayerAvailability.user_id == existing_user.id
+                                ).all()
+                                
+                                for record in availability_records:
+                                    db_session.delete(record)
+                                    logger.info(f"Registration: Deleted player availability record {record.id} for placeholder user")
+                            except Exception as e:
+                                logger.info(f"Registration: Skipping player availability cleanup (user_id column may not exist): {e}")
+                            
                             # Now delete the user
                             db_session.delete(existing_user)
                             logger.info(f"Registration: Successfully deleted placeholder user {existing_user.email}")
