@@ -557,9 +557,10 @@ def serve_mobile_player_detail(player_id):
             "email": viewing_user.get("email", "")
         }
         
-        # Add team context for filtering
+        # Add team context for filtering and substitute detection
         if team_id:
             player_user_dict["team_context"] = team_id
+            player_user_dict["team_id"] = str(team_id)  # Add team_id for substitute detection
             print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
         else:
             print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")

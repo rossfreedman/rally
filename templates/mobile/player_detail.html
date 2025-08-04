@@ -317,7 +317,15 @@
                                 {% for p in stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
-                                        <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="font-medium text-gray-900 hover:underline">{{ p.name }}</a>
+                                        <div class="flex items-center gap-2">
+                                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="font-medium text-gray-900 hover:underline">{{ p.name }}</a>
+                                            {% if p.isSubstitute %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                                <i class="fas fa-exchange-alt mr-1"></i>
+                                                Sub for {{ p.substituteSeries }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
                                         <div class="text-sm text-gray-600">{{ p.matches|default(0) }} match{{ 'es' if p.matches != 1 else '' }}</div>
                                     </div>
                                     <div class="flex items-center gap-2">

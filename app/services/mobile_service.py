@@ -579,13 +579,13 @@ def get_player_analysis(user):
         current_month = current_date.month
         current_year = current_date.year
         
-        if current_month >= 8:  # Aug-Dec: current season
-            season_start_year = current_year
-        else:  # Jan-Jul: previous season
-            season_start_year = current_year - 1
+        # For now, use 2024-2025 season since that's what the data represents
+        # TODO: Update this when we have 2025-2026 season data
+        season_start_year = 2024
+        season_end_year = 2025
             
         season_start = datetime(season_start_year, 8, 1)  # August 1st
-        season_end = datetime(season_start_year + 1, 7, 31)  # July 31st
+        season_end = datetime(season_end_year, 3, 31)  # March 31st
         
         print(f"[DEBUG] Current season: {season_start_year}-{season_start_year + 1}")
         print(f"[DEBUG] Season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
@@ -600,6 +600,8 @@ def get_player_analysis(user):
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
                     away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
                     winner as "Winner",
                     scores as "Scores",
                     home_player_1_id as "Home Player 1",
@@ -625,6 +627,8 @@ def get_player_analysis(user):
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
                     away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
                     winner as "Winner",
                     scores as "Scores",
                     home_player_1_id as "Home Player 1",
@@ -946,18 +950,18 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 elif isinstance(league_id_for_query, int):
                     league_id_int = league_id_for_query
             
-            # Calculate current season boundaries for court analysis filtering
+            # Calculate current season boundaries for court analysis filtering (matching JavaScript logic)
             current_date = datetime.now()
             current_month = current_date.month
             current_year = current_date.year
             
-            if current_month >= 8:  # Aug-Dec: current season
-                season_start_year = current_year
-            else:  # Jan-Jul: previous season
-                season_start_year = current_year - 1
+            # For now, use 2024-2025 season since that's what the data represents
+            # TODO: Update this when we have 2025-2026 season data
+            season_start_year = 2024
+            season_end_year = 2025
                 
             season_start = datetime(season_start_year, 8, 1)  # August 1st
-            season_end = datetime(season_start_year + 1, 7, 31)  # July 31st
+            season_end = datetime(season_end_year, 3, 31)  # March 31st
             
             if league_id_int:
                 all_matches_on_dates = execute_query(
@@ -966,8 +970,11 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                         ms.match_date,
                         ms.id,
+                        ms.tenniscores_match_id,
                         ms.home_team as "Home Team",
                         ms.away_team as "Away Team",
+                        ms.home_team_id,
+                        ms.away_team_id,
                         ms.winner as "Winner",
                         ms.home_player_1_id as "Home Player 1",
                         ms.home_player_2_id as "Home Player 2",
@@ -989,8 +996,11 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                         ms.match_date,
                         ms.id,
+                        ms.tenniscores_match_id,
                         ms.home_team as "Home Team",
                         ms.away_team as "Away Team",
+                        ms.home_team_id,
+                        ms.away_team_id,
                         ms.winner as "Winner",
                         ms.home_player_1_id as "Home Player 1",
                         ms.home_player_2_id as "Home Player 2",
@@ -1018,7 +1028,7 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 court_name = f"court{i}"  # Template expects "court1", "court2", etc.
                 court_matches = []
 
-                # Find matches for this court using correct logic
+                # Find matches for this court using tenniscores_match_id logic
                 for match in player_matches:
                     match_date = match.get("Date")
                     home_team = match.get("Home Team", "")
@@ -1028,12 +1038,8 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                     # Find this specific match in the grouped data
                     team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
                     
-                    # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
-                    # Court assignment is based on database ID order within team matchups
-                    team_day_matches.sort(key=lambda m: m.get("id", 0))
-
-                    # Check if this match is assigned to court i
-                    for j, team_match in enumerate(team_day_matches, 1):
+                    # Find the match with the same players to get its tenniscores_match_id
+                    for team_match in team_day_matches:
                         # Match by checking if it's the same match (by players)
                         if (
                             match.get("Home Player 1") == team_match.get("Home Player 1")
@@ -1041,14 +1047,37 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                             and match.get("Away Player 1") == team_match.get("Away Player 1")
                             and match.get("Away Player 2") == team_match.get("Away Player 2")
                         ):
-                            # CRITICAL FIX: Use modulo to wrap court numbers to 1-4
-                            court_number = ((j - 1) % 4) + 1
+                            # Extract court number from tenniscores_match_id
+                            tenniscores_match_id = team_match.get("tenniscores_match_id", "")
+                            court_number = None
+                            
+                            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                                # Extract line number from tenniscores_match_id (e.g., "12345_Line2_Line2" -> 2)
+                                # Handle duplicate _Line pattern by taking the last occurrence
+                                line_parts = tenniscores_match_id.split("_Line")
+                                if len(line_parts) > 1:
+                                    line_part = line_parts[-1]  # Take the last part
+                                    try:
+                                        court_number = int(line_part)
+                                    except ValueError:
+                                        # Fallback to database ID order if parsing fails
+                                        court_number = ((team_day_matches.index(team_match) % 4) + 1)
+                                else:
+                                    # Fallback to database ID order if no line number found
+                                    court_number = ((team_day_matches.index(team_match) % 4) + 1)
+                            else:
+                                # Fallback to database ID order if no tenniscores_match_id
+                                court_number = ((team_day_matches.index(team_match) % 4) + 1)
+                            
                             if court_number == i:  # This match belongs to court i (1-4)
                                 court_matches.append(match)
                             break
 
                 wins = losses = 0
                 partner_win_counts = {}
+
+                # Get user's team ID for substitute detection
+                user_team_id = user.get("team_id") if user else None
 
                 for match in court_matches:
                     # Determine if player was on home or away team
@@ -1074,19 +1103,49 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                             if match.get("Home Player 1") == player_id 
                             else match.get("Home Player 1")
                         )
+                        match_team_id = match.get("home_team_id")
                     else:
                         partner = (
                             match.get("Away Player 2") 
                             if match.get("Away Player 1") == player_id 
                             else match.get("Away Player 1")
                         )
+                        match_team_id = match.get("away_team_id")
 
                     if partner and partner != player_id:
                         if partner not in partner_win_counts:
-                            partner_win_counts[partner] = {"matches": 0, "wins": 0}
+                            partner_win_counts[partner] = {"matches": 0, "wins": 0, "is_substitute": False, "substitute_series": None}
+                        
                         partner_win_counts[partner]["matches"] += 1
                         if won:
                             partner_win_counts[partner]["wins"] += 1
+                        
+                        # Check if this partner is a substitute (playing for different team than user's team)
+                        if user_team_id and match_team_id and str(match_team_id) != str(user_team_id):
+                            partner_win_counts[partner]["is_substitute"] = True
+                            
+                            # Get series name for the substitute team
+                            if not partner_win_counts[partner]["substitute_series"]:
+                                try:
+                                    series_query = """
+                                        SELECT s.name as series_name, s.display_name as series_display_name
+                                        FROM teams t
+                                        JOIN series s ON t.series_id = s.id
+                                        WHERE t.id = %s
+                                    """
+                                    series_result = execute_query_one(series_query, [match_team_id])
+                                    if series_result:
+                                        # Use display_name if available, otherwise fall back to name
+                                        series_name = series_result.get("series_display_name") or series_result["series_name"]
+                                        
+                                        # Convert Chicago format to Series format for UI display
+                                        from app.routes.api_routes import convert_chicago_to_series_for_ui
+                                        display_series_name = convert_chicago_to_series_for_ui(series_name)
+                                        
+                                        partner_win_counts[partner]["substitute_series"] = display_series_name
+                                except Exception as e:
+                                    print(f"Error getting series name for team {match_team_id}: {e}")
+                                    partner_win_counts[partner]["substitute_series"] = "Unknown Series"
 
                 win_rate = (
                     round((wins / (wins + losses) * 100), 1)
@@ -1101,13 +1160,23 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                     partner_name = get_player_name_from_id(partner_id)
                     if partner_name and stats["matches"] > 0:
                         partner_win_rate = round((stats["wins"] / stats["matches"]) * 100, 1)
-                        top_partners.append({
+                        partner_data = {
                             "name": partner_name,
                             "matches": stats["matches"],
                             "wins": stats["wins"],
                             "losses": stats["matches"] - stats["wins"], 
                             "winRate": partner_win_rate
-                        })
+                        }
+                        
+                        # Add substitute information if this partner was a substitute
+                        if stats.get("is_substitute", False):
+                            substitute_series = stats.get("substitute_series", "Unknown Series")
+                            partner_data["isSubstitute"] = True
+                            partner_data["substituteSeries"] = substitute_series
+                        else:
+                            partner_data["isSubstitute"] = False
+                        
+                        top_partners.append(partner_data)
 
                 # Sort by win rate, then by matches played
                 top_partners.sort(key=lambda x: (-x["winRate"], -x["matches"]))
