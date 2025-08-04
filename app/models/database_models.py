@@ -549,7 +549,6 @@ class PlayerAvailability(Base):
     notes = Column(
         Text, nullable=True
     )  # Optional notes from user about their availability
-
     # Relationships
     player = relationship("Player")
     series = relationship("Series")

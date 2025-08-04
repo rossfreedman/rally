@@ -765,8 +765,10 @@ def get_player_analysis(user):
                 current_month = current_date.month
 
                 # Determine season year based on current date
-                if current_month >= 8:  # Aug-Dec: current season
-                    season_start_year = current_year
+                # Since we're in August 2025, we want the 2024-2025 season (Aug 2024 - Jul 2025)
+                # which contains the player's data from Jan-Mar 2025
+                if current_month >= 8:  # Aug-Dec: previous season (since we're in offseason)
+                    season_start_year = current_year - 1
                 else:  # Jan-Jul: previous season
                     season_start_year = current_year - 1
 
