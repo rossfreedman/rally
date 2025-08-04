@@ -990,6 +990,10 @@ def calculate_individual_court_analysis(player_matches, player_id):
 
                     # Find this specific match in the grouped data
                     team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
+                    
+                    # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
+                    # Court assignment is based on database ID order within team matchups
+                    team_day_matches.sort(key=lambda m: m.get("id", 0))
 
                     # Check if this match is assigned to court i
                     for j, team_match in enumerate(team_day_matches, 1):
@@ -4050,6 +4054,10 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     team_day_matches = matches_by_date_and_teams[match_date][
                         team_matchup
                     ]
+                    
+                    # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
+                    # Court assignment is based on database ID order within team matchups
+                    team_day_matches.sort(key=lambda m: m.get("id", 0))
 
                     # Check if this match is assigned to court i
                     for j, team_match in enumerate(team_day_matches, 1):
@@ -4183,6 +4191,11 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 team_matchup = f"{home_team} vs {away_team}"
 
                 team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
+                
+                # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
+                # Court assignment is based on database ID order within team matchups
+                team_day_matches.sort(key=lambda m: m.get("id", 0))
+                
                 court_num = None
 
                 # Find the position of this match within the team's matches
