@@ -813,7 +813,7 @@ def get_player_analysis(user):
         career_stats = get_career_stats_from_db(player_id)
 
         # Calculate court analysis for individual player
-        court_analysis = calculate_individual_court_analysis(player_matches, player_id)
+        court_analysis = calculate_individual_court_analysis(player_matches, player_id, user)
 
         # Initialize empty player history
         player_history = {"progression": "", "seasons": []}
@@ -855,7 +855,7 @@ def get_player_analysis(user):
         }
 
 
-def calculate_individual_court_analysis(player_matches, player_id):
+def calculate_individual_court_analysis(player_matches, player_id, user=None):
     """
     Calculate court analysis for an individual player based on their matches.
     Adapted from the team court analysis logic to work for individual players.
@@ -909,25 +909,66 @@ def calculate_individual_court_analysis(player_matches, player_id):
         
         if player_dates:
             # Get all matches on those dates to determine correct court assignments
-            all_matches_on_dates = execute_query(
-                """
-                SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                    ms.match_date,
-                    ms.id,
-                    ms.home_team as "Home Team",
-                    ms.away_team as "Away Team",
-                    ms.winner as "Winner",
-                    ms.home_player_1_id as "Home Player 1",
-                    ms.home_player_2_id as "Home Player 2",
-                    ms.away_player_1_id as "Away Player 1",
-                    ms.away_player_2_id as "Away Player 2"
-                FROM match_scores ms
-                WHERE ms.match_date = ANY(%s)
-                ORDER BY ms.match_date ASC, ms.id ASC
-            """,
-                (player_dates,),
-            )
+            # CRITICAL FIX: Filter by league to only get matches from the same league as the player
+            league_id_for_query = user.get("league_id")
+            league_id_int = None
+            
+            # Convert league_id to integer foreign key if needed
+            if league_id_for_query:
+                if isinstance(league_id_for_query, str) and league_id_for_query != "":
+                    try:
+                        league_record = execute_query_one(
+                            "SELECT id FROM leagues WHERE league_id = %s", [league_id_for_query]
+                        )
+                        if league_record:
+                            league_id_int = league_record["id"]
+                    except Exception as e:
+                        pass
+                elif isinstance(league_id_for_query, int):
+                    league_id_int = league_id_for_query
+            
+            if league_id_int:
+                all_matches_on_dates = execute_query(
+                    """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        ms.match_date,
+                        ms.id,
+                        ms.home_team as "Home Team",
+                        ms.away_team as "Away Team",
+                        ms.winner as "Winner",
+                        ms.home_player_1_id as "Home Player 1",
+                        ms.home_player_2_id as "Home Player 2",
+                        ms.away_player_1_id as "Away Player 1",
+                        ms.away_player_2_id as "Away Player 2"
+                    FROM match_scores ms
+                    WHERE ms.match_date = ANY(%s)
+                    AND ms.league_id = %s
+                    ORDER BY ms.match_date ASC, ms.id ASC
+                """,
+                    (player_dates, league_id_int),
+                )
+            else:
+                # Fallback: no league filter if league_id not available
+                all_matches_on_dates = execute_query(
+                    """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        ms.match_date,
+                        ms.id,
+                        ms.home_team as "Home Team",
+                        ms.away_team as "Away Team",
+                        ms.winner as "Winner",
+                        ms.home_player_1_id as "Home Player 1",
+                        ms.home_player_2_id as "Home Player 2",
+                        ms.away_player_1_id as "Away Player 1",
+                        ms.away_player_2_id as "Away Player 2"
+                    FROM match_scores ms
+                    WHERE ms.match_date = ANY(%s)
+                    ORDER BY ms.match_date ASC, ms.id ASC
+                """,
+                    (player_dates,),
+                )
 
             # Group matches by date and team matchup
             matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
@@ -966,7 +1007,9 @@ def calculate_individual_court_analysis(player_matches, player_id):
                             and match.get("Away Player 1") == team_match.get("Away Player 1")
                             and match.get("Away Player 2") == team_match.get("Away Player 2")
                         ):
-                            if j == i:  # This match belongs to court i
+                            # CRITICAL FIX: Use modulo to wrap court numbers to 1-4
+                            court_number = ((j - 1) % 4) + 1
+                            if court_number == i:  # This match belongs to court i (1-4)
                                 court_matches.append(match)
                             break
 
