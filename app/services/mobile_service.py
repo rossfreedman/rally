@@ -573,92 +573,52 @@ def get_player_analysis(user):
             except Exception as e:
                 pass
 
-        # Get player history - filter by league AND team to fix multi-team issue
+        # Get player history - show ALL matches for individual player analysis (including substitutions)
+        # NOTE: Team filtering removed to include substitute appearances on other teams
         if league_id_int:
-            if team_context:
-                # Filter by team_id to show only matches for this specific team
-                history_query = """
-                    SELECT 
-                        id,
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND league_id = %s
-                    AND (home_team_id = %s OR away_team_id = %s)
-                    ORDER BY match_date DESC
-                """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int, team_context, team_context]
-                print(f"[DEBUG] Player analysis with team context: player_id={player_id}, team_id={team_context}")
-            else:
-                # Original query without team filtering
-                history_query = """
-                    SELECT 
-                        id,
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND league_id = %s
-                    ORDER BY match_date DESC
-                """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int]
+            # Always show all matches for this player in this league, regardless of team
+            history_query = """
+                SELECT 
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+            """
+            query_params = [player_id, player_id, player_id, player_id, league_id_int]
+            print(f"[DEBUG] Player analysis showing ALL matches: player_id={player_id}, league_id={league_id_int}")
             player_matches = execute_query(history_query, query_params)
         else:
-            if team_context:
-                # Filter by team_id even without league context
-                history_query = """
-                    SELECT 
-                        id,
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND (home_team_id = %s OR away_team_id = %s)
-                    ORDER BY match_date DESC
-                """
-                query_params = [player_id, player_id, player_id, player_id, team_context, team_context]
-            else:
-                # Original query without any filtering
-                history_query = """
-                    SELECT 
-                        id,
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    ORDER BY match_date DESC
-                """
-                query_params = [player_id, player_id, player_id, player_id]
-            player_matches = execute_query(history_query, query_params)
+            # No league context - show all matches for this player across all leagues
+            history_query = """
+                SELECT 
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                ORDER BY match_date DESC
+            """
+            query_params = [player_id, player_id, player_id, player_id]
+            print(f"[DEBUG] Player analysis (no league): showing ALL matches for player_id={player_id}")
+            
+        player_matches = execute_query(history_query, query_params)
 
         # Calculate accurate match statistics
         total_matches = len(player_matches) if player_matches else 0
