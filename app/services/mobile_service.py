@@ -573,10 +573,27 @@ def get_player_analysis(user):
             except Exception as e:
                 pass
 
-        # Get player history - show ALL matches for individual player analysis (including substitutions)
+        # Calculate current season boundaries for filtering
+        from datetime import datetime
+        current_date = datetime.now()
+        current_month = current_date.month
+        current_year = current_date.year
+        
+        if current_month >= 8:  # Aug-Dec: current season
+            season_start_year = current_year
+        else:  # Jan-Jul: previous season
+            season_start_year = current_year - 1
+            
+        season_start = datetime(season_start_year, 8, 1)  # August 1st
+        season_end = datetime(season_start_year + 1, 7, 31)  # July 31st
+        
+        print(f"[DEBUG] Current season: {season_start_year}-{season_start_year + 1}")
+        print(f"[DEBUG] Season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
+        
+        # Get player history - show CURRENT SEASON matches for individual player analysis
         # NOTE: Team filtering removed to include substitute appearances on other teams
         if league_id_int:
-            # Always show all matches for this player in this league, regardless of team
+            # Show current season matches for this player in this league
             history_query = """
                 SELECT 
                     id,
@@ -592,15 +609,16 @@ def get_player_analysis(user):
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
+                AND match_date >= %s AND match_date <= %s
                 ORDER BY match_date DESC
             """
-            query_params = [player_id, player_id, player_id, player_id, league_id_int]
-            print(f"[DEBUG] Player analysis showing ALL matches: player_id={player_id}, league_id={league_id_int}")
+            query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]
+            print(f"[DEBUG] Player analysis showing CURRENT SEASON matches: player_id={player_id}, league_id={league_id_int}")
 
             player_matches = execute_query(history_query, query_params)
 
         else:
-            # No league context - show all matches for this player across all leagues
+            # No league context - show current season matches for this player across all leagues
             history_query = """
                 SELECT 
                     id,
@@ -615,10 +633,11 @@ def get_player_analysis(user):
                     away_player_2_id as "Away Player 2"
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND match_date >= %s AND match_date <= %s
                 ORDER BY match_date DESC
             """
-            query_params = [player_id, player_id, player_id, player_id]
-            print(f"[DEBUG] Player analysis (no league): showing ALL matches for player_id={player_id}")
+            query_params = [player_id, player_id, player_id, player_id, season_start, season_end]
+            print(f"[DEBUG] Player analysis (no league): showing CURRENT SEASON matches for player_id={player_id}")
             player_matches = execute_query(history_query, query_params)
 
         # Calculate accurate match statistics
@@ -927,6 +946,19 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 elif isinstance(league_id_for_query, int):
                     league_id_int = league_id_for_query
             
+            # Calculate current season boundaries for court analysis filtering
+            current_date = datetime.now()
+            current_month = current_date.month
+            current_year = current_date.year
+            
+            if current_month >= 8:  # Aug-Dec: current season
+                season_start_year = current_year
+            else:  # Jan-Jul: previous season
+                season_start_year = current_year - 1
+                
+            season_start = datetime(season_start_year, 8, 1)  # August 1st
+            season_end = datetime(season_start_year + 1, 7, 31)  # July 31st
+            
             if league_id_int:
                 all_matches_on_dates = execute_query(
                     """
@@ -944,12 +976,13 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                     FROM match_scores ms
                     WHERE ms.match_date = ANY(%s)
                     AND ms.league_id = %s
+                    AND ms.match_date >= %s AND ms.match_date <= %s
                     ORDER BY ms.match_date ASC, ms.id ASC
                 """,
-                    (player_dates, league_id_int),
+                    (player_dates, league_id_int, season_start, season_end),
                 )
             else:
-                # Fallback: no league filter if league_id not available
+                # Fallback: no league filter if league_id not available, but still filter by current season
                 all_matches_on_dates = execute_query(
                     """
                     SELECT 
@@ -965,9 +998,10 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         ms.away_player_2_id as "Away Player 2"
                     FROM match_scores ms
                     WHERE ms.match_date = ANY(%s)
+                    AND ms.match_date >= %s AND ms.match_date <= %s
                     ORDER BY ms.match_date ASC, ms.id ASC
                 """,
-                    (player_dates,),
+                    (player_dates, season_start, season_end),
                 )
 
             # Group matches by date and team matchup
@@ -4102,11 +4136,22 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                         if is_home
                         else [match.get("Away Player 1"), match.get("Away Player 2")]
                     )
+                    
+                    # Get the team ID for this match to check for substitutes
+                    match_team_id = match.get("Home Team") if is_home else match.get("Away Team")
+                    
                     for p in players:
                         if not p:
                             continue
                         if p not in player_win_counts:
-                            player_win_counts[p] = {"matches": 0, "wins": 0}
+                            player_win_counts[p] = {"matches": 0, "wins": 0, "is_substitute": False}
+                        
+                        # Check if this player is a substitute
+                        if not player_win_counts[p].get("is_substitute_checked"):
+                            is_sub = is_substitute_player(p, match_team_id)
+                            player_win_counts[p]["is_substitute"] = is_sub
+                            player_win_counts[p]["is_substitute_checked"] = True
+                        
                         player_win_counts[p]["matches"] += 1
                         if team_won:
                             player_win_counts[p]["wins"] += 1
@@ -4127,6 +4172,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                             "matches": d["matches"],
                             "wins": d["wins"],  # Template expects wins
                             "losses": d["matches"] - d["wins"],  # Template expects losses
+                            "isSubstitute": d.get("is_substitute", False),  # Add substitute indicator
                         }
                         for p, d in player_win_counts.items()
                         if get_player_name_from_id(p) is not None  # Only include players with valid names
@@ -5411,3 +5457,40 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
         import traceback
         print(f"[ERROR] Full traceback: {traceback.format_exc()}")
         return []
+
+
+def is_substitute_player(player_id, match_team_id, user_league_id=None):
+    """
+    Determine if a player is a substitute (playing for a different team than their primary team)
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        match_team_id: The team ID they're playing for in this match
+        user_league_id: Optional league ID for context
+        
+    Returns:
+        bool: True if player is a substitute, False otherwise
+    """
+    try:
+        # Get the player's primary team assignment
+        player_query = """
+            SELECT team_id, league_id, club_id, series_id
+            FROM players 
+            WHERE tenniscores_player_id = %s AND is_active = true
+            ORDER BY wins DESC, losses ASC
+            LIMIT 1
+        """
+        player_record = execute_query_one(player_query, (player_id,))
+        
+        if not player_record or not player_record.get('team_id'):
+            # Player has no primary team assignment, not a substitute
+            return False
+            
+        primary_team_id = player_record.get('team_id')
+        
+        # If they're playing for a different team than their primary team, they're a substitute
+        return primary_team_id != match_team_id
+        
+    except Exception as e:
+        print(f"Error determining substitute status for player {player_id}: {e}")
+        return False

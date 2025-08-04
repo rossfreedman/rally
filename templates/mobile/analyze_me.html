@@ -225,7 +225,15 @@
                                 {% for partner in court_stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
-                                        <div class="font-medium text-gray-900">{{ partner.name }}</div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="font-medium text-gray-900">{{ partner.name }}</div>
+                                            {% if partner.isSubstitute %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                                <i class="fas fa-exchange-alt mr-1"></i>
+                                                Sub
+                                            </span>
+                                            {% endif %}
+                                        </div>
                                         <div class="text-sm text-gray-600">{{ partner.matches }} match{{ 'es' if partner.matches != 1 else '' }}</div>
                                     </div>
                                     <div class="flex items-center gap-2">
