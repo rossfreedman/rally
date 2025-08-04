@@ -489,8 +489,16 @@ class EnhancedProxyRotator:
         logger.info(f"⏱️ Session duration: {session_duration} seconds")
         logger.info(f"🎯 Usage cap: {usage_cap_per_proxy} requests per proxy")
         
-        # Test all proxies initially
-        self._test_all_proxies()
+        # Test all proxies initially (skip if in quick test mode)
+        if not os.getenv('QUICK_TEST'):
+            logger.info("🧪 Testing all proxies...")
+            self._test_all_proxies()
+        else:
+            logger.info("⚡ QUICK_TEST mode: Skipping proxy warmup, marking first 10 as ready")
+            # Mark first 10 proxies as healthy for quick testing
+            for port in list(self.ports)[:10]:
+                self.proxies[port].status = ProxyStatus.ACTIVE
+                self.proxies[port].success_count = 1
     
     def _load_default_ports(self) -> List[int]:
         """Load default ports from ips.txt or use fallback."""
@@ -764,9 +772,17 @@ class EnhancedProxyRotator:
         healthy_proxies = self._get_healthy_proxies()
         
         if not healthy_proxies:
-            logger.warning("⚠️ No healthy proxies available, testing all proxies...")
-            self._test_all_proxies()
-            healthy_proxies = self._get_healthy_proxies()
+            if os.getenv('QUICK_TEST'):
+                logger.info("⚡ QUICK_TEST: Using first 10 proxies without testing")
+                # In quick test mode, just mark first 10 proxies as healthy
+                for port in list(self.ports)[:10]:
+                    self.proxies[port].status = ProxyStatus.ACTIVE
+                    self.proxies[port].success_count = 1  # Fake success
+                healthy_proxies = list(self.ports)[:10]
+            else:
+                logger.warning("⚠️ No healthy proxies available, testing all proxies...")
+                self._test_all_proxies()
+                healthy_proxies = self._get_healthy_proxies()
         
         if healthy_proxies:
             # Choose proxy with best success rate
