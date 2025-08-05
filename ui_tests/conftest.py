@@ -48,7 +48,7 @@ else:
 
 # Test configuration
 TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally_test"
+    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally"
 )
 TEST_SERVER_URL = os.getenv("TEST_SERVER_URL", "http://localhost:8080")
 TEST_SERVER_PORT = int(os.getenv("TEST_SERVER_PORT", "8080"))

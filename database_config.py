@@ -38,7 +38,7 @@ def get_db_url():
     global _connection_logged
     
     # Database switching mechanism - use RALLY_DATABASE to choose database
-    database_mode = os.getenv("RALLY_DATABASE", "test")  # "main" or "test"
+    database_mode = os.getenv("RALLY_DATABASE", "main")  # "main" or "test"
     
     # Check if we're running on Railway
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
@@ -62,7 +62,7 @@ def get_db_url():
         if database_mode == "test":
             url = os.getenv("DATABASE_TEST_URL", "postgresql://postgres:postgres@localhost:5432/rally_test")
             if not _connection_logged:
-                logger.info("Using TEST database (rally_test)")
+                logger.info("Using TEST database (rally_test) - NOTE: Test database has been decommissioned")
         else:
             # Default to main database
             url = os.getenv("DATABASE_PUBLIC_URL") or os.getenv(
@@ -75,6 +75,7 @@ def get_db_url():
         # Fallback based on mode
         if database_mode == "test":
             url = "postgresql://postgres:postgres@localhost:5432/rally_test"
+            logger.warning("Test database has been decommissioned - this will fail")
         else:
             url = "postgresql://localhost/rally"
 

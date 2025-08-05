@@ -750,31 +750,20 @@ def serve_mobile_analyze_me():
             # During impersonation, never rebuild session - preserve manual selections
             session_user = session["user"]
         else:
-            # Check if current session has valid team context - if so, preserve it
-            current_session = session.get("user", {})
-            has_valid_team_context = (
-                current_session.get("team_id") is not None and
-                current_session.get("league_id") is not None and
-                current_session.get("club") and
-                current_session.get("series")
-            )
+            # For analyze-me page, always refresh session data from database to ensure correct data
+            # This prevents issues with stale session data showing wrong league/player context
+            fresh_session_data = get_session_data_for_user(user_email)
             
-            if has_valid_team_context:
-                # Current session already has valid team context (likely from team switch)
-                # Don't override it with database refresh
-                session_user = current_session
+            if fresh_session_data:
+                # Update Flask session with fresh data
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_user = fresh_session_data
+                print(f"[DEBUG] Analyze-me - Refreshed session data: {fresh_session_data.get('tenniscores_player_id')} in {fresh_session_data.get('league_name')}")
             else:
-                # Session is incomplete or invalid, refresh from database
-                fresh_session_data = get_session_data_for_user(user_email)
-                
-                if fresh_session_data:
-                    # Update Flask session with fresh data
-                    session["user"] = fresh_session_data
-                    session.modified = True
-                    session_user = fresh_session_data
-                else:
-                    # Fallback to existing session
-                    session_user = session["user"]
+                # Fallback to existing session
+                session_user = session["user"]
+                print(f"[DEBUG] Analyze-me - Using existing session data")
 
         # Check if session already has a tenniscores_player_id (set by league switching)
         if session_user.get("tenniscores_player_id"):
@@ -1859,27 +1848,18 @@ def serve_mobile_my_team():
         if is_impersonating:
             session_user = session["user"]
         else:
-            # Check if current session has valid team context - if so, preserve it
-            current_session = session.get("user", {})
-            has_valid_team_context = (
-                current_session.get("team_id") is not None and
-                current_session.get("league_id") is not None and
-                current_session.get("club") and
-                current_session.get("series")
-            )
+            # For my-team page, always refresh session data from database to ensure correct team context
+            # This prevents issues with stale session data showing wrong team/league context
+            fresh_session_data = get_session_data_for_user(user_email)
             
-            if has_valid_team_context:
-                session_user = current_session
+            if fresh_session_data:
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_user = fresh_session_data
+                print(f"[DEBUG] My-team - Refreshed session data: {fresh_session_data.get('tenniscores_player_id')} in {fresh_session_data.get('league_name')} team {fresh_session_data.get('team_id')}")
             else:
-                # Session is incomplete or invalid, refresh from database
-                fresh_session_data = get_session_data_for_user(user_email)
-                
-                if fresh_session_data:
-                    session["user"] = fresh_session_data
-                    session.modified = True
-                    session_user = fresh_session_data
-                else:
-                    session_user = session["user"]
+                session_user = session["user"]
+                print(f"[DEBUG] My-team - Using existing session data")
 
         result = get_mobile_team_data(session_user)
 
@@ -1891,6 +1871,7 @@ def serve_mobile_my_team():
         team_data = result.get("team_data")
         court_analysis = result.get("court_analysis", {})
         top_players = result.get("top_players", [])
+        team_matches = result.get("team_matches", [])
         strength_of_schedule = result.get("strength_of_schedule", {})
         error = result.get("error")
 
@@ -1900,6 +1881,7 @@ def serve_mobile_my_team():
             team_data=team_data,
             court_analysis=court_analysis,
             top_players=top_players,
+            team_matches=team_matches,
             strength_of_schedule=strength_of_schedule,
             error=error,
         )

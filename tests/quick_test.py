@@ -197,7 +197,7 @@ def check_test_environment():
 
     # Check test database
     test_db_url = os.getenv(
-        "TEST_DATABASE_URL", "postgresql://postgres@localhost:5432/rally_test"
+        "TEST_DATABASE_URL", "postgresql://postgres@localhost:5432/rally"
     )
     print(f"✅ Test database URL: {test_db_url}")
 

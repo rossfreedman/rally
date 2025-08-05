@@ -7,24 +7,19 @@ Simple approach to switch between databases with the same Rally application.
 Instead of maintaining separate applications, Rally now supports database switching via environment variables:
 
 - **Main Database**: `rally` (production data)
-- **Test Database**: `rally_test` (for testing new ETL)
+- **Test Database**: `rally_test` (decommissioned - no longer available)
+
+**Note**: Test database has been decommissioned to prevent accidental usage.
 
 ## Quick Start
 
-### Step 1: Clone Database (First Time Setup)
-
-```bash
-# Clone main database to test database
-./clone_to_test_db.sh
-```
-
-### Step 2: Use Startup Scripts
+### Step 1: Use Startup Scripts
 
 ```bash
 # Start with main database
 ./start_rally_main.sh
 
-# Start with test database  
+# Start with main database (test script now uses main DB)
 ./start_rally_test.sh
 ```
 
@@ -35,7 +30,7 @@ Instead of maintaining separate applications, Rally now supports database switch
 export RALLY_DATABASE=main
 python server.py
 
-# Test database
+# Test database (decommissioned - will fail)
 export RALLY_DATABASE=test
 python server.py
 ```
@@ -43,11 +38,11 @@ python server.py
 ## Database URLs
 
 - **Main**: `postgresql://localhost/rally`
-- **Test**: `postgresql://postgres:postgres@localhost:5432/rally_test`
+- **Test**: `postgresql://postgres:postgres@localhost:5432/rally_test` (decommissioned)
 
 You can override these with environment variables:
 - `DATABASE_URL` (main database)
-- `DATABASE_TEST_URL` (test database)
+- `DATABASE_TEST_URL` (test database - decommissioned)
 
 ## ETL Testing
 
@@ -58,10 +53,9 @@ All new ETL files are in `data/etl_new/`:
 
 ## Workflow
 
-1. **Clone**: `./clone_to_test_db.sh` (creates test DB with current data)
-2. **Test**: `./start_rally_test.sh` (run Rally with test DB)
-3. **Develop**: Modify files in `data/etl_new/`
-4. **Switch**: `./start_rally_main.sh` (back to main DB)
+1. **Test**: `./start_rally_test.sh` (now uses main DB)
+2. **Develop**: Modify files in `data/etl_new/`
+3. **Switch**: `./start_rally_main.sh` (back to main DB)
 
 ## Benefits
 
@@ -79,4 +73,8 @@ The old Rally2 structure has been simplified:
 - ❌ `config_incremental.py` - Integrated into main config
 - ❌ `start_incremental_rally.sh` - Replaced with simpler scripts
 - ❌ Port 5001 - Everything uses port 5000
-- ✅ `data/etl_new/` - All new ETL code here 
+- ✅ `data/etl_new/` - All new ETL code here
+
+## Test Database Decommissioning
+
+The test database (`rally_test`) has been decommissioned to prevent accidental usage of test data in production scenarios. All operations now use the main database by default. 

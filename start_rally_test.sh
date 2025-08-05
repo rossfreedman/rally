@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Start Rally with test database
-export RALLY_DATABASE=test
-echo "🧪 Starting Rally with TEST database (rally_test)"
-echo "📊 Database: rally_test"
+# Start Rally with main database (test database decommissioned)
+export RALLY_DATABASE=main
+echo "🧪 Starting Rally with MAIN database (rally)"
+echo "📊 Database: rally"
 echo "🌐 URL: http://localhost:5000"
 echo ""
 

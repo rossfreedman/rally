@@ -37,7 +37,7 @@ fake = Faker()
 
 # Test database configuration
 TEST_DATABASE_URL = os.getenv(
-    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally_test"
+    "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally"
 )
 
 

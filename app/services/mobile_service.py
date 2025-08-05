@@ -579,16 +579,13 @@ def get_player_analysis(user):
         current_month = current_date.month
         current_year = current_date.year
         
-        # For now, use 2024-2025 season since that's what the data represents
-        # TODO: Update this when we have 2025-2026 season data
-        season_start_year = 2024
-        season_end_year = 2025
-            
-        season_start = datetime(season_start_year, 8, 1)  # August 1st
-        season_end = datetime(season_end_year, 3, 31)  # March 31st
+        # Dynamic season logic: Use the most recent season with data
+        # For now, include both 2024-2025 and 2025-2026 seasons to catch all recent matches
+        # This ensures we don't miss matches from the current/upcoming season
+        season_start = datetime(2024, 8, 1)  # August 1st, 2024
+        season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
         
-        print(f"[DEBUG] Current season: {season_start_year}-{season_start_year + 1}")
-        print(f"[DEBUG] Season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
+        print(f"[DEBUG] Extended season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
         
         # Get player history - show CURRENT SEASON matches for individual player analysis
         # NOTE: Team filtering removed to include substitute appearances on other teams
@@ -957,13 +954,11 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
             current_month = current_date.month
             current_year = current_date.year
             
-            # For now, use 2024-2025 season since that's what the data represents
-            # TODO: Update this when we have 2025-2026 season data
-            season_start_year = 2024
-            season_end_year = 2025
-                
-            season_start = datetime(season_start_year, 8, 1)  # August 1st
-            season_end = datetime(season_end_year, 3, 31)  # March 31st
+            # Dynamic season logic: Use the most recent season with data
+            # For now, include both 2024-2025 and 2025-2026 seasons to catch all recent matches
+            # This ensures we don't miss matches from the current/upcoming season
+            season_start = datetime(2024, 8, 1)  # August 1st, 2024
+            season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
             
             if league_id_int:
                 all_matches_on_dates = execute_query(
@@ -1122,8 +1117,36 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         if won:
                             partner_win_counts[partner]["wins"] += 1
                         
-                        # Check if this partner is a substitute (playing for different team than user's team)
-                        if user_team_id and match_team_id and str(match_team_id) != str(user_team_id):
+                        # Check if this partner is a substitute (playing for different team than the player's own team)
+                        # First, get the player's own team ID from the players table
+                        player_own_team_id = None
+                        try:
+                            player_team_query = """
+                                SELECT team_id 
+                                FROM players 
+                                WHERE tenniscores_player_id = %s 
+                                AND league_id = %s
+                                LIMIT 1
+                            """
+                            player_team_result = execute_query_one(player_team_query, [player_id, league_id_int])
+                            if player_team_result:
+                                player_own_team_id = player_team_result["team_id"]
+                                print(f"[DEBUG] Player {player_id} own team ID: {player_own_team_id}, match team ID: {match_team_id}")
+                        except Exception as e:
+                            print(f"Error getting player's own team: {e}")
+                        
+                        # Check if partner is playing for a different team than the player's own team
+                        # Determine which team the player is actually playing for in this match
+                        player_match_team_id = None
+                        if is_home:
+                            player_match_team_id = match.get("home_team_id")
+                        else:
+                            player_match_team_id = match.get("away_team_id")
+                        
+                        # Check if partner is playing for a different team than the player's own team
+                        # The partner is a substitute if the PLAYER is playing for a different team than their own team
+                        if player_own_team_id and player_match_team_id and str(player_match_team_id) != str(player_own_team_id):
+                            # Player is playing as a substitute for a different team, so their partners are also substitutes
                             partner_win_counts[partner]["is_substitute"] = True
                             
                             # Get series name for the substitute team
@@ -1700,6 +1723,7 @@ def get_recent_matches_for_user_club(user):
                     ms.away_player_1_id as "Away Player 1",
                     ms.away_player_2_id as "Away Player 2",
                     ms.league_id,
+                    ms.tenniscores_match_id as "Tenniscores Match ID",
                     '' as "Time",
                     '' as "Location",
                     '' as "Court",
@@ -1727,6 +1751,7 @@ def get_recent_matches_for_user_club(user):
                     ms.away_player_1_id as "Away Player 1",
                     ms.away_player_2_id as "Away Player 2",
                     ms.league_id,
+                    ms.tenniscores_match_id as "Tenniscores Match ID",
                     '' as "Time",
                     '' as "Location",
                     '' as "Court",
@@ -1757,6 +1782,7 @@ def get_recent_matches_for_user_club(user):
                 "home_player_2": match.get("Home Player 2", ""),
                 "away_player_1": match.get("Away Player 1", ""),
                 "away_player_2": match.get("Away Player 2", ""),
+                "tenniscores_match_id": match.get("Tenniscores Match ID", ""),
                 "court": match.get("Court", ""),
                 "series": match.get("Series", ""),
             }
@@ -2187,14 +2213,26 @@ def get_mobile_club_data(user):
                     team_matches[team]["opponent_points"] += match_opponent_points
 
                     # Add match details
-                    court = match.get("court", "")
-                    try:
-                        court_num = (
-                            int(court)
-                            if court and court.strip()
-                            else len(team_matches[team]["matches"]) + 1
-                        )
-                    except (ValueError, TypeError):
+                    # FIXED: Use tenniscores_match_id to determine court number from line number
+                    tenniscores_match_id = match.get("tenniscores_match_id", "")
+                    court_num = None
+                    
+                    if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                        # Extract court number from tenniscores_match_id (e.g., "12345_Line2_Line2" -> 2)
+                        # Handle duplicate _Line pattern by taking the last occurrence
+                        line_parts = tenniscores_match_id.split("_Line")
+                        if len(line_parts) > 1:
+                            line_part = line_parts[-1]  # Take the last part
+                            try:
+                                court_num = int(line_part)
+                            except ValueError:
+                                # Fallback to database ID order if parsing fails
+                                court_num = len(team_matches[team]["matches"]) + 1
+                        else:
+                            # Fallback to database ID order if no line number found
+                            court_num = len(team_matches[team]["matches"]) + 1
+                    else:
+                        # Fallback to database ID order if no tenniscores_match_id
                         court_num = len(team_matches[team]["matches"]) + 1
 
                     # Resolve player IDs to readable names
@@ -3704,7 +3742,12 @@ def get_mobile_team_data(user):
         print(f"[DEBUG] My-team: Found {len(team_matches)} team matches")
 
         # Calculate team analysis
-        team_analysis = calculate_team_analysis_mobile(team_stats, team_matches, team_name)
+        team_analysis = calculate_team_analysis_mobile(team_stats, team_matches, team_name, league_id_int, team_id)
+
+        # Get team members/roster with court stats
+        from app.routes.mobile_routes import get_team_members_with_court_stats
+        team_members = get_team_members_with_court_stats(team_id, user)
+        print(f"[DEBUG] My-team: Found {len(team_members)} team members for team_id={team_id}")
 
         # Transform to match template expectations
         overview = team_analysis.get("overview", {})
@@ -3730,11 +3773,103 @@ def get_mobile_team_data(user):
             "team": team_name
         }
 
+        # Convert team members to top_players format for template
+        top_players = []
+        for member in team_members:
+            # Calculate win rate for this player
+            player_matches = member.get("match_count", 0)
+            player_wins = 0
+            player_losses = 0
+            
+            # Get player's match history to calculate wins/losses
+            if player_matches > 0:
+                player_id = member.get("tenniscores_player_id")
+                player_matches_query = """
+                    SELECT 
+                        CASE 
+                            WHEN (home_player_1_id = %s OR home_player_2_id = %s) AND winner = 'home' THEN 1
+                            WHEN (away_player_1_id = %s OR away_player_2_id = %s) AND winner = 'away' THEN 1
+                            ELSE 0
+                        END as won
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    AND league_id = %s
+                    AND (home_team = %s OR away_team = %s)
+                """
+                player_results = execute_query(player_matches_query, [
+                    player_id, player_id, player_id, player_id,
+                    player_id, player_id, player_id, player_id,
+                    league_id_int, team_name, team_name
+                ])
+                
+                for result in player_results:
+                    if result["won"] == 1:
+                        player_wins += 1
+                    else:
+                        player_losses += 1
+            
+            win_rate = round((player_wins / (player_wins + player_losses)) * 100, 1) if (player_wins + player_losses) > 0 else 0
+            
+            player_data = {
+                "name": member.get("name", ""),
+                "matches": player_matches,
+                "winRate": win_rate,
+                "best_partner": "N/A",  # Could be calculated if needed
+                "is_substitute": member.get("is_substitute", False)
+            }
+            top_players.append(player_data)
+
+        # Get last 3 team matches for the template
+        last_3_matches_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                home_team as "Home Team",
+                away_team as "Away Team",
+                winner as "Winner",
+                scores as "Scores",
+                home_player_1_id as "Home Player 1",
+                home_player_2_id as "Home Player 2",
+                away_player_1_id as "Away Player 1",
+                away_player_2_id as "Away Player 2"
+            FROM match_scores
+            WHERE (home_team = %s OR away_team = %s)
+            AND league_id = %s
+            ORDER BY match_date DESC
+            LIMIT 3
+        """
+        last_3_matches = execute_query(last_3_matches_query, [team_name, team_name, league_id_int])
+        
+        # Format matches for template
+        formatted_matches = []
+        for match in last_3_matches:
+            is_home = match.get("Home Team") == team_name
+            opponent = match.get("Away Team") if is_home else match.get("Home Team")
+            winner = match.get("Winner", "")
+            winner_is_home = winner and winner.lower() == "home"
+            team_won = (is_home and winner_is_home) or (not is_home and not winner_is_home)
+            
+            # Get player names
+            home_player_1 = get_player_name_from_id(match.get("Home Player 1", ""))
+            home_player_2 = get_player_name_from_id(match.get("Home Player 2", ""))
+            away_player_1 = get_player_name_from_id(match.get("Away Player 1", ""))
+            away_player_2 = get_player_name_from_id(match.get("Away Player 2", ""))
+            
+            formatted_match = {
+                "date": match.get("Date", ""),
+                "opponent": opponent,
+                "result": "W" if team_won else "L",
+                "scores": match.get("Scores", ""),
+                "home_players": f"{home_player_1 or 'Unknown'} & {home_player_2 or 'Unknown'}",
+                "away_players": f"{away_player_1 or 'Unknown'} & {away_player_2 or 'Unknown'}"
+            }
+            formatted_matches.append(formatted_match)
+        
         # Return in the expected structure for the route
         return {
             "team_data": team_data_formatted,
             "court_analysis": team_analysis.get("court_analysis", {}),
-            "top_players": team_analysis.get("top_players", []),
+            "top_players": top_players,
+            "team_matches": formatted_matches,
             "strength_of_schedule": {},  # This would come from a separate function if needed
             "error": None,
         }
@@ -3938,7 +4073,7 @@ def get_teams_players_data(user, team_id=None):
 
         # Calculate team analysis
         team_analysis_data = calculate_team_analysis_mobile(
-            team_stats, team_matches, selected_team
+            team_stats, team_matches, selected_team, league_id_int, team_id
         )
 
         return {
@@ -3975,6 +4110,10 @@ def transform_team_stats_to_overview_mobile(stats):
             "set_win_rate": 0.0,
             "game_win_rate": 0.0,
         }
+
+    # Handle case where stats is a list (from database query)
+    if isinstance(stats, list) and len(stats) > 0:
+        stats = stats[0]  # Take the first item from the list
 
     # Handle both nested structure (legacy) and flat structure (database)
     if "matches" in stats and isinstance(stats["matches"], dict):
@@ -4041,7 +4180,7 @@ def transform_team_stats_to_overview_mobile(stats):
     return overview
 
 
-def calculate_team_analysis_mobile(team_stats, team_matches, team):
+def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int, team_id=None):
     """Calculate comprehensive team analysis for mobile interface"""
     try:
         # Use the same transformation as desktop for correct stats
@@ -4117,10 +4256,10 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 team_dates.append(parsed_date.date())
 
         court_analysis = {}
-        if team_dates:
-            # Get all matches on those dates to determine correct court assignments
-            all_matches_on_dates = execute_query(
-                """
+        if team_matches:
+            # Get all matches for the team with tenniscores_match_id to determine court assignments
+            # Use team_id filtering to get all matches for the team
+            all_matches_query = """
                 SELECT 
                     TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                     ms.match_date,
@@ -4131,60 +4270,42 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     ms.home_player_1_id as "Home Player 1",
                     ms.home_player_2_id as "Home Player 2",
                     ms.away_player_1_id as "Away Player 1",
-                    ms.away_player_2_id as "Away Player 2"
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.tenniscores_match_id
                 FROM match_scores ms
-                WHERE ms.match_date = ANY(%s)
+                WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
                 ORDER BY ms.match_date ASC, ms.id ASC
-            """,
-                (team_dates,),
-            )
-
-            # Group matches by date and team matchup
-            matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
-            for match in all_matches_on_dates:
-                date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-                matches_by_date_and_teams[date][team_matchup].append(match)
-
-            # Initialize court stats for 4 courts
-            for i in range(1, 5):
+            """
+            all_matches = execute_query(all_matches_query, [team_id, team_id])
+            
+            # Find maximum court number from tenniscores_match_id suffixes
+            max_court = 0
+            for match in all_matches:
+                match_id = match.get("tenniscores_match_id", "")
+                if "_Line" in match_id:
+                    try:
+                        court_num = int(match_id.split("_Line")[1])
+                        max_court = max(max_court, court_num)
+                    except (ValueError, IndexError):
+                        continue
+            
+            # Use the maximum court number found, but cap at 6 for safety
+            max_court = min(max_court, 6)
+            
+            for i in range(1, max_court + 1):
                 court_name = f"court{i}"  # Template expects "court1", "court2", etc.
                 court_matches = []
 
-                # Find matches for this court using correct logic
-                for match in team_matches:
-                    match_date = match.get("Date")
-                    home_team = match.get("Home Team", "")
-                    away_team = match.get("Away Team", "")
-                    team_matchup = f"{home_team} vs {away_team}"
-
-                    # Find this specific match in the grouped data
-                    team_day_matches = matches_by_date_and_teams[match_date][
-                        team_matchup
-                    ]
-                    
-                    # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
-                    # Court assignment is based on database ID order within team matchups
-                    team_day_matches.sort(key=lambda m: m.get("id", 0))
-
-                    # Check if this match is assigned to court i
-                    for j, team_match in enumerate(team_day_matches, 1):
-                        # Match by checking if it's the same match (by players)
-                        if (
-                            match.get("Home Player 1")
-                            == team_match.get("Home Player 1")
-                            and match.get("Home Player 2")
-                            == team_match.get("Home Player 2")
-                            and match.get("Away Player 1")
-                            == team_match.get("Away Player 1")
-                            and match.get("Away Player 2")
-                            == team_match.get("Away Player 2")
-                        ):
-                            if j == i:  # This match belongs to court i
+                # Find matches for this court using tenniscores_match_id
+                for match in all_matches:
+                    match_id = match.get("tenniscores_match_id", "")
+                    if "_Line" in match_id:
+                        try:
+                            court_num = int(match_id.split("_Line")[1])
+                            if court_num == i:  # This match belongs to court i
                                 court_matches.append(match)
-                            break
+                        except (ValueError, IndexError):
+                            continue
 
                 wins = losses = 0
                 player_win_counts = {}
@@ -4193,20 +4314,35 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     is_home = match.get("Home Team") == team
                     winner = match.get("Winner", "")
                     winner_is_home = winner and winner.lower() == "home"
-                    team_won = (is_home and winner_is_home) or (
-                        not is_home and not winner_is_home
-                    )
+                    
+                    # NSTF league has reversed team assignments - need to reverse win/loss logic too
+                    if league_id_int == 4933:
+                        # For NSTF: if we're using away players when is_home=True, then we need to reverse the win logic
+                        team_won = (is_home and not winner_is_home) or (not is_home and winner_is_home)
+                    else:
+                        # Standard logic for other leagues (APTA, etc.)
+                        team_won = (is_home and winner_is_home) or (not is_home and not winner_is_home)
 
                     if team_won:
                         wins += 1
                     else:
                         losses += 1
 
-                    players = (
-                        [match.get("Home Player 1"), match.get("Home Player 2")]
-                        if is_home
-                        else [match.get("Away Player 1"), match.get("Away Player 2")]
-                    )
+                    # NSTF league has reversed team assignments - home players are from opposing team
+                    # Apply reversed logic only for NSTF league (league_id = 4933)
+                    if league_id_int == 4933:
+                        players = (
+                            [match.get("Away Player 1"), match.get("Away Player 2")]
+                            if is_home
+                            else [match.get("Home Player 1"), match.get("Home Player 2")]
+                        )
+                    else:
+                        # Standard logic for other leagues (APTA, etc.)
+                        players = (
+                            [match.get("Home Player 1"), match.get("Home Player 2")]
+                            if is_home
+                            else [match.get("Away Player 1"), match.get("Away Player 2")]
+                        )
                     
                     # Get the team ID for this match to check for substitutes
                     match_team_id = match.get("Home Team") if is_home else match.get("Away Team")
@@ -4214,6 +4350,22 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     for p in players:
                         if not p:
                             continue
+                        
+                        # Only include players who belong to the same team_id as the logged-in user
+                        if team_id:
+                            player_team_query = """
+                                SELECT p.team_id 
+                                FROM players p 
+                                WHERE p.tenniscores_player_id = %s 
+                                AND p.team_id = %s
+                                AND p.is_active = TRUE
+                            """
+                            player_team_result = execute_query(player_team_query, [p, team_id])
+                            
+                            # Only include players from the specific team_id
+                            if not player_team_result:
+                                continue
+                        
                         if p not in player_win_counts:
                             player_win_counts[p] = {"matches": 0, "wins": 0, "is_substitute": False}
                         
@@ -4287,8 +4439,29 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
             lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
         )
 
-        if team_dates:
-            for match in team_matches:
+        if team_matches:
+            # Get all matches with tenniscores_match_id for court assignment
+            all_matches_with_id = execute_query(
+                """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.winner as "Winner",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                WHERE (ms.home_team = %s OR ms.away_team = %s)
+                AND ms.league_id = %s
+                ORDER BY ms.match_date ASC, ms.id ASC
+            """,
+                [team, team, league_id_int],
+            )
+
+            for match in all_matches_with_id:
                 is_home = match.get("Home Team") == team
                 player1 = (
                     match.get("Home Player 1")
@@ -4306,33 +4479,14 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     not is_home and not winner_is_home
                 )
 
-                # Determine correct court assignment for this match
-                match_date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-
-                team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
-                
-                # CRITICAL FIX: Sort by database ID to ensure consistent court assignment
-                # Court assignment is based on database ID order within team matchups
-                team_day_matches.sort(key=lambda m: m.get("id", 0))
-                
+                # Determine court assignment from tenniscores_match_id
+                match_id = match.get("tenniscores_match_id", "")
                 court_num = None
-
-                # Find the position of this match within the team's matches
-                for i, team_match in enumerate(team_day_matches, 1):
-                    if (
-                        match.get("Home Player 1") == team_match.get("Home Player 1")
-                        and match.get("Home Player 2")
-                        == team_match.get("Home Player 2")
-                        and match.get("Away Player 1")
-                        == team_match.get("Away Player 1")
-                        and match.get("Away Player 2")
-                        == team_match.get("Away Player 2")
-                    ):
-                        court_num = min(i, 4)  # Cap at 4 courts
-                        break
+                if "_Line" in match_id:
+                    try:
+                        court_num = int(match_id.split("_Line")[1])
+                    except (ValueError, IndexError):
+                        continue
 
                 if court_num is None:
                     continue  # Skip if court can't be determined
@@ -5536,7 +5690,7 @@ def is_substitute_player(player_id, match_team_id, user_league_id=None):
     
     Args:
         player_id: The player's tenniscores_player_id
-        match_team_id: The team ID they're playing for in this match
+        match_team_id: The team ID or team name they're playing for in this match
         user_league_id: Optional league ID for context
         
     Returns:
@@ -5558,6 +5712,19 @@ def is_substitute_player(player_id, match_team_id, user_league_id=None):
             return False
             
         primary_team_id = player_record.get('team_id')
+        
+        # Handle case where match_team_id is a team name (string) instead of team ID (integer)
+        if isinstance(match_team_id, str):
+            # Look up the team ID from the team name
+            team_lookup_query = """
+                SELECT id FROM teams WHERE team_name = %s
+            """
+            team_record = execute_query_one(team_lookup_query, (match_team_id,))
+            if team_record:
+                match_team_id = team_record.get('id')
+            else:
+                # If we can't find the team, assume not a substitute
+                return False
         
         # If they're playing for a different team than their primary team, they're a substitute
         return primary_team_id != match_team_id

@@ -314,33 +314,38 @@
             </div>
             
             <div class="p-6">
-                <!-- Loading State -->
-                <div id="teamLast3MatchesLoading" class="text-center py-8">
-                    <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
-                    <p class="text-gray-500 text-sm">Loading recent team matches...</p>
-                </div>
-                
-                <!-- Error State -->
-                <div id="teamLast3MatchesError" class="text-center py-8 hidden">
-                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                {% if team_matches %}
+                    <div class="space-y-4">
+                        {% for match in team_matches %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-gray-700">{{ match.date }}</span>
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if match.result == 'W' %}bg-green-100 text-green-700
+                                        {% else %}bg-red-100 text-red-700{% endif %}">
+                                        {{ match.result }}
+                                    </span>
+                                </div>
+                                <span class="text-sm text-gray-600">vs {{ match.opponent }}</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mb-2">{{ match.scores }}</div>
+                            <div class="text-xs text-gray-500">
+                                <div>Home: {{ match.home_players }}</div>
+                                <div>Away: {{ match.away_players }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <p class="text-red-700 text-sm">Unable to load recent team matches</p>
-                </div>
-                
-                <!-- No Matches State -->
-                <div id="teamLast3MatchesEmpty" class="text-center py-8 hidden">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+                {% else %}
+                    <div class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Team Matches</h3>
+                        <p class="text-gray-500">No team match data available yet</p>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Team Matches</h3>
-                    <p class="text-gray-500">No team match data available yet</p>
-                </div>
-                
-                <!-- Matches List -->
-                <div id="teamLast3MatchesList" class="space-y-4 hidden">
-                    <!-- Matches will be populated by JavaScript -->
-                </div>
+                {% endif %}
             </div>
         </div>
 

@@ -10,7 +10,7 @@ echo "=========================="
 echo ""
 
 # Configuration
-TEST_DB_NAME="rally_test"
+TEST_DB_NAME="rally"
 TEST_DB_USER="postgres"
 TEST_DB_HOST="localhost"
 TEST_DB_PORT="5432"

@@ -1639,7 +1639,7 @@ def run_alembic_migration():
                 if "c28892a55e1d" in current_output:
                     results["migration_steps"].append("✅ Already at latest revision - checking tables...")
                     
-                    # Verify tables exist
+                 # Verify tables exist
                     from database_utils import execute_query_one
                     
                     saved_lineups_check = execute_query_one("""

@@ -232,11 +232,17 @@ class MatchScoresETL:
             base_match_id = record.get("match_id", "").strip()
             line = record.get("Line", "").strip()
             
-            if base_match_id and line:
-                line_number = line.replace(" ", "")  # "Line 1" -> "Line1"
-                tenniscores_match_id = f"{base_match_id}_{line_number}"
-            else:
+            # Use the match_id directly if it already contains the line information
+            # The JSON data already has the correct format like "nndz-WWlHNnc3djZnQT09_Line4"
+            if base_match_id:
                 tenniscores_match_id = base_match_id
+            else:
+                # Fallback: construct from base and line if match_id is missing
+                if line:
+                    line_number = line.replace(" ", "")  # "Line 1" -> "Line1"
+                    tenniscores_match_id = f"unknown_{line_number}"
+                else:
+                    tenniscores_match_id = "unknown"
 
             # Use cached lookups
             league_db_id = league_cache.get(league_id)
