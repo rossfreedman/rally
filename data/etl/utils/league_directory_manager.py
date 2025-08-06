@@ -26,11 +26,11 @@ LEAGUE_DIRECTORY_MAPPING = {
     # NSTF variants
     "nstf": "NSTF",
     
-    # CNSWPL variants  
+    # CNSWPL variants
     "cnswpl": "CNSWPL",
+    "cns": "CNSWPL",
     
-    # CITA variants
-    "cita": "CITA",
+
 }
 
 # Reverse mapping for lookups
@@ -38,7 +38,8 @@ DIRECTORY_TO_SUBDOMAIN = {
     "APTA_CHICAGO": "aptachicago",
     "NSTF": "nstf", 
     "CNSWPL": "cnswpl",
-    "CITA": "cita"
+
+
 }
 
 class LeagueDirectoryManager:
@@ -320,7 +321,7 @@ if __name__ == "__main__":
     manager = LeagueDirectoryManager()
     
     # Test standardization
-    test_inputs = ["aptachicago", "APTACHICAGO", "apta", "nstf", "NSTF", "cnswpl"]
+    test_inputs = ["aptachicago", "APTACHICAGO", "apta", "nstf", "NSTF"]
     
     print("\n📁 Directory Standardization:")
     for test_input in test_inputs:

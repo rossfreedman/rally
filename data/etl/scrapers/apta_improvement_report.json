@@ -1,0 +1,283 @@
+{
+  "timestamp": "2025-08-06T11:44:35.707018",
+  "failure_analysis": {
+    "total_strategies": 5,
+    "failure_patterns": {
+      "Human-like delays": {
+        "count": 1,
+        "errors": [
+          "No error info"
+        ],
+        "status_codes": [
+          "Unknown"
+        ],
+        "content_lengths": [
+          0
+        ]
+      },
+      "Random delays": {
+        "count": 1,
+        "errors": [
+          "No error info"
+        ],
+        "status_codes": [
+          "Unknown"
+        ],
+        "content_lengths": [
+          0
+        ]
+      },
+      "Consistent delays": {
+        "count": 1,
+        "errors": [
+          "No error info"
+        ],
+        "status_codes": [
+          "Unknown"
+        ],
+        "content_lengths": [
+          0
+        ]
+      },
+      "No delays": {
+        "count": 1,
+        "errors": [
+          "No error info"
+        ],
+        "status_codes": [
+          "Unknown"
+        ],
+        "content_lengths": [
+          0
+        ]
+      },
+      "Unknown": {
+        "count": 1,
+        "errors": [
+          "No error info"
+        ],
+        "status_codes": [
+          200
+        ],
+        "content_lengths": [
+          36602
+        ]
+      }
+    }
+  },
+  "improved_strategies": {
+    "total_tested": 4,
+    "successful": 4,
+    "results": [
+      {
+        "strategy": "Ultra-Minimal Headers",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602,
+        "headers": {
+          "Date": "Wed, 06 Aug 2025 16:42:54 GMT",
+          "Server": "Apache",
+          "Expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "Vary": "Accept-Encoding",
+          "Content-Encoding": "gzip",
+          "Content-Length": "6888",
+          "Keep-Alive": "timeout=2, max=99",
+          "Connection": "Keep-Alive",
+          "Content-Type": "text/html; charset=UTF-8"
+        },
+        "captcha_indicators": [
+          "captcha",
+          "recaptcha"
+        ],
+        "block_indicators": []
+      },
+      {
+        "strategy": "Google Referrer Strategy",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602,
+        "headers": {
+          "Date": "Wed, 06 Aug 2025 16:42:57 GMT",
+          "Server": "Apache",
+          "Expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "Vary": "Accept-Encoding",
+          "Content-Encoding": "gzip",
+          "Content-Length": "6888",
+          "Keep-Alive": "timeout=2, max=99",
+          "Connection": "Keep-Alive",
+          "Content-Type": "text/html; charset=UTF-8"
+        },
+        "captcha_indicators": [
+          "captcha",
+          "recaptcha"
+        ],
+        "block_indicators": []
+      },
+      {
+        "strategy": "Direct Browser Simulation",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602,
+        "headers": {
+          "Date": "Wed, 06 Aug 2025 16:43:00 GMT",
+          "Server": "Apache",
+          "Expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "Vary": "Accept-Encoding",
+          "Content-Encoding": "gzip",
+          "Content-Length": "6888",
+          "Keep-Alive": "timeout=2, max=99",
+          "Connection": "Keep-Alive",
+          "Content-Type": "text/html; charset=UTF-8"
+        },
+        "captcha_indicators": [
+          "captcha",
+          "recaptcha"
+        ],
+        "block_indicators": []
+      },
+      {
+        "strategy": "Session-Based Strategy",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602,
+        "headers": {
+          "Date": "Wed, 06 Aug 2025 16:43:04 GMT",
+          "Server": "Apache",
+          "Expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+          "Vary": "Accept-Encoding",
+          "Content-Encoding": "gzip",
+          "Content-Length": "6888",
+          "Keep-Alive": "timeout=2, max=99",
+          "Connection": "Keep-Alive",
+          "Content-Type": "text/html; charset=UTF-8"
+        },
+        "captcha_indicators": [
+          "captcha",
+          "recaptcha"
+        ],
+        "block_indicators": []
+      }
+    ]
+  },
+  "proxy_optimization": {
+    "total_proxies": 10,
+    "successful_proxies": 10,
+    "success_rate": 100.0,
+    "results": [
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      },
+      {
+        "proxy": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+        "success": true,
+        "status_code": 200,
+        "content_length": 36602
+      }
+    ]
+  },
+  "timing_optimization": {
+    "strategies_tested": 5,
+    "best_strategy": {
+      "strategy": "No delay",
+      "success_rate": 100.0,
+      "success_count": 5,
+      "total_requests": 5
+    },
+    "results": [
+      {
+        "strategy": "No delay",
+        "success_rate": 100.0,
+        "success_count": 5,
+        "total_requests": 5
+      },
+      {
+        "strategy": "Short delay",
+        "success_rate": 100.0,
+        "success_count": 5,
+        "total_requests": 5
+      },
+      {
+        "strategy": "Medium delay",
+        "success_rate": 100.0,
+        "success_count": 5,
+        "total_requests": 5
+      },
+      {
+        "strategy": "Long delay",
+        "success_rate": 100.0,
+        "success_count": 5,
+        "total_requests": 5
+      },
+      {
+        "strategy": "Random delay",
+        "success_rate": 0.0,
+        "success_count": 0,
+        "total_requests": 5
+      }
+    ]
+  },
+  "recommendations": [
+    "Use improved header strategies for higher success rates",
+    "Proxy optimization is effective - use APTA-tested proxies",
+    "Use No delay timing strategy"
+  ]
+}

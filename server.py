@@ -1155,7 +1155,7 @@ def fix_series_dropdown():
         
         # List of series that should NOT be in APTA Chicago dropdown
         invalid_series_patterns = [
-            'Division %',           # Division series (belong to CNSWPL)
+            'Division %',           # Division series
             'Chicago Chicago',      # Duplicate/invalid entry
             'Legends',              # Invalid entry
             'SA',                   # Invalid entry  

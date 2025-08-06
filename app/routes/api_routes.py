@@ -634,6 +634,457 @@ def get_team_last_3_matches():
         return jsonify({"error": "Failed to retrieve team matches"}), 500
 
 
+@api_bp.route("/api/current-season-matches")
+@login_required
+def get_current_season_matches():
+    """Get current season matches for the logged-in user"""
+    try:
+        user = session["user"]
+        player_id = user.get("tenniscores_player_id")
+        
+        if not player_id:
+            print(f"[DEBUG] API: No player ID found")
+            return jsonify({"error": "Player ID not found"}), 404
+
+        # Get user's league for filtering
+        user_league_id = user.get("league_id", "")
+        print(f"[DEBUG] API: User league ID: {user_league_id}")
+
+        # Convert league_id to integer if it's a string
+        league_id_int = None
+        if user_league_id and str(user_league_id).isdigit():
+            league_id_int = int(user_league_id)
+            print(f"[DEBUG] API: Converted league ID to int: {league_id_int}")
+        else:
+            print(f"[DEBUG] API: Could not convert league ID to int")
+
+        # Calculate current season boundaries (same as mobile_service.py)
+        from datetime import datetime
+        season_start = datetime(2024, 8, 1)  # August 1st, 2024
+        season_end = datetime(2026, 7, 31)   # July 31st, 2026
+
+        # Use individual player query logic for analyze-me page (individual player analysis)
+        print(f"[DEBUG] API: Using individual player query for analyze-me page")
+        
+        if league_id_int:
+            matches_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.match_date,
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.winner as "Winner",
+                    ms.scores as "Scores",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.id,
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                AND ms.league_id = %s
+                AND ms.match_date >= %s AND ms.match_date <= %s
+                ORDER BY ms.match_date DESC, ms.id DESC
+            """
+            print(f"[DEBUG] API: Executing individual player query with params: {[player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]}")
+            matches = execute_query(
+                matches_query,
+                [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end],
+            )
+            print(f"[DEBUG] API: Individual player query executed, found {len(matches) if matches else 0} matches")
+        else:
+            print(f"[DEBUG] API: Using fallback query without league_id")
+            matches_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.match_date,
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.winner as "Winner",
+                    ms.scores as "Scores",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.id,
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                AND ms.match_date >= %s AND ms.match_date <= %s
+                ORDER BY ms.match_date DESC, ms.id DESC
+            """
+            matches = execute_query(
+                matches_query, [player_id, player_id, player_id, player_id, season_start, season_end]
+            )
+            print(f"[DEBUG] API: Fallback query executed, found {len(matches) if matches else 0} matches")
+
+        if not matches:
+            return jsonify({"matches": [], "message": "No current season matches found"})
+
+        # Process matches to get player names and format data for modal
+        processed_matches = []
+        
+        for match in matches:
+            # Determine if player was home or away
+            is_home = (
+                match.get("Home Player 1") == player_id or 
+                match.get("Home Player 2") == player_id
+            )
+            
+            # Determine if player won
+            player_won = (
+                (is_home and match.get("Winner") == "home") or
+                (not is_home and match.get("Winner") == "away")
+            )
+            
+            # Get partner name
+            partner_id = None
+            if is_home:
+                if match.get("Home Player 1") == player_id:
+                    partner_id = match.get("Home Player 2")
+                else:
+                    partner_id = match.get("Home Player 1")
+            else:
+                if match.get("Away Player 1") == player_id:
+                    partner_id = match.get("Away Player 2")
+                else:
+                    partner_id = match.get("Away Player 1")
+            
+            partner_name = "No Partner"
+            if partner_id and partner_id != player_id:
+                try:
+                    partner_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                    partner_record = execute_query_one(partner_query, [partner_id])
+                    if partner_record:
+                        partner_name = partner_record["full_name"]
+                except Exception:
+                    partner_name = "Unknown Partner"
+            
+            # Get opponent names
+            opponent1_id = match.get("Away Player 1") if is_home else match.get("Home Player 1")
+            opponent2_id = match.get("Away Player 2") if is_home else match.get("Home Player 2")
+            
+            opponent1_name = "Unknown"
+            opponent2_name = "Unknown"
+            
+            if opponent1_id:
+                try:
+                    opponent1_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                    opponent1_record = execute_query_one(opponent1_query, [opponent1_id])
+                    if opponent1_record:
+                        opponent1_name = opponent1_record["full_name"]
+                except Exception:
+                    pass
+            
+            if opponent2_id and opponent2_id != opponent1_id:
+                try:
+                    opponent2_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                    opponent2_record = execute_query_one(opponent2_query, [opponent2_id])
+                    if opponent2_record:
+                        opponent2_name = opponent2_record["full_name"]
+                except Exception:
+                    pass
+            
+            # Format scores for modal display
+            raw_scores = match.get("Scores", "")
+            formatted_scores = raw_scores
+            if raw_scores:
+                try:
+                    # Split by sets (comma-separated)
+                    scores = raw_scores.split(", ")
+                    formatted_scores = " | ".join(scores)
+                except Exception:
+                    pass
+
+            # Determine court/line number using the same logic as court analysis
+            court_number = None
+            
+            # First, try to get court from tenniscores_match_id (same as court analysis)
+            match_id = match.get("tenniscores_match_id", "")
+            if match_id and "_Line" in match_id:
+                try:
+                    court_number = int(match_id.split("_Line")[1])
+                except (ValueError, IndexError):
+                    pass
+            
+            # If no court from tenniscores_match_id, skip this match (same as court analysis)
+            if court_number is None:
+                continue
+
+            processed_match = {
+                "date": match.get("Date"),
+                "home_team": match.get("Home Team"),
+                "away_team": match.get("Away Team"),
+                "partner_name": partner_name,
+                "opponent1_name": opponent1_name,
+                "opponent2_name": opponent2_name,
+                "court_number": court_number,
+                "player_won": player_won,
+                "scores": formatted_scores,
+                "match_id": match.get("id")
+            }
+            processed_matches.append(processed_match)
+
+        return jsonify({"matches": processed_matches})
+
+    except Exception as e:
+        print(f"Error getting current season matches: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        # More specific error handling
+        if "cursor already closed" in str(e) or "connection" in str(e).lower():
+            return jsonify({"error": "Database connection issue. Please try again."}), 500
+        else:
+            return jsonify({"error": f"Failed to retrieve matches: {str(e)}"}), 500
+
+
+@api_bp.route("/api/team-current-season-matches")
+@login_required
+def get_team_current_season_matches():
+    """Get current season matches for the team (used by my-team page)"""
+    try:
+        user = session["user"]
+        player_id = user.get("tenniscores_player_id")
+        
+        if not player_id:
+            print(f"[DEBUG] API: No player ID found")
+            return jsonify({"error": "Player ID not found"}), 404
+
+        # Get user's league for filtering
+        user_league_id = user.get("league_id", "")
+        print(f"[DEBUG] API: User league ID: {user_league_id}")
+
+        # Convert league_id to integer if it's a string
+        league_id_int = None
+        if user_league_id and str(user_league_id).isdigit():
+            league_id_int = int(user_league_id)
+            print(f"[DEBUG] API: Converted league ID to int: {league_id_int}")
+        else:
+            print(f"[DEBUG] API: Could not convert league ID to int")
+
+        # Calculate current season boundaries (same as mobile_service.py)
+        from datetime import datetime
+        season_start = datetime(2024, 8, 1)  # August 1st, 2024
+        season_end = datetime(2026, 7, 31)   # July 31st, 2026
+
+        # Use team-based query logic for team analysis (my-team page)
+        team_id = user.get("team_id")
+        print(f"[DEBUG] API: Team ID: {team_id}")
+        
+        if team_id and league_id_int:
+            print(f"[DEBUG] API: Using team-based query with team_id: {team_id}")
+            matches_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.match_date,
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.winner as "Winner",
+                    ms.scores as "Scores",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.id,
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+                AND ms.league_id = %s
+                AND ms.match_date >= %s AND ms.match_date <= %s
+                ORDER BY ms.match_date ASC, ms.id ASC
+            """
+            print(f"[DEBUG] API: Executing team-based query with params: {[team_id, team_id, league_id_int, season_start, season_end]}")
+            matches = execute_query(
+                matches_query,
+                [team_id, team_id, league_id_int, season_start, season_end],
+            )
+            print(f"[DEBUG] API: Team-based query executed, found {len(matches) if matches else 0} matches")
+        else:
+            print(f"[DEBUG] API: Team ID or league_id not available")
+            return jsonify({"error": "Team information not available"}), 404
+
+        if not matches:
+            return jsonify({"matches": [], "message": "No current season matches found"})
+
+        # Process matches to get player names and format data for modal
+        processed_matches = []
+        
+        for match in matches:
+            # For team page: show all team matches (no user filtering)
+            # Determine if player was home or away
+            is_home = (
+                match.get("Home Player 1") == player_id or 
+                match.get("Home Player 2") == player_id
+            )
+            
+            # Determine if player won
+            player_won = (
+                (is_home and match.get("Winner") == "home") or
+                (not is_home and match.get("Winner") == "away")
+            )
+            
+            # Determine court number first (same as court analysis)
+            court_number = None
+            match_id = match.get("tenniscores_match_id", "")
+            if match_id and "_Line" in match_id:
+                try:
+                    court_number = int(match_id.split("_Line")[1])
+                except (ValueError, IndexError):
+                    pass
+            
+            # If no court from tenniscores_match_id, skip this match (same as court analysis)
+            if court_number is None:
+                continue
+            
+            # Get all players from the team for this match (like court analysis)
+            # For team page, we need to show all players from the team, not just one partner
+            home_players = [match.get("Home Player 1"), match.get("Home Player 2")]
+            away_players = [match.get("Away Player 1"), match.get("Away Player 2")]
+            
+            # Determine which side the team is on
+            team_is_home = match.get("Home Team") == user.get("team_name")
+            
+            if team_is_home:
+                # Team is home, get home players
+                team_players = home_players
+            else:
+                # Team is away, get away players
+                team_players = away_players
+            
+            # For team modal: show the selected player and their partner
+            # Find the selected player and their partner in this match
+            selected_player_id = None
+            partner_id = None
+            
+            # Get the selected player's name from the session
+            # For team modal, we need to get the selected player from the request parameters
+            selected_player_name = user.get("first_name", "") + " " + user.get("last_name", "")
+            
+            # Check if we have a specific player parameter (for team modal)
+            player_param = request.args.get('player')
+            if player_param:
+                selected_player_name = player_param
+            
+            # Find the selected player and their partner in this match
+            for team_player_id in team_players:
+                if not team_player_id:
+                    continue
+                
+                # Get player name
+                try:
+                    player_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                    player_record = execute_query_one(player_query, [team_player_id])
+                    if player_record:
+                        player_name = player_record["full_name"]
+                        
+                        # If this is the selected player, mark them
+                        if player_name == selected_player_name:
+                            selected_player_id = team_player_id
+                        # If this is not the selected player, they are the partner
+                        elif partner_id is None:
+                            partner_id = team_player_id
+                except Exception:
+                    continue
+            
+            # If we found the selected player but no partner, try to find the partner from the other team player
+            if selected_player_id and partner_id is None:
+                # Look for the other player from the same team
+                for team_player_id in team_players:
+                    if team_player_id and team_player_id != selected_player_id:
+                        partner_id = team_player_id
+                        break
+            
+            # If we found the selected player, create the match record
+            if selected_player_id:
+                # Get partner name
+                partner_name = "Unknown Partner"
+                if partner_id and partner_id != selected_player_id:
+                    try:
+                        partner_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                        partner_record = execute_query_one(partner_query, [partner_id])
+                        if partner_record:
+                            partner_name = partner_record["full_name"]
+                    except Exception:
+                        partner_name = "Unknown Partner"
+                else:
+                    partner_name = "No Partner"
+                
+                # Get opponent names
+                opponent1_id = match.get("Away Player 1") if team_is_home else match.get("Home Player 1")
+                opponent2_id = match.get("Away Player 2") if team_is_home else match.get("Home Player 2")
+                
+                opponent1_name = "Unknown"
+                opponent2_name = "Unknown"
+                
+                if opponent1_id:
+                    try:
+                        opponent1_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                        opponent1_record = execute_query_one(opponent1_query, [opponent1_id])
+                        if opponent1_record:
+                            opponent1_name = opponent1_record["full_name"]
+                    except Exception:
+                        pass
+                
+                if opponent2_id and opponent2_id != opponent1_id:
+                    try:
+                        opponent2_query = "SELECT first_name || ' ' || last_name as full_name FROM players WHERE tenniscores_player_id = %s"
+                        opponent2_record = execute_query_one(opponent2_query, [opponent2_id])
+                        if opponent2_record:
+                            opponent2_name = opponent2_record["full_name"]
+                    except Exception:
+                        pass
+                
+                # Format scores for modal display
+                raw_scores = match.get("Scores", "")
+                formatted_scores = raw_scores
+                if raw_scores:
+                    try:
+                        # Split by sets (comma-separated)
+                        scores = raw_scores.split(", ")
+                        formatted_scores = " | ".join(scores)
+                    except Exception:
+                        pass
+                
+                # Determine if player won
+                player_won = (
+                    (team_is_home and match.get("Winner") == "home") or
+                    (not team_is_home and match.get("Winner") == "away")
+                )
+                
+                # Create a match record for this player
+                processed_match = {
+                    "date": match.get("Date"),
+                    "home_team": match.get("Home Team"),
+                    "away_team": match.get("Away Team"),
+                    "partner_name": partner_name,
+                    "opponent1_name": opponent1_name,
+                    "opponent2_name": opponent2_name,
+                    "court_number": court_number,
+                    "player_won": player_won,
+                    "scores": formatted_scores,
+                    "match_id": match.get("id")
+                }
+                processed_matches.append(processed_match)
+            
+            # Skip the original match processing since we've created individual player records above
+            continue
+
+        return jsonify({"matches": processed_matches})
+
+    except Exception as e:
+        print(f"Error getting team current season matches: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        # More specific error handling
+        if "cursor already closed" in str(e) or "connection" in str(e).lower():
+            return jsonify({"error": "Database connection issue. Please try again."}), 500
+        else:
+            return jsonify({"error": f"Failed to retrieve matches: {str(e)}"}), 500
+
+
 @api_bp.route("/api/find-training-video", methods=["POST"])
 def find_training_video():
     """Find training video"""

@@ -1,0 +1,233 @@
+{
+  "timestamp": "20250806_075508",
+  "summary": {
+    "series_id": 21592,
+    "series_name": "Chicago 22",
+    "teams": [
+      {
+        "id": 92089,
+        "team_name": "Birchwood - 22",
+        "club_id": 11983,
+        "league_id": 4930
+      },
+      {
+        "id": 92189,
+        "team_name": "Exmoor - 22",
+        "club_id": 11992,
+        "league_id": 4930
+      },
+      {
+        "id": 92366,
+        "team_name": "Lake Bluff - 22",
+        "club_id": 12011,
+        "league_id": 4930
+      },
+      {
+        "id": 92390,
+        "team_name": "Lake Forest - 22",
+        "club_id": 12012,
+        "league_id": 4930
+      },
+      {
+        "id": 92409,
+        "team_name": "Lake Shore CC - 22",
+        "club_id": 12013,
+        "league_id": 4930
+      },
+      {
+        "id": 92424,
+        "team_name": "Lakeshore S&F - 22",
+        "club_id": 12014,
+        "league_id": 4930
+      },
+      {
+        "id": 92459,
+        "team_name": "Michigan Shores - 22",
+        "club_id": 12020,
+        "league_id": 4930
+      },
+      {
+        "id": 92650,
+        "team_name": "Saddle & Cycle - 22",
+        "club_id": 12043,
+        "league_id": 4930
+      },
+      {
+        "id": 92682,
+        "team_name": "Skokie - 22",
+        "club_id": 12047,
+        "league_id": 4930
+      },
+      {
+        "id": 92755,
+        "team_name": "Tennaqua - 22",
+        "club_id": 12050,
+        "league_id": 4930
+      },
+      {
+        "id": 92794,
+        "team_name": "Valley Lo - 22",
+        "club_id": 12051,
+        "league_id": 4930
+      }
+    ],
+    "series_stats": [
+      {
+        "id": 105099,
+        "team": "Lake Forest - 22",
+        "points": 148,
+        "matches_won": 13,
+        "matches_lost": 4
+      },
+      {
+        "id": 105100,
+        "team": "Valley Lo - 22",
+        "points": 144,
+        "matches_won": 14,
+        "matches_lost": 3
+      },
+      {
+        "id": 105101,
+        "team": "Tennaqua - 22",
+        "points": 131,
+        "matches_won": 11,
+        "matches_lost": 5
+      },
+      {
+        "id": 105102,
+        "team": "Skokie - 22",
+        "points": 123,
+        "matches_won": 10,
+        "matches_lost": 6
+      },
+      {
+        "id": 105103,
+        "team": "Birchwood - 22",
+        "points": 120,
+        "matches_won": 10,
+        "matches_lost": 7
+      },
+      {
+        "id": 105104,
+        "team": "Lakeshore S&F - 22",
+        "points": 107,
+        "matches_won": 6,
+        "matches_lost": 10
+      },
+      {
+        "id": 105105,
+        "team": "Michigan Shores - 22",
+        "points": 106,
+        "matches_won": 7,
+        "matches_lost": 10
+      },
+      {
+        "id": 105106,
+        "team": "Lake Shore CC - 22",
+        "points": 104,
+        "matches_won": 8,
+        "matches_lost": 8
+      },
+      {
+        "id": 105107,
+        "team": "Exmoor - 22",
+        "points": 102,
+        "matches_won": 8,
+        "matches_lost": 8
+      },
+      {
+        "id": 105108,
+        "team": "Lake Bluff - 22",
+        "points": 65,
+        "matches_won": 2,
+        "matches_lost": 14
+      },
+      {
+        "id": 105109,
+        "team": "Saddle & Cycle - 22",
+        "points": 43,
+        "matches_won": 1,
+        "matches_lost": 15
+      },
+      {
+        "id": 105099,
+        "team": "Lake Forest - 22",
+        "points": 148,
+        "matches_won": 13,
+        "matches_lost": 4
+      },
+      {
+        "id": 105100,
+        "team": "Valley Lo - 22",
+        "points": 144,
+        "matches_won": 14,
+        "matches_lost": 3
+      },
+      {
+        "id": 105101,
+        "team": "Tennaqua - 22",
+        "points": 131,
+        "matches_won": 11,
+        "matches_lost": 5
+      },
+      {
+        "id": 105102,
+        "team": "Skokie - 22",
+        "points": 123,
+        "matches_won": 10,
+        "matches_lost": 6
+      },
+      {
+        "id": 105103,
+        "team": "Birchwood - 22",
+        "points": 120,
+        "matches_won": 10,
+        "matches_lost": 7
+      },
+      {
+        "id": 105104,
+        "team": "Lakeshore S&F - 22",
+        "points": 107,
+        "matches_won": 6,
+        "matches_lost": 10
+      },
+      {
+        "id": 105105,
+        "team": "Michigan Shores - 22",
+        "points": 106,
+        "matches_won": 7,
+        "matches_lost": 10
+      },
+      {
+        "id": 105106,
+        "team": "Lake Shore CC - 22",
+        "points": 104,
+        "matches_won": 8,
+        "matches_lost": 8
+      },
+      {
+        "id": 105107,
+        "team": "Exmoor - 22",
+        "points": 102,
+        "matches_won": 8,
+        "matches_lost": 8
+      },
+      {
+        "id": 105108,
+        "team": "Lake Bluff - 22",
+        "points": 65,
+        "matches_won": 2,
+        "matches_lost": 14
+      },
+      {
+        "id": 105109,
+        "team": "Saddle & Cycle - 22",
+        "points": 43,
+        "matches_won": 1,
+        "matches_lost": 15
+      }
+    ],
+    "match_scores": [
+      {
+        "id": 2854665,
+        "match_date": 

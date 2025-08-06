@@ -211,10 +211,10 @@ def show_usage():
     print("  python scripts/manage_series_mappings.py auto-add LEAGUE_ID")
     print("")
     print("Examples:")
-    print("  python scripts/manage_series_mappings.py analyze CITA")
+
     print("  python scripts/manage_series_mappings.py add NSTF 'Series 2B' 'S2B'")
-    print("  python scripts/manage_series_mappings.py list CNSWPL")
-    print("  python scripts/manage_series_mappings.py auto-add CITA")
+
+
 
 
 def main():

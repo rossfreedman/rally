@@ -38,12 +38,8 @@ class LocalLeagueDataSampler:
             "NSTF": os.path.join(
                 self.project_root, "data", "leagues", "NSTF", "players.json"
             ),
-            "CITA": os.path.join(
-                self.project_root, "data", "leagues", "CITA", "players.json"
-            ),
-            "CNSWPL": os.path.join(
-                self.project_root, "data", "leagues", "CNSWPL", "players.json"
-            ),
+
+            
         }
 
         self.valid_players = []
@@ -199,8 +195,8 @@ class LocalLeagueDataSampler:
         league_names = {
             "APTA_CHICAGO": "APTA Chicago",
             "NSTF": "North Shore Tennis Foundation",
-            "CITA": "Connecticut Indoor Tennis Association",
-            "CNSWPL": "Chicago North Shore Women's Platform League",
+    
+    
         }
         return league_names.get(league_id, league_id)
 
@@ -353,7 +349,7 @@ class LocalLeagueDataSampler:
             )
         else:
             # Sample from individual league files
-            individual_leagues = ["APTA_CHICAGO", "NSTF", "CITA", "CNSWPL"]
+            individual_leagues = ["APTA_CHICAGO", "NSTF"]
             print(f"📂 Sampling from individual league files: {individual_leagues}")
 
             for league_key in individual_leagues:

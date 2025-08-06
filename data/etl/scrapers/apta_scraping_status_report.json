@@ -1,0 +1,212 @@
+{
+  "timestamp": "2025-08-06T11:51:25.167993",
+  "summary": {
+    "total_urls_tested": 8,
+    "successful_urls": 1,
+    "failed_urls": 7,
+    "success_rate": 12.5,
+    "tennis_content_found": 1,
+    "captcha_detected": 1,
+    "blocked_urls": 0
+  },
+  "detailed_results": [
+    {
+      "name": "APTA Main Page",
+      "url": "https://apta.tenniscores.com",
+      "description": "Main APTA homepage",
+      "success": true,
+      "status_code": 200,
+      "content_length": 36602,
+      "captcha_indicators": [
+        "captcha",
+        "recaptcha",
+        "challenge"
+      ],
+      "block_indicators": [],
+      "tennis_content": [
+        "tennis",
+        "match",
+        "score",
+        "player"
+      ],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:01 GMT",
+        "Server": "Apache",
+        "Expires": "Thu, 19 Nov 1981 08:52:00 GMT",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+        "Vary": "Accept-Encoding",
+        "Content-Encoding": "gzip",
+        "Content-Length": "6888",
+        "Keep-Alive": "timeout=2, max=99",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=UTF-8"
+      }
+    },
+    {
+      "name": "APTA Series Page (Chicago 22)",
+      "url": "https://apta.tenniscores.com/series/chicago-22",
+      "description": "Specific series page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:04 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Series Page (Chicago 21)",
+      "url": "https://apta.tenniscores.com/series/chicago-21",
+      "description": "Another series page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:07 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Series Page (Chicago 20)",
+      "url": "https://apta.tenniscores.com/series/chicago-20",
+      "description": "Another series page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:10 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Standings",
+      "url": "https://apta.tenniscores.com/standings",
+      "description": "Standings page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:13 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Schedule",
+      "url": "https://apta.tenniscores.com/schedule",
+      "description": "Schedule page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:17 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Players",
+      "url": "https://apta.tenniscores.com/players",
+      "description": "Players page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:20 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    },
+    {
+      "name": "APTA Teams",
+      "url": "https://apta.tenniscores.com/teams",
+      "description": "Teams page",
+      "success": false,
+      "status_code": 404,
+      "content_length": 196,
+      "captcha_indicators": [],
+      "block_indicators": [],
+      "tennis_content": [],
+      "response_headers": {
+        "Date": "Wed, 06 Aug 2025 16:51:23 GMT",
+        "Server": "Apache",
+        "Content-Length": "196",
+        "Keep-Alive": "timeout=2, max=100",
+        "Connection": "Keep-Alive",
+        "Content-Type": "text/html; charset=iso-8859-1"
+      }
+    }
+  ],
+  "requirements_analysis": {
+    "main_page": {
+      "url": "https://apta.tenniscores.com",
+      "purpose": "Extract series links",
+      "required_content": [
+        "series links",
+        "navigation"
+      ]
+    },
+    "series_pages": {
+      "url_pattern": "https://apta.tenniscores.com/series/{series-name}",
+      "purpose": "Extract match data",
+      "required_content": [
+        "match data",
+        "scores",
+        "players"
+      ]
+    },
+    "match_details": {
+      "url_pattern": "https://apta.tenniscores.com/matches/{match-id}",
+      "purpose": "Get detailed match information",
+      "required_content": [
+        "detailed scores",
+        "player stats"
+      ]
+    }
+  },
+  "recommendations": [
+    "Some URLs failed - investigate specific failures",
+    "CAPTCHA detected - implement CAPTCHA solving or alternative strategies",
+    "Tennis content found - scraping should be possible"
+  ]
+}

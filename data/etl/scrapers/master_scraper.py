@@ -167,14 +167,8 @@ class IncrementalScrapingManager:
                 "file": "data/leagues/NSTF/match_history.json", 
                 "site_id": "57045"
             },
-            "CNSWPL": {
-                "file": "data/leagues/CNSWPL/match_history.json",
-                "site_id": "57046"
-            },
-            "CITA": {
-                "file": "data/leagues/CITA/match_history.json",
-                "site_id": "57047"
-            }
+
+
         }
         
         league_dates = {}
@@ -264,14 +258,8 @@ class IncrementalScrapingManager:
                 "url": "https://www.tenniscores.com/league-standings/57045", 
                 "name": "NSTF"
             },
-            "CNSWPL": {
-                "url": "https://www.tenniscores.com/league-standings/57046",
-                "name": "CNSWPL"
-            },
-            "CITA": {
-                "url": "https://www.tenniscores.com/league-standings/57047",
-                "name": "CITA"
-            }
+
+
         }
         
         league_site_dates = {}
@@ -372,7 +360,15 @@ class IncrementalScrapingManager:
         logger.info("🔍 STEP 3: League-by-League Analysis:")
         logger.info("=" * 70)
         
-        for league_name in ["APTA_CHICAGO", "NSTF", "CNSWPL", "CITA"]:
+        # Determine which leagues to analyze based on specified league
+        leagues_to_analyze = ["APTA_CHICAGO", "NSTF"]  # Default: analyze all
+        
+        # If a specific league is provided, only analyze that one
+        if hasattr(self, 'target_league') and self.target_league:
+            leagues_to_analyze = [self.target_league.upper()]
+            logger.info(f"🎯 Analyzing only specified league: {self.target_league}")
+        
+        for league_name in leagues_to_analyze:
             local_date = local_dates_by_league.get(league_name)
             site_date = site_dates_by_league.get(league_name)
             
@@ -857,8 +853,8 @@ class IncrementalScrapingManager:
             league_mapping = {
                 "APTA_CHICAGO": "aptachicago",
                 "NSTF": "nstf", 
-                "CNSWPL": "cnswpl",
-                "CITA": "cita"
+
+
             }
             
             scraper_league_name = league_mapping.get(league_name, league_name.lower())
@@ -876,8 +872,9 @@ class IncrementalScrapingManager:
             if stealth_config:
                 if stealth_config.fast_mode:
                     cmd.append("--fast")
-                if stealth_config.verbose:
-                    cmd.append("--verbose")
+                # Note: scraper is verbose by default, use --quiet to disable
+                if not stealth_config.verbose:
+                    cmd.append("--quiet")
             
             logger.debug(f"🚀 Running league scraper: {' '.join(cmd)}")
             logger.info(f"   🎯 Command: {scraper_league_name} from {start_date} to {end_date}")
@@ -1021,8 +1018,9 @@ class EnhancedMasterScraper:
             # Add other configuration parameters
             if self.config.fast_mode:
                 cmd.append("--fast")
-            if self.config.verbose:
-                cmd.append("--verbose")
+            # Note: scraper is verbose by default, use --quiet to disable
+            if not self.config.verbose:
+                cmd.append("--quiet")
             
             logger.info(f"🚀 Running full scraper: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
@@ -1048,6 +1046,11 @@ class EnhancedMasterScraper:
         logger.info(f"   League: {league_name or 'All'}")
         logger.info(f"   Force Full: {force_full}")
         logger.info(f"   Force Incremental: {force_incremental}")
+        
+        # Set target league for incremental scraping
+        if league_name:
+            self.incremental_manager.target_league = league_name
+            logger.info(f"🎯 Target league set to: {league_name}")
         
         # Send start notification
         send_scraper_notification("[1/4] Master Scraper Starting")

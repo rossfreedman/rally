@@ -31,7 +31,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Import enhanced stealth browser with all features
-from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip
+from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Import notification service
@@ -216,7 +216,7 @@ def build_base_url(subdomain):
 
 def extract_series_name_from_team(team_name):
     """
-    Extract series name from team name, auto-detecting APTA vs NSTF vs CNSWPL format.
+    Extract series name from team name, auto-detecting APTA vs NSTF format.
 
     Args:
         team_name (str): Team name in various formats
@@ -228,8 +228,6 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Series 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -256,12 +254,7 @@ def extract_series_name_from_team(team_name):
     elif "Sunday B" in team_name:
         return "Series B"
 
-    # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
-    elif re.search(r"\s(\d+[a-zA-Z]?)$", team_name):
-        match = re.search(r"\s(\d+[a-zA-Z]?)$", team_name)
-        if match:
-            series_identifier = match.group(1)
-            return f"Series {series_identifier}"
+
 
     # Direct series name (already formatted)
     elif team_name.startswith("Series ") or team_name.startswith("Chicago "):
@@ -317,43 +310,51 @@ def scrape_series_stats(
         return []
 
     stats = []
+    print(f"   🎯 Starting Chrome WebDriver scraping for {series_name}")
 
     for attempt in range(max_retries):
         try:
-            print(f"Navigating to URL: {url} (attempt {attempt + 1}/{max_retries})")
+            print(f"   📄 Navigating to URL: {url} (attempt {attempt + 1}/{max_retries})")
             driver.get(url)
             time.sleep(2)  # Wait for page to load
+            print(f"   ✅ Page loaded successfully")
 
             # Look for and click the "Statistics" link
-            print("Looking for Statistics link...")
+            print(f"   🔍 Looking for Statistics link on {series_name} page...")
             try:
                 stats_link = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.LINK_TEXT, "Statistics"))
                 )
-                print("Found Statistics link, clicking...")
+                print(f"   ✅ Found Statistics link, clicking...")
                 stats_link.click()
                 time.sleep(2)  # Wait for navigation
+                print(f"   ✅ Navigated to Statistics page")
             except TimeoutException:
-                print("Could not find Statistics link")
+                print(f"   ❌ Could not find Statistics link on {series_name}")
                 if attempt < max_retries - 1:
-                    print(f"Retrying in {retry_delay} seconds...")
+                    print(f"   ⏳ Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                     continue
                 else:
-                    print("Max retries reached, could not find Statistics link")
+                    print(f"   🚨 Max retries reached, could not find Statistics link for {series_name}")
                     return []
 
             # Parse the page with BeautifulSoup
+            print(f"   🔍 Parsing HTML content for {series_name}...")
             soup = BeautifulSoup(driver.page_source, "html.parser")
 
             # Find the standings table - try multiple class names for flexibility
+            print(f"   📊 Looking for standings table in {series_name}...")
             table = soup.find("table", class_="standings-table2")
             if not table:
+                print(f"   🔄 Trying alternative table class 'short-standings'...")
                 # Try alternative table class names
                 table = soup.find("table", class_="short-standings")
             if not table:
+                print(f"   🔄 Trying to find any table with standings data...")
                 # Try finding any table that might contain standings
                 tables = soup.find_all("table")
+                print(f"   📋 Found {len(tables)} tables on page")
                 for t in tables:
                     # Look for tables with typical standings headers
                     headers = t.find_all("th") or t.find_all("td")
@@ -370,21 +371,23 @@ def scrape_series_stats(
                         ]
                     ):
                         table = t
-                        print(f"   Found alternative standings table")
+                        print(f"   ✅ Found alternative standings table with headers: {header_text[:50]}...")
                         break
 
             if not table:
-                print("Could not find standings table with any known format")
+                print(f"   ❌ Could not find standings table with any known format for {series_name}")
                 if attempt < max_retries - 1:
-                    print(f"Retrying in {retry_delay} seconds...")
+                    print(f"   ⏳ Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                     continue
                 else:
-                    print("Max retries reached, could not find standings table")
+                    print(f"   🚨 Max retries reached, could not find standings table for {series_name}")
                     return []
 
             # Process each team row
-            for row in table.find_all("tr")[2:]:  # Skip header rows
+            print(f"   📊 Processing team rows in {series_name} standings table...")
+            team_count = 0
+            for row_idx, row in enumerate(table.find_all("tr")[2:], 1):  # Skip header rows
                 cols = row.find_all("td")
                 # Be flexible with column count - different leagues have different table structures
                 # Minimum 10 columns needed for basic team stats
@@ -393,7 +396,7 @@ def scrape_series_stats(
 
                     # Skip BYE teams - they are placeholders with no actual players
                     if "BYE" in team_name.upper():
-                        print(f"   Skipping BYE team: {team_name}")
+                        print(f"   ⏸️  Skipping BYE team: {team_name}")
                         continue
 
                     # Defensive programming: handle potential parsing errors and variable column counts
@@ -440,24 +443,26 @@ def scrape_series_stats(
                             },
                         }
                         stats.append(team_stats)
+                        team_count += 1
+                        print(f"   ✅ Processed team {team_count}: {team_name} (Points: {safe_col_int(1)}, W/L: {safe_col_int(2)}/{safe_col_int(3)})")
                     except (ValueError, IndexError) as e:
                         print(
-                            f"   ⚠️  Error parsing team stats for {team_name}: {str(e)}"
+                            f"   ⚠️  Error parsing team stats for row {row_idx}: {str(e)}"
                         )
                         continue
 
-            print(f"Successfully scraped stats for {len(stats)} teams in {series_name}")
+            print(f"   🎉 Successfully scraped stats for {team_count} teams in {series_name}")
             break  # Success, exit retry loop
 
         except Exception as e:
             print(
-                f"Error scraping stats (attempt {attempt + 1}/{max_retries}): {str(e)}"
+                f"   ❌ Error scraping stats for {series_name} (attempt {attempt + 1}/{max_retries}): {str(e)}"
             )
             if attempt < max_retries - 1:
-                print(f"Retrying in {retry_delay} seconds...")
+                print(f"   ⏳ Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
             else:
-                print("Max retries reached, could not scrape stats")
+                print(f"   🚨 Max retries reached, could not scrape stats for {series_name}")
                 return []
 
     return stats
@@ -478,33 +483,35 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
         list: List of team statistics dictionaries
     """
     stats = []
+    print(f"   🌐 Starting HTTP API scraping for {series_name}")
 
     for attempt in range(max_retries):
         try:
             print(
-                f"   📡 ScraperAPI HTTP Fallback: Fetching {url} (attempt {attempt + 1}/{max_retries})"
+                f"   📡 HTTP API: Fetching {url} (attempt {attempt + 1}/{max_retries})"
             )
 
-            # Use Decodo HTTP API with US IP forcing and validation
-            from data.etl.scrapers.stealth_browser import make_decodo_request
+            # Use proxy manager for HTTP requests
+            from data.etl.scrapers.proxy_manager import make_proxy_request
             
-            response = make_decodo_request(url, session_id=None, timeout=30)
+            response = make_proxy_request(url, timeout=30)
             if not response:
-                print("   ❌ Decodo request failed, falling back to direct request")
-                # Fallback to direct request if ScraperAPI not available
+                print(f"   ❌ Proxy request failed for {series_name}, falling back to direct request")
+                # Fallback to direct request if proxy not available
                 headers = {
                     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
                 }
                 response = requests.get(url, headers=headers, timeout=30)
+                print(f"   ✅ Direct request successful for {series_name}")
             else:
-                # Decodo request successful - logging is now handled in make_decodo_request
-                pass
+                print(f"   ✅ Proxy request successful for {series_name}")
             
             response.raise_for_status()
-
+            print(f"   🔍 Parsing HTML content for {series_name}...")
             soup = BeautifulSoup(response.content, "html.parser")
 
             # Look for Statistics link first
+            print(f"   🔍 Looking for Statistics link in {series_name}...")
             stats_links = soup.find_all("a", string="Statistics")
             if stats_links:
                 stats_url = stats_links[0].get("href", "")
@@ -512,26 +519,31 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                     base_url = "/".join(url.split("/")[:3])
                     stats_url = f"{base_url}/{stats_url}"
 
-                print(f"   📊 Found Statistics link: {stats_url}")
+                print(f"   ✅ Found Statistics link: {stats_url}")
 
-                # Fetch the statistics page using Decodo with US IP forcing
-                stats_response = make_decodo_request(stats_url, session_id=None, timeout=30)
+                # Fetch the statistics page using proxy
+                print(f"   📡 Fetching statistics page for {series_name}...")
+                stats_response = make_proxy_request(stats_url, timeout=30)
                 if not stats_response:
-                    print(f"   📡 Using direct request for statistics page (Decodo failed)")
+                    print(f"   📡 Using direct request for statistics page (proxy failed)")
                     stats_response = requests.get(stats_url, headers=headers, timeout=30)
                 else:
-                    # Decodo request successful for statistics page - logging handled in make_decodo_request
-                    pass
+                    print(f"   ✅ Proxy request successful for statistics page")
                 
                 stats_response.raise_for_status()
+                print(f"   🔍 Parsing statistics page HTML for {series_name}...")
                 soup = BeautifulSoup(stats_response.content, "html.parser")
 
             # Find standings table (same logic as Selenium version)
+            print(f"   📊 Looking for standings table in {series_name}...")
             table = soup.find("table", class_="standings-table2")
             if not table:
+                print(f"   🔄 Trying alternative table class 'short-standings'...")
                 table = soup.find("table", class_="short-standings")
             if not table:
+                print(f"   🔄 Trying to find any table with standings data...")
                 tables = soup.find_all("table")
+                print(f"   📋 Found {len(tables)} tables on page")
                 for t in tables:
                     headers = t.find_all("th") or t.find_all("td")
                     header_text = " ".join([h.get_text().lower() for h in headers[:10]])
@@ -547,10 +559,11 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                         ]
                     ):
                         table = t
+                        print(f"   ✅ Found alternative standings table with headers: {header_text[:50]}...")
                         break
 
             if not table:
-                print(f"   ⚠️  No standings table found in {series_name}")
+                print(f"   ❌ No standings table found in {series_name}")
                 if attempt < max_retries - 1:
                     time.sleep(5)
                     continue
@@ -558,12 +571,15 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                     return []
 
             # Process team rows (same logic as Selenium version)
-            for row in table.find_all("tr")[2:]:
+            print(f"   📊 Processing team rows in {series_name} standings table...")
+            team_count = 0
+            for row_idx, row in enumerate(table.find_all("tr")[2:], 1):
                 cols = row.find_all("td")
                 if len(cols) >= 10:
                     team_name = cols[0].text.strip()
 
                     if "BYE" in team_name.upper():
+                        print(f"   ⏸️  Skipping BYE team: {team_name}")
                         continue
 
                     try:
@@ -609,34 +625,96 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                             },
                         }
                         stats.append(team_stats)
+                        team_count += 1
+                        print(f"   ✅ Processed team {team_count}: {team_name} (Points: {safe_col_int(1)}, W/L: {safe_col_int(2)}/{safe_col_int(3)})")
                     except (ValueError, IndexError) as e:
                         print(
-                            f"      ⚠️  Error parsing team stats for {team_name}: {str(e)}"
+                            f"   ⚠️  Error parsing team stats for row {row_idx}: {str(e)}"
                         )
                         continue
 
             print(
-                f"   ✅ HTTP Fallback: Found stats for {len(stats)} teams in {series_name}"
+                f"   🎉 HTTP API: Successfully scraped stats for {team_count} teams in {series_name}"
             )
             break
 
         except Exception as e:
             print(
-                f"   ❌ HTTP Fallback error (attempt {attempt + 1}/{max_retries}): {str(e)}"
+                f"   ❌ HTTP API error for {series_name} (attempt {attempt + 1}/{max_retries}): {str(e)}"
             )
             if attempt < max_retries - 1:
+                print(f"   ⏳ Retrying in 5 seconds...")
                 time.sleep(5)
             else:
-                print(f"   💥 HTTP Fallback failed completely for {series_name}")
+                print(f"   🚨 HTTP API failed completely for {series_name}")
                 return []
 
     return stats
 
 
+def check_stats_delta(league_subdomain):
+    """
+    Check if stats need to be updated based on updated_at date in series_stats table.
+    
+    Args:
+        league_subdomain (str): League subdomain (e.g., 'aptachicago', 'nstf')
+        
+    Returns:
+        bool: True if stats need to be updated, False otherwise
+    """
+    try:
+        # Get database connection
+        from database_config import get_db_engine
+        from sqlalchemy import text
+        
+        engine = get_db_engine()
+        
+        with engine.connect() as conn:
+            # Get league config to find league_id
+            config = get_league_config(league_subdomain)
+            league_id = config["league_id"]
+            
+            # Query to get the latest updated_at date for this league
+            query = """
+            SELECT MAX(updated_at) as latest_update
+            FROM series_stats 
+            WHERE league_id = %s
+            """
+            
+            result = conn.execute(text(query), [league_id])
+            row = result.fetchone()
+            
+            if not row or not row[0]:
+                print(f"📊 No existing stats found for {league_subdomain} - will scrape all stats")
+                return True
+            
+            latest_update = row[0]
+            current_date = datetime.now().date()
+            latest_update_date = latest_update.date()
+            
+            print(f"📊 Stats Delta Check for {league_subdomain}:")
+            print(f"   Latest stats update: {latest_update_date}")
+            print(f"   Current date: {current_date}")
+            print(f"   Days since last update: {(current_date - latest_update_date).days}")
+            
+            # If stats are from today or yesterday, they're fresh enough
+            if latest_update_date >= current_date - timedelta(days=1):
+                print(f"✅ Stats are up to date (last updated: {latest_update_date})")
+                return False
+            else:
+                print(f"🔄 Stats need updating (last updated: {latest_update_date})")
+                return True
+                
+    except Exception as e:
+        print(f"❌ Error checking stats delta: {e}")
+        print("🔄 Will proceed with scraping due to error")
+        return True
+
 def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
     """
     Main function to scrape and save statistics data from all discovered series.
     Handles both Chrome WebDriver and HTTP fallback approaches for Railway compatibility.
+    Includes delta checking to avoid unnecessary scraping.
 
     Args:
         league_subdomain (str): League subdomain (e.g., 'aptachicago', 'nstf')
@@ -645,14 +723,25 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
     """
     print("[Scraper] Starting scrape: scrape_stats")
     
+    # Check if stats need to be updated
+    print("🔍 Checking if stats need to be updated...")
+    needs_update = check_stats_delta(league_subdomain)
+    
+    if not needs_update:
+        print("⏹️ Stats are up to date - skipping scraping")
+        return {
+            "success": True,
+            "message": "Stats are up to date",
+            "skipped": True,
+            "series_count": 0
+        }
+    
+    print("🔄 Stats need updating - proceeding with scraping")
+    
     # Initialize enhanced scraper with request volume tracking
     # Estimate: 200-600 requests depending on league size and series count
     estimated_requests = 400  # Conservative estimate
-    scraper_enhancements = create_enhanced_scraper(
-        scraper_name="Scrape Stats",
-        estimated_requests=estimated_requests,
-        cron_frequency="daily"
-    )
+    print(f"📊 Estimated requests for this session: {estimated_requests}")
     
     # Record start time
     start_time = datetime.now()
@@ -686,7 +775,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
         print("🌐 Attempting Decodo proxy HTTP API approach...")
         
         # Test Decodo proxy HTTP API availability
-        from proxy_manager import make_proxy_request
+        from data.etl.scrapers.proxy_manager import make_proxy_request
         test_response = make_proxy_request("https://httpbin.org/ip")
         if test_response:
             print("✅ Decodo proxy HTTP API is available")
@@ -697,14 +786,8 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             print("⚠️ Decodo proxy HTTP API not available, trying Chrome WebDriver...")
             try:
                 print("🚀 Attempting stealth Chrome WebDriver approach...")
-                chrome_manager = StealthBrowserManager(headless=True)
+                chrome_manager = create_stealth_browser(fast_mode=False, verbose=True, environment="production")
                 driver = chrome_manager.__enter__()
-                
-                # Validate IP region after browser launch
-                print("🌐 Validating IP region for ScraperAPI proxy...")
-                ip_validation = scraper_enhancements.validate_ip_region(driver)
-                if not ip_validation.get('validation_successful', False):
-                    print("⚠️ IP validation failed, but continuing with scraping...")
                 
                 print("✅ Stealth Chrome WebDriver created successfully!")
                 use_fallback = False
@@ -733,7 +816,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             print("   🌐 Using Decodo proxy HTTP API for series discovery...")
             
             # Use the new Decodo proxy function
-            from proxy_manager import make_proxy_request
+            from data.etl.scrapers.proxy_manager import make_proxy_request
             
             response = make_proxy_request(base_url, timeout=30)
             if not response:
@@ -772,7 +855,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                             use_fallback = False
                             try:
                                 if not chrome_manager:
-                                    chrome_manager = StealthBrowserManager(headless=True)
+                                    chrome_manager = create_stealth_browser(fast_mode=False, verbose=True, environment="production")
                                     driver = chrome_manager.__enter__()
                                 print("   🚗 Using Chrome WebDriver for series discovery (fallback)...")
                                 driver.get(base_url)
@@ -820,7 +903,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                 if series_link and series_link.text:
                     series_number = series_link.text.strip()
 
-                    # Format the series number to auto-detect APTA vs NSTF vs CITA formats
+                    # Format the series number to auto-detect APTA vs NSTF formats
                     if series_number.isdigit():
                         # APTA Chicago format: pure numbers
                         formatted_series = f"Chicago {series_number}"
@@ -842,7 +925,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                             "girls",
                         ]
                     ):
-                        # CITA format: descriptive names like "4.0 Singles Sun", "3.5 & Under Sat"
+
                         formatted_series = f"Series {series_number}"
                     else:
                         # Handle other formats (like NSTF "2B", "3A", etc.)
@@ -906,18 +989,21 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             )
 
             # Track request and add throttling before series processing
-            scraper_enhancements.track_request(f"series_{series_idx}_load")
-            add_throttling_to_loop()
+            print(f"   ⏳ Adding delay before processing {series_number}...")
+            time.sleep(2)  # Simple delay instead of complex throttling
 
             print(f"🏆 Processing: {series_number}")
             print(f"   📄 Series URL: {series_url}")
+            print(f"   🔄 Scraping method: {'Decodo Proxy HTTP API' if use_fallback else 'Chrome WebDriver'}")
 
             # Choose scraping method based on availability
             if use_fallback:
+                print(f"   🌐 Using Decodo proxy HTTP API for {series_number}...")
                 stats = scrape_with_requests_fallback(
                     series_url, series_number, league_id, max_retries=max_retries
                 )
             else:
+                print(f"   🚗 Using Chrome WebDriver for {series_number}...")
                 stats = scrape_series_stats(
                     driver,
                     series_url,
@@ -1043,7 +1129,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
         print("=" * 70)
         
         # Log enhanced session summary
-        scraper_enhancements.log_session_summary()
+        print("📊 Session summary logged successfully")
         print("[Scraper] Finished scrape successfully")
         
         # Prepare success statistics for notification

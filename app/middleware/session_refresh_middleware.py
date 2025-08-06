@@ -87,6 +87,8 @@ class SessionRefreshMiddleware:
         skip_paths = [
             '/api/heartbeat',
             '/api/health',
+            '/api/current-season-matches',
+            '/api/team-current-season-matches',
             '/static/',
             '/favicon.ico',
             '/login',

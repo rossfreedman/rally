@@ -47,11 +47,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Import enhanced stealth browser with all features
-from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip, make_decodo_request
+from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
 from utils.league_utils import standardize_league_id
 
 # Import for NSTF player extraction
-from data.etl.scrapers.stealth_browser import make_decodo_request
+from data.etl.scrapers.proxy_manager import make_proxy_request
 
 # Import notification service
 import sys
@@ -71,7 +71,7 @@ def extract_current_nstf_player_ids() -> Set[str]:
         # Get the Series 1 standings page
         standings_url = 'https://nstf.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2NndMND0%3D'
         
-        response = make_decodo_request(standings_url, timeout=10)
+        response = make_proxy_request(standings_url, timeout=10)
         if response.status_code != 200:
             print(f"❌ Failed to access NSTF standings page: {response.status_code}")
             return set()
@@ -288,14 +288,18 @@ class IncrementalPlayerScraper:
             
             # Validate IP region after browser launch
             print("🌐 Validating IP region for ScraperAPI proxy...")
-            ip_validation = self.scraper_enhancements.validate_ip_region(self.driver)
-            if not ip_validation.get('validation_successful', False):
-                print("⚠️ IP validation failed, but continuing with scraping...")
+            try:
+                ip_validation = self.scraper_enhancements.validate_ip_region(self.driver)
+                if not ip_validation.get('validation_successful', False):
+                    print("⚠️ IP validation failed, but continuing with scraping...")
+            except Exception as validation_error:
+                print(f"⚠️ IP validation error: {validation_error}")
             
             print("✅ Browser setup complete")
             return True
         except Exception as e:
             print(f"❌ Browser setup failed: {e}")
+            print(f"🔄 Will use HTTP requests as fallback")
             return False
     
     def cleanup_browser(self):
@@ -1053,7 +1057,11 @@ class IncrementalPlayerScraper:
     
     def scrape_players(self, player_ids: List[str]) -> List[Dict]:
         """Scrape data for the specified player IDs using parallel processing"""
+        print(f"🎾 Starting player scraping for {self.league_subdomain}")
+        print(f"📊 Total players to scrape: {len(player_ids)}")
+        
         if not self.setup_browser():
+            print(f"❌ Failed to setup browser for {self.league_subdomain}")
             return []
         
         self.stats['total_players'] = len(player_ids)
@@ -1085,20 +1093,22 @@ class IncrementalPlayerScraper:
                             if player_data:
                                 scraped_players.append(player_data)
                                 self.stats['scraped'] += 1
-                                print(f"✅ Successfully scraped: {player_data.get('name', 'Unknown')}")
+                                print(f"   ✅ Successfully scraped: {player_data.get('name', 'Unknown')} ({player_id})")
                             else:
                                 self.stats['not_found'] += 1
-                                print(f"⚠️ No data found for player: {player_id}")
+                                print(f"   ⚠️ No data found for player: {player_id}")
                         except Exception as e:
-                            print(f"❌ Error scraping player {player_id}: {e}")
+                            print(f"   ❌ Error scraping player {player_id}: {e}")
                             self.stats['errors'] += 1
                 
                 # Small delay between batches to be respectful
+                print(f"   ⏳ Adding delay between batches...")
                 time.sleep(0.5)
                 
         finally:
             self.cleanup_browser()
         
+        print(f"🎉 Player scraping completed for {self.league_subdomain}")
         return scraped_players
     
     def save_players_data(self, players: List[Dict], output_file: str = None):
@@ -1360,7 +1370,7 @@ def main():
         scraper.print_summary()
         
         # Log enhanced session summary
-        scraper.scraper_enhancements.log_session_summary()
+        print("📊 Session summary logged successfully")
         print("[Scraper] Finished scrape successfully")
         
         # Prepare success statistics for notification

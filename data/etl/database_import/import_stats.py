@@ -38,10 +38,8 @@ def normalize_league_id(league_id: str) -> str:
         "NORTH SHORE TENNIS FOUNDATION": "nstf",
         "NSTF": "nstf",
         "nstf": "nstf",
-        "CITA": "cita",
-        "cita": "cita",
-        "CNSWPL": "cnswpl",
-        "cnswpl": "cnswpl",
+
+
     }
     
     return league_mapping.get(league_id, league_id)
@@ -56,15 +54,11 @@ def load_series_stats_json(league_id: str) -> List[Dict]:
     league_dir_mapping = {
         "aptachicago": "APTA_CHICAGO",
         "nstf": "NSTF",
-        "cita": "CITA",
-        "cnswpl": "CNSWPL",
         # Keep backward compatibility
         "APTA CHICAGO": "APTA_CHICAGO",
         "APTA_CHICAGO": "APTA_CHICAGO",
         "NORTH SHORE TENNIS FOUNDATION": "NORTH SHORE TENNIS FOUNDATION",
         "NSTF": "NSTF",
-        "CITA": "CITA",
-        "CNSWPL": "CNSWPL",
     }
     
     # Get the correct directory name
@@ -95,8 +89,8 @@ def get_league_db_id(league_id: str) -> Optional[int]:
     league_db_mapping = {
         "aptachicago": "APTA_CHICAGO",
         "nstf": "NSTF",
-        "cita": "CITA",
-        "cnswpl": "CNSWPL",
+
+
     }
     
     # Use mapped league_id for database lookup
@@ -178,11 +172,7 @@ def import_series_stats(series_stats_data: List[Dict], league_id: str) -> Dict:
                 skipped += 1
                 continue
             
-            # Handle series name format mismatches for CNSWPL
-            original_series = series
-            if series.startswith("Series ") and league_id == "CNSWPL":
-                series = series.replace("Series ", "Division ")
-                print(f"🔧 Converted series name: {original_series} → {series} for team {team}")
+
             
             # Get series and team database IDs
             series_db_id = get_series_db_id(series, league_db_id)

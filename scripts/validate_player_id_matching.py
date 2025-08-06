@@ -236,11 +236,7 @@ class PlayerIDValidator:
         if " - " in team_name:
             return team_name.split(" - ")[0].strip()
         
-        # CNSWPL format: "Club Number"
-        import re
-        if re.search(r"\s+\d+[a-zA-Z]*$", team_name):
-            club_part = re.sub(r"\s+\d+[a-zA-Z]*$", "", team_name).strip()
-            return club_part if club_part else team_name
+
         
         return team_name
     
@@ -252,11 +248,7 @@ class PlayerIDValidator:
         # Try to extract series info from team name
         import re
         
-        # CNSWPL format: "Club Number" -> "Division Number"
-        if re.search(r"\s+\d+[a-zA-Z]*$", team_name):
-            match = re.search(r"\s+(\d+[a-zA-Z]*)$", team_name)
-            if match:
-                return f"Division {match.group(1)}"
+
         
         # APTA format: "Club - Number" -> "Series Number"
         if " - " in team_name:

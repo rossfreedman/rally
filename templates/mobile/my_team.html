@@ -228,7 +228,11 @@
                             <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
                                 <div class="flex-1">
                                     <div class="font-medium text-gray-900">{{ player.name }}</div>
-                                    <div class="text-sm text-gray-600">{{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}</div>
+                                    <div class="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors font-medium" 
+                                         onclick="openPartnerMatchesModal('{{ player.name }}', '{{ court_key }}', {{ player.matches }})" 
+                                         title="Click to view matches with {{ player.name }}">
+                                        {{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <!-- Wins -->
@@ -561,6 +565,289 @@ async function loadTeamLast3Matches() {
             error.classList.remove('hidden');
         }
     }
+}
+
+// Partner matches modal functionality
+let matchesModal = null;
+let matchesData = null;
+
+function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    if (!matchesModal) {
+        createMatchesModal();
+    }
+    
+    // Show loading state
+    const modalContent = document.getElementById('matchesModalContent');
+    modalContent.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+            <p class="text-gray-500 text-sm ml-2">Loading matches with ${partnerName}...</p>
+        </div>
+    `;
+    
+    // Update modal title
+    const modalTitle = document.querySelector('#matchesModal h2');
+    if (modalTitle) {
+        modalTitle.textContent = `Match Detail`;
+    }
+    
+    // Show modal
+    matchesModal.classList.remove('hidden');
+    
+    // Load partner matches data
+    loadPartnerMatchesData(partnerName, courtName);
+}
+
+function createMatchesModal() {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="matchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between" style="background-color: #045454;">
+                        <h2 class="text-xl font-semibold" style="color: #bff863;">Current Season Matches</h2>
+                        <button onclick="closeMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Content -->
+                    <div id="matchesModalContent" class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    matchesModal = document.getElementById('matchesModal');
+    
+    // Close modal when clicking outside
+    matchesModal.addEventListener('click', function(e) {
+        if (e.target === matchesModal) {
+            closeMatchesModal();
+        }
+    });
+}
+
+function closeMatchesModal() {
+    if (matchesModal) {
+        matchesModal.classList.add('hidden');
+    }
+}
+
+async function loadPartnerMatchesData(partnerName, courtName) {
+    try {
+                        const response = await fetch(`/api/team-current-season-matches?player=${encodeURIComponent(partnerName)}`);
+        console.log('API response status:', response.status);
+        
+        if (response.status === 404) {
+            showMatchesError('No matches found');
+            return;
+        }
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error response:', errorText);
+            showMatchesError(`API error (${response.status}): ${errorText}`);
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('API response:', data);
+        
+        if (data.error) {
+            console.error('API returned error:', data.error);
+            showMatchesError(data.error);
+            return;
+        }
+        
+        if (!data.matches || data.matches.length === 0) {
+            showMatchesEmpty();
+            return;
+        }
+        
+        // Filter matches for this specific partner and court
+        // Use the same logic as the court analysis
+        const targetCourt = parseInt(courtName.replace('court', ''));
+        
+        const partnerMatches = data.matches.filter(match => {
+            // Check if this match is on the specified court
+            const isOnCourt = match.court_number === targetCourt;
+            
+            return isOnCourt;
+        });
+        
+        // If no matches found with the exact court number, try the fallback logic
+        // This matches the court analysis fallback: (index % 4) + 1
+        if (partnerMatches.length === 0) {
+            const fallbackMatches = data.matches.filter(match => {
+                // Group matches by date and team matchup to replicate court analysis logic
+                const matchKey = `${match.date}_${match.home_team}_${match.away_team}`;
+                const sameTeamMatches = data.matches.filter(m => 
+                    `${m.date}_${m.home_team}_${m.away_team}` === matchKey
+                ).sort((a, b) => a.match_id - b.match_id);
+                
+                const matchIndex = sameTeamMatches.findIndex(m => m.match_id === match.match_id);
+                const fallbackCourt = (matchIndex % 4) + 1;
+                
+                return fallbackCourt === targetCourt;
+            });
+            
+            if (fallbackMatches.length > 0) {
+                console.log(`Using fallback court logic: found ${fallbackMatches.length} matches for ${partnerName} on ${courtName}`);
+                partnerMatches.push(...fallbackMatches);
+            }
+        }
+        
+        // If still no matches, try using the same data source as court analysis
+        // The court analysis uses match_history from player analysis, not the API endpoint
+        if (partnerMatches.length === 0) {
+            console.log(`No matches found with API data, trying to match court analysis logic...`);
+            
+            // The court analysis shows 2 matches for Mike Lieberman on Court 1
+            // but the API only shows 1. This suggests the court analysis uses different data.
+            // For now, show a message explaining the discrepancy
+            showMatchesError(`Court analysis shows different data than API. Please check the court analysis for accurate match counts.`);
+            return;
+        }
+        
+        if (partnerMatches.length === 0) {
+            showMatchesError(`No matches found with ${partnerName} on ${courtName.replace('court', 'Court ').toUpperCase()}`);
+            return;
+        }
+        
+        // Render partner matches
+        renderPartnerMatchesModal(partnerMatches, partnerName, courtName);
+        
+    } catch (err) {
+        console.error('Error loading partner matches:', err);
+        showMatchesError(`Failed to load matches: ${err.message}`);
+    }
+}
+
+function renderPartnerMatchesModal(matches, partnerName, courtName) {
+    const modalContent = document.getElementById('matchesModalContent');
+    
+    let html = `
+        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('court', 'Court ')}</h3>
+        </div>
+    `;
+    
+    // Group matches by date and team matchup
+    const groupedMatches = groupMatchesByTeamMatchup(matches);
+    
+    groupedMatches.forEach(group => {
+        // Calculate team result (W or L)
+        const playerMatches = group.matches.filter(match => match.player_was_home !== null);
+        const wins = playerMatches.filter(match => match.player_won).length;
+        const losses = playerMatches.filter(match => !match.player_won).length;
+        const teamResult = wins > losses ? 'W' : 'L';
+        const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
+        
+        html += `
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+                <!-- Team Match Header -->
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs font-medium text-gray-900">${group.date}</span>
+                            <span class="text-xs text-gray-600">${group.home_team} (H) vs ${group.away_team} (A)</span>
+                        </div>
+                        <span class="text-base font-bold ${resultClass}">${teamResult}</span>
+                    </div>
+                </div>
+                
+                <!-- Individual Matches -->
+                <div class="divide-y divide-gray-100">
+        `;
+        
+        // Sort matches by court number
+        group.matches.sort((a, b) => a.court_number - b.court_number);
+        
+        group.matches.forEach(match => {
+            const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            
+            html += `
+                <div class="px-4 py-3 bg-gray-50">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-900">${match.court_number}</span>
+                            <span class="text-xs text-gray-700">${partnerName} & ${match.partner_name}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs text-gray-600">
+                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
+                        </div>
+                        <div class="text-xs font-medium text-gray-900">${match.scores}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    modalContent.innerHTML = html;
+}
+
+function groupMatchesByTeamMatchup(matches) {
+    const grouped = {};
+    
+    matches.forEach(match => {
+        const key = `${match.date}_${match.home_team}_${match.away_team}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                date: match.date,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                matches: []
+            };
+        }
+        grouped[key].matches.push(match);
+    });
+    
+    // Sort by date (newest first)
+    return Object.values(grouped).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+    });
+}
+
+function showMatchesError(message) {
+    const modalContent = document.getElementById('matchesModalContent');
+    modalContent.innerHTML = `
+        <div class="text-center py-8">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Error</h3>
+            <p class="text-gray-500">${message}</p>
+        </div>
+    `;
+}
+
+function showMatchesEmpty() {
+    const modalContent = document.getElementById('matchesModalContent');
+    modalContent.innerHTML = `
+        <div class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Matches Found</h3>
+            <p class="text-gray-500">No current season matches available.</p>
+        </div>
+    `;
 }
 </script>
 

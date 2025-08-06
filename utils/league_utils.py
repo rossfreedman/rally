@@ -14,8 +14,6 @@ from typing import Dict, Optional, Set
 CANONICAL_LEAGUE_IDS = {
     "APTA_CHICAGO": "APTA_CHICAGO",
     "NSTF": "NSTF",
-    "CITA": "CITA",
-    "CNSWPL": "CNSWPL",
     "APTA_NATIONAL": "APTA_NATIONAL",
 }
 
@@ -32,12 +30,8 @@ LEAGUE_ID_MAPPINGS = {
     "north_shore": "NSTF",
     "northshore": "NSTF",
     "north-shore": "NSTF",
-    # CITA variations
-    "cita": "CITA",
-    # CNSWPL variations
-    "cnswpl": "CNSWPL",
-    "cns": "CNSWPL",
-    "chicago_north_shore": "CNSWPL",
+
+
     # APTA National variations
     "apta_national": "APTA_NATIONAL",
     "aptanational": "APTA_NATIONAL",
@@ -141,8 +135,8 @@ def get_league_display_name(league_id: str) -> str:
         "NSTF": "North Shore Tennis Foundation",
         "APTA_CHICAGO": "APTA Chicago",
         "APTA_NATIONAL": "APTA National",
-        "CITA": "CITA",
-        "CNSWPL": "Chicago North Shore Women's Platform Tennis League",
+
+    
     }
 
     return display_names.get(normalized, normalized or "Unknown League")
@@ -164,8 +158,8 @@ def get_league_url(league_id: str) -> str:
         "NSTF": "https://nstf.org/",
         "APTA_CHICAGO": "https://aptachicago.tenniscores.com/",
         "APTA_NATIONAL": "https://apta.tenniscores.com/",
-        "CITA": "",
-        "CNSWPL": "https://cnswpl.tenniscores.com/",
+
+    
     }
 
     return urls.get(normalized, "")
@@ -184,3 +178,24 @@ def standardize_league_id(subdomain: str) -> str:
         Standardized league ID (e.g., 'APTA_CHICAGO', 'NSTF')
     """
     return normalize_league_id(subdomain) or subdomain.upper()
+
+
+def has_reversed_team_assignments(league_id: str) -> bool:
+    """
+    Check if a league has reversed team assignments (like NSTF).
+    This affects win/loss calculation logic.
+
+    Args:
+        league_id: League ID (will be normalized first)
+
+    Returns:
+        True if the league has reversed team assignments, False otherwise
+    """
+    normalized = normalize_league_id(league_id)
+    
+    # Leagues with reversed team assignments
+    reversed_leagues = {
+        "NSTF": True,  # NSTF has reversed team assignments
+    }
+    
+    return reversed_leagues.get(normalized, False)

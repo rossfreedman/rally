@@ -11,7 +11,11 @@ from bs4 import BeautifulSoup
 # Import enhanced scraping utilities
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from stealth_browser import create_enhanced_scraper, add_throttling_to_loop, validate_browser_ip, StealthBrowserManager, make_decodo_request
+from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
+try:
+    from data.etl.scrapers.proxy_manager import make_proxy_request
+except ImportError:
+    from proxy_manager import make_proxy_request
 
 # Import notification service
 import sys
@@ -98,8 +102,8 @@ def normalize_league_id(league_subdomain):
         'apta-chicago': 'APTA_CHICAGO',
         'chicago': 'APTA_CHICAGO',
         'nstf': 'NSTF',
-        'cnswpl': 'CNSWPL',
-        'cita': 'CITA'
+
+
     }
     
     return league_mappings.get(normalized, normalized.upper())
@@ -205,7 +209,7 @@ def send_schedule_notification(league_subdomain, success_stats, total_series, fa
 
 def extract_series_name_from_team(team_name):
     """
-    Extract series name from team name, auto-detecting APTA vs NSTF vs CNSWPL format.
+    Extract series name from team name, auto-detecting APTA vs NSTF format.
 
     Args:
         team_name (str): Team name in various formats
@@ -217,8 +221,6 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Series 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -245,12 +247,7 @@ def extract_series_name_from_team(team_name):
     elif "Sunday B" in team_name:
         return "Series B"
 
-    # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
-    elif re.search(r"\s(\d+[a-zA-Z]?)$", team_name):
-        match = re.search(r"\s(\d+[a-zA-Z]?)$", team_name)
-        if match:
-            series_identifier = match.group(1)
-            return f"Series {series_identifier}"
+
 
     # Direct series name (already formatted)
     elif team_name.startswith("Series ") or team_name.startswith("Chicago "):
@@ -295,18 +292,10 @@ def scrape_tennis_schedule(league_subdomain):
     """
     print("[Scraper] Starting scrape: scraper_schedule")
     
-    # Initialize enhanced scraper with request volume tracking
-    # Estimate: 100-500 requests depending on league size and series count
-    estimated_requests = 300  # Conservative estimate
-    scraper_enhancements = create_enhanced_scraper(
-        scraper_name="Schedule Scraper",
-        estimated_requests=estimated_requests,
-        cron_frequency="daily"
-    )
-    
     # Record start time
     start_time = datetime.now()
     print(f"🕐 Session Start: {start_time.strftime('%m-%d-%y @ %I:%M:%S %p')}")
+    print(f"📊 Estimated requests for this session: 300")
 
     # Track timing milestones
     discovery_start_time = None
@@ -335,27 +324,29 @@ def scrape_tennis_schedule(league_subdomain):
         print(f"🔍 Discovery Phase Start: {discovery_start_time.strftime('%H:%M:%S')}")
         print(f"📄 Accessing main page: {base_url}")
 
-        # Use Decodo residential proxy for the main page request
-        print("🌐 Using Decodo residential proxy for US-based access...")
+        # Use proxy for the main page request
+        print("🌐 Using proxy for US-based access...")
         
-        # Use the new Decodo request function
-        from data.etl.scrapers.stealth_browser import make_decodo_request
+        # Use the new proxy request function
+        try:
+            from data.etl.scrapers.proxy_manager import make_proxy_request
+        except ImportError:
+            from proxy_manager import make_proxy_request
         
-        response = make_decodo_request(base_url, timeout=60)
-        if not response:
-            print("❌ Decodo request failed")
+        print(f"   📡 Fetching main page: {base_url}")
+        try:
+            response = make_proxy_request(base_url, timeout=60)
+            if not response:
+                print("   ❌ Proxy request failed")
+                return
+        except Exception as e:
+            print(f"   ❌ Proxy request failed: {e}")
             return
         
-        # Check if US IP validation was successful
-        if hasattr(response, 'validation_result') and response.validation_result.get('is_us'):
-            print(f"✅ US-based IP confirmed: {response.validation_result.get('ip_address')}")
-        else:
-            print(f"⚠️ Non-US IP detected: {response.validation_result.get('ip_address', 'Unknown')}")
-        
         response_text = response.text
-        print(f"✅ Main page loaded successfully via HTTP API")
-        print(f"📄 Response status: {response.status_code}")
-        print(f"📄 Content length: {len(response_text)} characters")
+        print(f"   ✅ Main page loaded successfully via HTTP API")
+        print(f"   📄 Response status: {response.status_code}")
+        print(f"   📄 Content length: {len(response_text)} characters")
 
         # Parse the HTML content
         soup = BeautifulSoup(response_text, "html.parser")
@@ -427,9 +418,9 @@ def scrape_tennis_schedule(league_subdomain):
             )
 
             try:
-                # Track request and add throttling before series processing
-                scraper_enhancements.track_request(f"series_{series_idx}_load")
-                add_throttling_to_loop()
+                # Add delay before series processing
+                print(f"   ⏳ Adding delay before processing {formatted_series}...")
+                time.sleep(2)
                 
                 series_link = element.find("a")
                 if series_link and series_link.text:
@@ -462,9 +453,7 @@ def scrape_tennis_schedule(league_subdomain):
                     print(f"   📄 Series URL: {full_url}")
 
                     # Get the series page with HTTP API
-                    print("   🔍 Accessing series page...")
-                    scraper_enhancements.track_request("series_page_load")
-                    print(f"   [Scraper] Visiting: {full_url}")
+                    print(f"   📡 Fetching series page: {full_url}")
                     
                     # Add retry logic for timeout resilience
                     max_retries = 3
@@ -472,8 +461,10 @@ def scrape_tennis_schedule(league_subdomain):
                     
                     for attempt in range(max_retries):
                         try:
-                            series_response = make_decodo_request(full_url, timeout=30)
+                            print(f"   📡 HTTP API: Fetching {full_url} (attempt {attempt + 1}/{max_retries})")
+                            series_response = make_proxy_request(full_url, timeout=30)
                             series_response_text = series_response.text
+                            print(f"   ✅ Proxy request successful for {formatted_series}")
                             break  # Success, exit retry loop
                             
                         except requests.exceptions.Timeout:

@@ -123,7 +123,7 @@ class MasterImporter:
                 return self.LEGACY_LEAGUES
             
             # Inactive leagues to exclude (empty data or not ready)
-            inactive_leagues = {"CITA", "CNSWPL"}
+            inactive_leagues = set()
             
             # Discover league directories (excluding 'all' directory and inactive leagues)
             available_leagues = []

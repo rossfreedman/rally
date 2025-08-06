@@ -1,0 +1,8 @@
+{
+  "name": "reduced_proxy_pool",
+  "description": "Use only first 10 proxies to reduce load",
+  "max_proxies": 10,
+  "rotation_frequency": 20,
+  "session_duration": 300,
+  "usage_cap_per_proxy": 15
+}

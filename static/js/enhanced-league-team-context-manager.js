@@ -257,8 +257,8 @@ class EnhancedLeagueTeamContextManager extends LeagueContextManager {
             const text = leagueDisplay.textContent;
             if (text.includes('APTA Chicago')) return 'APTA_CHICAGO';
             if (text.includes('North Shore Tennis')) return 'NSTF';
-            if (text.includes('CITA')) return 'CITA';
-            if (text.includes('CNSWPL')) return 'CNSWPL';
+
+    
         }
         
         return null;

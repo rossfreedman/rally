@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class ScrapingConfig:
     """Configuration for scraping behavior."""
     fast_mode: bool = False
-    verbose: bool = False
+    verbose: bool = True  # Make verbose default
     environment: str = "production"
     max_retries: int = 3
     min_delay: float = 2.0
@@ -67,18 +67,20 @@ class EnhancedMatchScraper:
             "leagues_scraped": []
         }
         
-        logger.info(f"🚀 Enhanced Match Scraper initialized")
-        logger.info(f"   Mode: {'FAST' if config.fast_mode else 'STEALTH'}")
-        logger.info(f"   Environment: {config.environment}")
-        logger.info(f"   Delta Mode: {config.delta_mode}")
-        if config.start_date and config.end_date:
-            logger.info(f"   Date Range: {config.start_date} to {config.end_date}")
+        if config.verbose:
+            print(f"🚀 Enhanced Match Scraper initialized")
+            print(f"   Mode: {'FAST' if config.fast_mode else 'STEALTH'}")
+            print(f"   Environment: {config.environment}")
+            print(f"   Delta Mode: {config.delta_mode}")
+            if config.start_date and config.end_date:
+                print(f"   Date Range: {config.start_date} to {config.end_date}")
     
     def _safe_request(self, url: str, description: str = "page") -> Optional[str]:
         """Make a safe request with retry logic and detection."""
         for attempt in range(self.config.max_retries + 1):
             try:
-                logger.info(f"🌐 Requesting {description}: {url}")
+                if self.config.verbose:
+                    print(f"   📡 Fetching {description}: {url} (attempt {attempt + 1}/{self.config.max_retries + 1})")
                 
                 # Make request using stealth browser
                 html = self.stealth_browser.get_html(url)
@@ -87,26 +89,36 @@ class EnhancedMatchScraper:
                 self.metrics["total_requests"] += 1
                 self.metrics["successful_requests"] += 1
                 
+                if self.config.verbose:
+                    print(f"   ✅ Request successful for {description}")
+                
                 # Add random delay
                 if not self.config.fast_mode:
                     delay = random.uniform(self.config.min_delay, self.config.max_delay)
-                    logger.debug(f"⏳ Delaying {delay:.1f}s")
+                    if self.config.verbose:
+                        print(f"   ⏳ Adding delay: {delay:.1f}s")
                     time.sleep(delay)
                 
                 return html
                 
             except Exception as e:
                 self.metrics["failed_requests"] += 1
-                logger.warning(f"⚠️ Request failed (attempt {attempt + 1}): {e}")
+                if self.config.verbose:
+                    print(f"   ❌ Request failed for {description} (attempt {attempt + 1}): {e}")
+                    if attempt < self.config.max_retries:
+                        print(f"   ⏳ Retrying in {self.config.retry_delay} seconds...")
+                time.sleep(self.config.retry_delay)
                 
                 if attempt < self.config.max_retries:
                     # Exponential backoff
                     backoff = min(2 ** attempt, 10)
-                    logger.info(f"⏳ Retrying in {backoff}s...")
+                    if self.config.verbose:
+                        logger.info(f"⏳ Retrying in {backoff}s...")
                     time.sleep(backoff)
                     continue
                 else:
-                    logger.error(f"❌ All retries failed for {url}")
+                    if self.config.verbose:
+                        logger.error(f"❌ All retries failed for {url}")
                     break
         
         return None
@@ -133,62 +145,108 @@ class EnhancedMatchScraper:
 
     def scrape_league_matches(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
         """Scrape matches for a specific league with enhanced stealth."""
-        logger.info(f"🎾 Starting enhanced scraping for {league_subdomain}")
+        if self.config.verbose:
+            print(f"🎾 Starting enhanced scraping for {league_subdomain}")
         
         try:
-            with self.stealth_browser as browser:
-                # Build base URL
-                base_url = f"https://{league_subdomain}.tenniscores.com"
-                logger.info(f"🌐 Base URL: {base_url}")
-                
-                # Get main page
-                main_html = self._safe_request(base_url, "main page")
-                if not main_html:
-                    logger.error(f"❌ Failed to access main page for {league_subdomain}")
-                    return []
-                
-                # Check for blocking
-                detection = self._detect_blocking(main_html)
-                if detection:
-                    self.metrics["detections"][detection.value] = self.metrics["detections"].get(detection.value, 0) + 1
-                    logger.error(f"❌ Blocking detected: {detection.value}")
-                    return []
-
-                # Parse series links (simplified for example)
-                series_links = self._extract_series_links(main_html)
-                logger.info(f"📋 Found {len(series_links)} series")
-                
-                all_matches = []
-                
-                for series_name, series_url in series_links:
-                    if series_filter and series_filter != "all" and series_filter not in series_name:
-                        continue
-                    
-                    logger.info(f"🏆 Scraping series: {series_name}")
-                    
-                    # Get series page
-                    series_html = self._safe_request(series_url, f"series {series_name}")
-                    if not series_html:
-                        logger.warning(f"⚠️ Failed to scrape series {series_name}")
-                        continue
-                    
-                    # Parse matches from series page
-                    series_matches = self._extract_matches_from_series(series_html, series_name)
-                    
-                    # Apply date filtering if in delta mode
-                    if self.config.delta_mode and self.config.start_date and self.config.end_date:
-                        series_matches = self._filter_matches_by_date(series_matches)
-                    
-                    all_matches.extend(series_matches)
-                    logger.info(f"✅ Series {series_name}: {len(series_matches)} matches")
-                
-                self.metrics["leagues_scraped"].append(league_subdomain)
-                logger.info(f"✅ Completed scraping {league_subdomain}: {len(all_matches)} total matches")
-                
-                return all_matches
+            # Try to use stealth browser, fallback to HTTP requests if it fails
+            try:
+                with self.stealth_browser as browser:
+                    return self._scrape_with_browser(league_subdomain, series_filter)
+            except Exception as browser_error:
+                if self.config.verbose:
+                    print(f"   ⚠️ Browser initialization failed: {browser_error}")
+                    print(f"   🔄 Falling back to HTTP requests...")
+                return self._scrape_with_http(league_subdomain, series_filter)
                 
         except Exception as e:
-            logger.error(f"❌ Error scraping {league_subdomain}: {e}")
+            if self.config.verbose:
+                print(f"   ❌ Error scraping {league_subdomain}: {e}")
+            return []
+    
+    def _scrape_with_browser(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
+        """Scrape using stealth browser."""
+        # Build base URL
+        base_url = f"https://{league_subdomain}.tenniscores.com"
+        print(f"   🌐 Base URL: {base_url}")
+        
+        # Get main page
+        print(f"   📄 Navigating to main page...")
+        main_html = self._safe_request(base_url, "main page")
+        if not main_html:
+            print(f"   ❌ Failed to access main page for {league_subdomain}")
+            return []
+        
+        # Check for blocking
+        detection = self._detect_blocking(main_html)
+        if detection:
+            self.metrics["detections"][detection.value] = self.metrics["detections"].get(detection.value, 0) + 1
+            print(f"   ❌ Blocking detected: {detection.value}")
+            return []
+
+        # Parse series links (simplified for example)
+        series_links = self._extract_series_links(main_html)
+        print(f"   📋 Found {len(series_links)} series")
+        
+        all_matches = []
+        
+        for i, (series_name, series_url) in enumerate(series_links, 1):
+            if series_filter and series_filter != "all" and series_filter not in series_name:
+                continue
+            
+            print(f"   🏆 Processing series {i}/{len(series_links)}: {series_name}")
+            print(f"   📄 Series URL: {series_url}")
+            
+            # Get series page
+            series_html = self._safe_request(series_url, f"series {series_name}")
+            if not series_html:
+                print(f"   ⚠️ Failed to scrape series {series_name}")
+                continue
+            
+            # Parse matches from series page
+            print(f"   🔍 Parsing matches from {series_name}...")
+            series_matches = self._extract_matches_from_series(series_html, series_name)
+            
+            # Apply date filtering if in delta mode
+            if self.config.delta_mode and self.config.start_date and self.config.end_date:
+                print(f"   📅 Filtering matches by date range...")
+                series_matches = self._filter_matches_by_date(series_matches)
+            
+            all_matches.extend(series_matches)
+            print(f"   ✅ Series {series_name}: {len(series_matches)} matches")
+        
+        self.metrics["leagues_scraped"].append(league_subdomain)
+        print(f"   🎉 Completed scraping {league_subdomain}: {len(all_matches)} total matches")
+        
+        return all_matches
+    
+    def _scrape_with_http(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
+        """Scrape using HTTP requests as fallback."""
+        print(f"   🌐 Using HTTP requests for {league_subdomain}")
+        
+        # Build base URL
+        base_url = f"https://{league_subdomain}.tenniscores.com"
+        print(f"   📄 Base URL: {base_url}")
+        
+        try:
+            # Get main page using proxy
+            print(f"   📡 Fetching main page...")
+            from data.etl.scrapers.proxy_manager import make_proxy_request
+            
+            response = make_proxy_request(base_url, timeout=30)
+            if not response:
+                print(f"   ❌ Failed to access main page for {league_subdomain}")
+                return []
+            
+            print(f"   ✅ Main page loaded successfully")
+            
+            # For now, return empty list as full HTTP scraping would need more implementation
+            # This provides a working foundation that can be extended
+            print(f"   ⚠️ HTTP scraping partially implemented for {league_subdomain}")
+            return []
+            
+        except Exception as e:
+            print(f"   ❌ HTTP scraping failed: {e}")
             return []
 
     def _extract_series_links(self, html: str) -> List[Tuple[str, str]]:
@@ -296,15 +354,15 @@ def scrape_all_matches(league_subdomain: str,
     Returns:
         List of match dictionaries
     """
-    logger.info(f"🎾 Enhanced TennisScores Match Scraper")
-    logger.info(f"✅ Only imports matches with legitimate match IDs - no synthetic IDs!")
-    logger.info(f"✅ Ensures data integrity and best practices for all leagues")
-    logger.info(f"✅ Enhanced with IP validation, request tracking, and intelligent throttling")
+    print(f"🎾 Enhanced TennisScores Match Scraper")
+    print(f"✅ Only imports matches with legitimate match IDs - no synthetic IDs!")
+    print(f"✅ Ensures data integrity and best practices for all leagues")
+    print(f"✅ Enhanced with IP validation, request tracking, and intelligent throttling")
     
     if delta_mode:
-        logger.info(f"🎯 DELTA MODE: Only scraping matches within specified date range")
+        print(f"🎯 DELTA MODE: Only scraping matches within specified date range")
         if start_date and end_date:
-            logger.info(f"📅 Date Range: {start_date} to {end_date}")
+            print(f"📅 Date Range: {start_date} to {end_date}")
     
     # Create configuration
     config = ScrapingConfig(
@@ -323,16 +381,18 @@ def scrape_all_matches(league_subdomain: str,
     scraper = EnhancedMatchScraper(config)
     
     # Scrape matches
+    print(f"🚀 Starting match scraping for {league_subdomain}...")
     matches = scraper.scrape_league_matches(league_subdomain, series_filter)
     
     # Log summary
     summary = scraper.get_metrics_summary()
-    logger.info(f"📊 Scraping Summary:")
-    logger.info(f"   Duration: {summary['duration_seconds']:.1f}s")
-    logger.info(f"   Requests: {summary['total_requests']} (Success: {summary['successful_requests']}, Failed: {summary['failed_requests']})")
-    logger.info(f"   Success Rate: {summary['success_rate']:.1f}%")
-    logger.info(f"   Detections: {summary['detections']}")
-    logger.info(f"   Leagues Scraped: {summary['leagues_scraped']}")
+    print(f"📊 Scraping Summary:")
+    print(f"   Duration: {summary['duration_seconds']:.1f}s")
+    print(f"   Requests: {summary['total_requests']} (Success: {summary['successful_requests']}, Failed: {summary['failed_requests']})")
+    print(f"   Success Rate: {summary['success_rate']:.1f}%")
+    print(f"   Detections: {summary['detections']}")
+    print(f"   Leagues Scraped: {summary['leagues_scraped']}")
+    print(f"   Total Matches: {len(matches)}")
     
     return matches
 
@@ -345,7 +405,7 @@ def main():
     parser.add_argument("--series-filter", help="Series filter (e.g., '22', 'all')")
     parser.add_argument("--delta-mode", action="store_true", help="Enable delta scraping mode")
     parser.add_argument("--fast", action="store_true", help="Enable fast mode (reduced delays)")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    parser.add_argument("--quiet", action="store_true", help="Disable verbose logging (default is verbose)")
     parser.add_argument("--environment", choices=["local", "staging", "production"], 
                        default="production", help="Environment mode")
     
@@ -359,7 +419,7 @@ def main():
         end_date=args.end_date,
         delta_mode=args.delta_mode,
         fast_mode=args.fast,
-        verbose=args.verbose
+        verbose=not args.quiet  # Invert quiet to get verbose
     )
             
             # Save results - APPEND to existing data, don't overwrite

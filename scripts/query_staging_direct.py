@@ -168,9 +168,8 @@ def fix_orphaned_records(conn):
     for league_id, db_id in leagues.items():
         if league_id == "APTA_CHICAGO":
             orphan_mappings[4815] = db_id
-        elif league_id == "CITA":
-            orphan_mappings[4816] = db_id
-        elif league_id == "CNSWPL":
+
+
             orphan_mappings[4817] = db_id
         elif league_id == "NSTF":
             orphan_mappings[4818] = db_id

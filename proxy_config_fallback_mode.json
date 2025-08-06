@@ -1,0 +1,7 @@
+{
+  "name": "fallback_mode",
+  "description": "Use direct requests as fallback",
+  "use_direct_fallback": true,
+  "proxy_timeout": 5,
+  "direct_timeout": 30
+}

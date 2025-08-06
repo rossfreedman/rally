@@ -1,0 +1,12 @@
+{
+  "working_method": "Standard",
+  "proxy_format": "http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:10001",
+  "description": "Standard HTTP proxy authentication",
+  "created_at": "2025-08-06T09:24:43.542671",
+  "recommendations": [
+    "Use this exact proxy format in your scraper",
+    "Increase timeout to 20 seconds",
+    "Add proper headers for authentication",
+    "Implement exponential backoff for retries"
+  ]
+}

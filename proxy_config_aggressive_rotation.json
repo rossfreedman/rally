@@ -1,0 +1,8 @@
+{
+  "name": "aggressive_rotation",
+  "description": "Rotate proxies more frequently",
+  "rotation_frequency": 5,
+  "session_duration": 120,
+  "usage_cap_per_proxy": 10,
+  "retry_delay": 1
+}

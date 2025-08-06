@@ -47,6 +47,7 @@ import random
 import time
 import logging
 import requests
+import uuid
 from typing import Dict, Optional, List, Set, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -59,93 +60,34 @@ logger = logging.getLogger(__name__)
 # SMS Configuration
 ADMIN_PHONE = "17732138911"
 
-def get_random_headers() -> Dict[str, str]:
-    """
-    Get randomized, realistic browser headers for stealth requests.
-    
-    Returns:
-        Dict[str, str]: Dictionary of HTTP headers
-    """
-    # Pool of realistic User-Agent strings
-    user_agents = [
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 11.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
-        "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
-    ]
-    
-    # Pool of realistic Referer headers
-    referers = [
-        "https://www.google.com/",
-        "https://www.google.com/search?q=tennis+scores",
-        "https://www.google.com/search?q=platform+tennis",
-        "https://tenniscores.com/",
-        "https://tenniscores.com/home",
-        "https://www.bing.com/",
-        "https://www.yahoo.com/",
-        "https://duckduckgo.com/",
-        "",  # Sometimes no referer
-    ]
-    
-    # Pool of Accept-Language headers
-    accept_languages = [
-        "en-US,en;q=0.9",
-        "en-US,en;q=0.8,es;q=0.6",
-        "en-US,en;q=0.9,fr;q=0.8",
-        "en-GB,en-US;q=0.9,en;q=0.8",
-        "en-US,en;q=0.5",
-        "en,en-US;q=0.9",
-        "en-US",
-        "en-US,en;q=0.9,de;q=0.8"
-    ]
-    
-    # Pool of Accept headers
-    accept_headers = [
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8"
-    ]
-    
-    headers = {
-        "User-Agent": random.choice(user_agents),
-        "Accept": random.choice(accept_headers),
-        "Accept-Language": random.choice(accept_languages),
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT": "1",
-        "Connection": "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0"
-    }
-    
-    # Randomly include referer (80% chance)
-    if random.random() < 0.8:
-        referer = random.choice(referers)
-        if referer:  # Only add if not empty
-            headers["Referer"] = referer
-    
-    return headers
+def get_random_headers(url: str = "") -> Dict[str, str]:
+    """Get random headers for stealth requests with site-specific User-Agent selection."""
+    try:
+        # Import here to avoid circular imports
+        from data.etl.scrapers.user_agent_manager import get_user_agent_for_site
+        
+        # Get site-specific User-Agent
+        user_agent = get_user_agent_for_site(url)
+        
+        return {
+            "User-Agent": user_agent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1"
+        }
+    except Exception as e:
+        # Fallback to hardcoded Windows UA if UA manager fails
+        logger.warning(f"⚠️ UA manager failed, using fallback: {e}")
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1"
+        }
 
 def validate_match_response(response: requests.Response) -> bool:
     """
@@ -384,6 +326,10 @@ class ProxyInfo:
     failure_count: int = 0
     consecutive_failures: int = 0
     total_requests: int = 0
+    last_failure_type: Optional[str] = None  # Track what type of failure occurred
+    avg_latency: float = 0.0  # Average response time in seconds
+    pool: str = "rotating"  # "trusted" or "rotating"
+    session_id: Optional[str] = None  # For sticky sessions
     
     @property
     def success_rate(self) -> float:
@@ -416,7 +362,8 @@ class EnhancedProxyRotator:
                  rotate_every: int = 30,
                  session_duration: int = 600,
                  test_url: str = "https://httpbin.org/ip",
-                 usage_cap_per_proxy: int = 35):
+                 usage_cap_per_proxy: int = 35,
+                 sticky: bool = False):
         """
         Initialize enhanced proxy rotator.
         
@@ -458,6 +405,14 @@ class EnhancedProxyRotator:
         self.total_requests = 0
         self.dead_proxies: Set[int] = set()
         
+        # Session ID for tracking
+        self.session_id = str(uuid.uuid4())
+        
+        # Sticky session support
+        self.sticky = sticky
+        self.sticky_session_id = None
+        self.sticky_proxy_port = None
+        
         # Enhanced proxy health tracking
         self.bad_proxies: Set[int] = set()
         self.proxy_health: Dict[int, Dict[str, int]] = {}
@@ -472,6 +427,12 @@ class EnhancedProxyRotator:
         self.proxy_usage: Dict[int, int] = {port: 0 for port in self.ports}
         self.capped_proxies: Set[int] = set()
         
+        # Adaptive proxy pools
+        self.trusted_pool: Set[int] = set()
+        self.rotating_pool: Set[int] = set()
+        self.pool_promotions = 0
+        self.pool_demotions = 0
+        
         # Metrics
         self.session_metrics = {
             "total_requests": 0,
@@ -480,7 +441,12 @@ class EnhancedProxyRotator:
             "proxy_rotations": 0,
             "dead_proxies_detected": 0,
             "warmup_completed": False,
-            "usage_capped_proxies": 0
+            "usage_capped_proxies": 0,
+            "avg_latency_per_proxy": {},
+            "proxy_success_rates": {},
+            "pool_promotions": 0,
+            "pool_demotions": 0,
+            "sticky_sessions": 0
         }
         
         logger.info(f"🔄 Enhanced Proxy Rotator initialized")
@@ -489,16 +455,21 @@ class EnhancedProxyRotator:
         logger.info(f"⏱️ Session duration: {session_duration} seconds")
         logger.info(f"🎯 Usage cap: {usage_cap_per_proxy} requests per proxy")
         
-        # Test all proxies initially (skip if in quick test mode)
-        if not os.getenv('QUICK_TEST'):
-            logger.info("🧪 Testing all proxies...")
-            self._test_all_proxies()
-        else:
-            logger.info("⚡ QUICK_TEST mode: Skipping proxy warmup, marking first 10 as ready")
-            # Mark first 10 proxies as healthy for quick testing
-            for port in list(self.ports)[:10]:
+        # Test all proxies initially (skip if in quick test mode or fast mode)
+        skip_testing = os.getenv('QUICK_TEST') or os.getenv('FAST_MODE') or os.getenv('SKIP_PROXY_TEST')
+        
+        if skip_testing:
+            logger.info("⚡ Fast mode: Skipping proxy testing, marking first 20 as ready")
+            # Mark first 20 proxies as healthy for fast testing
+            for port in list(self.ports)[:20]:
                 self.proxies[port].status = ProxyStatus.ACTIVE
                 self.proxies[port].success_count = 1
+        else:
+            logger.info("🧪 Testing all proxies...")
+            # Only test first 10 proxies to avoid overwhelming the service
+            test_ports = list(self.ports)[:10]
+            logger.info(f"🧪 Testing first {len(test_ports)} proxies (to avoid rate limiting)")
+            self._test_proxy_subset(test_ports)
     
     def _load_default_ports(self) -> List[int]:
         """Load default ports from ips.txt or use fallback."""
@@ -539,7 +510,7 @@ class EnhancedProxyRotator:
         return list(range(10001, 10101))  # 100 ports
     
     def _test_proxy(self, proxy_info: ProxyInfo) -> bool:
-        """Test if a proxy is working."""
+        """Test if a proxy is working with multiple fallback URLs and better error handling."""
         try:
             # Create proxy URL with authentication if available
             if proxy_info.username and proxy_info.password:
@@ -552,46 +523,210 @@ class EnhancedProxyRotator:
                 "https": proxy_url
             }
             
-            response = requests.get(
-                self.test_url,
-                proxies=proxies,
-                timeout=10,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            )
+            # Multiple test URLs to try if one fails
+            test_urls = [
+                "http://httpbin.org/ip",  # Use HTTP instead of HTTPS for faster connection
+                "https://httpbin.org/ip",
+                "https://api.ipify.org?format=json",
+                "https://ipinfo.io/json",
+                "https://httpbin.org/user-agent"
+            ]
             
-            if response.status_code == 200:
-                proxy_info.status = ProxyStatus.ACTIVE
-                proxy_info.success_count += 1
-                proxy_info.consecutive_failures = 0
-                return True
-            else:
-                proxy_info.failure_count += 1
-                proxy_info.consecutive_failures += 1
-                return False
-                
-        except Exception as e:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json,text/html,*/*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive"
+            }
+            
+            # Try each test URL until one works
+            for i, test_url in enumerate(test_urls):
+                try:
+                    logger.debug(f"🧪 Testing proxy {proxy_info.port} with URL {i+1}/{len(test_urls)}: {test_url}")
+                    
+                    response = requests.get(
+                        test_url,
+                        proxies=proxies,
+                        timeout=20,  # Increased timeout for reliability
+                        headers=headers,
+                        allow_redirects=True
+                    )
+                    
+                    # Log the specific status code for debugging
+                    if response.status_code != 200:
+                        logger.warning(f"⚠️ Proxy {proxy_info.port} returned status {response.status_code} for {test_url}")
+                        
+                        # If it's a 503, try the next URL
+                        if response.status_code == 503:
+                            logger.info(f"🔄 Proxy {proxy_info.port} got 503 from {test_url}, trying next URL...")
+                            proxy_info.last_failure_type = '503'
+                            continue
+                        
+                        # For other status codes, mark as failed
+                        proxy_info.failure_count += 1
+                        proxy_info.consecutive_failures += 1
+                        proxy_info.last_failure_type = f'status_{response.status_code}'
+                        return False
+                    
+                    # Success! Verify we got a valid response
+                    try:
+                        if test_url == "https://httpbin.org/user-agent":
+                            # This endpoint returns HTML, not JSON
+                            if "user-agent" in response.text.lower():
+                                proxy_info.status = ProxyStatus.ACTIVE
+                                proxy_info.success_count += 1
+                                proxy_info.consecutive_failures = 0
+                                logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
+                                return True
+                        else:
+                            # JSON endpoints
+                            data = response.json()
+                            # Check for expected fields in different APIs
+                            if any(field in data for field in ['origin', 'ip', 'user-agent']):
+                                proxy_info.status = ProxyStatus.ACTIVE
+                                proxy_info.success_count += 1
+                                proxy_info.consecutive_failures = 0
+                                logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
+                                return True
+                            else:
+                                logger.warning(f"⚠️ Proxy {proxy_info.port} returned invalid JSON from {test_url}")
+                                continue  # Try next URL
+                                
+                    except ValueError:
+                        # Non-JSON response, but might still be valid
+                        if len(response.text) > 100:  # Substantial response
+                            proxy_info.status = ProxyStatus.ACTIVE
+                            proxy_info.success_count += 1
+                            proxy_info.consecutive_failures = 0
+                            logger.info(f"✅ Proxy {proxy_info.port} is healthy (non-JSON response from {test_url})")
+                            return True
+                        else:
+                            logger.warning(f"⚠️ Proxy {proxy_info.port} returned short response from {test_url}")
+                            continue  # Try next URL
+                            
+                except requests.exceptions.Timeout:
+                    logger.warning(f"⏰ Proxy {proxy_info.port} timed out on {test_url}")
+                    proxy_info.last_failure_type = 'timeout'
+                    continue  # Try next URL
+                except requests.exceptions.ConnectionError:
+                    logger.warning(f"🔌 Proxy {proxy_info.port} connection error on {test_url}")
+                    proxy_info.last_failure_type = 'connection'
+                    continue  # Try next URL
+                except Exception as e:
+                    logger.warning(f"❌ Proxy {proxy_info.port} failed on {test_url}: {e}")
+                    proxy_info.last_failure_type = 'exception'
+                    continue  # Try next URL
+            
+            # If we get here, all test URLs failed
+            logger.warning(f"❌ Proxy {proxy_info.port} failed all test URLs")
             proxy_info.failure_count += 1
             proxy_info.consecutive_failures += 1
-            logger.debug(f"❌ Proxy {proxy_info.port} failed: {e}")
+            return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error testing proxy {proxy_info.port}: {e}")
+            proxy_info.failure_count += 1
+            proxy_info.consecutive_failures += 1
             return False
         finally:
             proxy_info.last_tested = datetime.now()
             proxy_info.total_requests += 1
     
-    def _test_all_proxies(self):
-        """Test all proxies to determine health."""
-        logger.info("🧪 Testing all proxies...")
+    def _test_proxy_subset(self, ports_to_test: List[int]):
+        """Test a subset of proxies to avoid overwhelming the service."""
+        logger.info(f"🧪 Testing subset of {len(ports_to_test)} proxies...")
         
+        # Test all proxies but with better error handling and diagnostics
         healthy_count = 0
-        for port, proxy_info in self.proxies.items():
-            if self._test_proxy(proxy_info):
-                healthy_count += 1
-            else:
+        total_tested = 0
+        failed_503_count = 0
+        failed_other_count = 0
+        timeout_count = 0
+        connection_error_count = 0
+        
+        for port in ports_to_test:
+            proxy_info = self.proxies[port]
+            total_tested += 1
+            logger.info(f"🧪 Testing proxy {total_tested}/{len(ports_to_test)}: Port {port}")
+            
+            try:
+                if self._test_proxy(proxy_info):
+                    healthy_count += 1
+                    logger.info(f"✅ Proxy {port} is healthy")
+                else:
+                    logger.warning(f"❌ Proxy {port} failed test")
+                    
+                    # Track failure types for diagnostics
+                    if proxy_info.consecutive_failures >= 3:
+                        proxy_info.status = ProxyStatus.DEAD
+                        self.dead_proxies.add(port)
+                        logger.warning(f"💀 Proxy {port} marked as dead")
+                        
+                        # Categorize the failure type based on recent testing
+                        if hasattr(proxy_info, 'last_failure_type'):
+                            if proxy_info.last_failure_type == '503':
+                                failed_503_count += 1
+                            elif proxy_info.last_failure_type == 'timeout':
+                                timeout_count += 1
+                            elif proxy_info.last_failure_type == 'connection':
+                                connection_error_count += 1
+                            else:
+                                failed_other_count += 1
+                                
+            except Exception as e:
+                logger.error(f"❌ Error testing proxy {port}: {e}")
+                proxy_info.failure_count += 1
+                proxy_info.consecutive_failures += 1
                 if proxy_info.consecutive_failures >= 3:
                     proxy_info.status = ProxyStatus.DEAD
                     self.dead_proxies.add(port)
+                    failed_other_count += 1
         
-        logger.info(f"✅ Proxy testing complete: {healthy_count}/{len(self.proxies)} healthy")
+        # Enhanced diagnostics
+        logger.info(f"✅ Proxy testing complete: {healthy_count}/{total_tested} healthy")
+        logger.info(f"📊 Failure breakdown:")
+        logger.info(f"   - 503 errors: {failed_503_count}")
+        logger.info(f"   - Timeouts: {timeout_count}")
+        logger.info(f"   - Connection errors: {connection_error_count}")
+        logger.info(f"   - Other failures: {failed_other_count}")
+        
+        # If we have a high 503 rate, provide specific recommendations
+        if failed_503_count > 0:
+            failure_rate = (failed_503_count / total_tested) * 100
+            logger.warning(f"⚠️ High 503 failure rate: {failure_rate:.1f}% ({failed_503_count}/{total_tested})")
+            
+            if failure_rate > 50:
+                logger.error("🚨 CRITICAL: More than 50% of proxies returning 503 errors!")
+                logger.error("   This suggests either:")
+                logger.error("   1. Proxy provider infrastructure issues")
+                logger.error("   2. Test URLs are being rate-limited")
+                logger.error("   3. Authentication problems")
+                logger.error("   Consider:")
+                logger.error("   - Contacting proxy provider")
+                logger.error("   - Using different test URLs")
+                logger.error("   - Checking proxy credentials")
+                
+                # Send urgent SMS if configured
+                if failed_503_count >= 10:  # Only alert if significant number of failures
+                    message = f"URGENT: Rally scraper proxy crisis. {failed_503_count}/{total_tested} proxies returning 503 errors ({failure_rate:.1f}% failure rate). Proxy provider may be down."
+                    send_urgent_sms(message)
+        
+        # If no healthy proxies found, mark first 10 as active for fallback
+        if healthy_count == 0:
+            logger.warning("⚠️ No healthy proxies found, marking first 10 as active for fallback")
+            for i, (port, proxy_info) in enumerate(list(self.proxies.items())[:10]):
+                proxy_info.status = ProxyStatus.ACTIVE
+                proxy_info.success_count = 1
+                logger.info(f"🔄 Marked proxy {port} as active (fallback)")
+        
+        # If very few healthy proxies, provide recommendations
+        elif healthy_count < len(ports_to_test) * 0.2:  # Less than 20% healthy
+            logger.warning(f"⚠️ Low healthy proxy count: {healthy_count}/{total_tested} ({healthy_count/total_tested*100:.1f}%)")
+            logger.warning("   Consider:")
+            logger.warning("   - Reducing request frequency")
+            logger.warning("   - Using longer delays between requests")
+            logger.warning("   - Contacting proxy provider for support")
     
     def run_proxy_warmup(self, test_tenniscores: bool = True) -> Dict[str, any]:
         """
@@ -804,10 +939,25 @@ class EnhancedProxyRotator:
         
         logger.info(f"🔄 Rotating proxy: {old_port} → {self.current_port}")
     
-    def get_proxy(self) -> str:
+    def get_proxy(self, session_id: str = None) -> str:
         """Get current proxy URL with authentication."""
-        if self._should_rotate():
-            self._rotate_proxy()
+        # Handle sticky sessions
+        if self.sticky and session_id:
+            if self.sticky_session_id == session_id and self.sticky_proxy_port:
+                # Reuse the same proxy for this session
+                self.current_port = self.sticky_proxy_port
+                logger.info(f"🔄 Sticky session {session_id}: reusing proxy {self.current_port}")
+            else:
+                # Start new sticky session
+                self.sticky_session_id = session_id
+                self.sticky_proxy_port = self._select_best_proxy()
+                self.current_port = self.sticky_proxy_port
+                self.session_metrics["sticky_sessions"] += 1
+                logger.info(f"🔄 Sticky session {session_id}: assigned proxy {self.current_port}")
+        else:
+            # Check if we should rotate
+            if self._should_rotate():
+                self._rotate_proxy()
         
         # Update request count
         self.request_count += 1
@@ -829,13 +979,35 @@ class EnhancedProxyRotator:
             # Fallback to basic proxy (for backward compatibility)
             return f"http://us.decodo.com:{self.current_port}"
     
-    def report_success(self, port: int = None):
+    def report_success(self, port: int = None, latency: float = None):
         """Report successful request for proxy."""
         port = port or self.current_port
         if port in self.proxies:
-            self.proxies[port].success_count += 1
-            self.proxies[port].consecutive_failures = 0
+            proxy_info = self.proxies[port]
+            proxy_info.success_count += 1
+            proxy_info.consecutive_failures = 0
+            proxy_info.total_requests += 1
             self.session_metrics["successful_requests"] += 1
+            
+            # Update latency tracking
+            if latency is not None:
+                if proxy_info.avg_latency == 0.0:
+                    proxy_info.avg_latency = latency
+                else:
+                    # Rolling average (80% old, 20% new)
+                    proxy_info.avg_latency = (proxy_info.avg_latency * 0.8) + (latency * 0.2)
+                
+                self.session_metrics["avg_latency_per_proxy"][port] = proxy_info.avg_latency
+            
+            # Update success rate tracking
+            self.session_metrics["proxy_success_rates"][port] = proxy_info.success_rate
+            
+            # Check for pool promotion (to trusted pool)
+            if (proxy_info.pool == "rotating" and 
+                proxy_info.success_rate >= 90 and 
+                proxy_info.total_requests >= 10 and
+                port not in self.trusted_pool):
+                self._promote_to_trusted(port)
             
             # Update proxy health tracking
             if port not in self.proxy_health:
@@ -850,12 +1022,23 @@ class EnhancedProxyRotator:
         """Report failed request for proxy."""
         port = port or self.current_port
         if port in self.proxies:
-            self.proxies[port].failure_count += 1
-            self.proxies[port].consecutive_failures += 1
+            proxy_info = self.proxies[port]
+            proxy_info.failure_count += 1
+            proxy_info.consecutive_failures += 1
+            proxy_info.total_requests += 1
+            
+            # Update success rate tracking
+            self.session_metrics["proxy_success_rates"][port] = proxy_info.success_rate
+            
+            # Check for pool demotion (from trusted pool)
+            if (proxy_info.pool == "trusted" and 
+                proxy_info.success_rate < 70 and 
+                proxy_info.total_requests >= 10):
+                self._demote_from_trusted(port)
             
             # Mark as dead if too many consecutive failures
-            if self.proxies[port].consecutive_failures >= 3:
-                self.proxies[port].status = ProxyStatus.DEAD
+            if proxy_info.consecutive_failures >= 3:
+                proxy_info.status = ProxyStatus.DEAD
                 self.dead_proxies.add(port)
                 self.session_metrics["dead_proxies_detected"] += 1
                 logger.warning(f"💀 Marking proxy {port} as dead")
@@ -943,6 +1126,74 @@ class EnhancedProxyRotator:
             logger.info(f"✅ Resetting consecutive blocks counter (was {self.consecutive_blocks})")
             self.consecutive_blocks = 0
     
+    def _select_best_proxy(self) -> int:
+        """Select the best available proxy, prioritizing trusted pool."""
+        # First try trusted pool
+        trusted_available = [p for p in self.trusted_pool if p not in self.dead_proxies and p not in self.capped_proxies]
+        if trusted_available:
+            return random.choice(trusted_available)
+        
+        # Fall back to rotating pool
+        rotating_available = [p for p in self.rotating_pool if p not in self.dead_proxies and p not in self.capped_proxies]
+        if rotating_available:
+            return random.choice(rotating_available)
+        
+        # Last resort: any available proxy
+        available = [p for p in self.ports if p not in self.dead_proxies and p not in self.capped_proxies]
+        if available:
+            return random.choice(available)
+        
+        # If all proxies are dead/capped, reset usage caps and try again
+        logger.warning("⚠️ All proxies are dead or capped, resetting usage caps")
+        self.capped_proxies.clear()
+        available = [p for p in self.ports if p not in self.dead_proxies]
+        return random.choice(available) if available else self.ports[0]
+    
+    def _promote_to_trusted(self, port: int):
+        """Promote a proxy to the trusted pool."""
+        if port in self.rotating_pool:
+            self.rotating_pool.remove(port)
+        self.trusted_pool.add(port)
+        self.proxies[port].pool = "trusted"
+        self.pool_promotions += 1
+        self.session_metrics["pool_promotions"] += 1
+        logger.info(f"⭐ Promoted proxy {port} to trusted pool (success rate: {self.proxies[port].success_rate:.1f}%)")
+    
+    def _demote_from_trusted(self, port: int):
+        """Demote a proxy from the trusted pool."""
+        if port in self.trusted_pool:
+            self.trusted_pool.remove(port)
+        self.rotating_pool.add(port)
+        self.proxies[port].pool = "rotating"
+        self.pool_demotions += 1
+        self.session_metrics["pool_demotions"] += 1
+        logger.warning(f"📉 Demoted proxy {port} from trusted pool (success rate: {self.proxies[port].success_rate:.1f}%)")
+    
+    def release_proxy(self, session_id: str = None):
+        """Release a sticky proxy session."""
+        if self.sticky and session_id == self.sticky_session_id:
+            self.sticky_session_id = None
+            self.sticky_proxy_port = None
+            logger.info(f"🔄 Released sticky session {session_id}")
+    
+    def _update_pool_assignments(self):
+        """Update pool assignments based on current performance."""
+        for port, proxy_info in self.proxies.items():
+            if proxy_info.total_requests < 5:  # Need minimum data
+                continue
+                
+            # Promote to trusted if criteria met
+            if (proxy_info.pool == "rotating" and 
+                proxy_info.success_rate >= 90 and 
+                proxy_info.total_requests >= 10 and
+                port not in self.trusted_pool):
+                self._promote_to_trusted(port)
+            
+            # Demote from trusted if criteria not met
+            elif (proxy_info.pool == "trusted" and 
+                  (proxy_info.success_rate < 80 or proxy_info.consecutive_failures >= 2)):
+                self._demote_from_trusted(port)
+    
     def get_status(self) -> Dict:
         """Get comprehensive status information."""
         healthy_proxies = self._get_healthy_proxies()
@@ -960,12 +1211,25 @@ class EnhancedProxyRotator:
             "session_blocked_proxies": self.session_blocked_proxies,
             "last_sms_alert": self.last_sms_alert.isoformat() if self.last_sms_alert else None,
             "session_metrics": self.session_metrics,
+            "pool_stats": {
+                "trusted_pool_size": len(self.trusted_pool),
+                "rotating_pool_size": len(self.rotating_pool),
+                "pool_promotions": self.pool_promotions,
+                "pool_demotions": self.pool_demotions
+            },
+            "sticky_session": {
+                "enabled": self.sticky,
+                "current_session_id": self.sticky_session_id,
+                "sticky_proxy": self.sticky_proxy_port
+            },
             "proxy_health": {
                 port: {
                     "status": info.status.value,
                     "success_rate": info.success_rate,
                     "total_requests": info.total_requests,
                     "consecutive_failures": info.consecutive_failures,
+                    "avg_latency": info.avg_latency,
+                    "pool": info.pool,
                     "health_stats": self.proxy_health.get(port, {"success": 0, "blocked": 0, "failures": 0})
                 }
                 for port, info in self.proxies.items()
@@ -983,51 +1247,86 @@ class EnhancedProxyRotator:
 # Global instance
 _proxy_rotator = None
 
-def get_proxy_rotator() -> EnhancedProxyRotator:
+def get_proxy_rotator(sticky: bool = True) -> EnhancedProxyRotator:
     """Get the global proxy rotator instance."""
     global _proxy_rotator
     if _proxy_rotator is None:
-        _proxy_rotator = EnhancedProxyRotator()
+        _proxy_rotator = EnhancedProxyRotator(sticky=sticky)
+    elif sticky and not _proxy_rotator.sticky:
+        # If sticky is requested but current instance isn't sticky, create new one
+        _proxy_rotator = EnhancedProxyRotator(sticky=sticky)
     return _proxy_rotator
 
 def make_proxy_request(url: str, timeout: int = 30, max_retries: int = 3) -> Optional[requests.Response]:
-    """Make a request using the proxy rotator."""
+    """Make a request using the proxy rotator with User-Agent management."""
     rotator = get_proxy_rotator()
+    
+    # Import UA manager functions
+    from data.etl.scrapers.user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
     
     for attempt in range(max_retries):
         try:
+            start_time = time.time()
             proxy_url = rotator.get_proxy()
             proxies = {"http": proxy_url, "https": proxy_url}
+            
+            # Get site-specific User-Agent
+            user_agent = get_user_agent_for_site(url, force_new=(attempt > 0))
+            headers = get_random_headers(url)
             
             response = requests.get(
                 url,
                 proxies=proxies,
                 timeout=timeout,
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+                headers=headers
             )
             
-            # Report success
-            rotator.report_success()
+            latency = time.time() - start_time
+            
+            # Check if blocked
+            if is_blocked(response):
+                rotator.report_blocked()
+                report_ua_failure(user_agent, url)
+                
+                if attempt < max_retries - 1:
+                    # Swap proxy and retry with new UA
+                    logger.info(f"🔄 Swapping proxy and UA due to block (attempt {attempt + 1})")
+                    time.sleep(random.uniform(1, 3))  # Random delay
+                    continue
+                else:
+                    raise Exception(f"All proxies blocked for {url}")
+            
+            # Report success with latency
+            rotator.report_success(latency=latency)
+            report_ua_success(user_agent, url)
             return response
             
         except Exception as e:
             logger.warning(f"⚠️ Proxy request failed (attempt {attempt + 1}): {e}")
             rotator.report_failure()
             
+            # Report UA failure if we have the user agent
+            try:
+                user_agent = get_user_agent_for_site(url, force_new=(attempt > 0))
+                report_ua_failure(user_agent, url)
+            except:
+                pass
+            
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                time.sleep(random.uniform(2 ** attempt, 2 ** (attempt + 1)))  # Exponential backoff with randomization
                 continue
     
-    return None
+    raise Exception(f"All proxies failed for {url}")
 
-def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, **kwargs) -> requests.Response:
+def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, session_id: str = None, **kwargs) -> requests.Response:
     """
-    Enhanced fetch function with robust proxy failure detection and retry logic.
+    Enhanced fetch function with granular retry logic and proxy rotation.
     
     Args:
         url: URL to fetch
         max_retries: Maximum number of proxy attempts (default: 3)
         timeout: Request timeout in seconds
+        session_id: Optional session ID for sticky sessions
         **kwargs: Additional arguments for requests.get()
         
     Returns:
