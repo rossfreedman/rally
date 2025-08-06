@@ -154,10 +154,10 @@ def get_last_3_matches():
         if user_league_id and str(user_league_id).isdigit():
             league_id_int = int(user_league_id)
 
-        # Query the last 3 matches for this player
+        # Query the last 3 matches for this player (handle duplicate records)
         if league_id_int:
             matches_query = """
-                SELECT 
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     match_date,
                     home_team as "Home Team",
@@ -171,7 +171,7 @@ def get_last_3_matches():
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
-                ORDER BY match_date DESC
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
                 LIMIT 3
             """
             matches = execute_query(
@@ -180,7 +180,7 @@ def get_last_3_matches():
             )
         else:
             matches_query = """
-                SELECT 
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     match_date,
                     home_team as "Home Team",
@@ -193,7 +193,7 @@ def get_last_3_matches():
                     away_player_2_id as "Away Player 2"
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                ORDER BY match_date DESC
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
                 LIMIT 3
             """
             matches = execute_query(

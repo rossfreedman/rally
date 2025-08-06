@@ -589,10 +589,11 @@ def get_player_analysis(user):
         
         # Get player history - show CURRENT SEASON matches for individual player analysis
         # NOTE: Team filtering removed to include substitute appearances on other teams
+        # FIXED: Handle duplicate match records by using DISTINCT ON
         if league_id_int:
             # Show current season matches for this player in this league
             history_query = """
-                SELECT 
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
                     id,
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
@@ -609,7 +610,7 @@ def get_player_analysis(user):
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
                 AND match_date >= %s AND match_date <= %s
-                ORDER BY match_date DESC
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
             """
             query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]
             print(f"[DEBUG] Player analysis showing CURRENT SEASON matches: player_id={player_id}, league_id={league_id_int}")
@@ -619,7 +620,7 @@ def get_player_analysis(user):
         else:
             # No league context - show current season matches for this player across all leagues
             history_query = """
-                SELECT 
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
                     id,
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
@@ -635,7 +636,7 @@ def get_player_analysis(user):
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND match_date >= %s AND match_date <= %s
-                ORDER BY match_date DESC
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
             """
             query_params = [player_id, player_id, player_id, player_id, season_start, season_end]
             print(f"[DEBUG] Player analysis (no league): showing CURRENT SEASON matches for player_id={player_id}")
@@ -2190,8 +2191,16 @@ def get_mobile_club_data(user):
                         if "-" in set_score:
                             try:
                                 our_score, their_score = map(int, set_score.split("-"))
-                                if not is_home:
-                                    our_score, their_score = their_score, our_score
+                                
+                                # NSTF league has reversed team assignments - need to reverse score logic too
+                                if user_league_id == "4933":  # NSTF league
+                                    # For NSTF: if we're using away players when is_home=True, then we need to reverse the score logic
+                                    if is_home:
+                                        our_score, their_score = their_score, our_score
+                                else:
+                                    # Standard logic for other leagues (APTA, etc.)
+                                    if not is_home:
+                                        our_score, their_score = their_score, our_score
 
                                 if our_score > their_score:
                                     match_team_points += 1
@@ -2201,12 +2210,23 @@ def get_mobile_club_data(user):
                                 continue
 
                     # Bonus point for match win
-                    if (is_home and match["winner"] == "home") or (
-                        not is_home and match["winner"] == "away"
-                    ):
-                        match_team_points += 1
+                    # NSTF league has reversed team assignments - need to reverse win/loss logic too
+                    if user_league_id == "4933":  # NSTF league
+                        # For NSTF: if we're using away players when is_home=True, then we need to reverse the win logic
+                        if (is_home and match["winner"] == "away") or (
+                            not is_home and match["winner"] == "home"
+                        ):
+                            match_team_points += 1
+                        else:
+                            match_opponent_points += 1
                     else:
-                        match_opponent_points += 1
+                        # Standard logic for other leagues (APTA, etc.)
+                        if (is_home and match["winner"] == "home") or (
+                            not is_home and match["winner"] == "away"
+                        ):
+                            match_team_points += 1
+                        else:
+                            match_opponent_points += 1
 
                     # Update total points
                     team_matches[team]["team_points"] += match_team_points
@@ -2257,22 +2277,48 @@ def get_mobile_club_data(user):
                         else "Unknown"
                     )
 
+                    # NSTF league has reversed team assignments - need to reverse score display and win logic
+                    if user_league_id == "4933":  # NSTF league
+                        # For NSTF: reverse the score display and win logic
+                            if is_home:
+                                # When home team, show away players first (our team) vs home players (opponents)
+                                home_players_display = f"{away_player_1_name}/{away_player_2_name}"
+                                away_players_display = f"{home_player_1_name}/{home_player_2_name}"
+                                # Keep original scores for display (don't reverse them)
+                                scores_display = match["scores"]
+                                # NSTF league has reversed team assignments - need to invert the won logic for correct colors
+                                actual_won = (is_home and match["winner"] == "home") or (not is_home and match["winner"] == "away")
+                                won = actual_won  # Use actual win logic for NSTF (no inversion needed)
+                            else:
+                                # When away team, show home players first (our team) vs away players (opponents)
+                                home_players_display = f"{home_player_1_name}/{home_player_2_name}"
+                                away_players_display = f"{away_player_1_name}/{away_player_2_name}"
+                                scores_display = match["scores"]
+                                # NSTF league has reversed team assignments - need to invert the won logic for correct colors
+                                actual_won = (is_home and match["winner"] == "home") or (not is_home and match["winner"] == "away")
+                                won = actual_won  # Use actual win logic for NSTF (no inversion needed)
+                    else:
+                        # Standard logic for other leagues (APTA, etc.)
+                        home_players_display = (
+                            f"{home_player_1_name}/{home_player_2_name}"
+                            if is_home
+                            else f"{away_player_1_name}/{away_player_2_name}"
+                        )
+                        away_players_display = (
+                            f"{away_player_1_name}/{away_player_2_name}"
+                            if is_home
+                            else f"{home_player_1_name}/{home_player_2_name}"
+                        )
+                        scores_display = match["scores"]
+                        won = (is_home and match["winner"] == "home") or (not is_home and match["winner"] == "away")
+                    
                     team_matches[team]["matches"].append(
                         {
                             "court": court_num,
-                            "home_players": (
-                                f"{home_player_1_name}/{home_player_2_name}"
-                                if is_home
-                                else f"{away_player_1_name}/{away_player_2_name}"
-                            ),
-                            "away_players": (
-                                f"{away_player_1_name}/{away_player_2_name}"
-                                if is_home
-                                else f"{home_player_1_name}/{home_player_2_name}"
-                            ),
-                            "scores": match["scores"],
-                            "won": (is_home and match["winner"] == "home")
-                            or (not is_home and match["winner"] == "away"),
+                            "home_players": home_players_display,
+                            "away_players": away_players_display,
+                            "scores": scores_display,
+                            "won": won,
                         }
                     )
 
