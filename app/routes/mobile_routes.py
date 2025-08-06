@@ -792,127 +792,14 @@ def serve_mobile_analyze_me():
             # Use the session data (now with resolved league_id and team_context if applicable)
             analyze_data = get_player_analysis(session_user)
         else:
-            # Fallback: Look up player data from database using name matching
-            # ENHANCED: Filter by league context to prevent multiple player matches
-            user_league_id = session_user.get("league_id")
-            user_league_name = session_user.get("league_name")
-            
-            # Convert league context to database ID if needed
-            league_filter = ""
-            league_params = []
-            if user_league_id:
-                if isinstance(user_league_id, str):
-                    # Convert string league_id to database ID
-                    try:
-                        league_record = execute_query_one(
-                            "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                        )
-                        if league_record:
-                            league_filter = "AND p.league_id = %s"
-                            league_params = [league_record["id"]]
-                    except Exception as e:
-                        print(f"[DEBUG] Could not convert league_id {user_league_id}: {e}")
-                elif isinstance(user_league_id, int):
-                    league_filter = "AND p.league_id = %s"
-                    league_params = [user_league_id]
-            elif user_league_name:
-                # Try to find league by name
-                try:
-                    league_record = execute_query_one(
-                        "SELECT id FROM leagues WHERE league_name = %s", [user_league_name]
-                    )
-                    if league_record:
-                        league_filter = "AND p.league_id = %s"
-                        league_params = [league_record["id"]]
-                except Exception as e:
-                    print(f"[DEBUG] Could not find league by name {user_league_name}: {e}")
-            
-            player_query = f"""
-                SELECT 
-                    first_name,
-                    last_name,
-                    email,
-                    tenniscores_player_id,
-                    club_id,
-                    series_id,
-                    league_id,
-                    team_id
-                FROM players 
-                WHERE first_name = %s AND last_name = %s {league_filter}
-                ORDER BY id DESC
-                LIMIT 1
-            """
-
-            query_params = [session_user.get("first_name"), session_user.get("last_name")] + league_params
-            print(f"[DEBUG] Analyze-me fallback - Looking for player with league filter: {league_filter}")
-
-            player_data = execute_query_one(player_query, query_params)
-
-            if player_data:
-                # Create a complete user object with both session and database data
-                complete_user = {
-                    "email": session_user.get("email"),
-                    "first_name": player_data["first_name"],
-                    "last_name": player_data["last_name"],
-                    "tenniscores_player_id": player_data["tenniscores_player_id"],
-                    "club_id": player_data["club_id"],
-                    "series_id": player_data["series_id"],
-                    "league_id": player_data["league_id"],
-                }
-                
-                # Add team context from database lookup if available
-                if player_data.get("team_id"):
-                    complete_user["team_context"] = player_data["team_id"]
-                    print(f"[DEBUG] Analyze-me fallback - Using team context from DB: team_id={player_data['team_id']}")
-                
-                analyze_data = get_player_analysis(complete_user)
-            else:
-                # If no player found with league filter, try without league filter but warn
-                print(f"[DEBUG] Analyze-me fallback - No player found with league filter, trying without filter")
-                player_query_no_filter = """
-                    SELECT 
-                        first_name,
-                        last_name,
-                        email,
-                        tenniscores_player_id,
-                        club_id,
-                        series_id,
-                        league_id,
-                        team_id
-                    FROM players 
-                    WHERE first_name = %s AND last_name = %s
-                    ORDER BY id DESC
-                    LIMIT 1
-                """
-                
-                player_data = execute_query_one(
-                    player_query_no_filter,
-                    [session_user.get("first_name"), session_user.get("last_name")],
-                )
-                
-                if player_data:
-                    print(f"[WARNING] Analyze-me fallback - Found player without league filter, may include matches from multiple leagues")
-                    complete_user = {
-                        "email": session_user.get("email"),
-                        "first_name": player_data["first_name"],
-                        "last_name": player_data["last_name"],
-                        "tenniscores_player_id": player_data["tenniscores_player_id"],
-                        "club_id": player_data["club_id"],
-                        "series_id": player_data["series_id"],
-                        "league_id": player_data["league_id"],
-                    }
-                    
-                    if player_data.get("team_id"):
-                        complete_user["team_context"] = player_data["team_id"]
-                    
-                    analyze_data = get_player_analysis(complete_user)
-                else:
-                    analyze_data = {
-                        "error": "Player data not found in database",
-                        "current_season": None,
-                        "court_analysis": {},
-                        "career_stats": None,
-                    }
+            # NO FALLBACK: Require proper player ID - no name-based lookups
+            print(f"[ERROR] Analyze-me - No tenniscores_player_id in session, cannot proceed with name-based lookup")
+            analyze_data = {
+                "error": "Player ID not found in session. Please check your profile setup or contact support.",
+                "current_season": None,
+                "court_analysis": {},
+                "career_stats": None,
+            }
 
         # Ensure session data has proper series display name for header
         session_user_for_template = session["user"].copy()
