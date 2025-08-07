@@ -1140,6 +1140,11 @@ function renderMatchesModal(groupedMatches) {
     });
     
     modalContent.innerHTML = html;
+    
+    } catch (err) {
+        console.error('❌ Error rendering matches modal:', err);
+        showMatchesError('Failed to render matches');
+    }
 }
 
 function showMatchesError(message) {
@@ -1197,7 +1202,9 @@ function openPartnerMatchesModal(partnerName, courtName, matchCount) {
 
 async function loadPartnerMatchesData(partnerName, courtName) {
     try {
+        console.log(`🔍 Loading partner matches for ${partnerName} on ${courtName}...`);
         const response = await fetch('/api/current-season-matches');
+        console.log('📊 Partner matches response status:', response.status);
         
         if (response.status === 404) {
             showMatchesError('No matches found');
@@ -1205,29 +1212,41 @@ async function loadPartnerMatchesData(partnerName, courtName) {
         }
         
         const data = await response.json();
+        console.log('📊 Partner matches API response data:', data);
         
         if (data.error) {
+            console.log('❌ Partner matches API error:', data.error);
             showMatchesError(data.error);
             return;
         }
         
         if (!data.matches || data.matches.length === 0) {
+            console.log('❌ No matches in partner response');
             showMatchesEmpty();
             return;
         }
         
+        console.log('✅ Found', data.matches.length, 'matches for partner filtering');
+        
         // Filter matches for this specific partner and court
         // Use the same logic as the court analysis
+        console.log(`🔍 Filtering for partner: "${partnerName}" on court: "${courtName}"`);
+        const targetCourt = parseInt(courtName.replace('court', ''));
+        console.log(`🎯 Target court number: ${targetCourt}`);
+        
         const partnerMatches = data.matches.filter(match => {
             // Check if this match is with the specified partner
             const isWithPartner = match.partner_name === partnerName;
             
             // Check if this match is on the specified court
-            const targetCourt = parseInt(courtName.replace('court', ''));
             const isOnCourt = match.court_number === targetCourt;
+            
+            console.log(`🔍 Match: partner="${match.partner_name}" court=${match.court_number} | isWithPartner=${isWithPartner} isOnCourt=${isOnCourt}`);
             
             return isWithPartner && isOnCourt;
         });
+        
+        console.log(`📊 Filtered to ${partnerMatches.length} partner matches`);
         
         // If no matches found with the exact court number, try the fallback logic
         // This matches the court analysis fallback: (index % 4) + 1
