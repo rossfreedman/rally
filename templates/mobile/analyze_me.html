@@ -919,7 +919,10 @@ let matchesModal = null;
 let matchesData = null;
 
 function openMatchesModal() {
+    console.log('🎯 Opening matches modal...');
+    
     if (!matchesModal) {
+        console.log('🔨 Creating matches modal...');
         createMatchesModal();
     }
     
@@ -934,6 +937,7 @@ function openMatchesModal() {
     
     // Show modal
     matchesModal.classList.remove('hidden');
+    console.log('✅ Modal shown');
     
     // Load matches data
     loadMatchesData();
@@ -982,33 +986,43 @@ function closeMatchesModal() {
 
 async function loadMatchesData() {
     try {
+        console.log('🔍 Loading matches data...');
         const response = await fetch('/api/current-season-matches');
         
+        console.log('📊 Response status:', response.status);
+        
         if (response.status === 404) {
+            console.log('❌ 404 - No matches found');
             showMatchesError('No matches found');
             return;
         }
         
         const data = await response.json();
+        console.log('📊 API response data:', data);
         
         if (data.error) {
+            console.log('❌ API error:', data.error);
             showMatchesError(data.error);
             return;
         }
         
         if (!data.matches || data.matches.length === 0) {
+            console.log('❌ No matches in response');
             showMatchesEmpty();
             return;
         }
         
+        console.log('✅ Found', data.matches.length, 'matches');
+        
         // Group matches by date and team matchup
         const groupedMatches = groupMatchesByTeamMatchup(data.matches);
+        console.log('📊 Grouped matches:', groupedMatches);
         
         // Render matches
         renderMatchesModal(groupedMatches);
         
     } catch (err) {
-        console.error('Error loading matches:', err);
+        console.error('❌ Error loading matches:', err);
         showMatchesError('Failed to load matches');
     }
 }
