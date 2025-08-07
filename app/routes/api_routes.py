@@ -852,6 +852,7 @@ def get_current_season_matches():
                 "opponent2_name": opponent2_name,
                 "court_number": court_number,
                 "player_won": player_won,
+                "match_result": "WIN" if player_won else "LOSS",  # Add match_result for frontend
                 "scores": formatted_scores,
                 "match_id": match.get("id")
             }
@@ -1102,6 +1103,7 @@ def get_team_current_season_matches():
                     "opponent2_name": opponent2_name,
                     "court_number": court_number,
                     "player_won": player_won,
+                    "match_result": "WIN" if player_won else "LOSS",  # Add match_result for frontend
                     "scores": formatted_scores,
                     "match_id": match.get("id")
                 }
