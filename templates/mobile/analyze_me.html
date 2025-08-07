@@ -1029,11 +1029,14 @@ async function loadMatchesData() {
         console.log('✅ Found', data.matches.length, 'matches');
         
         // Group matches by date and team matchup
+        console.log('🔍 About to group matches...');
         const groupedMatches = groupMatchesByTeamMatchup(data.matches);
         console.log('📊 Grouped matches:', groupedMatches);
         
         // Render matches
+        console.log('🎨 About to render matches...');
         renderMatchesModal(groupedMatches);
+        console.log('✅ Matches rendered successfully');
         
     } catch (err) {
         console.error('❌ Error loading matches:', err);
@@ -1066,11 +1069,19 @@ function groupMatchesByTeamMatchup(matches) {
 }
 
 function renderMatchesModal(groupedMatches) {
-    const modalContent = document.getElementById('matchesModalContent');
-    
-    let html = '';
-    
-    groupedMatches.forEach(group => {
+    try {
+        console.log('🎨 renderMatchesModal called with:', groupedMatches.length, 'groups');
+        
+        const modalContent = document.getElementById('matchesModalContent');
+        if (!modalContent) {
+            console.error('❌ modalContent element not found');
+            throw new Error('modalContent element not found');
+        }
+        
+        let html = '';
+        
+        groupedMatches.forEach((group, groupIndex) => {
+            console.log(`🔍 Processing group ${groupIndex}:`, group);
         // Calculate team result (W or L)
         const playerMatches = group.matches.filter(match => match.player_was_home !== null);
         const wins = playerMatches.filter(match => match.player_won).length;

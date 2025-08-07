@@ -858,6 +858,8 @@ def get_current_season_matches():
             }
             processed_matches.append(processed_match)
 
+        print(f"[DEBUG] API: Returning {len(processed_matches)} processed matches")
+        print(f"[DEBUG] API: Sample match data: {processed_matches[0] if processed_matches else 'None'}")
         return jsonify({"matches": processed_matches})
 
     except Exception as e:
