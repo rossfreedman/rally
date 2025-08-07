@@ -817,11 +817,21 @@ def get_current_season_matches():
             
             # First, try to get court from tenniscores_match_id (same as court analysis)
             match_id = match.get("tenniscores_match_id", "")
+            print(f"[DEBUG] Processing match ID: {match_id}")
             if match_id and "_Line" in match_id:
                 try:
-                    court_number = int(match_id.split("_Line")[1])
+                    # Handle duplicate _Line pattern by taking the last occurrence (same as court analysis)
+                    line_parts = match_id.split("_Line")
+                    if len(line_parts) > 1:
+                        line_part = line_parts[-1]  # Take the last part
+                        court_number = int(line_part)
+                        print(f"[DEBUG] Extracted court {court_number} from {match_id}")
+                    else:
+                        print(f"[DEBUG] No line parts found in {match_id}")
                 except (ValueError, IndexError):
-                    pass
+                    print(f"[DEBUG] Failed to parse court from {match_id}")
+            else:
+                print(f"[DEBUG] No _Line pattern in {match_id}")
             
             # If no court from tenniscores_match_id, try alternative methods
             if court_number is None:
