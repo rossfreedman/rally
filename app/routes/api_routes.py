@@ -845,9 +845,44 @@ def get_current_season_matches():
                     except (ValueError, IndexError):
                         pass
                 
-                # If still no court number, use fallback (but this should rarely happen)
+                # If still no court number, use SAME fallback logic as court analysis
                 if court_number is None:
-                    court_number = 1  # Default to court 1
+                    print(f"[DEBUG] Using fallback court assignment for match ID: {match.get('id')}")
+                    # Use the same database ID order logic as court analysis
+                    # Group by date and team matchup, then assign based on position within that group
+                    
+                    # Get all matches for this date and team matchup
+                    match_date = match.get("Date")
+                    home_team = match.get("Home Team", "")
+                    away_team = match.get("Away Team", "")
+                    
+                    # Find all matches on this date with these teams
+                    same_matchup_query = """
+                        SELECT id, tenniscores_match_id
+                        FROM match_scores
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s AND away_team = %s
+                        ORDER BY id ASC
+                    """
+                    
+                    try:
+                        same_matchup_matches = execute_query(same_matchup_query, [match_date, home_team, away_team])
+                        
+                        # Find position of current match in this group
+                        current_match_id = match.get("id")
+                        match_position = 0
+                        for i, matchup_match in enumerate(same_matchup_matches):
+                            if matchup_match.get("id") == current_match_id:
+                                match_position = i
+                                break
+                        
+                        # Assign court based on position (1-4, same as court analysis)
+                        court_number = (match_position % 4) + 1
+                        print(f"[DEBUG] Assigned court {court_number} based on position {match_position} in matchup")
+                        
+                    except Exception as e:
+                        print(f"[DEBUG] Fallback court assignment failed: {e}")
+                        court_number = 1  # Ultimate fallback
 
             processed_match = {
                 "date": match.get("Date"),
