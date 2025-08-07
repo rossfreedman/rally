@@ -817,7 +817,6 @@ def get_current_season_matches():
             
             # First, try to get court from tenniscores_match_id (same as court analysis)
             match_id = match.get("tenniscores_match_id", "")
-            print(f"[DEBUG] Processing match ID: {match_id}")
             if match_id and "_Line" in match_id:
                 try:
                     # Handle duplicate _Line pattern by taking the last occurrence (same as court analysis)
@@ -825,13 +824,8 @@ def get_current_season_matches():
                     if len(line_parts) > 1:
                         line_part = line_parts[-1]  # Take the last part
                         court_number = int(line_part)
-                        print(f"[DEBUG] Extracted court {court_number} from {match_id}")
-                    else:
-                        print(f"[DEBUG] No line parts found in {match_id}")
                 except (ValueError, IndexError):
-                    print(f"[DEBUG] Failed to parse court from {match_id}")
-            else:
-                print(f"[DEBUG] No _Line pattern in {match_id}")
+                    pass
             
             # If no court from tenniscores_match_id, try alternative methods
             if court_number is None:
@@ -847,7 +841,6 @@ def get_current_season_matches():
                 
                 # If still no court number, use SAME fallback logic as court analysis
                 if court_number is None:
-                    print(f"[DEBUG] Using fallback court assignment for match ID: {match.get('id')}")
                     # Use the same database ID order logic as court analysis
                     # Group by date and team matchup, then assign based on position within that group
                     
@@ -878,10 +871,8 @@ def get_current_season_matches():
                         
                         # Assign court based on position (1-4, same as court analysis)
                         court_number = (match_position % 4) + 1
-                        print(f"[DEBUG] Assigned court {court_number} based on position {match_position} in matchup")
                         
                     except Exception as e:
-                        print(f"[DEBUG] Fallback court assignment failed: {e}")
                         court_number = 1  # Ultimate fallback
 
             processed_match = {
