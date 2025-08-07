@@ -89,6 +89,8 @@ class SessionRefreshMiddleware:
             '/api/health',
             '/api/current-season-matches',
             '/api/team-current-season-matches',
+            '/api/get-user-teams',  # Skip to prevent cursor conflicts
+            '/api/get-user-teams-in-current-league',  # Skip to prevent cursor conflicts
             '/static/',
             '/favicon.ico',
             '/login',
@@ -117,8 +119,16 @@ class SessionRefreshMiddleware:
             from data.etl.database_import.session_refresh_service import SessionRefreshService
             return SessionRefreshService.should_refresh_session(user_email)
         except Exception as e:
-            logger.error(f"Error checking refresh status: {str(e)}")
-            return False
+            # Handle specific database errors gracefully
+            if "cursor already closed" in str(e):
+                logger.warning(f"Database cursor closed while checking refresh status for {user_email}")
+                return False
+            elif "connection" in str(e).lower():
+                logger.error(f"Database connection error checking refresh status for {user_email}: {str(e)}")
+                return False
+            else:
+                logger.error(f"Error checking refresh status: {str(e)}")
+                return False
     
     def _refresh_user_session(self, user_email: str) -> Optional[dict]:
         """Refresh user's session with updated data"""
@@ -126,8 +136,16 @@ class SessionRefreshMiddleware:
             from data.etl.database_import.session_refresh_service import SessionRefreshService
             return SessionRefreshService.refresh_user_session(user_email)
         except Exception as e:
-            logger.error(f"Error refreshing session: {str(e)}")
-            return None
+            # Handle specific database errors gracefully
+            if "cursor already closed" in str(e):
+                logger.warning(f"Database cursor closed while refreshing session for {user_email}")
+                return None
+            elif "connection" in str(e).lower():
+                logger.error(f"Database connection error refreshing session for {user_email}: {str(e)}")
+                return None
+            else:
+                logger.error(f"Error refreshing session: {str(e)}")
+                return None
 
 
 def create_session_refresh_notification_banner():
