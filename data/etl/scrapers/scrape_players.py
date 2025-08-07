@@ -6,14 +6,20 @@ This script scrapes player data for specific tenniscores_player_ids only.
 It's designed to be efficient and incremental - only scraping players who appeared in newly scraped matches.
 
 Usage:
-    python3 data/etl/scrapers/scrape_players.py <league_subdomain> <player_ids_file>
-    python3 data/etl/scrapers/scrape_players.py aptachicago player_ids.txt
+    python3 data/etl/scrapers/scrape_players.py <league_subdomain> [--all-players]
+    python3 data/etl/scrapers/scrape_players.py aptachicago
+    python3 data/etl/scrapers/scrape_players.py aptachicago --all-players
+
+Options:
+    --all-players    Scrape all players from all matches (not just most recent date)
 
 The script:
-1. Reads a list of tenniscores_player_ids from a file or accepts them as input
-2. For each ID, scrapes the player's profile page
-3. Extracts: tenniscores_player_id, name, team_name, league_id, series, current_pti
-4. Saves the data to a JSON file for import
+1. Reads a list of tenniscores_player_ids from match history
+2. By default, only scrapes players from the most recent match date
+3. With --all-players flag, scrapes all players from all matches
+4. For each ID, scrapes the player's profile page
+5. Extracts: tenniscores_player_id, name, team_name, league_id, series, current_pti
+6. Saves the data to a JSON file for import
 
 Enhanced with IP validation, request volume tracking, and intelligent throttling.
 """
@@ -1152,7 +1158,7 @@ class IncrementalPlayerScraper:
 
 
 
-def extract_player_ids_from_match_history(match_history_file: str, league_subdomain: str = None) -> Set[str]:
+def extract_player_ids_from_match_history(match_history_file: str, league_subdomain: str = None, all_players: bool = False) -> Set[str]:
     """Extract unique player IDs from current match pages instead of outdated match history"""
     try:
         # For NSTF, get current player IDs from match pages
@@ -1182,69 +1188,91 @@ def extract_player_ids_from_match_history(match_history_file: str, league_subdom
             print(f"❌ No matches found for league {league_subdomain}")
             return set()
         
-        # Find the most recent match date
-        match_dates = []
-        for match in matches:
-            date_str = match.get('Date', '')
-            if date_str:
-                try:
-                    # Parse date string to datetime object for comparison
-                    from datetime import datetime
-                    
-                    # Try multiple date formats
-                    date_obj = None
-                    for date_format in ['%d-%b-%y', '%d-%b-%Y', '%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y']:
-                        try:
-                            date_obj = datetime.strptime(date_str, date_format)
-                            break
-                        except ValueError:
-                            continue
-                    
-                    if date_obj:
-                        match_dates.append((date_obj, match))
-                    else:
-                        print(f"⚠️ Could not parse date: {date_str}")
-                        
-                except Exception as e:
-                    print(f"⚠️ Error parsing date '{date_str}': {e}")
-                    continue
-        
-        if not match_dates:
-            print("❌ No valid match dates found")
-            return set()
-        
-        # Sort by date and find the most recent
-        match_dates.sort(key=lambda x: x[0], reverse=True)
-        most_recent_date = match_dates[0][0]
-        
-        # Show the top 5 most recent dates for debugging
-        print(f"🎾 Top 5 most recent dates found:")
-        for i, (date, match) in enumerate(match_dates[:5]):
-            print(f"   {i+1}. {date.strftime('%Y-%m-%d')} - {match.get('Home Team', 'Unknown')} vs {match.get('Away Team', 'Unknown')}")
-        
-        # Get all matches from the most recent date
-        recent_matches = [match for date, match in match_dates if date == most_recent_date]
-        
-        print(f"🎾 Found {len(recent_matches)} matches from most recent date: {most_recent_date.strftime('%Y-%m-%d')}")
-        print(f"🎾 These matches contain players who actually played on the most recent match date")
-        
         player_ids = set()
         
-        for match in recent_matches:
-            # Extract player IDs from all player fields
-            player_fields = [
-                'Home Player 1 ID', 'Home Player 2 ID',
-                'Away Player 1 ID', 'Away Player 2 ID'
-            ]
+        if all_players:
+            # Extract all players from all matches
+            print(f"🎾 Extracting ALL players from {len(matches)} matches (all dates)")
             
-            for field in player_fields:
-                player_id = match.get(field)
-                if player_id and isinstance(player_id, str):
-                    player_id = player_id.strip()
-                    if player_id:
-                        player_ids.add(player_id)
-        
-        print(f"🎾 Extracted {len(player_ids)} unique player IDs from most recent match date")
+            for match in matches:
+                # Extract player IDs from all player fields
+                player_fields = [
+                    'Home Player 1 ID', 'Home Player 2 ID',
+                    'Away Player 1 ID', 'Away Player 2 ID'
+                ]
+                
+                for field in player_fields:
+                    player_id = match.get(field)
+                    if player_id and isinstance(player_id, str):
+                        player_id = player_id.strip()
+                        if player_id:
+                            player_ids.add(player_id)
+            
+            print(f"🎾 Extracted {len(player_ids)} unique player IDs from ALL matches")
+            
+        else:
+            # Original behavior: only players from most recent match date
+            # Find the most recent match date
+            match_dates = []
+            for match in matches:
+                date_str = match.get('Date', '')
+                if date_str:
+                    try:
+                        # Parse date string to datetime object for comparison
+                        from datetime import datetime
+                        
+                        # Try multiple date formats
+                        date_obj = None
+                        for date_format in ['%d-%b-%y', '%d-%b-%Y', '%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y']:
+                            try:
+                                date_obj = datetime.strptime(date_str, date_format)
+                                break
+                            except ValueError:
+                                continue
+                        
+                        if date_obj:
+                            match_dates.append((date_obj, match))
+                        else:
+                            print(f"⚠️ Could not parse date: {date_str}")
+                            
+                    except Exception as e:
+                        print(f"⚠️ Error parsing date '{date_str}': {e}")
+                        continue
+            
+            if not match_dates:
+                print("❌ No valid match dates found")
+                return set()
+            
+            # Sort by date and find the most recent
+            match_dates.sort(key=lambda x: x[0], reverse=True)
+            most_recent_date = match_dates[0][0]
+            
+            # Show the top 5 most recent dates for debugging
+            print(f"🎾 Top 5 most recent dates found:")
+            for i, (date, match) in enumerate(match_dates[:5]):
+                print(f"   {i+1}. {date.strftime('%Y-%m-%d')} - {match.get('Home Team', 'Unknown')} vs {match.get('Away Team', 'Unknown')}")
+            
+            # Get all matches from the most recent date
+            recent_matches = [match for date, match in match_dates if date == most_recent_date]
+            
+            print(f"🎾 Found {len(recent_matches)} matches from most recent date: {most_recent_date.strftime('%Y-%m-%d')}")
+            print(f"🎾 These matches contain players who actually played on the most recent match date")
+            
+            for match in recent_matches:
+                # Extract player IDs from all player fields
+                player_fields = [
+                    'Home Player 1 ID', 'Home Player 2 ID',
+                    'Away Player 1 ID', 'Away Player 2 ID'
+                ]
+                
+                for field in player_fields:
+                    player_id = match.get(field)
+                    if player_id and isinstance(player_id, str):
+                        player_id = player_id.strip()
+                        if player_id:
+                            player_ids.add(player_id)
+            
+            print(f"🎾 Extracted {len(player_ids)} unique player IDs from most recent match date")
         
         # Limit to first 20 players for testing (to avoid scraping 148 invalid IDs)
         if len(player_ids) > 20:
@@ -1325,13 +1353,25 @@ def main():
     
     # Parse command line arguments
     if len(sys.argv) < 2:
-        print("Usage: python3 scrape_players.py <league_subdomain>")
+        print("Usage: python3 scrape_players.py <league_subdomain> [--all-players]")
         print("Examples:")
         print("  python3 scrape_players.py aptachicago")
+        print("  python3 scrape_players.py aptachicago --all-players")
         print("  python3 scrape_players.py nstf")
+        print("  python3 scrape_players.py nstf --all-players")
+        print("\nOptions:")
+        print("  --all-players    Scrape all players from all matches (not just most recent date)")
         sys.exit(1)
     
     league_subdomain = sys.argv[1]
+    
+    # Check for --all-players flag
+    all_players = False
+    if len(sys.argv) > 2 and "--all-players" in sys.argv:
+        all_players = True
+        print(f"🎾 ALL PLAYERS MODE: Will scrape all players from all matches")
+    else:
+        print(f"🎾 INCREMENTAL MODE: Will scrape only players from most recent match date")
     
     # Always extract player IDs from match history
     match_history_file = "data/leagues/all/match_history.json"
@@ -1340,9 +1380,13 @@ def main():
         print("Please run match scraping first to generate match_history.json")
         sys.exit(1)
     
-    # Extract player IDs from match history (only players from most recent match date)
-    player_ids = list(extract_player_ids_from_match_history(match_history_file, league_subdomain))
-    print(f"🎾 Found {len(player_ids)} players from the most recent match date")
+    # Extract player IDs from match history
+    player_ids = list(extract_player_ids_from_match_history(match_history_file, league_subdomain, all_players))
+    
+    if all_players:
+        print(f"🎾 Found {len(player_ids)} players from ALL matches")
+    else:
+        print(f"🎾 Found {len(player_ids)} players from the most recent match date")
     
     if not player_ids:
         print("❌ No player IDs found in match history")
@@ -1386,7 +1430,7 @@ def main():
         failed_players = []
         for player_id in player_ids:
             # Check if this player was successfully scraped
-            player_found = any(player.get("tenniscores_player_id") == player_id for player in scraped_players)
+            player_found = any(player.get("Player ID") == player_id for player in scraped_players)
             if not player_found:
                 failed_players.append(player_id)
         
