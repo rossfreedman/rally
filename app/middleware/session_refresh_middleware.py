@@ -91,6 +91,15 @@ class SessionRefreshMiddleware:
             '/api/team-current-season-matches',
             '/api/get-user-teams',  # Skip to prevent cursor conflicts
             '/api/get-user-teams-in-current-league',  # Skip to prevent cursor conflicts
+            '/api/get-clubs-by-league',  # Skip to prevent cursor conflicts
+            '/api/get-leagues',  # Skip to prevent cursor conflicts
+            '/api/get-series-by-league',  # Skip to prevent cursor conflicts
+            '/api/get-user-facing-series-by-league',  # Skip to prevent cursor conflicts
+            '/api/teams',  # Skip to prevent cursor conflicts
+            '/api/teams-with-ids',  # Skip to prevent cursor conflicts
+            '/api/get-club-teams',  # Skip to prevent cursor conflicts
+            '/api/get-user-leagues',  # Skip to prevent cursor conflicts
+            '/api/series-options',  # Skip to prevent cursor conflicts
             '/static/',
             '/favicon.ico',
             '/login',
