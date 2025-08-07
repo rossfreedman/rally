@@ -740,17 +740,6 @@ def get_current_season_matches():
         # Process matches to get player names and format data for modal
         processed_matches = []
         
-        # Group matches by date and team matchup to assign courts using the same logic as court analysis
-        from collections import defaultdict
-        matches_by_matchup = defaultdict(list)
-        for match in matches:
-            matchup_key = f"{match.get('Date')}_{match.get('Home Team')}_{match.get('Away Team')}"
-            matches_by_matchup[matchup_key].append(match)
-        
-        # Sort matches within each matchup by database ID (same as court analysis)
-        for matchup_key in matches_by_matchup:
-            matches_by_matchup[matchup_key].sort(key=lambda m: m.get('id', 0))
-        
         for match in matches:
             # Determine if player was home or away
             is_home = (
@@ -846,23 +835,9 @@ def get_current_season_matches():
                     except (ValueError, IndexError):
                         pass
                 
-                # If still no court number, use the same logic as court analysis
+                # If still no court number, use fallback (but this should rarely happen)
                 if court_number is None:
-                    # Use court assignment based on position within team matchup (same as court analysis)
-                    try:
-                        matchup_key = f"{match.get('Date')}_{match.get('Home Team')}_{match.get('Away Team')}"
-                        if matchup_key in matches_by_matchup:
-                            # Find position of this match within its team matchup
-                            match_position = 0
-                            for i, grouped_match in enumerate(matches_by_matchup[matchup_key]):
-                                if grouped_match.get('id') == match.get('id'):
-                                    match_position = i
-                                    break
-                            court_number = (match_position % 4) + 1  # Courts 1-4 based on position
-                        else:
-                            court_number = 1  # Fallback
-                    except:
-                        court_number = 1  # Default to court 1
+                    court_number = 1  # Default to court 1
 
             processed_match = {
                 "date": match.get("Date"),
