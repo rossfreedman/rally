@@ -11,12 +11,21 @@ import sys
 
 def get_database_url():
     """Get DATABASE_URL from Railway environment"""
+    # Try public URL first (works from Railway runner)
+    database_url = os.environ.get('DATABASE_PUBLIC_URL')
+    if database_url:
+        print(f"🔌 Using DATABASE_PUBLIC_URL")
+        return database_url
+    
+    # Fallback to internal URL
     database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        print("❌ ERROR: DATABASE_URL environment variable not found")
-        print("Make sure this script is running in Railway environment")
-        sys.exit(1)
-    return database_url
+    if database_url:
+        print(f"🔌 Using DATABASE_URL")
+        return database_url
+        
+    print("❌ ERROR: No DATABASE_URL or DATABASE_PUBLIC_URL found")
+    print("Make sure this script is running in Railway environment")
+    sys.exit(1)
 
 def execute_sql_file(sql_file_path):
     """Execute SQL file on production database"""
