@@ -815,9 +815,25 @@ def get_current_season_matches():
                 except (ValueError, IndexError):
                     pass
             
-            # If no court from tenniscores_match_id, skip this match (same as court analysis)
+            # If no court from tenniscores_match_id, try alternative methods
             if court_number is None:
-                continue
+                # Try to extract court from match_id format like "12345_Line1" or just use a default
+                if match_id and "_Line" in match_id:
+                    try:
+                        # Extract the line number from formats like "12345_Line1" or "12345_Line_1"
+                        parts = match_id.split("_Line")
+                        if len(parts) > 1:
+                            court_number = int(parts[1])
+                    except (ValueError, IndexError):
+                        pass
+                
+                # If still no court number, assign a default based on match order
+                if court_number is None:
+                    # Use match ID as a fallback for court number
+                    try:
+                        court_number = (match.get("id", 0) % 4) + 1  # Assign court 1-4 based on match ID
+                    except:
+                        court_number = 1  # Default to court 1
 
             processed_match = {
                 "date": match.get("Date"),
