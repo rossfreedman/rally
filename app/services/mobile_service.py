@@ -3816,7 +3816,7 @@ def get_mobile_team_data(user):
                     "games_lost": 0
                 }
 
-        # Get team matches for match history
+        # Get team matches for match history (FIXED: Added tenniscores_match_id for court analysis)
         matches_query = """
             SELECT 
                 TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -3827,7 +3827,9 @@ def get_mobile_team_data(user):
                 home_player_1_id as "Home Player 1",
                 home_player_2_id as "Home Player 2",
                 away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2"
+                away_player_2_id as "Away Player 2",
+                tenniscores_match_id,
+                id
             FROM match_scores
             WHERE (home_team = %s OR away_team = %s)
             AND league_id = %s
@@ -4589,10 +4591,44 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     try:
                         court_num = int(match_id.split("_Line")[1])
                     except (ValueError, IndexError):
-                        continue
+                        pass
 
+                # If no court from tenniscores_match_id, use same fallback logic as API
                 if court_num is None:
-                    continue  # Skip if court can't be determined
+                    # Use database ID order within team matchup (same as individual player analysis)
+                    match_date = match.get("Date")
+                    home_team = match.get("Home Team", "")
+                    away_team = match.get("Away Team", "")
+                    
+                    # Find all matches on this date with these teams
+                    same_matchup_query = """
+                        SELECT id, tenniscores_match_id
+                        FROM match_scores
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s AND away_team = %s
+                        ORDER BY id ASC
+                    """
+                    
+                    try:
+                        same_matchup_matches = execute_query(same_matchup_query, [match_date, home_team, away_team])
+                        
+                        # Find position of current match in this group
+                        current_match_id = match.get("id")
+                        match_position = 0
+                        for i, matchup_match in enumerate(same_matchup_matches):
+                            if matchup_match.get("id") == current_match_id:
+                                match_position = i
+                                break
+                        
+                        # Assign court based on position (1-4, same as API and individual analysis)
+                        court_num = (match_position % 4) + 1
+                        
+                    except Exception as e:
+                        court_num = 1  # Ultimate fallback
+
+                # Skip matches where we still can't determine court (should be rare now)
+                if court_num is None:
+                    continue
 
                 for player in [player1, player2]:
                     if not player:
