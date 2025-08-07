@@ -100,7 +100,8 @@
                     <div class="text-center">
                         <div class="text-3xl font-bold text-gray-900 mb-1 cursor-pointer hover:text-blue-600 transition-colors" 
                              onclick="openMatchesModal()" 
-                             title="Click to view all matches">
+                             title="Click to view all matches"
+                             id="matches-trigger">
                             {{ analyze_data.current_season.matches }}
                         </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
@@ -882,6 +883,17 @@ async function loadLast3Matches() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Analyze Me page loaded');
     
+    // Test modal trigger
+    const matchesTrigger = document.getElementById('matches-trigger');
+    if (matchesTrigger) {
+        console.log('✅ Found matches trigger element');
+        matchesTrigger.addEventListener('click', function() {
+            console.log('🎯 Matches trigger clicked!');
+        });
+    } else {
+        console.log('❌ Matches trigger element not found');
+    }
+    
     // Update no matches message based on series
     const noMatchesMessage = document.getElementById('noMatchesMessage');
     if (noMatchesMessage) {
@@ -920,6 +932,7 @@ let matchesData = null;
 
 function openMatchesModal() {
     console.log('🎯 Opening matches modal...');
+    console.log('🔧 Modal function called successfully');
     
     if (!matchesModal) {
         console.log('🔨 Creating matches modal...');
@@ -940,6 +953,7 @@ function openMatchesModal() {
     console.log('✅ Modal shown');
     
     // Load matches data
+    console.log('🚀 About to call loadMatchesData()');
     loadMatchesData();
 }
 
