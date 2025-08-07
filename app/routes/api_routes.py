@@ -634,6 +634,13 @@ def get_team_last_3_matches():
         return jsonify({"error": "Failed to retrieve team matches"}), 500
 
 
+@api_bp.route("/api/all-teams-schedule-data")
+@login_required
+def get_all_teams_schedule_data():
+    """Get all teams schedule data with team filter"""
+    return get_all_teams_schedule_data_data()
+
+
 @api_bp.route("/api/current-season-matches")
 @login_required
 def get_current_season_matches():
@@ -3945,6 +3952,64 @@ def cleanup_session_refresh_signals():
             "error": f"Cleanup failed: {str(e)}"
         }), 500
 
+
+@api_bp.route("/api/get-club-teams")
+@login_required
+def get_club_teams():
+    """Get all teams for the user's club, filtered by league and sorted by series number"""
+    try:
+        from database_utils import execute_query
+        
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Not authenticated"}), 401
+            
+        club_name = user.get("club")
+        league_id = user.get("league_id")
+        
+        if not club_name:
+            return jsonify({"error": "Club not set in profile"}), 400
+            
+        # Simple query to get all teams for the club in the current league
+        query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                CONCAT(c.name, ' - ', s.name) as display_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN series_leagues sl ON s.id = sl.series_id
+            JOIN leagues l ON sl.league_id = l.id
+            WHERE c.name = %s
+            AND l.id = %s
+        """
+        
+        params = [club_name, league_id]
+        print(f"DEBUG: Querying teams for club '{club_name}' in league '{league_id}'")
+        
+        # Add sorting by series number (extract number from series name)
+        query += """
+            ORDER BY 
+                CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER),
+                s.name
+        """
+        
+        print(f"DEBUG: Executing query with params: {params}")
+        teams = execute_query(query, params)
+        print(f"DEBUG: Found {len(teams)} teams in database")
+        
+        return jsonify({
+            "teams": teams,
+            "club": club_name,
+            "league_id": league_id
+        })
+        
+    except Exception as e:
+        print(f"Error getting club teams: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @api_bp.route("/api/get-user-teams", methods=["GET"])
 @login_required

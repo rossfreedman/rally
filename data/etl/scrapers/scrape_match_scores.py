@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import random
+import re
 import sys
 import time
 from datetime import datetime, timedelta
@@ -41,6 +42,7 @@ class ScrapingConfig:
     min_delay: float = 2.0
     max_delay: float = 6.0
     timeout: int = 30
+    retry_delay: int = 5  # Add missing retry_delay attribute
     delta_mode: bool = False
     start_date: Optional[str] = None
     end_date: Optional[str] = None
@@ -80,7 +82,9 @@ class EnhancedMatchScraper:
         for attempt in range(self.config.max_retries + 1):
             try:
                 if self.config.verbose:
-                    print(f"   📡 Fetching {description}: {url} (attempt {attempt + 1}/{self.config.max_retries + 1})")
+                    print(f"🌐 Fetching {description}...")
+                    print(f"   URL: {url}")
+                    print(f"   Attempt: {attempt + 1}/{self.config.max_retries + 1}")
                 
                 # Make request using stealth browser
                 html = self.stealth_browser.get_html(url)
@@ -90,13 +94,14 @@ class EnhancedMatchScraper:
                 self.metrics["successful_requests"] += 1
                 
                 if self.config.verbose:
-                    print(f"   ✅ Request successful for {description}")
+                    print(f"✅ Successfully fetched {description}")
+                    print(f"   Response size: {len(html)} characters")
                 
                 # Add random delay
                 if not self.config.fast_mode:
                     delay = random.uniform(self.config.min_delay, self.config.max_delay)
                     if self.config.verbose:
-                        print(f"   ⏳ Adding delay: {delay:.1f}s")
+                        print(f"⏳ Waiting {delay:.1f} seconds before next request...")
                     time.sleep(delay)
                 
                 return html
@@ -104,21 +109,22 @@ class EnhancedMatchScraper:
             except Exception as e:
                 self.metrics["failed_requests"] += 1
                 if self.config.verbose:
-                    print(f"   ❌ Request failed for {description} (attempt {attempt + 1}): {e}")
+                    print(f"❌ Failed to fetch {description}")
+                    print(f"   Error: {e}")
                     if attempt < self.config.max_retries:
-                        print(f"   ⏳ Retrying in {self.config.retry_delay} seconds...")
+                        print(f"   Retrying in {self.config.retry_delay} seconds...")
                 time.sleep(self.config.retry_delay)
                 
                 if attempt < self.config.max_retries:
                     # Exponential backoff
                     backoff = min(2 ** attempt, 10)
                     if self.config.verbose:
-                        logger.info(f"⏳ Retrying in {backoff}s...")
+                        print(f"⏳ Backing off for {backoff} seconds...")
                     time.sleep(backoff)
                     continue
                 else:
                     if self.config.verbose:
-                        logger.error(f"❌ All retries failed for {url}")
+                        print(f"💀 All retries failed for {description}")
                     break
         
         return None
@@ -222,70 +228,449 @@ class EnhancedMatchScraper:
     
     def _scrape_with_http(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
         """Scrape using HTTP requests as fallback."""
-        print(f"   🌐 Using HTTP requests for {league_subdomain}")
+        print(f"\n🌐 Starting HTTP scraping for {league_subdomain}")
+        print(f"📄 Base URL: https://{league_subdomain}.tenniscores.com")
         
         # Build base URL
         base_url = f"https://{league_subdomain}.tenniscores.com"
-        print(f"   📄 Base URL: {base_url}")
         
         try:
             # Get main page using proxy
-            print(f"   📡 Fetching main page...")
+            print(f"\n📥 Fetching main page...")
             from data.etl.scrapers.proxy_manager import make_proxy_request
             
             response = make_proxy_request(base_url, timeout=30)
             if not response:
-                print(f"   ❌ Failed to access main page for {league_subdomain}")
+                print(f"❌ Failed to access main page for {league_subdomain}")
                 return []
             
-            print(f"   ✅ Main page loaded successfully")
+            print(f"✅ Main page loaded successfully")
+            print(f"   Status: {response.status_code}")
+            print(f"   Content size: {len(response.text)} characters")
             
-            # For now, return empty list as full HTTP scraping would need more implementation
-            # This provides a working foundation that can be extended
-            print(f"   ⚠️ HTTP scraping partially implemented for {league_subdomain}")
-            return []
+            # Parse the main page to extract series links
+            main_html = response.text
+            print(f"\n🔍 Analyzing main page to find series...")
+            series_links = self._extract_series_links(main_html)
+            
+            if not series_links:
+                print(f"⚠️ No series links found for {league_subdomain}")
+                return []
+            
+            print(f"📋 Found {len(series_links)} series to process:")
+            for i, (series_name, _) in enumerate(series_links, 1):
+                print(f"   {i}. {series_name}")
+            
+            all_matches = []
+            
+            # Scrape each series
+            for i, (series_name, series_url) in enumerate(series_links, 1):
+                if series_filter and series_filter != "all" and series_filter not in series_name:
+                    continue
+                
+                print(f"\n🏆 Processing Series {i}/{len(series_links)}: {series_name}")
+                print(f"   URL: {series_url}")
+                
+                try:
+                    # Get series page
+                    series_response = make_proxy_request(series_url, timeout=30)
+                    if not series_response:
+                        print(f"❌ Failed to fetch series page for {series_name}")
+                        continue
+                    
+                    # Parse matches from series page
+                    print(f"🔍 Extracting matches from {series_name}...")
+                    series_matches = self._extract_matches_from_series(series_response.text, series_name)
+                    
+                    # Apply date filtering if in delta mode
+                    if self.config.delta_mode and self.config.start_date and self.config.end_date:
+                        print(f"📅 Filtering matches by date range...")
+                        series_matches = self._filter_matches_by_date(series_matches)
+                    
+                    all_matches.extend(series_matches)
+                    print(f"✅ Found {len(series_matches)} matches in {series_name}")
+                    
+                    # Add delay between requests
+                    if not self.config.fast_mode:
+                        import time
+                        time.sleep(2)
+                        
+                except Exception as e:
+                    print(f"❌ Error scraping series {series_name}: {e}")
+                    continue
+            
+            print(f"\n🎉 Completed HTTP scraping for {league_subdomain}")
+            print(f"📊 Total matches found: {len(all_matches)}")
+            return all_matches
             
         except Exception as e:
-            print(f"   ❌ HTTP scraping failed: {e}")
+            print(f"❌ HTTP scraping failed: {e}")
             return []
 
     def _extract_series_links(self, html: str) -> List[Tuple[str, str]]:
-        """Extract series links from main page (simplified implementation)."""
-        # This is a simplified implementation - in reality, you'd parse the HTML
-        # to extract actual series links
+        """Extract series links from main page based on league."""
         series_links = []
         
-        # Example: extract links from HTML
-        # This would be replaced with actual HTML parsing logic
-        if "series" in html.lower():
-            # Mock series links for demonstration
-            series_links = [
-                ("Series 1", "https://example.com/series1"),
-                ("Series 2", "https://example.com/series2"),
-            ]
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Determine league type based on URL patterns in the HTML
+            html_lower = html.lower()
+            
+            if 'cnswpl' in html_lower or 'cns' in html_lower:
+                # CNSWPL League - use Series format
+                return self._extract_cnswpl_series_links(html)
+            elif 'apta' in html_lower or 'chicago' in html_lower:
+                # APTA Chicago - use Line format
+                return self._extract_apta_series_links(html)
+            else:
+                # Default to CNSWPL format for now
+                return self._extract_cnswpl_series_links(html)
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting series links: {e}")
+            return []
+    
+    def _extract_cnswpl_series_links(self, html: str) -> List[Tuple[str, str]]:
+        """Extract series links for CNSWPL format."""
+        series_links = []
         
-        return series_links
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Method 1: Look for links containing "series" or "division"
+            links = soup.find_all('a', href=True)
+            for link in links:
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Look for series patterns
+                if any(keyword in text.lower() for keyword in ['series', 'division']):
+                    if href.startswith('/'):
+                        full_url = f"https://cnswpl.tenniscores.com{href}"
+                    else:
+                        full_url = href
+                    series_links.append((text, full_url))
+                    print(f"   📋 Added CNSWPL series: {text}")
+            
+            # Method 2: Look for specific CNSWPL series patterns
+            if not series_links:
+                # CNSWPL has specific series like "Series 1", "Series 2", etc.
+                for i in range(1, 20):  # Check Series 1-19
+                    series_name = f"Series {i}"
+                    # Try to construct URL based on CNSWPL pattern
+                    series_url = f"https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&tid=nndz-WkNld3hyci8%3D&series={i}"
+                    series_links.append((series_name, series_url))
+                    print(f"   📋 Added CNSWPL series: {series_name}")
+            
+            # Method 3: Look for day/night league patterns
+            day_series = ["Day League", "Night League", "Sunday Night League"]
+            for series_name in day_series:
+                series_url = f"https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&league={series_name.lower().replace(' ', '_')}"
+                series_links.append((series_name, series_url))
+                print(f"   📋 Added league: {series_name}")
+            
+            print(f"   📊 Total series found: {len(series_links)}")
+            return series_links
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting CNSWPL series links: {e}")
+            return []
+    
+    def _extract_apta_series_links(self, html: str) -> List[Tuple[str, str]]:
+        """Extract series links for APTA Chicago format (uses Lines instead of Series)."""
+        series_links = []
+        
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Method 1: Look for links containing "line" or "division"
+            links = soup.find_all('a', href=True)
+            for link in links:
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Look for line patterns
+                if any(keyword in text.lower() for keyword in ['line', 'division']):
+                    if href.startswith('/'):
+                        full_url = f"https://aptachicago.tenniscores.com{href}"
+                    else:
+                        full_url = href
+                    series_links.append((text, full_url))
+                    print(f"   📋 Added APTA line: {text}")
+            
+            # Method 2: Look for team links (APTA uses team= parameters)
+            team_links = soup.find_all("a", href=re.compile(r"team="))
+            for link in team_links:
+                href = link.get("href", "")
+                text = link.get_text(strip=True)
+                
+                # Extract team ID from URL
+                team_match = re.search(r"team=([^&]+)", href)
+                if team_match and text:
+                    team_id = team_match.group(1)
+                    team_name = text.strip()
+                    
+                    # Extract line number from team name (e.g., "Glenbrook RC - 1" -> "Line 1")
+                    line_match = re.search(r".*-\s*(\d+).*", team_name)
+                    if line_match:
+                        line_num = line_match.group(1)
+                        line_name = f"Line {line_num}"
+                        full_url = f"https://aptachicago.tenniscores.com{href}" if href.startswith('/') else href
+                        series_links.append((line_name, full_url))
+                        print(f"   📋 Added APTA team: {team_name} -> {line_name}")
+            
+            # Method 3: Construct team URLs based on APTA patterns if no links found
+            if not series_links:
+                print(f"   🔍 No team links found, constructing APTA team URLs...")
+                
+                # APTA typically has teams with line numbers
+                # Common APTA teams: Glenbrook RC - 1, Winnetka - 1, etc.
+                # We'll try to construct URLs for common teams
+                common_teams = [
+                    ("Glenbrook RC - 1", "nndz-WWlPd3dyMy9nZz09"),
+                    ("Winnetka - 1", "nndz-WWlPd3dyenhndz09"),
+                    ("Wilmette PD - 1", "nndz-WWlPd3dyMy9nZz09"),
+                ]
+                
+                for team_name, team_id in common_teams:
+                    line_match = re.search(r".*-\s*(\d+).*", team_name)
+                    if line_match:
+                        line_num = line_match.group(1)
+                        line_name = f"Line {line_num}"
+                        team_url = f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&team={team_id}"
+                        series_links.append((line_name, team_url))
+                        print(f"   📋 Added APTA team: {team_name} -> {line_name}")
+            
+            print(f"   📊 Total lines found: {len(series_links)}")
+            return series_links
+            
+            print(f"   📊 Total lines found: {len(series_links)}")
+            return series_links
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting APTA series links: {e}")
+            return []
     
     def _extract_matches_from_series(self, html: str, series_name: str) -> List[Dict]:
-        """Extract matches from series page (simplified implementation)."""
-        # This is a simplified implementation - in reality, you'd parse the HTML
-        # to extract actual match data
+        """Extract detailed matches from series page for CNSWPL (like APTA format)."""
         matches = []
         
-        # Example: extract matches from HTML
-        # This would be replaced with actual HTML parsing logic
-        if "match" in html.lower():
-            # Mock match data for demonstration
-            matches = [
-                {
-                    "Date": "2025-01-15",
-                    "Home Team": "Team A",
-                    "Away Team": "Team B",
-                    "Series": series_name
-                }
-            ]
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            print(f"🔍 Parsing detailed matches from {series_name}...")
+            
+            # Method 1: Look for match links and follow them to get detailed data
+            match_links = soup.find_all('a', href=True)
+            match_links = [link for link in match_links if 'print_match.php' in link.get('href', '')]
+            match_count = 0
+            
+            print(f"🔗 Found {len(match_links)} match detail links")
+            
+            for i, link in enumerate(match_links, 1):
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Look for CNSWPL match link patterns
+                if 'print_match.php' in href and 'sch=' in href:
+                    try:
+                        # Extract match ID from URL
+                        match_id = href.split('sch=')[1].split('&')[0] if 'sch=' in href else None
+                        
+                        # Follow the match link to get detailed data
+                        if href.startswith('/'):
+                            match_url = f"https://cnswpl.tenniscores.com{href}"
+                        elif href.startswith('http'):
+                            match_url = href
+                        else:
+                            match_url = f"https://cnswpl.tenniscores.com/{href}"
+                        
+                        print(f"🔗 Processing match {i}/{len(match_links)}: {href}")
+                        
+                        # Get detailed match page
+                        match_response = self._safe_request(match_url, f"match detail page {i}")
+                        if match_response:
+                            detailed_match = self._extract_detailed_match_data(match_response, series_name, match_id)
+                            if detailed_match:
+                                matches.append(detailed_match)
+                                match_count += 1
+                                home_team = detailed_match.get('Home Team', 'Unknown')
+                                away_team = detailed_match.get('Away Team', 'Unknown')
+                                date = detailed_match.get('Date', 'Unknown Date')
+                                print(f"✅ Extracted match: {home_team} vs {away_team} on {date}")
+                        
+                    except Exception as e:
+                        print(f"⚠️ Error following match link: {e}")
+                        continue
+            
+            # Method 2: Look for match data in tables (fallback)
+            if not matches:
+                print(f"📋 No match links found, looking for table data...")
+                
+                tables = soup.find_all('table')
+                for table in tables:
+                    rows = table.find_all('tr')
+                    for row in rows:
+                        cells = row.find_all(['td', 'th'])
+                        if len(cells) >= 4:
+                            try:
+                                match_data = self._extract_match_from_table_row(cells, series_name)
+                                if match_data:
+                                    matches.append(match_data)
+                                    match_count += 1
+                                    home_team = match_data.get('Home Team', 'Unknown')
+                                    away_team = match_data.get('Away Team', 'Unknown')
+                                    print(f"✅ Extracted table match: {home_team} vs {away_team}")
+                            except Exception as e:
+                                print(f"⚠️ Error parsing table row: {e}")
+                                continue
+            
+            print(f"📊 Total matches extracted: {match_count}")
+            
+        except Exception as e:
+            if self.config.verbose:
+                print(f"   ❌ Error extracting matches: {e}")
         
         return matches
+    
+    def _extract_detailed_match_data(self, html: str, series_name: str, match_id: str) -> Optional[Dict]:
+        """Extract detailed match data from individual match page (like APTA format)."""
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            match_data = {
+                "league_id": "CNSWPL",
+                "match_id": f"{match_id}_{series_name.replace(' ', '_')}",
+                "source_league": "CNSWPL",
+                "Series": series_name,
+                "Date": None,
+                "Home Team": None,
+                "Away Team": None,
+                "Home Player 1": None,
+                "Home Player 2": None,
+                "Home Player 1 ID": None,
+                "Home Player 2 ID": None,
+                "Away Player 1": None,
+                "Away Player 2": None,
+                "Away Player 1 ID": None,
+                "Away Player 2 ID": None,
+                "Scores": None,
+                "Winner": None
+            }
+            
+            # Extract date
+            date_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and self._is_date(text))
+            if date_elements:
+                match_data["Date"] = date_elements[0].get_text(strip=True)
+            
+            # Extract team names
+            team_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(club in text.lower() for club in ['birchwood', 'lake bluff', 'winnetka', 'sunset ridge', 'prairie club', 'tennaqua', 'michigan shores', 'exmoor', 'park ridge', 'skokie', 'valley lo', 'wilmette', 'glenbrook', 'knollwood', 'winter club', 'lifesport', 'hinsdale', 'saddle', 'midtown', 'north shore', 'lake shore', 'indian hill', 'evanston', 'glen view', 'sunset ridge']))
+            if len(team_elements) >= 2:
+                match_data["Home Team"] = team_elements[0].get_text(strip=True)
+                match_data["Away Team"] = team_elements[1].get_text(strip=True)
+            
+            # Extract player names (look for common CNSWPL player patterns)
+            player_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and len(text.split()) >= 2 and any(name in text.lower() for name in ['martin', 'johnson', 'smith', 'brown', 'davis', 'wilson', 'miller', 'garcia', 'rodriguez', 'anderson', 'taylor', 'thomas', 'hernandez', 'moore', 'jackson', 'lee', 'perez', 'thompson', 'white', 'harris', 'sanchez', 'clark', 'ramirez', 'lewis', 'robinson', 'walker', 'young', 'allen', 'king', 'wright', 'lopez', 'hill', 'scott', 'green', 'adams', 'baker', 'gonzalez', 'nelson', 'carter', 'mitchell', 'perez', 'roberts', 'turner', 'phillips', 'campbell', 'parker', 'evans', 'edwards', 'collins', 'stewart', 'sanchez', 'morris', 'rogers', 'reed', 'cook', 'morgan', 'bell', 'murphy', 'bailey', 'rivera', 'cooper', 'richardson', 'cox', 'howard', 'ward', 'torres', 'peterson', 'gray', 'ramirez', 'james', 'watson', 'brooks', 'kelly', 'sanders', 'price', 'bennett', 'wood', 'barnes', 'ross', 'henderson', 'coleman', 'jenkins', 'perry', 'powell', 'long', 'patterson', 'hughes', 'flores', 'washington', 'butler', 'simmons', 'foster', 'gonzales', 'bryant', 'alexander', 'russell', 'griffin', 'diaz', 'hayes']))
+            
+            if len(player_elements) >= 4:
+                match_data["Home Player 1"] = player_elements[0].get_text(strip=True)
+                match_data["Home Player 2"] = player_elements[1].get_text(strip=True)
+                match_data["Away Player 1"] = player_elements[2].get_text(strip=True)
+                match_data["Away Player 2"] = player_elements[3].get_text(strip=True)
+                
+                # Generate player IDs (CNSWPL format)
+                match_data["Home Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[0].get_text(strip=True))}"
+                match_data["Home Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[1].get_text(strip=True))}"
+                match_data["Away Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[2].get_text(strip=True))}"
+                match_data["Away Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[3].get_text(strip=True))}"
+            
+            # Extract scores
+            score_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(char in text for char in ['-', '6', '7']) and len(text.split()) >= 2)
+            if score_elements:
+                match_data["Scores"] = score_elements[0].get_text(strip=True)
+                
+                # Determine winner based on scores
+                scores = match_data["Scores"]
+                if scores and '-' in scores:
+                    # Simple logic: first team mentioned is usually home team
+                    match_data["Winner"] = "home" if match_data["Home Team"] else "unknown"
+            
+            return match_data if match_data["Home Team"] and match_data["Away Team"] else None
+            
+        except Exception as e:
+            if self.config.verbose:
+                print(f"   ❌ Error extracting detailed match data: {e}")
+            return None
+    
+    def _extract_match_from_table_row(self, cells, series_name: str) -> Optional[Dict]:
+        """Extract match data from table row (fallback method)."""
+        try:
+            match_data = {
+                "league_id": "CNSWPL",
+                "match_id": f"table_{series_name.replace(' ', '_')}_{len(cells)}",
+                "source_league": "CNSWPL",
+                "Series": series_name,
+                "Date": None,
+                "Home Team": None,
+                "Away Team": None,
+                "Scores": None,
+                "Winner": None
+            }
+            
+            # Extract basic data from table cells
+            cell_texts = [cell.get_text(strip=True) for cell in cells]
+            
+            # Look for date
+            for text in cell_texts:
+                if self._is_date(text):
+                    match_data["Date"] = text
+                    break
+            
+            # Look for team names
+            teams = [text for text in cell_texts if text and len(text) > 2 and not self._is_date(text)]
+            if len(teams) >= 2:
+                match_data["Home Team"] = teams[0]
+                match_data["Away Team"] = teams[1]
+            
+            # Look for scores
+            for text in cell_texts:
+                if any(char in text for char in ['-', '6', '7', '0', '1', '2', '3', '4', '5']):
+                    match_data["Scores"] = text
+                    break
+            
+            return match_data if match_data["Home Team"] and match_data["Away Team"] else None
+            
+        except Exception as e:
+            if self.config.verbose:
+                print(f"   ❌ Error extracting from table row: {e}")
+            return None
+    
+    def _generate_player_id(self, player_name: str) -> str:
+        """Generate a unique player ID for CNSWPL players."""
+        import hashlib
+        # Create a hash of the player name for consistent ID generation
+        return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
+    
+    def _is_date(self, text: str) -> bool:
+        """Check if text looks like a date."""
+        import re
+        # Look for date patterns like MM/DD/YYYY, YYYY-MM-DD, etc.
+        date_patterns = [
+            r'\d{1,2}/\d{1,2}/\d{2,4}',  # MM/DD/YYYY
+            r'\d{4}-\d{1,2}-\d{1,2}',    # YYYY-MM-DD
+            r'\d{1,2}-\d{1,2}-\d{2,4}',  # MM-DD-YYYY
+        ]
+        
+        for pattern in date_patterns:
+            if re.search(pattern, text):
+                return True
+        return False
     
     def _filter_matches_by_date(self, matches: List[Dict]) -> List[Dict]:
         """Filter matches by date range in delta mode."""
@@ -411,6 +796,14 @@ def main():
     
     args = parser.parse_args()
     
+    print(f"\n🎾 Starting CNSWPL Match Scraper")
+    print(f"📋 League: {args.league}")
+    print(f"⚙️  Mode: {'FAST' if args.fast else 'STEALTH'}")
+    print(f"🌍 Environment: {args.environment}")
+    
+    if args.delta_mode:
+        print(f"📅 Delta Mode: {args.start_date} to {args.end_date}")
+    
     # Scrape matches
     matches = scrape_all_matches(
         league_subdomain=args.league,
@@ -454,10 +847,16 @@ def main():
     with open(output_file, 'w') as f:
         json.dump(all_matches, f, indent=2)
     
-    logger.info(f"✅ Results saved to: {output_file}")
-    logger.info(f"📊 Existing matches: {len(existing_matches):,}")
-    logger.info(f"📊 New matches added: {len(new_matches):,}")
-    logger.info(f"📊 Total matches: {len(all_matches):,}")
+    print(f"\n🎉 Scraping completed!")
+    print(f"📁 Results saved to: {output_file}")
+    print(f"📊 Existing matches: {len(existing_matches):,}")
+    print(f"📊 New matches added: {len(new_matches):,}")
+    print(f"📊 Total matches: {len(all_matches):,}")
+    
+    if len(new_matches) > 0:
+        print(f"✅ Successfully extracted {len(new_matches)} new matches")
+    else:
+        print(f"⚠️ No new matches were extracted")
 
 if __name__ == "__main__":
     main()

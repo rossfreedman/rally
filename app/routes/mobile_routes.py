@@ -4447,6 +4447,51 @@ def mobile_grid_layout():
     return render_template("mobile/index.html", session_data=session_data)
 
 
+@mobile_bp.route("/mobile/all-teams-schedule")
+@login_required
+def serve_mobile_all_teams_schedule():
+    """Serve the all teams schedule page with loading screen"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        club_name = user.get("club")
+        series = user.get("series")
+
+        if not club_name or not series:
+            return render_template(
+                "mobile/all_teams_schedule.html",
+                session_data={"user": user},
+                error="Please set your club and series in your profile settings",
+            )
+
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_all_teams_schedule"
+        )
+
+        return render_template(
+            "mobile/all_teams_schedule.html", team=team_name, session_data={"user": user}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_all_teams_schedule: {str(e)}")
+        import traceback
+
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/all_teams_schedule.html",
+            session_data=session_data,
+            error="An error occurred while loading the all teams schedule",
+        )
+
+
 
 
 

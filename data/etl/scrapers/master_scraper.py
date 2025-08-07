@@ -397,8 +397,19 @@ class IncrementalScrapingManager:
                 "reason": "Unknown"
             }
             
-            if not site_date:
-                # Site detection failed - use fallback window
+            if not local_date:
+                # No local data - perform FULL scrape to get all historical data (regardless of site detection)
+                logger.info("   ✅ DECISION: No local data - performing FULL scrape for all historical data")
+                decision.update({
+                    "should_scrape": True,
+                    "start_date": None,  # No start date = scrape everything
+                    "end_date": None,    # No end date = scrape everything
+                    "reason": "No local data - FULL scrape for all historical data"
+                })
+                logger.info(f"   📅 FULL SCRAPE: Getting ALL historical data (no date limits)")
+                
+            elif not site_date:
+                # Site detection failed - use fallback window (only if we have local data)
                 logger.info("   ⚠️ DECISION: Site detection failed - using fallback window")
                 today = datetime.now()
                 decision.update({
@@ -408,17 +419,6 @@ class IncrementalScrapingManager:
                     "reason": "Site detection failed - fallback window"
                 })
                 logger.info(f"   📅 Fallback range: {decision['start_date']} to {decision['end_date']}")
-                
-            elif not local_date:
-                # No local data - perform initial scrape
-                logger.info("   ✅ DECISION: No local data - performing initial scrape")
-                decision.update({
-                    "should_scrape": True,
-                    "start_date": (site_date - timedelta(days=30)).strftime('%Y-%m-%d'),
-                    "end_date": site_date.strftime('%Y-%m-%d'),
-                    "reason": "No local data - initial scrape"
-                })
-                logger.info(f"   📅 Initial range: {decision['start_date']} to {decision['end_date']}")
                 
             elif site_date <= local_date:
                 # Up to date
@@ -841,8 +841,8 @@ class IncrementalScrapingManager:
         
         Args:
             league_name: Name of the league to scrape (e.g., "APTA_CHICAGO")
-            start_date: Start date in YYYY-MM-DD format
-            end_date: End date in YYYY-MM-DD format
+            start_date: Start date in YYYY-MM-DD format (None for full scrape)
+            end_date: End date in YYYY-MM-DD format (None for full scrape)
             stealth_config: Optional stealth configuration
         
         Returns:
@@ -853,8 +853,7 @@ class IncrementalScrapingManager:
             league_mapping = {
                 "APTA_CHICAGO": "aptachicago",
                 "NSTF": "nstf", 
-
-
+                "CNSWPL": "cnswpl"
             }
             
             scraper_league_name = league_mapping.get(league_name, league_name.lower())
@@ -862,11 +861,15 @@ class IncrementalScrapingManager:
             # Build command for league-specific scraping
             cmd = [
                 "python3", "data/etl/scrapers/scrape_match_scores.py",
-                scraper_league_name,
-                "--delta-mode",
-                "--start-date", start_date,
-                "--end-date", end_date
+                scraper_league_name
             ]
+            
+            # Add date range only if specified (for full scrape, don't add date limits)
+            if start_date and end_date:
+                cmd.extend(["--delta-mode", "--start-date", start_date, "--end-date", end_date])
+                logger.info(f"   🎯 Command: {scraper_league_name} from {start_date} to {end_date}")
+            else:
+                logger.info(f"   🎯 Command: {scraper_league_name} (FULL SCRAPE - all historical data)")
             
             # Add stealth options
             if stealth_config:
@@ -877,7 +880,6 @@ class IncrementalScrapingManager:
                     cmd.append("--quiet")
             
             logger.debug(f"🚀 Running league scraper: {' '.join(cmd)}")
-            logger.info(f"   🎯 Command: {scraper_league_name} from {start_date} to {end_date}")
             
             # Run the league-specific scraper
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)

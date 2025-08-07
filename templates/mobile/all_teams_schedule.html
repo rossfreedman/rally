@@ -1,0 +1,756 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}All Teams Schedule - {{ team }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Loading Screen (shown initially) -->
+    <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
+        <div class="text-center mb-8">
+            <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4" style="background-color: #0284c7 !important;">
+                <i class="fas fa-calendar text-white text-lg"></i>
+            </div>
+            <div class="text-xl font-bold text-gray-900 mb-2">Loading All Teams Schedule</div>
+            <div class="text-sm text-gray-500">{{ team }}</div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="w-80 max-w-full mb-6">
+            <div class="bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <div id="progressText" class="text-sm text-gray-600 mt-2 text-center">Initializing...</div>
+        </div>
+        
+        <!-- Loading Steps -->
+        <div class="space-y-2 text-sm text-gray-600">
+            <div id="step1" class="flex items-center">
+                <i id="step1-icon" class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
+                <span>Loading team information...</span>
+            </div>
+            <div id="step2" class="flex items-center opacity-50">
+                <i id="step2-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Loading player data...</span>
+            </div>
+            <div id="step3" class="flex items-center opacity-50">
+                <i id="step3-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Loading schedule data...</span>
+            </div>
+            <div id="step4" class="flex items-center opacity-50">
+                <i id="step4-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Processing availability...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden initially) -->
+    <div id="mainContent" style="display: none;">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #4f46e5 !important;">
+                    <i class="fas fa-calendar-alt text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">All Teams Schedule</h1>
+                    <p class="text-sm text-gray-500">{{ current_team_info.display_name if current_team_info else 'Schedule Analysis' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+
+            <!-- Filter Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-filter text-blue-500 mr-2"></i>
+                        Filter All Teams Schedule
+                    </h2>
+                </div>
+                
+                <div class="p-6 space-y-4">
+                    <!-- Team Filter -->
+                    <div>
+                        <label for="teamFilter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Team</label>
+                        <select id="teamFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">All Teams</option>
+                        </select>
+                    </div>
+                    <!-- Date Filter -->
+                    <div>
+                        <label for="dateFilter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Date</label>
+                        <select id="dateFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">All Dates</option>
+                        </select>
+                    </div>
+                    <!-- Reset Button -->
+                    <div class="flex justify-end pt-2">
+                        <button id="resetFilters" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium flex items-center">
+                            <i class="fas fa-undo-alt mr-2"></i>
+                            Reset Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selected Date Display (center-justified, only shown when a date is selected) -->
+            <div id="selectedDateDisplay" class="text-lg font-semibold mb-4 text-center text-gray-900"></div>
+
+            <!-- Single Table View: Only show when a specific date is selected -->
+            <div id="singleTableView" style="display:none;">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-50">
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-calendar-check text-green-500 mr-2"></i>
+                            Player Availability
+                        </h2>
+                    </div>
+                    
+                    <div class="p-6">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full table-auto">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Player</th>
+                                        <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Availability</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="singleTableBody">
+                                    {# Rows will be dynamically inserted by JS #}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Per-Player Card View: Show for 'All Dates' -->
+            <div id="perPlayerView" class="space-y-6">
+                <!-- Player cards will be dynamically inserted here -->
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="bg-yellow-50 border border-yellow-100 rounded-xl p-4" style="display: none;">
+                <div class="flex items-center mb-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                    <p class="text-yellow-700 font-medium">No availability data found for this team.</p>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Please verify:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                        <li>Your club ({{ session_data.user.club if session_data.user.club else 'Not set' }}) is correct</li>
+                        <li>Your series (<span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span>) is correct</li>
+                    </ul>
+                    <p class="text-sm text-gray-600 mt-2">
+                        You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let playersData = [];
+    let matchDates = [];
+    let eventDetails = {};
+    let teamsData = [];
+    let selectedTeamId = null;
+    
+    // UI Elements
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const teamFilter = document.getElementById('teamFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const playerFilter = document.getElementById('playerFilter');
+    const resetButton = document.getElementById('resetFilters');
+    const singleTableView = document.getElementById('singleTableView');
+    const perPlayerView = document.getElementById('perPlayerView');
+    const singleTableBody = document.getElementById('singleTableBody');
+    const errorMessage = document.getElementById('errorMessage');
+
+    // Progress tracking
+    function updateProgress(step, percentage, text) {
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = text;
+        
+        // Update step icons
+        for (let i = 1; i <= 4; i++) {
+            const stepElement = document.getElementById(`step${i}`);
+            const stepIcon = document.getElementById(`step${i}-icon`);
+            
+            if (i < step) {
+                // Completed step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-check-circle text-green-500 mr-2';
+            } else if (i === step) {
+                // Current step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-circle-notch fa-spin text-blue-500 mr-2';
+            } else {
+                // Future step
+                stepElement.classList.add('opacity-50');
+                stepIcon.className = 'fas fa-circle text-gray-400 mr-2';
+            }
+        }
+    }
+
+    // Show improved error message with context
+    function showImprovedErrorMessage(message, teamStatus) {
+        updateProgress(4, 100, 'No schedule data available');
+        
+        // Update the error message content
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Determine icon and styling based on team status
+        let iconClass = 'fas fa-exclamation-triangle text-yellow-500';
+        let headerText = 'No upcoming matches scheduled';
+        let bgClass = 'bg-yellow-50 border-yellow-100';
+        let textClass = 'text-yellow-700';
+        
+        if (teamStatus === 'active_no_schedule') {
+            iconClass = 'fas fa-calendar-check text-blue-500';
+            headerText = 'No upcoming matches scheduled';
+            bgClass = 'bg-blue-50 border-blue-100';
+            textClass = 'text-blue-700';
+        } else if (teamStatus === 'inactive') {
+            iconClass = 'fas fa-pause-circle text-gray-500';
+            headerText = 'Team appears inactive';
+            bgClass = 'bg-gray-50 border-gray-100';
+            textClass = 'text-gray-700';
+        }
+        
+        errorMessage.className = `${bgClass} border rounded-xl p-4`;
+        errorMessage.innerHTML = `
+            <div class="flex items-center mb-3">
+                <i class="${iconClass} mr-3"></i>
+                <p class="${textClass} font-medium">${headerText}</p>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm ${textClass.replace('-700', '-600')}">${message}</p>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Your current settings:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                        <li>Club: {{ session_data.user.club if session_data.user.club else 'Not set' }}</li>
+                        <li>Series: <span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span></li>
+                    </ul>
+                    <p class="text-sm text-gray-600 mt-2">
+                        You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        // Show error after loading screen
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            errorMessage.style.display = 'block';
+        }, 1000);
+    }
+
+    // Load teams data first
+    async function loadTeamsData() {
+        console.log('loadTeamsData function called');
+        try {
+            updateProgress(1, 10, 'Loading teams data...');
+            
+            const response = await fetch('/api/get-club-teams', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to load teams data');
+            }
+            
+            teamsData = data.teams || [];
+            console.log('Loaded teams data:', teamsData);
+            
+            // Populate team filter
+            populateTeamFilter();
+            
+            // Load schedule data for the first team or current team
+            await loadAllTeamsScheduleData();
+            
+        } catch (error) {
+            console.error('Error loading teams data:', error);
+            progressText.textContent = 'Error loading teams data: ' + error.message;
+            progressBar.style.width = '100%';
+            progressBar.classList.add('bg-red-500');
+            
+            // Show error after a delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                errorMessage.style.display = 'block';
+            }, 2000);
+        }
+    }
+
+    // Populate team filter dropdown
+    function populateTeamFilter() {
+        teamFilter.innerHTML = '<option value="all">All Teams</option>';
+        
+        teamsData.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.team_id;
+            option.textContent = team.display_name || `${team.club_name} - ${team.series_name}`;
+            teamFilter.appendChild(option);
+        });
+    }
+
+    // Load data via AJAX
+    async function loadAllTeamsScheduleData() {
+        try {
+            updateProgress(2, 30, 'Loading schedule data...');
+            
+            // Get the selected team ID
+            const selectedTeam = teamFilter.value;
+            const url = selectedTeam && selectedTeam !== 'all' 
+                ? `/api/all-teams-schedule-data?team_id=${selectedTeam}`
+                : '/api/all-teams-schedule-data';
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            updateProgress(3, 60, 'Processing schedule information...');
+            
+            const data = await response.json();
+            
+            // Handle improved API responses (not always errors)
+            if (!response.ok) {
+                if (data.message) {
+                    // API returned helpful message instead of generic error
+                    showImprovedErrorMessage(data.message, data.team_status || 'no_schedule');
+                    return;
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Handle case where API returns 200 but with empty data and helpful message
+            if (data.message && (!data.players_schedule || Object.keys(data.players_schedule).length === 0)) {
+                showImprovedErrorMessage(data.message, data.team_status || 'no_schedule');
+                return;
+            }
+            
+            updateProgress(4, 80, 'Building interface...');
+            
+            // Store the data
+            playersData = Object.entries(data.players_schedule || {}).map(([player, dates]) => ({
+                player: player,
+                dates: dates
+            }));
+            matchDates = data.match_dates || [];
+            eventDetails = data.event_details || {};
+            
+            updateProgress(4, 100, 'Complete!');
+            
+            // Update page header with team display name
+            const teamNameElement = document.querySelector('.text-sm.text-gray-500');
+            if (teamNameElement && data.team_info && data.team_info.display_name) {
+                teamNameElement.textContent = data.team_info.display_name;
+            }
+            
+            // Populate the UI
+            populateFilters();
+            populatePlayerCards();
+            
+            updateProgress(4, 100, 'Complete!');
+            
+            // Show main content after a brief delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                updateVisibility();
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error loading all teams schedule data:', error);
+            progressText.textContent = 'Error loading data: ' + error.message;
+            progressBar.style.width = '100%';
+            progressBar.classList.add('bg-red-500');
+            
+            // Show error after a delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                errorMessage.style.display = 'block';
+            }, 2000);
+        }
+    }
+
+    // Populate filter dropdowns
+    function populateFilters() {
+        // Populate date filter
+        dateFilter.innerHTML = '<option value="all">All Dates</option>';
+        matchDates.forEach(date => {
+            const eventInfo = eventDetails[date] || {};
+            const option = document.createElement('option');
+            option.value = date;
+            option.textContent = formatDateString(date);
+            if (eventInfo.type === 'Practice') {
+                option.textContent += ' - Practice';
+            } else if (eventInfo.type === 'Match' && eventInfo.opponent) {
+                option.textContent += ' - Match vs ' + eventInfo.opponent;
+            } else if (eventInfo.type === 'Match') {
+                option.textContent += ' - Match';
+            }
+            dateFilter.appendChild(option);
+        });
+        
+        // Populate player filter
+        playerFilter.innerHTML = '<option value="all">All Players</option>';
+        playersData.forEach(playerObj => {
+            const option = document.createElement('option');
+            option.value = playerObj.player;
+            option.textContent = playerObj.player;
+            playerFilter.appendChild(option);
+        });
+    }
+
+    // Populate player cards
+    function populatePlayerCards() {
+        perPlayerView.innerHTML = '';
+        
+        playersData.forEach(playerObj => {
+            const playerCard = createPlayerCard(playerObj.player, playerObj.dates);
+            perPlayerView.appendChild(playerCard);
+        });
+    }
+
+    // Create a player card element
+    function createPlayerCard(playerName, dates) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden player-schedule';
+        card.dataset.player = playerName;
+        card.dataset.dates = JSON.stringify(dates);
+        
+        card.innerHTML = `
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-user text-blue-500 mr-2"></i>
+                    ${playerName}
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Date</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Availability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dates.map(date => `
+                                <tr class="border-t border-gray-50 date-row" data-date="${date.date}">
+                                    <td class="px-4 py-3 w-1/2">
+                                        <div class="font-medium text-gray-900">${formatDateString(date.date)}</div>
+                                        ${formatEventInfo(date)}
+                                    </td>
+                                    <td class="px-4 py-3 w-1/2">
+                                        ${formatAvailabilityStatus(date)}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    // Helper to format YYYY-MM-DD as [Day of week], MM/DD/YY
+    function formatDateString(dateStr) {
+        try {
+            if (!dateStr) return '';
+            
+            const [year, month, day] = dateStr.split('-').map(Number);
+            
+            if (!year || !month || !day) {
+                console.warn('Invalid date parts:', {year, month, day});
+                return dateStr;
+            }
+            
+            const jsDate = new Date(year, month - 1, day);
+            
+            if (isNaN(jsDate.getTime())) {
+                console.warn('Invalid date created:', jsDate);
+                return dateStr;
+            }
+            
+            if (jsDate.getFullYear() !== year || 
+                jsDate.getMonth() !== (month - 1) || 
+                jsDate.getDate() !== day) {
+                console.warn('Date validation failed');
+                return dateStr;
+            }
+            
+            const weekday = jsDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const displayMonth = jsDate.getMonth() + 1;
+            const displayDay = jsDate.getDate();
+            const displayYear = jsDate.getFullYear().toString().slice(-2);
+            
+            return `${weekday}, ${displayMonth}/${displayDay}/${displayYear}`;
+            
+        } catch (error) {
+            console.error('Error in formatDateString:', error);
+            return dateStr;
+        }
+    }
+
+    // Helper to format event type and opponent info
+    function formatEventInfo(eventData) {
+        if (!eventData) return '';
+        
+        if (eventData.event_type === 'Practice') {
+            return '<div class="text-sm text-blue-600 mt-1"><i class="fas fa-dumbbell mr-1"></i>Practice</div>';
+        } else if (eventData.event_type === 'Match') {
+            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match';
+            if (eventData.opponent) {
+                matchInfo += ' <span class="text-gray-600">vs ' + eventData.opponent + '</span>';
+            }
+            matchInfo += '</div>';
+            return matchInfo;
+        }
+        return '';
+    }
+
+    // Helper to format availability status with notes
+    function formatAvailabilityStatus(date) {
+        const status = date.availability_status;
+        const notes = date.notes || '';
+        
+        let statusHtml = '';
+        if (status === 1) {
+            statusHtml = '<span class="text-green-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-check-circle mr-1 text-xs"></i>Available</span>';
+        } else if (status === 2) {
+            statusHtml = '<span class="text-red-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-times-circle mr-1 text-xs"></i>Not Available</span>';
+        } else if (status === 3) {
+            statusHtml = '<span class="text-yellow-500 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-question-circle mr-1 text-xs"></i>Not Sure</span>';
+        } else {
+            statusHtml = '<span class="text-gray-400 text-sm whitespace-nowrap flex items-center"><i class="fas fa-minus-circle mr-1 text-xs"></i>Not Set</span>';
+        }
+        
+        // Add notes if they exist
+        if (notes && notes.trim()) {
+            statusHtml = `<div>${statusHtml}<div class="text-xs text-gray-600 mt-1 italic">${notes}</div></div>`;
+        }
+        
+        return statusHtml;
+    }
+
+    function renderSingleTable(selectedDate, selectedPlayer) {
+        singleTableBody.innerHTML = '';
+        const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        let formattedDate = '';
+        
+        if (selectedDate && selectedDate !== 'all') {
+            formattedDate = formatDateString(selectedDate.slice(0, 10));
+            
+            let eventInfo = '';
+            playersData.forEach(playerObj => {
+                playerObj.dates.forEach(d => {
+                    if (d.date.slice(0, 10) === selectedDate.slice(0, 10)) {
+                        eventInfo = formatEventInfo(d);
+                        return;
+                    }
+                });
+                if (eventInfo) return;
+            });
+            
+            selectedDateDisplay.innerHTML = formattedDate + eventInfo;
+            selectedDateDisplay.style.display = '';
+        } else {
+            selectedDateDisplay.style.display = 'none';
+        }
+        
+        const selectedDateStr = selectedDate.slice(0, 10);
+        
+        playersData.forEach(playerObj => {
+            if (selectedPlayer !== 'all' && playerObj.player !== selectedPlayer) return;
+            let foundEntry = null;
+            playerObj.dates.forEach(d => {
+                let dDateStr = d.date.slice(0, 10);
+                if (dDateStr === selectedDateStr) {
+                    foundEntry = d;
+                }
+            });
+            if (foundEntry) {
+                const statusHtml = formatAvailabilityStatus(foundEntry);
+                const row = `<tr class="border-t border-gray-50">
+                    <td class="px-4 py-3 w-1/2 font-medium text-gray-900">${playerObj.player}</td>
+                    <td class="px-4 py-3 w-1/2">${statusHtml}</td>
+                </tr>`;
+                singleTableBody.insertAdjacentHTML('beforeend', row);
+            }
+        });
+    }
+
+    function updateVisibility() {
+        const selectedDate = dateFilter.value;
+        const selectedPlayer = playerFilter.value;
+        
+        const playerSchedules = document.querySelectorAll('.player-schedule');
+        const dateRows = document.querySelectorAll('.date-row');
+        
+        if (selectedDate !== 'all') {
+            singleTableView.style.display = '';
+            perPlayerView.style.display = 'none';
+            renderSingleTable(selectedDate, selectedPlayer);
+        } else {
+            singleTableView.style.display = 'none';
+            perPlayerView.style.display = '';
+            
+            playerSchedules.forEach(schedule => {
+                const playerName = schedule.dataset.player;
+                if (selectedPlayer === 'all' || playerName === selectedPlayer) {
+                    schedule.style.display = '';
+                } else {
+                    schedule.style.display = 'none';
+                }
+            });
+            
+            dateRows.forEach(row => {
+                row.style.display = '';
+            });
+        }
+    }
+
+    function resetFilters() {
+        teamFilter.value = 'all';
+        dateFilter.value = 'all';
+        playerFilter.value = 'all';
+        updateVisibility();
+    }
+
+    // Event listeners
+    teamFilter.addEventListener('change', async function() {
+        // Reload data when team selection changes
+        await loadAllTeamsScheduleData();
+    });
+    dateFilter.addEventListener('change', updateVisibility);
+    playerFilter.addEventListener('change', updateVisibility);
+    resetButton.addEventListener('click', resetFilters);
+
+    // Transform series display from "Chicago XX" to "Series XX"
+    const seriesElements = document.querySelectorAll('.user-series');
+    seriesElements.forEach(element => {
+        const seriesText = element.textContent;
+        if (seriesText && seriesText !== 'Not set') {
+            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+        }
+    });
+
+    // Start loading data
+    console.log('Starting loadTeamsData...');
+    loadTeamsData();
+});
+</script>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-yellow-100 { border-color: #fef3c7; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-yellow-50 { background-color: #fffbeb; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-blue-500 { color: #3b82f6; }
+.text-purple-500 { color: #8b5cf6; }
+.text-green-500 { color: #10b981; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-700 { color: #b91c1c; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-purple-500 {
+    --tw-gradient-from: #8b5cf6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0));
+}
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+{% endblock %} 

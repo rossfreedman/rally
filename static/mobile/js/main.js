@@ -244,6 +244,7 @@ function getLoadingTextForUrl(url) {
         
         // Captain section
         '/mobile/team-schedule': 'Loading Team Schedule...',
+    '/mobile/all-teams-schedule': 'Loading All Teams Schedule...',
         '/mobile/find-subs': 'Finding Substitutes...',
         '/mobile/lineup-selection': 'Loading Lineup Options...',
         '/mobile/lineup': 'Loading Lineup Builder...',

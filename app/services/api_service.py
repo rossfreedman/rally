@@ -1463,3 +1463,476 @@ def get_team_schedule_data_data():
         print(f"❌ Error in get_team_schedule_data: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
+
+
+def get_all_teams_schedule_data_data():
+    """Get all teams schedule data with team filter - OPTIMIZED for faster loading with priority-based team detection"""
+    try:
+        import json
+        import os
+        import traceback
+        from datetime import datetime
+
+        from flask import jsonify, session, request
+
+        from database_utils import execute_query, execute_query_one
+
+        # Import the get_matches_for_user_club function
+        from routes.act.schedule import get_matches_for_user_club
+
+        print("\n=== ALL TEAMS SCHEDULE DATA API REQUEST (OPTIMIZED) ===")
+        # Get the team from user's session data
+        user = session.get("user")
+        if not user:
+            print("❌ No user in session")
+            return jsonify({"error": "Not authenticated"}), 401
+
+        user_email = user.get("email")
+        print(f"User: {user_email}")
+
+        # Get the selected team_id from the request
+        selected_team_id = request.args.get('team_id')
+        print(f"Selected team_id: {selected_team_id}")
+
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me, track-byes-courts, and polls pages)
+        user_team_id = None
+        user_team_name = None
+        club_name = None
+        series = None
+        
+        # If a specific team is selected, use that team_id
+        if selected_team_id:
+            try:
+                # Get team info for the selected team_id
+                selected_team_query = """
+                    SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.id = %s
+                """
+                selected_team_result = execute_query_one(selected_team_query, [selected_team_id])
+                if selected_team_result:
+                    user_team_id = selected_team_result['id'] 
+                    user_team_name = selected_team_result['team_name']
+                    club_name = selected_team_result['club_name']
+                    series = selected_team_result['series_name']
+                    print(f"[DEBUG] All-teams-schedule: Using selected team_id: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                else:
+                    print(f"[DEBUG] All-teams-schedule: Selected team_id {selected_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] All-teams-schedule: Error getting team from selected team_id {selected_team_id}: {e}")
+        
+        # If no team selected, fall back to user's current team
+        if not user_team_id:
+            # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+            session_team_id = user.get("team_id")
+            print(f"[DEBUG] All-teams-schedule: session_team_id from user: {session_team_id}")
+            
+            if session_team_id:
+                try:
+                    # Get team info for the specific team_id from session
+                    session_team_query = """
+                        SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                        FROM teams t
+                        JOIN clubs c ON t.club_id = c.id
+                        JOIN series s ON t.series_id = s.id
+                        WHERE t.id = %s
+                    """
+                    session_team_result = execute_query_one(session_team_query, [session_team_id])
+                    if session_team_result:
+                        user_team_id = session_team_result['id'] 
+                        user_team_name = session_team_result['team_name']
+                        club_name = session_team_result['club_name']
+                        series = session_team_result['series_name']
+                        print(f"[DEBUG] All-teams-schedule: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                    else:
+                        print(f"[DEBUG] All-teams-schedule: Session team_id {session_team_id} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] All-teams-schedule: Error getting team from session team_id {session_team_id}: {e}")
+            
+            # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+            if not user_team_id:
+                team_context = user.get("team_context") if user else None
+                if team_context:
+                    try:
+                        # Get team info for the specific team_id from team context
+                        team_context_query = """
+                            SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                            FROM teams t
+                            JOIN clubs c ON t.club_id = c.id
+                            JOIN series s ON t.series_id = s.id
+                            WHERE t.id = %s
+                        """
+                        team_context_result = execute_query_one(team_context_query, [team_context])
+                        if team_context_result:
+                            user_team_id = team_context_result['id'] 
+                            user_team_name = team_context_result['team_name']
+                            club_name = team_context_result['club_name']
+                            series = team_context_result['series_name']
+                            print(f"[DEBUG] All-teams-schedule: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                        else:
+                            print(f"[DEBUG] All-teams-schedule: team_context {team_context} not found in teams table")
+                    except Exception as e:
+                        print(f"[DEBUG] All-teams-schedule: Error getting team from team_context {team_context}: {e}")
+            
+            # PRIORITY 3: Fallback to legacy session club/series if no direct team_id
+            if not user_team_id:
+                print(f"[DEBUG] All-teams-schedule: No direct team_id, using legacy session club/series")
+                club_name = user.get("club")
+                series = user.get("series")
+                
+                if not club_name or not series:
+                    print("❌ Missing club or series in session")
+                    return jsonify({"error": "Club or series not set in profile"}), 400
+                    
+                print(f"[DEBUG] All-teams-schedule: Legacy fallback: club={club_name}, series={series}")
+
+        print(f"[DEBUG] All-teams-schedule: Final team selection: team_id={user_team_id}, club={club_name}, series={series}")
+
+        if not club_name or not series:
+            print("❌ Missing club or series after team detection")
+            return jsonify({"error": "Club or series not set in profile"}), 400
+
+        # Get series ID first since we want all players in the series
+        series_query = "SELECT id, name FROM series WHERE name = %(name)s"
+        print(f"Executing series query: {series_query}")
+
+        try:
+            series_record = execute_query(series_query, {"name": series})
+        except Exception as e:
+            print(f"❌ Database error querying series: {e}")
+            # Continue without database series ID - we can still show the schedule
+            series_record = [{"id": None, "name": series}]
+
+        if not series_record:
+            print(f"❌ Series not found: {series}")
+            # Continue without database series ID - we can still show the schedule
+            series_record = [{"id": None, "name": series}]
+
+        series_record = series_record[0]
+        print(f"✓ Using series: {series_record}")
+
+        # Get all players from database for this series and club
+        try:
+            # Query players from the database instead of JSON file
+            players_query = """
+                SELECT 
+                    p.id as player_id,
+                    p.first_name,
+                    p.last_name,
+                    c.name as club_name,
+                    s.name as series_name,
+                    p.tenniscores_player_id,
+                    l.league_id
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id  
+                JOIN leagues l ON p.league_id = l.id
+                WHERE s.name = %(series)s 
+                AND c.name = %(club_name)s
+            """
+
+            # Add league filtering if user has a league_id
+            user_league_id = user.get("league_id", "")
+            if user_league_id:
+                try:
+                    league_id_int = int(user_league_id)
+                    players_query += " AND l.id = %(league_id)s"  # Use l.id (primary key) instead of l.league_id
+                    players_params = {
+                        "series": series,
+                        "club_name": club_name,
+                        "league_id": league_id_int,
+                    }
+                except (ValueError, TypeError) as e:
+                    print(
+                        f"Warning: Invalid league_id '{user_league_id}', skipping league filter: {e}"
+                    )
+                    players_params = {"series": series, "club_name": club_name}
+            else:
+                players_params = {"series": series, "club_name": club_name}
+
+            print(f"Executing players query: {players_query}")
+            print(f"With parameters: {players_params}")
+
+            players_data = execute_query(players_query, players_params)
+
+            # Format players data
+            team_players = []
+            for player in players_data:
+                full_name = f"{player['first_name']} {player['last_name']}"
+                team_players.append(
+                    {
+                        "player_name": full_name,
+                        "club_name": player["club_name"],
+                        "player_id": player[
+                            "tenniscores_player_id"
+                        ],  # Use tenniscores_player_id for consistency
+                        "internal_id": player[
+                            "player_id"
+                        ],  # Store internal DB ID for availability queries
+                    }
+                )
+
+            print(
+                f"✓ Found {len(team_players)} players in database for {club_name} - {series}"
+            )
+
+            if not team_players:
+                print("❌ No players found in database")
+                return (
+                    jsonify({"error": f"No players found for {club_name} - {series}"}),
+                    404,
+                )
+
+        except Exception as e:
+            print(f"❌ Error querying players from database: {e}")
+            return jsonify({"error": "Error loading player data from database"}), 500
+
+        # Use the same logic as get_matches_for_user_club to get matches
+        print("\n=== Getting matches using same logic as availability page ===")
+        
+        # ENHANCED: Pass the detected team_id to get_matches_for_user_club for better reliability
+        user_with_team_id = user.copy()
+        if user_team_id:
+            user_with_team_id["team_id"] = user_team_id
+            print(f"[DEBUG] All-teams-schedule: Passing team_id {user_team_id} to get_matches_for_user_club")
+        
+        all_events = get_matches_for_user_club(user_with_team_id)
+        
+        # Filter for only practice times
+        matches = [event for event in all_events if event.get("type") == "practice"]
+
+        if not matches:
+            print("❌ No upcoming practice times found")
+            
+            # IMPROVED ERROR HANDLING: Check if team exists but just has no upcoming schedule
+            if user_team_id:
+                # Check if this team has any completed matches (to confirm team exists and is active)
+                # UPDATED: Show all historical matches (removed 6-month filter to support completed seasons)
+                completed_matches_query = """
+                    SELECT COUNT(*) as count
+                    FROM match_scores 
+                    WHERE (home_team_id = %s OR away_team_id = %s)
+                """
+                
+                try:
+                    completed_result = execute_query_one(completed_matches_query, [user_team_id, user_team_id])
+                    completed_count = completed_result["count"] if completed_result else 0
+                    
+                    if completed_count > 0:
+                        # Team exists and has completed matches, just no upcoming schedule  
+                        print(f"✓ Team {user_team_id} has {completed_count} completed matches but no upcoming schedule")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": f"No upcoming practice times scheduled for your team. Your team has played {completed_count} matches total. You can view historical schedule data on other pages.",
+                            "team_status": "active_no_schedule"
+                        })
+                    else:
+                        # Team exists but no match activity
+                        print(f"⚠️ Team {user_team_id} has no match history")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": "No upcoming practice times scheduled and no match history for your team.",
+                            "team_status": "inactive"
+                        })
+                        
+                except Exception as e:
+                    print(f"Error checking completed matches: {e}")
+            
+            # Fallback error for teams without team_id or when query fails
+            return jsonify({
+                "players_schedule": {},
+                "match_dates": [],
+                "event_details": {},
+                "message": "No upcoming practice times found for your team.",
+                "team_status": "no_schedule"
+            })
+
+        print(f"✓ Found {len(matches)} practice times")
+
+        # Convert matches to the format expected by team schedule page
+        event_dates = []
+        event_details = {}
+
+        for match in matches:
+            match_date = match.get("date", "")
+            if not match_date:
+                continue
+
+            try:
+                # Convert from MM/DD/YYYY to YYYY-MM-DD
+                date_obj = datetime.strptime(match_date, "%m/%d/%Y")
+                formatted_date = date_obj.strftime("%Y-%m-%d")
+
+                event_dates.append(formatted_date)
+
+                # All events are practice times now
+                event_details[formatted_date] = {
+                    "type": "Practice",
+                    "description": match.get("description", "Team Practice"),
+                    "location": match.get("location", club_name),
+                    "time": match.get("time", ""),
+                }
+                print(f"✓ Added practice date: {match_date}")
+
+            except ValueError as e:
+                print(f"Invalid date format: {match_date}, error: {e}")
+                continue
+
+        event_dates = sorted(list(set(event_dates)))  # Remove duplicates and sort
+        print(f"✓ Found {len(event_dates)} total practice dates")
+
+        # OPTIMIZATION: Batch fetch all availability data in one query instead of N+M individual queries
+        print("\n=== OPTIMIZATION: Batch fetching all availability data ===")
+        availability_lookup = {}  # (player_id, date) -> {status, notes}
+        
+        if series_record["id"] is not None and team_players and event_dates:
+            try:
+                # Get all player IDs for the query
+                player_ids = [p["internal_id"] for p in team_players if p.get("internal_id")]
+                player_names = [p["player_name"] for p in team_players]
+                
+                # Convert event_dates to date objects for the query
+                date_objects = []
+                for event_date in event_dates:
+                    try:
+                        date_obj = datetime.strptime(event_date, "%Y-%m-%d").date()
+                        date_objects.append(date_obj)
+                    except ValueError:
+                        continue
+                
+                if player_ids and date_objects:
+                    # Single optimized query to get ALL availability data at once
+                    batch_query = """
+                        SELECT 
+                            player_id,
+                            player_name,
+                            DATE(match_date AT TIME ZONE 'UTC') as match_date,
+                            availability_status,
+                            notes
+                        FROM player_availability 
+                        WHERE series_id = %(series_id)s 
+                        AND (
+                            player_id = ANY(%(player_ids)s) 
+                            OR player_name = ANY(%(player_names)s)
+                        )
+                        AND DATE(match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
+                    """
+                    
+                    batch_params = {
+                        "series_id": series_record["id"],
+                        "player_ids": player_ids,
+                        "player_names": player_names,
+                        "dates": date_objects,
+                    }
+                    
+                    print(f"✓ Executing single batch query for {len(player_ids)} players and {len(date_objects)} dates")
+                    availability_records = execute_query(batch_query, batch_params)
+                    
+                    # Build lookup dictionaries for fast access
+                    for record in availability_records:
+                        player_id = record.get("player_id")
+                        player_name = record.get("player_name")
+                        match_date = record.get("match_date")
+                        status = record.get("availability_status", 0)
+                        notes = record.get("notes", "")
+                        
+                        # Create lookup keys for both player_id and player_name
+                        if player_id and match_date:
+                            availability_lookup[(player_id, match_date)] = {"status": status, "notes": notes}
+                        if player_name and match_date:
+                            availability_lookup[(player_name, match_date)] = {"status": status, "notes": notes}
+                    
+                    print(f"✓ Built availability lookup with {len(availability_records)} records")
+                
+            except Exception as e:
+                print(f"Warning: Batch availability query failed, falling back to defaults: {e}")
+                availability_lookup = {}
+
+        # Build player schedules using the optimized lookup
+        players_schedule = {}
+        print("\nProcessing player availability (OPTIMIZED):")
+        
+        for player in team_players:
+            availability = []
+            player_name = player["player_name"]
+            internal_player_id = player.get("internal_id")
+            
+            print(f"✓ Processing {player_name} (ID: {internal_player_id})")
+
+            for event_date in event_dates:
+                try:
+                    # Convert event_date string to datetime.date object for lookup
+                    event_date_obj = datetime.strptime(event_date, "%Y-%m-%d").date()
+
+                    # Fast lookup instead of database query
+                    status = 0  # Default
+                    notes = ""
+                    
+                    # Try lookup by internal player_id first
+                    if internal_player_id:
+                        lookup_data = availability_lookup.get((internal_player_id, event_date_obj))
+                        if lookup_data:
+                            status = lookup_data["status"]
+                            notes = lookup_data["notes"]
+                    
+                    # Fallback to player_name lookup if needed
+                    if status == 0 and not notes:
+                        lookup_data = availability_lookup.get((player_name, event_date_obj))
+                        if lookup_data:
+                            status = lookup_data["status"]
+                            notes = lookup_data["notes"]
+
+                    # Get event details for this date
+                    event_info = event_details.get(event_date, {})
+
+                    availability.append(
+                        {
+                            "date": event_date,
+                            "availability_status": status,
+                            "notes": notes,
+                            "event_type": event_info.get("type", "Unknown"),
+                            "opponent": event_info.get("opponent", ""),
+                            "description": event_info.get("description", ""),
+                            "location": event_info.get("location", ""),
+                            "time": event_info.get("time", ""),
+                        }
+                    )
+                except Exception as e:
+                    print(
+                        f"Error processing availability for {player_name} on {event_date}: {e}"
+                    )
+                    # Skip this date if there's an error
+                    continue
+
+            # Store player schedule
+            players_schedule[player_name] = availability
+            print(f"✓ Added {player_name} with {len(availability)} dates")
+
+        if not players_schedule:
+            print("❌ No player schedules created")
+            return jsonify({"error": "No player schedules found for your series"}), 404
+
+        print(f"\n✅ OPTIMIZATION COMPLETE:")
+        print(f"✓ Final players_schedule has {len(players_schedule)} players")
+        print(f"✓ Event details for {len(event_details)} dates")
+        print(f"✓ Used single batch query instead of {len(team_players) * len(event_dates)} individual queries")
+
+        # Return JSON response
+        return jsonify(
+            {
+                "players_schedule": players_schedule,
+                "match_dates": event_dates,
+                "event_details": event_details,
+            }
+        )
+
+    except Exception as e:
+        print(f"❌ Error in get_all_teams_schedule_data: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": "Internal server error"}), 500

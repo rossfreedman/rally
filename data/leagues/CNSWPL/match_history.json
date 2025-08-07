@@ -1,1 +1,3807 @@
-[]
+[
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 1",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 1",
+    "Away Team": "98.0",
+    "Series": "Series 1",
+    "Score": "Birchwood 1"
+  },
+  {
+    "Home Team": "Lake Bluff 1",
+    "Away Team": "81.0",
+    "Series": "Series 1",
+    "Score": "Lake Bluff 1"
+  },
+  {
+    "Home Team": "Hinsdale PC 1a",
+    "Away Team": "72.0",
+    "Series": "Series 1",
+    "Score": "Hinsdale PC 1a"
+  },
+  {
+    "Home Team": "Winnetka 1",
+    "Away Team": "70.5",
+    "Series": "Series 1",
+    "Score": "Winnetka 1"
+  },
+  {
+    "Home Team": "Sunset Ridge 1",
+    "Away Team": "62.0",
+    "Series": "Series 1",
+    "Score": "Sunset Ridge 1"
+  },
+  {
+    "Home Team": "Saddle & Cycle 1",
+    "Away Team": "55.0",
+    "Series": "Series 1",
+    "Score": "Saddle & Cycle 1"
+  },
+  {
+    "Home Team": "LifeSport 1",
+    "Away Team": "54.5",
+    "Series": "Series 1",
+    "Score": "LifeSport 1"
+  },
+  {
+    "Home Team": "Michigan Shores 1",
+    "Away Team": "54.0",
+    "Series": "Series 1",
+    "Score": "Michigan Shores 1"
+  },
+  {
+    "Home Team": "Midtown 1",
+    "Away Team": "44.5",
+    "Series": "Series 1",
+    "Score": "Midtown 1"
+  },
+  {
+    "Home Team": "Hinsdale PC 1b",
+    "Away Team": "19.0",
+    "Series": "Series 1",
+    "Score": "Hinsdale PC 1b"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 2",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "North Shore 2",
+    "Away Team": "89.5",
+    "Series": "Series 2",
+    "Score": "North Shore 2"
+  },
+  {
+    "Home Team": "Skokie 2",
+    "Away Team": "82.5",
+    "Series": "Series 2",
+    "Score": "Skokie 2"
+  },
+  {
+    "Home Team": "Lake Shore CC 2",
+    "Away Team": "77.0",
+    "Series": "Series 2",
+    "Score": "Lake Shore CC 2"
+  },
+  {
+    "Home Team": "Prairie Club 2a",
+    "Away Team": "68.5",
+    "Series": "Series 2",
+    "Score": "Prairie Club 2a"
+  },
+  {
+    "Home Team": "Valley Lo 2",
+    "Away Team": "64.0",
+    "Series": "Series 2",
+    "Score": "Valley Lo 2"
+  },
+  {
+    "Home Team": "Indian Hill 2",
+    "Away Team": "50.0",
+    "Series": "Series 2",
+    "Score": "Indian Hill 2"
+  },
+  {
+    "Home Team": "Prairie Club 2b",
+    "Away Team": "47.0",
+    "Series": "Series 2",
+    "Score": "Prairie Club 2b"
+  },
+  {
+    "Home Team": "Northmoor 2",
+    "Away Team": "45.5",
+    "Series": "Series 2",
+    "Score": "Northmoor 2"
+  },
+  {
+    "Home Team": "Evanston 2",
+    "Away Team": "35.5",
+    "Series": "Series 2",
+    "Score": "Evanston 2"
+  },
+  {
+    "Home Team": "Birchwood 2",
+    "Away Team": "32.0",
+    "Series": "Series 2",
+    "Score": "Birchwood 2"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 3",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Westmoreland 3",
+    "Away Team": "78.5",
+    "Series": "Series 3",
+    "Score": "Westmoreland 3"
+  },
+  {
+    "Home Team": "Michigan Shores 3b",
+    "Away Team": "69.0",
+    "Series": "Series 3",
+    "Score": "Michigan Shores 3b"
+  },
+  {
+    "Home Team": "Michigan Shores 3a",
+    "Away Team": "68.5",
+    "Series": "Series 3",
+    "Score": "Michigan Shores 3a"
+  },
+  {
+    "Home Team": "Glen View 3",
+    "Away Team": "64.0",
+    "Series": "Series 3",
+    "Score": "Glen View 3"
+  },
+  {
+    "Home Team": "Onwentsia 3",
+    "Away Team": "62.0",
+    "Series": "Series 3",
+    "Score": "Onwentsia 3"
+  },
+  {
+    "Home Team": "Tennaqua 3",
+    "Away Team": "60.5",
+    "Series": "Series 3",
+    "Score": "Tennaqua 3"
+  },
+  {
+    "Home Team": "Butterfield 3",
+    "Away Team": "59.5",
+    "Series": "Series 3",
+    "Score": "Butterfield 3"
+  },
+  {
+    "Home Team": "North Shore 3",
+    "Away Team": "54.5",
+    "Series": "Series 3",
+    "Score": "North Shore 3"
+  },
+  {
+    "Home Team": "Hinsdale PC 3",
+    "Away Team": "54.0",
+    "Series": "Series 3",
+    "Score": "Hinsdale PC 3"
+  },
+  {
+    "Home Team": "Wilmette 3",
+    "Away Team": "51.0",
+    "Series": "Series 3",
+    "Score": "Wilmette 3"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 4",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Westmoreland 4",
+    "Away Team": "77.5",
+    "Series": "Series 4",
+    "Score": "Westmoreland 4"
+  },
+  {
+    "Home Team": "Valley Lo 4",
+    "Away Team": "73.5",
+    "Series": "Series 4",
+    "Score": "Valley Lo 4"
+  },
+  {
+    "Home Team": "Saddle & Cycle 4",
+    "Away Team": "69.0",
+    "Series": "Series 4",
+    "Score": "Saddle & Cycle 4"
+  },
+  {
+    "Home Team": "Skokie 4",
+    "Away Team": "67.5",
+    "Series": "Series 4",
+    "Score": "Skokie 4"
+  },
+  {
+    "Home Team": "River Forest 4",
+    "Away Team": "60.5",
+    "Series": "Series 4",
+    "Score": "River Forest 4"
+  },
+  {
+    "Home Team": "Glen Ellyn 4",
+    "Away Team": "60.0",
+    "Series": "Series 4",
+    "Score": "Glen Ellyn 4"
+  },
+  {
+    "Home Team": "Wilmette 4",
+    "Away Team": "59.5",
+    "Series": "Series 4",
+    "Score": "Wilmette 4"
+  },
+  {
+    "Home Team": "Exmoor 4",
+    "Away Team": "57.0",
+    "Series": "Series 4",
+    "Score": "Exmoor 4"
+  },
+  {
+    "Home Team": "Park Ridge 4",
+    "Away Team": "53.5",
+    "Series": "Series 4",
+    "Score": "Park Ridge 4"
+  },
+  {
+    "Home Team": "Lake Bluff 4",
+    "Away Team": "45.0",
+    "Series": "Series 4",
+    "Score": "Lake Bluff 4"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 5",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 5",
+    "Away Team": "91.5",
+    "Series": "Series 5",
+    "Score": "Birchwood 5"
+  },
+  {
+    "Home Team": "Lake Forest 5",
+    "Away Team": "84.0",
+    "Series": "Series 5",
+    "Score": "Lake Forest 5"
+  },
+  {
+    "Home Team": "Wilmette 5",
+    "Away Team": "82.0",
+    "Series": "Series 5",
+    "Score": "Wilmette 5"
+  },
+  {
+    "Home Team": "Winnetka 5a",
+    "Away Team": "68.0",
+    "Series": "Series 5",
+    "Score": "Winnetka 5a"
+  },
+  {
+    "Home Team": "Knollwood 5",
+    "Away Team": "60.5",
+    "Series": "Series 5",
+    "Score": "Knollwood 5"
+  },
+  {
+    "Home Team": "Sunset Ridge 5a",
+    "Away Team": "56.5",
+    "Series": "Series 5",
+    "Score": "Sunset Ridge 5a"
+  },
+  {
+    "Home Team": "Winnetka 5b",
+    "Away Team": "52.5",
+    "Series": "Series 5",
+    "Score": "Winnetka 5b"
+  },
+  {
+    "Home Team": "Sunset Ridge 5b",
+    "Away Team": "52.0",
+    "Series": "Series 5",
+    "Score": "Sunset Ridge 5b"
+  },
+  {
+    "Home Team": "Hinsdale Golf Club 5",
+    "Away Team": "36.0",
+    "Series": "Series 5",
+    "Score": "Hinsdale Golf Club 5"
+  },
+  {
+    "Home Team": "North Shore 5",
+    "Away Team": "27.0",
+    "Series": "Series 5",
+    "Score": "North Shore 5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 6",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Midtown 6",
+    "Away Team": "90.5",
+    "Series": "Series 6",
+    "Score": "Midtown 6"
+  },
+  {
+    "Home Team": "Winter Club 6",
+    "Away Team": "75.0",
+    "Series": "Series 6",
+    "Score": "Winter Club 6"
+  },
+  {
+    "Home Team": "Michigan Shores 6",
+    "Away Team": "72.0",
+    "Series": "Series 6",
+    "Score": "Michigan Shores 6"
+  },
+  {
+    "Home Team": "Westmoreland 6",
+    "Away Team": "67.5",
+    "Series": "Series 6",
+    "Score": "Westmoreland 6"
+  },
+  {
+    "Home Team": "Lake Forest 6",
+    "Away Team": "63.5",
+    "Series": "Series 6",
+    "Score": "Lake Forest 6"
+  },
+  {
+    "Home Team": "Valley Lo 6",
+    "Away Team": "63.0",
+    "Series": "Series 6",
+    "Score": "Valley Lo 6"
+  },
+  {
+    "Home Team": "Winnetka 6",
+    "Away Team": "60.0",
+    "Series": "Series 6",
+    "Score": "Winnetka 6"
+  },
+  {
+    "Home Team": "Evanston 6",
+    "Away Team": "59.0",
+    "Series": "Series 6",
+    "Score": "Evanston 6"
+  },
+  {
+    "Home Team": "Briarwood 6",
+    "Away Team": "50.5",
+    "Series": "Series 6",
+    "Score": "Briarwood 6"
+  },
+  {
+    "Home Team": "Indian Hill 6",
+    "Away Team": "3.0",
+    "Series": "Series 6",
+    "Score": "Indian Hill 6"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 7",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Michigan Shores 7",
+    "Away Team": "86.5",
+    "Series": "Series 7",
+    "Score": "Michigan Shores 7"
+  },
+  {
+    "Home Team": "Sunset Ridge 7",
+    "Away Team": "76.0",
+    "Series": "Series 7",
+    "Score": "Sunset Ridge 7"
+  },
+  {
+    "Home Team": "Tennaqua 7",
+    "Away Team": "70.0",
+    "Series": "Series 7",
+    "Score": "Tennaqua 7"
+  },
+  {
+    "Home Team": "Evanston 7",
+    "Away Team": "66.5",
+    "Series": "Series 7",
+    "Score": "Evanston 7"
+  },
+  {
+    "Home Team": "Park Ridge 7",
+    "Away Team": "64.0",
+    "Series": "Series 7",
+    "Score": "Park Ridge 7"
+  },
+  {
+    "Home Team": "Saddle & Cycle 7",
+    "Away Team": "57.0",
+    "Series": "Series 7",
+    "Score": "Saddle & Cycle 7"
+  },
+  {
+    "Home Team": "Birchwood 7",
+    "Away Team": "57.0",
+    "Series": "Series 7",
+    "Score": "Birchwood 7"
+  },
+  {
+    "Home Team": "Exmoor 7",
+    "Away Team": "53.5",
+    "Series": "Series 7",
+    "Score": "Exmoor 7"
+  },
+  {
+    "Home Team": "Northmoor 7",
+    "Away Team": "50.5",
+    "Series": "Series 7",
+    "Score": "Northmoor 7"
+  },
+  {
+    "Home Team": "Lake Bluff 7",
+    "Away Team": "45.0",
+    "Series": "Series 7",
+    "Score": "Lake Bluff 7"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 8",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Michigan Shores 8",
+    "Away Team": "75.5",
+    "Series": "Series 8",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Biltmore 8",
+    "Away Team": "75.0",
+    "Series": "Series 8",
+    "Score": "75.0"
+  },
+  {
+    "Home Team": "Valley Lo 8",
+    "Away Team": "74.0",
+    "Series": "Series 8",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Wilmette 8a",
+    "Away Team": "71.5",
+    "Series": "Series 8",
+    "Score": "71.5"
+  },
+  {
+    "Home Team": "Skokie 8",
+    "Away Team": "70.5",
+    "Series": "Series 8",
+    "Score": "70.5"
+  },
+  {
+    "Home Team": "Midtown 8",
+    "Away Team": "61.0",
+    "Series": "Series 8",
+    "Score": "61.0"
+  },
+  {
+    "Home Team": "Knollwood 8",
+    "Away Team": "55.5",
+    "Series": "Series 8",
+    "Score": "55.5"
+  },
+  {
+    "Home Team": "Wilmette 8b",
+    "Away Team": "51.0",
+    "Series": "Series 8",
+    "Score": "51.0"
+  },
+  {
+    "Home Team": "North Shore 8",
+    "Away Team": "43.0",
+    "Series": "Series 8",
+    "Score": "43.0"
+  },
+  {
+    "Home Team": "Winnetka 8",
+    "Away Team": "36.5",
+    "Series": "Series 8",
+    "Score": "36.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 9",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Tennaqua 9",
+    "Away Team": "85.0",
+    "Series": "Series 9",
+    "Score": "85.0"
+  },
+  {
+    "Home Team": "Westmoreland 9",
+    "Away Team": "79.0",
+    "Series": "Series 9",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Park Ridge 9",
+    "Away Team": "77.0",
+    "Series": "Series 9",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Evanston 9",
+    "Away Team": "75.5",
+    "Series": "Series 9",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Skokie 9",
+    "Away Team": "67.5",
+    "Series": "Series 9",
+    "Score": "67.5"
+  },
+  {
+    "Home Team": "Winnetka 9",
+    "Away Team": "54.5",
+    "Series": "Series 9",
+    "Score": "54.5"
+  },
+  {
+    "Home Team": "Birchwood 9",
+    "Away Team": "52.0",
+    "Series": "Series 9",
+    "Score": "52.0"
+  },
+  {
+    "Home Team": "Onwentsia 9",
+    "Away Team": "50.5",
+    "Series": "Series 9",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Michigan Shores 9",
+    "Away Team": "40.0",
+    "Series": "Series 9",
+    "Score": "40.0"
+  },
+  {
+    "Home Team": "Glen View 9",
+    "Away Team": "36.0",
+    "Series": "Series 9",
+    "Score": "36.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 10",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Barrington Hills 10",
+    "Away Team": "83.5",
+    "Series": "Series 10",
+    "Score": "Barrington Hills 10"
+  },
+  {
+    "Home Team": "Wilmette 10",
+    "Away Team": "83.0",
+    "Series": "Series 10",
+    "Score": "Wilmette 10"
+  },
+  {
+    "Home Team": "Lake Bluff 10",
+    "Away Team": "81.5",
+    "Series": "Series 10",
+    "Score": "Lake Bluff 10"
+  },
+  {
+    "Home Team": "Exmoor 10",
+    "Away Team": "74.5",
+    "Series": "Series 10",
+    "Score": "Exmoor 10"
+  },
+  {
+    "Home Team": "Sunset Ridge 10",
+    "Away Team": "68.0",
+    "Series": "Series 10",
+    "Score": "Sunset Ridge 10"
+  },
+  {
+    "Home Team": "Knollwood 10",
+    "Away Team": "62.0",
+    "Series": "Series 10",
+    "Score": "Knollwood 10"
+  },
+  {
+    "Home Team": "Michigan Shores 10",
+    "Away Team": "46.5",
+    "Series": "Series 10",
+    "Score": "Michigan Shores 10"
+  },
+  {
+    "Home Team": "Tennaqua 10",
+    "Away Team": "43.0",
+    "Series": "Series 10",
+    "Score": "Tennaqua 10"
+  },
+  {
+    "Home Team": "North Shore 10",
+    "Away Team": "42.5",
+    "Series": "Series 10",
+    "Score": "North Shore 10"
+  },
+  {
+    "Home Team": "Park Ridge 10",
+    "Away Team": "25.0",
+    "Series": "Series 10",
+    "Score": "Park Ridge 10"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 11",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 11",
+    "Away Team": "78.0",
+    "Series": "Series 11",
+    "Score": "Birchwood 11"
+  },
+  {
+    "Home Team": "Briarwood 11",
+    "Away Team": "77.5",
+    "Series": "Series 11",
+    "Score": "Briarwood 11"
+  },
+  {
+    "Home Team": "Evanston 11",
+    "Away Team": "76.5",
+    "Series": "Series 11",
+    "Score": "Evanston 11"
+  },
+  {
+    "Home Team": "Valley Lo 11",
+    "Away Team": "70.0",
+    "Series": "Series 11",
+    "Score": "Valley Lo 11"
+  },
+  {
+    "Home Team": "Lake Shore CC 11",
+    "Away Team": "68.0",
+    "Series": "Series 11",
+    "Score": "Lake Shore CC 11"
+  },
+  {
+    "Home Team": "Westmoreland 11",
+    "Away Team": "67.0",
+    "Series": "Series 11",
+    "Score": "Westmoreland 11"
+  },
+  {
+    "Home Team": "Wilmette 11",
+    "Away Team": "56.5",
+    "Series": "Series 11",
+    "Score": "Wilmette 11"
+  },
+  {
+    "Home Team": "Skokie 11",
+    "Away Team": "43.0",
+    "Series": "Series 11",
+    "Score": "Skokie 11"
+  },
+  {
+    "Home Team": "Barrington Hills 11",
+    "Away Team": "38.0",
+    "Series": "Series 11",
+    "Score": "Barrington Hills 11"
+  },
+  {
+    "Home Team": "Northmoor 11",
+    "Away Team": "19.0",
+    "Series": "Series 11",
+    "Score": "Northmoor 11"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 12",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Winnetka 12",
+    "Away Team": "90.5",
+    "Series": "Series 12",
+    "Score": "Winnetka 12"
+  },
+  {
+    "Home Team": "Park Ridge 12",
+    "Away Team": "81.5",
+    "Series": "Series 12",
+    "Score": "Park Ridge 12"
+  },
+  {
+    "Home Team": "Knollwood 12",
+    "Away Team": "72.0",
+    "Series": "Series 12",
+    "Score": "Knollwood 12"
+  },
+  {
+    "Home Team": "Lake Forest 12",
+    "Away Team": "69.5",
+    "Series": "Series 12",
+    "Score": "Lake Forest 12"
+  },
+  {
+    "Home Team": "Bryn Mawr CC 12",
+    "Away Team": "68.0",
+    "Series": "Series 12",
+    "Score": "Bryn Mawr CC 12"
+  },
+  {
+    "Home Team": "Saddle & Cycle 12",
+    "Away Team": "54.0",
+    "Series": "Series 12",
+    "Score": "Saddle & Cycle 12"
+  },
+  {
+    "Home Team": "Winter Club 12",
+    "Away Team": "54.0",
+    "Series": "Series 12",
+    "Score": "Winter Club 12"
+  },
+  {
+    "Home Team": "Evanston 12",
+    "Away Team": "47.5",
+    "Series": "Series 12",
+    "Score": "Evanston 12"
+  },
+  {
+    "Home Team": "Tennaqua 12",
+    "Away Team": "29.5",
+    "Series": "Series 12",
+    "Score": "Tennaqua 12"
+  },
+  {
+    "Home Team": "Birchwood 12",
+    "Away Team": "25.5",
+    "Series": "Series 12",
+    "Score": "Birchwood 12"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 13",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Sunset Ridge 13",
+    "Away Team": "83.5",
+    "Series": "Series 13",
+    "Score": "Sunset Ridge 13"
+  },
+  {
+    "Home Team": "Winnetka 13",
+    "Away Team": "80.5",
+    "Series": "Series 13",
+    "Score": "Winnetka 13"
+  },
+  {
+    "Home Team": "Michigan Shores 13",
+    "Away Team": "76.0",
+    "Series": "Series 13",
+    "Score": "Michigan Shores 13"
+  },
+  {
+    "Home Team": "Lake Bluff 13",
+    "Away Team": "66.5",
+    "Series": "Series 13",
+    "Score": "Lake Bluff 13"
+  },
+  {
+    "Home Team": "Westmoreland 13",
+    "Away Team": "59.5",
+    "Series": "Series 13",
+    "Score": "Westmoreland 13"
+  },
+  {
+    "Home Team": "Birchwood 13",
+    "Away Team": "58.5",
+    "Series": "Series 13",
+    "Score": "Birchwood 13"
+  },
+  {
+    "Home Team": "Skokie 13",
+    "Away Team": "57.0",
+    "Series": "Series 13",
+    "Score": "Skokie 13"
+  },
+  {
+    "Home Team": "North Shore 13",
+    "Away Team": "55.0",
+    "Series": "Series 13",
+    "Score": "North Shore 13"
+  },
+  {
+    "Home Team": "Briarwood 13",
+    "Away Team": "45.0",
+    "Series": "Series 13",
+    "Score": "Briarwood 13"
+  },
+  {
+    "Home Team": "Midtown 13",
+    "Away Team": "10.0",
+    "Series": "Series 13",
+    "Score": "Midtown 13"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 14",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Biltmore 14b",
+    "Away Team": "91.0",
+    "Series": "Series 14",
+    "Score": "Biltmore 14b"
+  },
+  {
+    "Home Team": "Evanston 14",
+    "Away Team": "68.0",
+    "Series": "Series 14",
+    "Score": "Evanston 14"
+  },
+  {
+    "Home Team": "Michigan Shores 14",
+    "Away Team": "56.0",
+    "Series": "Series 14",
+    "Score": "Michigan Shores 14"
+  },
+  {
+    "Home Team": "Biltmore 14a",
+    "Away Team": "55.5",
+    "Series": "Series 14",
+    "Score": "Biltmore 14a"
+  },
+  {
+    "Home Team": "Exmoor 14",
+    "Away Team": "48.0",
+    "Series": "Series 14",
+    "Score": "Exmoor 14"
+  },
+  {
+    "Home Team": "Park Ridge 14",
+    "Away Team": "48.0",
+    "Series": "Series 14",
+    "Score": "Park Ridge 14"
+  },
+  {
+    "Home Team": "Barrington Hills 14",
+    "Away Team": "46.5",
+    "Series": "Series 14",
+    "Score": "Barrington Hills 14"
+  },
+  {
+    "Home Team": "Westmoreland 14",
+    "Away Team": "43.5",
+    "Series": "Series 14",
+    "Score": "Westmoreland 14"
+  },
+  {
+    "Home Team": "Lake Forest 14",
+    "Away Team": "19.5",
+    "Series": "Series 14",
+    "Score": "Lake Forest 14"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 15",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Wilmette 15",
+    "Away Team": "94.5",
+    "Series": "Series 15",
+    "Score": "Wilmette 15"
+  },
+  {
+    "Home Team": "Winnetka 15",
+    "Away Team": "90.5",
+    "Series": "Series 15",
+    "Score": "Winnetka 15"
+  },
+  {
+    "Home Team": "Winter Club 15",
+    "Away Team": "81.0",
+    "Series": "Series 15",
+    "Score": "Winter Club 15"
+  },
+  {
+    "Home Team": "Skokie 15",
+    "Away Team": "67.0",
+    "Series": "Series 15",
+    "Score": "Skokie 15"
+  },
+  {
+    "Home Team": "Bryn Mawr CC 15",
+    "Away Team": "63.0",
+    "Series": "Series 15",
+    "Score": "Bryn Mawr CC 15"
+  },
+  {
+    "Home Team": "North Shore 15",
+    "Away Team": "42.5",
+    "Series": "Series 15",
+    "Score": "North Shore 15"
+  },
+  {
+    "Home Team": "Evanston 15",
+    "Away Team": "39.0",
+    "Series": "Series 15",
+    "Score": "Evanston 15"
+  },
+  {
+    "Home Team": "Birchwood 15",
+    "Away Team": "39.0",
+    "Series": "Series 15",
+    "Score": "Birchwood 15"
+  },
+  {
+    "Home Team": "Knollwood 15",
+    "Away Team": "33.0",
+    "Series": "Series 15",
+    "Score": "Knollwood 15"
+  },
+  {
+    "Home Team": "Lake Shore CC 15",
+    "Away Team": "32.5",
+    "Series": "Series 15",
+    "Score": "Lake Shore CC 15"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 16",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Wilmette 16b",
+    "Away Team": "85.0",
+    "Series": "Series 16",
+    "Score": "Wilmette 16b"
+  },
+  {
+    "Home Team": "Glen View 16",
+    "Away Team": "82.0",
+    "Series": "Series 16",
+    "Score": "Glen View 16"
+  },
+  {
+    "Home Team": "Exmoor 16",
+    "Away Team": "73.5",
+    "Series": "Series 16",
+    "Score": "Exmoor 16"
+  },
+  {
+    "Home Team": "Lake Bluff 16",
+    "Away Team": "65.5",
+    "Series": "Series 16",
+    "Score": "Lake Bluff 16"
+  },
+  {
+    "Home Team": "Wilmette 16a",
+    "Away Team": "62.5",
+    "Series": "Series 16",
+    "Score": "Wilmette 16a"
+  },
+  {
+    "Home Team": "Winnetka 16",
+    "Away Team": "62.0",
+    "Series": "Series 16",
+    "Score": "Winnetka 16"
+  },
+  {
+    "Home Team": "Valley Lo 16",
+    "Away Team": "58.5",
+    "Series": "Series 16",
+    "Score": "Valley Lo 16"
+  },
+  {
+    "Home Team": "Tennaqua 16",
+    "Away Team": "44.5",
+    "Series": "Series 16",
+    "Score": "Tennaqua 16"
+  },
+  {
+    "Home Team": "Briarwood 16",
+    "Away Team": "39.5",
+    "Series": "Series 16",
+    "Score": "Briarwood 16"
+  },
+  {
+    "Home Team": "North Shore 16",
+    "Away Team": "28.0",
+    "Series": "Series 16",
+    "Score": "North Shore 16"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 17",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Michigan Shores 17",
+    "Away Team": "64.5",
+    "Series": "Series 17",
+    "Score": "Michigan Shores 17"
+  },
+  {
+    "Home Team": "Wilmette 17",
+    "Away Team": "55.0",
+    "Series": "Series 17",
+    "Score": "Wilmette 17"
+  },
+  {
+    "Home Team": "Park Ridge 17",
+    "Away Team": "53.0",
+    "Series": "Series 17",
+    "Score": "Park Ridge 17"
+  },
+  {
+    "Home Team": "Evanston 17",
+    "Away Team": "42.5",
+    "Series": "Series 17",
+    "Score": "Evanston 17"
+  },
+  {
+    "Home Team": "Winter Club 17",
+    "Away Team": "21.0",
+    "Series": "Series 17",
+    "Score": "Winter Club 17"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series A",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Winnetka A",
+    "Away Team": "85.5",
+    "Series": "Series A",
+    "Score": "85.5"
+  },
+  {
+    "Home Team": "Lake Forest A",
+    "Away Team": "78.0",
+    "Series": "Series A",
+    "Score": "78.0"
+  },
+  {
+    "Home Team": "Indian Hill A",
+    "Away Team": "77.0",
+    "Series": "Series A",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Tennaqua A",
+    "Away Team": "60.5",
+    "Series": "Series A",
+    "Score": "60.5"
+  },
+  {
+    "Home Team": "North Shore A",
+    "Away Team": "58.0",
+    "Series": "Series A",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "Wilmette A",
+    "Away Team": "56.5",
+    "Series": "Series A",
+    "Score": "56.5"
+  },
+  {
+    "Home Team": "Westmoreland A",
+    "Away Team": "53.0",
+    "Series": "Series A",
+    "Score": "53.0"
+  },
+  {
+    "Home Team": "Valley Lo A",
+    "Away Team": "50.5",
+    "Series": "Series A",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Winter Club A",
+    "Away Team": "37.5",
+    "Series": "Series A",
+    "Score": "37.5"
+  },
+  {
+    "Home Team": "Prairie Club A",
+    "Away Team": "34.0",
+    "Series": "Series A",
+    "Score": "34.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series B",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Skokie B",
+    "Away Team": "100.5",
+    "Series": "Series B",
+    "Score": "100.5"
+  },
+  {
+    "Home Team": "Winnetka B(2)",
+    "Away Team": "85.0",
+    "Series": "Series B",
+    "Score": "Winnetka B(2)"
+  },
+  {
+    "Home Team": "Valley Lo B(1)",
+    "Away Team": "70.5",
+    "Series": "Series B",
+    "Score": "Valley Lo B(1)"
+  },
+  {
+    "Home Team": "Indian Hill B",
+    "Away Team": "65.0",
+    "Series": "Series B",
+    "Score": "65.0"
+  },
+  {
+    "Home Team": "Michigan Shores B",
+    "Away Team": "59.0",
+    "Series": "Series B",
+    "Score": "59.0"
+  },
+  {
+    "Home Team": "Park Ridge B",
+    "Away Team": "57.0",
+    "Series": "Series B",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Valley Lo B(2)",
+    "Away Team": "55.0",
+    "Series": "Series B",
+    "Score": "Valley Lo B(2)"
+  },
+  {
+    "Home Team": "Tennaqua B",
+    "Away Team": "50.5",
+    "Series": "Series B",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Winnetka B(1)",
+    "Away Team": "43.5",
+    "Series": "Series B",
+    "Score": "Winnetka B(1)"
+  },
+  {
+    "Home Team": "Lake Forest B",
+    "Away Team": "23.0",
+    "Series": "Series B",
+    "Score": "23.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series C",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Prairie Club C(1)",
+    "Away Team": "88.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(1)"
+  },
+  {
+    "Home Team": "Prairie Club C(3)",
+    "Away Team": "78.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(3)"
+  },
+  {
+    "Home Team": "Wilmette C(2)",
+    "Away Team": "73.5",
+    "Series": "Series C",
+    "Score": "Wilmette C(2)"
+  },
+  {
+    "Home Team": "Sunset Ridge C",
+    "Away Team": "72.5",
+    "Series": "Series C",
+    "Score": "72.5"
+  },
+  {
+    "Home Team": "Wilmette C(1)",
+    "Away Team": "66.0",
+    "Series": "Series C",
+    "Score": "Wilmette C(1)"
+  },
+  {
+    "Home Team": "North Shore C(1)",
+    "Away Team": "64.0",
+    "Series": "Series C",
+    "Score": "North Shore C(1)"
+  },
+  {
+    "Home Team": "Winter Club C",
+    "Away Team": "56.0",
+    "Series": "Series C",
+    "Score": "56.0"
+  },
+  {
+    "Home Team": "Prairie Club C(2)",
+    "Away Team": "51.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(2)"
+  },
+  {
+    "Home Team": "North Shore C(2)",
+    "Away Team": "43.5",
+    "Series": "Series C",
+    "Score": "North Shore C(2)"
+  },
+  {
+    "Home Team": "Westmoreland C",
+    "Away Team": "20.5",
+    "Series": "Series C",
+    "Score": "20.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series D",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Valley Lo D",
+    "Away Team": "81.0",
+    "Series": "Series D",
+    "Score": "81.0"
+  },
+  {
+    "Home Team": "Wilmette D(1)",
+    "Away Team": "80.5",
+    "Series": "Series D",
+    "Score": "Wilmette D(1)"
+  },
+  {
+    "Home Team": "Glen View D",
+    "Away Team": "79.0",
+    "Series": "Series D",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Winnetka D",
+    "Away Team": "62.5",
+    "Series": "Series D",
+    "Score": "62.5"
+  },
+  {
+    "Home Team": "Michigan Shores D",
+    "Away Team": "62.5",
+    "Series": "Series D",
+    "Score": "62.5"
+  },
+  {
+    "Home Team": "Lake Bluff D",
+    "Away Team": "58.0",
+    "Series": "Series D",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "Skokie D",
+    "Away Team": "57.0",
+    "Series": "Series D",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Tennaqua D",
+    "Away Team": "50.5",
+    "Series": "Series D",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Wilmette D(2)",
+    "Away Team": "48.5",
+    "Series": "Series D",
+    "Score": "Wilmette D(2)"
+  },
+  {
+    "Home Team": "Sunset Ridge D",
+    "Away Team": "32.5",
+    "Series": "Series D",
+    "Score": "32.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series E",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Exmoor E",
+    "Away Team": "86.5",
+    "Series": "Series E",
+    "Score": "86.5"
+  },
+  {
+    "Home Team": "Evanston E",
+    "Away Team": "82.0",
+    "Series": "Series E",
+    "Score": "82.0"
+  },
+  {
+    "Home Team": "Westmoreland E",
+    "Away Team": "76.0",
+    "Series": "Series E",
+    "Score": "76.0"
+  },
+  {
+    "Home Team": "Tennaqua E",
+    "Away Team": "65.5",
+    "Series": "Series E",
+    "Score": "65.5"
+  },
+  {
+    "Home Team": "Prairie Club E",
+    "Away Team": "64.0",
+    "Series": "Series E",
+    "Score": "64.0"
+  },
+  {
+    "Home Team": "Indian Hill E",
+    "Away Team": "52.0",
+    "Series": "Series E",
+    "Score": "52.0"
+  },
+  {
+    "Home Team": "Valley Lo E",
+    "Away Team": "44.5",
+    "Series": "Series E",
+    "Score": "44.5"
+  },
+  {
+    "Home Team": "Lake Forest E",
+    "Away Team": "44.0",
+    "Series": "Series E",
+    "Score": "44.0"
+  },
+  {
+    "Home Team": "Winnetka E",
+    "Away Team": "40.0",
+    "Series": "Series E",
+    "Score": "40.0"
+  },
+  {
+    "Home Team": "Wilmette E",
+    "Away Team": "38.5",
+    "Series": "Series E",
+    "Score": "38.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series F",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Winter Club F",
+    "Away Team": "85.0",
+    "Series": "Series F",
+    "Score": "85.0"
+  },
+  {
+    "Home Team": "Park Ridge F",
+    "Away Team": "75.5",
+    "Series": "Series F",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Skokie F",
+    "Away Team": "74.5",
+    "Series": "Series F",
+    "Score": "74.5"
+  },
+  {
+    "Home Team": "Tennaqua F",
+    "Away Team": "74.5",
+    "Series": "Series F",
+    "Score": "74.5"
+  },
+  {
+    "Home Team": "Birchwood F",
+    "Away Team": "74.0",
+    "Series": "Series F",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Wilmette F",
+    "Away Team": "62.0",
+    "Series": "Series F",
+    "Score": "62.0"
+  },
+  {
+    "Home Team": "Westmoreland F",
+    "Away Team": "54.5",
+    "Series": "Series F",
+    "Score": "54.5"
+  },
+  {
+    "Home Team": "Lake Forest F",
+    "Away Team": "37.0",
+    "Series": "Series F",
+    "Score": "37.0"
+  },
+  {
+    "Home Team": "Valley Lo F",
+    "Away Team": "33.5",
+    "Series": "Series F",
+    "Score": "33.5"
+  },
+  {
+    "Home Team": "Indian Hill F",
+    "Away Team": "28.5",
+    "Series": "Series F",
+    "Score": "28.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series G",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Knollwood G",
+    "Away Team": "90.5",
+    "Series": "Series G",
+    "Score": "90.5"
+  },
+  {
+    "Home Team": "Prairie Club G(2)",
+    "Away Team": "86.0",
+    "Series": "Series G",
+    "Score": "Prairie Club G(2)"
+  },
+  {
+    "Home Team": "Glenbrook G(1)",
+    "Away Team": "78.0",
+    "Series": "Series G",
+    "Score": "Glenbrook G(1)"
+  },
+  {
+    "Home Team": "Tennaqua G",
+    "Away Team": "71.0",
+    "Series": "Series G",
+    "Score": "71.0"
+  },
+  {
+    "Home Team": "Michigan Shores G",
+    "Away Team": "60.0",
+    "Series": "Series G",
+    "Score": "60.0"
+  },
+  {
+    "Home Team": "Wilmette G",
+    "Away Team": "53.5",
+    "Series": "Series G",
+    "Score": "53.5"
+  },
+  {
+    "Home Team": "PraIrie Club G(1)",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "PraIrie Club G(1)"
+  },
+  {
+    "Home Team": "Glenbrook G(2)",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "Glenbrook G(2)"
+  },
+  {
+    "Home Team": "Lake Bluff G",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "45.5"
+  },
+  {
+    "Home Team": "Indian Hill G",
+    "Away Team": "25.5",
+    "Series": "Series G",
+    "Score": "25.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series H",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Glenbrook H",
+    "Away Team": "80.5",
+    "Series": "Series H",
+    "Score": "80.5"
+  },
+  {
+    "Home Team": "Winnetka H",
+    "Away Team": "79.5",
+    "Series": "Series H",
+    "Score": "79.5"
+  },
+  {
+    "Home Team": "Sunset Ridge H",
+    "Away Team": "74.0",
+    "Series": "Series H",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Evanston H(2)",
+    "Away Team": "72.0",
+    "Series": "Series H",
+    "Score": "Evanston H(2)"
+  },
+  {
+    "Home Team": "Evanston H(1)",
+    "Away Team": "70.5",
+    "Series": "Series H",
+    "Score": "Evanston H(1)"
+  },
+  {
+    "Home Team": "Wilmette H(3)",
+    "Away Team": "56.5",
+    "Series": "Series H",
+    "Score": "Wilmette H(3)"
+  },
+  {
+    "Home Team": "Westmoreland H",
+    "Away Team": "48.5",
+    "Series": "Series H",
+    "Score": "48.5"
+  },
+  {
+    "Home Team": "Tennaqua H",
+    "Away Team": "48.0",
+    "Series": "Series H",
+    "Score": "48.0"
+  },
+  {
+    "Home Team": "Wilmette H(2)",
+    "Away Team": "44.5",
+    "Series": "Series H",
+    "Score": "Wilmette H(2)"
+  },
+  {
+    "Home Team": "Wilmette H (1)",
+    "Away Team": "26.0",
+    "Series": "Series H",
+    "Score": "Wilmette H (1)"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series I",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Exmoor I",
+    "Away Team": "95.0",
+    "Series": "Series I",
+    "Score": "95.0"
+  },
+  {
+    "Home Team": "Park Ridge I",
+    "Away Team": "88.0",
+    "Series": "Series I",
+    "Score": "88.0"
+  },
+  {
+    "Home Team": "Glen View I",
+    "Away Team": "79.0",
+    "Series": "Series I",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Winnetka I",
+    "Away Team": "58.0",
+    "Series": "Series I",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "North Shore I",
+    "Away Team": "57.5",
+    "Series": "Series I",
+    "Score": "57.5"
+  },
+  {
+    "Home Team": "Glenbrook I",
+    "Away Team": "57.0",
+    "Series": "Series I",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Evanston I",
+    "Away Team": "52.5",
+    "Series": "Series I",
+    "Score": "52.5"
+  },
+  {
+    "Home Team": "Skokie I",
+    "Away Team": "49.5",
+    "Series": "Series I",
+    "Score": "49.5"
+  },
+  {
+    "Home Team": "Lake Forest I",
+    "Away Team": "26.0",
+    "Series": "Series I",
+    "Score": "26.0"
+  },
+  {
+    "Home Team": "Tennaqua I",
+    "Away Team": "17.0",
+    "Series": "Series I",
+    "Score": "17.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series J",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Michigan Shores J",
+    "Away Team": "93.0",
+    "Series": "Series J",
+    "Score": "93.0"
+  },
+  {
+    "Home Team": "Lifesport J",
+    "Away Team": "88.0",
+    "Series": "Series J",
+    "Score": "88.0"
+  },
+  {
+    "Home Team": "Glen View J",
+    "Away Team": "78.5",
+    "Series": "Series J",
+    "Score": "78.5"
+  },
+  {
+    "Home Team": "Lake Bluff J",
+    "Away Team": "78.5",
+    "Series": "Series J",
+    "Score": "78.5"
+  },
+  {
+    "Home Team": "Skokie J",
+    "Away Team": "70.0",
+    "Series": "Series J",
+    "Score": "70.0"
+  },
+  {
+    "Home Team": "Knollwood J",
+    "Away Team": "50.0",
+    "Series": "Series J",
+    "Score": "50.0"
+  },
+  {
+    "Home Team": "Valley Lo J",
+    "Away Team": "46.5",
+    "Series": "Series J",
+    "Score": "46.5"
+  },
+  {
+    "Home Team": "Winnetka J",
+    "Away Team": "38.0",
+    "Series": "Series J",
+    "Score": "38.0"
+  },
+  {
+    "Home Team": "Winter Club J",
+    "Away Team": "34.5",
+    "Series": "Series J",
+    "Score": "34.5"
+  },
+  {
+    "Home Team": "Sunset Ridge J",
+    "Away Team": "22.0",
+    "Series": "Series J",
+    "Score": "22.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series K",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "North Shore K",
+    "Away Team": "77.0",
+    "Series": "Series K",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Exmoor K(1)",
+    "Away Team": "70.0",
+    "Series": "Series K",
+    "Score": "Exmoor K(1)"
+  },
+  {
+    "Home Team": "Park Ridge K",
+    "Away Team": "61.5",
+    "Series": "Series K",
+    "Score": "61.5"
+  },
+  {
+    "Home Team": "Indian Hill K",
+    "Away Team": "49.0",
+    "Series": "Series K",
+    "Score": "49.0"
+  },
+  {
+    "Home Team": "Skokie K",
+    "Away Team": "44.0",
+    "Series": "Series K",
+    "Score": "44.0"
+  },
+  {
+    "Home Team": "Exmoor K(2)",
+    "Away Team": "24.0",
+    "Series": "Series K",
+    "Score": "Exmoor K(2)"
+  },
+  {
+    "Home Team": "Lake Forest K",
+    "Away Team": "20.5",
+    "Series": "Series K",
+    "Score": "20.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series SN",
+    "Score": "03/09"
+  },
+  {
+    "Home Team": "Prarie Club SN (1)",
+    "Away Team": "91.5",
+    "Series": "Series SN",
+    "Score": "Prarie Club SN (1)"
+  },
+  {
+    "Home Team": "Winnetka SN (1)",
+    "Away Team": "70.5",
+    "Series": "Series SN",
+    "Score": "Winnetka SN (1)"
+  },
+  {
+    "Home Team": "Wilmette SN (1)",
+    "Away Team": "59.0",
+    "Series": "Series SN",
+    "Score": "Wilmette SN (1)"
+  },
+  {
+    "Home Team": "Prarie Club SN (2)",
+    "Away Team": "54.5",
+    "Series": "Series SN",
+    "Score": "Prarie Club SN (2)"
+  },
+  {
+    "Home Team": "Wilmette SN (2)",
+    "Away Team": "43.5",
+    "Series": "Series SN",
+    "Score": "Wilmette SN (2)"
+  },
+  {
+    "Home Team": "Michigan Shores SN",
+    "Away Team": "10.5",
+    "Series": "Series SN",
+    "Score": "10.5"
+  },
+  {
+    "Home Team": "Winnetka SN (2)",
+    "Away Team": "10.0",
+    "Series": "Series SN",
+    "Score": "Winnetka SN (2)"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 1",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 1",
+    "Away Team": "98.0",
+    "Series": "Series 1",
+    "Score": "Birchwood 1"
+  },
+  {
+    "Home Team": "Lake Bluff 1",
+    "Away Team": "81.0",
+    "Series": "Series 1",
+    "Score": "Lake Bluff 1"
+  },
+  {
+    "Home Team": "Hinsdale PC 1a",
+    "Away Team": "72.0",
+    "Series": "Series 1",
+    "Score": "Hinsdale PC 1a"
+  },
+  {
+    "Home Team": "Winnetka 1",
+    "Away Team": "70.5",
+    "Series": "Series 1",
+    "Score": "Winnetka 1"
+  },
+  {
+    "Home Team": "Sunset Ridge 1",
+    "Away Team": "62.0",
+    "Series": "Series 1",
+    "Score": "Sunset Ridge 1"
+  },
+  {
+    "Home Team": "Saddle & Cycle 1",
+    "Away Team": "55.0",
+    "Series": "Series 1",
+    "Score": "Saddle & Cycle 1"
+  },
+  {
+    "Home Team": "LifeSport 1",
+    "Away Team": "54.5",
+    "Series": "Series 1",
+    "Score": "LifeSport 1"
+  },
+  {
+    "Home Team": "Michigan Shores 1",
+    "Away Team": "54.0",
+    "Series": "Series 1",
+    "Score": "Michigan Shores 1"
+  },
+  {
+    "Home Team": "Midtown 1",
+    "Away Team": "44.5",
+    "Series": "Series 1",
+    "Score": "Midtown 1"
+  },
+  {
+    "Home Team": "Hinsdale PC 1b",
+    "Away Team": "19.0",
+    "Series": "Series 1",
+    "Score": "Hinsdale PC 1b"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 2",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "North Shore 2",
+    "Away Team": "89.5",
+    "Series": "Series 2",
+    "Score": "North Shore 2"
+  },
+  {
+    "Home Team": "Skokie 2",
+    "Away Team": "82.5",
+    "Series": "Series 2",
+    "Score": "Skokie 2"
+  },
+  {
+    "Home Team": "Lake Shore CC 2",
+    "Away Team": "77.0",
+    "Series": "Series 2",
+    "Score": "Lake Shore CC 2"
+  },
+  {
+    "Home Team": "Prairie Club 2a",
+    "Away Team": "68.5",
+    "Series": "Series 2",
+    "Score": "Prairie Club 2a"
+  },
+  {
+    "Home Team": "Valley Lo 2",
+    "Away Team": "64.0",
+    "Series": "Series 2",
+    "Score": "Valley Lo 2"
+  },
+  {
+    "Home Team": "Indian Hill 2",
+    "Away Team": "50.0",
+    "Series": "Series 2",
+    "Score": "Indian Hill 2"
+  },
+  {
+    "Home Team": "Prairie Club 2b",
+    "Away Team": "47.0",
+    "Series": "Series 2",
+    "Score": "Prairie Club 2b"
+  },
+  {
+    "Home Team": "Northmoor 2",
+    "Away Team": "45.5",
+    "Series": "Series 2",
+    "Score": "Northmoor 2"
+  },
+  {
+    "Home Team": "Evanston 2",
+    "Away Team": "35.5",
+    "Series": "Series 2",
+    "Score": "Evanston 2"
+  },
+  {
+    "Home Team": "Birchwood 2",
+    "Away Team": "32.0",
+    "Series": "Series 2",
+    "Score": "Birchwood 2"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 3",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Westmoreland 3",
+    "Away Team": "78.5",
+    "Series": "Series 3",
+    "Score": "Westmoreland 3"
+  },
+  {
+    "Home Team": "Michigan Shores 3b",
+    "Away Team": "69.0",
+    "Series": "Series 3",
+    "Score": "Michigan Shores 3b"
+  },
+  {
+    "Home Team": "Michigan Shores 3a",
+    "Away Team": "68.5",
+    "Series": "Series 3",
+    "Score": "Michigan Shores 3a"
+  },
+  {
+    "Home Team": "Glen View 3",
+    "Away Team": "64.0",
+    "Series": "Series 3",
+    "Score": "Glen View 3"
+  },
+  {
+    "Home Team": "Onwentsia 3",
+    "Away Team": "62.0",
+    "Series": "Series 3",
+    "Score": "Onwentsia 3"
+  },
+  {
+    "Home Team": "Tennaqua 3",
+    "Away Team": "60.5",
+    "Series": "Series 3",
+    "Score": "Tennaqua 3"
+  },
+  {
+    "Home Team": "Butterfield 3",
+    "Away Team": "59.5",
+    "Series": "Series 3",
+    "Score": "Butterfield 3"
+  },
+  {
+    "Home Team": "North Shore 3",
+    "Away Team": "54.5",
+    "Series": "Series 3",
+    "Score": "North Shore 3"
+  },
+  {
+    "Home Team": "Hinsdale PC 3",
+    "Away Team": "54.0",
+    "Series": "Series 3",
+    "Score": "Hinsdale PC 3"
+  },
+  {
+    "Home Team": "Wilmette 3",
+    "Away Team": "51.0",
+    "Series": "Series 3",
+    "Score": "Wilmette 3"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 4",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Westmoreland 4",
+    "Away Team": "77.5",
+    "Series": "Series 4",
+    "Score": "Westmoreland 4"
+  },
+  {
+    "Home Team": "Valley Lo 4",
+    "Away Team": "73.5",
+    "Series": "Series 4",
+    "Score": "Valley Lo 4"
+  },
+  {
+    "Home Team": "Saddle & Cycle 4",
+    "Away Team": "69.0",
+    "Series": "Series 4",
+    "Score": "Saddle & Cycle 4"
+  },
+  {
+    "Home Team": "Skokie 4",
+    "Away Team": "67.5",
+    "Series": "Series 4",
+    "Score": "Skokie 4"
+  },
+  {
+    "Home Team": "River Forest 4",
+    "Away Team": "60.5",
+    "Series": "Series 4",
+    "Score": "River Forest 4"
+  },
+  {
+    "Home Team": "Glen Ellyn 4",
+    "Away Team": "60.0",
+    "Series": "Series 4",
+    "Score": "Glen Ellyn 4"
+  },
+  {
+    "Home Team": "Wilmette 4",
+    "Away Team": "59.5",
+    "Series": "Series 4",
+    "Score": "Wilmette 4"
+  },
+  {
+    "Home Team": "Exmoor 4",
+    "Away Team": "57.0",
+    "Series": "Series 4",
+    "Score": "Exmoor 4"
+  },
+  {
+    "Home Team": "Park Ridge 4",
+    "Away Team": "53.5",
+    "Series": "Series 4",
+    "Score": "Park Ridge 4"
+  },
+  {
+    "Home Team": "Lake Bluff 4",
+    "Away Team": "45.0",
+    "Series": "Series 4",
+    "Score": "Lake Bluff 4"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 5",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 5",
+    "Away Team": "91.5",
+    "Series": "Series 5",
+    "Score": "Birchwood 5"
+  },
+  {
+    "Home Team": "Lake Forest 5",
+    "Away Team": "84.0",
+    "Series": "Series 5",
+    "Score": "Lake Forest 5"
+  },
+  {
+    "Home Team": "Wilmette 5",
+    "Away Team": "82.0",
+    "Series": "Series 5",
+    "Score": "Wilmette 5"
+  },
+  {
+    "Home Team": "Winnetka 5a",
+    "Away Team": "68.0",
+    "Series": "Series 5",
+    "Score": "Winnetka 5a"
+  },
+  {
+    "Home Team": "Knollwood 5",
+    "Away Team": "60.5",
+    "Series": "Series 5",
+    "Score": "Knollwood 5"
+  },
+  {
+    "Home Team": "Sunset Ridge 5a",
+    "Away Team": "56.5",
+    "Series": "Series 5",
+    "Score": "Sunset Ridge 5a"
+  },
+  {
+    "Home Team": "Winnetka 5b",
+    "Away Team": "52.5",
+    "Series": "Series 5",
+    "Score": "Winnetka 5b"
+  },
+  {
+    "Home Team": "Sunset Ridge 5b",
+    "Away Team": "52.0",
+    "Series": "Series 5",
+    "Score": "Sunset Ridge 5b"
+  },
+  {
+    "Home Team": "Hinsdale Golf Club 5",
+    "Away Team": "36.0",
+    "Series": "Series 5",
+    "Score": "Hinsdale Golf Club 5"
+  },
+  {
+    "Home Team": "North Shore 5",
+    "Away Team": "27.0",
+    "Series": "Series 5",
+    "Score": "North Shore 5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 6",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Midtown 6",
+    "Away Team": "90.5",
+    "Series": "Series 6",
+    "Score": "Midtown 6"
+  },
+  {
+    "Home Team": "Winter Club 6",
+    "Away Team": "75.0",
+    "Series": "Series 6",
+    "Score": "Winter Club 6"
+  },
+  {
+    "Home Team": "Michigan Shores 6",
+    "Away Team": "72.0",
+    "Series": "Series 6",
+    "Score": "Michigan Shores 6"
+  },
+  {
+    "Home Team": "Westmoreland 6",
+    "Away Team": "67.5",
+    "Series": "Series 6",
+    "Score": "Westmoreland 6"
+  },
+  {
+    "Home Team": "Lake Forest 6",
+    "Away Team": "63.5",
+    "Series": "Series 6",
+    "Score": "Lake Forest 6"
+  },
+  {
+    "Home Team": "Valley Lo 6",
+    "Away Team": "63.0",
+    "Series": "Series 6",
+    "Score": "Valley Lo 6"
+  },
+  {
+    "Home Team": "Winnetka 6",
+    "Away Team": "60.0",
+    "Series": "Series 6",
+    "Score": "Winnetka 6"
+  },
+  {
+    "Home Team": "Evanston 6",
+    "Away Team": "59.0",
+    "Series": "Series 6",
+    "Score": "Evanston 6"
+  },
+  {
+    "Home Team": "Briarwood 6",
+    "Away Team": "50.5",
+    "Series": "Series 6",
+    "Score": "Briarwood 6"
+  },
+  {
+    "Home Team": "Indian Hill 6",
+    "Away Team": "3.0",
+    "Series": "Series 6",
+    "Score": "Indian Hill 6"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 7",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Michigan Shores 7",
+    "Away Team": "86.5",
+    "Series": "Series 7",
+    "Score": "Michigan Shores 7"
+  },
+  {
+    "Home Team": "Sunset Ridge 7",
+    "Away Team": "76.0",
+    "Series": "Series 7",
+    "Score": "Sunset Ridge 7"
+  },
+  {
+    "Home Team": "Tennaqua 7",
+    "Away Team": "70.0",
+    "Series": "Series 7",
+    "Score": "Tennaqua 7"
+  },
+  {
+    "Home Team": "Evanston 7",
+    "Away Team": "66.5",
+    "Series": "Series 7",
+    "Score": "Evanston 7"
+  },
+  {
+    "Home Team": "Park Ridge 7",
+    "Away Team": "64.0",
+    "Series": "Series 7",
+    "Score": "Park Ridge 7"
+  },
+  {
+    "Home Team": "Saddle & Cycle 7",
+    "Away Team": "57.0",
+    "Series": "Series 7",
+    "Score": "Saddle & Cycle 7"
+  },
+  {
+    "Home Team": "Birchwood 7",
+    "Away Team": "57.0",
+    "Series": "Series 7",
+    "Score": "Birchwood 7"
+  },
+  {
+    "Home Team": "Exmoor 7",
+    "Away Team": "53.5",
+    "Series": "Series 7",
+    "Score": "Exmoor 7"
+  },
+  {
+    "Home Team": "Northmoor 7",
+    "Away Team": "50.5",
+    "Series": "Series 7",
+    "Score": "Northmoor 7"
+  },
+  {
+    "Home Team": "Lake Bluff 7",
+    "Away Team": "45.0",
+    "Series": "Series 7",
+    "Score": "Lake Bluff 7"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 8",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Michigan Shores 8",
+    "Away Team": "75.5",
+    "Series": "Series 8",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Biltmore 8",
+    "Away Team": "75.0",
+    "Series": "Series 8",
+    "Score": "75.0"
+  },
+  {
+    "Home Team": "Valley Lo 8",
+    "Away Team": "74.0",
+    "Series": "Series 8",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Wilmette 8a",
+    "Away Team": "71.5",
+    "Series": "Series 8",
+    "Score": "71.5"
+  },
+  {
+    "Home Team": "Skokie 8",
+    "Away Team": "70.5",
+    "Series": "Series 8",
+    "Score": "70.5"
+  },
+  {
+    "Home Team": "Midtown 8",
+    "Away Team": "61.0",
+    "Series": "Series 8",
+    "Score": "61.0"
+  },
+  {
+    "Home Team": "Knollwood 8",
+    "Away Team": "55.5",
+    "Series": "Series 8",
+    "Score": "55.5"
+  },
+  {
+    "Home Team": "Wilmette 8b",
+    "Away Team": "51.0",
+    "Series": "Series 8",
+    "Score": "51.0"
+  },
+  {
+    "Home Team": "North Shore 8",
+    "Away Team": "43.0",
+    "Series": "Series 8",
+    "Score": "43.0"
+  },
+  {
+    "Home Team": "Winnetka 8",
+    "Away Team": "36.5",
+    "Series": "Series 8",
+    "Score": "36.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 9",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Tennaqua 9",
+    "Away Team": "85.0",
+    "Series": "Series 9",
+    "Score": "85.0"
+  },
+  {
+    "Home Team": "Westmoreland 9",
+    "Away Team": "79.0",
+    "Series": "Series 9",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Park Ridge 9",
+    "Away Team": "77.0",
+    "Series": "Series 9",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Evanston 9",
+    "Away Team": "75.5",
+    "Series": "Series 9",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Skokie 9",
+    "Away Team": "67.5",
+    "Series": "Series 9",
+    "Score": "67.5"
+  },
+  {
+    "Home Team": "Winnetka 9",
+    "Away Team": "54.5",
+    "Series": "Series 9",
+    "Score": "54.5"
+  },
+  {
+    "Home Team": "Birchwood 9",
+    "Away Team": "52.0",
+    "Series": "Series 9",
+    "Score": "52.0"
+  },
+  {
+    "Home Team": "Onwentsia 9",
+    "Away Team": "50.5",
+    "Series": "Series 9",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Michigan Shores 9",
+    "Away Team": "40.0",
+    "Series": "Series 9",
+    "Score": "40.0"
+  },
+  {
+    "Home Team": "Glen View 9",
+    "Away Team": "36.0",
+    "Series": "Series 9",
+    "Score": "36.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 10",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Barrington Hills 10",
+    "Away Team": "83.5",
+    "Series": "Series 10",
+    "Score": "Barrington Hills 10"
+  },
+  {
+    "Home Team": "Wilmette 10",
+    "Away Team": "83.0",
+    "Series": "Series 10",
+    "Score": "Wilmette 10"
+  },
+  {
+    "Home Team": "Lake Bluff 10",
+    "Away Team": "81.5",
+    "Series": "Series 10",
+    "Score": "Lake Bluff 10"
+  },
+  {
+    "Home Team": "Exmoor 10",
+    "Away Team": "74.5",
+    "Series": "Series 10",
+    "Score": "Exmoor 10"
+  },
+  {
+    "Home Team": "Sunset Ridge 10",
+    "Away Team": "68.0",
+    "Series": "Series 10",
+    "Score": "Sunset Ridge 10"
+  },
+  {
+    "Home Team": "Knollwood 10",
+    "Away Team": "62.0",
+    "Series": "Series 10",
+    "Score": "Knollwood 10"
+  },
+  {
+    "Home Team": "Michigan Shores 10",
+    "Away Team": "46.5",
+    "Series": "Series 10",
+    "Score": "Michigan Shores 10"
+  },
+  {
+    "Home Team": "Tennaqua 10",
+    "Away Team": "43.0",
+    "Series": "Series 10",
+    "Score": "Tennaqua 10"
+  },
+  {
+    "Home Team": "North Shore 10",
+    "Away Team": "42.5",
+    "Series": "Series 10",
+    "Score": "North Shore 10"
+  },
+  {
+    "Home Team": "Park Ridge 10",
+    "Away Team": "25.0",
+    "Series": "Series 10",
+    "Score": "Park Ridge 10"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 11",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Birchwood 11",
+    "Away Team": "78.0",
+    "Series": "Series 11",
+    "Score": "Birchwood 11"
+  },
+  {
+    "Home Team": "Briarwood 11",
+    "Away Team": "77.5",
+    "Series": "Series 11",
+    "Score": "Briarwood 11"
+  },
+  {
+    "Home Team": "Evanston 11",
+    "Away Team": "76.5",
+    "Series": "Series 11",
+    "Score": "Evanston 11"
+  },
+  {
+    "Home Team": "Valley Lo 11",
+    "Away Team": "70.0",
+    "Series": "Series 11",
+    "Score": "Valley Lo 11"
+  },
+  {
+    "Home Team": "Lake Shore CC 11",
+    "Away Team": "68.0",
+    "Series": "Series 11",
+    "Score": "Lake Shore CC 11"
+  },
+  {
+    "Home Team": "Westmoreland 11",
+    "Away Team": "67.0",
+    "Series": "Series 11",
+    "Score": "Westmoreland 11"
+  },
+  {
+    "Home Team": "Wilmette 11",
+    "Away Team": "56.5",
+    "Series": "Series 11",
+    "Score": "Wilmette 11"
+  },
+  {
+    "Home Team": "Skokie 11",
+    "Away Team": "43.0",
+    "Series": "Series 11",
+    "Score": "Skokie 11"
+  },
+  {
+    "Home Team": "Barrington Hills 11",
+    "Away Team": "38.0",
+    "Series": "Series 11",
+    "Score": "Barrington Hills 11"
+  },
+  {
+    "Home Team": "Northmoor 11",
+    "Away Team": "19.0",
+    "Series": "Series 11",
+    "Score": "Northmoor 11"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 12",
+    "Score": "03/06"
+  },
+  {
+    "Home Team": "Winnetka 12",
+    "Away Team": "90.5",
+    "Series": "Series 12",
+    "Score": "Winnetka 12"
+  },
+  {
+    "Home Team": "Park Ridge 12",
+    "Away Team": "81.5",
+    "Series": "Series 12",
+    "Score": "Park Ridge 12"
+  },
+  {
+    "Home Team": "Knollwood 12",
+    "Away Team": "72.0",
+    "Series": "Series 12",
+    "Score": "Knollwood 12"
+  },
+  {
+    "Home Team": "Lake Forest 12",
+    "Away Team": "69.5",
+    "Series": "Series 12",
+    "Score": "Lake Forest 12"
+  },
+  {
+    "Home Team": "Bryn Mawr CC 12",
+    "Away Team": "68.0",
+    "Series": "Series 12",
+    "Score": "Bryn Mawr CC 12"
+  },
+  {
+    "Home Team": "Saddle & Cycle 12",
+    "Away Team": "54.0",
+    "Series": "Series 12",
+    "Score": "Saddle & Cycle 12"
+  },
+  {
+    "Home Team": "Winter Club 12",
+    "Away Team": "54.0",
+    "Series": "Series 12",
+    "Score": "Winter Club 12"
+  },
+  {
+    "Home Team": "Evanston 12",
+    "Away Team": "47.5",
+    "Series": "Series 12",
+    "Score": "Evanston 12"
+  },
+  {
+    "Home Team": "Tennaqua 12",
+    "Away Team": "29.5",
+    "Series": "Series 12",
+    "Score": "Tennaqua 12"
+  },
+  {
+    "Home Team": "Birchwood 12",
+    "Away Team": "25.5",
+    "Series": "Series 12",
+    "Score": "Birchwood 12"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 13",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Sunset Ridge 13",
+    "Away Team": "83.5",
+    "Series": "Series 13",
+    "Score": "Sunset Ridge 13"
+  },
+  {
+    "Home Team": "Winnetka 13",
+    "Away Team": "80.5",
+    "Series": "Series 13",
+    "Score": "Winnetka 13"
+  },
+  {
+    "Home Team": "Michigan Shores 13",
+    "Away Team": "76.0",
+    "Series": "Series 13",
+    "Score": "Michigan Shores 13"
+  },
+  {
+    "Home Team": "Lake Bluff 13",
+    "Away Team": "66.5",
+    "Series": "Series 13",
+    "Score": "Lake Bluff 13"
+  },
+  {
+    "Home Team": "Westmoreland 13",
+    "Away Team": "59.5",
+    "Series": "Series 13",
+    "Score": "Westmoreland 13"
+  },
+  {
+    "Home Team": "Birchwood 13",
+    "Away Team": "58.5",
+    "Series": "Series 13",
+    "Score": "Birchwood 13"
+  },
+  {
+    "Home Team": "Skokie 13",
+    "Away Team": "57.0",
+    "Series": "Series 13",
+    "Score": "Skokie 13"
+  },
+  {
+    "Home Team": "North Shore 13",
+    "Away Team": "55.0",
+    "Series": "Series 13",
+    "Score": "North Shore 13"
+  },
+  {
+    "Home Team": "Briarwood 13",
+    "Away Team": "45.0",
+    "Series": "Series 13",
+    "Score": "Briarwood 13"
+  },
+  {
+    "Home Team": "Midtown 13",
+    "Away Team": "10.0",
+    "Series": "Series 13",
+    "Score": "Midtown 13"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 14",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Biltmore 14b",
+    "Away Team": "91.0",
+    "Series": "Series 14",
+    "Score": "Biltmore 14b"
+  },
+  {
+    "Home Team": "Evanston 14",
+    "Away Team": "68.0",
+    "Series": "Series 14",
+    "Score": "Evanston 14"
+  },
+  {
+    "Home Team": "Michigan Shores 14",
+    "Away Team": "56.0",
+    "Series": "Series 14",
+    "Score": "Michigan Shores 14"
+  },
+  {
+    "Home Team": "Biltmore 14a",
+    "Away Team": "55.5",
+    "Series": "Series 14",
+    "Score": "Biltmore 14a"
+  },
+  {
+    "Home Team": "Exmoor 14",
+    "Away Team": "48.0",
+    "Series": "Series 14",
+    "Score": "Exmoor 14"
+  },
+  {
+    "Home Team": "Park Ridge 14",
+    "Away Team": "48.0",
+    "Series": "Series 14",
+    "Score": "Park Ridge 14"
+  },
+  {
+    "Home Team": "Barrington Hills 14",
+    "Away Team": "46.5",
+    "Series": "Series 14",
+    "Score": "Barrington Hills 14"
+  },
+  {
+    "Home Team": "Westmoreland 14",
+    "Away Team": "43.5",
+    "Series": "Series 14",
+    "Score": "Westmoreland 14"
+  },
+  {
+    "Home Team": "Lake Forest 14",
+    "Away Team": "19.5",
+    "Series": "Series 14",
+    "Score": "Lake Forest 14"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 15",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Wilmette 15",
+    "Away Team": "94.5",
+    "Series": "Series 15",
+    "Score": "Wilmette 15"
+  },
+  {
+    "Home Team": "Winnetka 15",
+    "Away Team": "90.5",
+    "Series": "Series 15",
+    "Score": "Winnetka 15"
+  },
+  {
+    "Home Team": "Winter Club 15",
+    "Away Team": "81.0",
+    "Series": "Series 15",
+    "Score": "Winter Club 15"
+  },
+  {
+    "Home Team": "Skokie 15",
+    "Away Team": "67.0",
+    "Series": "Series 15",
+    "Score": "Skokie 15"
+  },
+  {
+    "Home Team": "Bryn Mawr CC 15",
+    "Away Team": "63.0",
+    "Series": "Series 15",
+    "Score": "Bryn Mawr CC 15"
+  },
+  {
+    "Home Team": "North Shore 15",
+    "Away Team": "42.5",
+    "Series": "Series 15",
+    "Score": "North Shore 15"
+  },
+  {
+    "Home Team": "Evanston 15",
+    "Away Team": "39.0",
+    "Series": "Series 15",
+    "Score": "Evanston 15"
+  },
+  {
+    "Home Team": "Birchwood 15",
+    "Away Team": "39.0",
+    "Series": "Series 15",
+    "Score": "Birchwood 15"
+  },
+  {
+    "Home Team": "Knollwood 15",
+    "Away Team": "33.0",
+    "Series": "Series 15",
+    "Score": "Knollwood 15"
+  },
+  {
+    "Home Team": "Lake Shore CC 15",
+    "Away Team": "32.5",
+    "Series": "Series 15",
+    "Score": "Lake Shore CC 15"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 16",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Wilmette 16b",
+    "Away Team": "85.0",
+    "Series": "Series 16",
+    "Score": "Wilmette 16b"
+  },
+  {
+    "Home Team": "Glen View 16",
+    "Away Team": "82.0",
+    "Series": "Series 16",
+    "Score": "Glen View 16"
+  },
+  {
+    "Home Team": "Exmoor 16",
+    "Away Team": "73.5",
+    "Series": "Series 16",
+    "Score": "Exmoor 16"
+  },
+  {
+    "Home Team": "Lake Bluff 16",
+    "Away Team": "65.5",
+    "Series": "Series 16",
+    "Score": "Lake Bluff 16"
+  },
+  {
+    "Home Team": "Wilmette 16a",
+    "Away Team": "62.5",
+    "Series": "Series 16",
+    "Score": "Wilmette 16a"
+  },
+  {
+    "Home Team": "Winnetka 16",
+    "Away Team": "62.0",
+    "Series": "Series 16",
+    "Score": "Winnetka 16"
+  },
+  {
+    "Home Team": "Valley Lo 16",
+    "Away Team": "58.5",
+    "Series": "Series 16",
+    "Score": "Valley Lo 16"
+  },
+  {
+    "Home Team": "Tennaqua 16",
+    "Away Team": "44.5",
+    "Series": "Series 16",
+    "Score": "Tennaqua 16"
+  },
+  {
+    "Home Team": "Briarwood 16",
+    "Away Team": "39.5",
+    "Series": "Series 16",
+    "Score": "Briarwood 16"
+  },
+  {
+    "Home Team": "North Shore 16",
+    "Away Team": "28.0",
+    "Series": "Series 16",
+    "Score": "North Shore 16"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series 17",
+    "Score": "03/07"
+  },
+  {
+    "Home Team": "Michigan Shores 17",
+    "Away Team": "64.5",
+    "Series": "Series 17",
+    "Score": "Michigan Shores 17"
+  },
+  {
+    "Home Team": "Wilmette 17",
+    "Away Team": "55.0",
+    "Series": "Series 17",
+    "Score": "Wilmette 17"
+  },
+  {
+    "Home Team": "Park Ridge 17",
+    "Away Team": "53.0",
+    "Series": "Series 17",
+    "Score": "Park Ridge 17"
+  },
+  {
+    "Home Team": "Evanston 17",
+    "Away Team": "42.5",
+    "Series": "Series 17",
+    "Score": "Evanston 17"
+  },
+  {
+    "Home Team": "Winter Club 17",
+    "Away Team": "21.0",
+    "Series": "Series 17",
+    "Score": "Winter Club 17"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series A",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Winnetka A",
+    "Away Team": "85.5",
+    "Series": "Series A",
+    "Score": "85.5"
+  },
+  {
+    "Home Team": "Lake Forest A",
+    "Away Team": "78.0",
+    "Series": "Series A",
+    "Score": "78.0"
+  },
+  {
+    "Home Team": "Indian Hill A",
+    "Away Team": "77.0",
+    "Series": "Series A",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Tennaqua A",
+    "Away Team": "60.5",
+    "Series": "Series A",
+    "Score": "60.5"
+  },
+  {
+    "Home Team": "North Shore A",
+    "Away Team": "58.0",
+    "Series": "Series A",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "Wilmette A",
+    "Away Team": "56.5",
+    "Series": "Series A",
+    "Score": "56.5"
+  },
+  {
+    "Home Team": "Westmoreland A",
+    "Away Team": "53.0",
+    "Series": "Series A",
+    "Score": "53.0"
+  },
+  {
+    "Home Team": "Valley Lo A",
+    "Away Team": "50.5",
+    "Series": "Series A",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Winter Club A",
+    "Away Team": "37.5",
+    "Series": "Series A",
+    "Score": "37.5"
+  },
+  {
+    "Home Team": "Prairie Club A",
+    "Away Team": "34.0",
+    "Series": "Series A",
+    "Score": "34.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series B",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Skokie B",
+    "Away Team": "100.5",
+    "Series": "Series B",
+    "Score": "100.5"
+  },
+  {
+    "Home Team": "Winnetka B(2)",
+    "Away Team": "85.0",
+    "Series": "Series B",
+    "Score": "Winnetka B(2)"
+  },
+  {
+    "Home Team": "Valley Lo B(1)",
+    "Away Team": "70.5",
+    "Series": "Series B",
+    "Score": "Valley Lo B(1)"
+  },
+  {
+    "Home Team": "Indian Hill B",
+    "Away Team": "65.0",
+    "Series": "Series B",
+    "Score": "65.0"
+  },
+  {
+    "Home Team": "Michigan Shores B",
+    "Away Team": "59.0",
+    "Series": "Series B",
+    "Score": "59.0"
+  },
+  {
+    "Home Team": "Park Ridge B",
+    "Away Team": "57.0",
+    "Series": "Series B",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Valley Lo B(2)",
+    "Away Team": "55.0",
+    "Series": "Series B",
+    "Score": "Valley Lo B(2)"
+  },
+  {
+    "Home Team": "Tennaqua B",
+    "Away Team": "50.5",
+    "Series": "Series B",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Winnetka B(1)",
+    "Away Team": "43.5",
+    "Series": "Series B",
+    "Score": "Winnetka B(1)"
+  },
+  {
+    "Home Team": "Lake Forest B",
+    "Away Team": "23.0",
+    "Series": "Series B",
+    "Score": "23.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series C",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Prairie Club C(1)",
+    "Away Team": "88.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(1)"
+  },
+  {
+    "Home Team": "Prairie Club C(3)",
+    "Away Team": "78.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(3)"
+  },
+  {
+    "Home Team": "Wilmette C(2)",
+    "Away Team": "73.5",
+    "Series": "Series C",
+    "Score": "Wilmette C(2)"
+  },
+  {
+    "Home Team": "Sunset Ridge C",
+    "Away Team": "72.5",
+    "Series": "Series C",
+    "Score": "72.5"
+  },
+  {
+    "Home Team": "Wilmette C(1)",
+    "Away Team": "66.0",
+    "Series": "Series C",
+    "Score": "Wilmette C(1)"
+  },
+  {
+    "Home Team": "North Shore C(1)",
+    "Away Team": "64.0",
+    "Series": "Series C",
+    "Score": "North Shore C(1)"
+  },
+  {
+    "Home Team": "Winter Club C",
+    "Away Team": "56.0",
+    "Series": "Series C",
+    "Score": "56.0"
+  },
+  {
+    "Home Team": "Prairie Club C(2)",
+    "Away Team": "51.0",
+    "Series": "Series C",
+    "Score": "Prairie Club C(2)"
+  },
+  {
+    "Home Team": "North Shore C(2)",
+    "Away Team": "43.5",
+    "Series": "Series C",
+    "Score": "North Shore C(2)"
+  },
+  {
+    "Home Team": "Westmoreland C",
+    "Away Team": "20.5",
+    "Series": "Series C",
+    "Score": "20.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series D",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Valley Lo D",
+    "Away Team": "81.0",
+    "Series": "Series D",
+    "Score": "81.0"
+  },
+  {
+    "Home Team": "Wilmette D(1)",
+    "Away Team": "80.5",
+    "Series": "Series D",
+    "Score": "Wilmette D(1)"
+  },
+  {
+    "Home Team": "Glen View D",
+    "Away Team": "79.0",
+    "Series": "Series D",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Winnetka D",
+    "Away Team": "62.5",
+    "Series": "Series D",
+    "Score": "62.5"
+  },
+  {
+    "Home Team": "Michigan Shores D",
+    "Away Team": "62.5",
+    "Series": "Series D",
+    "Score": "62.5"
+  },
+  {
+    "Home Team": "Lake Bluff D",
+    "Away Team": "58.0",
+    "Series": "Series D",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "Skokie D",
+    "Away Team": "57.0",
+    "Series": "Series D",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Tennaqua D",
+    "Away Team": "50.5",
+    "Series": "Series D",
+    "Score": "50.5"
+  },
+  {
+    "Home Team": "Wilmette D(2)",
+    "Away Team": "48.5",
+    "Series": "Series D",
+    "Score": "Wilmette D(2)"
+  },
+  {
+    "Home Team": "Sunset Ridge D",
+    "Away Team": "32.5",
+    "Series": "Series D",
+    "Score": "32.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series E",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Exmoor E",
+    "Away Team": "86.5",
+    "Series": "Series E",
+    "Score": "86.5"
+  },
+  {
+    "Home Team": "Evanston E",
+    "Away Team": "82.0",
+    "Series": "Series E",
+    "Score": "82.0"
+  },
+  {
+    "Home Team": "Westmoreland E",
+    "Away Team": "76.0",
+    "Series": "Series E",
+    "Score": "76.0"
+  },
+  {
+    "Home Team": "Tennaqua E",
+    "Away Team": "65.5",
+    "Series": "Series E",
+    "Score": "65.5"
+  },
+  {
+    "Home Team": "Prairie Club E",
+    "Away Team": "64.0",
+    "Series": "Series E",
+    "Score": "64.0"
+  },
+  {
+    "Home Team": "Indian Hill E",
+    "Away Team": "52.0",
+    "Series": "Series E",
+    "Score": "52.0"
+  },
+  {
+    "Home Team": "Valley Lo E",
+    "Away Team": "44.5",
+    "Series": "Series E",
+    "Score": "44.5"
+  },
+  {
+    "Home Team": "Lake Forest E",
+    "Away Team": "44.0",
+    "Series": "Series E",
+    "Score": "44.0"
+  },
+  {
+    "Home Team": "Winnetka E",
+    "Away Team": "40.0",
+    "Series": "Series E",
+    "Score": "40.0"
+  },
+  {
+    "Home Team": "Wilmette E",
+    "Away Team": "38.5",
+    "Series": "Series E",
+    "Score": "38.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series F",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Winter Club F",
+    "Away Team": "85.0",
+    "Series": "Series F",
+    "Score": "85.0"
+  },
+  {
+    "Home Team": "Park Ridge F",
+    "Away Team": "75.5",
+    "Series": "Series F",
+    "Score": "75.5"
+  },
+  {
+    "Home Team": "Skokie F",
+    "Away Team": "74.5",
+    "Series": "Series F",
+    "Score": "74.5"
+  },
+  {
+    "Home Team": "Tennaqua F",
+    "Away Team": "74.5",
+    "Series": "Series F",
+    "Score": "74.5"
+  },
+  {
+    "Home Team": "Birchwood F",
+    "Away Team": "74.0",
+    "Series": "Series F",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Wilmette F",
+    "Away Team": "62.0",
+    "Series": "Series F",
+    "Score": "62.0"
+  },
+  {
+    "Home Team": "Westmoreland F",
+    "Away Team": "54.5",
+    "Series": "Series F",
+    "Score": "54.5"
+  },
+  {
+    "Home Team": "Lake Forest F",
+    "Away Team": "37.0",
+    "Series": "Series F",
+    "Score": "37.0"
+  },
+  {
+    "Home Team": "Valley Lo F",
+    "Away Team": "33.5",
+    "Series": "Series F",
+    "Score": "33.5"
+  },
+  {
+    "Home Team": "Indian Hill F",
+    "Away Team": "28.5",
+    "Series": "Series F",
+    "Score": "28.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series G",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Knollwood G",
+    "Away Team": "90.5",
+    "Series": "Series G",
+    "Score": "90.5"
+  },
+  {
+    "Home Team": "Prairie Club G(2)",
+    "Away Team": "86.0",
+    "Series": "Series G",
+    "Score": "Prairie Club G(2)"
+  },
+  {
+    "Home Team": "Glenbrook G(1)",
+    "Away Team": "78.0",
+    "Series": "Series G",
+    "Score": "Glenbrook G(1)"
+  },
+  {
+    "Home Team": "Tennaqua G",
+    "Away Team": "71.0",
+    "Series": "Series G",
+    "Score": "71.0"
+  },
+  {
+    "Home Team": "Michigan Shores G",
+    "Away Team": "60.0",
+    "Series": "Series G",
+    "Score": "60.0"
+  },
+  {
+    "Home Team": "Wilmette G",
+    "Away Team": "53.5",
+    "Series": "Series G",
+    "Score": "53.5"
+  },
+  {
+    "Home Team": "PraIrie Club G(1)",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "PraIrie Club G(1)"
+  },
+  {
+    "Home Team": "Glenbrook G(2)",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "Glenbrook G(2)"
+  },
+  {
+    "Home Team": "Lake Bluff G",
+    "Away Team": "45.5",
+    "Series": "Series G",
+    "Score": "45.5"
+  },
+  {
+    "Home Team": "Indian Hill G",
+    "Away Team": "25.5",
+    "Series": "Series G",
+    "Score": "25.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series H",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Glenbrook H",
+    "Away Team": "80.5",
+    "Series": "Series H",
+    "Score": "80.5"
+  },
+  {
+    "Home Team": "Winnetka H",
+    "Away Team": "79.5",
+    "Series": "Series H",
+    "Score": "79.5"
+  },
+  {
+    "Home Team": "Sunset Ridge H",
+    "Away Team": "74.0",
+    "Series": "Series H",
+    "Score": "74.0"
+  },
+  {
+    "Home Team": "Evanston H(2)",
+    "Away Team": "72.0",
+    "Series": "Series H",
+    "Score": "Evanston H(2)"
+  },
+  {
+    "Home Team": "Evanston H(1)",
+    "Away Team": "70.5",
+    "Series": "Series H",
+    "Score": "Evanston H(1)"
+  },
+  {
+    "Home Team": "Wilmette H(3)",
+    "Away Team": "56.5",
+    "Series": "Series H",
+    "Score": "Wilmette H(3)"
+  },
+  {
+    "Home Team": "Westmoreland H",
+    "Away Team": "48.5",
+    "Series": "Series H",
+    "Score": "48.5"
+  },
+  {
+    "Home Team": "Tennaqua H",
+    "Away Team": "48.0",
+    "Series": "Series H",
+    "Score": "48.0"
+  },
+  {
+    "Home Team": "Wilmette H(2)",
+    "Away Team": "44.5",
+    "Series": "Series H",
+    "Score": "Wilmette H(2)"
+  },
+  {
+    "Home Team": "Wilmette H (1)",
+    "Away Team": "26.0",
+    "Series": "Series H",
+    "Score": "Wilmette H (1)"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series I",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Exmoor I",
+    "Away Team": "95.0",
+    "Series": "Series I",
+    "Score": "95.0"
+  },
+  {
+    "Home Team": "Park Ridge I",
+    "Away Team": "88.0",
+    "Series": "Series I",
+    "Score": "88.0"
+  },
+  {
+    "Home Team": "Glen View I",
+    "Away Team": "79.0",
+    "Series": "Series I",
+    "Score": "79.0"
+  },
+  {
+    "Home Team": "Winnetka I",
+    "Away Team": "58.0",
+    "Series": "Series I",
+    "Score": "58.0"
+  },
+  {
+    "Home Team": "North Shore I",
+    "Away Team": "57.5",
+    "Series": "Series I",
+    "Score": "57.5"
+  },
+  {
+    "Home Team": "Glenbrook I",
+    "Away Team": "57.0",
+    "Series": "Series I",
+    "Score": "57.0"
+  },
+  {
+    "Home Team": "Evanston I",
+    "Away Team": "52.5",
+    "Series": "Series I",
+    "Score": "52.5"
+  },
+  {
+    "Home Team": "Skokie I",
+    "Away Team": "49.5",
+    "Series": "Series I",
+    "Score": "49.5"
+  },
+  {
+    "Home Team": "Lake Forest I",
+    "Away Team": "26.0",
+    "Series": "Series I",
+    "Score": "26.0"
+  },
+  {
+    "Home Team": "Tennaqua I",
+    "Away Team": "17.0",
+    "Series": "Series I",
+    "Score": "17.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series J",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "Michigan Shores J",
+    "Away Team": "93.0",
+    "Series": "Series J",
+    "Score": "93.0"
+  },
+  {
+    "Home Team": "Lifesport J",
+    "Away Team": "88.0",
+    "Series": "Series J",
+    "Score": "88.0"
+  },
+  {
+    "Home Team": "Glen View J",
+    "Away Team": "78.5",
+    "Series": "Series J",
+    "Score": "78.5"
+  },
+  {
+    "Home Team": "Lake Bluff J",
+    "Away Team": "78.5",
+    "Series": "Series J",
+    "Score": "78.5"
+  },
+  {
+    "Home Team": "Skokie J",
+    "Away Team": "70.0",
+    "Series": "Series J",
+    "Score": "70.0"
+  },
+  {
+    "Home Team": "Knollwood J",
+    "Away Team": "50.0",
+    "Series": "Series J",
+    "Score": "50.0"
+  },
+  {
+    "Home Team": "Valley Lo J",
+    "Away Team": "46.5",
+    "Series": "Series J",
+    "Score": "46.5"
+  },
+  {
+    "Home Team": "Winnetka J",
+    "Away Team": "38.0",
+    "Series": "Series J",
+    "Score": "38.0"
+  },
+  {
+    "Home Team": "Winter Club J",
+    "Away Team": "34.5",
+    "Series": "Series J",
+    "Score": "34.5"
+  },
+  {
+    "Home Team": "Sunset Ridge J",
+    "Away Team": "22.0",
+    "Series": "Series J",
+    "Score": "22.0"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series K",
+    "Score": "03/10"
+  },
+  {
+    "Home Team": "North Shore K",
+    "Away Team": "77.0",
+    "Series": "Series K",
+    "Score": "77.0"
+  },
+  {
+    "Home Team": "Exmoor K(1)",
+    "Away Team": "70.0",
+    "Series": "Series K",
+    "Score": "Exmoor K(1)"
+  },
+  {
+    "Home Team": "Park Ridge K",
+    "Away Team": "61.5",
+    "Series": "Series K",
+    "Score": "61.5"
+  },
+  {
+    "Home Team": "Indian Hill K",
+    "Away Team": "49.0",
+    "Series": "Series K",
+    "Score": "49.0"
+  },
+  {
+    "Home Team": "Skokie K",
+    "Away Team": "44.0",
+    "Series": "Series K",
+    "Score": "44.0"
+  },
+  {
+    "Home Team": "Exmoor K(2)",
+    "Away Team": "24.0",
+    "Series": "Series K",
+    "Score": "Exmoor K(2)"
+  },
+  {
+    "Home Team": "Lake Forest K",
+    "Away Team": "20.5",
+    "Series": "Series K",
+    "Score": "20.5"
+  },
+  {
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Series": "Series SN",
+    "Score": "03/09"
+  },
+  {
+    "Home Team": "Prarie Club SN (1)",
+    "Away Team": "91.5",
+    "Series": "Series SN",
+    "Score": "Prarie Club SN (1)"
+  },
+  {
+    "Home Team": "Winnetka SN (1)",
+    "Away Team": "70.5",
+    "Series": "Series SN",
+    "Score": "Winnetka SN (1)"
+  },
+  {
+    "Home Team": "Wilmette SN (1)",
+    "Away Team": "59.0",
+    "Series": "Series SN",
+    "Score": "Wilmette SN (1)"
+  },
+  {
+    "Home Team": "Prarie Club SN (2)",
+    "Away Team": "54.5",
+    "Series": "Series SN",
+    "Score": "Prarie Club SN (2)"
+  },
+  {
+    "Home Team": "Wilmette SN (2)",
+    "Away Team": "43.5",
+    "Series": "Series SN",
+    "Score": "Wilmette SN (2)"
+  },
+  {
+    "Home Team": "Michigan Shores SN",
+    "Away Team": "10.5",
+    "Series": "Series SN",
+    "Score": "10.5"
+  },
+  {
+    "Home Team": "Winnetka SN (2)",
+    "Away Team": "10.0",
+    "Series": "Series SN",
+    "Score": "Winnetka SN (2)"
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "03/06",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Birchwood 1",
+    "Away Team": "98.0",
+    "Scores": "Birchwood 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Lake Bluff 1",
+    "Away Team": "81.0",
+    "Scores": "Lake Bluff 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Hinsdale PC 1a",
+    "Away Team": "72.0",
+    "Scores": "Hinsdale PC 1a",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Winnetka 1",
+    "Away Team": "70.5",
+    "Scores": "Winnetka 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Sunset Ridge 1",
+    "Away Team": "62.0",
+    "Scores": "Sunset Ridge 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Saddle & Cycle 1",
+    "Away Team": "55.0",
+    "Scores": "Saddle & Cycle 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "LifeSport 1",
+    "Away Team": "54.5",
+    "Scores": "LifeSport 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Michigan Shores 1",
+    "Away Team": "54.0",
+    "Scores": "Michigan Shores 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Midtown 1",
+    "Away Team": "44.5",
+    "Scores": "Midtown 1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Hinsdale PC 1b",
+    "Away Team": "19.0",
+    "Scores": "Hinsdale PC 1b",
+    "Winner": null
+  }
+]

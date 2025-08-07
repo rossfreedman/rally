@@ -728,6 +728,100 @@ class EnhancedProxyRotator:
             logger.warning("   - Using longer delays between requests")
             logger.warning("   - Contacting proxy provider for support")
     
+    def _test_all_proxies(self):
+        """Test all proxies to find healthy ones."""
+        logger.info(f"🧪 Testing all {len(self.ports)} proxies...")
+        
+        healthy_count = 0
+        total_tested = 0
+        failed_503_count = 0
+        failed_other_count = 0
+        timeout_count = 0
+        connection_error_count = 0
+        
+        for port in self.ports:
+            proxy_info = self.proxies[port]
+            total_tested += 1
+            logger.info(f"🧪 Testing proxy {total_tested}/{len(self.ports)}: Port {port}")
+            
+            try:
+                if self._test_proxy(proxy_info):
+                    healthy_count += 1
+                    logger.info(f"✅ Proxy {port} is healthy")
+                else:
+                    logger.warning(f"❌ Proxy {port} failed test")
+                    
+                    # Track failure types for diagnostics
+                    if proxy_info.consecutive_failures >= 3:
+                        proxy_info.status = ProxyStatus.DEAD
+                        self.dead_proxies.add(port)
+                        logger.warning(f"💀 Proxy {port} marked as dead")
+                        
+                        # Categorize the failure type based on recent testing
+                        if hasattr(proxy_info, 'last_failure_type'):
+                            if proxy_info.last_failure_type == '503':
+                                failed_503_count += 1
+                            elif proxy_info.last_failure_type == 'timeout':
+                                timeout_count += 1
+                            elif proxy_info.last_failure_type == 'connection':
+                                connection_error_count += 1
+                            else:
+                                failed_other_count += 1
+                                
+            except Exception as e:
+                logger.error(f"❌ Error testing proxy {port}: {e}")
+                proxy_info.failure_count += 1
+                proxy_info.consecutive_failures += 1
+                if proxy_info.consecutive_failures >= 3:
+                    proxy_info.status = ProxyStatus.DEAD
+                    self.dead_proxies.add(port)
+                    failed_other_count += 1
+        
+        # Enhanced diagnostics
+        logger.info(f"✅ Proxy testing complete: {healthy_count}/{total_tested} healthy")
+        logger.info(f"📊 Failure breakdown:")
+        logger.info(f"   - 503 errors: {failed_503_count}")
+        logger.info(f"   - Timeouts: {timeout_count}")
+        logger.info(f"   - Connection errors: {connection_error_count}")
+        logger.info(f"   - Other failures: {failed_other_count}")
+        
+        # If we have a high 503 rate, provide specific recommendations
+        if failed_503_count > 0:
+            failure_rate = (failed_503_count / total_tested) * 100
+            logger.warning(f"⚠️ High 503 failure rate: {failure_rate:.1f}% ({failed_503_count}/{total_tested})")
+            
+            if failure_rate > 50:
+                logger.error("🚨 CRITICAL: More than 50% of proxies returning 503 errors!")
+                logger.error("   This suggests either:")
+                logger.error("   1. Proxy provider infrastructure issues")
+                logger.error("   2. Test URLs are being rate-limited")
+                logger.error("   3. Authentication problems")
+                logger.error("   Consider:")
+                logger.error("   - Contacting proxy provider")
+                logger.error("   - Using different test URLs")
+                logger.error("   - Checking proxy credentials")
+                
+                # Send urgent SMS if configured
+                if failed_503_count >= 10:  # Only alert if significant number of failures
+                    message = f"URGENT: Rally scraper proxy crisis. {failed_503_count}/{total_tested} proxies returning 503 errors ({failure_rate:.1f}% failure rate). Proxy provider may be down."
+                    send_urgent_sms(message)
+        
+        # If no healthy proxies found, mark first 10 as active for fallback
+        if healthy_count == 0:
+            logger.warning("⚠️ No healthy proxies found, marking first 10 as active for fallback")
+            for i, (port, proxy_info) in enumerate(list(self.proxies.items())[:10]):
+                proxy_info.status = ProxyStatus.ACTIVE
+                proxy_info.success_count = 1
+                logger.info(f"🔄 Marked proxy {port} as active (fallback)")
+        
+        # If very few healthy proxies, provide recommendations
+        elif healthy_count < len(self.ports) * 0.2:  # Less than 20% healthy
+            logger.warning(f"⚠️ Low healthy proxy count: {healthy_count}/{total_tested} ({healthy_count/total_tested*100:.1f}%)")
+            logger.warning("   Consider:")
+            logger.warning("   - Reducing request frequency")
+            logger.warning("   - Using longer delays between requests")
+            logger.warning("   - Contacting proxy provider for support")
+    
     def run_proxy_warmup(self, test_tenniscores: bool = True) -> Dict[str, any]:
         """
         Run comprehensive proxy warmup to test all proxies before scraping session.
