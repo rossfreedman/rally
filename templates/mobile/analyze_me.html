@@ -99,7 +99,6 @@
                     <!-- Matches -->
                     <div class="text-center">
                         <div class="text-3xl font-bold text-gray-900 mb-1 cursor-pointer hover:text-blue-600 transition-colors" 
-                             onclick="openMatchesModal()" 
                              title="Click to view all matches"
                              id="matches-trigger">
                             {{ analyze_data.current_season.matches }}
@@ -889,6 +888,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Found matches trigger element');
         matchesTrigger.addEventListener('click', function() {
             console.log('🎯 Matches trigger clicked!');
+            openMatchesModal();
         });
     } else {
         console.log('❌ Matches trigger element not found');
