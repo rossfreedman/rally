@@ -653,9 +653,9 @@ def get_current_season_matches():
             print(f"[DEBUG] API: No player ID found")
             return jsonify({"error": "Player ID not found"}), 404
 
-        # Get user's league for filtering
-        user_league_id = user.get("league_id", "")
-        print(f"[DEBUG] API: User league ID: {user_league_id}")
+        # Get user's league for filtering - FIXED to use correct league_id
+        user_league_id = user.get("league_id")
+        print(f"[DEBUG] API: User league ID from session: {user_league_id}")
 
         # Convert league_id to integer if it's a string
         league_id_int = None
@@ -664,6 +664,14 @@ def get_current_season_matches():
             print(f"[DEBUG] API: Converted league ID to int: {league_id_int}")
         else:
             print(f"[DEBUG] API: Could not convert league ID to int")
+            
+            # FALLBACK: Try to get league_id from user's league_context if available
+            league_context = user.get("league_context")
+            if league_context and str(league_context).isdigit():
+                league_id_int = int(league_context)
+                print(f"[DEBUG] API: Using league_context as fallback: {league_id_int}")
+            else:
+                print(f"[DEBUG] API: No valid league_id or league_context found")
 
         # Calculate current season boundaries (same as mobile_service.py)
         from datetime import datetime
@@ -875,9 +883,9 @@ def get_team_current_season_matches():
             print(f"[DEBUG] API: No player ID found")
             return jsonify({"error": "Player ID not found"}), 404
 
-        # Get user's league for filtering
-        user_league_id = user.get("league_id", "")
-        print(f"[DEBUG] API: User league ID: {user_league_id}")
+        # Get user's league for filtering - FIXED to use correct league_id
+        user_league_id = user.get("league_id")
+        print(f"[DEBUG] API: User league ID from session: {user_league_id}")
 
         # Convert league_id to integer if it's a string
         league_id_int = None
@@ -886,6 +894,14 @@ def get_team_current_season_matches():
             print(f"[DEBUG] API: Converted league ID to int: {league_id_int}")
         else:
             print(f"[DEBUG] API: Could not convert league ID to int")
+            
+            # FALLBACK: Try to get league_id from user's league_context if available
+            league_context = user.get("league_context")
+            if league_context and str(league_context).isdigit():
+                league_id_int = int(league_context)
+                print(f"[DEBUG] API: Using league_context as fallback: {league_id_int}")
+            else:
+                print(f"[DEBUG] API: No valid league_id or league_context found")
 
         # Calculate current season boundaries (same as mobile_service.py)
         from datetime import datetime
