@@ -20,6 +20,13 @@ async function runMyTeamDualColumnDashboard() {
         userTeam = authData.user.team || (authData.user.club + ' - ' + (authData.user.series ? authData.user.series.match(/\d+/)?.[0] : ''));
         userSeries = authData.user.series;
         userClub = authData.user.club;
+        
+        // FIXED: Store user's team_id for precise filtering
+        const userTeamId = authData.user.team_id;
+        if (!userTeamId) {
+            throw new Error('Team ID not available - please check your profile setup');
+        }
+        console.log(`[DEBUG] My-team using team_id: ${userTeamId} for team: ${userTeam}`);
         // Update header info
         document.getElementById('userSeriesMyTeam').textContent = userSeries || '';
         document.getElementById('userClubMyTeam').textContent = userClub || '';
@@ -61,13 +68,14 @@ async function runMyTeamDualColumnDashboard() {
     }
     // Render the full dashboard for My Team
     await renderMyTeamDashboard(userTeam, matchesData, stats);
-    // Fetch players for this team
+    // Fetch players for this team - FIXED: Use team_id for precise filtering
     let players = [];
     try {
-        const resp = await fetch(`/api/team-players/${encodeURIComponent(userTeam)}`);
+        const resp = await fetch(`/api/team-players/${encodeURIComponent(userTeamId)}`);
         const data = await resp.json();
         if (data.players && data.players.length > 0) {
             players = data.players;
+            console.log(`[DEBUG] Found ${players.length} players for team_id ${userTeamId}`);
         } else {
             throw new Error('No players found for this team');
         }
