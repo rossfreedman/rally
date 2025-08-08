@@ -291,6 +291,24 @@ class BulletproofTeamPreservation:
                         team_name = team_data.get('team_name', '')
                         team_alias = team_data.get('team_alias', '')
                         display_name = team_data.get('display_name', team_name)
+
+                        # Normalize team_name/display_name: collapse Division/Chicago to Series for consistency
+                        # Example: "Tennaqua - 11 (Division 11)" -> "Tennaqua - 11" and display "Tennaqua - Series 11"
+                        try:
+                            if " (Division " in team_name:
+                                simple = team_name.split(" (Division ")[0]
+                                team_name = simple
+                            if " - Series " in display_name:
+                                pass
+                            else:
+                                # Derive Series label from either Chicago or Division variant inside display_name
+                                import re
+                                m = re.search(r"(Chicago|Division)\s+(\d+[A-Z]?)", display_name)
+                                if m:
+                                    display_name = re.sub(r"(Chicago|Division)\s+", "Series ", display_name)
+                        except Exception:
+                            # Non-fatal; proceed with original values
+                            pass
                         
                         # Validate required fields
                         if not all([club_id, series_id, league_id, team_name]):
