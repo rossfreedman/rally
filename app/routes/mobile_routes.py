@@ -4466,8 +4466,16 @@ def serve_mobile_all_teams_schedule():
                 error="Please set your club and series in your profile settings",
             )
 
-        # Create a clean team name string for the title
-        team_name = f"{club_name} - {series}"
+        # Create a clean team name string for the title with proper series format
+        # Convert Chicago/Division format to Series format for consistency
+        if series and series.startswith("Chicago "):
+            formatted_series = series.replace("Chicago ", "Series ")
+        elif series and series.startswith("Division "):
+            formatted_series = series.replace("Division ", "Series ")
+        else:
+            formatted_series = series
+            
+        team_name = f"{club_name} - {formatted_series}"
 
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_all_teams_schedule"

@@ -4039,23 +4039,39 @@ def get_club_teams():
             return jsonify({"error": "Club not set in profile"}), 400
             
         # Simple query to get all teams for the club in the current league
+        # Use display_name if available, otherwise convert Chicago/Division to Series format
         query = """
             SELECT 
                 t.id as team_id,
                 t.team_name,
                 c.name as club_name,
                 s.name as series_name,
-                CONCAT(c.name, ' - ', s.name) as display_name
+                CASE 
+                    WHEN s.name LIKE %s THEN REPLACE(s.name, %s, %s)
+                    WHEN s.name LIKE %s THEN REPLACE(s.name, %s, %s)
+                    ELSE s.name
+                END as formatted_series_name,
+                c.name || %s || CASE 
+                    WHEN s.name LIKE %s THEN REPLACE(s.name, %s, %s)
+                    WHEN s.name LIKE %s THEN REPLACE(s.name, %s, %s)
+                    ELSE s.name
+                END as display_name
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id
-            JOIN series_leagues sl ON s.id = sl.series_id
-            JOIN leagues l ON sl.league_id = l.id
+            JOIN leagues l ON t.league_id = l.id
             WHERE c.name = %s
             AND l.id = %s
         """
         
-        params = [club_name, league_id]
+        params = [
+            'Chicago %', 'Chicago ', 'Series ',  # First CASE
+            'Division %', 'Division ', 'Series ',  # Second CASE
+            ' - ',  # Concatenation separator
+            'Chicago %', 'Chicago ', 'Series ',  # First CASE in display_name
+            'Division %', 'Division ', 'Series ',  # Second CASE in display_name
+            club_name, league_id  # WHERE clause
+        ]
         print(f"DEBUG: Querying teams for club '{club_name}' in league '{league_id}'")
         
         # Add sorting by series number (extract number from series name)
@@ -4066,9 +4082,45 @@ def get_club_teams():
         """
         
         print(f"DEBUG: Executing query with params: {params}")
-        teams = execute_query(query, params)
-        print(f"DEBUG: Found {len(teams)} teams in database")
-        
+        teams_rows = execute_query(query, params)
+        print(f"DEBUG: Found {len(teams_rows)} teams in database (raw)")
+
+        # Deduplicate by normalized series label (e.g., 'Series 6') to avoid Chicago/Division duplicates
+        import re
+
+        def get_preference_score(series_name: str) -> int:
+            # Prefer 'Chicago X' over 'Division X' if both exist
+            if not series_name:
+                return 0
+            if str(series_name).startswith("Chicago "):
+                return 2
+            if str(series_name).startswith("Division "):
+                return 1
+            return 0
+
+        dedup_map = {}
+        for row in (dict(r) for r in (teams_rows or [])):
+            normalized_label = str(row.get("formatted_series_name") or row.get("series_name") or "").strip().lower()
+            current = dedup_map.get(normalized_label)
+            if current is None:
+                dedup_map[normalized_label] = row
+            else:
+                # Replace if the new row is preferred (Chicago over Division)
+                if get_preference_score(row.get("series_name")) > get_preference_score(current.get("series_name")):
+                    dedup_map[normalized_label] = row
+
+        # Finalize list and sort by numeric series
+        def extract_series_number(label: str) -> int:
+            try:
+                digits = re.sub(r"[^0-9]", "", label or "")
+                return int(digits) if digits else 0
+            except Exception:
+                return 0
+
+        teams = sorted(dedup_map.values(), key=lambda r: (extract_series_number(r.get("formatted_series_name") or r.get("series_name")), r.get("formatted_series_name") or r.get("series_name") or ""))
+
+        print(f"DEBUG: Returning {len(teams)} teams after deduplication")
+
         return jsonify({
             "teams": teams,
             "club": club_name,
