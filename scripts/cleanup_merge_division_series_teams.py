@@ -20,14 +20,26 @@ If --club omitted, will process all clubs in the league.
 """
 
 import argparse
+import os
+import sys
 from typing import Dict, List, Tuple
+
+# Ensure project root is importable when running this script directly
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, os.pardir))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from database_utils import execute_query, execute_update
 
 
 def find_duplicates(league_id: str, club: str = None) -> List[Dict]:
     """Find Chicago/Division duplicate pairs by club+numeric series within a league."""
-    params: List = [league_id]
+    params: List = [
+        league_id,
+        'Chicago %', 'Division %',  # SELECT SUM(CASE ... LIKE ...)
+        'Chicago %', 'Division %',  # HAVING SUM(CASE ... LIKE ...)
+    ]
     club_filter = ""
     if club:
         club_filter = "AND c.name = %s"
@@ -38,21 +50,34 @@ def find_duplicates(league_id: str, club: str = None) -> List[Dict]:
           c.id AS club_id,
           c.name AS club_name,
           REGEXP_REPLACE(s.name, '[^0-9]', '', 'g')::int AS series_num,
-          SUM(CASE WHEN s.name LIKE 'Chicago %' THEN 1 ELSE 0 END) AS chicago_count,
-          SUM(CASE WHEN s.name LIKE 'Division %' THEN 1 ELSE 0 END) AS division_count,
-          MAX(CASE WHEN s.name LIKE 'Chicago %' THEN t.id END) AS chicago_team_id,
-          MAX(CASE WHEN s.name LIKE 'Division %' THEN t.id END) AS division_team_id
+          SUM(CASE WHEN s.name LIKE %s THEN 1 ELSE 0 END) AS chicago_count,
+          SUM(CASE WHEN s.name LIKE %s THEN 1 ELSE 0 END) AS division_count,
+          MAX(CASE WHEN s.name LIKE %s THEN t.id END) AS chicago_team_id,
+          MAX(CASE WHEN s.name LIKE %s THEN t.id END) AS division_team_id
         FROM teams t
         JOIN clubs c ON t.club_id = c.id
         JOIN series s ON t.series_id = s.id
         JOIN leagues l ON t.league_id = l.id
         WHERE l.league_id = %s {club_filter}
         GROUP BY c.id, c.name, REGEXP_REPLACE(s.name, '[^0-9]', '', 'g')
-        HAVING SUM(CASE WHEN s.name LIKE 'Chicago %' THEN 1 ELSE 0 END) > 0
-           AND SUM(CASE WHEN s.name LIKE 'Division %' THEN 1 ELSE 0 END) > 0
+        HAVING SUM(CASE WHEN s.name LIKE %s THEN 1 ELSE 0 END) > 0
+           AND SUM(CASE WHEN s.name LIKE %s THEN 1 ELSE 0 END) > 0
         ORDER BY c.name, series_num
     """
-    return execute_query(query, params)
+    # Add the two LIKE params used in MAX(CASE ...) right after the earlier ones
+    # Our params currently: [league_id, 'Chicago %','Division %','Chicago %','Division %']
+    # But in query order we used: SUM(CASE) x2, MAX(CASE) x2, league_id, HAVING SUM(CASE) x2
+    # Reorder list accordingly:
+    like_chi = 'Chicago %'
+    like_div = 'Division %'
+    ordered_params: List = [
+        like_chi, like_div, like_chi, like_div,  # SELECT sums and maxes
+        league_id,
+        like_chi, like_div,                      # HAVING
+    ]
+    if club:
+        ordered_params.insert(5, club)  # after league_id for WHERE ... AND c.name = %s
+    return execute_query(query, ordered_params)
 
 
 def reassign_refs(from_team_id: int, to_team_id: int, apply_changes: bool) -> Dict[str, int]:

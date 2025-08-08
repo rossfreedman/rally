@@ -169,6 +169,23 @@
   
   /* Desktop-specific constraints for 500px width */
   @media (min-width: 768px) {
+    /* Ensure the notifications button and list align and share same width on desktop */
+    #notifications-button-container,
+    #notifications-content {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+    }
+
+    #notifications-button {
+      max-width: 500px !important;
+      width: 500px !important;
+      margin: 0 auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
     /* Make notification cards 500px wide on desktop */
     .notification-card {
       max-width: 500px !important;
