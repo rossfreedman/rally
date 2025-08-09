@@ -650,16 +650,41 @@ def serve_create_team_page():
     return render_template("mobile/create_team.html", session_data=session_data)
 
 
-# Marketing website HTML pages route - CRITICAL FIX for feature pages
-# MUST be before /<path:path> to avoid conflicts
-@app.route("/<filename>.html", methods=["GET"])
-def serve_marketing_html(filename):
+# Marketing website HTML pages routes - CRITICAL FIX for feature pages
+# Must be before /<path:path> catch-all route to work properly
+@app.route("/search-players.html", methods=["GET"])
+@app.route("/view-schedule.html", methods=["GET"])
+@app.route("/view-pickup-games.html", methods=["GET"])
+@app.route("/track-court-assignments.html", methods=["GET"])
+@app.route("/update-availability.html", methods=["GET"])
+@app.route("/view-analytics.html", methods=["GET"])
+@app.route("/team-polls.html", methods=["GET"])
+@app.route("/my-club.html", methods=["GET"])
+@app.route("/my-series.html", methods=["GET"])
+@app.route("/my-stats.html", methods=["GET"])
+@app.route("/my-team.html", methods=["GET"])
+@app.route("/match-simulator.html", methods=["GET"])
+@app.route("/pti-calculator.html", methods=["GET"])
+@app.route("/respond-to-team-polls.html", methods=["GET"])
+def serve_marketing_html():
     """Serve marketing HTML pages from website directory on marketing hosts"""
     host = request.host.split(":")[0].lower()
+    print(f"🔍 Marketing HTML request - Host: {host}, Path: {request.path}")
+    
     if host in MARKETING_HOSTS:
-        file_path = os.path.join(WEBSITE_DIR, f"{filename}.html")
+        # Get the filename from the request path
+        filename = request.path.lstrip('/')
+        file_path = os.path.join(WEBSITE_DIR, filename)
+        print(f"🔍 Looking for file: {file_path}")
+        
         if os.path.isfile(file_path):
-            return send_from_directory(WEBSITE_DIR, f"{filename}.html")
+            print(f"✅ Serving marketing file: {filename}")
+            return send_from_directory(WEBSITE_DIR, filename)
+        else:
+            print(f"❌ Marketing file not found: {filename}")
+    else:
+        print(f"❌ Not a marketing host: {host}")
+    
     return ("", 404)
 
 
