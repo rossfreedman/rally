@@ -102,8 +102,8 @@ def normalize_league_id(league_subdomain):
         'apta-chicago': 'APTA_CHICAGO',
         'chicago': 'APTA_CHICAGO',
         'nstf': 'NSTF',
-
-
+        'cnswpl': 'CNSWPL',
+        'cnswp': 'CNSWPL',
     }
     
     return league_mappings.get(normalized, normalized.upper())
@@ -418,10 +418,6 @@ def scrape_tennis_schedule(league_subdomain):
             )
 
             try:
-                # Add delay before series processing
-                print(f"   ⏳ Adding delay before processing {formatted_series}...")
-                time.sleep(2)
-                
                 series_link = element.find("a")
                 if series_link and series_link.text:
                     series_number = series_link.text.strip()
@@ -438,6 +434,10 @@ def scrape_tennis_schedule(league_subdomain):
                     else:
                         # Handle non-numeric series (like "2B", "3A", etc.)
                         formatted_series = f"Series {series_number}"
+
+                    # Add delay before series processing
+                    print(f"   ⏳ Adding delay before processing {formatted_series}...")
+                    time.sleep(2)
 
                     series_url = series_link.get("href", "")
                     full_url = f"{base_url}/{series_url}" if series_url else ""
@@ -503,7 +503,6 @@ def scrape_tennis_schedule(league_subdomain):
 
                     # Get the schedule page with HTTP API
                     print("   📊 Accessing schedule page...")
-                    scraper_enhancements.track_request("schedule_page_load")
                     print(f"   [Scraper] Visiting: {schedule_url}")
                     
                     # Add retry logic for timeout resilience
@@ -512,7 +511,7 @@ def scrape_tennis_schedule(league_subdomain):
                     
                     for attempt in range(max_retries):
                         try:
-                            schedule_response = make_decodo_request(schedule_url, timeout=30)
+                            schedule_response = make_proxy_request(schedule_url, timeout=30)
                             schedule_response_text = schedule_response.text
                             break  # Success, exit retry loop
                             
@@ -536,7 +535,9 @@ def scrape_tennis_schedule(league_subdomain):
                                 raise
                     
                     schedule_soup = BeautifulSoup(schedule_response_text, "html.parser")
-                    add_throttling_to_loop()  # Add throttling after schedule page load
+                    
+                    # Add throttling after schedule page load
+                    time.sleep(random.uniform(2.0, 4.0))
 
                     # Find all schedule entries
                     schedule_entries = schedule_soup.find_all("div", class_="row_cont")
@@ -549,7 +550,7 @@ def scrape_tennis_schedule(league_subdomain):
                     for entry in schedule_entries:
                         # Get all the fields for this entry
                         date = entry.find("div", class_="week_date")
-                        time = entry.find("div", class_="week_time")
+                        match_time = entry.find("div", class_="week_time")
                         home = entry.find("div", class_="week_home")
                         away = entry.find("div", class_="week_away")
                         location = entry.find("div", class_="week_loc")
@@ -560,7 +561,7 @@ def scrape_tennis_schedule(league_subdomain):
                         if not location:
                             location = entry.find("div", class_="week_location")
 
-                        if all([date, time, home, away]):  # Only require core fields
+                        if all([date, match_time, home, away]):  # Only require core fields
                             # Fix team name formatting - don't add series number if already present
                             raw_home = home.text.strip()
                             raw_away = away.text.strip()
@@ -595,7 +596,7 @@ def scrape_tennis_schedule(league_subdomain):
 
                             schedule_item = {
                                 "date": date.text.strip(),
-                                "time": time.text.strip(),
+                                "time": match_time.text.strip(),
                                 "home_team": formatted_home,
                                 "away_team": formatted_away,
                                 "location": location_text,
@@ -647,6 +648,10 @@ def scrape_tennis_schedule(league_subdomain):
 
         # Save schedule data
         output_filename = os.path.join(data_dir, "schedules.json")
+        
+        # Ensure the output directory exists
+        os.makedirs(os.path.dirname(output_filename), exist_ok=True)
+        
         with open(output_filename, "w", encoding="utf-8") as f:
             json.dump(all_schedule_data, f, indent=4, ensure_ascii=False)
 
@@ -719,9 +724,6 @@ def scrape_tennis_schedule(league_subdomain):
             print(f"  {series}: {count} entries ({percentage:.1f}%)")
 
         print("=" * 70)
-        
-        # Log enhanced session summary
-        scraper_enhancements.log_session_summary()
         
         print("[Scraper] Finished scrape successfully")
         
