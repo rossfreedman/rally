@@ -135,6 +135,12 @@ MARKETING_HOSTS = {
     "rallytennaqua.com",
     "www.rallytennaqua.com",
 }
+
+# Hosts that should redirect to app login instead of marketing site
+APP_REDIRECT_HOSTS = {
+    "rallytennaqua.com",
+    "www.rallytennaqua.com",
+}
 WEBSITE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "website")
 
 # Safe list of marketing asset prefixes
@@ -467,10 +473,17 @@ def marketing_host_redirects():
 
 @app.route("/")
 def serve_index():
-    """Root: serve marketing home on marketing hosts; otherwise keep app behavior"""
+    """Root: serve marketing home on marketing hosts or redirect app hosts to login"""
     host = request.host.split(":")[0].lower()
+    
+    # Specific hosts that should redirect to app login
+    if host in APP_REDIRECT_HOSTS:
+        return redirect("/login")
+    
+    # Marketing hosts serve marketing website
     if host in MARKETING_HOSTS:
         return send_from_directory(WEBSITE_DIR, "index.html")
+    
     # Non-marketing hosts keep existing behavior (app)
     if "user" not in session:
         return redirect("/login")
