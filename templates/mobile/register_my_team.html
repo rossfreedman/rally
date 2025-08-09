@@ -1,0 +1,357 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Rally - Register My Team{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    {% if error %}
+    <!-- Error State -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+        <div class="flex items-center gap-4 p-4">
+            <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-exclamation-triangle text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">Error</h1>
+                <p class="text-sm text-red-600">{{ error }}</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+
+    <!-- Page Header -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+        <div class="flex items-center gap-4 p-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                <i class="fas fa-user-plus text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">Register My Team</h1>
+                <p class="text-sm text-gray-600">Create accounts for your team players</p>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Team Information -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+        <div class="p-4">
+            <h2 class="text-lg font-bold text-gray-900 mb-3">Team Information</h2>
+            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">Club:</span>
+                    <span class="text-sm font-semibold text-gray-900">{{ team_info.club }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-600">Series:</span>
+                    <span class="text-sm font-semibold text-gray-900">{{ team_info.series }}</span>
+                </div>
+                <div class="pt-2 border-t border-gray-200">
+                    <p class="text-xs text-gray-600">
+                        Register all your team players at once. Each player will use the same team and series information as you.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Form -->
+    <form id="teamRegistrationForm">
+        <!-- Players List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+            <div class="p-4">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Team Players ({{ players|length }})</h3>
+                
+                {% if players %}
+                <div class="space-y-3">
+                    {% for player in players %}
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 transition-all duration-200 hover:shadow-sm">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold mr-3" style="background-color: #10645c;">
+                                    {{ player.first_name[0] }}{{ player.last_name[0] }}
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900">{{ player.name }}</h4>
+                                    {% if player.has_account %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Already Registered
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-user-plus mr-1"></i>
+                                        Not Registered
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <label class="flex items-center">
+                                <input type="checkbox" 
+                                       class="player-checkbox form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out rounded mr-2" 
+                                       data-player-id="{{ player.id }}"
+                                       data-first-name="{{ player.first_name }}"
+                                       data-last-name="{{ player.last_name }}"
+                                       data-has-account="{{ player.has_account|lower }}"
+                                       {% if not player.has_account %}checked{% endif %}>
+                                <span class="text-sm text-gray-600">Register</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Phone Number Input -->
+                        <div class="{% if player.has_account %}opacity-50{% endif %}">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number <span class="text-red-500">*</span>
+                            </label>
+                            <input type="tel" 
+                                   class="phone-input w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" 
+                                   placeholder="(555) 123-4567"
+                                   data-player-id="{{ player.id }}"
+                                   value="{{ player.phone_number }}"
+                                   {% if player.has_account %}disabled{% endif %}>
+                            <p class="text-xs text-gray-500 mt-1">Required for account registration and notifications</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-users text-4xl mb-4"></i>
+                    <p class="text-gray-600">No players found for your team.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Registration Options -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+            <div class="p-4">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Registration Options</h3>
+                
+                <div class="space-y-4">
+                    <label class="flex items-start">
+                        <input type="checkbox" id="generatePasswords" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out rounded mr-3 mt-1" checked>
+                        <div>
+                            <span class="text-gray-900 font-medium">Generate temporary passwords</span>
+                            <p class="text-sm text-gray-600">Players will be prompted to change their password on first login.</p>
+                        </div>
+                    </label>
+                    
+                    <label class="flex items-start">
+                        <input type="checkbox" id="sendNotifications" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out rounded mr-3 mt-1" checked>
+                        <div>
+                            <span class="text-gray-900 font-medium">Send SMS notifications</span>
+                            <p class="text-sm text-gray-600">Players will receive a welcome message with login instructions.</p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center mb-6">
+            <button type="submit" id="registerTeamBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed" style="background-color: #10645c !important; border-color: #10645c !important;">
+                <i class="fas fa-user-plus mr-2"></i>
+                Register Selected Players
+            </button>
+        </div>
+    </form>
+
+    <!-- Results Section (Hidden Initially) -->
+    <div id="resultsSection" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+            <div class="p-4">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Registration Results</h3>
+                <div id="resultsContent">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-8 max-w-sm mx-4 text-center shadow-lg">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style="border-color: #10645c;"></div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Registering Players...</h3>
+        <p class="text-gray-600">Please wait while we process the registrations.</p>
+    </div>
+</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('teamRegistrationForm');
+            const registerBtn = document.getElementById('registerTeamBtn');
+            const loadingModal = document.getElementById('loadingModal');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+
+            // Handle checkbox changes
+            document.querySelectorAll('.player-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const playerId = this.dataset.playerId;
+                    const phoneInput = document.querySelector(`input.phone-input[data-player-id="${playerId}"]`);
+                    
+                    if (this.checked) {
+                        phoneInput.disabled = false;
+                        phoneInput.parentElement.classList.remove('opacity-50');
+                    } else {
+                        phoneInput.disabled = true;
+                        phoneInput.parentElement.classList.add('opacity-50');
+                    }
+                    
+                    updateSubmitButton();
+                });
+            });
+
+            // Update submit button state
+            function updateSubmitButton() {
+                const selectedPlayers = document.querySelectorAll('.player-checkbox:checked');
+                registerBtn.disabled = selectedPlayers.length === 0;
+                
+                if (selectedPlayers.length > 0) {
+                    registerBtn.textContent = `Register ${selectedPlayers.length} Player${selectedPlayers.length > 1 ? 's' : ''}`;
+                } else {
+                    registerBtn.innerHTML = '<i class="fas fa-user-plus mr-2"></i>Register Selected Players';
+                }
+            }
+
+            // Format phone numbers
+            document.querySelectorAll('.phone-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    let value = this.value.replace(/\D/g, '');
+                    if (value.length >= 6) {
+                        value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6,10)}`;
+                    } else if (value.length >= 3) {
+                        value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+                    }
+                    this.value = value;
+                });
+            });
+
+            // Handle form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const selectedPlayers = document.querySelectorAll('.player-checkbox:checked');
+                if (selectedPlayers.length === 0) {
+                    alert('Please select at least one player to register.');
+                    return;
+                }
+
+                // Validate phone numbers for selected players
+                let isValid = true;
+                const registrationData = [];
+                
+                selectedPlayers.forEach(checkbox => {
+                    const playerId = checkbox.dataset.playerId;
+                    const firstName = checkbox.dataset.firstName;
+                    const lastName = checkbox.dataset.lastName;
+                    const hasAccount = checkbox.dataset.hasAccount === 'true';
+                    const phoneInput = document.querySelector(`input.phone-input[data-player-id="${playerId}"]`);
+                    const phoneNumber = phoneInput.value.replace(/\D/g, '');
+                    
+                    if (!hasAccount && phoneNumber.length !== 10) {
+                        isValid = false;
+                        phoneInput.classList.add('border-red-500');
+                        return;
+                    } else {
+                        phoneInput.classList.remove('border-red-500');
+                    }
+                    
+                    if (!hasAccount) {
+                        registrationData.push({
+                            playerId: playerId,
+                            firstName: firstName,
+                            lastName: lastName,
+                            phoneNumber: phoneNumber
+                        });
+                    }
+                });
+
+                if (!isValid) {
+                    alert('Please provide valid phone numbers for all selected players.');
+                    return;
+                }
+
+                if (registrationData.length === 0) {
+                    alert('All selected players already have accounts.');
+                    return;
+                }
+
+                // Show loading modal
+                loadingModal.classList.remove('hidden');
+                registerBtn.disabled = true;
+
+                // Submit registration data
+                fetch('/api/register-team-players', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        players: registrationData,
+                        options: {
+                            generatePasswords: document.getElementById('generatePasswords').checked,
+                            sendNotifications: document.getElementById('sendNotifications').checked
+                        }
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loadingModal.classList.add('hidden');
+                    registerBtn.disabled = false;
+                    
+                    if (data.success) {
+                        displayResults(data.results);
+                        // Update the page to reflect new registrations
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    loadingModal.classList.add('hidden');
+                    registerBtn.disabled = false;
+                    console.error('Error:', error);
+                    alert('An error occurred during registration. Please try again.');
+                });
+            });
+
+            function displayResults(results) {
+                let html = '<div class="space-y-3">';
+                
+                results.forEach(result => {
+                    const iconClass = result.success ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500';
+                    const bgClass = result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+                    
+                    html += `
+                        <div class="flex items-center p-3 rounded-lg border ${bgClass}">
+                            <i class="fas ${iconClass} text-lg mr-3"></i>
+                            <div class="flex-1">
+                                <h4 class="font-semibold text-gray-800">${result.playerName}</h4>
+                                <p class="text-sm text-gray-600">${result.message}</p>
+                                ${result.tempPassword ? `<p class="text-xs text-blue-600 mt-1">Temporary password: ${result.tempPassword}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                resultsContent.innerHTML = html;
+                resultsSection.classList.remove('hidden');
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // Initialize
+            updateSubmitButton();
+        });
+    </script>
+
+{% endblock %}

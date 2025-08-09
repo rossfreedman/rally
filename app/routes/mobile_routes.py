@@ -45,7 +45,7 @@ from app.services.simulation import (
     get_players_for_selection,
     get_teams_for_selection,
 )
-from database_utils import execute_query, execute_query_one
+from database_utils import execute_query, execute_query_one, execute_update
 from routes.act.availability import get_user_availability
 
 # Import availability functions from existing routes
@@ -3065,6 +3065,121 @@ def serve_mobile_create_team():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/register-my-team")
+@login_required
+def serve_mobile_register_my_team():
+    """Serve the mobile Register my Team page for captains"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        club = user.get("club", "")
+        series = user.get("series", "")
+        league_id = user.get("league_id", "")
+        
+        if not team_id:
+            return render_template(
+                "mobile/register_my_team.html",
+                error="Team ID not found. Please contact support to fix your team assignment.",
+                session_data={"user": user}
+            )
+        
+        # Get all players for this team
+        try:
+            # Convert league_id to integer if needed
+            league_id_int = None
+            if league_id:
+                if isinstance(league_id, str) and league_id != "":
+                    try:
+                        league_record = execute_query_one(
+                            "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                        )
+                        if league_record:
+                            league_id_int = league_record["id"]
+                    except Exception as e:
+                        pass
+                elif isinstance(league_id, int):
+                    league_id_int = league_id
+            
+            # Get players for the team using team_id
+            if league_id_int:
+                players_query = """
+                    SELECT DISTINCT 
+                        p.id, 
+                        p.first_name, 
+                        p.last_name, 
+                        p.tenniscores_player_id,
+                        u.id as user_id,
+                        u.email,
+                        u.phone_number
+                    FROM players p
+                    LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                    LEFT JOIN users u ON upa.user_id = u.id
+                    WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = true
+                    ORDER BY p.first_name, p.last_name
+                """
+                players_data = execute_query(players_query, [team_id, league_id_int])
+            else:
+                players_query = """
+                    SELECT DISTINCT 
+                        p.id, 
+                        p.first_name, 
+                        p.last_name, 
+                        p.tenniscores_player_id,
+                        u.id as user_id,
+                        u.email,
+                        u.phone_number
+                    FROM players p
+                    LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                    LEFT JOIN users u ON upa.user_id = u.id
+                    WHERE p.team_id = %s AND p.is_active = true
+                    ORDER BY p.first_name, p.last_name
+                """
+                players_data = execute_query(players_query, [team_id])
+
+            # Format players data
+            players = []
+            for player in players_data:
+                players.append({
+                    "id": player["id"],
+                    "name": f"{player['first_name']} {player['last_name']}",
+                    "first_name": player["first_name"],
+                    "last_name": player["last_name"],
+                    "tenniscores_player_id": player["tenniscores_player_id"],
+                    "user_id": player.get("user_id"),
+                    "email": player.get("email"),
+                    "phone_number": player.get("phone_number", ""),
+                    "has_account": player.get("user_id") is not None
+                })
+
+            return render_template(
+                "mobile/register_my_team.html",
+                players=players,
+                team_info={
+                    "club": club,
+                    "series": series,
+                    "league_id": league_id
+                },
+                session_data={"user": user}
+            )
+
+        except Exception as e:
+            logger.error(f"Error getting team players for register-my-team: {e}")
+            return render_template(
+                "mobile/register_my_team.html",
+                error=f"Error loading team players: {str(e)}",
+                session_data={"user": user}
+            )
+
+    except Exception as e:
+        logger.error(f"Error serving register-my-team page: {e}")
+        return render_template(
+            "mobile/register_my_team.html",
+            error="An error occurred loading the page",
+            session_data={"user": user if 'user' in locals() else {}}
+        )
+
+
 @mobile_bp.route("/mobile/matchup-simulator")
 @login_required
 def serve_mobile_matchup_simulator():
@@ -4321,7 +4436,7 @@ def calculate_pti_adjustment():
 def debug_teams_check():
     """Debug route to check teams table structure and data"""
     try:
-        from database_utils import execute_query, execute_query_one
+        from database_utils import execute_query, execute_query_one, execute_update
         
         html = "<h2>Teams Debug</h2>"
         

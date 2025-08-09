@@ -7627,6 +7627,211 @@ def remove_captain_message():
         return jsonify({"error": "Failed to remove captain message"}), 500
 
 
+@api_bp.route("/api/register-team-players", methods=["POST"])
+@login_required
+def register_team_players():
+    """Register multiple team players at once using the same registration logic as individual registration"""
+    try:
+        user = session["user"]
+        captain_user_id = user.get("id")
+        team_id = user.get("team_id")
+        club = user.get("club", "")
+        series = user.get("series", "")
+        league_id = user.get("league_id", "")
+        
+        if not team_id:
+            return jsonify({
+                "success": False,
+                "error": "Team ID not found. Please contact support to fix your team assignment."
+            }), 400
+        
+        data = request.get_json()
+        if not data or "players" not in data:
+            return jsonify({
+                "success": False,
+                "error": "No player data provided"
+            }), 400
+        
+        players_to_register = data.get("players", [])
+        options = data.get("options", {})
+        generate_passwords = options.get("generatePasswords", True)
+        send_notifications = options.get("sendNotifications", True)
+        
+        if not players_to_register:
+            return jsonify({
+                "success": False,
+                "error": "No players selected for registration"
+            }), 400
+        
+        # Import the registration function
+        from app.services.auth_service_refactored import register_user
+        from utils.database_player_lookup import find_player_by_database_lookup
+        import secrets
+        import string
+        
+        results = []
+        
+        # Convert integer league_id to string league_id for player lookup
+        string_league_id = league_id
+        if league_id and (isinstance(league_id, int) or league_id.isdigit()):
+            try:
+                # Convert integer ID to string league identifier
+                league_record = execute_query_one(
+                    "SELECT league_id FROM leagues WHERE id = %s", [int(league_id)]
+                )
+                if league_record:
+                    string_league_id = league_record["league_id"]
+                    logger.info(f"Converted league_id {league_id} to string identifier: {string_league_id}")
+                else:
+                    logger.warning(f"Could not find league with ID {league_id}")
+            except Exception as e:
+                logger.warning(f"Error converting league_id {league_id}: {e}")
+        
+        for player_data in players_to_register:
+            player_id = player_data.get("playerId")
+            first_name = player_data.get("firstName", "").strip()
+            last_name = player_data.get("lastName", "").strip()
+            phone_number = player_data.get("phoneNumber", "").strip()
+            
+            if not all([player_id, first_name, last_name, phone_number]):
+                results.append({
+                    "playerId": player_id,
+                    "playerName": f"{first_name} {last_name}",
+                    "success": False,
+                    "message": "Missing required information"
+                })
+                continue
+            
+            # Generate email and temporary password
+            # Create email based on name and team
+            safe_first = first_name.lower().replace(" ", "")
+            safe_last = last_name.lower().replace(" ", "")
+            safe_club = club.lower().replace(" ", "").replace("&", "and")
+            email = f"{safe_first}.{safe_last}.{safe_club}@rally-temp.com"
+            
+            # Generate temporary password if requested
+            temp_password = None
+            if generate_passwords:
+                # Generate secure temporary password
+                alphabet = string.ascii_letters + string.digits
+                temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+            else:
+                # Use a default temporary password
+                temp_password = "Rally2024!"
+            
+            try:
+                # Use the same registration logic as the main registration flow
+                # Pass the string league_id instead of integer
+                registration_result = register_user(
+                    email=email,
+                    password=temp_password,
+                    first_name=first_name,
+                    last_name=last_name,
+                    league_id=string_league_id,  # Use converted string league_id
+                    club_name=club,
+                    series_name=series,
+                    phone_number=phone_number,
+                    ad_deuce_preference="Ad",  # Default
+                    dominant_hand="Right"     # Default
+                )
+                
+                if registration_result["success"]:
+                    results.append({
+                        "playerId": player_id,
+                        "playerName": f"{first_name} {last_name}",
+                        "success": True,
+                        "message": "Successfully registered with Rally account",
+                        "email": email,
+                        "tempPassword": temp_password if generate_passwords else None
+                    })
+                    
+                    # Log the team registration activity
+                    log_user_activity(
+                        user.get("email"),
+                        "team_player_registered",
+                        action="captain_team_registration",
+                        details={
+                            "captain_user_id": captain_user_id,
+                            "team_id": team_id,
+                            "registered_player": {
+                                "name": f"{first_name} {last_name}",
+                                "email": email,
+                                "phone_number": phone_number
+                            },
+                            "club": club,
+                            "series": series,
+                            "league_id": league_id
+                        }
+                    )
+                    
+                    # Send SMS notification if requested
+                    if send_notifications and phone_number:
+                        try:
+                            formatted_phone = phone_number if len(phone_number) == 10 else phone_number
+                            if len(formatted_phone) == 10:
+                                formatted_phone = f"+1{formatted_phone}"
+                            
+                            welcome_message = f"Welcome to Rally! Your captain has registered you. Login: {email} | Temp password: {temp_password} | Download: rally-app.com"
+                            
+                            send_sms_notification(
+                                phone_number=formatted_phone,
+                                message=welcome_message,
+                                user_id=captain_user_id
+                            )
+                        except Exception as sms_error:
+                            logger.warning(f"Failed to send SMS to {phone_number} for {first_name} {last_name}: {sms_error}")
+                            # Don't fail the registration if SMS fails
+                    
+                else:
+                    # Registration failed - extract meaningful error message
+                    error_message = registration_result.get("error", "Registration failed")
+                    
+                    # Check if it's because player already exists or player not found
+                    if "already exists" in error_message:
+                        error_message = "Player already has a Rally account"
+                    elif "unable to link" in error_message or "not found" in error_message:
+                        error_message = "Player not found in league database - check name spelling"
+                    
+                    results.append({
+                        "playerId": player_id,
+                        "playerName": f"{first_name} {last_name}",
+                        "success": False,
+                        "message": error_message
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Error registering team player {first_name} {last_name}: {e}")
+                results.append({
+                    "playerId": player_id,
+                    "playerName": f"{first_name} {last_name}",
+                    "success": False,
+                    "message": f"Registration error: {str(e)}"
+                })
+        
+        # Count successful registrations
+        successful_count = sum(1 for result in results if result["success"])
+        total_count = len(results)
+        
+        return jsonify({
+            "success": True,
+            "results": results,
+            "summary": {
+                "total": total_count,
+                "successful": successful_count,
+                "failed": total_count - successful_count
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in register_team_players: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred during team registration"
+        }), 500
+
+
 def get_captain_messages(user_id, player_id, league_id, team_id):
     """Get captain message notifications from database"""
     notifications = []

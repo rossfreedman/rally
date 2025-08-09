@@ -495,14 +495,15 @@ class EnhancedMatchScraper:
                         # Get detailed match page
                         match_response = self._safe_request(match_url, f"match detail page {i}")
                         if match_response:
-                            detailed_match = self._extract_detailed_match_data(match_response, series_name, match_id)
-                            if detailed_match:
-                                matches.append(detailed_match)
-                                match_count += 1
-                                home_team = detailed_match.get('Home Team', 'Unknown')
-                                away_team = detailed_match.get('Away Team', 'Unknown')
-                                date = detailed_match.get('Date', 'Unknown Date')
-                                print(f"✅ Extracted match: {home_team} vs {away_team} on {date}")
+                            detailed_matches = self._extract_detailed_match_data(match_response, series_name, match_id)
+                            if detailed_matches:
+                                matches.extend(detailed_matches)  # Add all line matches
+                                match_count += len(detailed_matches)
+                                first_match = detailed_matches[0] if detailed_matches else {}
+                                home_team = first_match.get('Home Team', 'Unknown')
+                                away_team = first_match.get('Away Team', 'Unknown')
+                                date = first_match.get('Date', 'Unknown Date')
+                                print(f"✅ Extracted {len(detailed_matches)} lines: {home_team} vs {away_team} on {date}")
                         
                     except Exception as e:
                         print(f"⚠️ Error following match link: {e}")
@@ -538,72 +539,28 @@ class EnhancedMatchScraper:
         
         return matches
     
-    def _extract_detailed_match_data(self, html: str, series_name: str, match_id: str) -> Optional[Dict]:
-        """Extract detailed match data from CNSWPL individual match page."""
+    def _extract_detailed_match_data(self, html: str, series_name: str, match_id: str) -> List[Dict]:
+        """Extract detailed match data from CNSWPL individual match page - returns list of line matches."""
         try:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Generate a proper unique match ID using the original match_id from URL
-            match_data = {
-                "league_id": "CNSWPL",
-                "match_id": f"cnswpl_{match_id}",
-                "source_league": "CNSWPL",
-                "Series": series_name,
-                "Date": None,
-                "Home Team": None,
-                "Away Team": None,
-                "Home Player 1": None,
-                "Home Player 2": None,
-                "Home Player 1 ID": None,
-                "Home Player 2 ID": None,
-                "Away Player 1": None,
-                "Away Player 2": None,
-                "Away Player 1 ID": None,
-                "Away Player 2 ID": None,
-                "Scores": None,
-                "Winner": None
-            }
-            
-            # Extract date and teams from CNSWPL match header
-            # Look for pattern like "Series 1 March 6, 2025" and "Hinsdale PC 1a @ Birchwood 1: 1 - 12"
-            match_data["Date"] = self._extract_cnswpl_date(soup)
+            # Extract common match information
+            match_date = self._extract_cnswpl_date(soup)
             teams_and_score = self._extract_cnswpl_teams_and_score(soup)
-            if teams_and_score:
-                match_data.update(teams_and_score)
             
-            # Extract team names
-            team_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(club in text.lower() for club in ['birchwood', 'lake bluff', 'winnetka', 'sunset ridge', 'prairie club', 'tennaqua', 'michigan shores', 'exmoor', 'park ridge', 'skokie', 'valley lo', 'wilmette', 'glenbrook', 'knollwood', 'winter club', 'lifesport', 'hinsdale', 'saddle', 'midtown', 'north shore', 'lake shore', 'indian hill', 'evanston', 'glen view', 'sunset ridge']))
-            if len(team_elements) >= 2:
-                match_data["Home Team"] = team_elements[0].get_text(strip=True)
-                match_data["Away Team"] = team_elements[1].get_text(strip=True)
+            if not teams_and_score:
+                return []
             
-            # Extract player names (look for common CNSWPL player patterns)
-            player_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and len(text.split()) >= 2 and any(name in text.lower() for name in ['martin', 'johnson', 'smith', 'brown', 'davis', 'wilson', 'miller', 'garcia', 'rodriguez', 'anderson', 'taylor', 'thomas', 'hernandez', 'moore', 'jackson', 'lee', 'perez', 'thompson', 'white', 'harris', 'sanchez', 'clark', 'ramirez', 'lewis', 'robinson', 'walker', 'young', 'allen', 'king', 'wright', 'lopez', 'hill', 'scott', 'green', 'adams', 'baker', 'gonzalez', 'nelson', 'carter', 'mitchell', 'perez', 'roberts', 'turner', 'phillips', 'campbell', 'parker', 'evans', 'edwards', 'collins', 'stewart', 'sanchez', 'morris', 'rogers', 'reed', 'cook', 'morgan', 'bell', 'murphy', 'bailey', 'rivera', 'cooper', 'richardson', 'cox', 'howard', 'ward', 'torres', 'peterson', 'gray', 'ramirez', 'james', 'watson', 'brooks', 'kelly', 'sanders', 'price', 'bennett', 'wood', 'barnes', 'ross', 'henderson', 'coleman', 'jenkins', 'perry', 'powell', 'long', 'patterson', 'hughes', 'flores', 'washington', 'butler', 'simmons', 'foster', 'gonzales', 'bryant', 'alexander', 'russell', 'griffin', 'diaz', 'hayes']))
+            # Extract line-specific data from court breakdown
+            line_matches = self._extract_cnswpl_lines(soup, series_name, match_id, match_date, teams_and_score)
             
-            if len(player_elements) >= 4:
-                match_data["Home Player 1"] = player_elements[0].get_text(strip=True)
-                match_data["Home Player 2"] = player_elements[1].get_text(strip=True)
-                match_data["Away Player 1"] = player_elements[2].get_text(strip=True)
-                match_data["Away Player 2"] = player_elements[3].get_text(strip=True)
-                
-                # Generate player IDs (CNSWPL format)
-                match_data["Home Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[0].get_text(strip=True))}"
-                match_data["Home Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[1].get_text(strip=True))}"
-                match_data["Away Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[2].get_text(strip=True))}"
-                match_data["Away Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[3].get_text(strip=True))}"
-            
-            # Extract individual set scores from court breakdown
-            individual_scores = self._extract_cnswpl_individual_scores(soup)
-            if individual_scores:
-                match_data["Scores"] = individual_scores
-            
-            return match_data if match_data["Home Team"] and match_data["Away Team"] else None
+            return line_matches
             
         except Exception as e:
             if self.config.verbose:
                 print(f"   ❌ Error extracting detailed match data: {e}")
-            return None
+            return []
     
     def _extract_match_from_table_row(self, cells, series_name: str) -> Optional[Dict]:
         """Extract match data from table row (fallback method)."""
@@ -655,30 +612,43 @@ class EnhancedMatchScraper:
         return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
     
     def _extract_cnswpl_date(self, soup) -> str:
-        """Extract match date from CNSWPL match page header."""
+        """Extract match date from CNSWPL match page header and convert to DD-MMM-YY format."""
         import re
+        from datetime import datetime
         
         # Look for CNSWPL date pattern like "Series 1 March 6, 2025"
         all_text = soup.get_text()
         
         # Pattern for "Month Day, Year" format
-        date_pattern = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b'
+        date_pattern = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})\b'
         
         match = re.search(date_pattern, all_text)
         if match:
-            return match.group(0)
+            month_name, day, year = match.groups()
+            # Convert to DD-MMM-YY format like "06-Mar-25"
+            try:
+                date_obj = datetime.strptime(f"{month_name} {day}, {year}", "%B %d, %Y")
+                return date_obj.strftime("%d-%b-%y")
+            except:
+                pass
         
-        # Fallback to standard date patterns
+        # Fallback to standard date patterns and convert
         date_patterns = [
-            r'\b\d{1,2}/\d{1,2}/\d{2,4}\b',  # MM/DD/YYYY
-            r'\b\d{4}-\d{1,2}-\d{1,2}\b',    # YYYY-MM-DD
-            r'\b\d{1,2}-\d{1,2}-\d{2,4}\b',  # MM-DD-YYYY
+            (r'\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b', "%m/%d/%Y"),  # MM/DD/YYYY
+            (r'\b(\d{4})-(\d{1,2})-(\d{1,2})\b', "%Y-%m-%d"),    # YYYY-MM-DD
+            (r'\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b', "%m-%d-%Y"),  # MM-DD-YYYY
         ]
         
-        for pattern in date_patterns:
+        for pattern, format_str in date_patterns:
             matches = re.findall(pattern, all_text)
             if matches:
-                return matches[0]
+                try:
+                    if format_str == "%m/%d/%Y":
+                        month, day, year = matches[0]
+                        date_obj = datetime.strptime(f"{month}/{day}/{year}", format_str)
+                        return date_obj.strftime("%d-%b-%y")
+                except:
+                    continue
         
         return None
     
@@ -715,6 +685,225 @@ class EnhancedMatchScraper:
             }
         
         return {}
+    
+    def _extract_cnswpl_lines(self, soup, series_name: str, match_id: str, match_date: str, teams_and_score: dict) -> List[Dict]:
+        """Extract line-specific data from CNSWPL court breakdown with both home/away players."""
+        import re
+        line_matches = []
+        
+        # Based on actual CNSWPL structure:
+        # Court 1
+        # Nancy Gaspadarek / Ellie Hay (Home team)
+        # 12 (Home scores)
+        # Leslie Katz / Alison Morgan (Away team)  
+        # 66 (Away scores)
+        
+        all_text = soup.get_text()
+        lines = all_text.split('\n')
+        
+        court_data = []
+        i = 0
+        while i < len(lines):
+            line = lines[i].strip()
+            if re.match(r'Court\s+\d+', line):
+                court_num = re.search(r'Court\s+(\d+)', line).group(1)
+                
+                # Look for the pattern: Court -> Home Players -> Home Score -> Away Players -> Away Score
+                home_players = None
+                home_score = None
+                away_players = None
+                away_score = None
+                
+                # Scan next few lines for the 4-part pattern
+                for j in range(i+1, min(i+10, len(lines))):
+                    potential_line = lines[j].strip()
+                    if not potential_line:
+                        continue
+                        
+                    if '/' in potential_line and not home_players:
+                        home_players = potential_line
+                    elif re.match(r'^\d+$', potential_line) and home_players and not home_score:
+                        home_score = potential_line
+                    elif '/' in potential_line and home_players and home_score and not away_players:
+                        away_players = potential_line
+                    elif re.match(r'^\d+$', potential_line) and away_players and not away_score:
+                        away_score = potential_line
+                        break  # Found all 4 components
+                
+                if home_players and away_players:
+                    court_data.append({
+                        'court_num': court_num,
+                        'home_players': home_players,
+                        'home_score': home_score,
+                        'away_players': away_players,
+                        'away_score': away_score
+                    })
+                
+                i = j if 'j' in locals() else i + 1
+            else:
+                i += 1
+        
+        # Process each court to create line matches
+        for court_info in court_data:
+            court_num = court_info['court_num']
+            
+            # Parse home and away players
+            home_players = self._parse_cnswpl_player_line(court_info['home_players'])
+            away_players = self._parse_cnswpl_player_line(court_info['away_players'])
+            
+            # Convert scores to tennis format (e.g., "66" -> "6-6")
+            tennis_scores = self._convert_cnswpl_scores_to_tennis(
+                court_info['home_score'], 
+                court_info['away_score']
+            )
+            
+            # Determine winner from green checkboxes
+            winner = self._determine_cnswpl_winner(soup, court_num)
+            
+            if len(home_players) >= 2 and len(away_players) >= 2:
+                line_match = {
+                    "league_id": "CNSWPL",
+                    "match_id": f"cnswpl_{match_id}_Line{court_num}",
+                    "source_league": "CNSWPL",
+                    "Line": f"Line {court_num}",
+                    "Date": match_date,
+                    "Home Team": teams_and_score.get("Home Team"),
+                    "Away Team": teams_and_score.get("Away Team"),
+                    "Home Player 1": home_players[0],
+                    "Home Player 2": home_players[1],
+                    "Away Player 1": away_players[0],
+                    "Away Player 2": away_players[1],
+                    "Home Player 1 ID": f"cnswpl_{self._generate_player_id(home_players[0])}",
+                    "Home Player 2 ID": f"cnswpl_{self._generate_player_id(home_players[1])}",
+                    "Away Player 1 ID": f"cnswpl_{self._generate_player_id(away_players[0])}",
+                    "Away Player 2 ID": f"cnswpl_{self._generate_player_id(away_players[1])}",
+                    "Scores": tennis_scores,
+                    "Winner": winner
+                }
+                line_matches.append(line_match)
+        
+        return line_matches
+    
+    def _parse_cnswpl_player_line(self, line: str) -> List[str]:
+        """Parse player names from a CNSWPL court line."""
+        import re
+        
+        # Remove check marks and scores
+        clean_line = re.sub(r'[✔️✓]', '', line)
+        clean_line = re.sub(r'\b\d+\b', '', clean_line)  # Remove numbers
+        clean_line = clean_line.strip()
+        
+        # Split by common separators 
+        if ' / ' in clean_line:
+            players = [p.strip() for p in clean_line.split(' / ')]
+        elif '/' in clean_line:
+            players = [p.strip() for p in clean_line.split('/')]
+        else:
+            # Try to split by detecting two names
+            words = clean_line.split()
+            if len(words) >= 4:  # First Last / First Last
+                mid = len(words) // 2
+                players = [' '.join(words[:mid]), ' '.join(words[mid:])]
+            elif len(words) >= 2:
+                players = [clean_line]  # Single name or can't split
+            else:
+                players = []
+        
+        return [p for p in players if p and len(p) > 2]
+    
+    def _extract_line_scores(self, line1: str, line2: str) -> str:
+        """Extract individual set scores from court lines."""
+        import re
+        
+        # Look for score patterns in both lines
+        combined = f"{line1} {line2}"
+        
+        # Look for patterns like "6 6", "3 4", etc.
+        score_matches = re.findall(r'\b([0-7])\s+([0-7])\b', combined)
+        
+        scores = []
+        for s1, s2 in score_matches:
+            if int(s1) <= 7 and int(s2) <= 7:  # Valid tennis scores
+                scores.append(f"{s1}-{s2}")
+        
+        return " ".join(scores[:3])  # Max 3 sets
+    
+    def _convert_cnswpl_scores_to_tennis(self, home_score: str, away_score: str) -> str:
+        """Convert CNSWPL concatenated scores to tennis format."""
+        if not home_score or not away_score:
+            return "Unknown"
+        
+        # Convert scores like "66" (6-6) and "12" (1-2) to proper tennis scores
+        try:
+            # Handle single digit and double digit scores
+            home_sets = []
+            away_sets = []
+            
+            # Parse home score (e.g., "66" -> [6, 6] or "265" -> [2, 6, 5])
+            home_str = str(home_score)
+            if len(home_str) == 2:
+                home_sets = [int(home_str[0]), int(home_str[1])]
+            elif len(home_str) == 3:
+                home_sets = [int(home_str[0]), int(home_str[1]), int(home_str[2])]
+            elif len(home_str) == 4:
+                home_sets = [int(home_str[0]), int(home_str[1]), int(home_str[2]), int(home_str[3])]
+            else:
+                home_sets = [int(d) for d in home_str]
+            
+            # Parse away score
+            away_str = str(away_score)
+            if len(away_str) == 2:
+                away_sets = [int(away_str[0]), int(away_str[1])]
+            elif len(away_str) == 3:
+                away_sets = [int(away_str[0]), int(away_str[1]), int(away_str[2])]
+            elif len(away_str) == 4:
+                away_sets = [int(away_str[0]), int(away_str[1]), int(away_str[2]), int(away_str[3])]
+            else:
+                away_sets = [int(d) for d in away_str]
+            
+            # Combine into tennis score format
+            tennis_sets = []
+            max_sets = max(len(home_sets), len(away_sets))
+            for i in range(max_sets):
+                home_set = home_sets[i] if i < len(home_sets) else 0
+                away_set = away_sets[i] if i < len(away_sets) else 0
+                tennis_sets.append(f"{home_set}-{away_set}")
+            
+            return ", ".join(tennis_sets)
+            
+        except (ValueError, IndexError):
+            return f"{home_score}-{away_score}"  # Fallback
+    
+    def _determine_cnswpl_winner(self, soup, court_num: str) -> str:
+        """Determine match winner from green checkboxes in CNSWPL format."""
+        try:
+            # Look for green checkbox images near the court number
+            html_content = str(soup)
+            
+            # Pattern: look for green checkbox image tags
+            if 'admin_captain_teams_approve_check_green.png' in html_content:
+                # Find the position of the court and check for green checkboxes nearby
+                court_pattern = f"Court {court_num}"
+                court_pos = html_content.find(court_pattern)
+                
+                if court_pos >= 0:
+                    # Look in the section around this court for green checkboxes
+                    section = html_content[court_pos:court_pos + 2000]  # Look ahead in HTML
+                    
+                    # Count green checkboxes in this section
+                    green_count = section.count('admin_captain_teams_approve_check_green.png')
+                    
+                    # Simple heuristic: if we find green checkboxes, assume home team won
+                    # (More sophisticated logic would parse the table structure)
+                    if green_count > 0:
+                        return "home"  # Green checkboxes indicate home team won
+                    else:
+                        return "away"
+            
+            return "unknown"  # Fallback if no green checkboxes found
+            
+        except Exception:
+            return "unknown"
     
     def _extract_cnswpl_individual_scores(self, soup) -> str:
         """Extract individual set scores from CNSWPL court breakdown."""
