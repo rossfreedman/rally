@@ -539,18 +539,15 @@ class EnhancedMatchScraper:
         return matches
     
     def _extract_detailed_match_data(self, html: str, series_name: str, match_id: str) -> Optional[Dict]:
-        """Extract detailed match data from individual match page (like APTA format)."""
+        """Extract detailed match data from CNSWPL individual match page."""
         try:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Generate a proper unique match ID
-            import hashlib
-            unique_id = hashlib.md5(f"{match_id}_{series_name}_{html[:200]}".encode()).hexdigest()[:8]
-            
+            # Generate a proper unique match ID using the original match_id from URL
             match_data = {
                 "league_id": "CNSWPL",
-                "match_id": f"cnswpl_{unique_id}",
+                "match_id": f"cnswpl_{match_id}",
                 "source_league": "CNSWPL",
                 "Series": series_name,
                 "Date": None,
@@ -568,8 +565,12 @@ class EnhancedMatchScraper:
                 "Winner": None
             }
             
-            # Extract date - look in multiple locations
-            match_data["Date"] = self._extract_match_date(soup)
+            # Extract date and teams from CNSWPL match header
+            # Look for pattern like "Series 1 March 6, 2025" and "Hinsdale PC 1a @ Birchwood 1: 1 - 12"
+            match_data["Date"] = self._extract_cnswpl_date(soup)
+            teams_and_score = self._extract_cnswpl_teams_and_score(soup)
+            if teams_and_score:
+                match_data.update(teams_and_score)
             
             # Extract team names
             team_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(club in text.lower() for club in ['birchwood', 'lake bluff', 'winnetka', 'sunset ridge', 'prairie club', 'tennaqua', 'michigan shores', 'exmoor', 'park ridge', 'skokie', 'valley lo', 'wilmette', 'glenbrook', 'knollwood', 'winter club', 'lifesport', 'hinsdale', 'saddle', 'midtown', 'north shore', 'lake shore', 'indian hill', 'evanston', 'glen view', 'sunset ridge']))
