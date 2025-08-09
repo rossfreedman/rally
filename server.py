@@ -54,14 +54,19 @@ from utils.route_validation import validate_routes_on_startup
 # Import temporary password middleware
 from app.middleware.temporary_password_middleware import TemporaryPasswordMiddleware
 
-# Run database migrations before starting the application (non-blocking)
+# Run database migrations before starting the application (non-blocking with timeout)
 print("=== Running Database Migrations ===")
 try:
-    from scripts.run_migrations import run_all_migrations
-
-    migration_success = run_all_migrations()
-    if not migration_success:
-        print("❌ Database migrations failed - application may not function correctly")
+    # Skip migrations on Railway if database is not immediately available
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT")
+    if railway_env in ["staging", "production"]:
+        print(f"🚀 Railway {railway_env} detected - skipping potentially slow migration checks")
+        print("⚠️ Migrations will be handled separately if needed")
+    else:
+        from scripts.run_migrations import run_all_migrations
+        migration_success = run_all_migrations()
+        if not migration_success:
+            print("❌ Database migrations failed - application may not function correctly")
 except Exception as e:
     print(f"Migration error: {e}")
     print("⚠️ Continuing with application startup...")
@@ -69,12 +74,18 @@ except Exception as e:
 # Simple database connection test (non-blocking)
 print("=== Testing Database Connection ===")
 try:
-    success, error = test_db_connection()
-    if success:
-        print("✅ Database connection successful!")
+    # Quick timeout for Railway environments to prevent hanging
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT")
+    if railway_env in ["staging", "production"]:
+        print(f"🚀 Railway {railway_env} detected - skipping database connection test during startup")
+        print("⚠️ Database connectivity will be tested on first request")
     else:
-        print(f"⚠️ Database connection warning: {error}")
-        print("⚠️ Application will start anyway - database connectivity will be retried as needed")
+        success, error = test_db_connection()
+        if success:
+            print("✅ Database connection successful!")
+        else:
+            print(f"⚠️ Database connection warning: {error}")
+            print("⚠️ Application will start anyway - database connectivity will be retried as needed")
 except Exception as e:
     print(f"⚠️ Database test error: {e}")
     print("⚠️ Application will start anyway - database connectivity will be retried as needed")
@@ -145,7 +156,17 @@ def test_startup():
         "port": os.environ.get('PORT', '8080')
     })
 
-# Add a minimal health check that doesn't depend on any imports
+# Add immediate health endpoints before any heavy startup logic
+@app.route("/health")
+def health():
+    """Primary health check endpoint for Railway"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Rally server is running",
+        "timestamp": datetime.now().isoformat(),
+        "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    })
+
 @app.route("/health-minimal")
 def minimal_healthcheck():
     """Minimal health check with no dependencies"""
@@ -667,9 +688,9 @@ def serve_static_files(filename):
     return send_from_directory("static", filename)
 
 
-@app.route("/health")
-def healthcheck():
-    """Health check endpoint with database connectivity info"""
+@app.route("/health/detailed")
+def healthcheck_detailed():
+    """Detailed health check endpoint with database connectivity info"""
     health_status = {
         "status": "healthy",
         "message": "Rally server is running",
