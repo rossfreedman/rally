@@ -534,6 +534,10 @@
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
+  // Load Last 3 Matches data FIRST (independent of PTI data)
+  console.log('🎯 About to call loadLast3Matches()...');
+  loadLast3Matches();
+  
   // Only load PTI chart and season history if PTI data is available
   {% if analyze_data.pti_data_available %}
   console.log('Loading PTI history chart...');
@@ -683,8 +687,7 @@ document.addEventListener('DOMContentLoaded', async function() {
    console.log('PTI data not available - skipping PTI chart');
    {% endif %}
    
-   // Load Last 3 Matches data
-   loadLast3Matches();
+   console.log('✅ Finished DOMContentLoaded handler');
  });
 
 // Function to load season history data
@@ -777,13 +780,16 @@ async function loadSeasonHistory() {
 
 // Function to load Last 3 Matches data
 async function loadLast3Matches() {
+  console.log('🔥 loadLast3Matches() function called!');
   const loading = document.getElementById('last3MatchesLoading');
   const error = document.getElementById('last3MatchesError');
   const empty = document.getElementById('last3MatchesEmpty');
   const list = document.getElementById('last3MatchesList');
   
+  console.log('🔍 DOM elements:', {loading, error, empty, list});
+  
   try {
-    console.log('Loading last 3 matches...');
+    console.log('🚀 Making API call to /api/last-3-matches...');
     
     // Show loading state
     loading.classList.remove('hidden');

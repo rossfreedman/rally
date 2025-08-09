@@ -117,6 +117,18 @@ app = Flask(__name__, static_folder="static", static_url_path="/static")
 # Test that the app can be created
 print("✅ Flask app instance created successfully")
 
+# Marketing hosts config for serving the website landing and static assets
+MARKETING_HOSTS = {
+    "lovetorally.com",
+    "www.lovetorally.com",
+    "rallytennaqua.com",
+    "www.rallytennaqua.com",
+}
+WEBSITE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "website")
+
+# Safe list of marketing asset prefixes
+MARKETING_PREFIXES = ("assets/", "static/", "css/", "js/", "images/", "img/")
+
 # Add a basic test route immediately
 @app.route("/basic-test")
 def basic_test():
@@ -418,6 +430,15 @@ def log_request_info():
         print("=" * 50)
 
 
+# Redirect certain paths on marketing hosts before route handling
+@app.before_request
+def marketing_host_redirects():
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        # Ensure /mobile lands on app login
+        if request.path == "/mobile":
+            return redirect("/login", code=302)
+
 # ==========================================
 # CORE ROUTES (Essential routes that stay in server.py)
 # ==========================================
@@ -425,10 +446,82 @@ def log_request_info():
 
 @app.route("/")
 def serve_index():
-    """Serve the index page"""
+    """Root: serve marketing home on marketing hosts; otherwise keep app behavior"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        return send_from_directory(WEBSITE_DIR, "index.html")
+    # Non-marketing hosts keep existing behavior (app)
     if "user" not in session:
         return redirect("/login")
     return redirect("/mobile")
+
+
+@app.route("/favicon.ico", methods=["GET"])
+def favicon_file():
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        return send_from_directory(WEBSITE_DIR, "favicon.ico")
+    return ("", 404)
+
+
+@app.route("/robots.txt", methods=["GET"])
+def robots_file():
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        return send_from_directory(WEBSITE_DIR, "robots.txt")
+    return ("", 404)
+
+
+# Marketing asset routes - specific prefixes only to avoid conflicts
+@app.route("/assets/<path:filename>", methods=["GET"])
+def marketing_assets_prefix(filename):
+    """Serve marketing assets from website/assets/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "assets", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "assets"), filename)
+    return ("", 404)
+
+@app.route("/css/<path:filename>", methods=["GET"])  
+def marketing_css_prefix(filename):
+    """Serve marketing CSS from website/css/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "css", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "css"), filename)
+    return ("", 404)
+
+@app.route("/js/<path:filename>", methods=["GET"])
+def marketing_js_prefix(filename):
+    """Serve marketing JS from website/js/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "js", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "js"), filename)
+    return ("", 404)
+
+@app.route("/images/<path:filename>", methods=["GET"])
+def marketing_images_prefix(filename):
+    """Serve marketing images from website/images/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "images", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "images"), filename)
+    return ("", 404)
+
+@app.route("/img/<path:filename>", methods=["GET"])
+def marketing_img_prefix(filename):
+    """Serve marketing images from website/img/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "img", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "img"), filename)
+    return ("", 404)
 
 
 @app.route("/welcome")

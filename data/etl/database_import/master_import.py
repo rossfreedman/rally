@@ -150,6 +150,38 @@ class MasterImporter:
             logger.info("Falling back to legacy hardcoded leagues")
             return self.LEGACY_LEAGUES
     
+    def _discover_leagues_from_players_data(self):
+        """Discover leagues from consolidated players.json (for team bootstrapping)"""
+        try:
+            import json
+            # Get the project root directory  
+            project_root = Path(__file__).parent.parent.parent.parent
+            players_file = project_root / "data" / "leagues" / "all" / "players.json"
+            
+            if not players_file.exists():
+                logger.warning(f"Players file not found: {players_file}")
+                return []
+            
+            with open(players_file, 'r') as f:
+                players_data = json.load(f)
+            
+            # Extract unique leagues from player data
+            leagues_in_data = set()
+            for player in players_data:
+                league = player.get('League', '').strip()
+                if league:
+                    # Convert to database league ID format
+                    # The players.json should have the correct database league IDs
+                    leagues_in_data.add(league)
+            
+            leagues_list = sorted(list(leagues_in_data))
+            logger.info(f"Discovered {len(leagues_list)} leagues from players data: {', '.join(leagues_list)}")
+            return leagues_list
+            
+        except Exception as e:
+            logger.error(f"Error discovering leagues from players data: {e}")
+            return []
+    
     def _build_import_steps(self):
         """Build import steps based on league parameter"""
         steps = []
@@ -161,6 +193,54 @@ class MasterImporter:
             "args": [],
             "description": "Consolidate all league JSON files into unified data"
         })
+        
+        # Add bootstrap steps for series and teams (required before players import)
+        # Use leagues from players data to ensure ALL leagues with players get teams bootstrapped
+        leagues_from_players = self._discover_leagues_from_players_data()
+        
+        if self.league:
+            # Single league mode - bootstrap only the specified league
+            normalized_league = self.LEAGUE_MAPPING.get(self.league, self.league)
+            
+            # Check both directory-based and players-data-based discovery
+            if (normalized_league not in self.available_leagues and 
+                normalized_league not in leagues_from_players):
+                raise ValueError(f"Invalid league: {self.league}. Available leagues: {', '.join(self.available_leagues)}. Leagues in players data: {', '.join(leagues_from_players)}")
+            
+            steps.extend([
+                {
+                    "name": f"Bootstrap Series - {self.league}",
+                    "script": "bootstrap_series_from_players.py",
+                    "args": ["--league", self.league],
+                    "description": f"Bootstrap series data for {self.league} from players.json"
+                },
+                {
+                    "name": f"Bootstrap Teams - {self.league}",
+                    "script": "bootstrap_teams_from_players.py", 
+                    "args": ["--league", self.league],
+                    "description": f"Bootstrap team data for {self.league} from players.json"
+                }
+            ])
+        else:
+            # All leagues mode - bootstrap ALL leagues that have players (not just directories)
+            all_leagues_to_bootstrap = sorted(set(self.available_leagues + leagues_from_players))
+            logger.info(f"Bootstrapping teams for {len(all_leagues_to_bootstrap)} leagues (directories + players data): {', '.join(all_leagues_to_bootstrap)}")
+            
+            for league in all_leagues_to_bootstrap:
+                steps.extend([
+                    {
+                        "name": f"Bootstrap Series - {league}",
+                        "script": "bootstrap_series_from_players.py",
+                        "args": ["--league", league],
+                        "description": f"Bootstrap series data for {league} from players.json"
+                    },
+                    {
+                        "name": f"Bootstrap Teams - {league}",
+                        "script": "bootstrap_teams_from_players.py",
+                        "args": ["--league", league], 
+                        "description": f"Bootstrap team data for {league} from players.json"
+                    }
+                ])
         
         # Add stats import steps based on league parameter
         if self.league:
@@ -191,7 +271,7 @@ class MasterImporter:
                     "description": f"Import series statistics for {league}"
                 })
         
-        # Always include match scores and players import
+        # Always include match scores, players, and player history import
         steps.extend([
             {
                 "name": "Import Match Scores",
@@ -204,6 +284,12 @@ class MasterImporter:
                 "script": "import_players.py",
                 "args": [],
                 "description": "Import player data and associations"
+            },
+            {
+                "name": "Import Player History",
+                "script": "import_player_history.py",
+                "args": [],
+                "description": "Import PTI history data for players"
             }
         ])
         
@@ -662,6 +748,16 @@ class MasterImporter:
                     f.write("Purpose: Merge all league JSON files into unified data structure\n")
                     f.write("Data Processed: All league directories and JSON files\n")
                     f.write("Output: Consolidated data in data/leagues/all/\n")
+                elif step_name.startswith("Bootstrap Series"):
+                    league_name = step_name.replace("Bootstrap Series - ", "")
+                    f.write(f"Purpose: Bootstrap series data for {league_name} from players.json\n")
+                    f.write("Data Imported: Series definitions and league associations\n")
+                    f.write("Database Tables: series, series_leagues\n")
+                elif step_name.startswith("Bootstrap Teams"):
+                    league_name = step_name.replace("Bootstrap Teams - ", "")
+                    f.write(f"Purpose: Bootstrap team data for {league_name} from players.json\n")
+                    f.write("Data Imported: Team definitions, club associations, series mappings\n")
+                    f.write("Database Tables: teams\n")
                 elif step_name.startswith("Import Stats"):
                     league_name = step_name.replace("Import Stats - ", "")
                     f.write(f"Purpose: Import series statistics for {league_name}\n")
@@ -675,6 +771,10 @@ class MasterImporter:
                     f.write("Purpose: Import player data and associations\n")
                     f.write("Data Imported: Player profiles, team assignments, league memberships\n")
                     f.write("Database Tables: players, user_player_associations\n")
+                elif step_name == "Import Player History":
+                    f.write("Purpose: Import PTI history data for players\n")
+                    f.write("Data Imported: Historical PTI ratings, match dates, series progression\n")
+                    f.write("Database Tables: player_history\n")
                 
                 f.write(f"Command Output: {result['output'][:1000]}...\n")
                 if result['error']:
@@ -703,6 +803,12 @@ class MasterImporter:
                     if result["status"] == "success":
                         if step_name.startswith("Consolidate League JSONs"):
                             f.write("✓ Unified league data structure\n")
+                        elif step_name.startswith("Bootstrap Series"):
+                            league_name = step_name.replace("Bootstrap Series - ", "")
+                            f.write(f"✓ {league_name} series definitions and associations\n")
+                        elif step_name.startswith("Bootstrap Teams"):
+                            league_name = step_name.replace("Bootstrap Teams - ", "")
+                            f.write(f"✓ {league_name} team definitions and mappings\n")
                         elif step_name.startswith("Import Stats"):
                             league_name = step_name.replace("Import Stats - ", "")
                             f.write(f"✓ {league_name} statistics and standings\n")
@@ -710,6 +816,8 @@ class MasterImporter:
                             f.write("✓ Match results and scores\n")
                         elif step_name == "Import Players":
                             f.write("✓ Player data and associations\n")
+                        elif step_name == "Import Player History":
+                            f.write("✓ Player PTI history and progression\n")
                 f.write("\n")
             
             # What failed to import

@@ -228,21 +228,23 @@ class MatchScoresETL:
             if winner and winner.lower() not in ["home", "away"]:
                 winner = None
 
-            # Generate unique tenniscores_match_id
-            base_match_id = record.get("match_id", "").strip()
-            line = record.get("Line", "").strip()
+            # Validate required tenniscores_match_id
+            base_match_id = (record.get("match_id") or "").strip()
             
-            # Use the match_id directly if it already contains the line information
-            # The JSON data already has the correct format like "nndz-WWlHNnc3djZnQT09_Line4"
-            if base_match_id:
-                tenniscores_match_id = base_match_id
-            else:
-                # Fallback: construct from base and line if match_id is missing
-                if line:
-                    line_number = line.replace(" ", "")  # "Line 1" -> "Line1"
-                    tenniscores_match_id = f"unknown_{line_number}"
-                else:
-                    tenniscores_match_id = "unknown"
+            if not base_match_id:
+                # CRITICAL: Missing match_id - this is a data quality issue that must be addressed
+                error_details = {
+                    'date': match_date_str,
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'league': league_id,
+                    'line': record.get("Line", "Unknown")
+                }
+                logger.critical(f"🚨 CRITICAL DATA QUALITY ALERT: Missing match_id for match: {error_details}")
+                raise ValueError(f"IMPORT FAILED: Record missing required match_id. Details: {error_details}. "
+                               f"All source data must have valid match_id values. Fix the data source and retry.")
+            
+            tenniscores_match_id = base_match_id
 
             # Use cached lookups
             league_db_id = league_cache.get(league_id)
@@ -255,6 +257,9 @@ class MatchScoresETL:
                 str(scores), winner, league_db_id, tenniscores_match_id
             )
             
+        except ValueError as e:
+            # Re-raise ValueError (data quality issues) to fail the entire import
+            raise
         except Exception as e:
             logger.error(f"❌ Error processing match record: {e}")
             self.stats['errors'] += 1

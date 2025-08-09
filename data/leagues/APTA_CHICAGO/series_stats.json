@@ -8584,6 +8584,325 @@
     }
   },
   {
+    "series": "Chicago 22",
+    "team": "Lake Forest - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 148,
+    "matches": {
+      "won": 13,
+      "lost": 4,
+      "tied": 0,
+      "percentage": "76.5%"
+    },
+    "lines": {
+      "won": 48,
+      "lost": 20,
+      "for": 0,
+      "ret": 0,
+      "percentage": "70.6%"
+    },
+    "sets": {
+      "won": 98,
+      "lost": 55,
+      "percentage": "64.1%"
+    },
+    "games": {
+      "won": 786,
+      "lost": 635,
+      "percentage": "55.3%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Valley Lo - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 144,
+    "matches": {
+      "won": 14,
+      "lost": 3,
+      "tied": 0,
+      "percentage": "82.4%"
+    },
+    "lines": {
+      "won": 45,
+      "lost": 23,
+      "for": 0,
+      "ret": 0,
+      "percentage": "66.2%"
+    },
+    "sets": {
+      "won": 99,
+      "lost": 60,
+      "percentage": "62.3%"
+    },
+    "games": {
+      "won": 793,
+      "lost": 655,
+      "percentage": "54.8%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Tennaqua - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 131,
+    "matches": {
+      "won": 11,
+      "lost": 5,
+      "tied": 0,
+      "percentage": "68.8%"
+    },
+    "lines": {
+      "won": 39,
+      "lost": 25,
+      "for": 0,
+      "ret": 0,
+      "percentage": "60.9%"
+    },
+    "sets": {
+      "won": 90,
+      "lost": 62,
+      "percentage": "59.2%"
+    },
+    "games": {
+      "won": 733,
+      "lost": 632,
+      "percentage": "53.7%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Skokie - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 123,
+    "matches": {
+      "won": 10,
+      "lost": 6,
+      "tied": 0,
+      "percentage": "62.5%"
+    },
+    "lines": {
+      "won": 38,
+      "lost": 26,
+      "for": 0,
+      "ret": 0,
+      "percentage": "59.4%"
+    },
+    "sets": {
+      "won": 86,
+      "lost": 63,
+      "percentage": "57.7%"
+    },
+    "games": {
+      "won": 720,
+      "lost": 649,
+      "percentage": "52.6%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Birchwood - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 120,
+    "matches": {
+      "won": 10,
+      "lost": 7,
+      "tied": 0,
+      "percentage": "58.8%"
+    },
+    "lines": {
+      "won": 34,
+      "lost": 34,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 78,
+      "lost": 77,
+      "percentage": "50.3%"
+    },
+    "games": {
+      "won": 698,
+      "lost": 706,
+      "percentage": "49.7%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Lakeshore S&F - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 107,
+    "matches": {
+      "won": 6,
+      "lost": 10,
+      "tied": 0,
+      "percentage": "37.5%"
+    },
+    "lines": {
+      "won": 33,
+      "lost": 31,
+      "for": 0,
+      "ret": 0,
+      "percentage": "51.6%"
+    },
+    "sets": {
+      "won": 69,
+      "lost": 73,
+      "percentage": "48.6%"
+    },
+    "games": {
+      "won": 648,
+      "lost": 606,
+      "percentage": "51.7%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Michigan Shores - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 106,
+    "matches": {
+      "won": 7,
+      "lost": 10,
+      "tied": 0,
+      "percentage": "41.2%"
+    },
+    "lines": {
+      "won": 33,
+      "lost": 31,
+      "for": 4,
+      "ret": 0,
+      "percentage": "48.5%"
+    },
+    "sets": {
+      "won": 73,
+      "lost": 74,
+      "percentage": "49.7%"
+    },
+    "games": {
+      "won": 692,
+      "lost": 674,
+      "percentage": "50.7%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Lake Shore CC - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 104,
+    "matches": {
+      "won": 8,
+      "lost": 8,
+      "tied": 0,
+      "percentage": "50.0%"
+    },
+    "lines": {
+      "won": 31,
+      "lost": 32,
+      "for": 1,
+      "ret": 0,
+      "percentage": "48.4%"
+    },
+    "sets": {
+      "won": 63,
+      "lost": 73,
+      "percentage": "46.3%"
+    },
+    "games": {
+      "won": 591,
+      "lost": 646,
+      "percentage": "47.8%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Exmoor - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 102,
+    "matches": {
+      "won": 8,
+      "lost": 8,
+      "tied": 0,
+      "percentage": "50.0%"
+    },
+    "lines": {
+      "won": 29,
+      "lost": 35,
+      "for": 0,
+      "ret": 0,
+      "percentage": "45.3%"
+    },
+    "sets": {
+      "won": 71,
+      "lost": 79,
+      "percentage": "47.3%"
+    },
+    "games": {
+      "won": 670,
+      "lost": 691,
+      "percentage": "49.2%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Lake Bluff - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 65,
+    "matches": {
+      "won": 2,
+      "lost": 14,
+      "tied": 0,
+      "percentage": "12.5%"
+    },
+    "lines": {
+      "won": 18,
+      "lost": 45,
+      "for": 1,
+      "ret": 0,
+      "percentage": "28.1%"
+    },
+    "sets": {
+      "won": 47,
+      "lost": 96,
+      "percentage": "32.9%"
+    },
+    "games": {
+      "won": 594,
+      "lost": 763,
+      "percentage": "43.8%"
+    }
+  },
+  {
+    "series": "Chicago 22",
+    "team": "Saddle & Cycle - 22",
+    "league_id": "APTA_CHICAGO",
+    "points": 43,
+    "matches": {
+      "won": 1,
+      "lost": 15,
+      "tied": 0,
+      "percentage": "6.2%"
+    },
+    "lines": {
+      "won": 12,
+      "lost": 44,
+      "for": 8,
+      "ret": 0,
+      "percentage": "18.8%"
+    },
+    "sets": {
+      "won": 31,
+      "lost": 93,
+      "percentage": "25.0%"
+    },
+    "games": {
+      "won": 416,
+      "lost": 684,
+      "percentage": "37.8%"
+    }
+  },
+  {
     "series": "Chicago 23",
     "team": "Inverness - 23",
     "league_id": "APTA_CHICAGO",
