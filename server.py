@@ -462,8 +462,8 @@ def log_request_info():
 def marketing_host_redirects():
     host = request.host.split(":")[0].lower()
     if host in MARKETING_HOSTS:
-        # Ensure /mobile lands on app login
-        if request.path == "/mobile":
+        # Ensure /mobile lands on app login ONLY for unauthenticated users
+        if request.path == "/mobile" and "user" not in session:
             return redirect("/login", code=302)
 
 # ==========================================
