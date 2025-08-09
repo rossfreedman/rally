@@ -244,8 +244,8 @@
                     <div class="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mb-6 mx-auto">
                         <i class="fas fa-calendar-alt text-white text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">View Schedule</h3>
-                    <p class="text-gray-600 text-center">Never miss a match again. View your complete schedule with match details, opponent information, and real-time updates.</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">View Your Schedule</h3>
+                    <p class="text-gray-600 text-center">Easily view your complete practice and match schedule includding details on dates, directions, opponent information, and real-time updates.</p>
                 </a>
 
                 <!-- Search Players Across Your League Feature -->
@@ -344,10 +344,10 @@
                         <img src="leagues/cptc_logo.jpeg" alt="CPTC Logo" class="h-32 w-auto rounded-lg shadow-lg">
                     </div>
                     <div class="p-6">
-                        <p class="text-gray-600 mb-4">The premier platform tennis league in Chicagoland, featuring multiple divisions and competitive play.</p>
+                        <p class="text-gray-600 mb-4">APTA Chicago is one of the largest regions in the American Platform Tennis Association and home to the Chicago Platform Tennis Charities (CPTC) leagues. Rally is the central hub for schedules, results, standings, and PTI ratings across men’s, women’s, and mixed divisions. It connects dozens of clubs and hundreds of teams, making it easy to track performance, scout opponents, and manage rosters in one place.</p>
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-500">40+ Teams</span>
-                            <button class="text-rally-blue hover:underline">Learn More</button>
+                      
                         </div>
                     </div>
                 </div>
@@ -363,10 +363,10 @@
                         </div>
                     </div>
                     <div class="p-6">
-                        <p class="text-gray-600 mb-4">Northern suburban leagues featuring both recreational and competitive divisions.</p>
+                        <p class="text-gray-600 mb-4">The North Shore Tennis Federation (NSTF) is one of the most active tennis leagues in the Chicago area, bringing together clubs across the North Shore for competitive women’s doubles play. Rally is the go-to hub for NSTF schedules, match results, standings, and player stats. It connects dozens of clubs and hundreds of players, making it easy to track performance, prepare for opponents, and manage rosters all season long.</p>
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-500">30+ Teams</span>
-                            <button class="text-rally-blue hover:underline">Learn More</button>
+
                         </div>
                     </div>
                 </div>
@@ -402,7 +402,7 @@
             </div>
             
             <div class="flex-1 overflow-y-auto p-6">
-                <form id="leagueInterestForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="space-y-4">
+                <form id="leagueInterestForm" class="space-y-4">
                     <div>
                         <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Your Name *</label>
                         <input type="text" id="name" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
@@ -458,7 +458,7 @@
                     <button type="button" onclick="closeLeagueInterestModal()" class="flex-1 bg-gray-100 text-gray-800 py-3 rounded-lg hover:bg-gray-200 transition duration-300">
                         Cancel
                     </button>
-                    <button type="submit" form="leagueInterestForm" class="flex-1 bg-rally-blue text-white py-3 rounded-lg hover:bg-blue-800 transition duration-300">
+                    <button type="submit" form="leagueInterestForm" class="flex-1 bg-rally-green hover:bg-rally-lime text-black py-3 rounded-lg transition duration-300 font-semibold shadow-lg transform hover:scale-105">
                         Submit Interest
                     </button>
                 </div>
@@ -808,28 +808,42 @@
         document.getElementById('leagueInterestForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
+            // Get form data
             const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
             
-            // Submit to Formspree
-            fetch(this.action, {
+            // Show loading state
+            const submitButton = document.querySelector('button[type="submit"][form="leagueInterestForm"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Submitting...';
+            submitButton.disabled = true;
+            
+            // Submit to our API endpoint
+            fetch('/api/league-interest', {
                 method: 'POST',
-                body: formData,
                 headers: {
+                    'Content-Type': 'application/json',
                     'Accept': 'application/json'
-                }
-            }).then(response => {
-                if (response.ok) {
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
                     // Success - show thank you message
-                    alert('Thank you for your interest! We\'ll be in touch soon.');
+                    alert(data.message || 'Thank you for your interest! We\'ll be in touch soon.');
                     this.reset();
                     closeLeagueInterestModal();
                 } else {
                     // Error
-                    alert('There was an error submitting your form. Please try again.');
+                    alert(data.error || 'There was an error submitting your form. Please try again.');
                 }
             }).catch(error => {
                 console.error('Error:', error);
                 alert('There was an error submitting your form. Please try again.');
+            }).finally(() => {
+                // Restore button state
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
             });
         });
 

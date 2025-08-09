@@ -22,6 +22,7 @@ from app.services.groups_service import GroupsService
 from database_utils import execute_query, execute_query_one, execute_update, get_db_cursor
 from utils.database_player_lookup import find_player_by_database_lookup
 from utils.logging import log_user_activity
+from app.services.notifications_service import send_sms_notification
 
 api_bp = Blueprint("api", __name__)
 
@@ -8296,3 +8297,80 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
         logger.error(f"Error getting my win streaks notifications: {str(e)}")
     
     return notifications
+
+
+@api_bp.route("/api/league-interest", methods=["POST"])
+def submit_league_interest():
+    """Handle league interest form submissions"""
+    try:
+        # Get form data
+        data = request.json
+        
+        # Extract form fields
+        name = data.get("name", "").strip()
+        email = data.get("email", "").strip()
+        league_name = data.get("leagueName", "").strip()
+        sport = data.get("sport", "").strip()
+        location = data.get("location", "").strip()
+        role = data.get("role", "").strip()
+        additional_info = data.get("additionalInfo", "").strip()
+        
+        # Validate required fields
+        required_fields = {
+            "name": name,
+            "email": email,
+            "leagueName": league_name,
+            "sport": sport,
+            "location": location,
+            "role": role
+        }
+        
+        missing_fields = [field for field, value in required_fields.items() if not value]
+        if missing_fields:
+            return jsonify({
+                "success": False,
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Format SMS message for admin
+        message = f"""🏓 NEW LEAGUE INTEREST SUBMISSION
+        
+Name: {name}
+Email: {email}
+League: {league_name}
+Sport: {sport}
+Location: {location}
+Role: {role}
+
+Additional Info: {additional_info if additional_info else 'None provided'}
+
+Submitted at: {datetime.now().strftime('%m/%d/%Y %I:%M %p')}
+"""
+        
+        # Send SMS notification to admin
+        admin_phone = "773-213-8911"  # Admin phone number from utils/logging.py
+        
+        sms_result = send_sms_notification(admin_phone, message)
+        
+        if not sms_result["success"]:
+            logger.error(f"Failed to send league interest SMS: {sms_result.get('error', 'Unknown error')}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to send notification. Please try again or contact support."
+            }), 500
+        
+        # Log the submission
+        logger.info(f"League interest form submitted - Name: {name}, Email: {email}, League: {league_name}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Thank you for your interest! We'll be in touch soon.",
+            "message_sid": sms_result.get("message_sid")
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing league interest form: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while processing your submission. Please try again."
+        }), 500
