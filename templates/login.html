@@ -539,12 +539,20 @@
         document.addEventListener('DOMContentLoaded', async () => {
             // Set the correct tab based on the current URL or server-provided default
             const currentPath = window.location.pathname;
+            const currentHash = window.location.hash;
             let activeTab = '{{ default_tab if default_tab else "login" }}';
             
             // Override with URL if user directly navigated to a specific page
             if (currentPath === '/register') {
                 activeTab = 'register';
             } else if (currentPath === '/login') {
+                activeTab = 'login';
+            }
+            
+            // Override with hash if present (e.g., /login#register)
+            if (currentHash === '#register') {
+                activeTab = 'register';
+            } else if (currentHash === '#login') {
                 activeTab = 'login';
             }
             
