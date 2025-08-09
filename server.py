@@ -568,18 +568,6 @@ def marketing_leagues_prefix(filename):
     return ("", 404)
 
 
-# Marketing website HTML pages route - CRITICAL FIX for feature pages
-@app.route("/<filename>.html", methods=["GET"])
-def serve_marketing_html(filename):
-    """Serve marketing HTML pages from website directory on marketing hosts"""
-    host = request.host.split(":")[0].lower()
-    if host in MARKETING_HOSTS:
-        file_path = os.path.join(WEBSITE_DIR, f"{filename}.html")
-        if os.path.isfile(file_path):
-            return send_from_directory(WEBSITE_DIR, f"{filename}.html")
-    return ("", 404)
-
-
 @app.route("/welcome")
 @login_required
 def serve_interstitial():
@@ -660,6 +648,19 @@ def serve_create_team_page():
     )
     
     return render_template("mobile/create_team.html", session_data=session_data)
+
+
+# Marketing website HTML pages route - CRITICAL FIX for feature pages
+# MUST be before /<path:path> to avoid conflicts
+@app.route("/<filename>.html", methods=["GET"])
+def serve_marketing_html(filename):
+    """Serve marketing HTML pages from website directory on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, f"{filename}.html")
+        if os.path.isfile(file_path):
+            return send_from_directory(WEBSITE_DIR, f"{filename}.html")
+    return ("", 404)
 
 
 @app.route("/<path:path>")
