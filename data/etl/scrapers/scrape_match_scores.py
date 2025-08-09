@@ -593,10 +593,10 @@ class EnhancedMatchScraper:
                 match_data["Away Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[2].get_text(strip=True))}"
                 match_data["Away Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[3].get_text(strip=True))}"
             
-            # Extract scores and determine winner
-            scores_and_winner = self._extract_scores_and_winner(soup)
-            match_data["Scores"] = scores_and_winner.get("scores")
-            match_data["Winner"] = scores_and_winner.get("winner")
+            # Extract individual set scores from court breakdown
+            individual_scores = self._extract_cnswpl_individual_scores(soup)
+            if individual_scores:
+                match_data["Scores"] = individual_scores
             
             return match_data if match_data["Home Team"] and match_data["Away Team"] else None
             
@@ -654,26 +654,25 @@ class EnhancedMatchScraper:
         # Create a hash of the player name for consistent ID generation
         return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
     
-    def _extract_match_date(self, soup) -> str:
-        """Extract match date from various possible locations in the HTML."""
+    def _extract_cnswpl_date(self, soup) -> str:
+        """Extract match date from CNSWPL match page header."""
         import re
         
-        # Look for date in common locations and patterns
-        date_selectors = [
-            'td:contains("/")',  # Table cells with dates
-            'div:contains("/")', # Divs with dates  
-            'span:contains("/")', # Spans with dates
-            '.date',  # Elements with date class
-            '[class*="date"]'  # Elements with date in class name
-        ]
-        
-        # Check all text content for date patterns
+        # Look for CNSWPL date pattern like "Series 1 March 6, 2025"
         all_text = soup.get_text()
+        
+        # Pattern for "Month Day, Year" format
+        date_pattern = r'\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b'
+        
+        match = re.search(date_pattern, all_text)
+        if match:
+            return match.group(0)
+        
+        # Fallback to standard date patterns
         date_patterns = [
             r'\b\d{1,2}/\d{1,2}/\d{2,4}\b',  # MM/DD/YYYY
             r'\b\d{4}-\d{1,2}-\d{1,2}\b',    # YYYY-MM-DD
             r'\b\d{1,2}-\d{1,2}-\d{2,4}\b',  # MM-DD-YYYY
-            r'\b\d{1,2}/\d{1,2}/\d{2}\b',    # MM/DD/YY
         ]
         
         for pattern in date_patterns:
@@ -682,6 +681,68 @@ class EnhancedMatchScraper:
                 return matches[0]
         
         return None
+    
+    def _extract_cnswpl_teams_and_score(self, soup) -> dict:
+        """Extract teams and match score from CNSWPL match page."""
+        import re
+        
+        all_text = soup.get_text()
+        
+        # Look for pattern like "Hinsdale PC 1a @ Birchwood 1: 1 - 12"
+        # Team @ Team: Score - Score
+        team_score_pattern = r'([^@\n]+)\s*@\s*([^:\n]+):\s*(\d+)\s*-\s*(\d+)'
+        
+        match = re.search(team_score_pattern, all_text)
+        if match:
+            away_team = match.group(1).strip()
+            home_team = match.group(2).strip()
+            away_score = int(match.group(3))
+            home_score = int(match.group(4))
+            
+            # Determine winner based on team match score
+            if home_score > away_score:
+                winner = "home"
+            elif away_score > home_score:
+                winner = "away"
+            else:
+                winner = "tie"
+            
+            return {
+                "Home Team": home_team,
+                "Away Team": away_team,
+                "Team Match Score": f"{away_score}-{home_score}",  # Away-Home format
+                "Winner": winner
+            }
+        
+        return {}
+    
+    def _extract_cnswpl_individual_scores(self, soup) -> str:
+        """Extract individual set scores from CNSWPL court breakdown."""
+        import re
+        
+        # Look for tennis set scores like "6-1", "6-2", "7-5", etc.
+        all_text = soup.get_text()
+        
+        # Pattern for tennis set scores
+        set_pattern = r'\b[0-7]-[0-7]\b'
+        scores = re.findall(set_pattern, all_text)
+        
+        # Filter out obvious non-tennis scores and return unique scores
+        tennis_scores = []
+        for score in scores:
+            parts = score.split('-')
+            if len(parts) == 2:
+                s1, s2 = int(parts[0]), int(parts[1])
+                # Valid tennis scores (excluding team match scores like 1-12)
+                if (s1 <= 7 and s2 <= 7) and not (s1 <= 1 and s2 >= 10):
+                    tennis_scores.append(score)
+        
+        return " ".join(tennis_scores[:4])  # Return first 4 sets max
+    
+    def _extract_match_date(self, soup) -> str:
+        """Extract match date from various possible locations in the HTML."""
+        # For CNSWPL, use the specific extraction method
+        return self._extract_cnswpl_date(soup)
     
     def _extract_scores_and_winner(self, soup) -> dict:
         """Extract match scores and determine winner."""
