@@ -544,9 +544,13 @@ class EnhancedMatchScraper:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             
+            # Generate a proper unique match ID
+            import hashlib
+            unique_id = hashlib.md5(f"{match_id}_{series_name}_{html[:200]}".encode()).hexdigest()[:8]
+            
             match_data = {
                 "league_id": "CNSWPL",
-                "match_id": f"{match_id}_{series_name.replace(' ', '_')}",
+                "match_id": f"cnswpl_{unique_id}",
                 "source_league": "CNSWPL",
                 "Series": series_name,
                 "Date": None,
@@ -564,10 +568,8 @@ class EnhancedMatchScraper:
                 "Winner": None
             }
             
-            # Extract date
-            date_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and self._is_date(text))
-            if date_elements:
-                match_data["Date"] = date_elements[0].get_text(strip=True)
+            # Extract date - look in multiple locations
+            match_data["Date"] = self._extract_match_date(soup)
             
             # Extract team names
             team_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(club in text.lower() for club in ['birchwood', 'lake bluff', 'winnetka', 'sunset ridge', 'prairie club', 'tennaqua', 'michigan shores', 'exmoor', 'park ridge', 'skokie', 'valley lo', 'wilmette', 'glenbrook', 'knollwood', 'winter club', 'lifesport', 'hinsdale', 'saddle', 'midtown', 'north shore', 'lake shore', 'indian hill', 'evanston', 'glen view', 'sunset ridge']))
@@ -590,16 +592,10 @@ class EnhancedMatchScraper:
                 match_data["Away Player 1 ID"] = f"cnswpl_{self._generate_player_id(player_elements[2].get_text(strip=True))}"
                 match_data["Away Player 2 ID"] = f"cnswpl_{self._generate_player_id(player_elements[3].get_text(strip=True))}"
             
-            # Extract scores
-            score_elements = soup.find_all(['td', 'div', 'span'], string=lambda text: text and any(char in text for char in ['-', '6', '7']) and len(text.split()) >= 2)
-            if score_elements:
-                match_data["Scores"] = score_elements[0].get_text(strip=True)
-                
-                # Determine winner based on scores
-                scores = match_data["Scores"]
-                if scores and '-' in scores:
-                    # Simple logic: first team mentioned is usually home team
-                    match_data["Winner"] = "home" if match_data["Home Team"] else "unknown"
+            # Extract scores and determine winner
+            scores_and_winner = self._extract_scores_and_winner(soup)
+            match_data["Scores"] = scores_and_winner.get("scores")
+            match_data["Winner"] = scores_and_winner.get("winner")
             
             return match_data if match_data["Home Team"] and match_data["Away Team"] else None
             
@@ -657,6 +653,70 @@ class EnhancedMatchScraper:
         # Create a hash of the player name for consistent ID generation
         return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
     
+    def _extract_match_date(self, soup) -> str:
+        """Extract match date from various possible locations in the HTML."""
+        import re
+        
+        # Look for date in common locations and patterns
+        date_selectors = [
+            'td:contains("/")',  # Table cells with dates
+            'div:contains("/")', # Divs with dates  
+            'span:contains("/")', # Spans with dates
+            '.date',  # Elements with date class
+            '[class*="date"]'  # Elements with date in class name
+        ]
+        
+        # Check all text content for date patterns
+        all_text = soup.get_text()
+        date_patterns = [
+            r'\b\d{1,2}/\d{1,2}/\d{2,4}\b',  # MM/DD/YYYY
+            r'\b\d{4}-\d{1,2}-\d{1,2}\b',    # YYYY-MM-DD
+            r'\b\d{1,2}-\d{1,2}-\d{2,4}\b',  # MM-DD-YYYY
+            r'\b\d{1,2}/\d{1,2}/\d{2}\b',    # MM/DD/YY
+        ]
+        
+        for pattern in date_patterns:
+            matches = re.findall(pattern, all_text)
+            if matches:
+                return matches[0]
+        
+        return None
+    
+    def _extract_scores_and_winner(self, soup) -> dict:
+        """Extract match scores and determine winner."""
+        import re
+        
+        # Look for score patterns in the HTML
+        all_text = soup.get_text()
+        
+        # Common paddle tennis score patterns: 6-4, 6-7, 7-5, etc.
+        score_pattern = r'\b\d{1,2}-\d{1,2}\b'
+        scores = re.findall(score_pattern, all_text)
+        
+        result = {"scores": None, "winner": None}
+        
+        if scores:
+            # Join multiple set scores
+            result["scores"] = " ".join(scores)
+            
+            # Simple winner determination - could be enhanced
+            # For now, assume first team wins if they win more sets
+            try:
+                sets = [score.split('-') for score in scores]
+                home_sets_won = sum(1 for s1, s2 in sets if int(s1) > int(s2))
+                away_sets_won = sum(1 for s1, s2 in sets if int(s2) > int(s1))
+                
+                if home_sets_won > away_sets_won:
+                    result["winner"] = "home"
+                elif away_sets_won > home_sets_won:
+                    result["winner"] = "away"
+                else:
+                    result["winner"] = "tie"
+            except (ValueError, IndexError):
+                result["winner"] = "unknown"
+        
+        return result
+
     def _is_date(self, text: str) -> bool:
         """Check if text looks like a date."""
         import re
