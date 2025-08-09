@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embedded Text Notifications - Rally Features</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="/static/images/rally_favicon.png?v=2025">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-teal': '#0d4f4c',
+                        'rally-teal-dark': '#0a3d3a',
+                        'rally-green': '#84cc16',
+                        'rally-lime': '#a3e635',
+                        'rally-bright-green': '#bff863',
+                        'rally-cream': '#f7f3e9',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .nav-solid {
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk {
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .logo-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-links {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk .logo-container {
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+        }
+        .nav-shrunk .nav-links {
+            padding-bottom: 8px !important;
+        }
+    </style>
+</head>
+<body class="bg-rally-cream">
+    <!-- Navigation -->
+    <nav id="main-nav" class="fixed top-0 w-full z-50 nav-solid">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <!-- Centered Logo -->
+            <div class="logo-container flex justify-center items-center py-0">
+                <a href="index.html" class="flex items-center">
+                    <img class="logo-image h-28 w-auto drop-shadow-lg" src="images/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
+                </a>
+            </div>
+            
+            <!-- Navigation Links -->
+            <div class="nav-links flex justify-center items-center pb-4">
+                <div class="flex items-center space-x-8">
+                    <a href="index.html#features" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Features</a>
+                    <a href="index.html#leagues" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Leagues</a>
+                    <a href="index.html#pricing" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Pricing</a>
+                    <a href="/login" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white py-20" style="padding-top: 175px;">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-mobile-alt text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">Game-Day Intel, Straight to Your Phone</h1>
+            <p class="text-xl text-white/90 max-w-3xl mx-auto">
+                From match schedules to last-minute pickups, Rally's text alerts keep you connected without having to constantly check the app.
+            </p>
+        </div>
+    </section>
+
+    <!-- Feature Highlights -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Stay Connected to What Matters</h2>
+                <p class="text-lg text-gray-600">Rally monitors your league activity in real-time and delivers the most important updates directly to your phone.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Schedule Updates -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-calendar-alt text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Schedule Updates</h3>
+                    <p class="text-gray-600">Instant alerts for practice and match time changes.</p>
+                </div>
+
+                <!-- Club News -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-rally-teal rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-bullhorn text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Club News</h3>
+                    <p class="text-gray-600">Stay in the know with updates and announcements from your club.</p>
+                </div>
+
+                <!-- Team Polls -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-poll text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Team Polls</h3>
+                    <p class="text-gray-600">Get notified when there's something to vote on—your input matters.</p>
+                </div>
+
+                <!-- Pickup Games -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-table-tennis text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Pickup Games</h3>
+                    <p class="text-gray-600">Be the first to know when an extra spot opens up.</p>
+                </div>
+
+                <!-- Pro Tips -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-yellow-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-lightbulb text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Pro Tips</h3>
+                    <p class="text-gray-600">Messages and coaching notes from your club pros.</p>
+                </div>
+
+                <!-- Lineups -->
+                <div class="bg-rally-cream rounded-xl p-6 text-center">
+                    <div class="w-16 h-16 bg-orange-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-users text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Lineups</h3>
+                    <p class="text-gray-600">See who's playing with who, the moment it's set.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-16 bg-rally-cream">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
+                <p class="text-lg text-gray-600">Rally's smart notification system keeps you in the loop without overwhelming your phone.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Step 1 -->
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-green rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-white text-2xl font-bold">1</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">Pick Your Alerts</h3>
+                    <p class="text-gray-600">Choose which notifications you want—keep it lean or go all in.</p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-green rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-white text-2xl font-bold">2</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">We Monitor in Real Time</h3>
+                    <p class="text-gray-600">Rally watches for updates so you don't have to.</p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-rally-green rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-white text-2xl font-bold">3</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">You Get the Ping</h3>
+                    <p class="text-gray-600">Quick, clear texts that tell you exactly what you need to know.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Phone Mockup Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Smart Notifications That Work</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Rally's notification system is designed to keep you informed without being intrusive. You'll only get messages that matter, when they matter.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Customizable Preferences</h3>
+                                <p class="text-gray-600">Turn notifications on or off for each category based on your needs.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Intelligent Timing</h3>
+                                <p class="text-gray-600">Messages are sent at optimal times to ensure you see them when needed.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Clear and Concise</h3>
+                                <p class="text-gray-600">Every message includes just the essential information you need.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="bg-gradient-to-br from-rally-teal/10 to-rally-teal-dark/10 rounded-2xl p-8 text-center">
+                        <!-- Phone mockup placeholder -->
+                        <div class="w-64 h-96 bg-gray-900 rounded-3xl mx-auto p-6 shadow-2xl">
+                            <div class="w-full h-full bg-white rounded-2xl p-4 overflow-hidden">
+                                <div class="space-y-4">
+                                    <!-- Sample text messages -->
+                                    <div class="bg-blue-100 p-3 rounded-lg text-left">
+                                        <p class="text-sm font-medium text-blue-900">🎾 Rally</p>
+                                        <p class="text-sm text-blue-800">Practice moved to 7pm tomorrow at Court 3</p>
+                                        <p class="text-xs text-blue-600">2:34 PM</p>
+                                    </div>
+                                    <div class="bg-green-100 p-3 rounded-lg text-left">
+                                        <p class="text-sm font-medium text-green-900">🎾 Rally</p>
+                                        <p class="text-sm text-green-800">Pickup game spot available at 6pm today!</p>
+                                        <p class="text-xs text-green-600">4:12 PM</p>
+                                    </div>
+                                    <div class="bg-purple-100 p-3 rounded-lg text-left">
+                                        <p class="text-sm font-medium text-purple-900">🎾 Rally</p>
+                                        <p class="text-sm text-purple-800">New team poll: Vote on social event date</p>
+                                        <p class="text-xs text-purple-600">Yesterday</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-16 bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white">
+        <div class="max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Never Miss the Important Stuff</h2>
+            <p class="text-xl text-white/90 mb-8">
+                Turn on Text Notifications in Rally and stay match-ready 24/7.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="https://www.lovetorally.com/login#register" class="bg-rally-green hover:bg-rally-lime text-black px-8 py-4 rounded-lg text-lg font-semibold transition duration-300 shadow-lg transform hover:scale-105">
+                    Enable Text Notifications
+                </a>
+                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-teal transition duration-300">
+                    Back to Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-rally-teal-dark text-white py-12">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="flex items-center justify-center mb-6">
+                <a href="index.html" class="flex items-center">
+                    <img class="h-16 w-auto mr-2" src="images/rallylogobug.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xl font-bold">🏓 Rally</div>
+                </a>
+            </div>
+            <p class="text-gray-400 mb-8">The ultimate club racquet sports app.</p>
+            <div class="text-gray-400">
+                <p>&copy; 2025 Rally LLC. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
