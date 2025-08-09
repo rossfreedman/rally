@@ -771,32 +771,14 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             "No filtering - comprehensive discovery and processing of all team statistics"
         )
 
-        # Try Decodo proxy HTTP API first, fall back to Chrome WebDriver if it fails
-        print("🌐 Attempting Decodo proxy HTTP API approach...")
+        # Use proxy HTTP API approach (skip initial connectivity test to avoid blocks)
+        print("🌐 Using proxy HTTP API approach...")
         
-        # Test Decodo proxy HTTP API availability
         from data.etl.scrapers.proxy_manager import make_proxy_request
-        test_response = make_proxy_request("https://httpbin.org/ip")
-        if test_response:
-            print("✅ Decodo proxy HTTP API is available")
-            use_fallback = True  # Use HTTP API as primary method
-            driver = None
-            chrome_manager = None
-        else:
-            print("⚠️ Decodo proxy HTTP API not available, trying Chrome WebDriver...")
-            try:
-                print("🚀 Attempting stealth Chrome WebDriver approach...")
-                chrome_manager = create_stealth_browser(fast_mode=False, verbose=True, environment="production")
-                driver = chrome_manager.__enter__()
-                
-                print("✅ Stealth Chrome WebDriver created successfully!")
-                use_fallback = False
-            except Exception as chrome_error:
-                print(f"❌ Stealth Chrome WebDriver failed: {chrome_error}")
-                print("🔄 Switching to HTTP requests fallback method...")
-                use_fallback = True
-                driver = None
-                chrome_manager = None
+        print("✅ Proceeding with HTTP API (skipping connectivity test)")
+        use_fallback = True  # Use HTTP API as primary method
+        driver = None
+        chrome_manager = None
 
         # Create dynamic data directory based on league
         data_dir = build_league_data_dir(league_id)

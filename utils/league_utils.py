@@ -15,6 +15,7 @@ CANONICAL_LEAGUE_IDS = {
     "APTA_CHICAGO": "APTA_CHICAGO",
     "NSTF": "NSTF",
     "APTA_NATIONAL": "APTA_NATIONAL",
+    "CNSWPL": "CNSWPL",
 }
 
 # Mapping of all known variations to canonical league IDs
@@ -30,8 +31,11 @@ LEAGUE_ID_MAPPINGS = {
     "north_shore": "NSTF",
     "northshore": "NSTF",
     "north-shore": "NSTF",
-
-
+    # CNSWPL variations
+    "cnswpl": "CNSWPL",
+    "cnswp": "CNSWPL",
+    "chicago_north_suburban": "CNSWPL",
+    "chicago-north-suburban": "CNSWPL",
     # APTA National variations
     "apta_national": "APTA_NATIONAL",
     "aptanational": "APTA_NATIONAL",
@@ -135,8 +139,7 @@ def get_league_display_name(league_id: str) -> str:
         "NSTF": "North Shore Tennis Foundation",
         "APTA_CHICAGO": "APTA Chicago",
         "APTA_NATIONAL": "APTA National",
-
-    
+        "CNSWPL": "Chicago North Suburban Women's Paddle League",
     }
 
     return display_names.get(normalized, normalized or "Unknown League")
@@ -158,8 +161,7 @@ def get_league_url(league_id: str) -> str:
         "NSTF": "https://nstf.org/",
         "APTA_CHICAGO": "https://aptachicago.tenniscores.com/",
         "APTA_NATIONAL": "https://apta.tenniscores.com/",
-
-    
+        "CNSWPL": "https://cnswpl.tenniscores.com/",
     }
 
     return urls.get(normalized, "")
