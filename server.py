@@ -571,10 +571,24 @@ def marketing_leagues_prefix(filename):
 def marketing_screenshots_prefix(filename):
     """Serve marketing screenshots from website/screenshots/ on marketing hosts"""
     host = request.host.split(":")[0].lower()
+    print(f"🖼️ Screenshot request - Host: {host}, File: {filename}")
+    print(f"🖼️ Marketing hosts: {MARKETING_HOSTS}")
+    print(f"🖼️ Is marketing host: {host in MARKETING_HOSTS}")
+    
     if host in MARKETING_HOSTS:
         file_path = os.path.join(WEBSITE_DIR, "screenshots", filename)
+        print(f"🖼️ Looking for file: {file_path}")
+        print(f"🖼️ File exists: {os.path.isfile(file_path)}")
+        
         if os.path.isfile(file_path):
+            print(f"✅ Serving screenshot: {filename}")
             return send_from_directory(os.path.join(WEBSITE_DIR, "screenshots"), filename)
+        else:
+            print(f"❌ Screenshot file not found: {file_path}")
+    else:
+        print(f"❌ Not a marketing host: {host}")
+    
+    print(f"🖼️ Returning 404 for screenshot: {filename}")
     return ("", 404)
 
 
