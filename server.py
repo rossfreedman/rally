@@ -557,6 +557,16 @@ def marketing_img_prefix(filename):
             return send_from_directory(os.path.join(WEBSITE_DIR, "img"), filename)
     return ("", 404)
 
+@app.route("/leagues/<path:filename>", methods=["GET"])
+def marketing_leagues_prefix(filename):
+    """Serve marketing league assets from website/leagues/ on marketing hosts"""
+    host = request.host.split(":")[0].lower()
+    if host in MARKETING_HOSTS:
+        file_path = os.path.join(WEBSITE_DIR, "leagues", filename)
+        if os.path.isfile(file_path):
+            return send_from_directory(os.path.join(WEBSITE_DIR, "leagues"), filename)
+    return ("", 404)
+
 
 @app.route("/welcome")
 @login_required
