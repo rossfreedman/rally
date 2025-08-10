@@ -260,6 +260,7 @@ class MasterImporter:
             league_mapping = {
                 "APTA_CHICAGO": "aptachicago",
                 "NSTF": "nstf",
+                "CNSWPL": "cnswpl",
             }
             
             for league in self.available_leagues:

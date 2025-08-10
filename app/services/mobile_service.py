@@ -5135,7 +5135,14 @@ def calculate_strength_of_schedule(user):
             else:
                 series_suffix = series.replace("Series", "").strip()
                 team = f"{club} S{series_suffix}" if series_suffix else f"{club} S1"
+        elif league_id == "CNSWPL":
+            # CNSWPL uses format "Club Number" (no hyphen), e.g. "Tennaqua 12"
+            import re
+            m = re.search(r"(\d+[a-z]*)", series)  # Handle both "12" and "12a" formats
+            series_num = m.group(1) if m else ""
+            team = f"{club} {series_num}"
         else:
+            # APTA and other leagues use "Club - Number" format
             import re
 
             m = re.search(r"(\d+)", series)

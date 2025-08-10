@@ -38,8 +38,8 @@ def normalize_league_id(league_id: str) -> str:
         "NORTH SHORE TENNIS FOUNDATION": "nstf",
         "NSTF": "nstf",
         "nstf": "nstf",
-
-
+        "CNSWPL": "CNSWPL",
+        "cnswpl": "CNSWPL",
     }
     
     return league_mapping.get(league_id, league_id)
@@ -54,6 +54,7 @@ def load_series_stats_json(league_id: str) -> List[Dict]:
     league_dir_mapping = {
         "aptachicago": "APTA_CHICAGO",
         "nstf": "NSTF",
+        "CNSWPL": "CNSWPL",
         # Keep backward compatibility
         "APTA CHICAGO": "APTA_CHICAGO",
         "APTA_CHICAGO": "APTA_CHICAGO",
@@ -89,8 +90,7 @@ def get_league_db_id(league_id: str) -> Optional[int]:
     league_db_mapping = {
         "aptachicago": "APTA_CHICAGO",
         "nstf": "NSTF",
-
-
+        "cnswpl": "CNSWPL",
     }
     
     # Use mapped league_id for database lookup

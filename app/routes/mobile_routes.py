@@ -381,10 +381,12 @@ def serve_mobile_player_detail(player_id):
     # Determine if this is a player_id (alphanumeric with dashes) or a player name
     # Player IDs look like: nndz-WlNhd3hMYi9nQT09
     # Composite IDs look like: nndz-WlNhd3hMYi9nQT09_team_123
+    # CNSWPL IDs look like: cnswpl_2b49828960f4726c_team_96569
     # Player names look like: John Smith
     
     actual_player_id = player_identifier
     team_id = None
+    player_name = None  # Initialize player_name
     
     # Check if this is a composite ID (player_id_team_teamID)
     if '_team_' in player_identifier:
@@ -396,7 +398,11 @@ def serve_mobile_player_detail(player_id):
             except ValueError:
                 team_id = None
     
-    is_player_id = bool(re.match(r'^[a-zA-Z0-9\-]+$', actual_player_id) and '-' in actual_player_id)
+    # Enhanced player ID detection to include CNSWPL format
+    is_player_id = bool(
+        (re.match(r'^[a-zA-Z0-9\-]+$', actual_player_id) and '-' in actual_player_id) or  # Standard format
+        actual_player_id.startswith('cnswpl_')  # CNSWPL format
+    )
     
     # Get viewing user's league context for filtering
     viewing_user = session["user"].copy()
@@ -461,19 +467,26 @@ def serve_mobile_player_detail(player_id):
         
         if player_record:
             player_name = player_record["full_name"]
+            print(f"[DEBUG] Found player record: {player_name} (ID: {actual_player_id}, Team: {team_id})")
             # Use the team_id from the database record if not explicitly provided
             if not team_id:
                 team_id = player_record.get("team_id")
         else:
-            # Player ID not found, return error
-            session_data = {"user": session["user"], "authenticated": True}
-            analyze_data = {"error": f"Player not found for ID: {player_identifier}"}
-            return render_template(
-                "mobile/player_detail.html",
-                session_data=session_data,
-                analyze_data=analyze_data,
-                player_name=f"Player ID: {player_identifier}",
-            )
+            # Player ID not found, try to get name using the mobile service function
+            from app.services.mobile_service import get_player_name_from_id
+            player_name = get_player_name_from_id(actual_player_id)
+            print(f"[DEBUG] Player record not found, using fallback name: {player_name}")
+            
+            # If still no name found, show meaningful error
+            if player_name == "Unknown Player" or "Player (" in player_name:
+                session_data = {"user": session["user"], "authenticated": True}
+                analyze_data = {"error": f"Player not found for ID: {player_identifier}"}
+                return render_template(
+                    "mobile/player_detail.html",
+                    session_data=session_data,
+                    analyze_data=analyze_data,
+                    player_name=f"Player ID: {player_identifier}",
+                )
     else:
         # Treat as player name - find best matching player record in viewer's league
         player_name = player_identifier
@@ -653,6 +666,10 @@ def serve_mobile_player_detail(player_id):
 
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
+    
+    # Debug: Log what player_name is being passed to template
+    print(f"[DEBUG] Rendering template with player_name: '{player_name}' for player_id: '{actual_player_id}'")
+    
     log_user_activity(
         session["user"]["email"],
         "page_visit",
@@ -665,6 +682,7 @@ def serve_mobile_player_detail(player_id):
         analyze_data=analyze_data,
         player_name=player_name,
         player_info=player_info,
+        viewing_user_league=viewing_user_league,
     )
 
 

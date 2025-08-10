@@ -229,14 +229,46 @@ def get_series_stats_data():
         user_series_id = user.get("series_id")
         user_league_id = user.get("league_id")
         
-        print(f"[DEBUG] Getting series stats for user series_id: {user_series_id}, league: {user_league_id}")
+        # Get the string league ID for proper league format detection
+        user_league_string_id = user.get("league_string_id")  # Should be "CNSWPL"
+        
+        # Convert league_id to integer DB ID if necessary
+        user_league_db_id = user_league_id
+        if isinstance(user_league_id, str):
+            try:
+                # Look up the integer DB ID for the league
+                league_lookup_query = "SELECT id FROM leagues WHERE league_id = %s"
+                league_record = execute_query_one(league_lookup_query, [user_league_id])
+                if league_record:
+                    user_league_db_id = league_record["id"]
+                    user_league_string_id = user_league_id  # Store the original string
+                    print(f"[DEBUG] Converted league_id '{user_league_id}' -> DB ID {user_league_db_id}")
+                else:
+                    print(f"[DEBUG] No league found for league_id '{user_league_id}'")
+                    user_league_db_id = None
+            except Exception as e:
+                print(f"[DEBUG] Error converting league_id: {e}")
+                user_league_db_id = user_league_id
+        elif isinstance(user_league_id, int) and not user_league_string_id:
+            # Look up the string ID from the integer ID
+            try:
+                league_lookup_query = "SELECT league_id FROM leagues WHERE id = %s"
+                league_record = execute_query_one(league_lookup_query, [user_league_id])
+                if league_record:
+                    user_league_string_id = league_record["league_id"]
+                    user_league_db_id = user_league_id
+                    print(f"[DEBUG] Resolved DB ID {user_league_id} -> league_id '{user_league_string_id}'")
+            except Exception as e:
+                print(f"[DEBUG] Error resolving league string ID: {e}")
+        
+        print(f"[DEBUG] Getting series stats for user series_id: {user_series_id}, league: {user_league_id} (DB ID: {user_league_db_id})")
         
         # Strategy 1: Use series_id for direct lookup if available
         db_results = []
         if user_series_id:
             print(f"[DEBUG] Attempting direct series_id lookup: {user_series_id}")
             
-            if user_league_id:
+            if user_league_db_id:
                 series_stats_query = """
                     SELECT 
                         s.series,
@@ -261,7 +293,7 @@ def get_series_stats_data():
                     WHERE s.series_id = %s AND s.league_id = %s
                     ORDER BY s.points DESC, s.team ASC
                 """
-                db_results = execute_query(series_stats_query, [user_series_id, user_league_id])
+                db_results = execute_query(series_stats_query, [user_series_id, user_league_db_id])
             else:
                 series_stats_query = """
                     SELECT 
@@ -312,19 +344,25 @@ def get_series_stats_data():
             if not resolved_series_name:
                 return jsonify({"error": "User series not found"}), 400
 
-            # NORMALIZE SERIES NAME: Convert "Series 2B" to "S2B" for database compatibility
-            # This fixes the same issue we had in the my-team page
+            # NORMALIZE SERIES NAME: Handle different league formats
+            # APTA/NSTF: "Series 2B" -> "S2B" 
+            # CNSWPL: "Series 12" -> "Series 12" (keep as-is)
             normalized_series_name = resolved_series_name
             if resolved_series_name and resolved_series_name.startswith("Series "):
-                # Extract the number and letter from "Series 2B" -> "S2B"
-                series_parts = resolved_series_name.split(" ", 1)
-                if len(series_parts) > 1:
-                    series_number = series_parts[1]
-                    normalized_series_name = f"S{series_number}"
-                    print(f"[DEBUG] Normalized series name: '{resolved_series_name}' -> '{normalized_series_name}'")
+                if user_league_string_id == "CNSWPL":
+                    # CNSWPL uses full "Series 12" format in database
+                    normalized_series_name = resolved_series_name
+                    print(f"[DEBUG] CNSWPL series name kept as-is: '{resolved_series_name}'")
+                else:
+                    # APTA/NSTF use "S2B" format 
+                    series_parts = resolved_series_name.split(" ", 1)
+                    if len(series_parts) > 1:
+                        series_number = series_parts[1]
+                        normalized_series_name = f"S{series_number}"
+                        print(f"[DEBUG] Normalized series name: '{resolved_series_name}' -> '{normalized_series_name}'")
 
             # Query series stats using normalized series name
-            if user_league_id:
+            if user_league_db_id:
                 series_stats_query = """
                     SELECT 
                         s.series,
@@ -349,7 +387,7 @@ def get_series_stats_data():
                                     WHERE s.series = %s AND s.league_id = %s
                 ORDER BY s.points DESC, s.team ASC
                 """
-                db_results = execute_query(series_stats_query, [normalized_series_name, user_league_id])
+                db_results = execute_query(series_stats_query, [normalized_series_name, user_league_db_id])
             else:
                 series_stats_query = """
                     SELECT 

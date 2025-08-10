@@ -33,6 +33,7 @@ project_root = Path(project_root)
 
 from database_config import get_db
 from utils.league_utils import normalize_league_id
+from duplicate_prevention_service import DuplicatePreventionService
 
 # Set up logging
 logging.basicConfig(
@@ -43,9 +44,9 @@ logger = logging.getLogger(__name__)
 
 
 class PlayersETL:
-    """ETL class for importing players to database"""
+    """ETL class for importing players to database with duplicate prevention"""
     
-    def __init__(self, players_file: str = None):
+    def __init__(self, players_file: str = None, prevent_duplicates: bool = True):
         # Define paths
         self.data_dir = project_root / "data" / "leagues" / "all"
         
@@ -74,6 +75,12 @@ class PlayersETL:
             'errors': 0,
             'skipped': 0
         }
+        
+        # Initialize duplicate prevention service
+        self.prevent_duplicates = prevent_duplicates
+        if self.prevent_duplicates:
+            self.duplicate_service = DuplicatePreventionService()
+            logger.info("✅ Duplicate prevention service initialized")
         
         logger.info("🔧 Players ETL initialized")
         logger.info(f"📁 Data directory: {self.data_dir}")

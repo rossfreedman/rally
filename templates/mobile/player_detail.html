@@ -44,7 +44,8 @@
         </div>
         {% endif %}
 
-        <!-- Current PTI (always show, with appropriate messaging) -->
+        <!-- Current PTI (only show when PTI data is available) -->
+        {% if analyze_data.pti_data_available %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -55,7 +56,7 @@
             
             <div class="p-6">
                 <div class="text-center">
-                    {% if analyze_data.pti_data_available and analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
+                    {% if analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
                     <div class="mb-2">
                         <span class="text-4xl font-bold text-gray-900">{{ (analyze_data.current_pti or 0)|round(1, 'common') }}</span>
                         {% if analyze_data.weekly_pti_change is defined and analyze_data.weekly_pti_change is not none %}
@@ -77,8 +78,10 @@
                 </div>
             </div>
         </div>
+        {% endif %}
         
-        <!-- PTI History Chart (always show, with appropriate messaging) -->
+        <!-- PTI History Chart (only show when PTI data is available) -->
+        {% if analyze_data.pti_data_available %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -91,6 +94,7 @@
                 <div id="ptiHistoryChart" style="height:400px;"></div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Current Season Stats -->
         {% if analyze_data.current_season %}
@@ -192,8 +196,8 @@
         </div>
         {% endif %}
 
-        <!-- Career Stats -->
-        {% if analyze_data.career_stats %}
+        <!-- Career Stats (only show when there are meaningful career stats) -->
+        {% if analyze_data.career_stats and analyze_data.career_stats.matches and analyze_data.career_stats.matches > 0 %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -374,8 +378,8 @@
         </div>
         {% endif %}
 
-        <!-- Previous Season History -->
-        {% if analyze_data.pti_data_available or True %}
+        <!-- Previous Season History (only show when PTI data is available) -->
+        {% if analyze_data.pti_data_available %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -430,7 +434,8 @@
         </div>
         {% endif %}
 
-        <!-- Competitive Player Notes -->
+        <!-- Competitive Player Notes (hidden - coming soon feature) -->
+        {% if False %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -493,6 +498,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Empty State -->
         {% if not analyze_data.current_season and not analyze_data.career_stats and not analyze_data.error %}
@@ -675,11 +681,12 @@
 }
 </style>
 
-<!-- PTI Chart JavaScript -->
+<!-- PTI Chart JavaScript (only load when PTI data is available) -->
+{% if analyze_data.pti_data_available %}
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-    // Always try to load PTI chart if analyze_data exists and doesn't have an error
+    // Load PTI chart when PTI data is available and no error
     {% if not analyze_data.error %}
     console.log('Loading PTI history chart for player:', '{{ player_name }}');
     
@@ -824,7 +831,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Load season history data in parallel (copied from working analyze-me implementation)
     loadSeasonHistory();
 });
+</script>
+{% endif %}
 
+<script>
 // Function to load season history data (copied exactly from analyze-me but adapted for player-specific endpoint)
 async function loadSeasonHistory() {
   const loading = document.getElementById('playerSeasonHistoryLoading');

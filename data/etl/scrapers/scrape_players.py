@@ -1472,14 +1472,24 @@ def extract_cnswpl_player_ids_from_match_history(match_history_file: str) -> Set
         # Store globally for the scraper to use
         global CNSWPL_PLAYER_NAMES, CNSWPL_PLAYER_TEAM_INFO
         CNSWPL_PLAYER_NAMES = player_names
-        CNSWPL_PLAYER_TEAM_INFO = {
-            player_id: {
+        CNSWPL_PLAYER_TEAM_INFO = {}
+        
+        for player_id, team in player_teams.items():
+            # Extract series from team name (e.g., "Tennaqua 12" -> "Series 12", "Hinsdale PC 1b" -> "Series 1b")
+            team_parts = team.split() if team else []
+            if len(team_parts) >= 2:
+                club_name = team_parts[0]
+                series_part = team_parts[-1]  # Last part should be series number/letter
+                series = f"Series {series_part}"
+            else:
+                club_name = team if team else 'Unknown'
+                series = 'Series 1'  # Fallback
+            
+            CNSWPL_PLAYER_TEAM_INFO[player_id] = {
                 'team_name': team,
-                'series': 'Series 1',  # Default - could be enhanced by parsing team names
-                'club_name': team.split()[0] if team else 'Unknown'  # Extract club from team name
+                'series': series,
+                'club_name': club_name
             }
-            for player_id, team in player_teams.items()
-        }
         
         print(f"🎾 Found {len(player_ids)} unique cnswpl_ format player IDs in match history")
         
