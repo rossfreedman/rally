@@ -2893,6 +2893,42 @@ def get_series_by_league():
         return jsonify({"error": str(e)}), 500
 
 
+def get_cnswpl_user_friendly_name(database_name, display_name):
+    """Convert CNSWPL database series names to user-friendly format with category labels"""
+    import re
+    
+    # If display_name already has category info, use it as-is
+    if display_name and ('Day League' in display_name or 'Night League' in display_name or 'Sunday Night League' in display_name):
+        return display_name
+    
+    # Use the name we have (prefer display_name if available)
+    name = display_name or database_name
+    
+    # Day League: Convert various formats to "Series X (Day League)"
+    day_match = re.match(r'^(?:Division|Series|S)?\s*(\d+)([a-z]*)$', name, re.IGNORECASE)
+    if day_match:
+        number = day_match.group(1)
+        suffix = day_match.group(2)
+        if suffix:
+            return f"Series {number}{suffix} (Day League)"
+        else:
+            return f"Series {number} (Day League)"
+    
+    # Night League: Convert SA, SB, etc. to "Series A (Night League)", "Series B (Night League)"
+    night_match = re.match(r'^(?:S|Series\s+)?([A-Z])$', name)
+    if night_match:
+        letter = night_match.group(1)
+        return f"Series {letter} (Night League)"
+    
+    # Sunday Night League: Convert SSN to "Series N (Sunday Night League)"
+    sunday_match = re.match(r'^(?:SSN|Series\s+N|SN)$', name, re.IGNORECASE)
+    if sunday_match:
+        return "Series N (Sunday Night League)"
+    
+    # If no pattern matches, return original name
+    return name
+
+
 @api_bp.route("/api/get-user-facing-series-by-league")
 def get_user_facing_series_by_league():
     """Get user-facing series names using the series.display_name column - SIMPLIFIED VERSION"""
@@ -2945,21 +2981,26 @@ def get_user_facing_series_by_league():
                 print(f"[API] Skipping problematic series: {database_name}")
                 continue
             
-            # Use display_name if it exists and is different from database name
-            if display_name and display_name != database_name:
-                user_facing_name = display_name
-                print(f"[API] Using display_name: '{database_name}' -> '{display_name}'")
+            # Special handling for CNSWPL to create consistent, user-friendly names
+            if league_id == 'CNSWPL':
+                user_facing_name = get_cnswpl_user_friendly_name(database_name, display_name)
+                print(f"[API] CNSWPL series: '{database_name}' -> '{user_facing_name}'")
             else:
-                # No display name set, use database name as-is or apply fallback transformations
-                user_facing_name = database_name
-                
-                # For APTA league, try to convert "Chicago" to "Series" in the UI
-                if league_id and league_id.startswith("APTA"):
-                    converted_name = convert_chicago_to_series_for_ui(user_facing_name)
-                    # Use converted name if it actually changed
-                    if converted_name != user_facing_name:
-                        user_facing_name = converted_name
-                        print(f"[API] Applied fallback transformation: '{database_name}' -> '{user_facing_name}'")
+                # Use display_name if it exists and is different from database name
+                if display_name and display_name != database_name:
+                    user_facing_name = display_name
+                    print(f"[API] Using display_name: '{database_name}' -> '{display_name}'")
+                else:
+                    # No display name set, use database name as-is or apply fallback transformations
+                    user_facing_name = database_name
+                    
+                    # For APTA league, try to convert "Chicago" to "Series" in the UI
+                    if league_id and league_id.startswith("APTA"):
+                        converted_name = convert_chicago_to_series_for_ui(user_facing_name)
+                        # Use converted name if it actually changed
+                        if converted_name != user_facing_name:
+                            user_facing_name = converted_name
+                            print(f"[API] Applied fallback transformation: '{database_name}' -> '{user_facing_name}'")
             
             user_facing_names.append(user_facing_name)
         
@@ -2974,12 +3015,61 @@ def get_user_facing_series_by_league():
                 
         print(f"[API] Deduplicated series list: {len(user_facing_names)} -> {len(series_names)} unique series")
 
-        # Sort series properly (numbers before letters)
-        def get_sort_key(series_name):
+        # CNSWPL-specific sorting: Day League (1,2,3...) -> Night League (A,B,C...) -> Sunday Night (N)
+        def get_cnswpl_sort_key(series_name):
             import re
             
+            # For CNSWPL league, implement the user's three-category system:
+            # 1. Day League (Series 1, 2, 3...)
+            # 2. Night League (Series A, B, C...)  
+            # 3. Sunday Night League (Series N)
+            
+            if league_id == 'CNSWPL':
+                # Day League: "Series 1 (Day League)", "Series 1a (Day League)", etc.
+                day_match = re.match(r'^Series\s+(\d+)([a-z]*)\s*\(Day League\)$', series_name, re.IGNORECASE)
+                if day_match:
+                    number = int(day_match.group(1))
+                    suffix = day_match.group(2) or ''
+                    return (0, number, suffix)  # Day League first, sorted by number then suffix
+                
+                # Night League: "Series A (Night League)", "Series B (Night League)", etc.
+                night_match = re.match(r'^Series\s+([A-Z])\s*\(Night League\)$', series_name)
+                if night_match:
+                    letter = night_match.group(1)
+                    # Convert letter to number for sorting (A=1, B=2, etc.)
+                    letter_value = ord(letter) - ord('A') + 1
+                    return (1, letter_value, '')  # Night League second, sorted by letter
+                
+                # Sunday Night League: "Series N (Sunday Night League)"
+                sunday_match = re.match(r'^Series\s+N\s*\(Sunday Night League\)$', series_name, re.IGNORECASE)
+                if sunday_match:
+                    return (2, 0, '')  # Sunday Night League third
+                
+                # Handle any legacy formats that might not have been converted yet
+                # Day League: Division 1, S1, Series 1, etc. (fallback)
+                legacy_day_match = re.match(r'^(?:Division|Series|S)?\s*(\d+)([a-z]*)$', series_name, re.IGNORECASE)
+                if legacy_day_match:
+                    number = int(legacy_day_match.group(1))
+                    suffix = legacy_day_match.group(2) or ''
+                    return (0, number, suffix)  # Day League first
+                
+                # Night League: SA, SB, etc. (fallback)
+                legacy_night_match = re.match(r'^(?:S|Series\s+)?([A-Z])$', series_name)
+                if legacy_night_match:
+                    letter = legacy_night_match.group(1)
+                    letter_value = ord(letter) - ord('A') + 1
+                    return (1, letter_value, '')  # Night League second
+                
+                # Sunday Night League: SSN (fallback)
+                legacy_sunday_match = re.match(r'^(?:SSN|Series\s+N|SN)$', series_name, re.IGNORECASE)
+                if legacy_sunday_match:
+                    return (2, 0, '')  # Sunday Night League third
+                
+                # Handle any other formats - put them at the end
+                return (3, 0, series_name.lower())
+            
+            # For non-CNSWPL leagues, use the existing sorting logic
             # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
-            # Extract prefix, number, and optional suffix (like "SW" or letters)
             match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
             if match:
                 prefix = match.group(1) or ''
@@ -3001,7 +3091,7 @@ def get_user_facing_series_by_league():
             # Everything else goes last (sorted alphabetically)
             return (2, 0, 0, series_name)
 
-        series_names.sort(key=get_sort_key)
+        series_names.sort(key=get_cnswpl_sort_key)
         
         print(f"[API] Returning user-facing series for {league_id}: {series_names}")
         return jsonify({"series": series_names})
