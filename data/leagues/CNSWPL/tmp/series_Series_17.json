@@ -1,0 +1,68 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "03/07",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Michigan Shores 17",
+    "Away Team": "64.5",
+    "Scores": "Michigan Shores 17",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Wilmette 17",
+    "Away Team": "55.0",
+    "Scores": "Wilmette 17",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Park Ridge 17",
+    "Away Team": "53.0",
+    "Scores": "Park Ridge 17",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Evanston 17",
+    "Away Team": "42.5",
+    "Scores": "Evanston 17",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_17_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 17",
+    "Date": null,
+    "Home Team": "Winter Club 17",
+    "Away Team": "21.0",
+    "Scores": "Winter Club 17",
+    "Winner": null
+  }
+]

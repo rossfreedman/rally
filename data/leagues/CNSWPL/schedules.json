@@ -10208,6 +10208,411 @@
     {
         "date": "01/06/2025",
         "time": "07:00 pm",
+        "home_team": "Winter Club J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/06/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Lake Bluff J - Series J",
+        "location": "Lake Bluff Park District",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/06/2025",
+        "time": "07:00 pm",
+        "home_team": "Winnetka J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/06/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Skokie J - Series J",
+        "location": "Skokie Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/06/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Sunset Ridge J - Series J",
+        "location": "Sunset Ridge Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/13/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/13/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/13/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Skokie J - Series J",
+        "location": "Skokie Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/13/2025",
+        "time": "07:00 pm",
+        "home_team": "Sunset Ridge J - Series J",
+        "away_team": "Winter Club J - Series J",
+        "location": "Winter Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/13/2025",
+        "time": "07:00 pm",
+        "home_team": "Lake Bluff J - Series J",
+        "away_team": "Winnetka J - Series J",
+        "location": "Winnetka Platform Tennis Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/20/2025",
+        "time": "07:00 pm",
+        "home_team": "Winter Club J - Series J",
+        "away_team": "Glen View J - Series J",
+        "location": "Glen View Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/20/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/20/2025",
+        "time": "07:00 pm",
+        "home_team": "Sunset Ridge J - Series J",
+        "away_team": "Lake Bluff J - Series J",
+        "location": "Lake Bluff Park District",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/20/2025",
+        "time": "07:00 pm",
+        "home_team": "Skokie J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/20/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Winnetka J - Series J",
+        "location": "Winnetka Platform Tennis Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/27/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/27/2025",
+        "time": "07:00 pm",
+        "home_team": "Skokie J - Series J",
+        "away_team": "Lake Bluff J - Series J",
+        "location": "Lake Bluff Park District",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/27/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/27/2025",
+        "time": "07:00 pm",
+        "home_team": "Winter Club J - Series J",
+        "away_team": "Michigan Shores J - Series J",
+        "location": "Michigan Shores Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/27/2025",
+        "time": "07:00 pm",
+        "home_team": "Sunset Ridge J - Series J",
+        "away_team": "Winnetka J - Series J",
+        "location": "Winnetka Platform Tennis Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Winnetka J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Lake Bluff J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Michigan Shores J - Series J",
+        "location": "Michigan Shores Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Winter Club J - Series J",
+        "away_team": "Skokie J - Series J",
+        "location": "Skokie Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Sunset Ridge J - Series J",
+        "location": "Sunset Ridge Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Skokie J - Series J",
+        "away_team": "Glen View J - Series J",
+        "location": "Glen View Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Lake Bluff J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Sunset Ridge J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Michigan Shores J - Series J",
+        "location": "Michigan Shores Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Winnetka J - Series J",
+        "away_team": "Winter Club J - Series J",
+        "location": "Winter Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/24/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Lake Bluff J - Series J",
+        "location": "Lake Bluff Park District",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/24/2025",
+        "time": "07:00 pm",
+        "home_team": "Knollwood J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/24/2025",
+        "time": "07:00 pm",
+        "home_team": "Skokie J - Series J",
+        "away_team": "Sunset Ridge J - Series J",
+        "location": "Sunset Ridge Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/24/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Winter Club J - Series J",
+        "location": "Winter Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "02/24/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Winnetka J - Series J",
+        "location": "Winnetka Platform Tennis Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Valley Lo J - Series J",
+        "away_team": "Glen View J - Series J",
+        "location": "Glen View Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Sunset Ridge J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Winnetka J - Series J",
+        "away_team": "Skokie J - Series J",
+        "location": "Skokie Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/03/2025",
+        "time": "07:00 pm",
+        "home_team": "Lake Bluff J - Series J",
+        "away_team": "Winter Club J - Series J",
+        "location": "Winter Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Skokie J - Series J",
+        "away_team": "Knollwood J - Series J",
+        "location": "Knollwood Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Glen View J - Series J",
+        "away_team": "Lake Bluff J - Series J",
+        "location": "Lake Bluff Park District",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Winter Club J - Series J",
+        "away_team": "Lifesport J - Series J",
+        "location": "LifeSport Athletic Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Michigan Shores J - Series J",
+        "away_team": "Sunset Ridge J - Series J",
+        "location": "Sunset Ridge Country Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "03/10/2025",
+        "time": "07:00 pm",
+        "home_team": "Winnetka J - Series J",
+        "away_team": "Valley Lo J - Series J",
+        "location": "Valley Lo Club",
+        "series": "Series J",
+        "League": "CNSWPL"
+    },
+    {
+        "date": "01/06/2025",
+        "time": "07:00 pm",
         "home_team": "Lake Forest K - Series K",
         "away_team": "Indian Hill K - Series K",
         "location": "Indian Hill Club",

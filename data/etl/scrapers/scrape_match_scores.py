@@ -190,18 +190,72 @@ class EnhancedMatchScraper:
             print(f"   ❌ Blocking detected: {detection.value}")
             return []
 
+    def _get_tmp_dir(self, league_subdomain: str) -> str:
+        """Return a per-league temp directory path for series JSONs, ensure it exists."""
+        import os, sys
+        # Resolve canonical league directory via helper
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        try:
+            from data.etl.utils.league_directory_manager import get_league_file_path
+            final_path = get_league_file_path(league_subdomain, "match_history.json")
+        finally:
+            sys.path.pop(0)
+        tmp_dir = os.path.join(os.path.dirname(final_path), "tmp")
+        os.makedirs(tmp_dir, exist_ok=True)
+        return tmp_dir
+
+    def _sanitize_series_name(self, series_name: str) -> str:
+        import re
+        slug = re.sub(r"[^A-Za-z0-9]+", "_", series_name or "series").strip("_")
+        return slug or "series"
+
+    def _save_series_temp(self, league_subdomain: str, series_name: str, series_matches: List[Dict]) -> str:
+        """Write a temporary JSON for a single series (atomic write). Returns filepath."""
+        import json, os
+        tmp_dir = self._get_tmp_dir(league_subdomain)
+        fname = f"series_{self._sanitize_series_name(series_name)}.json"
+        path = os.path.join(tmp_dir, fname)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(series_matches, f, indent=2)
+        os.replace(tmp, path)
+        print(f"💾 Saved temp series file: {path} ({len(series_matches)} matches)")
+        return path
+
         # Parse series links (simplified for example)
         series_links = self._extract_series_links(main_html)
         print(f"   📋 Found {len(series_links)} series")
         
+        # Show filtering information
+        if series_filter and series_filter != "all":
+            print(f"🔍 Filtering for series: '{series_filter}'")
+            filtered_series = [s[0] for s in series_links if series_filter.lower() == s[0].lower()]
+            print(f"📊 Series matching filter: {filtered_series}")
+        
         all_matches = []
         
+        # Calculate total series with same filtering logic
+        if series_filter and series_filter != "all":
+            total_series = len([s for s in series_links if series_filter.lower() == s[0].lower()])
+        else:
+            total_series = len(series_links)
+        
+        processed_series = 0
+        
+        # Track overall progress across all series
+        total_matches_processed = 0
+        
         for i, (series_name, series_url) in enumerate(series_links, 1):
-            if series_filter and series_filter != "all" and series_filter not in series_name:
-                continue
+            # Improved series filtering logic
+            if series_filter and series_filter != "all":
+                # Exact match for series names (case-insensitive)
+                if series_filter.lower() != series_name.lower():
+                    continue
             
-            print(f"   🏆 Processing series {i}/{len(series_links)}: {series_name}")
-            print(f"   📄 Series URL: {series_url}")
+            processed_series += 1
+            series_percent = (processed_series / total_series) * 100
+            print(f"\n🏆 Processing Series {processed_series}/{total_series} ({series_percent:.1f}% of series): {series_name}")
+            print(f"   URL: {series_url}")
             
             # Get series page
             series_html = self._safe_request(series_url, f"series {series_name}")
@@ -211,7 +265,10 @@ class EnhancedMatchScraper:
             
             # Parse matches from series page
             print(f"   🔍 Parsing matches from {series_name}...")
-            series_matches = self._extract_matches_from_series(series_html, series_name)
+            series_matches, matches_processed_in_series = self._extract_matches_from_series(
+                series_html, series_name, total_matches_processed, total_series
+            )
+            total_matches_processed += matches_processed_in_series
             
             # Apply date filtering if in delta mode
             if self.config.delta_mode and self.config.start_date and self.config.end_date:
@@ -220,6 +277,9 @@ class EnhancedMatchScraper:
             
             all_matches.extend(series_matches)
             print(f"   ✅ Series {series_name}: {len(series_matches)} matches")
+
+            # Save per-series temp JSON to avoid all-or-nothing loss
+            self._save_series_temp(league_subdomain, series_name, series_matches)
         
         self.metrics["leagues_scraped"].append(league_subdomain)
         print(f"   🎉 Completed scraping {league_subdomain}: {len(all_matches)} total matches")
@@ -261,14 +321,35 @@ class EnhancedMatchScraper:
             for i, (series_name, _) in enumerate(series_links, 1):
                 print(f"   {i}. {series_name}")
             
+            # Show filtering information
+            if series_filter and series_filter != "all":
+                print(f"🔍 Filtering for series: '{series_filter}'")
+                filtered_series = [s[0] for s in series_links if series_filter.lower() == s[0].lower()]
+                print(f"📊 Series matching filter: {filtered_series}")
+            
             all_matches = []
             
             # Scrape each series
+            processed_series = 0
+            # Calculate total series with same filtering logic
+            if series_filter and series_filter != "all":
+                total_series = len([s for s in series_links if series_filter.lower() == s[0].lower()])
+            else:
+                total_series = len(series_links)
+            
+            # Track overall progress across all series
+            total_matches_processed = 0
+            
             for i, (series_name, series_url) in enumerate(series_links, 1):
-                if series_filter and series_filter != "all" and series_filter not in series_name:
-                    continue
+                # Improved series filtering logic
+                if series_filter and series_filter != "all":
+                    # Exact match for series names (case-insensitive)
+                    if series_filter.lower() != series_name.lower():
+                        continue
                 
-                print(f"\n🏆 Processing Series {i}/{len(series_links)}: {series_name}")
+                processed_series += 1
+                series_percent = (processed_series / total_series) * 100
+                print(f"\n🏆 Processing Series {processed_series}/{total_series} ({series_percent:.1f}% of series): {series_name}")
                 print(f"   URL: {series_url}")
                 
                 try:
@@ -280,7 +361,10 @@ class EnhancedMatchScraper:
                     
                     # Parse matches from series page
                     print(f"🔍 Extracting matches from {series_name}...")
-                    series_matches = self._extract_matches_from_series(series_response.text, series_name)
+                    series_matches, matches_processed_in_series = self._extract_matches_from_series(
+                        series_response.text, series_name, total_matches_processed, total_series
+                    )
+                    total_matches_processed += matches_processed_in_series
                     
                     # Apply date filtering if in delta mode
                     if self.config.delta_mode and self.config.start_date and self.config.end_date:
@@ -289,6 +373,9 @@ class EnhancedMatchScraper:
                     
                     all_matches.extend(series_matches)
                     print(f"✅ Found {len(series_matches)} matches in {series_name}")
+
+                    # Save per-series temp JSON to avoid all-or-nothing loss
+                    self._save_series_temp(league_subdomain, series_name, series_matches)
                     
                     # Add delay between requests
                     if not self.config.fast_mode:
@@ -365,12 +452,13 @@ class EnhancedMatchScraper:
                     series_links.append((series_name, series_url))
                     print(f"   📋 Added CNSWPL series: {series_name}")
             
-            # Method 3: Look for day/night league patterns
-            day_series = ["Day League", "Night League", "Sunday Night League"]
-            for series_name in day_series:
-                series_url = f"https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&league={series_name.lower().replace(' ', '_')}"
-                series_links.append((series_name, series_url))
-                print(f"   📋 Added league: {series_name}")
+            # Method 3: Look for day/night league patterns (only if no series found yet)
+            if not series_links:
+                day_series = ["Day League", "Night League", "Sunday Night League"]
+                for series_name in day_series:
+                    series_url = f"https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&league={series_name.lower().replace(' ', '_')}"
+                    series_links.append((series_name, series_url))
+                    print(f"   📋 Added league: {series_name}")
             
             print(f"   📊 Total series found: {len(series_links)}")
             return series_links
@@ -455,9 +543,15 @@ class EnhancedMatchScraper:
             print(f"   ❌ Error extracting APTA series links: {e}")
             return []
     
-    def _extract_matches_from_series(self, html: str, series_name: str) -> List[Dict]:
-        """Extract detailed matches from series page for CNSWPL (like APTA format)."""
+    def _extract_matches_from_series(self, html: str, series_name: str, 
+                                   current_total_processed: int = 0, total_series: int = 1) -> Tuple[List[Dict], int]:
+        """Extract detailed matches from series page for CNSWPL (like APTA format).
+        
+        Returns:
+            tuple: (matches_list, matches_processed_count)
+        """
         matches = []
+        matches_processed_in_series = 0
         
         try:
             from bs4 import BeautifulSoup
@@ -471,6 +565,9 @@ class EnhancedMatchScraper:
             match_count = 0
             
             print(f"🔗 Found {len(match_links)} match detail links")
+            
+            # Estimate total matches across all series for overall progress
+            estimated_total_matches = len(match_links) * total_series
             
             for i, link in enumerate(match_links, 1):
                 href = link.get('href', '')
@@ -490,7 +587,13 @@ class EnhancedMatchScraper:
                         else:
                             match_url = f"https://cnswpl.tenniscores.com/{href}"
                         
-                        print(f"🔗 Processing match {i}/{len(match_links)}: {href}")
+                        # Calculate progress within this series and overall
+                        series_percent_complete = (i / len(match_links)) * 100
+                        overall_matches_processed = current_total_processed + i
+                        overall_percent_complete = (overall_matches_processed / estimated_total_matches) * 100 if estimated_total_matches > 0 else 0
+                        
+                        print(f"🔗 Series Progress: {i}/{len(match_links)} ({series_percent_complete:.1f}% of {series_name}) | Overall: {overall_matches_processed}/{estimated_total_matches} ({overall_percent_complete:.1f}%)")
+                        print(f"   Processing: {href}")
                         
                         # Get detailed match page
                         match_response = self._safe_request(match_url, f"match detail page {i}")
@@ -504,6 +607,8 @@ class EnhancedMatchScraper:
                                 away_team = first_match.get('Away Team', 'Unknown')
                                 date = first_match.get('Date', 'Unknown Date')
                                 print(f"✅ Extracted {len(detailed_matches)} lines: {home_team} vs {away_team} on {date}")
+                        
+                        matches_processed_in_series += 1
                         
                     except Exception as e:
                         print(f"⚠️ Error following match link: {e}")
@@ -537,7 +642,7 @@ class EnhancedMatchScraper:
             if self.config.verbose:
                 print(f"   ❌ Error extracting matches: {e}")
         
-        return matches
+        return matches, matches_processed_in_series
     
     def _extract_detailed_match_data(self, html: str, series_name: str, match_id: str) -> List[Dict]:
         """Extract detailed match data from CNSWPL individual match page - returns list of line matches."""
@@ -720,14 +825,14 @@ class EnhancedMatchScraper:
                     if not potential_line:
                         continue
                         
-                    if '/' in potential_line and not home_players:
-                        home_players = potential_line
-                    elif re.match(r'^\d+$', potential_line) and home_players and not home_score:
-                        home_score = potential_line
-                    elif '/' in potential_line and home_players and home_score and not away_players:
+                    if '/' in potential_line and not away_players:
                         away_players = potential_line
                     elif re.match(r'^\d+$', potential_line) and away_players and not away_score:
                         away_score = potential_line
+                    elif '/' in potential_line and away_players and away_score and not home_players:
+                        home_players = potential_line
+                    elif re.match(r'^\d+$', potential_line) and home_players and not home_score:
+                        home_score = potential_line
                         break  # Found all 4 components
                 
                 if home_players and away_players:
@@ -763,7 +868,7 @@ class EnhancedMatchScraper:
             if len(home_players) >= 2 and len(away_players) >= 2:
                 line_match = {
                     "league_id": "CNSWPL",
-                    "match_id": f"cnswpl_{match_id}_Line{court_num}",
+                    "match_id": f"{match_id}_Line{court_num}",
                     "source_league": "CNSWPL",
                     "Line": f"Line {court_num}",
                     "Date": match_date,
@@ -1104,6 +1209,7 @@ def main():
     parser.add_argument("--quiet", action="store_true", help="Disable verbose logging (default is verbose)")
     parser.add_argument("--environment", choices=["local", "staging", "production"], 
                        default="production", help="Environment mode")
+    parser.add_argument("--clean-temp-first", action="store_true", help="Delete per-series temp files before starting (default: preserve)")
     
     args = parser.parse_args()
     
@@ -1115,6 +1221,25 @@ def main():
     if args.delta_mode:
         print(f"📅 Delta Mode: {args.start_date} to {args.end_date}")
     
+    # Optional pre-run cleanup of temp files (off by default)
+    if args.clean_temp_first:
+        try:
+            import sys as _sys, os as _os, shutil as _shutil
+            _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))))
+            from data.etl.utils.league_directory_manager import get_league_file_path as _get_league_file_path_prerun
+            prerun_output = _get_league_file_path_prerun(args.league, "match_history.json")
+            prerun_tmp_dir = _os.path.join(_os.path.dirname(prerun_output), 'tmp')
+            if _os.path.isdir(prerun_tmp_dir):
+                _shutil.rmtree(prerun_tmp_dir)
+                print(f"🧹 Cleaned previous temp directory: {prerun_tmp_dir}")
+        except Exception as e:
+            print(f"⚠️ Pre-run temp cleanup skipped: {e}")
+        finally:
+            try:
+                _sys.path.pop(0)
+            except Exception:
+                pass
+
     # Scrape matches
     matches = scrape_all_matches(
         league_subdomain=args.league,
@@ -1151,12 +1276,49 @@ def main():
     existing_ids = {match.get('match_id') for match in existing_matches if match.get('match_id')}
     new_matches = [match for match in matches if match.get('match_id') not in existing_ids]
     
-    # Combine all matches
-    all_matches = existing_matches + new_matches
-    
-    # Write combined data
-    with open(output_file, 'w') as f:
+    # Combine all matches with consolidation from per-series temps
+    # Use a composite key so multiple line/court entries for the same match are preserved
+    def _dedupe_key(m: dict) -> str:
+        mid = (m.get('match_id') or '').strip()
+        line_marker = (m.get('Line') or m.get('Court') or m.get('Court #') or '').strip()
+        if mid:
+            return f"{mid}|{line_marker}".lower()
+        # Fallback when match_id is missing: compose from teams/date/line
+        home = (m.get('Home Team') or '').strip()
+        away = (m.get('Away Team') or '').strip()
+        date = (m.get('Date') or '').strip()
+        return f"{home}|{away}|{date}|{line_marker}".lower()
+
+    merged_by_key: Dict[str, Dict] = {}
+
+    # 1) Start with existing
+    for m in existing_matches:
+        merged_by_key[_dedupe_key(m)] = m
+
+    # 2) Load per-series temp files if they exist
+    tmp_dir = os.path.join(os.path.dirname(output_file), 'tmp')
+    if os.path.isdir(tmp_dir):
+        import glob
+        for path in glob.glob(os.path.join(tmp_dir, 'series_*.json')):
+            try:
+                with open(path, 'r') as f:
+                    series_list = json.load(f)
+                for m in series_list:
+                    merged_by_key[_dedupe_key(m)] = m
+            except Exception as e:
+                logger.warning(f"⚠️ Failed reading temp series file {path}: {e}")
+
+    # 3) Overlay new matches from this run (new data wins)
+    for m in matches:
+        merged_by_key[_dedupe_key(m)] = m
+
+    all_matches = list(merged_by_key.values())
+
+    # Atomic write
+    tmp_file = output_file + '.tmp'
+    with open(tmp_file, 'w') as f:
         json.dump(all_matches, f, indent=2)
+    os.replace(tmp_file, output_file)
     
     print(f"\n🎉 Scraping completed!")
     print(f"📁 Results saved to: {output_file}")
@@ -1164,10 +1326,10 @@ def main():
     print(f"📊 New matches added: {len(new_matches):,}")
     print(f"📊 Total matches: {len(all_matches):,}")
     
-    if len(new_matches) > 0:
-        print(f"✅ Successfully extracted {len(new_matches)} new matches")
+    if len(matches) > 0:
+        print(f"✅ Successfully extracted {len(matches)} matches this run")
     else:
-        print(f"⚠️ No new matches were extracted")
+        print(f"⚠️ No new matches were extracted in this run")
 
 if __name__ == "__main__":
     main()

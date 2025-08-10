@@ -362,7 +362,7 @@ class EnhancedProxyRotator:
                  rotate_every: int = 30,
                  session_duration: int = 600,
                  test_url: str = "https://httpbin.org/ip",
-                 usage_cap_per_proxy: int = 35,
+                 usage_cap_per_proxy: int = 80,
                  sticky: bool = False):
         """
         Initialize enhanced proxy rotator.
@@ -372,7 +372,7 @@ class EnhancedProxyRotator:
             rotate_every: Rotate IP after this many requests
             session_duration: Session duration in seconds
             test_url: URL to test proxy health
-            usage_cap_per_proxy: Maximum requests per proxy per session (20-40)
+            usage_cap_per_proxy: Maximum requests per proxy per session (60-100)
         """
         self.rotate_every = rotate_every
         self.session_duration = session_duration
@@ -1009,9 +1009,22 @@ class EnhancedProxyRotator:
                     self.proxies[port].success_count = 1  # Fake success
                 healthy_proxies = list(self.ports)[:10]
             else:
-                logger.warning("⚠️ No healthy proxies available, testing all proxies...")
-                self._test_all_proxies()
+                # Prefer testing a subset to reduce long retest bursts
+                logger.warning("⚠️ No healthy proxies available, testing a subset of proxies...")
+                # Prefer non-dead and non-capped proxies
+                candidate_ports = [
+                    p for p in self.ports
+                    if p not in self.dead_proxies and p not in self.capped_proxies
+                ]
+                test_ports = (candidate_ports or list(self.ports))[:30]
+                self._test_proxy_subset(test_ports)
                 healthy_proxies = self._get_healthy_proxies()
+
+                # If still none, fall back to testing all proxies
+                if not healthy_proxies:
+                    logger.warning("⚠️ Subset test yielded no healthy proxies, testing all proxies...")
+                    self._test_all_proxies()
+                    healthy_proxies = self._get_healthy_proxies()
         
         if healthy_proxies:
             # Choose proxy with best success rate

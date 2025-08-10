@@ -1,0 +1,123 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "03/07",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Wilmette 15",
+    "Away Team": "94.5",
+    "Scores": "Wilmette 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Winnetka 15",
+    "Away Team": "90.5",
+    "Scores": "Winnetka 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Winter Club 15",
+    "Away Team": "81.0",
+    "Scores": "Winter Club 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Skokie 15",
+    "Away Team": "67.0",
+    "Scores": "Skokie 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Bryn Mawr CC 15",
+    "Away Team": "63.0",
+    "Scores": "Bryn Mawr CC 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "North Shore 15",
+    "Away Team": "42.5",
+    "Scores": "North Shore 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Evanston 15",
+    "Away Team": "39.0",
+    "Scores": "Evanston 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Birchwood 15",
+    "Away Team": "39.0",
+    "Scores": "Birchwood 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Knollwood 15",
+    "Away Team": "33.0",
+    "Scores": "Knollwood 15",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_15_12",
+    "source_league": "CNSWPL",
+    "Series": "Series 15",
+    "Date": null,
+    "Home Team": "Lake Shore CC 15",
+    "Away Team": "32.5",
+    "Scores": "Lake Shore CC 15",
+    "Winner": null
+  }
+]

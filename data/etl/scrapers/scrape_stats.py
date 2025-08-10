@@ -387,7 +387,19 @@ def scrape_series_stats(
             # Process each team row
             print(f"   📊 Processing team rows in {series_name} standings table...")
             team_count = 0
-            for row_idx, row in enumerate(table.find_all("tr")[2:], 1):  # Skip header rows
+            
+            # Special handling for CNSWPL - might have different header structure
+            start_row = 2 if league_id != "CNSWPL" else 1  # CNSWPL might have only 1 header row
+            all_rows = table.find_all("tr")
+            
+            if league_id == "CNSWPL":
+                print(f"   [DEBUG] CNSWPL: Found {len(all_rows)} total rows, starting from row {start_row}")
+                for i, row in enumerate(all_rows[:5]):  # Show first 5 rows
+                    cols = row.find_all(['td', 'th'])
+                    row_data = [col.text.strip() for col in cols[:3]]  # First 3 columns
+                    print(f"   [DEBUG] Row {i}: {row_data}")
+            
+            for row_idx, row in enumerate(all_rows[start_row:], 1):
                 cols = row.find_all("td")
                 # Be flexible with column count - different leagues have different table structures
                 # Minimum 10 columns needed for basic team stats
@@ -405,8 +417,48 @@ def scrape_series_stats(
                         def safe_col_int(index, default=0):
                             if index < len(cols):
                                 text = cols[index].text.strip()
-                                return int(text) if text.isdigit() else default
+                                # Debug: Print what we're trying to extract for CNSWPL
+                                if league_id == "CNSWPL":
+                                    print(f"   [DEBUG] Column {index}: '{text}' (len={len(text)})")
+                                
+                                # Handle both integers and decimal numbers (e.g., "98" and "98.0")
+                                try:
+                                    # Convert to float first to handle decimals, then to int
+                                    result = int(float(text))
+                                    if league_id == "CNSWPL" and index == 1:  # Points column
+                                        print(f"   [DEBUG] Points extracted: {result}")
+                                    return result
+                                except (ValueError, TypeError):
+                                    if league_id == "CNSWPL" and index == 1:
+                                        print(f"   [DEBUG] Failed to parse points: '{text}'")
+                                    return default
+                            else:
+                                if league_id == "CNSWPL" and index == 1:
+                                    print(f"   [DEBUG] Column {index} not found, cols length: {len(cols)}")
                             return default
+
+                        # Special function for CNSWPL points extraction using class selector
+                        def get_cnswpl_points():
+                            if league_id == "CNSWPL":
+                                # Look for the specific td element with class="pts2"
+                                points_cell = row.find('td', class_='pts2')
+                                if points_cell:
+                                    text = points_cell.text.strip()
+                                    print(f"   [DEBUG] Found pts2 cell: '{text}'")
+                                    try:
+                                        result = int(float(text))
+                                        print(f"   [DEBUG] CNSWPL Points extracted: {result}")
+                                        return result
+                                    except (ValueError, TypeError):
+                                        print(f"   [DEBUG] Failed to parse pts2: '{text}'")
+                                        return 0
+                                else:
+                                    print(f"   [DEBUG] No pts2 cell found in row")
+                                    return 0
+                            return safe_col_int(1)  # Fallback to column index for other leagues
+                        
+                        # Extract points using the appropriate method
+                        points_value = get_cnswpl_points()
 
                         def safe_col_text(index, default=""):
                             if index < len(cols):
@@ -417,7 +469,7 @@ def scrape_series_stats(
                             "series": series_name,
                             "team": team_name,
                             "league_id": league_id,
-                            "points": safe_col_int(1),
+                            "points": points_value,
                             "matches": {
                                 "won": safe_col_int(2),
                                 "lost": safe_col_int(3),
@@ -595,11 +647,34 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                                 return cols[index].text.strip()
                             return default
 
+                        # Special function for CNSWPL points extraction using class selector
+                        def get_cnswpl_points():
+                            if league_id == "CNSWPL":
+                                # Look for the specific td element with class="pts2"
+                                points_cell = row.find('td', class_='pts2')
+                                if points_cell:
+                                    text = points_cell.text.strip()
+                                    print(f"   [DEBUG] Found pts2 cell: '{text}'")
+                                    try:
+                                        result = int(float(text))
+                                        print(f"   [DEBUG] CNSWPL Points extracted: {result}")
+                                        return result
+                                    except (ValueError, TypeError):
+                                        print(f"   [DEBUG] Failed to parse pts2: '{text}'")
+                                        return 0
+                                else:
+                                    print(f"   [DEBUG] No pts2 cell found in row")
+                                    return 0
+                            return safe_col_int(1)  # Fallback to column index for other leagues
+                        
+                        # Extract points using the appropriate method
+                        points_value = get_cnswpl_points()
+
                         team_stats = {
                             "series": series_name,
                             "team": team_name,
                             "league_id": league_id,
-                            "points": safe_col_int(1),
+                            "points": points_value,
                             "matches": {
                                 "won": safe_col_int(2),
                                 "lost": safe_col_int(3),

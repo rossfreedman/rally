@@ -3,7 +3,7 @@
     "series": "Series 1",
     "team": "Birchwood 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 98,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -32,7 +32,7 @@
     "series": "Series 1",
     "team": "Lake Bluff 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 81,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -61,7 +61,7 @@
     "series": "Series 1",
     "team": "Hinsdale PC 1a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 72,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -90,7 +90,7 @@
     "series": "Series 1",
     "team": "Winnetka 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -119,7 +119,7 @@
     "series": "Series 1",
     "team": "Sunset Ridge 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -148,7 +148,7 @@
     "series": "Series 1",
     "team": "Saddle & Cycle 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -177,7 +177,7 @@
     "series": "Series 1",
     "team": "LifeSport 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -206,7 +206,7 @@
     "series": "Series 1",
     "team": "Michigan Shores 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -235,7 +235,7 @@
     "series": "Series 1",
     "team": "Midtown 1",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -264,7 +264,7 @@
     "series": "Series 1",
     "team": "Hinsdale PC 1b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 19,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -293,7 +293,7 @@
     "series": "Series 2",
     "team": "North Shore 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 89,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -322,7 +322,7 @@
     "series": "Series 2",
     "team": "Skokie 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 82,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -351,7 +351,7 @@
     "series": "Series 2",
     "team": "Lake Shore CC 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -380,7 +380,7 @@
     "series": "Series 2",
     "team": "Prairie Club 2a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -409,7 +409,7 @@
     "series": "Series 2",
     "team": "Valley Lo 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -438,7 +438,7 @@
     "series": "Series 2",
     "team": "Indian Hill 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -467,7 +467,7 @@
     "series": "Series 2",
     "team": "Prairie Club 2b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 47,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -496,7 +496,7 @@
     "series": "Series 2",
     "team": "Northmoor 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -525,7 +525,7 @@
     "series": "Series 2",
     "team": "Evanston 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 35,
     "matches": {
       "won": 1,
       "lost": 7,
@@ -554,7 +554,7 @@
     "series": "Series 2",
     "team": "Birchwood 2",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 32,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -583,7 +583,7 @@
     "series": "Series 3",
     "team": "Westmoreland 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -612,7 +612,7 @@
     "series": "Series 3",
     "team": "Michigan Shores 3b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 69,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -641,7 +641,7 @@
     "series": "Series 3",
     "team": "Michigan Shores 3a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -670,7 +670,7 @@
     "series": "Series 3",
     "team": "Glen View 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -699,7 +699,7 @@
     "series": "Series 3",
     "team": "Onwentsia 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -728,7 +728,7 @@
     "series": "Series 3",
     "team": "Tennaqua 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -757,7 +757,7 @@
     "series": "Series 3",
     "team": "Butterfield 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -786,7 +786,7 @@
     "series": "Series 3",
     "team": "North Shore 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -815,7 +815,7 @@
     "series": "Series 3",
     "team": "Hinsdale PC 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 2,
       "lost": 5,
@@ -844,7 +844,7 @@
     "series": "Series 3",
     "team": "Wilmette 3",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 51,
     "matches": {
       "won": 1,
       "lost": 5,
@@ -873,7 +873,7 @@
     "series": "Series 4",
     "team": "Westmoreland 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -902,7 +902,7 @@
     "series": "Series 4",
     "team": "Valley Lo 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 73,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -931,7 +931,7 @@
     "series": "Series 4",
     "team": "Saddle & Cycle 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 69,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -960,7 +960,7 @@
     "series": "Series 4",
     "team": "Skokie 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 67,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -989,7 +989,7 @@
     "series": "Series 4",
     "team": "River Forest 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 3,
       "lost": 3,
@@ -1018,7 +1018,7 @@
     "series": "Series 4",
     "team": "Glen Ellyn 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -1047,7 +1047,7 @@
     "series": "Series 4",
     "team": "Wilmette 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1076,7 +1076,7 @@
     "series": "Series 4",
     "team": "Exmoor 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -1105,7 +1105,7 @@
     "series": "Series 4",
     "team": "Park Ridge 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 53,
     "matches": {
       "won": 1,
       "lost": 5,
@@ -1134,7 +1134,7 @@
     "series": "Series 4",
     "team": "Lake Bluff 4",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 0,
       "lost": 8,
@@ -1163,7 +1163,7 @@
     "series": "Series 5",
     "team": "Birchwood 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 91,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -1192,7 +1192,7 @@
     "series": "Series 5",
     "team": "Lake Forest 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 84,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -1221,7 +1221,7 @@
     "series": "Series 5",
     "team": "Wilmette 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 82,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -1250,7 +1250,7 @@
     "series": "Series 5",
     "team": "Winnetka 5a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -1279,7 +1279,7 @@
     "series": "Series 5",
     "team": "Knollwood 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1308,7 +1308,7 @@
     "series": "Series 5",
     "team": "Sunset Ridge 5a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1337,7 +1337,7 @@
     "series": "Series 5",
     "team": "Winnetka 5b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 52,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -1366,7 +1366,7 @@
     "series": "Series 5",
     "team": "Sunset Ridge 5b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 52,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -1395,7 +1395,7 @@
     "series": "Series 5",
     "team": "Hinsdale Golf Club 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 36,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -1424,7 +1424,7 @@
     "series": "Series 5",
     "team": "North Shore 5",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 27,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -1453,7 +1453,7 @@
     "series": "Series 6",
     "team": "Midtown 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 90,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -1482,7 +1482,7 @@
     "series": "Series 6",
     "team": "Winter Club 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 75,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -1511,7 +1511,7 @@
     "series": "Series 6",
     "team": "Michigan Shores 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 72,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -1540,7 +1540,7 @@
     "series": "Series 6",
     "team": "Westmoreland 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 67,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -1569,7 +1569,7 @@
     "series": "Series 6",
     "team": "Lake Forest 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 63,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -1598,7 +1598,7 @@
     "series": "Series 6",
     "team": "Valley Lo 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 63,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -1627,7 +1627,7 @@
     "series": "Series 6",
     "team": "Winnetka 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -1656,7 +1656,7 @@
     "series": "Series 6",
     "team": "Evanston 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 2,
       "lost": 4,
@@ -1685,7 +1685,7 @@
     "series": "Series 6",
     "team": "Briarwood 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1714,7 +1714,7 @@
     "series": "Series 6",
     "team": "Indian Hill 6",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 3,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -1743,7 +1743,7 @@
     "series": "Series 7",
     "team": "Michigan Shores 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 86,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -1772,7 +1772,7 @@
     "series": "Series 7",
     "team": "Sunset Ridge 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 76,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -1801,7 +1801,7 @@
     "series": "Series 7",
     "team": "Tennaqua 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -1830,7 +1830,7 @@
     "series": "Series 7",
     "team": "Evanston 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 66,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1859,7 +1859,7 @@
     "series": "Series 7",
     "team": "Park Ridge 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -1888,7 +1888,7 @@
     "series": "Series 7",
     "team": "Saddle & Cycle 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -1917,7 +1917,7 @@
     "series": "Series 7",
     "team": "Birchwood 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -1946,7 +1946,7 @@
     "series": "Series 7",
     "team": "Exmoor 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 53,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -1975,7 +1975,7 @@
     "series": "Series 7",
     "team": "Northmoor 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -2004,7 +2004,7 @@
     "series": "Series 7",
     "team": "Lake Bluff 7",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -2033,7 +2033,7 @@
     "series": "Series 8",
     "team": "Michigan Shores 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 75,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -2062,7 +2062,7 @@
     "series": "Series 8",
     "team": "Biltmore 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 75,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -2091,7 +2091,7 @@
     "series": "Series 8",
     "team": "Valley Lo 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -2120,7 +2120,7 @@
     "series": "Series 8",
     "team": "Wilmette 8a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 71,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -2149,7 +2149,7 @@
     "series": "Series 8",
     "team": "Skokie 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -2178,7 +2178,7 @@
     "series": "Series 8",
     "team": "Midtown 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 61,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -2207,7 +2207,7 @@
     "series": "Series 8",
     "team": "Knollwood 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -2236,7 +2236,7 @@
     "series": "Series 8",
     "team": "Wilmette 8b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 51,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -2265,7 +2265,7 @@
     "series": "Series 8",
     "team": "North Shore 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 1,
       "lost": 7,
@@ -2294,7 +2294,7 @@
     "series": "Series 8",
     "team": "Winnetka 8",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 36,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -2323,7 +2323,7 @@
     "series": "Series 9",
     "team": "Tennaqua 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 85,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -2352,7 +2352,7 @@
     "series": "Series 9",
     "team": "Westmoreland 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 79,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -2381,7 +2381,7 @@
     "series": "Series 9",
     "team": "Park Ridge 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -2410,7 +2410,7 @@
     "series": "Series 9",
     "team": "Evanston 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 75,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -2439,7 +2439,7 @@
     "series": "Series 9",
     "team": "Skokie 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 67,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -2468,7 +2468,7 @@
     "series": "Series 9",
     "team": "Winnetka 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -2497,7 +2497,7 @@
     "series": "Series 9",
     "team": "Birchwood 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 52,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -2526,7 +2526,7 @@
     "series": "Series 9",
     "team": "Onwentsia 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 2,
       "lost": 3,
@@ -2555,7 +2555,7 @@
     "series": "Series 9",
     "team": "Michigan Shores 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 40,
     "matches": {
       "won": 1,
       "lost": 5,
@@ -2584,7 +2584,7 @@
     "series": "Series 9",
     "team": "Glen View 9",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 36,
     "matches": {
       "won": 0,
       "lost": 8,
@@ -2613,7 +2613,7 @@
     "series": "Series 10",
     "team": "Barrington Hills 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 83,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -2642,7 +2642,7 @@
     "series": "Series 10",
     "team": "Wilmette 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 83,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -2671,7 +2671,7 @@
     "series": "Series 10",
     "team": "Lake Bluff 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 81,
     "matches": {
       "won": 6,
       "lost": 1,
@@ -2700,7 +2700,7 @@
     "series": "Series 10",
     "team": "Exmoor 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 6,
       "lost": 1,
@@ -2729,7 +2729,7 @@
     "series": "Series 10",
     "team": "Sunset Ridge 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -2758,7 +2758,7 @@
     "series": "Series 10",
     "team": "Knollwood 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -2787,7 +2787,7 @@
     "series": "Series 10",
     "team": "Michigan Shores 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 46,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -2816,7 +2816,7 @@
     "series": "Series 10",
     "team": "Tennaqua 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -2845,7 +2845,7 @@
     "series": "Series 10",
     "team": "North Shore 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 42,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -2874,7 +2874,7 @@
     "series": "Series 10",
     "team": "Park Ridge 10",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 25,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -2903,7 +2903,7 @@
     "series": "Series 11",
     "team": "Birchwood 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -2932,7 +2932,7 @@
     "series": "Series 11",
     "team": "Briarwood 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -2961,7 +2961,7 @@
     "series": "Series 11",
     "team": "Evanston 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 76,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -2990,7 +2990,7 @@
     "series": "Series 11",
     "team": "Valley Lo 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -3019,7 +3019,7 @@
     "series": "Series 11",
     "team": "Lake Shore CC 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -3048,7 +3048,7 @@
     "series": "Series 11",
     "team": "Westmoreland 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 67,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -3077,7 +3077,7 @@
     "series": "Series 11",
     "team": "Wilmette 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 2,
       "lost": 5,
@@ -3106,7 +3106,7 @@
     "series": "Series 11",
     "team": "Skokie 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -3135,7 +3135,7 @@
     "series": "Series 11",
     "team": "Barrington Hills 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 38,
     "matches": {
       "won": 1,
       "lost": 7,
@@ -3164,7 +3164,7 @@
     "series": "Series 11",
     "team": "Northmoor 11",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 19,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -3193,7 +3193,7 @@
     "series": "Series 12",
     "team": "Winnetka 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 90,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -3222,7 +3222,7 @@
     "series": "Series 12",
     "team": "Park Ridge 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 81,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -3251,7 +3251,7 @@
     "series": "Series 12",
     "team": "Knollwood 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 72,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -3280,7 +3280,7 @@
     "series": "Series 12",
     "team": "Lake Forest 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 69,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -3309,7 +3309,7 @@
     "series": "Series 12",
     "team": "Bryn Mawr CC 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -3338,7 +3338,7 @@
     "series": "Series 12",
     "team": "Saddle & Cycle 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -3367,7 +3367,7 @@
     "series": "Series 12",
     "team": "Winter Club 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -3396,7 +3396,7 @@
     "series": "Series 12",
     "team": "Evanston 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 47,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -3425,7 +3425,7 @@
     "series": "Series 12",
     "team": "Tennaqua 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 29,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -3454,7 +3454,7 @@
     "series": "Series 12",
     "team": "Birchwood 12",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 25,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -3483,7 +3483,7 @@
     "series": "Series 13",
     "team": "Sunset Ridge 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 83,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -3512,7 +3512,7 @@
     "series": "Series 13",
     "team": "Winnetka 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 80,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -3541,7 +3541,7 @@
     "series": "Series 13",
     "team": "Michigan Shores 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 76,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -3570,7 +3570,7 @@
     "series": "Series 13",
     "team": "Lake Bluff 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 66,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -3599,7 +3599,7 @@
     "series": "Series 13",
     "team": "Westmoreland 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -3628,7 +3628,7 @@
     "series": "Series 13",
     "team": "Birchwood 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 58,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -3657,7 +3657,7 @@
     "series": "Series 13",
     "team": "Skokie 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -3686,7 +3686,7 @@
     "series": "Series 13",
     "team": "North Shore 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -3715,7 +3715,7 @@
     "series": "Series 13",
     "team": "Briarwood 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -3744,7 +3744,7 @@
     "series": "Series 13",
     "team": "Midtown 13",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 10,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -3773,7 +3773,7 @@
     "series": "Series 14",
     "team": "Biltmore 14b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 91,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -3802,7 +3802,7 @@
     "series": "Series 14",
     "team": "Evanston 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 68,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -3831,7 +3831,7 @@
     "series": "Series 14",
     "team": "Michigan Shores 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -3860,7 +3860,7 @@
     "series": "Series 14",
     "team": "Biltmore 14a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -3889,7 +3889,7 @@
     "series": "Series 14",
     "team": "Exmoor 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 48,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -3918,7 +3918,7 @@
     "series": "Series 14",
     "team": "Park Ridge 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 48,
     "matches": {
       "won": 2,
       "lost": 4,
@@ -3947,7 +3947,7 @@
     "series": "Series 14",
     "team": "Barrington Hills 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 46,
     "matches": {
       "won": 2,
       "lost": 5,
@@ -3976,7 +3976,7 @@
     "series": "Series 14",
     "team": "Westmoreland 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 3,
       "lost": 3,
@@ -4005,7 +4005,7 @@
     "series": "Series 14",
     "team": "Lake Forest 14",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 19,
     "matches": {
       "won": 1,
       "lost": 6,
@@ -4034,7 +4034,7 @@
     "series": "Series 15",
     "team": "Wilmette 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 94,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -4063,7 +4063,7 @@
     "series": "Series 15",
     "team": "Winnetka 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 90,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -4092,7 +4092,7 @@
     "series": "Series 15",
     "team": "Winter Club 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 81,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -4121,7 +4121,7 @@
     "series": "Series 15",
     "team": "Skokie 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 67,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -4150,7 +4150,7 @@
     "series": "Series 15",
     "team": "Bryn Mawr CC 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 63,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -4179,7 +4179,7 @@
     "series": "Series 15",
     "team": "North Shore 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 42,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -4208,7 +4208,7 @@
     "series": "Series 15",
     "team": "Evanston 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 39,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -4237,7 +4237,7 @@
     "series": "Series 15",
     "team": "Birchwood 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 39,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -4266,7 +4266,7 @@
     "series": "Series 15",
     "team": "Knollwood 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 33,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -4295,7 +4295,7 @@
     "series": "Series 15",
     "team": "Lake Shore CC 15",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 32,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -4324,7 +4324,7 @@
     "series": "Series 16",
     "team": "Wilmette 16b",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 85,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -4353,7 +4353,7 @@
     "series": "Series 16",
     "team": "Glen View 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 82,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -4382,7 +4382,7 @@
     "series": "Series 16",
     "team": "Exmoor 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 73,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -4411,7 +4411,7 @@
     "series": "Series 16",
     "team": "Lake Bluff 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 65,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -4440,7 +4440,7 @@
     "series": "Series 16",
     "team": "Wilmette 16a",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -4469,7 +4469,7 @@
     "series": "Series 16",
     "team": "Winnetka 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -4498,7 +4498,7 @@
     "series": "Series 16",
     "team": "Valley Lo 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 58,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -4527,7 +4527,7 @@
     "series": "Series 16",
     "team": "Tennaqua 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -4556,7 +4556,7 @@
     "series": "Series 16",
     "team": "Briarwood 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 39,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -4585,7 +4585,7 @@
     "series": "Series 16",
     "team": "North Shore 16",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 28,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -4614,7 +4614,7 @@
     "series": "Series 17",
     "team": "Michigan Shores 17",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -4643,7 +4643,7 @@
     "series": "Series 17",
     "team": "Wilmette 17",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -4672,7 +4672,7 @@
     "series": "Series 17",
     "team": "Park Ridge 17",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 53,
     "matches": {
       "won": 5,
       "lost": 2,
@@ -4701,7 +4701,7 @@
     "series": "Series 17",
     "team": "Evanston 17",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 42,
     "matches": {
       "won": 2,
       "lost": 4,
@@ -4730,7 +4730,7 @@
     "series": "Series 17",
     "team": "Winter Club 17",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 21,
     "matches": {
       "won": 1,
       "lost": 5,
@@ -4759,7 +4759,7 @@
     "series": "Series A",
     "team": "Winnetka A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 85,
     "matches": {
       "won": 7,
       "lost": 0,
@@ -4788,7 +4788,7 @@
     "series": "Series A",
     "team": "Lake Forest A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -4817,7 +4817,7 @@
     "series": "Series A",
     "team": "Indian Hill A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -4846,7 +4846,7 @@
     "series": "Series A",
     "team": "Tennaqua A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -4875,7 +4875,7 @@
     "series": "Series A",
     "team": "North Shore A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 58,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -4904,7 +4904,7 @@
     "series": "Series A",
     "team": "Wilmette A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -4933,7 +4933,7 @@
     "series": "Series A",
     "team": "Westmoreland A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 53,
     "matches": {
       "won": 2,
       "lost": 4,
@@ -4962,7 +4962,7 @@
     "series": "Series A",
     "team": "Valley Lo A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -4991,7 +4991,7 @@
     "series": "Series A",
     "team": "Winter Club A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 37,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -5020,7 +5020,7 @@
     "series": "Series A",
     "team": "Prairie Club A",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 34,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -5049,7 +5049,7 @@
     "series": "Series B",
     "team": "Skokie B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 100,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -5078,7 +5078,7 @@
     "series": "Series B",
     "team": "Winnetka B(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 85,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -5107,7 +5107,7 @@
     "series": "Series B",
     "team": "Valley Lo B(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -5136,7 +5136,7 @@
     "series": "Series B",
     "team": "Indian Hill B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 65,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -5165,7 +5165,7 @@
     "series": "Series B",
     "team": "Michigan Shores B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -5194,7 +5194,7 @@
     "series": "Series B",
     "team": "Park Ridge B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -5223,7 +5223,7 @@
     "series": "Series B",
     "team": "Valley Lo B(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 55,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -5252,7 +5252,7 @@
     "series": "Series B",
     "team": "Tennaqua B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -5281,7 +5281,7 @@
     "series": "Series B",
     "team": "Winnetka B(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -5310,7 +5310,7 @@
     "series": "Series B",
     "team": "Lake Forest B",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 23,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -5339,7 +5339,7 @@
     "series": "Series C",
     "team": "Prairie Club C(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 88,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -5368,7 +5368,7 @@
     "series": "Series C",
     "team": "Prairie Club C(3)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 5,
       "lost": 2,
@@ -5397,7 +5397,7 @@
     "series": "Series C",
     "team": "Wilmette C(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 73,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -5426,7 +5426,7 @@
     "series": "Series C",
     "team": "Sunset Ridge C",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 72,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -5455,7 +5455,7 @@
     "series": "Series C",
     "team": "Wilmette C(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 66,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -5484,7 +5484,7 @@
     "series": "Series C",
     "team": "North Shore C(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -5513,7 +5513,7 @@
     "series": "Series C",
     "team": "Winter Club C",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -5542,7 +5542,7 @@
     "series": "Series C",
     "team": "Prairie Club C(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 51,
     "matches": {
       "won": 2,
       "lost": 5,
@@ -5571,7 +5571,7 @@
     "series": "Series C",
     "team": "North Shore C(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -5600,7 +5600,7 @@
     "series": "Series C",
     "team": "Westmoreland C",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 20,
     "matches": {
       "won": 0,
       "lost": 7,
@@ -5629,7 +5629,7 @@
     "series": "Series D",
     "team": "Valley Lo D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 81,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -5658,7 +5658,7 @@
     "series": "Series D",
     "team": "Wilmette D(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 80,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -5687,7 +5687,7 @@
     "series": "Series D",
     "team": "Glen View D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 79,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -5716,7 +5716,7 @@
     "series": "Series D",
     "team": "Winnetka D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -5745,7 +5745,7 @@
     "series": "Series D",
     "team": "Michigan Shores D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -5774,7 +5774,7 @@
     "series": "Series D",
     "team": "Lake Bluff D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 58,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -5803,7 +5803,7 @@
     "series": "Series D",
     "team": "Skokie D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 4,
       "lost": 5,
@@ -5832,7 +5832,7 @@
     "series": "Series D",
     "team": "Tennaqua D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -5861,7 +5861,7 @@
     "series": "Series D",
     "team": "Wilmette D(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 48,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -5890,7 +5890,7 @@
     "series": "Series D",
     "team": "Sunset Ridge D",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 32,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -5919,7 +5919,7 @@
     "series": "Series E",
     "team": "Exmoor E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 86,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -5948,7 +5948,7 @@
     "series": "Series E",
     "team": "Evanston E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 82,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -5977,7 +5977,7 @@
     "series": "Series E",
     "team": "Westmoreland E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 76,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -6006,7 +6006,7 @@
     "series": "Series E",
     "team": "Tennaqua E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 65,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -6035,7 +6035,7 @@
     "series": "Series E",
     "team": "Prairie Club E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 64,
     "matches": {
       "won": 3,
       "lost": 3,
@@ -6064,7 +6064,7 @@
     "series": "Series E",
     "team": "Indian Hill E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 52,
     "matches": {
       "won": 4,
       "lost": 4,
@@ -6093,7 +6093,7 @@
     "series": "Series E",
     "team": "Valley Lo E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -6122,7 +6122,7 @@
     "series": "Series E",
     "team": "Lake Forest E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 0,
       "lost": 6,
@@ -6151,7 +6151,7 @@
     "series": "Series E",
     "team": "Winnetka E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 40,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -6180,7 +6180,7 @@
     "series": "Series E",
     "team": "Wilmette E",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 38,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -6209,7 +6209,7 @@
     "series": "Series F",
     "team": "Winter Club F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 85,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -6238,7 +6238,7 @@
     "series": "Series F",
     "team": "Park Ridge F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 75,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -6267,7 +6267,7 @@
     "series": "Series F",
     "team": "Skokie F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -6296,7 +6296,7 @@
     "series": "Series F",
     "team": "Tennaqua F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -6325,7 +6325,7 @@
     "series": "Series F",
     "team": "Birchwood F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -6354,7 +6354,7 @@
     "series": "Series F",
     "team": "Wilmette F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 62,
     "matches": {
       "won": 2,
       "lost": 4,
@@ -6383,7 +6383,7 @@
     "series": "Series F",
     "team": "Westmoreland F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -6412,7 +6412,7 @@
     "series": "Series F",
     "team": "Lake Forest F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 37,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -6441,7 +6441,7 @@
     "series": "Series F",
     "team": "Valley Lo F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 33,
     "matches": {
       "won": 1,
       "lost": 7,
@@ -6470,7 +6470,7 @@
     "series": "Series F",
     "team": "Indian Hill F",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 28,
     "matches": {
       "won": 0,
       "lost": 8,
@@ -6499,7 +6499,7 @@
     "series": "Series G",
     "team": "Knollwood G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 90,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -6528,7 +6528,7 @@
     "series": "Series G",
     "team": "Prairie Club G(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 86,
     "matches": {
       "won": 8,
       "lost": 1,
@@ -6557,7 +6557,7 @@
     "series": "Series G",
     "team": "Glenbrook G(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -6586,7 +6586,7 @@
     "series": "Series G",
     "team": "Tennaqua G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 71,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -6615,7 +6615,7 @@
     "series": "Series G",
     "team": "Michigan Shores G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 60,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -6644,7 +6644,7 @@
     "series": "Series G",
     "team": "Wilmette G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 53,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -6673,7 +6673,7 @@
     "series": "Series G",
     "team": "PraIrie Club G(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -6702,7 +6702,7 @@
     "series": "Series G",
     "team": "Glenbrook G(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -6731,7 +6731,7 @@
     "series": "Series G",
     "team": "Lake Bluff G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 45,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -6760,7 +6760,7 @@
     "series": "Series G",
     "team": "Indian Hill G",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 25,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -6789,7 +6789,7 @@
     "series": "Series H",
     "team": "Glenbrook H",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 80,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -6818,7 +6818,7 @@
     "series": "Series H",
     "team": "Winnetka H",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 79,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -6847,7 +6847,7 @@
     "series": "Series H",
     "team": "Sunset Ridge H",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 74,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -6876,7 +6876,7 @@
     "series": "Series H",
     "team": "Evanston H(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 72,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -6905,7 +6905,7 @@
     "series": "Series H",
     "team": "Evanston H(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 5,
       "lost": 3,
@@ -6934,7 +6934,7 @@
     "series": "Series H",
     "team": "Wilmette H(3)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 56,
     "matches": {
       "won": 3,
       "lost": 5,
@@ -6963,7 +6963,7 @@
     "series": "Series H",
     "team": "Westmoreland H",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 48,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -6992,7 +6992,7 @@
     "series": "Series H",
     "team": "Tennaqua H",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 48,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -7021,7 +7021,7 @@
     "series": "Series H",
     "team": "Wilmette H(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -7050,7 +7050,7 @@
     "series": "Series H",
     "team": "Wilmette H (1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 26,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -7079,7 +7079,7 @@
     "series": "Series I",
     "team": "Exmoor I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 95,
     "matches": {
       "won": 9,
       "lost": 0,
@@ -7108,7 +7108,7 @@
     "series": "Series I",
     "team": "Park Ridge I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 88,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -7137,7 +7137,7 @@
     "series": "Series I",
     "team": "Glen View I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 79,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -7166,7 +7166,7 @@
     "series": "Series I",
     "team": "Winnetka I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 58,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -7195,7 +7195,7 @@
     "series": "Series I",
     "team": "North Shore I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -7224,7 +7224,7 @@
     "series": "Series I",
     "team": "Glenbrook I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 57,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -7253,7 +7253,7 @@
     "series": "Series I",
     "team": "Evanston I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 52,
     "matches": {
       "won": 5,
       "lost": 4,
@@ -7282,7 +7282,7 @@
     "series": "Series I",
     "team": "Skokie I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 49,
     "matches": {
       "won": 2,
       "lost": 7,
@@ -7311,7 +7311,7 @@
     "series": "Series I",
     "team": "Lake Forest I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 26,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -7340,7 +7340,7 @@
     "series": "Series I",
     "team": "Tennaqua I",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 17,
     "matches": {
       "won": 0,
       "lost": 9,
@@ -7369,7 +7369,7 @@
     "series": "Series J",
     "team": "Michigan Shores J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 93,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -7398,7 +7398,7 @@
     "series": "Series J",
     "team": "Lifesport J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 88,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -7427,7 +7427,7 @@
     "series": "Series J",
     "team": "Glen View J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 6,
       "lost": 2,
@@ -7456,7 +7456,7 @@
     "series": "Series J",
     "team": "Lake Bluff J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 78,
     "matches": {
       "won": 7,
       "lost": 2,
@@ -7485,7 +7485,7 @@
     "series": "Series J",
     "team": "Skokie J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 6,
       "lost": 3,
@@ -7514,7 +7514,7 @@
     "series": "Series J",
     "team": "Knollwood J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 50,
     "matches": {
       "won": 3,
       "lost": 6,
@@ -7543,7 +7543,7 @@
     "series": "Series J",
     "team": "Valley Lo J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 46,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -7572,7 +7572,7 @@
     "series": "Series J",
     "team": "Winnetka J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 38,
     "matches": {
       "won": 2,
       "lost": 6,
@@ -7601,7 +7601,7 @@
     "series": "Series J",
     "team": "Winter Club J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 34,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -7630,7 +7630,7 @@
     "series": "Series J",
     "team": "Sunset Ridge J",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 22,
     "matches": {
       "won": 1,
       "lost": 8,
@@ -7659,7 +7659,7 @@
     "series": "Series K",
     "team": "North Shore K",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 77,
     "matches": {
       "won": 6,
       "lost": 1,
@@ -7688,7 +7688,7 @@
     "series": "Series K",
     "team": "Exmoor K(1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 7,
       "lost": 1,
@@ -7717,7 +7717,7 @@
     "series": "Series K",
     "team": "Park Ridge K",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 61,
     "matches": {
       "won": 5,
       "lost": 2,
@@ -7746,7 +7746,7 @@
     "series": "Series K",
     "team": "Indian Hill K",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 49,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -7775,7 +7775,7 @@
     "series": "Series K",
     "team": "Skokie K",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 44,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -7804,7 +7804,7 @@
     "series": "Series K",
     "team": "Exmoor K(2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 24,
     "matches": {
       "won": 1,
       "lost": 6,
@@ -7833,7 +7833,7 @@
     "series": "Series K",
     "team": "Lake Forest K",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 20,
     "matches": {
       "won": 0,
       "lost": 7,
@@ -7862,7 +7862,7 @@
     "series": "Series SN",
     "team": "Prarie Club SN (1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 91,
     "matches": {
       "won": 8,
       "lost": 0,
@@ -7891,7 +7891,7 @@
     "series": "Series SN",
     "team": "Winnetka SN (1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 70,
     "matches": {
       "won": 6,
       "lost": 1,
@@ -7920,7 +7920,7 @@
     "series": "Series SN",
     "team": "Wilmette SN (1)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 59,
     "matches": {
       "won": 3,
       "lost": 3,
@@ -7949,7 +7949,7 @@
     "series": "Series SN",
     "team": "Prarie Club SN (2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 54,
     "matches": {
       "won": 4,
       "lost": 3,
@@ -7978,7 +7978,7 @@
     "series": "Series SN",
     "team": "Wilmette SN (2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 43,
     "matches": {
       "won": 3,
       "lost": 4,
@@ -8007,7 +8007,7 @@
     "series": "Series SN",
     "team": "Michigan Shores SN",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 10,
     "matches": {
       "won": 0,
       "lost": 8,
@@ -8036,7 +8036,7 @@
     "series": "Series SN",
     "team": "Winnetka SN (2)",
     "league_id": "CNSWPL",
-    "points": 0,
+    "points": 10,
     "matches": {
       "won": 1,
       "lost": 6,
