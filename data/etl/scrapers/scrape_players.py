@@ -1479,7 +1479,8 @@ def extract_cnswpl_player_ids_from_match_history(match_history_file: str) -> Set
             # Extract series from team name (e.g., "Tennaqua 12" -> "Series 12", "Hinsdale PC 1b" -> "Series 1b")
             team_parts = team.split() if team else []
             if len(team_parts) >= 2:
-                club_name = team_parts[0]
+                # FIXED: Take all parts except the last one for club name
+                club_name = ' '.join(team_parts[:-1])  # Everything except last part
                 series_part = team_parts[-1]  # Last part should be series number/letter
                 series = f"Series {series_part}"
             else:
