@@ -243,7 +243,12 @@
                                         </span>
                                         {% endif %}
                                     </div>
-                                    <div class="text-sm text-gray-600">{{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}</div>
+                                    <div class="text-sm text-gray-600">
+                                        <button onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
+                                                class="text-blue-600 hover:text-blue-800 font-medium underline bg-transparent border-none p-0 cursor-pointer">
+                                            {{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <!-- Wins -->
@@ -314,7 +319,12 @@
                                         {{ player.name }}
                                     </a>
                                 </td>
-                                <td class="py-2 px-2 text-center">{{ player.matches }}</td>
+                                <td class="py-2 px-2 text-center">
+                                    <button onclick="openPartnerMatchesModal('{{ player.name }}', 'All Courts', {{ player.matches }})" 
+                                            class="text-blue-600 hover:text-blue-800 font-medium underline bg-transparent border-none p-0 cursor-pointer">
+                                        {{ player.matches }}
+                                    </button>
+                                </td>
                                 <td class="py-2 px-2 text-center">
                                     {% set win_rate = player.win_rate|default(player.winRate)|default(0) %}
                                     <span class="px-2 py-1 rounded text-xs font-medium
@@ -486,6 +496,222 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Partner matches modal functionality
+let matchesModal = null;
+let matchesData = null;
+
+function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    if (!matchesModal) {
+        createMatchesModal();
+    }
+    
+    // Show loading state
+    const modalContent = document.getElementById('matchesModalContent');
+    modalContent.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+            <p class="text-gray-500 text-sm ml-2">Loading matches for ${partnerName}...</p>
+        </div>
+    `;
+    
+    // Update modal title
+    const modalTitle = document.querySelector('#matchesModal h2');
+    if (modalTitle) {
+        modalTitle.textContent = `Match Detail`;
+    }
+    
+    // Show modal
+    matchesModal.classList.remove('hidden');
+    
+    // Load partner matches data
+    loadPartnerMatchesData(partnerName, courtName);
+}
+
+function createMatchesModal() {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="matchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                    <!-- Modal Header -->
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
+                        <h2 class="text-xl font-semibold" style="color: #bff863;">Current Season Matches</h2>
+                        <button onclick="closeMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Modal Content -->
+                    <div id="matchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
+                        <!-- Content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    matchesModal = document.getElementById('matchesModal');
+    
+    // Close modal when clicking outside
+    matchesModal.addEventListener('click', function(e) {
+        if (e.target === matchesModal) {
+            closeMatchesModal();
+        }
+    });
+}
+
+function closeMatchesModal() {
+    if (matchesModal) {
+        matchesModal.classList.add('hidden');
+    }
+}
+
+async function loadPartnerMatchesData(partnerName, courtName) {
+    try {
+        // Get the selected team from the form
+        const teamSelect = document.getElementById('team');
+        const selectedTeamId = teamSelect ? teamSelect.value : '';
+        
+        if (!selectedTeamId) {
+            showMatchesError('Please select a team first');
+            return;
+        }
+        
+        // Get partner matches for this team and player
+        const response = await fetch(`/api/partner-matches-team?team_id=${selectedTeamId}&player_name=${encodeURIComponent(partnerName)}${courtName !== 'All Courts' ? `&court=${encodeURIComponent(courtName)}` : ''}`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch partner matches: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            showMatchesError(data.error || 'Failed to load partner matches');
+            return;
+        }
+        
+        const partnerMatches = data.matches;
+        
+        if (!partnerMatches || partnerMatches.length === 0) {
+            showMatchesError('No matches found for this player');
+            return;
+        }
+        
+        // Render partner matches
+        renderPartnerMatchesModal(partnerMatches, partnerName, courtName);
+        
+    } catch (err) {
+        console.error('Error loading partner matches:', err);
+        showMatchesError(`Failed to load matches: ${err.message}`);
+    }
+}
+
+function renderPartnerMatchesModal(matches, partnerName, courtName) {
+    const modalContent = document.getElementById('matchesModalContent');
+    
+    let html = `
+        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('court', 'Court ')}</h3>
+        </div>
+    `;
+    
+    // Group matches by date and team matchup
+    const groupedMatches = groupMatchesByTeamMatchup(matches);
+    
+    groupedMatches.forEach(group => {
+        // Calculate team result (W or L)
+        const playerMatches = group.matches.filter(match => match.player_was_home !== null);
+        const wins = playerMatches.filter(match => match.player_won).length;
+        const losses = playerMatches.filter(match => !match.player_won).length;
+        const teamResult = wins > losses ? 'W' : 'L';
+        const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
+        
+        html += `
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+                <div class="px-4 py-3 bg-gray-100 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium text-gray-900">${group.date}</span>
+                            <span class="text-sm text-gray-700">${group.home_team} vs ${group.away_team}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg font-bold ${resultClass}">${teamResult}</span>
+                        </div>
+                    </div>
+                </div>
+        `;
+        
+        group.matches.forEach(match => {
+            const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            
+            html += `
+                <div class="px-4 py-3 bg-gray-50">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-900">${match.court_number}</span>
+                            <span class="text-xs text-gray-700">${partnerName} & ${match.partner_name}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs text-gray-600">
+                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
+                        </div>
+                        <div class="text-xs font-medium text-gray-900">${match.scores}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    modalContent.innerHTML = html;
+}
+
+function groupMatchesByTeamMatchup(matches) {
+    const grouped = {};
+    
+    matches.forEach(match => {
+        const key = `${match.date}_${match.home_team}_${match.away_team}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                date: match.date,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                matches: []
+            };
+        }
+        grouped[key].matches.push(match);
+    });
+    
+    // Sort by date (newest first)
+    return Object.values(grouped).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+    });
+}
+
+function showMatchesError(message) {
+    const modalContent = document.getElementById('matchesModalContent');
+    modalContent.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-4"></i>
+                <p class="text-gray-700 text-lg mb-2">Unable to Load Matches</p>
+                <p class="text-gray-500 text-sm">${message}</p>
+            </div>
+        </div>
+    `;
+}
 </script>
 
 {% endblock %} 
