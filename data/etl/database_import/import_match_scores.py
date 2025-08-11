@@ -186,14 +186,20 @@ class MatchScoresETL:
             away_player_1_id = (record.get("Away Player 1 ID") or "").strip()
             away_player_2_id = (record.get("Away Player 2 ID") or "").strip()
             
-            # Quick validation using cached player IDs
+            # Enhanced player ID validation with fallback
             player_ids = [home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id]
             validated_ids = []
             
             for pid in player_ids:
                 if pid and pid in valid_player_ids:
+                    # Player ID exists in cache - use it
                     validated_ids.append(pid)
+                elif pid and self._is_valid_player_id_format(pid):
+                    # Player ID looks valid but not in cache - keep it (may be new player)
+                    validated_ids.append(pid)
+                    logger.debug(f"Player ID not in cache but valid format: {pid}")
                 else:
+                    # No player ID or invalid format - set to None
                     validated_ids.append(None)
                     if pid:
                         self.stats['player_id_fixes'] += 1
@@ -388,6 +394,25 @@ class MatchScoresETL:
         except Exception as e:
             logger.error(f"❌ Match Scores ETL failed: {e}")
             raise
+    
+    def _is_valid_player_id_format(self, player_id: str) -> bool:
+        """Check if player ID has a valid format (APTA, CNSWPL, NSTF patterns)"""
+        if not player_id or len(player_id) < 5:
+            return False
+        
+        # APTA format: nndz-base64-like string
+        if player_id.startswith("nndz-") and len(player_id) > 10:
+            return True
+        
+        # CNSWPL format: cnswpl_md5hash
+        if player_id.startswith("cnswpl_") and len(player_id) > 15:
+            return True
+        
+        # NSTF or other formats - be permissive for alphanumeric with reasonable length
+        if len(player_id) >= 5 and any(c.isalnum() for c in player_id):
+            return True
+        
+        return False
 
 def main():
     """Main function"""

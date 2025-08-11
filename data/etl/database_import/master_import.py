@@ -272,19 +272,19 @@ class MasterImporter:
                     "description": f"Import series statistics for {league}"
                 })
         
-        # Always include match scores, players, and player history import
+        # Import players first, then match scores (players needed for validation)
         steps.extend([
-            {
-                "name": "Import Match Scores",
-                "script": "import_match_scores.py",
-                "args": [],
-                "description": "Import match scores and results"
-            },
             {
                 "name": "Import Players",
                 "script": "import_players.py",
                 "args": [],
                 "description": "Import player data and associations"
+            },
+            {
+                "name": "Import Match Scores",
+                "script": "import_match_scores.py",
+                "args": [],
+                "description": "Import match scores and results"
             },
             {
                 "name": "Import Player History",
