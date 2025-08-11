@@ -209,11 +209,24 @@ class IdBasedLookupService:
                     logger.debug(f"✅ Club resolved via base name: '{club_name}' -> '{base_club_name}' -> {club_id}")
                     return club_id
             
-            # Pattern 2: Handle special cases
+            # Pattern 2: Handle special cases and CNSWPL partial names
             special_mappings = {
                 'LifeSport-Lshire': 'LifeSport',
                 'Park RIdge CC': 'Park Ridge CC',
-                'Barrington Hills': 'Barrington'
+                # CNSWPL partial club name mappings (fix for scraper issue)
+                'Michigan': 'Michigan Shores',
+                'River': 'River Forest', 
+                'Barrington': 'Barrington Hills',
+                'Lake': 'Lake Forest',  # Primary mapping for Lake
+                'Sunset': 'Sunset Ridge',
+                'Prairie': 'Prairie Club',
+                'Hinsdale': 'Hinsdale PC',
+                'Park': 'Park Ridge CC',
+                'Indian': 'Indian Hill',
+                'Bryn': 'Bryn Mawr CC',
+                'Saddle': 'Saddle & Cycle',
+                'Valley': 'Valley Lo',
+                'North': 'North Shore'
             }
             
             for pattern, replacement in special_mappings.items():
@@ -222,6 +235,13 @@ class IdBasedLookupService:
                     if club_id:
                         logger.debug(f"✅ Club resolved via special mapping: '{club_name}' -> '{replacement}' -> {club_id}")
                         return club_id
+                    
+                    # Special case for "Lake" - try Lake Bluff if Lake Forest fails
+                    if club_name == 'Lake' and replacement == 'Lake Forest':
+                        club_id = self.cache['clubs'].get('Lake Bluff')
+                        if club_id:
+                            logger.debug(f"✅ Club resolved via Lake Bluff fallback: '{club_name}' -> 'Lake Bluff' -> {club_id}")
+                            return club_id
         
         logger.warning(f"❌ Club not found: '{club_name}'")
         return None

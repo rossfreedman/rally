@@ -222,6 +222,22 @@ class DuplicatePreventionService:
                   team_id, club_id, series_id, True))
             return 'inserted'
     
+    def check_existing_player(self, tenniscores_player_id: str, league_id: int, 
+                             club_id: int = None, series_id: int = None) -> Optional[Dict]:
+        """Check if a player already exists in the database"""
+        try:
+            existing_player = execute_query_one("""
+                SELECT id, tenniscores_player_id, first_name, last_name, 
+                       league_id, club_id, series_id, team_id
+                FROM players 
+                WHERE tenniscores_player_id = %s AND league_id = %s
+            """, (tenniscores_player_id, league_id))
+            
+            return existing_player
+        except Exception as e:
+            logger.error(f"Error checking existing player {tenniscores_player_id}: {e}")
+            return None
+    
     def cleanup_existing_duplicates(self, league_id: str = None) -> Dict:
         """Clean up existing duplicate records in the database"""
         
