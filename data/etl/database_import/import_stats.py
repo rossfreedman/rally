@@ -54,6 +54,7 @@ def load_series_stats_json(league_id: str) -> List[Dict]:
     league_dir_mapping = {
         "aptachicago": "APTA_CHICAGO",
         "nstf": "NSTF",
+        "cnswpl": "CNSWPL",  # FIXED: Added lowercase mapping
         "CNSWPL": "CNSWPL",
         # Keep backward compatibility
         "APTA CHICAGO": "APTA_CHICAGO",
