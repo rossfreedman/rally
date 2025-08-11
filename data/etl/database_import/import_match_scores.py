@@ -307,6 +307,22 @@ class MatchScoresETL:
             self.stats['errors'] += len(batch_data)
             return 0
     
+    def deduplicate_batch(self, batch_data: List[tuple]) -> List[tuple]:
+        """Remove duplicates from batch based on unique constraint fields (match_date, home_team, away_team, winner, scores)"""
+        seen_keys = set()
+        unique_batch = []
+        
+        for record in batch_data:
+            # Extract the unique constraint fields (positions 0, 1, 2, 10, 9)
+            # (match_date, home_team, away_team, winner, scores)
+            unique_key = (record[0], record[1], record[2], record[10], record[9])
+            
+            if unique_key not in seen_keys:
+                seen_keys.add(unique_key)
+                unique_batch.append(record)
+        
+        return unique_batch
+    
     def import_match_scores(self, match_history_data: List[Dict]):
         """Import match scores to the database"""
         logger.info("🚀 Starting match scores import...")
@@ -329,8 +345,12 @@ class MatchScoresETL:
                     
                     # Process batch when it reaches batch_size or at the end
                     if len(batch_data) >= batch_size or record_idx == len(match_history_data) - 1:
+                        # Deduplicate batch data based on unique constraint fields
+                        unique_batch_data = self.deduplicate_batch(batch_data)
+                        logger.info(f"🔄 Batch size: {len(batch_data)}, after deduplication: {len(unique_batch_data)}")
+                        
                         with conn.cursor() as cursor:
-                            imported_count = self.process_batch(cursor, batch_data)
+                            imported_count = self.process_batch(cursor, unique_batch_data)
                             self.stats['imported'] += imported_count
                         
                         # Commit after each batch
