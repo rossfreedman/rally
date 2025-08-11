@@ -2941,6 +2941,24 @@ def serve_mobile_my_groups():
     return redirect("/mobile/pickup-games")
 
 
+@mobile_bp.route("/mobile/private-groups")
+@login_required
+def serve_mobile_private_groups():
+    """Serve the mobile Private Groups page (hidden)"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_private_groups"
+        )
+
+        return render_template("mobile/private_groups.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving private groups page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/create-pickup-game")
 @login_required
 def serve_mobile_create_pickup_game():
