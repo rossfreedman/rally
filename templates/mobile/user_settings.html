@@ -338,7 +338,7 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
             // e.g., "Series 12" should match "Day League - Series 12"
             let foundMatch = false;
             for (let option of seriesSel.options) {
-              if (option.value.includes(selectedSeries) && option.value.startsWith(selectedSeries)) {
+              if (option.value.includes(selectedSeries)) {
                 option.selected = true;
                 foundMatch = true;
                 console.log('✅ CNSWPL series match found:', option.value);

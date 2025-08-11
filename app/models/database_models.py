@@ -1054,12 +1054,14 @@ class PickupGame(Base):
     club_only = Column(Boolean, nullable=False, server_default='false')
     is_private = Column(Boolean, nullable=False, server_default='false')
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
+    league_id = Column(Integer, ForeignKey("leagues.id"), nullable=True)
     creator_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     club = relationship("Club", backref="pickup_games")
+    league = relationship("League", backref="pickup_games")
     creator = relationship("User", backref="created_pickup_games")
     participants = relationship("PickupGameParticipant", back_populates="pickup_game")
 

@@ -2957,6 +2957,7 @@ def get_user_facing_series_by_league():
                 print(f"[WARNING] Could not convert integer league_id: {e}")
             
         # SIMPLIFIED: Get series with display names using the new display_name column
+        # FILTER: Only include series that have teams or players (excluding empty artifacts)
         simplified_query = """
             SELECT DISTINCT 
                 s.name as database_series_name,
@@ -2965,6 +2966,10 @@ def get_user_facing_series_by_league():
             JOIN series_leagues sl ON s.id = sl.series_id
             JOIN leagues l ON sl.league_id = l.id
             WHERE l.league_id = %s
+              AND (
+                  (SELECT COUNT(*) FROM teams WHERE series_id = s.id) > 0 
+                  OR (SELECT COUNT(*) FROM players WHERE series_id = s.id) > 0
+              )
             ORDER BY s.name
         """
         series_data = execute_query(simplified_query, (league_id,))
@@ -5504,6 +5509,22 @@ def get_pickup_games():
                 )
             """
         
+        # Build league filtering condition
+        league_filter = ""
+        user_league_id = None
+        if user_id:
+            # Get user's league from session
+            user_session = session.get("user", {})
+            user_league_id = user_session.get("league_id")
+            
+            if user_league_id:
+                league_filter = """
+                    AND (
+                        pg.league_id IS NULL OR 
+                        pg.league_id = %s
+                    )
+                """
+        
         # Query for upcoming games (future date or today but future time)
         upcoming_query = f"""
             SELECT 
@@ -5528,6 +5549,7 @@ def get_pickup_games():
             WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
             {is_private_filter}
             {club_filter}
+            {league_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date ASC, pg.game_time ASC
         """
@@ -5556,6 +5578,7 @@ def get_pickup_games():
             WHERE ((pg.game_date < %s) OR (pg.game_date = %s AND pg.game_time <= %s))
             {is_private_filter}
             {club_filter}
+            {league_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date DESC, pg.game_time DESC
         """
@@ -5564,6 +5587,8 @@ def get_pickup_games():
         query_params = [current_date, current_date, current_time]
         if user_id and club_filter:
             query_params.append(user_id)
+        if user_league_id and league_filter:
+            query_params.append(user_league_id)
         
         upcoming_games = execute_query(upcoming_query, query_params)
         past_games = execute_query(past_query, query_params)
@@ -8227,7 +8252,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
         current_date = now.date()
         current_time = now.time()
         
-        # Find pickup games where user meets criteria
+        # Find pickup games where user meets criteria (including league filtering)
         pickup_games_query = """
             SELECT 
                 pg.id,
@@ -8245,6 +8270,10 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
             WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
             AND (pg.pti_low <= %s AND pg.pti_high >= %s)
+            AND (
+                pg.league_id IS NULL OR 
+                pg.league_id = %s
+            )
             AND (
                 (pg.series_low IS NULL AND pg.series_high IS NULL) OR
                 (pg.series_low IS NOT NULL AND pg.series_low <= %s) OR
@@ -8274,6 +8303,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
         matching_games = execute_query(pickup_games_query, [
             current_date, current_date, current_time,
             user_pti, user_pti,
+            league_id,
             user_series_id, user_series_id, user_series_id, user_series_id,
             user_id,
             user_id
