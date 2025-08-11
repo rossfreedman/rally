@@ -8815,6 +8815,9 @@ def get_partner_matches_team():
         season_start = datetime(2024, 8, 1)  # August 1st, 2024
         season_end = datetime(2026, 7, 31)   # July 31st, 2026
         
+        # Import helper function for name conversion
+        from app.services.mobile_service import get_player_name_from_id
+        
         # Add debug logging
         print(f"[DEBUG] API: Searching for player '{player_name}' on team '{team_name}' (ID: {team_id})")
         
@@ -9108,7 +9111,6 @@ def get_partner_matches_team():
                             continue  # Skip the current player
                         elif player_id and p != player_id:
                             # Convert partner ID to readable name
-                            from app.services.mobile_service import get_player_name_from_id
                             partner_name = get_player_name_from_id(p)
                             break
                         # Fallback to name-based comparison
@@ -9118,7 +9120,6 @@ def get_partner_matches_team():
                 
                 # Convert opponent IDs to readable names
                 if away_players[0]:
-                    from app.services.mobile_service import get_player_name_from_id
                     opponent1_name = get_player_name_from_id(away_players[0])
                 else:
                     opponent1_name = "Unknown"
