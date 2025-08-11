@@ -229,20 +229,30 @@
                                 {% for partner in court_stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
-                                        <div class="font-medium text-gray-900">{{ partner.name }}</div>
-                                        <div class="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors font-medium" 
-                                             onclick="openPartnerMatchesModal('{{ partner.name }}', '{{ court_name }}', {{ partner.matches }})" 
-                                             title="Click to view matches with {{ partner.name }}">
-                                            {{ partner.matches }} match{{ 'es' if partner.matches != 1 else '' }}
+                                        <div class="mb-2 flex items-center gap-2">
+                                            <span class="font-bold text-gray-900">{{ partner.name }}</span>
+                                            <a href="/mobile/player-detail/{{ partner.name | urlencode }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ partner.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
                                         </div>
-                                        {% if partner.isSubstitute %}
-                                        <div class="mt-1">
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                        <div class="flex flex-col gap-2">
+                                            <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                                 style="background-color: #045454; color: #bff863;"
+                                                 data-partner-name="{{ partner.name }}"
+                                                 data-court-name="{{ court_name.replace('court', 'Court ')|title }}"
+                                                 data-match-count="{{ partner.matches|default(0) }}"
+                                                 title="Click to view matches with {{ partner.name }}">
+                                                View {{ partner.matches|default(0) }} match{{ 'es' if partner.matches != 1 else '' }}
+                                            </button>
+                                            {% if partner.isSubstitute %}
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
                                                 <i class="fas fa-exchange-alt mr-1"></i>
                                                 Sub for {{ partner.substituteSeries }}
                                             </span>
+                                            {% endif %}
                                         </div>
-                                        {% endif %}
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <!-- Wins -->
@@ -900,6 +910,43 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('❌ Matches trigger element not found');
     }
     
+    // Set up partner matches button event listeners using event delegation
+    console.log('[DEBUG] Setting up partner matches button event listeners');
+    
+    // Check if buttons exist
+    setTimeout(() => {
+        const buttons = document.querySelectorAll('.partner-matches-btn');
+        console.log(`[DEBUG] Found ${buttons.length} partner matches buttons`);
+        buttons.forEach((btn, index) => {
+            console.log(`[DEBUG] Button ${index}:`, {
+                partnerName: btn.getAttribute('data-partner-name'),
+                courtName: btn.getAttribute('data-court-name'),
+                matchCount: btn.getAttribute('data-match-count'),
+                className: btn.className
+            });
+        });
+    }, 1000);
+    
+    document.addEventListener('click', function(event) {
+        console.log('[DEBUG] Click detected on:', event.target.tagName, event.target.className);
+        
+        if (event.target.classList.contains('partner-matches-btn')) {
+            console.log('[DEBUG] Partner matches button clicked');
+            
+            const partnerName = event.target.getAttribute('data-partner-name');
+            const courtName = event.target.getAttribute('data-court-name');
+            const matchCount = parseInt(event.target.getAttribute('data-match-count'));
+            
+            console.log(`[DEBUG] Data attributes - partner: ${partnerName}, court: ${courtName}, matches: ${matchCount}`);
+            
+            if (partnerName && courtName && !isNaN(matchCount)) {
+                openPartnerMatchesModal(partnerName, courtName, matchCount);
+            } else {
+                console.error('[DEBUG] Missing or invalid data attributes');
+            }
+        }
+    });
+    
     // Update no matches message based on series
     const noMatchesMessage = document.getElementById('noMatchesMessage');
     if (noMatchesMessage) {
@@ -1180,7 +1227,10 @@ function showMatchesEmpty() {
 
 // Partner matches modal functionality
 function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    console.log(`🎯 Opening partner matches modal for ${partnerName} on ${courtName}`);
+    
     if (!matchesModal) {
+        console.log('🔨 Creating matches modal...');
         createMatchesModal();
     }
     
@@ -1188,8 +1238,8 @@ function openPartnerMatchesModal(partnerName, courtName, matchCount) {
     const modalContent = document.getElementById('matchesModalContent');
     modalContent.innerHTML = `
         <div class="flex items-center justify-center py-8">
-            <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
-            <p class="text-gray-500 text-sm ml-2">Loading matches with ${partnerName}...</p>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-600">Loading matches with ${partnerName}...</span>
         </div>
     `;
     
@@ -1201,15 +1251,31 @@ function openPartnerMatchesModal(partnerName, courtName, matchCount) {
     
     // Show modal
     matchesModal.classList.remove('hidden');
+    console.log('✅ Modal shown');
     
     // Load partner matches data
+    console.log('🚀 Loading partner matches data...');
     loadPartnerMatchesData(partnerName, courtName);
 }
 
 async function loadPartnerMatchesData(partnerName, courtName) {
     try {
         console.log(`🔍 Loading partner matches for ${partnerName} on ${courtName}...`);
-        const response = await fetch('/api/current-season-matches');
+        
+        // Get current player context
+        const currentPlayerName = '{{ session_data.user.first_name }} {{ session_data.user.last_name }}';
+        
+        // Extract court number from courtName (e.g., "Court 1" -> "1")
+        const courtNumber = courtName.replace(/[^0-9]/g, '');
+        
+        console.log(`[DEBUG] Current player: ${currentPlayerName}, Partner: ${partnerName}, Court: ${courtNumber}`);
+        
+        // Use the partner matches API endpoint
+        const apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
+        
+        console.log(`[DEBUG] API URL: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl);
         console.log('📊 Partner matches response status:', response.status);
         
         if (response.status === 404) {
@@ -1220,6 +1286,12 @@ async function loadPartnerMatchesData(partnerName, courtName) {
         const data = await response.json();
         console.log('📊 Partner matches API response data:', data);
         
+        if (!data.success) {
+            console.log('❌ Partner matches API not successful:', data.error);
+            showMatchesError(data.error || 'API request failed');
+            return;
+        }
+        
         if (data.error) {
             console.log('❌ Partner matches API error:', data.error);
             showMatchesError(data.error);
@@ -1228,75 +1300,22 @@ async function loadPartnerMatchesData(partnerName, courtName) {
         
         if (!data.matches || data.matches.length === 0) {
             console.log('❌ No matches in partner response');
-            showMatchesEmpty();
+            showMatchesError(`No matches found with ${partnerName} on ${courtName}`);
             return;
         }
         
-        console.log('✅ Found', data.matches.length, 'matches for partner filtering');
+        console.log('✅ Found', data.matches.length, 'partner matches from API');
+        console.log('📊 First match sample:', data.matches[0]);
         
-        // Filter matches for this specific partner and court
-        // Use the same logic as the court analysis
-        console.log(`🔍 Filtering for partner: "${partnerName}" on court: "${courtName}"`);
-        const targetCourt = parseInt(courtName.replace('court', ''));
-        console.log(`🎯 Target court number: ${targetCourt}`);
+        // The API already filtered the matches for the specific partner and court
+        // No additional filtering needed
         
-        const partnerMatches = data.matches.filter(match => {
-            // Check if this match is with the specified partner
-            const isWithPartner = match.partner_name === partnerName;
-            
-            // Check if this match is on the specified court
-            const isOnCourt = match.court_number === targetCourt;
-            
-            console.log(`🔍 Match: partner="${match.partner_name}" court=${match.court_number} | isWithPartner=${isWithPartner} isOnCourt=${isOnCourt}`);
-            
-            return isWithPartner && isOnCourt;
-        });
-        
-        console.log(`📊 Filtered to ${partnerMatches.length} partner matches`);
-        
-        // If no matches found with the exact court number, try the fallback logic
-        // This matches the court analysis fallback: (index % 4) + 1
-        if (partnerMatches.length === 0) {
-            const fallbackMatches = data.matches.filter(match => {
-                const isWithPartner = match.partner_name === partnerName;
-                
-                // Group matches by date and team matchup to replicate court analysis logic
-                const matchKey = `${match.date}_${match.home_team}_${match.away_team}`;
-                const sameTeamMatches = data.matches.filter(m => 
-                    `${m.date}_${m.home_team}_${m.away_team}` === matchKey
-                ).sort((a, b) => a.match_id - b.match_id);
-                
-                const matchIndex = sameTeamMatches.findIndex(m => m.match_id === match.match_id);
-                const fallbackCourt = (matchIndex % 4) + 1;
-                
-                return isWithPartner && fallbackCourt === targetCourt;
-            });
-            
-            if (fallbackMatches.length > 0) {
-                console.log(`Using fallback court logic: found ${fallbackMatches.length} matches for ${partnerName} on ${courtName}`);
-                partnerMatches.push(...fallbackMatches);
-            }
-        }
-        
-        // If still no matches, try using the same data source as court analysis
-        // The court analysis uses match_history from player analysis, not the API endpoint
-        if (partnerMatches.length === 0) {
-            console.log(`No matches found with API data, trying to match court analysis logic...`);
-            
-            // The court analysis shows 2 matches for Mike Lieberman on Court 1
-            // but the API only shows 1. This suggests the court analysis uses different data.
-            // For now, show a message explaining the discrepancy
-            showMatchesError(`Court analysis shows different data than API. Please check the court analysis for accurate match counts.`);
-            return;
-        }
-        
-        if (partnerMatches.length === 0) {
-            showMatchesError(`No matches found with ${partnerName} on ${courtName.replace('court', 'Court ').toUpperCase()}`);
-            return;
-        }
+        // Group matches by date and team matchup
+        const groupedMatches = groupMatchesByTeamMatchup(data.matches);
+        console.log('📊 Grouped matches:', groupedMatches);
         
         // Render partner matches
-        renderPartnerMatchesModal(partnerMatches, partnerName, courtName);
+        renderPartnerMatchesModal(data.matches, partnerName, courtName);
         
     } catch (err) {
         console.error('Error loading partner matches:', err);
@@ -1309,7 +1328,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
     
     let html = `
         <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('court', 'Court ')}</h3>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName}</h3>
         </div>
     `;
     
@@ -1341,24 +1360,35 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                 <div class="divide-y divide-gray-100">
         `;
         
-        // Sort matches by court number
-        group.matches.sort((a, b) => a.court_number - b.court_number);
+        // Sort matches by court number (handle both string and number formats)
+        group.matches.sort((a, b) => {
+            const aNum = typeof a.court_number === 'string' ? parseInt(a.court_number.replace(/\D/g, '')) : a.court_number;
+            const bNum = typeof b.court_number === 'string' ? parseInt(b.court_number.replace(/\D/g, '')) : b.court_number;
+            return aNum - bNum;
+        });
         
         group.matches.forEach(match => {
             const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            const matchResult = match.player_won ? 'WIN' : 'LOSS';
+            
+            // Handle court number display
+            const courtDisplay = typeof match.court_number === 'string' && match.court_number.startsWith('Court') 
+                ? match.court_number 
+                : `Court ${match.court_number}`;
             
             html += `
                 <div class="px-4 py-3 bg-gray-50">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-gray-900">${match.court_number}</span>
+                            <span class="text-xs font-medium text-gray-900">${courtDisplay}</span>
                             <span class="text-xs text-gray-700">${match.partner_name}</span>
                         </div>
+                        <span class="text-xs font-bold ${resultClass}">${matchResult}</span>
                     </div>
                     
                     <div class="flex items-center justify-between">
                         <div class="text-xs text-gray-600">
-                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
+                            vs ${match.opponent1_name}${match.opponent2_name && match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
                         </div>
                         <div class="text-xs font-medium text-gray-900">${match.scores}</div>
                     </div>

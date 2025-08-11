@@ -320,18 +320,32 @@
                             <div class="space-y-2">
                                 {% for p in stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
-                                    <div class="flex-1">
-                                        <div class="flex items-center gap-2">
-                                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="font-medium text-gray-900 hover:underline">{{ p.name }}</a>
-                                            {% if p.isSubstitute %}
-                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
-                                                <i class="fas fa-exchange-alt mr-1"></i>
-                                                Sub for {{ p.substituteSeries }}
-                                            </span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="text-sm text-gray-600">{{ p.matches|default(0) }} match{{ 'es' if p.matches != 1 else '' }}</div>
+                                                                    <div class="flex-1">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="font-bold text-gray-900">{{ p.name }}</span>
+                                        <a href="/mobile/player-detail/{{ p.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ p.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
                                     </div>
+                                    <div class="flex flex-col gap-2">
+                                        <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                             style="background-color: #045454; color: #bff863;"
+                                             data-partner-name="{{ p.name }}"
+                                             data-court-name="{{ court.replace('court', 'Court ')|title }}"
+                                             data-match-count="{{ p.matches|default(0) }}"
+                                             title="Click to view matches with {{ p.name }}">
+                                            View {{ p.matches|default(0) }} match{{ 'es' if p.matches != 1 else '' }}
+                                        </button>
+                                        {% if p.isSubstitute %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
+                                            <i class="fas fa-exchange-alt mr-1"></i>
+                                            Sub for {{ p.substituteSeries }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
                                     <div class="flex items-center gap-2">
                                         <!-- Wins -->
                                         <div class="flex items-center gap-1">
@@ -929,5 +943,282 @@ async function loadSeasonHistory() {
     error.classList.remove('hidden');
   }
 }
+</script>
+
+<!-- Match Detail Modal -->
+<div id="playerMatchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
+                <h2 class="text-xl font-semibold" style="color: #bff863;" id="playerMatchesModalTitle">Current Season Matches</h2>
+                <button onclick="closePlayerMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <!-- Modal Content -->
+            <div id="playerMatchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Partner matches modal functionality  
+function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    console.log(`[DEBUG] Opening partner matches modal for: ${partnerName}, court: ${courtName}, matches: ${matchCount}`);
+    console.log(`[DEBUG] Function called successfully!`);
+    
+    // Ensure partnerName is a string
+    const partnerNameStr = typeof partnerName === 'string' ? partnerName : String(partnerName);
+    
+    // Update modal title
+    const modalTitle = document.getElementById('playerMatchesModalTitle');
+    if (modalTitle) {
+        modalTitle.textContent = `Match Detail`;
+    } else {
+        console.error('[DEBUG] Modal title element not found!');
+    }
+    
+    // Create modal if it doesn't exist
+    createPlayerMatchesModal();
+    
+    // Show modal
+    const modal = document.getElementById('playerMatchesModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        console.log('[DEBUG] Modal shown successfully');
+    } else {
+        console.error('[DEBUG] Modal element not found!');
+        alert('Error: Could not open match details modal');
+        return;
+    }
+    
+    // Load partner matches data
+    loadPartnerMatchesData(partnerNameStr, courtName);
+}
+
+function createPlayerMatchesModal() {
+    // Modal already exists in HTML, no need to create
+}
+
+function closePlayerMatchesModal() {
+    const modal = document.getElementById('playerMatchesModal');
+    modal.classList.add('hidden');
+}
+
+function loadPartnerMatchesData(partnerName, courtName) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    
+    // Show loading state
+    modalContent.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-600">Loading matches with ${partnerName}...</span>
+        </div>
+    `;
+    
+    // Get current player context from the page URL
+    const pathParts = window.location.pathname.split('/');
+    const playerId = pathParts[pathParts.length - 1]; // Last part of URL
+    
+    console.log(`[DEBUG] Loading partner matches for: ${partnerName}, court: ${courtName}, player_id: ${playerId}`);
+    
+    // Extract court number from courtName (e.g., "Court 1" -> "1")
+    const courtNumber = courtName.replace(/[^0-9]/g, '');
+    
+    // Extract team_id from player_id (e.g., "cnswpl_52e0e4906060f3ea_team_97998" -> "97998")
+    let teamId = '';
+    let currentPlayerName = '';
+    
+    if (playerId.includes('_team_')) {
+        // Composite ID format: extract team_id
+        teamId = playerId.split('_team_')[1];
+        console.log(`[DEBUG] Extracted team_id: ${teamId} from composite player_id: ${playerId}`);
+    } else {
+        // Player name format: get current player name from page
+        currentPlayerName = decodeURIComponent(playerId);
+        console.log(`[DEBUG] Using player name format: ${currentPlayerName}`);
+        
+        // Try to get team_id from session or page context if available
+        // For now, we'll need to pass the current player name to the API
+    }
+    
+    // For player detail page, we need to find matches where the CURRENT player played WITH the partner
+    let apiUrl;
+    if (teamId) {
+        // Use composite ID approach
+        apiUrl = `/api/player-matches-detail?player_id=${encodeURIComponent(playerId)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
+    } else {
+        // Use current player name approach - need to call API differently
+        apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
+    }
+    
+    console.log(`[DEBUG] API URL: ${apiUrl}`);
+    
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('[DEBUG] Partner matches API response:', data);
+            if (data.success) {
+                renderPartnerMatchesModal(data.matches, partnerName, courtName);
+            } else {
+                showPlayerMatchesError(data.error || 'Failed to load matches');
+            }
+        })
+        .catch(error => {
+            console.error('[DEBUG] Error loading partner matches:', error);
+            showPlayerMatchesError(`Failed to fetch partner matches: ${error.message}`);
+        });
+}
+
+function renderPartnerMatchesModal(matches, partnerName, courtName) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    
+    if (!matches || matches.length === 0) {
+        modalContent.innerHTML = `
+            <div class="text-center py-8">
+                <p class="text-gray-600 text-lg">No matches found with ${partnerName} on ${courtName}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('Court', 'Court ')}</h3>
+        </div>
+    `;
+    
+    // Group matches by date and team matchup
+    const groupedMatches = groupMatchesByTeamMatchup(matches);
+    
+    groupedMatches.forEach(group => {
+        // Calculate team result (W or L)
+        const playerMatches = group.matches.filter(match => match.player_was_home !== null);
+        const wins = playerMatches.filter(match => match.player_won).length;
+        const losses = playerMatches.filter(match => !match.player_won).length;
+        const teamResult = wins > losses ? 'W' : 'L';
+        const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
+        
+        html += `
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+                <div class="px-4 py-3 bg-gray-100 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="font-medium text-gray-900">${group.date}: ${group.home_team} vs ${group.away_team}</div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 rounded text-xs font-semibold ${resultClass === 'text-green-600' ? 'bg-green-100' : 'bg-red-100'} ${resultClass}">
+                                ${teamResult}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+        `;
+        
+        group.matches.forEach(match => {
+            const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            
+            html += `
+                <div class="px-4 py-3 bg-gray-50">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-medium text-gray-900">Court ${match.court_number}</span>
+                            <span class="text-xs text-gray-700">${partnerName} & ${match.partner_name}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs text-gray-600">
+                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
+                        </div>
+                        <div class="text-xs font-medium text-gray-900">${match.scores}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+            </div>
+        `;
+    });
+    
+    modalContent.innerHTML = html;
+    console.log(`[DEBUG] Rendered ${matches.length} partner matches in modal`);
+}
+
+function groupMatchesByTeamMatchup(matches) {
+    const grouped = {};
+    
+    matches.forEach(match => {
+        const key = `${match.date}_${match.home_team}_${match.away_team}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                date: match.date,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                matches: []
+            };
+        }
+        grouped[key].matches.push(match);
+    });
+    
+    // Sort by date (newest first)
+    return Object.values(grouped).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+    });
+}
+
+function showPlayerMatchesError(errorMessage) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    modalContent.innerHTML = `
+        <div class="text-center py-8">
+            <div class="text-red-600 mb-2">
+                <i class="fas fa-exclamation-triangle text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Unable to Load Matches</h3>
+            <p class="text-gray-600">${errorMessage}</p>
+        </div>
+    `;
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('playerMatchesModal');
+    if (event.target === modal) {
+        closePlayerMatchesModal();
+    }
+});
+
+// Add event listeners for partner matches buttons
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DEBUG] Setting up partner matches button event listeners');
+    
+    // Use event delegation to handle dynamically generated buttons
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('partner-matches-btn')) {
+            console.log('[DEBUG] Partner matches button clicked');
+            
+            const partnerName = event.target.getAttribute('data-partner-name');
+            const courtName = event.target.getAttribute('data-court-name');
+            const matchCount = parseInt(event.target.getAttribute('data-match-count'));
+            
+            console.log(`[DEBUG] Data attributes - partner: ${partnerName}, court: ${courtName}, matches: ${matchCount}`);
+            
+            if (partnerName && courtName && !isNaN(matchCount)) {
+                openPartnerMatchesModal(partnerName, courtName, matchCount);
+            } else {
+                console.error('[DEBUG] Missing or invalid data attributes');
+            }
+        }
+    });
+});
 </script>
 {% endblock %}

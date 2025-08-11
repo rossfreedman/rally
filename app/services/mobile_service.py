@@ -4874,17 +4874,19 @@ def get_player_search_data(user):
             from datetime import date, datetime
 
             current_date = datetime.now()
-            current_year = current_date.year
-            current_month = current_date.month
-
-            # Determine season year based on current date
-            if current_month >= 8:  # Aug-Dec: current season
-                season_start_year = current_year
-            else:  # Jan-Jul: previous season
-                season_start_year = current_year - 1
-
-            season_start_date = date(season_start_year, 8, 1)
-            season_end_date = date(season_start_year + 1, 7, 31)
+            # Use same season definition as player detail page for consistency
+            from datetime import datetime
+            
+            # Dynamic season logic: Use the most recent season with data
+            # For now, include both 2024-2025 and 2025-2026 seasons to catch all recent matches
+            # This ensures we don't miss matches from the current/upcoming season
+            season_start = datetime(2024, 8, 1)  # August 1st, 2024
+            season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
+            
+            season_start_date = season_start.date()
+            season_end_date = season_end.date()
+            
+            print(f"[DEBUG] Player search using same season as player detail: {season_start_date} to {season_end_date}")
 
             # Load all matches for this league in one query for efficient team-specific calculation
             print("Loading match data for team-specific record calculation...")
