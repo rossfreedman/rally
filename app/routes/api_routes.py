@@ -2904,15 +2904,15 @@ def get_cnswpl_user_friendly_name(database_name, display_name):
     # Use the name we have (prefer display_name if available)
     name = display_name or database_name
     
-    # Day League: Convert various formats to "Series X (Day League)"
+    # Day League: Convert various formats to "Day League - Series X"
     day_match = re.match(r'^(?:Division|Series|S)?\s*(\d+)([a-z]*)$', name, re.IGNORECASE)
     if day_match:
         number = day_match.group(1)
         suffix = day_match.group(2)
         if suffix:
-            return f"Series {number}{suffix} (Day League)"
+            return f"Day League - Series {number}{suffix}"
         else:
-            return f"Series {number} (Day League)"
+            return f"Day League - Series {number}"
     
     # Night League: Convert SA, SB, etc. to "Series A (Night League)", "Series B (Night League)"
     night_match = re.match(r'^(?:S|Series\s+)?([A-Z])$', name)
@@ -3025,8 +3025,8 @@ def get_user_facing_series_by_league():
             # 3. Sunday Night League (Series N)
             
             if league_id == 'CNSWPL':
-                # Day League: "Series 1 (Day League)", "Series 1a (Day League)", etc.
-                day_match = re.match(r'^Series\s+(\d+)([a-z]*)\s*\(Day League\)$', series_name, re.IGNORECASE)
+                # Day League: "Day League - Series 1", "Day League - Series 1a", etc.
+                day_match = re.match(r'^Day League - Series\s+(\d+)([a-z]*)$', series_name, re.IGNORECASE)
                 if day_match:
                     number = int(day_match.group(1))
                     suffix = day_match.group(2) or ''
