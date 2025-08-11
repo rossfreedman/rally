@@ -603,9 +603,9 @@ function createMatchesModal() {
     const modalHTML = `
         <div id="matchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
             <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
                     <!-- Modal Header -->
-                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between" style="background-color: #045454;">
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
                         <h2 class="text-xl font-semibold" style="color: #bff863;">Current Season Matches</h2>
                         <button onclick="closeMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
                             <i class="fas fa-times text-xl"></i>
@@ -613,7 +613,7 @@ function createMatchesModal() {
                     </div>
                     
                     <!-- Modal Content -->
-                    <div id="matchesModalContent" class="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    <div id="matchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
                         <!-- Content will be loaded here -->
                     </div>
                 </div>

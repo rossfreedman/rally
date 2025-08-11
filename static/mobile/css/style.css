@@ -1089,4 +1089,81 @@ a:hover {
   .bottom-dock .flex {
     max-width: 1100px !important;
   }
+}
+
+/* Match Detail Modal Scrolling Enhancements */
+#matchesModal {
+  /* Ensure proper z-index and backdrop behavior */
+  z-index: 9999 !important;
+}
+
+#matchesModal .modal-container {
+  /* Flex container for proper height calculation */
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+}
+
+#matchesModalContent {
+  /* Ensure scrolling works properly on all devices */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important; /* iOS smooth scrolling */
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: none !important; /* Remove any max-height constraints */
+}
+
+/* Enhanced scrollbar for modal content */
+#matchesModalContent::-webkit-scrollbar {
+  width: 12px;
+}
+
+#matchesModalContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 6px;
+}
+
+#matchesModalContent::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+
+#matchesModalContent::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Mobile-specific modal adjustments */
+@media (max-width: 768px) {
+  #matchesModal .modal-container {
+    max-height: 95vh !important;
+    margin: 2vh auto !important;
+  }
+  
+  #matchesModalContent {
+    padding: 1rem !important; /* Reduce padding on mobile */
+  }
+  
+  /* Make modal full width on mobile */
+  #matchesModal .bg-white {
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 1rem !important;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  #matchesModal .modal-container {
+    max-height: 98vh !important;
+    margin: 1vh auto !important;
+  }
+  
+  #matchesModalContent {
+    padding: 0.75rem !important;
+  }
+  
+  #matchesModal .bg-white {
+    max-width: calc(100vw - 1rem) !important;
+    margin: 0 0.5rem !important;
+  }
 } 
