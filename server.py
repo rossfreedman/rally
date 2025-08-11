@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 
 from flask import (
     Flask,
-    jsonify,
+    jsonifyf,
     redirect,
     render_template,
     request,
