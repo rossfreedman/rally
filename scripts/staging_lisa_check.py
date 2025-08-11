@@ -5,9 +5,34 @@ Check Lisa Wagner's team assignment - run this on staging
 
 import os
 import sys
-sys.path.append('/app')
 
-from database_utils import execute_query, execute_query_one
+try:
+    # Try to import from app context first
+    sys.path.append('/app')
+    from database_utils import execute_query, execute_query_one
+    print("Using app database_utils")
+except ImportError:
+    # Fallback to direct psycopg2
+    import psycopg2
+    import psycopg2.extras
+    
+    def execute_query_one(query, params=None):
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute(query, params)
+        result = cur.fetchone()
+        conn.close()
+        return result
+    
+    def execute_query(query, params=None):
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute(query, params)
+        results = cur.fetchall()
+        conn.close()
+        return results
+    
+    print("Using direct psycopg2")
 
 def check_lisa_wagner():
     """Check Lisa Wagner's team assignment"""
