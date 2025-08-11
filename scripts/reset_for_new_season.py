@@ -131,12 +131,17 @@ def run(dry_run: bool = False) -> None:
             # Start transaction
             try:
                 # 1) Null out team references where nullable (check table existence first)
-                for sql, desc in TEAM_DEPENDENT_TABLE_ACTIONS:
-                    # Extract table name from SQL to check if it exists
-                    table_name = sql.split()[1]  # "UPDATE table_name SET ..." -> "table_name"
+                for table_name, sql, desc in TEAM_DEPENDENT_TABLE_ACTIONS:
                     if _table_exists(cursor, table_name):
-                        cursor.execute(sql)
-                        print(f"✓ {desc}")
+                        try:
+                            cursor.execute(sql)
+                            print(f"✓ {desc}")
+                        except Exception as e:
+                            # Handle column doesn't exist errors gracefully
+                            if "does not exist" in str(e):
+                                print(f"⚠ Skipped {desc} (column doesn't exist in {table_name})")
+                            else:
+                                raise e
                     else:
                         print(f"⚠ Skipped {desc} (table {table_name} doesn't exist)")
 

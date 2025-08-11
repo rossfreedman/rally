@@ -147,7 +147,8 @@ def preview_cleanup():
                 AND p.tenniscores_player_id LIKE 'nndz%'
             ''')
             
-            incorrect_count = cursor.fetchone()['count']
+            result = cursor.fetchone()
+            incorrect_count = result[0] if isinstance(result, tuple) else result['count']
             
             # Count correct records
             cursor.execute('''
