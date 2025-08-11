@@ -246,6 +246,14 @@ class IdBasedLookupService:
         # Strategy 2: Series + Club context matching
         if series_name and club_name:
             series_id = self.resolve_series_id(series_name, league_id)
+            
+            # CNSWPL Fix: Handle Division X -> Series X mapping
+            if not series_id and league_id.upper() == 'CNSWPL' and series_name.startswith('Division '):
+                mapped_series_name = series_name.replace('Division ', 'Series ')
+                series_id = self.resolve_series_id(mapped_series_name, league_id)
+                if series_id:
+                    logger.debug(f"✅ CNSWPL series mapping: '{series_name}' -> '{mapped_series_name}' (ID: {series_id})")
+            
             club_id = self.resolve_club_id(club_name)
             
             if series_id and club_id:
@@ -279,6 +287,14 @@ class IdBasedLookupService:
         # Resolve series
         result.series_name = series_name
         result.series_id = self.resolve_series_id(series_name, league_id)
+        
+        # CNSWPL Fix: Handle Division X -> Series X mapping
+        if not result.series_id and league_id.upper() == 'CNSWPL' and series_name.startswith('Division '):
+            mapped_series_name = series_name.replace('Division ', 'Series ')
+            result.series_id = self.resolve_series_id(mapped_series_name, league_id)
+            if result.series_id:
+                logger.debug(f"✅ CNSWPL series mapping in resolve_all_ids: '{series_name}' -> '{mapped_series_name}' (ID: {result.series_id})")
+                result.series_name = mapped_series_name  # Update to mapped name
         
         # Resolve club
         result.club_name = club_name
