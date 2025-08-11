@@ -8,5 +8,5 @@ cmds = [
 ]
 
 [start]
-# Explicitly start the main Rally server
-cmd = "python server.py" 
+# Use production server for Railway deployment
+cmd = "python production_server.py" 
