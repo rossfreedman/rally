@@ -107,6 +107,9 @@ class PlayersETL:
             # CRITICAL: Validate CNSWPL player ID formats before import
             self._validate_cnswpl_player_ids(data)
             
+            # CRITICAL: Validate CNSWPL team assignments before import
+            self._validate_cnswpl_team_assignments(data)
+            
             return data
             
         except json.JSONDecodeError as e:
@@ -167,6 +170,94 @@ class PlayersETL:
         else:
             logger.error("❌ CNSWPL validation failed for unknown reason")
             raise ValueError("CNSWPL validation failed: inconsistent ID formats")
+    
+    def _validate_cnswpl_team_assignments(self, players_data: List[Dict]):
+        """
+        Validate CNSWPL team assignments to prevent players being assigned to wrong teams.
+        This ensures team names and series mapping are consistent.
+        """
+        cnswpl_players = [p for p in players_data if p.get("League", "").upper() == "CNSWPL"]
+        
+        if not cnswpl_players:
+            return  # No CNSWPL players to validate
+        
+        logger.info("🛡️ Validating CNSWPL team assignments...")
+        
+        validation_errors = []
+        team_series_mapping = {}
+        
+        for player in cnswpl_players:
+            first_name = player.get("First Name", "")
+            last_name = player.get("Last Name", "")
+            series_name = player.get("Series", "")
+            team_name = player.get("Series Mapping ID", "")
+            club_name = player.get("Club", "")
+            
+            player_identifier = f"{first_name} {last_name}"
+            
+            # Validate required fields
+            if not all([series_name, team_name, club_name]):
+                validation_errors.append(f"Player {player_identifier} missing required team assignment fields")
+                continue
+            
+            # Validate series and team name consistency
+            # For CNSWPL: team name should contain the series number
+            if series_name.startswith("Series "):
+                series_number = series_name.replace("Series ", "")
+                
+                # Check if team name ends with the series number (flexible matching)
+                if not team_name.endswith(f" {series_number}"):
+                    validation_errors.append(
+                        f"Player {player_identifier}: Series '{series_name}' should map to team ending with ' {series_number}' but got '{team_name}'"
+                    )
+                    continue
+                
+                # Validate that club name is contained in team name
+                if not team_name.startswith(club_name) and club_name not in team_name:
+                    validation_errors.append(
+                        f"Player {player_identifier}: Team '{team_name}' should contain club '{club_name}'"
+                    )
+                    continue
+                
+                # Track team-series mappings for consistency
+                if team_name in team_series_mapping:
+                    if team_series_mapping[team_name] != series_name:
+                        validation_errors.append(
+                            f"Inconsistent series mapping for team '{team_name}': '{team_series_mapping[team_name]}' vs '{series_name}'"
+                        )
+                else:
+                    team_series_mapping[team_name] = series_name
+        
+        # Report validation results
+        total_players = len(cnswpl_players)
+        total_teams = len(team_series_mapping)
+        
+        logger.info(f"📊 CNSWPL Team Assignment Analysis:")
+        logger.info(f"   Total CNSWPL players: {total_players}")
+        logger.info(f"   Unique teams: {total_teams}")
+        logger.info(f"   Validation errors: {len(validation_errors)}")
+        
+        if validation_errors:
+            logger.error("❌ CRITICAL ERROR: CNSWPL team assignment validation failed!")
+            logger.error("❌ Players have inconsistent team/series mappings")
+            logger.error("❌ ETL STOPPED to prevent incorrect team assignments")
+            
+            # Log first few errors for debugging
+            for i, error in enumerate(validation_errors[:5]):
+                logger.error(f"   {i+1}. {error}")
+            
+            if len(validation_errors) > 5:
+                logger.error(f"   ... and {len(validation_errors) - 5} more errors")
+            
+            raise ValueError(f"CNSWPL team assignment validation failed: {len(validation_errors)} inconsistencies detected")
+        
+        logger.info("✅ All CNSWPL team assignments are consistent")
+        logger.info("✅ Team assignment validation passed")
+        
+        # Log team mappings for verification
+        logger.info("📋 Verified team-series mappings:")
+        for team_name, series_name in sorted(team_series_mapping.items()):
+            logger.info(f"   {team_name} ↔ {series_name}")
     
     def pre_cache_lookup_data(self, conn) -> tuple:
         """Pre-cache league, team, and club data for faster lookups"""
