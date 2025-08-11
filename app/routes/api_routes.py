@@ -5817,18 +5817,68 @@ def create_pickup_game():
         if series_low_id is not None and series_high_id is not None and series_low_id > series_high_id:
             return jsonify({"error": "Series low cannot be greater than series high"}), 400
         
-        # Insert the new pickup game
+        # Get user's current league_id and club_id from session/database
+        user_league_id = None
+        user_club_id = None
+        
+        # Extract league_id from user session
+        current_league_context = user.get("league_context")
+        current_league_id = user.get("league_id")
+        
+        print(f"[CREATE_PICKUP_GAME] User league_context: {current_league_context}, league_id: {current_league_id}")
+        
+        # Convert league context to proper integer DB ID
+        if current_league_context:
+            try:
+                user_league_id = int(current_league_context)
+                print(f"[CREATE_PICKUP_GAME] Using league_context as DB ID: {user_league_id}")
+            except (ValueError, TypeError):
+                print(f"[CREATE_PICKUP_GAME] league_context is not a valid integer: {current_league_context}")
+        
+        # Fallback: Try to convert string league_id to integer DB ID
+        if not user_league_id and current_league_id:
+            league_lookup_query = "SELECT id FROM leagues WHERE league_id = %s"
+            league_record = execute_query_one(league_lookup_query, [current_league_id])
+            if league_record:
+                user_league_id = league_record["id"]
+                print(f"[CREATE_PICKUP_GAME] Converted string league_id '{current_league_id}' to DB ID: {user_league_id}")
+            else:
+                print(f"[CREATE_PICKUP_GAME] Warning: Could not find league with league_id: {current_league_id}")
+        
+        # Get user's primary club_id from their player associations
+        if user_id:
+            club_query = """
+                SELECT DISTINCT p.club_id, c.name as club_name
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                WHERE upa.user_id = %s AND p.club_id IS NOT NULL
+                ORDER BY p.club_id
+                LIMIT 1
+            """
+            club_record = execute_query_one(club_query, [user_id])
+            if club_record:
+                user_club_id = club_record["club_id"]
+                club_name = club_record["club_name"]
+                print(f"[CREATE_PICKUP_GAME] Found user's primary club: {club_name} (ID: {user_club_id})")
+            else:
+                print(f"[CREATE_PICKUP_GAME] Warning: No club association found for user {user_id}")
+        
+        print(f"[CREATE_PICKUP_GAME] Final assignments - league_id: {user_league_id}, club_id: {user_club_id}")
+        
+        # Insert the new pickup game with league_id and club_id
         insert_query = """
             INSERT INTO pickup_games 
             (description, game_date, game_time, players_requested, pti_low, pti_high, 
-             series_low, series_high, club_only, is_private, creator_user_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             series_low, series_high, club_only, is_private, creator_user_id, league_id, club_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """
         
         insert_params = [
             data["description"], game_date_obj, game_time_obj, players_requested,
-            pti_low, pti_high, series_low_id, series_high_id, club_only, is_private, user_id
+            pti_low, pti_high, series_low_id, series_high_id, club_only, is_private, user_id,
+            user_league_id, user_club_id
         ]
         
         print(f"[CREATE_PICKUP_GAME] Executing insert with params: {insert_params}")
