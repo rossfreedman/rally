@@ -286,20 +286,16 @@ class MatchScoresETL:
                     scores, winner, league_id, tenniscores_match_id, created_at
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (tenniscores_match_id) WHERE tenniscores_match_id IS NOT NULL DO UPDATE
+                ON CONFLICT (match_date, home_team, away_team, winner, scores) DO UPDATE
                 SET
-                    match_date = EXCLUDED.match_date,
-                    home_team = EXCLUDED.home_team,
-                    away_team = EXCLUDED.away_team,
                     home_team_id = EXCLUDED.home_team_id,
                     away_team_id = EXCLUDED.away_team_id,
                     home_player_1_id = EXCLUDED.home_player_1_id,
                     home_player_2_id = EXCLUDED.home_player_2_id,
                     away_player_1_id = EXCLUDED.away_player_1_id,
                     away_player_2_id = EXCLUDED.away_player_2_id,
-                    scores = EXCLUDED.scores,
-                    winner = EXCLUDED.winner,
-                    league_id = EXCLUDED.league_id
+                    league_id = EXCLUDED.league_id,
+                    tenniscores_match_id = EXCLUDED.tenniscores_match_id
                 """,
                 batch_data
             )
