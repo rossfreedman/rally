@@ -1377,6 +1377,7 @@ class IncrementalPlayerScraper:
         except Exception as e:
             print(f"❌ Error saving player data: {e}")
             return None
+
     
     def print_summary(self):
         """Print scraping summary"""
@@ -1511,6 +1512,7 @@ def extract_cnswpl_player_ids_from_match_history(match_history_file: str) -> Set
     except Exception as e:
         print(f"❌ Error extracting cnswpl_ player IDs from match history: {e}")
         return create_test_cnswpl_player_ids()
+
 
 
 def extract_real_cnswpl_player_ids() -> Set[str]:

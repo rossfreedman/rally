@@ -103,6 +103,10 @@ class PlayersETL:
             
             self.stats['total_records'] = len(data)
             logger.info(f"✅ Loaded {len(data):,} player records")
+            
+            # CRITICAL: Validate CNSWPL player ID formats before import
+            self._validate_cnswpl_player_ids(data)
+            
             return data
             
         except json.JSONDecodeError as e:
@@ -111,6 +115,58 @@ class PlayersETL:
         except Exception as e:
             logger.error(f"❌ Error loading players data: {e}")
             raise
+    
+    def _validate_cnswpl_player_ids(self, players_data: List[Dict]):
+        """
+        Validate CNSWPL player IDs to prevent ETL match import failures.
+        This ensures we don't import players with legacy nndz- IDs that will break match imports.
+        """
+        cnswpl_players = [p for p in players_data if p.get("League", "").upper() == "CNSWPL"]
+        
+        if not cnswpl_players:
+            return  # No CNSWPL players to validate
+        
+        logger.info("🛡️ Validating CNSWPL player ID formats...")
+        
+        cnswpl_count = 0
+        nndz_count = 0
+        other_count = 0
+        
+        for player in cnswpl_players:
+            player_id = player.get("Player ID", "")
+            if player_id.startswith("cnswpl_"):
+                cnswpl_count += 1
+            elif player_id.startswith("nndz-"):
+                nndz_count += 1
+            else:
+                other_count += 1
+        
+        total = len(cnswpl_players)
+        logger.info(f"📊 CNSWPL Player ID Analysis:")
+        logger.info(f"   Total CNSWPL players: {total}")
+        logger.info(f"   cnswpl_ format: {cnswpl_count}")
+        logger.info(f"   nndz- format: {nndz_count}")
+        logger.info(f"   Other formats: {other_count}")
+        
+        # STRICT validation - fail if any legacy IDs are detected
+        if nndz_count > 0:
+            logger.error("❌ CRITICAL ERROR: Legacy nndz- player IDs detected!")
+            logger.error("❌ This WILL cause match import failures")
+            logger.error("❌ ETL STOPPED to prevent data corruption")
+            logger.error("🔧 Fix: Use cnswpl_ format player IDs in the JSON data")
+            raise ValueError(f"CNSWPL validation failed: {nndz_count} legacy nndz- IDs detected")
+        
+        if other_count > 0:
+            logger.error("❌ CRITICAL ERROR: Unknown player ID formats detected!")
+            logger.error("❌ All CNSWPL player IDs must start with 'cnswpl_'")
+            raise ValueError(f"CNSWPL validation failed: {other_count} unknown ID formats detected")
+        
+        if cnswpl_count == total:
+            logger.info("✅ All CNSWPL players use correct cnswpl_ format")
+            logger.info("✅ ETL validation passed - safe to proceed with match import")
+        else:
+            logger.error("❌ CNSWPL validation failed for unknown reason")
+            raise ValueError("CNSWPL validation failed: inconsistent ID formats")
     
     def pre_cache_lookup_data(self, conn) -> tuple:
         """Pre-cache league, team, and club data for faster lookups"""
