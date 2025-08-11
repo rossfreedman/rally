@@ -130,10 +130,15 @@ def run(dry_run: bool = False) -> None:
 
             # Start transaction
             try:
-                # 1) Null out team references where nullable
+                # 1) Null out team references where nullable (check table existence first)
                 for sql, desc in TEAM_DEPENDENT_TABLE_ACTIONS:
-                    cursor.execute(sql)
-                    print(f"✓ {desc}")
+                    # Extract table name from SQL to check if it exists
+                    table_name = sql.split()[1]  # "UPDATE table_name SET ..." -> "table_name"
+                    if _table_exists(cursor, table_name):
+                        cursor.execute(sql)
+                        print(f"✓ {desc}")
+                    else:
+                        print(f"⚠ Skipped {desc} (table {table_name} doesn't exist)")
 
                 # 2) Clear hard-dependent tables that block team deletion
                 for table in TEAM_DEPENDENT_TABLES_TO_DELETE:
