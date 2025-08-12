@@ -96,10 +96,11 @@ class MasterImporter:
         "nstf": "nstf"
     }
     
-    def __init__(self, environment="staging", league=None, no_sms=False):
+    def __init__(self, environment="staging", league=None, no_sms=False, summary_only=False):
         self.environment = environment
         self.league = league
         self.no_sms = no_sms  # Flag to disable SMS notifications
+        self.summary_only = summary_only  # Flag to only send start/end notifications
         self.start_time = datetime.now()
         self.results = {}
         self.failures = []
@@ -417,10 +418,11 @@ class MasterImporter:
                 
                 # Parse metrics from output
                 metrics = parse_metrics_from_output(result.stdout)
-                # Send success notification with step number
-                step_number = getattr(self, '_current_step_number', 0)
-                total_steps = getattr(self, '_total_steps', 0)
-                self.send_notification(f"[{step_number}/{total_steps}] {step_name}", duration=duration, metrics=metrics)
+                # Send success notification with step number (only if not summary_only mode)
+                if not self.summary_only:
+                    step_number = getattr(self, '_current_step_number', 0)
+                    total_steps = getattr(self, '_total_steps', 0)
+                    self.send_notification(f"[{step_number}/{total_steps}] {step_name}", duration=duration, metrics=metrics)
                 
                 self.results[step_name] = {
                     "status": "success",
@@ -437,7 +439,7 @@ class MasterImporter:
                 logger.error(error_msg)
                 logger.error(f"Error output: {result.stderr}")
                 
-                # Send immediate failure notification with step number
+                # Send immediate failure notification with step number (always send failures)
                 step_number = getattr(self, '_current_step_number', 0)
                 total_steps = getattr(self, '_total_steps', 0)
                 self.send_notification("", is_failure=True, step_name=f"[{step_number}/{total_steps}] {step_name}", error_details=result.stderr)
@@ -705,14 +707,31 @@ class MasterImporter:
         logger.info("=" * 60)
         logger.info(summary)
         
-        # Send final notification
+        # Send final notification with comprehensive summary
         final_step_number = getattr(self, '_total_steps', len(self.import_steps) + 2)
         if failed_steps == 0:
             final_message = f"[{final_step_number}/{final_step_number}] 🎉 ETL COMPLETE - {successful_steps}/{total_steps} steps successful"
         else:
             final_message = f"[{final_step_number}/{final_step_number}] ⚠️ ETL COMPLETE with Issues - {successful_steps}/{total_steps} steps successful"
+        
+        # Build comprehensive summary metrics for final notification
+        summary_metrics = {}
+        if self.summary_only:
+            # Include summary of all steps when in summary_only mode
+            successful_step_names = [name for name, result in self.results.items() if result['status'] == 'success']
+            failed_step_names = [name for name, result in self.results.items() if result['status'] != 'success']
+            
+            summary_metrics['Successful Steps'] = f"{len(successful_step_names)}/{total_steps}"
+            if successful_step_names:
+                summary_metrics['✅ Completed'] = ', '.join(successful_step_names[:3]) + ('...' if len(successful_step_names) > 3 else '')
+            if failed_step_names:
+                summary_metrics['❌ Failed'] = ', '.join(failed_step_names)
+                
         last_metrics = self.results[list(self.results)[-1]].get('metrics') if self.results else None
-        self.send_notification(final_message, duration=total_duration, metrics=last_metrics)
+        if last_metrics:
+            summary_metrics.update(last_metrics)
+            
+        self.send_notification(final_message, duration=total_duration, metrics=summary_metrics)
         
         # Save detailed results to file
         self.save_detailed_results()
@@ -870,6 +889,11 @@ def main():
         action="store_true",
         help="Disable SMS notifications for individual steps (used when called from cronjob)"
     )
+    parser.add_argument(
+        "--summary-only",
+        action="store_true",
+        help="Only send SMS notifications at start and end with summary (reduces SMS volume)"
+    )
     
     args = parser.parse_args()
     
@@ -878,7 +902,7 @@ def main():
     
     try:
         # Create and run master importer
-        importer = MasterImporter(environment=args.environment, league=league, no_sms=args.no_sms)
+        importer = MasterImporter(environment=args.environment, league=league, no_sms=args.no_sms, summary_only=args.summary_only)
         importer.run_all_imports()
         
         # Exit with appropriate code
