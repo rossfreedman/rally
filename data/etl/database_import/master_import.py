@@ -96,11 +96,11 @@ class MasterImporter:
         "nstf": "nstf"
     }
     
-    def __init__(self, environment="staging", league=None, no_sms=False, summary_only=False):
+    def __init__(self, environment="staging", league=None, no_sms=False, verbose_sms=False):
         self.environment = environment
         self.league = league
         self.no_sms = no_sms  # Flag to disable SMS notifications
-        self.summary_only = summary_only  # Flag to only send start/end notifications
+        self.verbose_sms = verbose_sms  # Flag to enable step-by-step SMS notifications (default: summary only)
         self.start_time = datetime.now()
         self.results = {}
         self.failures = []
@@ -418,8 +418,8 @@ class MasterImporter:
                 
                 # Parse metrics from output
                 metrics = parse_metrics_from_output(result.stdout)
-                # Send success notification with step number (only if not summary_only mode)
-                if not self.summary_only:
+                # Send success notification with step number (only if verbose_sms mode enabled)
+                if self.verbose_sms:
                     step_number = getattr(self, '_current_step_number', 0)
                     total_steps = getattr(self, '_total_steps', 0)
                     self.send_notification(f"[{step_number}/{total_steps}] {step_name}", duration=duration, metrics=metrics)
@@ -716,8 +716,8 @@ class MasterImporter:
         
         # Build comprehensive summary metrics for final notification
         summary_metrics = {}
-        if self.summary_only:
-            # Include summary of all steps when in summary_only mode
+        if not self.verbose_sms:
+            # Include summary of all steps when in summary mode (default behavior)
             successful_step_names = [name for name, result in self.results.items() if result['status'] == 'success']
             failed_step_names = [name for name, result in self.results.items() if result['status'] != 'success']
             
@@ -890,9 +890,9 @@ def main():
         help="Disable SMS notifications for individual steps (used when called from cronjob)"
     )
     parser.add_argument(
-        "--summary-only",
+        "--verbose-sms",
         action="store_true",
-        help="Only send SMS notifications at start and end with summary (reduces SMS volume)"
+        help="Send SMS notification for each step (default: summary only at start/end)"
     )
     
     args = parser.parse_args()
@@ -902,7 +902,7 @@ def main():
     
     try:
         # Create and run master importer
-        importer = MasterImporter(environment=args.environment, league=league, no_sms=args.no_sms, summary_only=args.summary_only)
+        importer = MasterImporter(environment=args.environment, league=league, no_sms=args.no_sms, verbose_sms=args.verbose_sms)
         importer.run_all_imports()
         
         # Exit with appropriate code

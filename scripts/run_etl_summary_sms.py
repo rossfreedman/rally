@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-ETL Master Import with Summary-Only SMS
-=====================================
+ETL Master Import with Verbose SMS Option
+=======================================
 
-Runs the master ETL import with only start and end SMS notifications.
-Reduces SMS spam while maintaining critical status updates.
+Runs the master ETL import. By default sends only start/end SMS notifications.
+Use --verbose-sms to get notifications for each step.
 
 Usage:
-    python scripts/run_etl_summary_sms.py
+    python scripts/run_etl_summary_sms.py  # Summary only (default)
+    python scripts/run_etl_summary_sms.py --verbose-sms  # Step-by-step notifications
     python scripts/run_etl_summary_sms.py --environment staging
     python scripts/run_etl_summary_sms.py --league CNSWPL
 """
@@ -30,6 +31,11 @@ def main():
         choices=['APTA_CHICAGO', 'CNSWPL', 'NSTF'],
         help='Specific league to import (if not specified, imports all leagues)'
     )
+    parser.add_argument(
+        '--verbose-sms',
+        action='store_true',
+        help='Send SMS notification for each step (default: summary only at start/end)'
+    )
     
     args = parser.parse_args()
     
@@ -37,18 +43,20 @@ def main():
     cmd = [
         'python', 
         'data/etl/database_import/master_import.py',
-        '--environment', args.environment,
-        '--summary-only'  # Key flag to reduce SMS notifications
+        '--environment', args.environment
     ]
     
     if args.league:
         cmd.extend(['--league', args.league])
     
-    print("🚀 Running ETL Import with Summary-Only SMS Notifications")
+    if args.verbose_sms:
+        cmd.append('--verbose-sms')
+    
+    print("🚀 Running ETL Import")
     print("=" * 60)
     print(f"Environment: {args.environment}")
     print(f"League: {args.league if args.league else 'All leagues'}")
-    print("SMS Mode: Start + End notifications only")
+    print(f"SMS Mode: {'Step-by-step notifications' if args.verbose_sms else 'Summary only (start + end)'}")
     print("=" * 60)
     print()
     
