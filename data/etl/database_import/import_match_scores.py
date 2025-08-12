@@ -272,12 +272,14 @@ class MatchScoresETL:
             return None
     
     def process_batch(self, cursor, batch_data: List[tuple]) -> int:
-        """Process a batch of match records using upsert logic"""
+        """Process a batch of match records using upsert logic with individual error handling"""
         if not batch_data:
             return 0
         
+        successful_count = 0
+        
+        # First, try batch insert for performance
         try:
-            # Use executemany for better performance with upsert
             cursor.executemany(
                 """
                 INSERT INTO match_scores (
@@ -286,26 +288,46 @@ class MatchScoresETL:
                     scores, winner, league_id, tenniscores_match_id, created_at
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (match_date, home_team, away_team, winner, scores) DO UPDATE
-                SET
-                    home_team_id = EXCLUDED.home_team_id,
-                    away_team_id = EXCLUDED.away_team_id,
-                    home_player_1_id = EXCLUDED.home_player_1_id,
-                    home_player_2_id = EXCLUDED.home_player_2_id,
-                    away_player_1_id = EXCLUDED.away_player_1_id,
-                    away_player_2_id = EXCLUDED.away_player_2_id,
-                    league_id = EXCLUDED.league_id,
-                    tenniscores_match_id = EXCLUDED.tenniscores_match_id
                 """,
                 batch_data
             )
             
             return len(batch_data)
             
-        except Exception as e:
-            logger.error(f"❌ Batch insert failed: {e}")
-            self.stats['errors'] += len(batch_data)
-            return 0
+        except Exception as batch_error:
+            logger.warning(f"⚠️ Batch insert failed, processing individually: {batch_error}")
+            
+            # If batch fails, process each record individually to isolate the problematic ones
+            # First rollback the failed transaction
+            cursor.connection.rollback()
+            
+            for i, record_data in enumerate(batch_data):
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO match_scores (
+                            match_date, home_team, away_team, home_team_id, away_team_id,
+                            home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
+                            scores, winner, league_id, tenniscores_match_id, created_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        record_data
+                    )
+                    # Commit each successful individual insert
+                    cursor.connection.commit()
+                    successful_count += 1
+                    
+                except Exception as individual_error:
+                    # Log the specific record that failed and rollback this individual transaction
+                    match_id = record_data[12] if len(record_data) > 12 else "unknown"
+                    home_team = record_data[1] if len(record_data) > 1 else "unknown"
+                    away_team = record_data[2] if len(record_data) > 2 else "unknown"
+                    logger.error(f"❌ Failed to insert match {home_team} vs {away_team} ({match_id}): {individual_error}")
+                    cursor.connection.rollback()
+                    self.stats['errors'] += 1
+            
+            return successful_count
     
     def deduplicate_batch(self, batch_data: List[tuple]) -> List[tuple]:
         """Remove duplicates from batch based on unique constraint fields (match_date, home_team, away_team, winner, scores)"""

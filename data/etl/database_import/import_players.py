@@ -393,12 +393,14 @@ class PlayersETL:
             return None
     
     def process_batch(self, cursor, batch_data: List[tuple]) -> int:
-        """Process a batch of player records using upsert logic"""
+        """Process a batch of player records using upsert logic with individual error handling"""
         if not batch_data:
             return 0
         
+        successful_count = 0
+        
+        # First, try batch insert for performance
         try:
-            # Use executemany for better performance with upsert
             cursor.executemany(
                 """
                 INSERT INTO players (
@@ -418,10 +420,39 @@ class PlayersETL:
             
             return len(batch_data)
             
-        except Exception as e:
-            logger.error(f"❌ Batch insert failed: {e}")
-            self.stats['errors'] += len(batch_data)
-            return 0
+        except Exception as batch_error:
+            logger.warning(f"⚠️ Batch insert failed, processing individually: {batch_error}")
+            
+            # If batch fails, process each record individually to isolate the problematic ones
+            for i, record_data in enumerate(batch_data):
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO players (
+                            tenniscores_player_id, first_name, last_name, team_id,
+                            league_id, club_id, series_id, pti, is_active, created_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, true, CURRENT_TIMESTAMP)
+                        ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id) DO UPDATE SET
+                            first_name = EXCLUDED.first_name,
+                            last_name = EXCLUDED.last_name,
+                            team_id = EXCLUDED.team_id,
+                            pti = EXCLUDED.pti,
+                            updated_at = CURRENT_TIMESTAMP
+                        """,
+                        record_data
+                    )
+                    successful_count += 1
+                    
+                except Exception as individual_error:
+                    # Log the specific record that failed
+                    player_id = record_data[0] if len(record_data) > 0 else "unknown"
+                    first_name = record_data[1] if len(record_data) > 1 else "unknown"
+                    last_name = record_data[2] if len(record_data) > 2 else "unknown"
+                    logger.error(f"❌ Failed to insert player {first_name} {last_name} ({player_id}): {individual_error}")
+                    self.stats['errors'] += 1
+            
+            return successful_count
     
     def import_players(self, players_data: List[Dict]):
         """Import players to the database"""
