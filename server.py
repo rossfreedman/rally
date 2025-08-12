@@ -141,6 +141,17 @@ APP_REDIRECT_HOSTS = {
     "rallytennaqua.com",
     "www.rallytennaqua.com",
 }
+
+# Club-specific domain patterns that should redirect to app login
+CLUB_DOMAIN_PATTERNS = [
+    "rallybirchwood.com",
+    "www.rallybirchwood.com",
+    "rallyglenbrook.com", 
+    "www.rallyglenbrook.com",
+    "rallylifesport.com",
+    "www.rallylifesport.com",
+    # Add more club domains as needed
+]
 WEBSITE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "website")
 
 # Safe list of marketing asset prefixes
@@ -461,9 +472,23 @@ def log_request_info():
 @app.before_request
 def marketing_host_redirects():
     host = request.host.split(":")[0].lower()
+    
+    # Club-specific domains always redirect to login (except for static assets)
+    if host in CLUB_DOMAIN_PATTERNS:
+        # Allow static assets to be served
+        if not (request.path.startswith('/static/') or 
+                request.path.startswith('/css/') or 
+                request.path.startswith('/js/') or 
+                request.path.startswith('/images/') or
+                request.path == '/favicon.ico'):
+            return redirect("/login", code=302)
+    
     if host in MARKETING_HOSTS:
         # Ensure /mobile lands on app login ONLY for unauthenticated users
         if request.path == "/mobile" and "user" not in session:
+            return redirect("/login", code=302)
+        # NEW: /app route always redirects to login/register for marketing hosts
+        if request.path == "/app":
             return redirect("/login", code=302)
 
 # ==========================================
@@ -475,6 +500,10 @@ def marketing_host_redirects():
 def serve_index():
     """Root: serve marketing home on marketing hosts or redirect app hosts to login"""
     host = request.host.split(":")[0].lower()
+    
+    # Club-specific domains redirect to app login
+    if host in CLUB_DOMAIN_PATTERNS:
+        return redirect("/login")
     
     # Specific hosts that should redirect to app login
     if host in APP_REDIRECT_HOSTS:
@@ -578,23 +607,44 @@ def marketing_screenshots_prefix(filename):
     return ("", 404)
 
 
+@app.route("/app")
+def serve_app():
+    """Handle /app route - redirect based on host and authentication status"""
+    host = request.host.split(":")[0].lower()
+    
+    # For marketing hosts (lovetorally.com), always redirect to login
+    if host in MARKETING_HOSTS:
+        return redirect("/login")
+    
+    # For club domains, always redirect to login  
+    if host in CLUB_DOMAIN_PATTERNS:
+        return redirect("/login")
+    
+    # For app redirect hosts, check authentication
+    if host in APP_REDIRECT_HOSTS:
+        if "user" not in session:
+            return redirect("/login")
+        return redirect("/mobile")
+    
+    # Default behavior for other hosts
+    if "user" not in session:
+        return redirect("/login")
+    return redirect("/mobile")
+
+
 @app.route("/welcome")
 @login_required
 def serve_interstitial():
     """Serve the interstitial welcome page shown after login/registration"""
-    # TEMPORARILY DISABLED - redirect directly to mobile
-    return redirect("/mobile")
-    
-    # Original code (commented out):
-    # session_data = {"user": session["user"], "authenticated": True}
-    # log_user_activity(
-    #     session["user"]["email"], 
-    #     "page_visit", 
-    #     page="interstitial_welcome",
-    #     first_name=session["user"].get("first_name"),
-    #     last_name=session["user"].get("last_name")
-    # )
-    # return render_template("interstitial.html", session_data=session_data)
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="interstitial_welcome",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
+    return render_template("interstitial.html", session_data=session_data)
 
 
 @app.route("/contact-sub")

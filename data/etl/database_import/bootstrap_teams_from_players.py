@@ -100,6 +100,25 @@ def _teams_has_display_name_not_null() -> bool:
 
 
 def ensure_team(team_name: str, club_id: int, series_id: int, league_db_id: int) -> None:
+    # Check if team already exists with either constraint
+    # 1. Check unique_team_club_series_league constraint
+    existing_by_combo = execute_query_one(
+        "SELECT id FROM teams WHERE club_id = %s AND series_id = %s AND league_id = %s",
+        (club_id, series_id, league_db_id)
+    )
+    if existing_by_combo:
+        return  # Team already exists with this club/series/league combination
+    
+    # 2. Check unique_team_name_per_league constraint
+    existing_by_name = execute_query_one(
+        "SELECT id FROM teams WHERE team_name = %s AND league_id = %s",
+        (team_name, league_db_id)
+    )
+    if existing_by_name:
+        # Team name already exists in league, skip to avoid conflict
+        print(f"⚠️  Skipping team '{team_name}' - name already exists in league {league_db_id}")
+        return
+    
     # Insert with natural uniqueness, setting display_name if required
     if _teams_has_display_name_not_null():
         execute_update(

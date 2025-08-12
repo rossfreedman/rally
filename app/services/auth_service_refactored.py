@@ -712,7 +712,7 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             try:
                 from app.services.notifications_service import send_sms_notification
                 
-                welcome_message = "You're in! Your Rally registration was successful. We'll keep you posted on pickup games, team polls, match lineups, and more. Let's go!"
+                welcome_message = "You're in! Your Rally registration was successful. We'll keep you posted on pickup games, team polls, match lineups, and more. Visit: lovetorally.com/app anytime to login.\n\nLet's go!"
                 
                 sms_result = send_sms_notification(
                     to_number=phone_number,

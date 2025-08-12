@@ -177,6 +177,13 @@ def serve_index():
         return redirect("/login")
     return redirect("/mobile")
 
+@app.route("/app")
+def serve_app():
+    """Handle /app route - redirect to login for unauthenticated users"""
+    if "user" not in session:
+        return redirect("/login")
+    return redirect("/mobile")
+
 @app.route("/login")
 def serve_login():
     """Serve the login page"""
