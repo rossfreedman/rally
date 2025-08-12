@@ -1,0 +1,90 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "03/10",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "North Shore K",
+    "Away Team": "77.0",
+    "Scores": "77.0",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Exmoor K(1)",
+    "Away Team": "70.0",
+    "Scores": "Exmoor K(1)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Park Ridge K",
+    "Away Team": "61.5",
+    "Scores": "61.5",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Indian Hill K",
+    "Away Team": "49.0",
+    "Scores": "49.0",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Skokie K",
+    "Away Team": "44.0",
+    "Scores": "44.0",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Exmoor K(2)",
+    "Away Team": "24.0",
+    "Scores": "Exmoor K(2)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_K_12",
+    "source_league": "CNSWPL",
+    "Series": "Series K",
+    "Date": null,
+    "Home Team": "Lake Forest K",
+    "Away Team": "20.5",
+    "Scores": "20.5",
+    "Winner": null
+  }
+]

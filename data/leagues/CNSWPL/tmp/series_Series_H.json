@@ -1,0 +1,123 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "03/10",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Glenbrook H",
+    "Away Team": "80.5",
+    "Scores": "80.5",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Winnetka H",
+    "Away Team": "79.5",
+    "Scores": "79.5",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Sunset Ridge H",
+    "Away Team": "74.0",
+    "Scores": "74.0",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Evanston H(2)",
+    "Away Team": "72.0",
+    "Scores": "Evanston H(2)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Evanston H(1)",
+    "Away Team": "70.5",
+    "Scores": "Evanston H(1)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Wilmette H(3)",
+    "Away Team": "56.5",
+    "Scores": "Wilmette H(3)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Westmoreland H",
+    "Away Team": "48.5",
+    "Scores": "48.5",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Tennaqua H",
+    "Away Team": "48.0",
+    "Scores": "48.0",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Wilmette H(2)",
+    "Away Team": "44.5",
+    "Scores": "Wilmette H(2)",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_H_12",
+    "source_league": "CNSWPL",
+    "Series": "Series H",
+    "Date": null,
+    "Home Team": "Wilmette H (1)",
+    "Away Team": "26.0",
+    "Scores": "Wilmette H (1)",
+    "Winner": null
+  }
+]
