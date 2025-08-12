@@ -8756,6 +8756,9 @@ Submitted at: {datetime.now().strftime('%m/%d/%Y %I:%M %p')}
 def get_partner_matches_team():
     """Get partner matches for a specific player on a team (used by teams-players page)"""
     try:
+        # Get user session data first
+        user = session["user"]
+        
         # Get parameters
         team_id = request.args.get("team_id")
         player_name = request.args.get("player_name") 
@@ -8765,14 +8768,32 @@ def get_partner_matches_team():
         
         # Handle different calling patterns
         if current_player and partner_name:
-            # Player detail page: find matches where current_player played WITH partner_name
+            # Could be analyze-me page OR player-detail page
             main_player = current_player
             partner_filter = partner_name
             print(f"[DEBUG] Partner matches API: current_player={current_player}, partner_name={partner_name}")
+            
+            # Check if current_player matches the logged-in user's name
+            session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            
+            if current_player == session_player_name:
+                # Analyze-me page: current_player is the logged-in user, use session player ID
+                session_player_id = user.get("tenniscores_player_id")
+                if session_player_id:
+                    print(f"[DEBUG] Partner matches API: Analyze-me page detected - using session player ID directly: {session_player_id}")
+                    main_player_id = session_player_id
+                else:
+                    print(f"[DEBUG] Partner matches API: Analyze-me page but no session player ID available")
+                    main_player_id = None
+            else:
+                # Player-detail page: current_player is a different player, use name conversion
+                print(f"[DEBUG] Partner matches API: Player-detail page detected - current_player '{current_player}' != session user '{session_player_name}', will convert name to ID")
+                main_player_id = None
         elif team_id and player_name:
             # Teams page: find matches for player_name on team_id
             main_player = player_name
             partner_filter = None
+            main_player_id = None  # Will be converted from name below
             print(f"[DEBUG] Partner matches API: team_id={team_id}, player_name={player_name}")
         else:
             return jsonify({
@@ -8781,7 +8802,6 @@ def get_partner_matches_team():
             }), 400
         
         # Verify team exists and user has access
-        user = session["user"]
         user_league_id = user.get("league_id")
         
         # Convert league_id to integer if needed
@@ -8826,6 +8846,33 @@ def get_partner_matches_team():
             print(f"[DEBUG] API: Club: {team_info['club_name']}, Series: {team_info['series_name']}")
         else:
             print(f"[DEBUG] API: No team_id provided, using current player approach")
+            
+            # For analyze-me page, try to get user's current team context from session
+            session_team_id = user.get("team_id")
+            if session_team_id:
+                print(f"[DEBUG] API: Found session team_id: {session_team_id}")
+                team_query = """
+                    SELECT t.id, t.team_name, COALESCE(t.team_alias, t.team_name) as display_name,
+                           c.name as club_name, s.name as series_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.id = %s
+                """
+                if league_id_int:
+                    team_query += " AND t.league_id = %s"
+                    team_info = execute_query_one(team_query, [session_team_id, league_id_int])
+                else:
+                    team_info = execute_query_one(team_query, [session_team_id])
+                
+                if team_info:
+                    team_id = session_team_id  # Set team_id for later use
+                    team_name = team_info["team_name"]
+                    print(f"[DEBUG] API: Using session team context - ID: {team_id}, Name: '{team_name}'")
+                else:
+                    print(f"[DEBUG] API: Session team_id {session_team_id} not found in database")
+            else:
+                print(f"[DEBUG] API: No session team_id available")
         
         # Calculate current season boundaries
         from datetime import datetime
@@ -8910,8 +8957,14 @@ def get_partner_matches_team():
                 return None
         
         # Get the actual player ID for database search
-        player_id = get_player_id_from_name(main_player, team_name)
-        print(f"[DEBUG] API: Player ID for '{main_player}': {player_id}")
+        if main_player_id:
+            # Use session player ID directly (for analyze-me page)
+            player_id = main_player_id
+            print(f"[DEBUG] API: Using session player ID: {player_id}")
+        else:
+            # Convert name to player ID (for teams-players page)
+            player_id = get_player_id_from_name(main_player, team_name)
+            print(f"[DEBUG] API: Player ID for '{main_player}': {player_id}")
         
         # Build match query for the specific team and player with enhanced debugging
         if team_name:
