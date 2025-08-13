@@ -155,16 +155,93 @@ class ComprehensiveBootstrap:
                     
                 if away_team and away_team != "BYE":
                     series_teams[series].add(away_team)
+        
+        # ENHANCEMENT: Cross-reference with existing database series to catch missing data
+        # This helps when JSON data is incomplete compared to what should exist
+        db_series_with_teams = self.get_existing_series_with_teams(league_id)
+        
+        # Add existing series that have teams but aren't in current JSON data
+        # This prevents losing series that exist in database but are missing from current data files
+        for db_series in db_series_with_teams:
+            if db_series not in series_teams:
+                series_teams[db_series] = set(['Existing Team'])  # Placeholder team
+                logger.info(f"🔗 Added existing database series: {db_series}")
                     
         total_series_count = len(series_teams)
         total_teams_count = sum(len(teams) for teams in series_teams.values())
+        db_series_added = len(db_series_with_teams) - (players_series_count + (total_series_count - len(db_series_with_teams) - players_series_count))
         
         logger.info(f"📊 {league_id} Analysis Results:")
         logger.info(f"   From players: {players_series_count} series, {players_teams_count} teams")
-        logger.info(f"   From matches: {total_series_count - players_series_count} additional series")
+        logger.info(f"   From matches: {total_series_count - players_series_count - len(db_series_with_teams)} additional series")
+        logger.info(f"   From database: {len(db_series_with_teams)} existing series preserved")
         logger.info(f"   Total: {total_series_count} series, {total_teams_count} teams")
         
         return series_teams
+        
+    def get_existing_series_with_teams(self, league_id: str) -> Set[str]:
+        """Get series that already exist in database with teams for this league"""
+        try:
+            # Get league DB ID
+            league_db_id = self.get_league_db_id(league_id)
+            if not league_db_id:
+                return set()
+                
+            # Query existing series that have teams in this league
+            result = execute_query_one("""
+                SELECT array_agg(DISTINCT s.name) as series_names
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN teams t ON s.id = t.series_id
+                WHERE sl.league_id = %s
+                  AND t.league_id = %s
+            """, (league_db_id, league_db_id))
+            
+            if result and result.get('series_names'):
+                series_names = result['series_names']
+                if series_names and series_names[0]:  # Handle NULL array
+                    return set(series_names)
+                    
+        except Exception as e:
+            logger.warning(f"⚠️ Could not query existing series: {e}")
+            
+        return set()
+        
+    def create_minimal_team_for_series(self, series_name: str, series_id: int, league_db_id: int) -> bool:
+        """Create a minimal placeholder team for series that need to appear in API"""
+        try:
+            # Create or get placeholder club
+            club_result = execute_query_one("SELECT id FROM clubs WHERE name = 'Placeholder Club'")
+            if not club_result:
+                execute_update("INSERT INTO clubs (name) VALUES ('Placeholder Club')")
+                club_result = execute_query_one("SELECT id FROM clubs WHERE name = 'Placeholder Club'")
+            
+            club_id = club_result['id']
+            team_name = f"{series_name} Team"
+            
+            # Check if display_name is required
+            schema_check = execute_query_one(
+                "SELECT is_nullable FROM information_schema.columns WHERE table_name='teams' AND column_name='display_name'",
+                ()
+            )
+            
+            if schema_check and str(schema_check.get("is_nullable", "YES")).upper() == "NO":
+                execute_update(
+                    "INSERT INTO teams (team_name, display_name, series_id, league_id, club_id, is_active) VALUES (%s, %s, %s, %s, %s, true)",
+                    (team_name, team_name, series_id, league_db_id, club_id)
+                )
+            else:
+                execute_update(
+                    "INSERT INTO teams (team_name, series_id, league_id, club_id, is_active) VALUES (%s, %s, %s, %s, true)",
+                    (team_name, series_id, league_db_id, club_id)
+                )
+            
+            logger.info(f"✅ Created minimal team for series: {series_name}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Could not create minimal team for {series_name}: {e}")
+            return False
         
     def get_league_db_id(self, league_id: str) -> Optional[int]:
         """Get league database ID"""
@@ -342,9 +419,18 @@ class ComprehensiveBootstrap:
             # Ensure series is properly associated with league
             self.ensure_series_league_association(series_id, league_db_id)
                 
-            # Ensure all teams exist
+            # Ensure all teams exist - but create at least one team if none exist
+            # This ensures the series will appear in API responses
+            team_created = False
             for team_name in team_names:
-                self.ensure_team(team_name, series_id, league_db_id)
+                if team_name != 'Existing Team':  # Skip our placeholder
+                    result = self.ensure_team(team_name, series_id, league_db_id)
+                    if result:
+                        team_created = True
+            
+            # If no teams were created and we only have placeholder, create a minimal team
+            if not team_created and team_names == {'Existing Team'}:
+                self.create_minimal_team_for_series(series_name, series_id, league_db_id)
                 
         return {'success': True}
         
