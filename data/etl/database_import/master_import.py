@@ -195,6 +195,22 @@ class MasterImporter:
             "description": "Consolidate all league JSON files into unified data"
         })
         
+        # Add comprehensive bootstrap step to prevent missing series/teams from match data
+        if self.league:
+            steps.append({
+                "name": f"Comprehensive Bootstrap - {self.league}",
+                "script": "comprehensive_series_team_bootstrap.py",
+                "args": ["--league", self.league],
+                "description": f"Comprehensive analysis of ALL data sources (players + matches) to ensure complete series/team coverage for {self.league}"
+            })
+        else:
+            steps.append({
+                "name": "Comprehensive Bootstrap - All Leagues",
+                "script": "comprehensive_series_team_bootstrap.py",
+                "args": [],
+                "description": "Comprehensive analysis of ALL data sources (players + matches) to ensure complete series/team coverage for all leagues"
+            })
+        
         # Add bootstrap steps for series and teams (required before players import)
         # Use leagues from players data to ensure ALL leagues with players get teams bootstrapped
         leagues_from_players = self._discover_leagues_from_players_data()
