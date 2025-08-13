@@ -141,14 +141,14 @@
         /* Mobile fix for collage watermark right-side white bar */
         @media (max-width: 640px) {
             #collage-watermark {
-                /* Force bleed on all sides */
+                /* Force bleed on all sides without distorting aspect ratio */
                 top: -32px !important;
                 right: -32px !important;
                 bottom: -32px !important;
                 left: -32px !important;
                 width: auto !important;
                 background-position: right -32px top -32px !important;
-                background-size: calc(100% + 64px) calc(100% + 64px) !important;
+                background-size: auto calc(100% + 64px) !important; /* scale by height only */
             }
         }
     </style>
