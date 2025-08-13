@@ -23,10 +23,10 @@ Before fix, these series existed only in match data:
 
 **Features:**
 - Analyzes **ALL** data sources: `players.json` AND `match_history.json` 
-- Extracts series/teams from both consolidated and league-specific files
+- Extracts series from both consolidated and league-specific files
 - Creates missing series with proper schema compliance
-- Auto-generates clubs from team names using heuristics
-- Handles database constraints and duplicates gracefully
+- **Strategic Focus:** Series creation only (teams handled by existing bootstrap)
+- Prevents constraint violations while ensuring complete series coverage
 
 ### 2. Integration with Master Import
 **Modified:** `data/etl/database_import/master_import.py`
@@ -40,7 +40,8 @@ Before fix, these series existed only in match data:
 ### 3. Enhanced Error Prevention
 **Benefits:**
 - **Proactive Detection:** Finds missing series before they cause import failures
-- **Complete Coverage:** Ensures 100% series/team coverage from all data sources  
+- **Complete Series Coverage:** Ensures 100% series coverage from all data sources  
+- **Strategic Design:** Focuses on core gap (missing series) without constraint conflicts
 - **Future-Proof:** Automatically handles new series that appear in match data
 - **Zero Manual Intervention:** Fully automated prevention system
 
@@ -71,8 +72,9 @@ Result: Missing series, broken imports
 Comprehensive Analysis:
   Player Data: Series A, B, D, E, F, G
   Match Data: Series C, H, I, J, K
-  Combined: ALL series A-K → ✅ ALL CREATED
-Result: Complete coverage, successful imports
+  Missing Series: C, H, I, J, K → ✅ CREATED
+  Teams: Handled by existing bootstrap_teams_from_players.py
+Result: Complete series coverage, successful imports
 ```
 
 ## Usage
@@ -93,7 +95,7 @@ python data/etl/database_import/master_import.py  # Includes comprehensive boots
 
 ### Success Indicators
 - **Series Coverage:** 100% match between JSON files and database
-- **Team Coverage:** All teams from both players and matches exist
+- **Team Coverage:** All teams created by subsequent bootstrap processes
 - **Import Success:** No more "team not found" errors during match import
 - **UI Completeness:** Full series dropdown lists
 
@@ -105,9 +107,9 @@ python data/etl/database_import/master_import.py  # Includes comprehensive boots
    Total: 48 series, 207 teams
 
 📊 COMPREHENSIVE BOOTSTRAP SUMMARY:
-Series created: 8  ← AUTO-CREATED MISSING SERIES
-Teams created: 15
-Clubs created: 12
+Series created: 8 🎯 PRIMARY GOAL  ← AUTO-CREATED MISSING SERIES
+Teams created: 0 (focus: series only)
+Skipped: 207 (teams handled by existing bootstrap)
 ```
 
 ## Technical Details
