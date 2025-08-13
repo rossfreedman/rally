@@ -235,8 +235,8 @@ function getLoadingTextForUrl(url) {
         
         // Analyze section
         '/mobile/analyze-me': 'Loading Your Analysis...',
-        '/mobile/myteam': 'Loading Team Data...',
-        '/mobile/myseries': 'Loading Series Data...',
+        '/mobile/my-team': 'Loading Team Data...',
+        '/mobile/my-series': 'Loading Series Data...',
         '/mobile/my-club': 'Loading Club Information...',
         '/mobile/player-search': 'Searching Players...',
         '/mobile/teams-players': 'Loading Teams...',

@@ -6,35 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Loading Screen -->
-<div id="loadingScreen" class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center px-6">
-        <div class="mb-6">
-            <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500"></div>
-        </div>
-        <h2 class="text-xl font-semibold text-gray-800 mb-2">Loading Club Analysis</h2>
-        <p class="text-gray-600">Gathering club standings and match data...</p>
-        
-        <!-- Loading Steps -->
-        <div class="mt-6 space-y-2 text-sm text-gray-600">
-            <div id="step1" class="flex items-center justify-center">
-                <i id="step1-icon" class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
-                <span>Loading club information...</span>
-            </div>
-            <div id="step2" class="flex items-center justify-center opacity-50">
-                <i id="step2-icon" class="fas fa-circle text-gray-400 mr-2"></i>
-                <span>Processing team standings...</span>
-            </div>
-            <div id="step3" class="flex items-center justify-center opacity-50">
-                <i id="step3-icon" class="fas fa-circle text-gray-400 mr-2"></i>
-                <span>Loading recent matches...</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Main Content (hidden initially) -->
-<div id="mainContent" class="min-h-screen bg-gray-50" style="display: none;">
+<div class="min-h-screen bg-gray-50">
     
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
@@ -577,59 +549,5 @@
     }
   }
 
-  // Loading animation logic
-  document.addEventListener('DOMContentLoaded', function() {
-      const loadingScreen = document.getElementById('loadingScreen');
-      const mainContent = document.getElementById('mainContent');
-      
-      // Simulate loading steps
-      const steps = [
-          { id: 'step1', duration: 800 },
-          { id: 'step2', duration: 700 },
-          { id: 'step3', duration: 500 }
-      ];
-      
-      let currentStep = 0;
-      
-      function progressStep() {
-          if (currentStep < steps.length) {
-              const step = steps[currentStep];
-              const stepElement = document.getElementById(step.id);
-              const iconElement = document.getElementById(step.id + '-icon');
-              
-              // Complete current step
-              stepElement.classList.remove('opacity-50');
-              iconElement.classList.remove('fa-circle', 'fa-circle-notch', 'fa-spin');
-              iconElement.classList.add('fa-check-circle', 'text-green-500');
-              iconElement.classList.remove('text-gray-400', 'text-blue-500');
-              
-              currentStep++;
-              
-              // Start next step if available
-              if (currentStep < steps.length) {
-                  const nextStep = steps[currentStep];
-                  const nextStepElement = document.getElementById(nextStep.id);
-                  const nextIconElement = document.getElementById(nextStep.id + '-icon');
-                  
-                  nextStepElement.classList.remove('opacity-50');
-                  nextIconElement.classList.remove('fa-circle', 'text-gray-400');
-                  nextIconElement.classList.add('fa-circle-notch', 'fa-spin', 'text-blue-500');
-                  
-                  setTimeout(progressStep, step.duration);
-              } else {
-                  // All steps complete, show main content
-                  setTimeout(() => {
-                      loadingScreen.style.display = 'none';
-                      mainContent.style.display = 'block';
-                  }, 300);
-              }
-          }
-      }
-      
-      // Start the loading process
-      setTimeout(progressStep, 800);
-  });
 </script>
-
-</div> <!-- Close mainContent div -->
 {% endblock %} 
