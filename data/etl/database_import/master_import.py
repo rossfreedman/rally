@@ -897,7 +897,7 @@ def main():
     )
     parser.add_argument(
         "--league",
-        choices=["APTA_CHICAGO", "NSTF", "aptachicago", "nstf"],
+        choices=["APTA_CHICAGO", "NSTF", "CNSWPL", "aptachicago", "nstf", "cnswpl"],
         help="Specific league to import (if not specified, imports all leagues)"
     )
     parser.add_argument(
