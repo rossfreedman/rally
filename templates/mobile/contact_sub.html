@@ -287,27 +287,55 @@ function loadContactInfo() {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Action Buttons -->
+
+                <!-- Compose and Send Text via Rally (Twilio) -->
                 <div class="px-6 pb-6">
-                    <div class="grid grid-cols-3 gap-3">
-                        <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
-                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                            <i class="fas fa-sms"></i>
-                            <span>Text</span>
-                        </button>
-                        <a href="tel:${data.phone}" 
-                           class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                            <i class="fas fa-phone"></i>
-                            <span>Call</span>
-                        </a>
-                        <a href="mailto:${data.email}" 
-                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                            <i class="fas fa-envelope"></i>
-                            <span>Email</span>
-                        </a>
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-50 flex items-center gap-2">
+                            <i class="fas fa-paper-plane text-blue-600"></i>
+                            <h3 class="text-md font-semibold text-gray-900">Send a text from Rally</h3>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <textarea id="messageInput" rows="3" class="w-full border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your message..."></textarea>
+                            <button id="sendTextBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2" onclick="sendText('${data.first_name}', '${data.last_name}', '${data.phone}')">
+                                <span class="loading loading-spinner loading-sm hidden" id="sendSpinner"></span>
+                                <i class="fas fa-paper-plane" id="sendIcon"></i>
+                                <span>Send Text</span>
+                            </button>
+                            <p class="text-xs text-gray-500">If this player doesn’t have a phone in their Rally profile, we’ll use the Tennaqua directory number on file.</p>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Action Buttons (Self-contained Card) -->
+                <div class="px-6 pb-6" style="margin-top: 20px;">
+                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-50 flex items-center gap-2">
+                            <i class="fas fa-bolt text-purple-600"></i>
+                            <h3 class="text-md font-semibold text-gray-900">Other ways to connect</h3>
+                        </div>
+                        <div class="p-4">
+                            <div class="grid grid-cols-3 gap-3">
+                                <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
+                                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                                    <i class="fas fa-sms"></i>
+                                    <span>Copy</span>
+                                </button>
+                                <a href="tel:${data.phone}" 
+                                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                                    <i class="fas fa-phone"></i>
+                                    <span>Call</span>
+                                </a>
+                                <a href="mailto:${data.email}" 
+                                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>Email</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
             `;
         })
         .catch(error => {
@@ -325,6 +353,52 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load contact info
     loadContactInfo();
 });
+
+async function sendText(first, last, phoneFromApi) {
+    try {
+        const btn = document.getElementById('sendTextBtn');
+        const spinner = document.getElementById('sendSpinner');
+        const icon = document.getElementById('sendIcon');
+        const textarea = document.getElementById('messageInput');
+        const message = (textarea.value || '').trim();
+        if (!message) {
+            showToast('Please enter a message', 'error');
+            return;
+        }
+
+        // UI state
+        btn.disabled = true;
+        spinner.classList.remove('hidden');
+        icon.classList.add('hidden');
+
+        const resp = await fetch('/api/contact-sub/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ first, last, message, phone: phoneFromApi || '' })
+        });
+
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+            showToast('Message sent successfully', 'success');
+            textarea.value = '';
+        } else {
+            const err = (data && (data.error || data.details && data.details.error)) || 'Failed to send message';
+            showToast(err, 'error');
+        }
+    } catch (e) {
+        console.error(e);
+        showToast('Unexpected error sending message', 'error');
+    } finally {
+        const btn = document.getElementById('sendTextBtn');
+        const spinner = document.getElementById('sendSpinner');
+        const icon = document.getElementById('sendIcon');
+        if (btn && spinner && icon) {
+            btn.disabled = false;
+            spinner.classList.add('hidden');
+            icon.classList.remove('hidden');
+        }
+    }
+}
 </script>
 
 <style>

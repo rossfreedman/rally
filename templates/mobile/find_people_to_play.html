@@ -21,7 +21,7 @@
     <div class="px-4 py-6 space-y-6">
 
         <!-- Filter Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div id="filtersCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-6 space-y-4">
     
                 <!-- Name Filters (First) -->
@@ -111,21 +111,10 @@
         <!-- Scroll Anchor -->
         <div id="scrollAnchor"></div>
 
-        <!-- Instructions -->
-        <div id="contactInstructions" class="bg-yellow-100 border border-yellow-200 rounded-xl p-4 shadow-sm">
-            <div class="flex items-center justify-center">
-                <div class="text-sm text-yellow-800 text-center font-medium">
-                    <p class="mb-2">Two options to contact players:</p>
-                    <div class="text-left space-y-1">
-                        <p>1. Click the checkbox next to each name to select and contact multiple players</p>
-                        <p>2. Click the contact player button to contact one player individually</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+        
 
         <!-- Players List Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div id="playersCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-users text-green-500 mr-2"></i>
@@ -592,6 +581,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const data = await response.json();
         availableSeries = data.available_series || [];
+
+        // Sort series numerically by their number (not lexicographically),
+        // e.g., Chicago 1, Chicago 2, ..., Chicago 10, Chicago 11, ...
+        try {
+            const parseSeries = (s) => {
+                const match = String(s).match(/(\d+)/);
+                const num = match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+                const isSW = /\bSW\b/i.test(String(s));
+                return { num, isSW, label: String(s) };
+            };
+            availableSeries.sort((a, b) => {
+                const pa = parseSeries(a);
+                const pb = parseSeries(b);
+                if (pa.num !== pb.num) return pa.num - pb.num;
+                // Place base series before SW variant for the same number
+                if (pa.isSW !== pb.isSW) return pa.isSW ? 1 : -1;
+                return String(pa.label).localeCompare(String(pb.label));
+            });
+        } catch (e) {
+            console.warn('Series sort failed, keeping original order', e);
+        }
         ptiRange = data.pti_range || { min: -30, max: 100 };
         const ptiFiltersAvailable = data.pti_filters_available || false;
         const userClub = data.user_club || 'My Club';
@@ -730,9 +740,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load and display players
     async function loadPlayers() {
         try {
-            // Scroll immediately when button is clicked
-            scrollToResults();
-            
             showLoading(true);
             
             // Validate that at least one filter criteria is provided
@@ -777,8 +784,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             allPlayers = data.players || [];
-            
-            displayPlayers(allPlayers, false); // No need to scroll since we already scrolled
+
+            // Render and then scroll to the correct position (below filters)
+            displayPlayers(allPlayers, true);
             showLoading(false);
             
         } catch (error) {
@@ -812,23 +820,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         updateSelectionUI();
+
+        if (shouldScroll) {
+            robustScrollToResults();
+        }
     }
 
-    // Scroll to position instructions at top of viewport
-    function scrollToResults() {
-        // Use a small delay to ensure DOM is updated
-        setTimeout(() => {
-            const instructionsSection = document.getElementById('contactInstructions');
-            if (instructionsSection) {
-                const elementPosition = instructionsSection.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset;
-                
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
+    // Robust scroll that waits for layout to settle, then scrolls below filters
+    function robustScrollToResults() {
+        const doScroll = () => {
+            const filters = document.getElementById('filtersCard');
+            const card = document.getElementById('playersCard');
+            let targetY = 0;
+            if (filters) {
+                const rect = filters.getBoundingClientRect();
+                targetY = rect.bottom + window.pageYOffset - 23; // 15px less than previous (-8 -> -23)
+            } else if (card) {
+                const rect2 = card.getBoundingClientRect();
+                targetY = rect2.top + window.pageYOffset - 43; // 15px less than previous (-28 -> -43)
+            } else {
+                return; // nothing to do
             }
-        }, 100);
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+            // Safety adjust after animation starts (handles async image/fonts/layout shifts)
+            setTimeout(() => {
+                window.scrollTo({ top: targetY, behavior: 'smooth' });
+            }, 350);
+        };
+        // Two RAFs ensure DOM updates and styles are flushed
+        requestAnimationFrame(() => requestAnimationFrame(doScroll));
     }
 
     // Handle contact button click

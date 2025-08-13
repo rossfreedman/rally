@@ -62,6 +62,249 @@ def convert_chicago_to_series_for_ui(series_name):
     return series_name
 
 
+# ==============================
+# Contact Sub: Player Contact API
+# ==============================
+
+def _normalize_name_for_match(name: str) -> str:
+    try:
+        return (name or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def _get_project_root_path() -> str:
+    # api_routes.py → app/routes → project root is two levels up
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+
+def _load_directory_contact_from_csv(user_ctx: dict, first: str, last: str) -> dict:
+    """Lookup contact info from Tennaqua directory CSV as a fallback.
+
+    Returns dict with keys: phone, email if found; otherwise empty dict.
+    """
+    try:
+        import csv
+
+        league_string_id = (user_ctx or {}).get("league_string_id") or ""
+        # For non-APTA leagues, prefer league-specific directory; else use shared "all"
+        sub_dir = league_string_id if (league_string_id and not league_string_id.startswith("APTA")) else "all"
+
+        csv_path = os.path.join(
+            _get_project_root_path(),
+            "data",
+            "leagues",
+            sub_dir,
+            "club_directories",
+            "directory_tennaqua.csv",
+        )
+
+        if not os.path.exists(csv_path):
+            # Fallback hard to shared path
+            csv_path = os.path.join(
+                _get_project_root_path(),
+                "data",
+                "leagues",
+                "all",
+                "club_directories",
+                "directory_tennaqua.csv",
+            )
+
+        if not os.path.exists(csv_path):
+            return {}
+
+        norm_first = _normalize_name_for_match(first)
+        norm_last = _normalize_name_for_match(last)
+
+        with open(csv_path, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                row_first = _normalize_name_for_match(row.get("First"))
+                row_last = _normalize_name_for_match(row.get("Last Name"))
+                if row_first == norm_first and row_last == norm_last:
+                    return {
+                        "phone": (row.get("Phone") or "").strip(),
+                        "email": (row.get("Email") or "").strip(),
+                        "series": (row.get("Series") or "").strip(),
+                    }
+        return {}
+    except Exception as e:
+        logger.error(f"CSV fallback load error: {str(e)}")
+        return {}
+
+
+def _resolve_player_db_contact(first: str, last: str, user_ctx: dict) -> dict:
+    """Try to resolve player's contact details from database using name and session context.
+
+    Returns dict with keys: first_name, last_name, email, phone, series if any found.
+    """
+    try:
+        norm_first = _normalize_name_for_match(first)
+        norm_last = _normalize_name_for_match(last)
+
+        # Determine league filter preference from session
+        league_db_id = None
+        try:
+            if user_ctx and user_ctx.get("league_context"):
+                league_db_id = int(user_ctx.get("league_context"))
+        except Exception:
+            league_db_id = None
+
+        club_pref = (user_ctx or {}).get("club")
+
+        # Find candidate players by exact first+last match in active records
+        base_query = (
+            """
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name,
+                   c.name AS club_name, s.name AS series_name,
+                   l.id AS league_db_id, l.league_id AS league_string_id
+            FROM players p
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.is_active = TRUE
+              AND LOWER(TRIM(p.first_name)) = %s
+              AND LOWER(TRIM(p.last_name)) = %s
+            """
+        )
+
+        params = [norm_first, norm_last]
+        if league_db_id:
+            base_query += " AND p.league_id = %s"
+            params.append(league_db_id)
+
+        candidates = execute_query(base_query, params) or []
+
+        if not candidates:
+            return {}
+
+        # Prefer candidate matching user's club, otherwise first
+        chosen = None
+        if club_pref:
+            for c in candidates:
+                if (c.get("club_name") or "").strip().lower() == (club_pref or "").strip().lower():
+                    chosen = c
+                    break
+        if not chosen:
+            chosen = candidates[0]
+
+        # Try to find an associated registered user to get phone/email
+        association_query = (
+            """
+            SELECT u.id, u.email, u.phone_number
+            FROM user_player_associations upa
+            JOIN users u ON upa.user_id = u.id
+            WHERE upa.tenniscores_player_id = %s
+            ORDER BY u.id ASC
+            LIMIT 1
+            """
+        )
+        assoc = execute_query_one(association_query, [chosen["tenniscores_player_id"]])
+
+        return {
+            "first_name": chosen.get("first_name"),
+            "last_name": chosen.get("last_name"),
+            "email": (assoc or {}).get("email"),
+            "phone": (assoc or {}).get("phone_number"),
+            "series": chosen.get("series_name"),
+        }
+    except Exception as e:
+        logger.error(f"DB contact resolution error: {str(e)}")
+        return {}
+
+
+@api_bp.route("/api/player-contact", methods=["GET"])
+@login_required
+def api_player_contact():
+    """Return contact info for a player by first and last name.
+
+    Priority: registered user's phone/email via associations → CSV directory fallback.
+    """
+    try:
+        first = request.args.get("first", "").strip()
+        last = request.args.get("last", "").strip()
+        if not first or not last:
+            return jsonify({"error": "Missing first/last name"}), 400
+
+        user_ctx = session.get("user", {})
+
+        # First try database associations
+        db_info = _resolve_player_db_contact(first, last, user_ctx)
+
+        # If phone missing, fallback to CSV
+        if not db_info or not (db_info.get("phone") and db_info.get("phone").strip()):
+            csv_info = _load_directory_contact_from_csv(user_ctx, first, last)
+        else:
+            csv_info = {}
+
+        # Merge with preference to DB, fallback to CSV where missing
+        response = {
+            "first_name": db_info.get("first_name") or first,
+            "last_name": db_info.get("last_name") or last,
+            "email": db_info.get("email") or csv_info.get("email") or "",
+            "phone": db_info.get("phone") or csv_info.get("phone") or "",
+            "series": db_info.get("series") or csv_info.get("series") or "",
+        }
+
+        if not response["email"] and not response["phone"]:
+            return jsonify({"error": "No contact info found for that player"}), 404
+
+        return jsonify(response)
+
+    except Exception as e:
+        logger.error(f"/api/player-contact error: {str(e)}")
+        return jsonify({"error": "Failed to get player contact"}), 500
+
+
+@api_bp.route("/api/contact-sub/send", methods=["POST"])
+@login_required
+def api_contact_sub_send():
+    """Send a text message to a player, resolving phone via DB or CSV if needed."""
+    try:
+        data = request.get_json(silent=True) or {}
+        first = (data.get("first") or "").strip()
+        last = (data.get("last") or "").strip()
+        message = (data.get("message") or "").strip()
+        phone = (data.get("phone") or "").strip()
+
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+        if not first or not last:
+            return jsonify({"success": False, "error": "Missing first/last name"}), 400
+
+        # Resolve phone if not provided
+        if not phone:
+            user_ctx = session.get("user", {})
+            db_info = _resolve_player_db_contact(first, last, user_ctx)
+            phone = (db_info.get("phone") or "").strip() if db_info else ""
+            if not phone:
+                csv_info = _load_directory_contact_from_csv(user_ctx, first, last)
+                phone = (csv_info.get("phone") or "").strip() if csv_info else ""
+
+        if not phone:
+            return jsonify({"success": False, "error": "No phone number available for this player"}), 404
+
+        # Use existing Twilio notifications service (handles validation + retry)
+        sms_result = send_sms_notification(to_number=phone, message=message, test_mode=False)
+
+        if sms_result.get("success"):
+            return jsonify({
+                "success": True,
+                "message_sid": sms_result.get("message_sid"),
+                "formatted_phone": sms_result.get("formatted_phone"),
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": sms_result.get("error") or "Failed to send message",
+                "details": sms_result,
+            }), 502
+
+    except Exception as e:
+        logger.error(f"/api/contact-sub/send error: {str(e)}")
+        return jsonify({"success": False, "error": "Internal error sending message"}), 500
+
+
 @api_bp.route("/api/series-stats")
 @login_required
 def get_series_stats():
