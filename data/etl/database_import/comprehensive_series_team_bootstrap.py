@@ -248,6 +248,31 @@ class ComprehensiveBootstrap:
             
         return None
         
+    def ensure_series_league_association(self, series_id: int, league_db_id: int) -> bool:
+        """Ensure series is associated with league via series_leagues table"""
+        try:
+            # Check if association already exists
+            result = execute_query_one(
+                "SELECT 1 FROM series_leagues WHERE series_id = %s AND league_id = %s",
+                (series_id, league_db_id)
+            )
+            
+            if result:
+                return True  # Already exists
+                
+            # Create association
+            execute_update(
+                "INSERT INTO series_leagues (series_id, league_id) VALUES (%s, %s)",
+                (series_id, league_db_id)
+            )
+            
+            logger.info(f"✅ Created series_leagues association: series_id={series_id}, league_id={league_db_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating series_leagues association: {e}")
+            return False
+        
     def extract_club_from_team_name(self, team_name: str) -> str:
         """Extract club name from team name (basic heuristic)"""
         # For teams like "Tennaqua B", "Lake Shore CC 15", extract base club name
@@ -313,6 +338,9 @@ class ComprehensiveBootstrap:
             if not series_id:
                 logger.error(f"❌ Could not create series: {series_name}")
                 continue
+                
+            # Ensure series is properly associated with league
+            self.ensure_series_league_association(series_id, league_db_id)
                 
             # Ensure all teams exist
             for team_name in team_names:
