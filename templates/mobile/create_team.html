@@ -87,7 +87,7 @@
                                 Available Players
                                 <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Drag players to assign to series or tap to select. Tennaqua players only.</p>
+                            <p class="text-sm text-gray-600 mt-1">Drag players to assign to series or tap to select. Players shown are from your current club.</p>
                             <div class="mt-2 p-2 bg-gray-50 rounded-lg">
                                 <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
                                 <div class="flex flex-wrap gap-1 text-xs">
@@ -969,16 +969,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Failed to load players');
             }
             
-            // Filter to only Tennaqua players
-            const tennaquaPlayers = data.players.filter(player => 
-                player.club && player.club.toLowerCase().includes('tennaqua')
-            );
-            
+            // Filter to only players from the user's current club if available
+            const currentClubId = data.current_club_id;
+            let filteredPlayers = data.players;
+            if (currentClubId) {
+                filteredPlayers = data.players.filter(player => player.club_id === currentClubId);
+            }
+
             // Store original and current players
-            originalPlayers = [...tennaquaPlayers];
-            allPlayers = [...tennaquaPlayers];
+            originalPlayers = [...filteredPlayers];
+            allPlayers = [...filteredPlayers];
             
-            console.log(`Loaded ${allPlayers.length} Tennaqua players (filtered from ${data.players.length} total)`);
+            const clubMsg = currentClubId ? `current club_id ${currentClubId}` : 'all clubs (no current club context)';
+            console.log(`Loaded ${allPlayers.length} players for ${clubMsg} (from ${data.players.length} total)`);
             
             displayPlayers();
             updatePlayerCount();

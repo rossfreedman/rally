@@ -4543,6 +4543,8 @@ def get_create_team_players():
     try:
         user = session["user"]
         user_league_id = user.get("league_id", "")
+        current_team_id = user.get("team_id")
+        current_club_id = None
         
         # Convert league_id to integer foreign key
         league_id_int = None
@@ -4568,6 +4570,8 @@ def get_create_team_players():
                 p.pti,
                 p.wins,
                 p.losses,
+                p.team_id as player_team_id,
+                p.club_id as player_club_id,
                 c.name as club_name,
                 s.name as series_name,
                 s.id as series_id,
@@ -4588,6 +4592,18 @@ def get_create_team_players():
         
         params = [league_id_int] if league_id_int else []
         players_data = execute_query(players_query, params)
+
+        # Determine current user's club_id from their current team_id, if available
+        if current_team_id:
+            try:
+                team_record = execute_query_one(
+                    "SELECT club_id FROM teams WHERE id = %s",
+                    [current_team_id],
+                )
+                if team_record:
+                    current_club_id = team_record.get("club_id")
+            except Exception as e:
+                print(f"Error looking up club_id for team {current_team_id}: {e}")
         
         players = []
         for player in players_data:
@@ -4605,14 +4621,18 @@ def get_create_team_players():
                 "losses": player["losses"] or 0,
                 "win_rate": float(player["win_rate"]) if player["win_rate"] else 0.0,
                 "club": player["club_name"] or "Unknown",
+                "club_id": player["player_club_id"],
                 "series": display_series_name,
-                "series_id": player["series_id"]
+                "series_id": player["series_id"],
+                "team_id": player["player_team_id"],
             })
         
         return jsonify({
             "success": True,
             "players": players,
-            "total_players": len(players)
+            "total_players": len(players),
+            "current_team_id": current_team_id,
+            "current_club_id": current_club_id,
         })
         
     except Exception as e:
