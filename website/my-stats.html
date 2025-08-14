@@ -3,7 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Stats - Rally Features</title>
+    <title>View Stats - Rally Features</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="/static/images/rally_favicon.png?v=2025">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -11,9 +21,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'rally-blue': '#0f1727',
-                        'rally-green': '#10b981',
-                        'rally-orange': '#f59e0b',
+                        'rally-teal': '#0d4f4c',
+                        'rally-teal-dark': '#0a3d3a',
+                        'rally-green': '#84cc16',
+                        'rally-lime': '#a3e635',
+                        'rally-cream': '#f7f3e9',
                         'rally-dark': '#1f2937',
                     }
                 }
@@ -22,25 +34,44 @@
     </script>
     <style>
         .nav-solid {
-            background: linear-gradient(to bottom right, #0f1727, #0b1220) !important;
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk {
+            background: linear-gradient(to bottom right, #0d4f4c, #0a3d3a) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .logo-container {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-links {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-shrunk .logo-container {
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+        }
+        .nav-shrunk .nav-links {
+            padding-bottom: 8px !important;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-rally-cream">
     <!-- Navigation -->
-    <nav class="fixed top-0 w-full z-50 nav-solid">
+    <nav id="main-nav" class="fixed top-0 w-full z-50 nav-solid">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <!-- Centered Logo -->
-            <div class="flex justify-center items-center py-6">
+            <div class="logo-container flex justify-center items-center py-0">
                 <a href="index.html" class="flex items-center">
-                    <img class="h-12 w-auto drop-shadow-lg" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img class="logo-image h-28 w-auto drop-shadow-lg" src="images/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
                 </a>
             </div>
             
             <!-- Navigation Links -->
-            <div class="flex justify-center items-center pb-4">
+            <div class="nav-links flex justify-center items-center pb-4">
                 <div class="flex items-center space-x-8">
                     <a href="index.html#features" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Features</a>
                     <a href="index.html#leagues" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Leagues</a>
@@ -52,13 +83,13 @@
     </nav>
 
     <!-- Header Section -->
-    <section class="bg-gradient-to-br from-rally-blue to-slate-900 text-white py-20" style="padding-top: 185px;">
+    <section class="bg-gradient-to-br from-rally-teal to-rally-teal-dark text-white py-20" style="padding-top: 175px;">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-chart-line text-3xl text-white"></i>
             </div>
-            <h1 class="text-4xl md:text-5xl font-bold mb-6">My Stats</h1>
-            <p class="text-xl text-green-100 max-w-3xl mx-auto">
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">View Stats</h1>
+            <p class="text-xl text-white/90 max-w-3xl mx-auto">
                 Track your performance, monitor your progress, and identify areas for improvement with comprehensive personal statistics and analytics.
             </p>
         </div>
@@ -116,47 +147,47 @@
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Statistical Features</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-sm">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
                     <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-trophy text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">Win/Loss Records</h3>
-                    <p class="text-gray-600">Comprehensive tracking of your competitive record across all leagues, seasons, and tournaments.</p>
+                    <p class="text-gray-600 flex-1">Comprehensive tracking of your competitive record across all leagues, seasons, and tournaments.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-rally-blue rounded-lg flex items-center justify-center mb-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-star text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">PTI Rating Tracker</h3>
-                    <p class="text-gray-600">Monitor your Platform Tennis Index rating evolution and see how you rank against other players.</p>
+                    <p class="text-gray-600 flex-1">Monitor your Platform Tennis Index rating evolution and see how you rank against other players.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-rally-orange rounded-lg flex items-center justify-center mb-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-chart-bar text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">Performance Trends</h3>
-                    <p class="text-gray-600">Visualize your improvement over time with detailed charts and performance analytics.</p>
+                    <p class="text-gray-600 flex-1">Visualize your improvement over time with detailed charts and performance analytics.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-users text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">Partner Analysis</h3>
-                    <p class="text-gray-600">See how you perform with different partners and identify your most successful combinations.</p>
+                    <p class="text-gray-600 flex-1">See how you perform with different partners and identify your most successful combinations.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-target text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">Opponent Breakdown</h3>
-                    <p class="text-gray-600">Analyze your performance against different skill levels and identify areas for improvement.</p>
+                    <p class="text-gray-600 flex-1">Analyze your performance against different skill levels and identify areas for improvement.</p>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-sm">
-                    <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mb-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm h-[200px] flex flex-col">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
                         <i class="fas fa-calendar-alt text-white text-xl"></i>
                     </div>
                     <h3 class="text-xl font-semibold text-gray-900 mb-3">Season Comparisons</h3>
-                    <p class="text-gray-600">Compare your performance across different seasons to track long-term development.</p>
+                    <p class="text-gray-600 flex-1">Compare your performance across different seasons to track long-term development.</p>
                 </div>
             </div>
         </div>

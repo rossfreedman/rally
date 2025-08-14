@@ -115,11 +115,11 @@
                         <div class="schedule-date-header flex justify-between items-center rounded-xl p-4 mb-4 {% if is_practice %}practice-header{% else %}match-header{% endif %}">
                             <div class="flex items-center gap-3">
                                 {% if is_practice %}
-                                    <i class="fas fa-dumbbell text-white text-lg"></i>
-                                    <span class="font-semibold text-lg text-white">Practice</span>
+                                    <i class="fas fa-dumbbell text-lg"></i>
+                                    <span class="font-semibold text-lg">Practice</span>
                                 {% else %}
-                                    <i class="fas fa-trophy text-white text-lg"></i>
-                                    <span class="font-semibold text-lg text-white">Match</span>
+                                    <i class="fas fa-trophy text-lg"></i>
+                                    <span class="font-semibold text-lg">Match</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -135,16 +135,7 @@
                         <div class="flex flex-row gap-6">
                             <!-- Column 1: Match Info -->
                             <div class="flex flex-col gap-4 flex-1">
-                                <div class="flex-shrink-0">
-                                    {% if is_practice %}
-                                        <div class="flex items-center gap-2">
-                                            <i class="fas fa-tennis-ball text-orange-500 text-2xl"></i>
-                                            <i class="fas fa-table-tennis text-orange-500 text-2xl"></i>
-                                        </div>
-                                    {% else %}
-                                        <i class="fas fa-trophy text-yellow-500 text-2xl"></i>
-                                    {% endif %}
-                                </div>
+                                
                                 <!-- Date and Time Section -->
                                 <div class="text-lg font-medium">
                                     <div class="font-bold text-gray-900">{{ match.date | pretty_date_with_year }}</div>
@@ -999,14 +990,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Header styling for practices and matches */
 .practice-header {
-    background: linear-gradient(135deg, #f97316, #ea580c);
-    color: #ffffff;
+    background-color: #bff863;
+    color: #045454;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .match-header {
-    background: linear-gradient(135deg, #1f2937, #111827);
-    color: #ffffff;
+    background-color: #045454;
+    color: #bff863;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 

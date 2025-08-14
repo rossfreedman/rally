@@ -166,14 +166,16 @@
                 </a>
             </div>
             <div class="flex-1 flex justify-end items-center gap-3">
-                <!-- Database Indicator (Local Development Only) -->
+                <!-- Database Indicator (Local Development Only - show only when in TEST mode) -->
                 {% if is_local_development() %}
                     {% set db_mode = get_database_mode() %}
+                    {% if db_mode == 'test' %}
                     <button onclick="switchDatabase()" 
-                            class="database-indicator px-2 py-1 rounded-full text-xs font-semibold {% if db_mode == 'test' %}bg-yellow-500 text-black hover:bg-yellow-400{% else %}bg-green-500 text-white hover:bg-green-400{% endif %} transition-colors duration-200 cursor-pointer" 
-                            title="Click to switch database (currently: {{ 'TEST' if db_mode == 'test' else 'MAIN' }})">
-                        {% if db_mode == 'test' %}🧪 TEST{% else %}🚀 MAIN{% endif %}
+                            class="database-indicator px-2 py-1 rounded-full text-xs font-semibold bg-yellow-500 text-black hover:bg-yellow-400 transition-colors duration-200 cursor-pointer" 
+                            title="Click to switch database (currently: TEST)">
+                        🧪 TEST
                     </button>
+                    {% endif %}
                 {% endif %}
                 
                 <button id="menuToggle" class="text-white">

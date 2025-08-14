@@ -7,7 +7,7 @@ This is the main server file for the Rally platform tennis management applicatio
 Most routes have been moved to blueprints for better organization.
 """
 
-print("🚀 Starting Rally application import...")
+print("🚀 Starting Rally application...")
 
 import json
 import logging
