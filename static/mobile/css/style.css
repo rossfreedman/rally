@@ -194,6 +194,226 @@ a:hover {
     }
 }
 
+/* Desktop responsive design - limit content width to 50% */
+@media (min-width: 768px) {
+    /* Apply to all min-h-screen containers that are main page containers */
+    .min-h-screen.bg-gray-50,
+    .min-h-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    /* Specifically target analyze-me court cards only by targeting the Court Performance section */
+    .min-h-screen .bg-white.rounded-xl.shadow-sm.border.border-gray-100.overflow-hidden .p-6 .space-y-4 > .bg-gray-50.rounded-lg.p-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+        display: block !important;
+    }
+    
+    /* Alternative targeting with Court Performance context */
+    .min-h-screen .bg-white.rounded-xl:has(.fas.fa-table-tennis) .space-y-4 > div,
+    .min-h-screen div:has(h2:contains("Court Performance")) .space-y-4 > div {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    /* Headers - constrain width but keep full background */
+    .min-h-screen > .bg-white.border-b,
+    .min-h-screen.bg-gray-50 > .bg-white.border-b {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+    
+    .min-h-screen > .bg-white.border-b > .flex.items-center.px-4,
+    .min-h-screen.bg-gray-50 > .bg-white.border-b > .flex.items-center.px-4,
+    .min-h-screen .bg-white.border-b .flex.items-center.px-4 {
+        width: 50%;
+        max-width: 50%;
+    }
+    
+    /* Main content containers - multiple targeting approaches */
+    .min-h-screen > .px-4.py-6,
+    .min-h-screen > .px-4,
+    .min-h-screen.bg-gray-50 > .px-4.py-6,
+    .min-h-screen.bg-gray-50 > .px-4,
+    .min-h-screen .px-4.py-6.space-y-6,
+    .min-h-screen .px-4.space-y-6,
+    .min-h-screen .px-4.py-6 {
+        width: 50%;
+        max-width: 50%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    /* Specifically target poll containers and other card containers */
+    .min-h-screen .bg-white.rounded-xl,
+    .min-h-screen .bg-white.rounded-lg,
+    .min-h-screen .card,
+    .min-h-screen .bg-white.shadow-md,
+    .min-h-screen .bg-white.shadow-sm,
+    .min-h-screen .bg-gray-50.rounded-lg,
+    .min-h-screen .space-y-4 .bg-white.rounded-xl,
+    .min-h-screen .space-y-4 .bg-white.shadow-sm,
+    .min-h-screen .space-y-4 .bg-gray-50.rounded-lg {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Ensure buttons within constrained containers fill available space */
+    .min-h-screen .w-full {
+        width: 100% !important;
+    }
+    
+    /* Ensure modals, overlays, navbar, and bottom navigation remain full screen */
+    .fixed.inset-0,
+    .modal-overlay,
+    div[id*="Modal"],
+    div[id*="modal"],
+    div[id*="Toast"],
+    div[id*="toast"],
+    .navbar,
+    .bottom-dock,
+    nav.navbar,
+    nav.bottom-dock {
+        width: 100vw !important;
+        max-width: none !important;
+        margin: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+    
+    /* Modal content should be reasonably sized but not constrained by our 50% rule */
+    .modal-container,
+    .fixed.inset-0 .bg-white.rounded-xl,
+    .fixed.inset-0 .bg-white.rounded-lg,
+    .fixed.inset-0 .bg-white {
+        max-width: 90vw !important;
+        width: auto !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    /* Team selector and other dropdowns */
+    .fixed.inset-0.bg-black.bg-opacity-50 {
+        width: 100vw !important;
+        max-width: none !important;
+    }
+    
+    /* Toast notifications should also not be constrained */
+    .fixed.bottom-4,
+    .fixed.top-4,
+    .fixed.top-20 {
+        max-width: none !important;
+        width: auto !important;
+    }
+    
+    /* Ensure space-y containers don't interfere and nested cards get proper width */
+    .min-h-screen .space-y-6,
+    .min-h-screen .space-y-4 {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Force court cards on my-team and analyze-me pages to match other card widths */
+    .min-h-screen .space-y-4 > .bg-white.rounded-xl.shadow-sm,
+    .min-h-screen .space-y-4 > .bg-white.rounded-xl,
+    .min-h-screen .space-y-4 > div.bg-white,
+    .min-h-screen .space-y-4 > .bg-white.rounded-xl.shadow-sm.border.border-gray-100.overflow-hidden,
+    .min-h-screen .space-y-4 > .bg-gray-50.rounded-lg,
+    .min-h-screen .space-y-4 > .bg-gray-50.rounded-lg.p-4,
+    .min-h-screen .bg-white.rounded-xl .p-6 .space-y-4 > .bg-gray-50.rounded-lg,
+    .min-h-screen .bg-white.rounded-xl .space-y-4 > .bg-gray-50.rounded-lg.p-4,
+    .min-h-screen div.bg-gray-50.rounded-lg.p-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+        display: block !important;
+    }
+    
+    /* Specifically ensure navbar and bottom navigation are never constrained */
+    .navbar,
+    nav.navbar,
+    .bottom-dock,
+    nav.bottom-dock,
+    .fixed.navbar,
+    .fixed.bottom-dock {
+        width: 100vw !important;
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+    
+    /* Make analyze-me court cards 25% wider on desktop only */
+    .analyze-me-court-card {
+        width: 125% !important;
+        max-width: 125% !important;
+        min-width: 125% !important;
+    }
+    
+    /* Fix Match Detail modal responsiveness on desktop */
+    #playerMatchesModal .max-w-4xl,
+    #matchesModal .max-w-4xl {
+        max-width: 500px !important;
+        width: 90% !important;
+    }
+    
+    /* Force modal to stay narrow on desktop */
+    #playerMatchesModal,
+    #matchesModal {
+        max-width: 500px !important;
+        width: 90% !important;
+    }
+    
+    /* Constrain modal content width */
+    #playerMatchesModalContent,
+    #matchesModalContent {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Ensure score text doesn't get cut off in match detail modal */
+    #playerMatchesModalContent .flex.items-center.justify-between {
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+        overflow: hidden !important;
+    }
+    
+    #playerMatchesModalContent .flex.items-center.justify-between > div:last-child {
+        flex-shrink: 0 !important;
+        min-width: fit-content !important;
+        margin-left: auto !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
+    }
+    
+    /* Force modal content to stay within bounds */
+    #playerMatchesModalContent {
+        overflow-x: hidden !important;
+        word-wrap: break-word !important;
+        max-width: 100% !important;
+    }
+    
+    /* Ensure opponent names don't push scores off screen */
+    #playerMatchesModalContent .text-xs.text-gray-600 {
+        max-width: 60% !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+}
+
 /* Rally teal for mobile top nav */
 .navbar {
   background-color: #045454 !important; /* Changed to Rally teal */

@@ -185,7 +185,7 @@
 
         <!-- Court Performance -->
         {% if analyze_data.court_analysis %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="width: 100% !important; display: flex; flex-direction: column;">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
@@ -193,13 +193,13 @@
                 </h2>
             </div>
             
-            <div class="p-6">
+            <div class="p-6" style="width: 100% !important;">
                 <!-- Courts Stack - Show all courts vertically full width -->
-                <div class="space-y-4">
+                <div class="space-y-4" style="width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important;">
                     {% for court_name, court_stats in analyze_data.court_analysis.items()|sort %}
-                    <div class="bg-gray-50 rounded-lg p-4">
+                    <div style="width: 100% !important; max-width: 100% !important; min-width: 100% !important; box-sizing: border-box !important; display: block !important; background-color: rgb(249 250 251) !important; padding: 1rem !important; border-radius: 0.5rem !important; margin-bottom: 1rem !important;" class="analyze-me-court-card">
                         <!-- Court Header -->
-                        <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center justify-between mb-4" style="width: 100% !important; justify-content: space-between !important;">
                             <h3 class="text-lg font-semibold text-gray-900">{{ court_name.replace('court', 'Court ').title() }}</h3>
                             <div class="flex items-center gap-3">
                                 <!-- Record -->

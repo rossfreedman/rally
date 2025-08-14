@@ -175,7 +175,7 @@
 
         {% if court_analysis %}
         <!-- Court Analysis Header -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="width: 100% !important; display: flex; flex-direction: column;">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
@@ -185,12 +185,12 @@
         </div>
         
         <!-- Court Performance Section -->
-        <div class="space-y-4">
+        <div class="space-y-4" style="width: 100% !important; display: flex !important; flex-direction: column !important; align-items: center !important;">
             {% for court_key, court in court_analysis.items()|sort %}
             {% if court %}
             {% set court_num = court_key.replace('court', '') %}
             <!-- Individual Court Card -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden analyze-me-court-card" style="width: 100% !important; max-width: 100% !important; min-width: 100% !important; box-sizing: border-box !important; display: block !important;">
                 <div class="px-6 py-4 border-b border-gray-50">
                     <div class="flex items-center justify-between">
                         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -227,11 +227,27 @@
                             {% for player in court.topPartners %}
                             <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
                                 <div class="flex-1">
-                                    <div class="font-medium text-gray-900">{{ player.name }}</div>
-                                    <div class="text-sm text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors font-medium" 
-                                         onclick="openPartnerMatchesModal('{{ player.name }}', '{{ court_key }}', {{ player.matches }})" 
-                                         title="Click to view matches with {{ player.name }}">
-                                        {{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="font-bold text-gray-900">{{ player.name }}</span>
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ player.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                             style="background-color: #045454; color: #bff863;"
+                                             onclick="openPartnerMatchesModal('{{ player.name }}', '{{ court_key }}', {{ player.matches }})" 
+                                             title="Click to view matches with {{ player.name }}">
+                                            View {{ player.matches|default(0) }} match{{ 'es' if player.matches != 1 else '' }}
+                                        </button>
+                                        {% if player.isSubstitute %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
+                                            <i class="fas fa-exchange-alt mr-1"></i>
+                                            Sub
+                                        </span>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
