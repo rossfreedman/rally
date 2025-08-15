@@ -199,9 +199,36 @@ class EnhancedBootstrapSystem:
             logger.error(f"❌ Error loading database context: {e}")
             raise
     
-    def ensure_series(self, series_name: str) -> int:
-        """Ensure series exists and return its ID"""
+    def ensure_series(self, series_name: str, league_id: int) -> int:
+        """Ensure series exists with league isolation and return its ID"""
         if not series_name.strip():
+            raise ValueError("Series name cannot be empty")
+        
+        # Check if already exists for this league
+        existing_series = execute_query_one(
+            "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+            [series_name, league_id]
+        )
+        
+        if existing_series:
+            series_id = existing_series['id']
+            logger.debug(f"✅ Series exists: '{series_name}' (league {league_id}) -> {series_id}")
+            return series_id
+        
+        # Create new series with league_id
+        try:
+            series_id = execute_query_one("""
+                INSERT INTO series (name, league_id) 
+                VALUES (%s, %s) 
+                RETURNING id
+            """, [series_name, league_id])['id']
+            
+            self.stats.series_created += 1
+            logger.info(f"✅ Created series: '{series_name}' (league {league_id}) -> {series_id}")
+            return series_id
+            
+        except Exception as e:
+            logger.error(f"❌ Error creating series '{series_name}' for league {league_id}: {e}")
             raise ValueError("Series name cannot be empty")
         
         # Check if already exists
@@ -440,7 +467,7 @@ class EnhancedBootstrapSystem:
                 # Ensure series exists and is linked to league
                 series_key = (league_id, series_name)
                 if series_key not in seen_series:
-                    series_id = self.ensure_series(series_name)
+                    series_id = self.ensure_series(series_name, league_db_id)
                     self.ensure_series_league_link(series_id, league_db_id)
                     
                     # Cache the series

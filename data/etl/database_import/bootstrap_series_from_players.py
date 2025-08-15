@@ -77,26 +77,34 @@ def get_league_db_id(league_id_str: str) -> Optional[int]:
     return row["id"] if row else None
 
 
-def ensure_series(series_name: str) -> int:
-    # Try fetch existing first
-    row = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+def ensure_series(series_name: str, league_id: int) -> int:
+    # Try fetch existing series for this league first
+    row = execute_query_one(
+        "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+        (series_name, league_id)
+    )
     if row:
         return int(row["id"])
-    # Insert taking into account possible NOT NULL display_name
+    
+    # Insert new series with league_id
     if _series_has_display_name_not_null():
         execute_update(
-            "INSERT INTO series (name, display_name) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
-            (series_name, series_name),
+            "INSERT INTO series (name, display_name, league_id) VALUES (%s, %s, %s) ON CONFLICT (name, league_id) DO NOTHING",
+            (series_name, series_name, league_id),
         )
     else:
         execute_update(
-            "INSERT INTO series (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
-            (series_name,),
+            "INSERT INTO series (name, league_id) VALUES (%s, %s) ON CONFLICT (name, league_id) DO NOTHING",
+            (series_name, league_id),
         )
+    
     # Fetch again
-    row = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+    row = execute_query_one(
+        "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+        (series_name, league_id)
+    )
     if not row:
-        raise RuntimeError(f"Failed to ensure series row for '{series_name}'")
+        raise RuntimeError(f"Failed to ensure series row for '{series_name}' in league {league_id}")
     return int(row["id"])
 
 
@@ -147,7 +155,7 @@ def bootstrap(only_league: Optional[str] = None) -> Dict[str, int]:
             skipped += 1
             continue
 
-        series_id = ensure_series(series_name)
+        series_id = ensure_series(series_name, league_db_id)
         # Count only if newly created (best-effort: check link absence)
         # We can't easily detect insert vs conflict here; treat all as linked
         ensure_series_league(series_id, league_db_id)

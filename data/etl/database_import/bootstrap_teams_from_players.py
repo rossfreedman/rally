@@ -45,11 +45,16 @@ def get_league_db_id(league_id_str: str) -> Optional[int]:
     return row["id"] if row else None
 
 
-def ensure_series(series_name: str) -> int:
-    row = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+def ensure_series(series_name: str, league_id: int) -> int:
+    # Try fetch existing series for this league first
+    row = execute_query_one(
+        "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+        (series_name, league_id)
+    )
     if row:
         return int(row["id"])
-    # Handle possible NOT NULL display_name
+    
+    # Insert new series with league_id
     # Check if display_name exists and is NOT NULL
     col = execute_query_one(
         "SELECT is_nullable FROM information_schema.columns WHERE table_name='series' AND column_name='display_name' LIMIT 1",
@@ -57,17 +62,22 @@ def ensure_series(series_name: str) -> int:
     )
     if col and str(col.get("is_nullable", "YES")).upper() == "NO":
         execute_update(
-            "INSERT INTO series (name, display_name) VALUES (%s, %s) ON CONFLICT (name) DO NOTHING",
-            (series_name, series_name),
+            "INSERT INTO series (name, display_name, league_id) VALUES (%s, %s, %s) ON CONFLICT (name, league_id) DO NOTHING",
+            (series_name, series_name, league_id),
         )
     else:
         execute_update(
-            "INSERT INTO series (name) VALUES (%s) ON CONFLICT (name) DO NOTHING",
-            (series_name,),
+            "INSERT INTO series (name, league_id) VALUES (%s, %s) ON CONFLICT (name, league_id) DO NOTHING",
+            (series_name, league_id),
         )
-    row = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+    
+    # Fetch again
+    row = execute_query_one(
+        "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+        (series_name, league_id)
+    )
     if not row:
-        raise RuntimeError(f"Failed to ensure series '{series_name}'")
+        raise RuntimeError(f"Failed to ensure series row for '{series_name}' in league {league_id}")
     return int(row["id"])
 
 
@@ -171,7 +181,7 @@ def bootstrap(league: str) -> Dict[str, int]:
             continue
         seen.add(key)
 
-        series_id = ensure_series(series_name)
+        series_id = ensure_series(series_name, league_db_id)
         ensure_series_league(series_id, league_db_id)
         club_id = get_club_id_by_name(club_name)
         if not club_id:

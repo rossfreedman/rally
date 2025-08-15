@@ -260,14 +260,18 @@ class ComprehensiveBootstrap:
         logger.error(f"❌ League not found in database: {league_id}")
         return None
         
-    def ensure_series(self, series_name: str) -> Optional[int]:
-        """Ensure series exists in database"""
-        # Check if exists
-        result = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+    def ensure_series(self, series_name: str, league_id: int) -> Optional[int]:
+        """Ensure series exists with proper league isolation"""
+        # Check if series already exists for this league
+        result = execute_query_one(
+            "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+            (series_name, league_id)
+        )
+
         if result:
             return result['id']
             
-        # Create new series
+        # Create new series with league_id
         try:
             # Check if display_name is required
             schema_check = execute_query_one(
@@ -278,24 +282,27 @@ class ComprehensiveBootstrap:
             if schema_check and str(schema_check.get("is_nullable", "YES")).upper() == "NO":
                 # display_name is required
                 execute_update(
-                    "INSERT INTO series (name, display_name) VALUES (%s, %s)",
-                    (series_name, series_name)
+                    "INSERT INTO series (name, display_name, league_id) VALUES (%s, %s, %s)",
+                    (series_name, series_name, league_id)
                 )
             else:
                 # display_name not required
                 execute_update(
-                    "INSERT INTO series (name) VALUES (%s)",
-                    (series_name,)
+                    "INSERT INTO series (name, league_id) VALUES (%s, %s)",
+                    (series_name, league_id)
                 )
                 
-            result = execute_query_one("SELECT id FROM series WHERE name = %s", (series_name,))
+            result = execute_query_one(
+                "SELECT id FROM series WHERE name = %s AND league_id = %s", 
+                (series_name, league_id)
+            )
             if result:
                 self.stats['series_created'] += 1
-                logger.info(f"✅ Created series: {series_name}")
+                logger.info(f"✅ Created series: {series_name} (league {league_id})")
                 return result['id']
                 
         except Exception as e:
-            logger.error(f"❌ Error creating series '{series_name}': {e}")
+            logger.error(f"❌ Error creating series '{series_name}' for league {league_id}: {e}")
             self.stats['errors'] += 1
             
         return None
@@ -411,7 +418,7 @@ class ComprehensiveBootstrap:
             logger.info(f"📋 Processing series: {series_name} ({len(team_names)} teams)")
             
             # Ensure series exists
-            series_id = self.ensure_series(series_name)
+            series_id = self.ensure_series(series_name, league_db_id)
             if not series_id:
                 logger.error(f"❌ Could not create series: {series_name}")
                 continue

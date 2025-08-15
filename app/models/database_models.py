@@ -429,30 +429,26 @@ class UserContext(Base):
     """
     Dynamic user context for multi-league/multi-team users
     Tracks the current active league/team context for session
-    Replaces the problematic 'is_primary' concept with dynamic context switching
+    Matches the actual database schema exactly
     """
     
     __tablename__ = "user_contexts"
     
-    id = Column(Integer, primary_key=True)  # Production has SERIAL PRIMARY KEY
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    league_id = Column(Integer, ForeignKey("leagues.id"))  # Changed from active_league_id to match production schema
-    team_id = Column(Integer, ForeignKey("teams.id"))      # Changed from active_team_id to match production schema
-    # Match production schema columns
+    # Note: No id column in actual database - uses composite primary key
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True, nullable=False)
+    league_id = Column(Integer, ForeignKey("leagues.id"))
+    team_id = Column(Integer, ForeignKey("teams.id"))
     series_id = Column(Integer, ForeignKey("series.id"))
-    club = Column(String(255))
-    context_type = Column(String(50), default='current')
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), default=func.now())
-    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    last_updated = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User", backref="context")
-    active_league = relationship("League", foreign_keys=[league_id])  # Updated foreign key reference
-    active_team = relationship("Team", foreign_keys=[team_id])        # Updated foreign key reference
+    active_league = relationship("League", foreign_keys=[league_id])
+    active_team = relationship("Team", foreign_keys=[team_id])
+    active_series = relationship("Series", foreign_keys=[series_id])
     
     def __repr__(self):
-        return f"<UserContext(user_id={self.user_id}, league_id={self.league_id}, team_id={self.team_id})>"
+        return f"<UserContext(user_id={self.user_id}, league_id={self.league_id}, team_id={self.team_id}, series_id={self.series_id})>"
 
 
 class UserPlayerAssociation(Base):
