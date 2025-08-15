@@ -272,14 +272,22 @@ function convertChicagoToSeries(seriesName) {
 // Load series filtered by league
 function loadSeriesByLeague(leagueId, selectedSeries = null) {
   console.log('🔍 loadSeriesByLeague called with:', { leagueId, selectedSeries });
+  console.log('🔍 Type of leagueId:', typeof leagueId, 'Value:', leagueId);
   
   // Always start with a clean dropdown
   const seriesSel = document.getElementById('series');
   seriesSel.innerHTML = '<option value="">Select a series...</option>';
   
+  // CRITICAL FIX: If no league_id provided, show error and don't make API call
+  if (!leagueId) {
+    console.error('❌ No league_id provided to loadSeriesByLeague');
+    seriesSel.innerHTML = '<option value="">No league selected - please select a league first</option>';
+    return Promise.resolve();
+  }
+  
   // Transform selectedSeries to match API format for APTA leagues
   let transformedSelectedSeries = selectedSeries;
-  if (selectedSeries && leagueId && leagueId.startsWith('APTA')) {
+  if (selectedSeries && leagueId && leagueId.toString().startsWith('APTA')) {
     transformedSelectedSeries = convertChicagoToSeries(selectedSeries);
     console.log('🔄 Converted selected series for APTA:', selectedSeries, '->', transformedSelectedSeries);
   }
@@ -297,7 +305,7 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
   }
   
   // Use the new API endpoint that returns user-facing series names from database mappings
-  const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
+  const url = `/api/get-user-facing-series-by-league?league_id=${leagueId}`;
   console.log('🔍 Fetching series from URL:', url);
   
   return fetch(url)
@@ -499,12 +507,31 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   console.log('🔍 User settings API response:', user);
+  
+  // ENHANCED ERROR CHECKING
+  if (user.error) {
+    console.error('❌ User settings API error:', user.error);
+    const errorDiv = document.getElementById('settings-error');
+    if (errorDiv) {
+      errorDiv.classList.remove('hidden');
+      errorDiv.querySelector('p').textContent = `Error loading settings: ${user.error}`;
+    }
+    return;
+  }
+  
   console.log('  - First Name:', user.first_name);
   console.log('  - Last Name:', user.last_name);
-  console.log('  - League ID:', user.league_id);
+  console.log('  - League ID:', user.league_id, '(type:', typeof user.league_id, ')');
   console.log('  - Club:', user.club);
   console.log('  - Series:', user.series);
   console.log('  - League Context:', user.league_context);
+  
+  // VALIDATION: Check if user has required league_id
+  if (!user.league_id) {
+    console.warn('⚠️ User has no league_id set');
+    const seriesSel = document.getElementById('series');
+    seriesSel.innerHTML = '<option value="">No league context - please contact support</option>';
+  }
   
   // Fill form first
   fillUserSettingsForm(user);

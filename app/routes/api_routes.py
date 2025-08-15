@@ -2631,19 +2631,49 @@ def get_user_settings():
                 
                 selected_player = None
                 
-                # BUGFIX: Prefer session league_id over stored league_context for current user
+                # ENHANCED: Prefer session team_id first, then league_id, then stored league_context
                 preferred_league_id = user_record.league_context
                 session_league_id = session.get("user", {}).get("league_id")
+                session_team_id = session.get("user", {}).get("team_id")
+                
+                print(f"[DEBUG] get-user-settings: Session data - team_id={session_team_id}, league_id={session_league_id}, stored_league_context={user_record.league_context}")
+                print(f"[DEBUG] get-user-settings: Full session user keys: {list(session.get('user', {}).keys())}")
+                
                 if session_league_id and session_league_id != user_record.league_context:
                     print(f"[DEBUG] get-user-settings: Using session league_id ({session_league_id}) instead of stored league_context ({user_record.league_context})")
                     preferred_league_id = session_league_id
                 
-                # First priority: find player matching preferred league
-                if preferred_league_id and associations:
+                # PRIORITY 1: Find player matching current session team_id (most accurate)
+                # CRITICAL FIX: Use direct database query instead of unreliable get_player() method
+                print(f"[DEBUG] get-user-settings: Searching for session team_id {session_team_id} among {len(associations) if associations else 0} associations")
+                if session_team_id and associations:
+                    # Get all tenniscores_player_ids for this user
+                    player_ids = [assoc.tenniscores_player_id for assoc in associations]
+                    
+                    # Direct query to find player with specific team_id
+                    team_specific_player = (
+                        db_session.query(Player)
+                        .filter(
+                            Player.tenniscores_player_id.in_(player_ids),
+                            Player.team_id == session_team_id,
+                            Player.is_active == True
+                        )
+                        .first()
+                    )
+                    
+                    if team_specific_player:
+                        selected_player = team_specific_player
+                        print(f"[DEBUG] get-user-settings: ✅ DIRECT MATCH! Found player by session team_id {session_team_id}: {team_specific_player.club.name if team_specific_player.club else ''} - {team_specific_player.series.name if team_specific_player.series else ''}")
+                    else:
+                        print(f"[DEBUG] get-user-settings: ❌ No player found matching session team_id {session_team_id} using direct query")
+                
+                # PRIORITY 2: Find player matching preferred league (if no team match)
+                if not selected_player and preferred_league_id and associations:
                     for assoc in associations:
                         player = assoc.get_player(db_session)
                         if player and player.league and player.league.id == preferred_league_id:
                             selected_player = player
+                            print(f"[DEBUG] get-user-settings: Found player by league_id {preferred_league_id}: {player.club.name if player.club else ''} - {player.series.name if player.series else ''}")
                             break
                 
                 # Second priority: use first available player
@@ -2763,13 +2793,186 @@ def update_settings():
         # Check if settings have changed
         new_league_id = data.get("league_id")
         new_club = data.get("club")
-        new_series = data.get("series")
+        new_series_raw = data.get("series")
+        
+        # Handle series - it can be a string or JSON object
+        new_series = new_series_raw
+        new_series_id = None
+        
+        if new_series_raw:
+            try:
+                # Try to parse as JSON object (from new ID-based series selector)
+                import json
+                series_obj = json.loads(new_series_raw)
+                if isinstance(series_obj, dict) and "name" in series_obj:
+                    new_series = series_obj["name"]  # Use database name for lookup
+                    new_series_id = series_obj.get("id")
+                    logger.info(f"Parsed series object: name='{new_series}', id={new_series_id}")
+            except (json.JSONDecodeError, TypeError):
+                # Fallback: treat as plain string
+                new_series = new_series_raw
+                logger.info(f"Using series as string: '{new_series}'")
         
         settings_changed = (
             new_league_id != current_league_id or
             new_club != current_club or
             new_series != current_series
         )
+        
+        # Check for league switch first (highest priority)
+        # Handle comparison between numeric IDs and string IDs
+        def normalize_league_for_comparison(league_id):
+            """Convert league_id to a standard format for comparison"""
+            if not league_id:
+                return None
+            
+            # String to numeric mapping
+            string_to_numeric = {
+                "APTA_CHICAGO": 4930,
+                "NSTF": 4933,
+                "CNSWPL": 4491,
+                "CITA": 4496
+            }
+            
+            # If it's a string league ID, convert to numeric
+            if isinstance(league_id, str) and league_id in string_to_numeric:
+                return string_to_numeric[league_id]
+            
+            # If it's already numeric, convert to int
+            try:
+                return int(league_id)
+            except (ValueError, TypeError):
+                return league_id
+        
+        normalized_current = normalize_league_for_comparison(current_league_id)
+        normalized_new = normalize_league_for_comparison(new_league_id)
+        
+        league_switched = (normalized_new and normalized_current != normalized_new)
+        
+        print(f"[DEBUG] League comparison: current={current_league_id} ({normalized_current}) vs new={new_league_id} ({normalized_new}) => switched={league_switched}")
+        
+        if league_switched:
+            logger.info(f"League switch detected in settings: {current_league_id} -> {new_league_id}")
+            
+            # Handle both numeric IDs and string league IDs
+            if str(new_league_id).isdigit():
+                # Convert numeric league_id to string format for switch_user_league
+                league_string_mapping = {
+                    "4930": "APTA_CHICAGO",
+                    "4933": "NSTF", 
+                    "4491": "CNSWPL",
+                    "4496": "CITA"
+                }
+                new_league_string = league_string_mapping.get(str(new_league_id))
+            else:
+                # Already a string league ID like "APTA_CHICAGO"
+                new_league_string = new_league_id
+                
+            if new_league_string:
+                logger.info(f"Switching to league: {new_league_string}")
+                
+                # Use the same league switching logic as the league selector
+                if switch_user_league(user_email, new_league_string):
+                    # After league switch, get fresh session data
+                    fresh_session_data = get_session_data_for_user(user_email)
+                    if fresh_session_data:
+                        session["user"] = fresh_session_data
+                        session.modified = True
+                        logger.info(f"League switched successfully via settings: {fresh_session_data.get('league_name')}")
+                        
+                        return jsonify({
+                            "success": True,
+                            "message": f"Settings updated and switched to {fresh_session_data.get('league_name')}",
+                            "user": fresh_session_data,
+                            "league_switched": True
+                        })
+                    else:
+                        return jsonify({"success": False, "message": "League switch failed - could not update session"}), 500
+                else:
+                    return jsonify({"success": False, "message": f"League switch failed - you may not have a player record in {new_league_string}"}), 400
+            else:
+                return jsonify({"success": False, "message": f"Invalid league_id: {new_league_id}"}), 400
+
+        # Check for team switch within same league (if no league switch occurred)
+        team_switched = (
+            not league_switched and 
+            settings_changed and 
+            normalized_new == normalized_current and  # Same league check using normalized values
+            (new_club != current_club or new_series != current_series)
+        )
+        
+        if team_switched:
+            logger.info(f"Team switch detected in settings: {current_club}-{current_series} -> {new_club}-{new_series}")
+            
+            # Find the team_id that matches the new club/series combination
+            from app.services.session_service import switch_user_team_in_league
+            from database import execute_query_one
+            
+            # Look up team_id for the new club/series combination
+            # Use series_id if available (more reliable), otherwise fall back to series name
+            if new_series_id:
+                # ID-based lookup (preferred)
+                team_lookup_query = """
+                    SELECT t.id as team_id
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN teams t ON p.team_id = t.id
+                    JOIN clubs c ON t.club_id = c.id
+                    WHERE upa.user_id = (SELECT id FROM users WHERE email = %s)
+                        AND t.league_id = %s
+                        AND c.name = %s
+                        AND t.series_id = %s
+                        AND p.is_active = TRUE
+                        AND t.is_active = TRUE
+                    LIMIT 1
+                """
+                team_result = execute_query_one(team_lookup_query, [user_email, normalized_current, new_club, new_series_id])
+                logger.info(f"Using ID-based team lookup: series_id={new_series_id}")
+            else:
+                # Name-based lookup (fallback)
+                team_lookup_query = """
+                    SELECT t.id as team_id
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN teams t ON p.team_id = t.id
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE upa.user_id = (SELECT id FROM users WHERE email = %s)
+                        AND t.league_id = %s
+                        AND c.name = %s
+                        AND s.name = %s
+                        AND p.is_active = TRUE
+                        AND t.is_active = TRUE
+                    LIMIT 1
+                """
+                team_result = execute_query_one(team_lookup_query, [user_email, normalized_current, new_club, new_series])
+                logger.info(f"Using name-based team lookup: series_name='{new_series}'")
+            
+            if team_result:
+                new_team_id = team_result["team_id"]
+                logger.info(f"Found team_id {new_team_id} for {new_club}-{new_series}")
+                
+                # Use team switching logic similar to team selector
+                if switch_user_team_in_league(user_email, new_team_id):
+                    # Get fresh session data after team switch
+                    fresh_session_data = get_session_data_for_user(user_email)
+                    if fresh_session_data:
+                        session["user"] = fresh_session_data
+                        session.modified = True
+                        logger.info(f"Team switched successfully via settings: {fresh_session_data.get('club')} - {fresh_session_data.get('series')}")
+                        
+                        return jsonify({
+                            "success": True,
+                            "message": f"Settings updated and switched to {fresh_session_data.get('club')} - {fresh_session_data.get('series')}",
+                            "user": fresh_session_data,
+                            "team_switched": True
+                        })
+                    else:
+                        return jsonify({"success": False, "message": "Team switch failed - could not update session"}), 500
+                else:
+                    return jsonify({"success": False, "message": f"Team switch failed - could not switch to {new_club} - {new_series}"}), 400
+            else:
+                return jsonify({"success": False, "message": f"Team not found: {new_club} - {new_series} in your current league"}), 400
 
         # Determine if we should perform player lookup
         should_perform_player_lookup = (
@@ -3454,34 +3657,57 @@ def get_user_facing_series_by_league():
             print(f"[WARNING] No league_id found in parameter or session, returning empty series list")
             return jsonify({"series": []})
             
-        # Convert integer league_id to string format if needed
-        if isinstance(league_id, int):
+        # ✅ ENHANCED: Handle both string league IDs and database IDs
+        print(f"[DEBUG] Raw league_id parameter: {league_id} (type: {type(league_id)})")
+        
+        # Convert to database ID - handle both string league IDs and database IDs
+        league_db_id = None
+        try:
+            # First try direct integer conversion (for database IDs like "4930")
+            league_db_id = int(league_id) if league_id else None
+            print(f"[DEBUG] Using direct database ID: {league_db_id}")
+        except (ValueError, TypeError):
+            # If that fails, treat as string league ID and look up database ID
+            print(f"[DEBUG] Converting string league_id '{league_id}' to database ID")
             try:
-                league_record = execute_query_one("SELECT league_id FROM leagues WHERE id = %s", [league_id])
-                if league_record:
-                    league_id = league_record["league_id"]
-                    print(f"[DEBUG] Converted integer league_id {league_id} to string format")
+                from database import execute_query_one
+                league_lookup = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", 
+                    [league_id]
+                )
+                if league_lookup:
+                    league_db_id = league_lookup["id"] 
+                    print(f"[DEBUG] Found database ID {league_db_id} for league_id '{league_id}'")
+                else:
+                    print(f"[ERROR] No league found for league_id: {league_id}")
+                    return jsonify({"series": []})
             except Exception as e:
-                print(f"[WARNING] Could not convert integer league_id: {e}")
+                print(f"[ERROR] Database lookup failed for league_id '{league_id}': {e}")
+                return jsonify({"series": []})
             
-        # ✅ ID-BASED: Get series with IDs, names, and display names
-        # FILTER: Only include series that have teams or players (excluding empty artifacts)
+        # ✅ ID-BASED: Get series directly from players/teams (bypass series_leagues junction table)
+        # This is more reliable as it gets series that actually have data
         id_based_query = """
             SELECT DISTINCT 
                 s.id as series_id,
                 s.name as database_series_name,
                 COALESCE(s.display_name, s.name) as display_name
             FROM series s
-            JOIN series_leagues sl ON s.id = sl.series_id
-            JOIN leagues l ON sl.league_id = l.id
-            WHERE l.league_id = %s
-              AND (
-                  (SELECT COUNT(*) FROM teams WHERE series_id = s.id) > 0 
-                  OR (SELECT COUNT(*) FROM players WHERE series_id = s.id) > 0
-              )
+            WHERE s.id IN (
+                -- Get series that have active players in this league
+                SELECT DISTINCT p.series_id 
+                FROM players p 
+                WHERE p.league_id = %s AND p.is_active = true AND p.series_id IS NOT NULL
+                UNION
+                -- Get series that have active teams in this league  
+                SELECT DISTINCT t.series_id
+                FROM teams t
+                WHERE t.league_id = %s AND t.is_active = true AND t.series_id IS NOT NULL
+            )
             ORDER BY s.name
         """
-        series_data = execute_query(id_based_query, (league_id,))
+        series_data = execute_query(id_based_query, (league_db_id, league_db_id))
+        print(f"[API] Found {len(series_data) if series_data else 0} series for league_id {league_db_id}")
         
         # ✅ ID-BASED: Process all series and return objects with IDs, names, and display
         series_objects = []
@@ -3492,7 +3718,8 @@ def get_user_facing_series_by_league():
             display_name = series_item["display_name"]
             
             # Skip problematic Chicago series that don't follow standard pattern
-            if league_id and league_id.startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
+            # NOTE: league_id is now a database ID (e.g., "4930"), not a string like "APTA_CHICAGO"
+            if league_id and str(league_id).startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
                 print(f"[API] Skipping problematic series: {database_name}")
                 continue
             

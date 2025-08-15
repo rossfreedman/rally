@@ -26,23 +26,23 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     This is the centralized session builder used by login, registration, and league switching.
     """
     try:
-        # ✅ ENHANCED: Get user data with UserContext team_id prioritization
+        # ✅ ENHANCED: Get user data with UserContext active_team_id prioritization
         query = """
-            SELECT DISTINCT ON (u.id)
-                u.id, u.email, u.first_name, u.last_name, u.is_admin,
-                u.ad_deuce_preference, u.dominant_hand, u.league_context,
-                
-                -- Player data (prioritize UserContext team_id first)
-                c.name as club, c.logo_filename as club_logo,
-                s.name as series, p.tenniscores_player_id,
-                c.id as club_id, s.id as series_id, t.id as team_id,
-                t.team_name, t.display_name,
-                
-                -- League data
-                l.id as league_db_id, l.league_id as league_string_id, l.league_name,
-                
-                -- UserContext data
-                uc.team_id as context_team_id
+                    SELECT DISTINCT ON (u.id)
+                        u.id, u.email, u.first_name, u.last_name, u.is_admin,
+                        u.ad_deuce_preference, u.dominant_hand, u.league_context,
+                        
+                        -- Player data (prioritize UserContext active_team_id first)
+                        c.name as club, c.logo_filename as club_logo,
+                        s.name as series, p.tenniscores_player_id,
+                        c.id as club_id, s.id as series_id, t.id as team_id,
+                        t.team_name, t.display_name,
+                        
+                        -- League data
+                        l.id as league_db_id, l.league_id as league_string_id, l.league_name,
+                        
+                        -- UserContext data
+                        uc.team_id as context_team_id
             FROM users u
             LEFT JOIN user_contexts uc ON u.id = uc.user_id
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
@@ -370,6 +370,24 @@ def switch_user_team_in_league(user_email: str, team_id: int) -> bool:
         if team_info["league_id"] != current_league_id:
             logger.error(f"Team {team_id} is not in user's current league context {current_league_id}")
             return False
+        
+        # CRITICAL FIX: Update UserContext to persist team switch across logout/login
+        existing_context = execute_query_one(
+            "SELECT user_id FROM user_contexts WHERE user_id = %s", [user_id]
+        )
+        
+        if existing_context:
+            execute_query(
+                "UPDATE user_contexts SET team_id = %s, league_id = %s WHERE user_id = %s",
+                [team_id, current_league_id, user_id]
+            )
+            logger.info(f"Updated UserContext for {user_email}: team_id={team_id}, league_id={current_league_id}")
+        else:
+            execute_query(
+                "INSERT INTO user_contexts (user_id, team_id, league_id) VALUES (%s, %s, %s)",
+                [user_id, team_id, current_league_id]
+            )
+            logger.info(f"Created UserContext for {user_email}: team_id={team_id}, league_id={current_league_id}")
         
         logger.info(f"Switched {user_email} to team {team_info['team_name']} (ID: {team_id}) in same league")
         return True
