@@ -1474,36 +1474,75 @@ def get_player_season_history_by_id(player_id):
             return jsonify({"error": "Player not found"}), 404
         
         # FALLBACK FIX: If the team-specific player has no history, fall back to ANY player with history
+        # BUT prioritize player records that match the current team context series if possible
         if player_data["history_count"] == 0:
-            print(f"[DEBUG] Season History by ID - Team-specific player has no history, trying fallback")
-            fallback_query = """
-                SELECT 
-                    p.id,
-                    p.tenniscores_player_id,
-                    p.pti as current_pti,
-                    p.series_id,
-                    p.team_id,
-                    s.name as series_name,
-                    t.team_name,
-                    p.first_name,
-                    p.last_name,
-                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-                FROM players p
-                LEFT JOIN series s ON p.series_id = s.id
-                LEFT JOIN teams t ON p.team_id = t.id
-                WHERE p.tenniscores_player_id = %s
-                  AND (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) > 0
-                ORDER BY history_count DESC, p.id DESC
-                LIMIT 1
-            """
-            fallback_data = execute_query_one(fallback_query, [player_id])
+            print(f"[DEBUG] Season History by ID - Team-specific player has no history, trying intelligent fallback")
             
-            if fallback_data:
-                print(f"[DEBUG] Season History by ID - Fallback found player with {fallback_data['history_count']} history records")
-                player_data = fallback_data
-            else:
-                print(f"[DEBUG] Season History by ID - No fallback player with history found")
-                return jsonify({"error": "No season history found"}), 404
+            # Get current team's series name for preference
+            current_team_series = player_data.get("series_name", "")
+            
+            # First try: Find a player record with history that matches current team's series
+            if current_team_series:
+                print(f"[DEBUG] Season History by ID - Trying fallback matching current series: {current_team_series}")
+                series_specific_fallback = """
+                    SELECT 
+                        p.id,
+                        p.tenniscores_player_id,
+                        p.pti as current_pti,
+                        p.series_id,
+                        p.team_id,
+                        s.name as series_name,
+                        t.team_name,
+                        p.first_name,
+                        p.last_name,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.tenniscores_player_id = %s
+                      AND s.name = %s
+                      AND (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) > 0
+                    ORDER BY history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                series_fallback_data = execute_query_one(series_specific_fallback, [player_id, current_team_series])
+                
+                if series_fallback_data:
+                    print(f"[DEBUG] Season History by ID - Series-specific fallback found player with {series_fallback_data['history_count']} history records")
+                    player_data = series_fallback_data
+                else:
+                    print(f"[DEBUG] Season History by ID - No series-specific fallback found, trying any player with history")
+            
+            # Second try: Any player with history (original fallback)
+            if player_data["history_count"] == 0:
+                fallback_query = """
+                    SELECT 
+                        p.id,
+                        p.tenniscores_player_id,
+                        p.pti as current_pti,
+                        p.series_id,
+                        p.team_id,
+                        s.name as series_name,
+                        t.team_name,
+                        p.first_name,
+                        p.last_name,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.tenniscores_player_id = %s
+                      AND (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) > 0
+                    ORDER BY history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                fallback_data = execute_query_one(fallback_query, [player_id])
+                
+                if fallback_data:
+                    print(f"[DEBUG] Season History by ID - General fallback found player with {fallback_data['history_count']} history records")
+                    player_data = fallback_data
+                else:
+                    print(f"[DEBUG] Season History by ID - No fallback player with history found")
+                    return jsonify({"error": "No season history found"}), 404
 
         player_db_id = player_data["id"]
 
