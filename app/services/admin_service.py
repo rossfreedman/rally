@@ -282,6 +282,8 @@ def delete_user_by_email(email, admin_email):
             DELETE FROM captain_messages WHERE captain_user_id = %(user_id)s;
             DELETE FROM player_availability WHERE user_id = %(user_id)s;
             DELETE FROM user_player_associations WHERE user_id = %(user_id)s;
+            -- Remove user contexts created during registration
+            DELETE FROM user_contexts WHERE user_id = %(user_id)s;
             DELETE FROM users WHERE email = %(email)s;
         """,
             {"email": email, "user_id": user_id},
