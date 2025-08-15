@@ -1578,14 +1578,25 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
                 # ✅ CRITICAL FIX: Set team_id in UserContext to remember registration choice
                 from app.models.database_models import UserContext
                 
-                user_context = UserContext(
-                    user_id=new_user.id,
-                    league_id=preferred_team.league_id,
-                    team_id=preferred_team.team_id,
-                    series_id=preferred_team.series_id  # Include series_id to avoid NULL constraint issues
-                )
-                db_session.add(user_context)
-                logger.info(f"ID-BASED Registration: Set UserContext team_id={preferred_team.team_id} for {email}")
+                # Check if user_context already exists and update it, or create new one
+                existing_context = db_session.query(UserContext).filter(UserContext.user_id == new_user.id).first()
+                
+                if existing_context:
+                    # Update existing context
+                    existing_context.league_id = preferred_team.league_id
+                    existing_context.team_id = preferred_team.team_id
+                    existing_context.series_id = preferred_team.series_id
+                    logger.info(f"ID-BASED Registration: Updated existing UserContext team_id={preferred_team.team_id} for {email}")
+                else:
+                    # Create new context
+                    user_context = UserContext(
+                        user_id=new_user.id,
+                        league_id=preferred_team.league_id,
+                        team_id=preferred_team.team_id,
+                        series_id=preferred_team.series_id  # Include series_id to avoid NULL constraint issues
+                    )
+                    db_session.add(user_context)
+                    logger.info(f"ID-BASED Registration: Created new UserContext team_id={preferred_team.team_id} for {email}")
                 
             else:
                 new_user.league_context = player_record.league_id
