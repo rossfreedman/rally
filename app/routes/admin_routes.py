@@ -1625,6 +1625,47 @@ def delete_user():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/remove-cita-files", methods=["POST"])
+@login_required
+@admin_required
+def remove_cita_files():
+    """Remove CITA league files from data/leagues directory"""
+    try:
+        data = request.json
+        dry_run = data.get("dry_run", True)  # Default to dry run for safety
+        
+        # Import the CITA file remover
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+        from scripts.remove_cita_files_production import CITAFileRemover
+        
+        # Create remover instance and run
+        remover = CITAFileRemover()
+        success = remover.run_removal(dry_run=dry_run)
+        
+        # Collect results
+        result = {
+            "success": success,
+            "dry_run": dry_run,
+            "removed_files": getattr(remover, 'removed_files', []),
+            "removed_dirs": getattr(remover, 'removed_dirs', []),
+            "message": "CITA file removal completed successfully" if success else "CITA file removal failed"
+        }
+        
+        # Log admin action
+        action_type = "CITA File Removal (Dry Run)" if dry_run else "CITA File Removal (Live)"
+        log_admin_action(
+            admin_email=session["user"]["email"],
+            action_type=action_type,
+            details=f"Success: {success}, Files: {len(result['removed_files'])}, Dirs: {len(result['removed_dirs'])}"
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error removing CITA files: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/user-activity/<email>")
 @login_required
 def get_user_activity(email):

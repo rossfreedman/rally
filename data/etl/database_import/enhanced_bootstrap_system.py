@@ -229,33 +229,6 @@ class EnhancedBootstrapSystem:
             
         except Exception as e:
             logger.error(f"❌ Error creating series '{series_name}' for league {league_id}: {e}")
-            raise ValueError("Series name cannot be empty")
-        
-        # Check if already exists
-        existing_series = execute_query_one(
-            "SELECT id FROM series WHERE name = %s", 
-            [series_name]
-        )
-        
-        if existing_series:
-            series_id = existing_series['id']
-            logger.debug(f"✅ Series exists: '{series_name}' -> {series_id}")
-            return series_id
-        
-        # Create new series
-        try:
-            series_id = execute_query_one("""
-                INSERT INTO series (name) 
-                VALUES (%s) 
-                RETURNING id
-            """, [series_name])['id']
-            
-            self.stats.series_created += 1
-            logger.info(f"✅ Created series: '{series_name}' -> {series_id}")
-            return series_id
-            
-        except Exception as e:
-            logger.error(f"❌ Error creating series '{series_name}': {e}")
             raise
     
     def ensure_series_league_link(self, series_id: int, league_db_id: int):
