@@ -2631,11 +2631,18 @@ def get_user_settings():
                 
                 selected_player = None
                 
-                # First priority: find player matching league_context
-                if user_record.league_context and associations:
+                # BUGFIX: Prefer session league_id over stored league_context for current user
+                preferred_league_id = user_record.league_context
+                session_league_id = session.get("user", {}).get("league_id")
+                if session_league_id and session_league_id != user_record.league_context:
+                    print(f"[DEBUG] get-user-settings: Using session league_id ({session_league_id}) instead of stored league_context ({user_record.league_context})")
+                    preferred_league_id = session_league_id
+                
+                # First priority: find player matching preferred league
+                if preferred_league_id and associations:
                     for assoc in associations:
                         player = assoc.get_player(db_session)
-                        if player and player.league and player.league.id == user_record.league_context:
+                        if player and player.league and player.league.id == preferred_league_id:
                             selected_player = player
                             break
                 
@@ -4854,9 +4861,15 @@ def get_user_leagues():
         # Get all leagues user has associations in (regardless of team assignments)
         current_league_context = session["user"].get("league_context")
         
-        # If no league context, try to get it from league_id
-        if not current_league_context:
-            current_league_context = session["user"].get("league_id")
+        # BUGFIX: Prefer session league_id over stored league_context for current user's intended league
+        # league_context may be stale from previous switches, league_id is the user's active league
+        session_league_id = session["user"].get("league_id")
+        if session_league_id and session_league_id != current_league_context:
+            logger.info(f"Using league_id ({session_league_id}) instead of league_context ({current_league_context}) for current league determination")
+            current_league_context = session_league_id
+        elif not current_league_context:
+            current_league_context = session_league_id
+            logger.info(f"league_context was None, using league_id fallback: {current_league_context}")
         
         # If still no league context, use NULL for the comparison
         if not current_league_context:
@@ -4971,10 +4984,15 @@ def get_user_teams_in_current_league():
         logger.info(f"get_user_teams_in_current_league called for user {user_id}, league_context: {current_league_context}")
         logger.info(f"Full session user data: {session.get('user', {})}")
         
-        # Fallback to league_id if league_context is not set
-        if not current_league_context:
-            current_league_context = session["user"].get("league_id")
-            logger.info(f"league_context was None, trying league_id fallback: {current_league_context}")
+        # BUGFIX: Prefer league_id over league_context for current user's intended league
+        # league_context may be stale from previous switches, league_id is the user's primary league
+        session_league_id = session["user"].get("league_id")
+        if session_league_id and session_league_id != current_league_context:
+            logger.info(f"Using league_id ({session_league_id}) instead of league_context ({current_league_context}) for current league filtering")
+            current_league_context = session_league_id
+        elif not current_league_context:
+            current_league_context = session_league_id
+            logger.info(f"league_context was None, using league_id fallback: {current_league_context}")
         
         # Convert string league_id to numeric league_id if needed
         if isinstance(current_league_context, str):

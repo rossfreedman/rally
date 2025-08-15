@@ -106,26 +106,26 @@ class User(Base):
         """Get the currently active player based on user context"""
         # Check if user has an active context
         if hasattr(self, 'context') and self.context:
-            if self.context.active_team_id:
+            if self.context.team_id:
                 # Find player in the active team
                 return (
                     session.query(Player)
                     .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
                     .filter(
                         UserPlayerAssociation.user_id == self.id,
-                        Player.team_id == self.context.active_team_id,
+                        Player.team_id == self.context.team_id,
                         Player.is_active == True
                     )
                     .first()
                 )
-            elif self.context.active_league_id:
+            elif self.context.league_id:
                 # Find any player in the active league
                 return (
                     session.query(Player)
                     .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
                     .filter(
                         UserPlayerAssociation.user_id == self.id,
-                        Player.league_id == self.context.active_league_id,
+                        Player.league_id == self.context.league_id,
                         Player.is_active == True
                     )
                     .first()
@@ -178,13 +178,13 @@ class User(Base):
         
         # Update context
         if league_id:
-            context.active_league_id = league_id
+            context.league_id = league_id
         if team_id:
-            context.active_team_id = team_id
+            context.team_id = team_id
             # If team is specified, also set the league
             team = session.query(Team).filter(Team.id == team_id).first()
             if team:
-                context.active_league_id = team.league_id
+                context.league_id = team.league_id
         
         context.last_updated = func.now()
         session.commit()
@@ -435,17 +435,17 @@ class UserContext(Base):
     __tablename__ = "user_contexts"
     
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    active_league_id = Column(Integer, ForeignKey("leagues.id"))
-    active_team_id = Column(Integer, ForeignKey("teams.id"))
+    league_id = Column(Integer, ForeignKey("leagues.id"))  # Changed from active_league_id to match production schema
+    team_id = Column(Integer, ForeignKey("teams.id"))      # Changed from active_team_id to match production schema
     last_updated = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User", backref="context")
-    active_league = relationship("League")
-    active_team = relationship("Team")
+    active_league = relationship("League", foreign_keys=[league_id])  # Updated foreign key reference
+    active_team = relationship("Team", foreign_keys=[team_id])        # Updated foreign key reference
     
     def __repr__(self):
-        return f"<UserContext(user_id={self.user_id}, league_id={self.active_league_id}, team_id={self.active_team_id})>"
+        return f"<UserContext(user_id={self.user_id}, league_id={self.league_id}, team_id={self.team_id})>"
 
 
 class UserPlayerAssociation(Base):

@@ -26,13 +26,13 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     This is the centralized session builder used by login, registration, and league switching.
     """
     try:
-        # ✅ ENHANCED: Get user data with UserContext active_team_id prioritization
+        # ✅ ENHANCED: Get user data with UserContext team_id prioritization
         query = """
             SELECT DISTINCT ON (u.id)
                 u.id, u.email, u.first_name, u.last_name, u.is_admin,
                 u.ad_deuce_preference, u.dominant_hand, u.league_context,
                 
-                -- Player data (prioritize UserContext active_team_id first)
+                -- Player data (prioritize UserContext team_id first)
                 c.name as club, c.logo_filename as club_logo,
                 s.name as series, p.tenniscores_player_id,
                 c.id as club_id, s.id as series_id, t.id as team_id,
@@ -42,7 +42,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
                 l.id as league_db_id, l.league_id as league_string_id, l.league_name,
                 
                 -- UserContext data
-                uc.active_team_id as context_team_id
+                uc.team_id as context_team_id
             FROM users u
             LEFT JOIN user_contexts uc ON u.id = uc.user_id
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
@@ -53,10 +53,10 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             LEFT JOIN leagues l ON p.league_id = l.id
             WHERE u.email = %s
             ORDER BY u.id, 
-                     -- PRIORITY 1: UserContext active_team_id match (registration choice)
-                     (CASE WHEN p.team_id = uc.active_team_id THEN 1 ELSE 2 END),
-                     -- PRIORITY 2: League context match (league preference)
+                     -- PRIORITY 1: League context match (league switching takes precedence)
                      (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
+                     -- PRIORITY 2: UserContext team_id match (registration choice within league)
+                     (CASE WHEN p.team_id = uc.team_id THEN 1 ELSE 2 END),
                      -- PRIORITY 3: Team has team_id (prefer teams over unassigned players)
                      (CASE WHEN p.team_id IS NOT NULL THEN 1 ELSE 2 END),
                      -- PRIORITY 4: Most recent player record (newer registrations first)
@@ -172,6 +172,50 @@ def switch_user_league(user_email: str, new_league_id: str) -> bool:
             [league_db_id, user_email]
         )
         
+        # ROBUSTNESS FIX: Update UserContext to point to appropriate team in new league
+        # This prevents stale UserContext.team_id pointing to old league's team
+        user_id_result = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+        if user_id_result:
+            user_id = user_id_result["id"]
+            
+            # Find user's first team in the new league (prefer most recent)
+            new_team_query = """
+                SELECT t.id as team_id, t.league_id
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                WHERE upa.user_id = %s 
+                    AND t.league_id = %s
+                    AND p.is_active = TRUE 
+                    AND t.is_active = TRUE
+                ORDER BY p.id DESC
+                LIMIT 1
+            """
+            
+            new_team_result = execute_query_one(new_team_query, [user_id, league_db_id])
+            if new_team_result:
+                new_team_id = new_team_result["team_id"]
+                
+                # Update or create UserContext record
+                existing_context = execute_query_one(
+                    "SELECT user_id FROM user_contexts WHERE user_id = %s", [user_id]
+                )
+                
+                if existing_context:
+                    execute_query(
+                        "UPDATE user_contexts SET team_id = %s, league_id = %s WHERE user_id = %s",
+                        [new_team_id, league_db_id, user_id]
+                    )
+                    logger.info(f"Updated UserContext for {user_email}: team_id={new_team_id}, league_id={league_db_id}")
+                else:
+                    execute_query(
+                        "INSERT INTO user_contexts (user_id, team_id, league_id) VALUES (%s, %s, %s)",
+                        [user_id, new_team_id, league_db_id]
+                    )
+                    logger.info(f"Created UserContext for {user_email}: team_id={new_team_id}, league_id={league_db_id}")
+            else:
+                logger.warning(f"No team found for {user_email} in league {new_league_id} - UserContext not updated")
+        
         logger.info(f"Switched {user_email} to league {new_league_id} (DB ID: {league_db_id})")
         return True
         
@@ -280,12 +324,25 @@ def switch_user_team_in_league(user_email: str, team_id: int) -> bool:
             [user_email]
         )
         
-        if not user_info or not user_info["league_context"]:
-            logger.error(f"User {user_email} not found or has no league context")
+        if not user_info:
+            logger.error(f"User {user_email} not found")
             return False
             
         user_id = user_info["id"]
         current_league_id = user_info["league_context"]
+        
+        # BUGFIX: For team switching, we need to use the user's session league, not their stored league_context
+        # The league_context in DB may be stale from previous switches
+        from flask import session
+        if session and session.get("user"):
+            session_league_id = session["user"].get("league_id")
+            if session_league_id and session_league_id != current_league_id:
+                logger.info(f"Using session league_id ({session_league_id}) instead of stored league_context ({current_league_id}) for team switching validation")
+                current_league_id = session_league_id
+        
+        if not current_league_id:
+            logger.error(f"User {user_email} has no valid league context for team switching")
+            return False
         
         # Verify user has access to this team and it's in the same league
         team_verification_query = """

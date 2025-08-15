@@ -163,14 +163,14 @@ class ContextService:
             
             # Update context
             if league_id:
-                context.active_league_id = league_id
+                context.league_id = league_id
             if team_id:
-                context.active_team_id = team_id
+                context.team_id = team_id
                 # If team is specified, also set the league
                 if not league_id:
                     team = db_session.query(Team).filter(Team.id == team_id).first()
                     if team:
-                        context.active_league_id = team.league_id
+                        context.league_id = team.league_id
             
             db_session.commit()
             
@@ -198,8 +198,8 @@ class ContextService:
         query = """
             SELECT 
                 uc.user_id,
-                uc.active_league_id,
-                uc.active_team_id,
+                uc.league_id,
+                uc.team_id,
                 l.league_id as league_string_id,
                 l.league_name,
                 t.team_name,
@@ -208,8 +208,8 @@ class ContextService:
                 s.name as series_name,
                 p.tenniscores_player_id
             FROM user_contexts uc
-            LEFT JOIN leagues l ON uc.active_league_id = l.id
-            LEFT JOIN teams t ON uc.active_team_id = t.id
+            LEFT JOIN leagues l ON uc.league_id = l.id
+            LEFT JOIN teams t ON uc.team_id = t.id
             LEFT JOIN clubs c ON t.club_id = c.id
             LEFT JOIN series s ON t.series_id = s.id
             LEFT JOIN players p ON t.id = p.team_id AND p.is_active = TRUE
@@ -223,10 +223,10 @@ class ContextService:
         if result:
             return {
                 "user_id": result["user_id"],
-                "league_id": result["active_league_id"],
+                "league_id": result["league_id"],
                 "league_string_id": result["league_string_id"],
                 "league_name": result["league_name"],
-                "team_id": result["active_team_id"],
+                "team_id": result["team_id"],
                 "team_name": result["team_name"],
                 "team_alias": result["team_alias"],
                 "club_name": result["club_name"],

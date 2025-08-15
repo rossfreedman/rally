@@ -37,12 +37,13 @@ class EnhancedLeagueTeamContextManager extends LeagueContextManager {
      */
     async loadUserTeamsData() {
         try {
-            const response = await fetch('/api/get-user-teams');
+            const response = await fetch('/api/get-user-teams-in-current-league');
             const data = await response.json();
             
             if (data.success) {
                 this.currentUserTeams = data.teams || [];
-                this.currentTeamInfo = data.current_team || null;
+                // Find current team from teams list (new API doesn't return current_team separately)
+                this.currentTeamInfo = this.currentUserTeams.find(team => team.is_current) || null;
                 this.isTeamSwitchingEnabled = this.currentUserTeams.length > 1;
                 
                 this.log(`📊 User teams loaded: ${this.currentUserTeams.length} teams, switching ${this.isTeamSwitchingEnabled ? 'enabled' : 'disabled'}`);
@@ -171,23 +172,12 @@ class EnhancedLeagueTeamContextManager extends LeagueContextManager {
     
     /**
      * Update the context selector UI to include team options
+     * DISABLED: Keep league and team switching separate for simplicity
      */
     updateContextSelectorUI() {
-        const modal = document.getElementById('leagueSwitcherModal');
-        if (!modal || !this.isTeamSwitchingEnabled) return;
-        
-        // Find the league options container
-        const leagueOptionsContainer = modal.querySelector('.space-y-2');
-        if (!leagueOptionsContainer) return;
-        
-        // Add team selector section if user has multiple teams
-        const currentLeagueTeams = this.currentUserTeams.filter(team => 
-            team.league_string_id === this.getCurrentLeagueId()
-        );
-        
-        if (currentLeagueTeams.length > 1) {
-            this.addTeamSelectorToModal(modal, currentLeagueTeams);
-        }
+        // DISABLED: Don't add team options to league modal
+        // League modal should only show leagues, team modal should only show teams
+        return;
     }
     
     /**
@@ -217,7 +207,7 @@ class EnhancedLeagueTeamContextManager extends LeagueContextManager {
             </div>
             <div class="space-y-2">
                 ${teams.map(team => `
-                    <button onclick="window.enhancedContextManager.switchTeam(${team.id}, '${team.team_name}')" 
+                    <button onclick="window.enhancedContextManager.switchTeam(${team.team_id}, '${team.team_name}')" 
                             class="team-switch-btn w-full flex items-center justify-between p-3 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-blue-200 hover:border-blue-400 hover:shadow-md group
                                    ${this.isCurrentTeam(team) ? 'bg-blue-100 border-blue-400' : ''}">
                         <div class="text-left">
@@ -237,9 +227,8 @@ class EnhancedLeagueTeamContextManager extends LeagueContextManager {
      * Check if a team is the current team
      */
     isCurrentTeam(team) {
-        if (!this.currentTeamInfo) return false;
-        return team.id === this.currentTeamInfo.id || 
-               team.team_name === this.currentTeamInfo.team_name;
+        // Use is_current flag from the API response
+        return team.is_current === true;
     }
     
     /**
@@ -307,11 +296,16 @@ window.createUserTeamsAPI = function() {
     };
 };
 
-// Initialize enhanced manager only if multiple teams detected
+// DISABLED: Enhanced manager complicates the UI - keep league and team switching separate
 document.addEventListener('DOMContentLoaded', function() {
+    // DISABLED: Don't initialize enhanced manager to keep simple separation
+    // League switching and team switching should be completely separate
+    return;
+    
+    /*
     // Check if user has multiple teams before initializing enhanced manager
-    fetch('/api/get-user-teams').then(response => response.json()).then(data => {
-        if (data.success && data.teams && data.teams.length > 1) {
+    fetch('/api/get-user-teams-in-current-league').then(response => response.json()).then(data => {
+        if (data.success && data.teams && data.has_multiple_teams) {
             // Replace the simple league context manager with enhanced version
             window.enhancedContextManager = new EnhancedLeagueTeamContextManager();
             

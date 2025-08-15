@@ -1575,16 +1575,16 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
                 series = db_session.query(Series).filter(Series.id == preferred_team.series_id).first()
                 logger.info(f"ID-BASED Registration: Set league_context to {preferred_team.league_id} for {(club.name if club else '')} - {(series.name if series else '')} (team_id: {preferred_team.team_id}) for {email}")
                 
-                # ✅ CRITICAL FIX: Set active_team_id in UserContext to remember registration choice
+                # ✅ CRITICAL FIX: Set team_id in UserContext to remember registration choice
                 from app.models.database_models import UserContext
                 
                 user_context = UserContext(
                     user_id=new_user.id,
-                    active_league_id=preferred_team.league_id,
-                    active_team_id=preferred_team.team_id
+                    league_id=preferred_team.league_id,
+                    team_id=preferred_team.team_id
                 )
                 db_session.add(user_context)
-                logger.info(f"ID-BASED Registration: Set UserContext active_team_id={preferred_team.team_id} for {email}")
+                logger.info(f"ID-BASED Registration: Set UserContext team_id={preferred_team.team_id} for {email}")
                 
             else:
                 new_user.league_context = player_record.league_id

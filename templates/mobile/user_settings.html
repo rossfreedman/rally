@@ -313,36 +313,78 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
         // Rebuild dropdown with API data
         seriesSel.innerHTML = '<option value="">Select a series...</option>';
         
-        // Series names are already properly formatted by the database mapping system
-        // No need for client-side transformations - just use them directly
-        data.series.forEach(series => {
+        // Handle both new object-based format and legacy string format
+        data.series.forEach(seriesItem => {
           const option = document.createElement('option');
-          option.value = series;  // Use the user-facing name as the value
-          option.textContent = series;  // Display the user-facing name
+          
+          // Check if we have the new ID-based format with objects
+          if (typeof seriesItem === 'object' && seriesItem !== null && seriesItem.id) {
+            // NEW: Object-based format with series objects  
+            const displayName = seriesItem.display || seriesItem.name || `Series ${seriesItem.id}`;
+            
+            option.value = JSON.stringify({
+              id: seriesItem.id,
+              name: seriesItem.name || '',
+              display: displayName
+            });
+            option.textContent = displayName;  // Show user-friendly name
+            
+            console.log(`  ✅ Object-based series: ${displayName} (ID: ${seriesItem.id})`);
+          } else if (typeof seriesItem === 'string') {
+            // LEGACY: String format (backward compatibility)
+            option.value = seriesItem;
+            option.textContent = seriesItem;
+            console.log(`  📜 Legacy series: ${seriesItem}`);
+          } else {
+            // FALLBACK: Handle unexpected format
+            console.error('  ❌ Unexpected series format:', seriesItem);
+            const fallbackText = String(seriesItem) || 'Unknown Series';
+            option.value = fallbackText;
+            option.textContent = fallbackText;
+          }
+          
           seriesSel.appendChild(option);
         });
         
         // Set selected series if provided
         if (selectedSeries) {
-          // Use the transformed series name for selection
-          seriesSel.value = transformedSelectedSeries;
-          console.log('✅ Set selected series to:', transformedSelectedSeries);
+          console.log('🔍 Attempting to select series:', transformedSelectedSeries);
           
-          // Verify the selection worked
+          // Try direct string match first (for legacy compatibility)
+          seriesSel.value = transformedSelectedSeries;
+          
           if (seriesSel.value === transformedSelectedSeries) {
-            console.log('✅ Series selection confirmed');
+            console.log('✅ Series selection confirmed via direct match');
           } else {
-            console.log('⚠️  Series selection failed, trying CNSWPL-specific matching...');
-            
-            // CNSWPL FIX: Try to find a series that contains the base series name
-            // e.g., "Series 12" should match "Day League - Series 12"
+            // For object-based format, we need to find the option with matching display name
             let foundMatch = false;
+            
             for (let option of seriesSel.options) {
-              if (option.value.includes(selectedSeries)) {
-                option.selected = true;
-                foundMatch = true;
-                console.log('✅ CNSWPL series match found:', option.value);
-                break;
+              // Check if option value is JSON (object format)
+              try {
+                const parsedValue = JSON.parse(option.value);
+                if (parsedValue.display === transformedSelectedSeries || parsedValue.name === transformedSelectedSeries) {
+                  option.selected = true;
+                  foundMatch = true;
+                  console.log('✅ Object-based series match found:', parsedValue.display);
+                  break;
+                }
+              } catch (e) {
+                // Not JSON, check string value directly
+                if (option.value === transformedSelectedSeries || option.textContent === transformedSelectedSeries) {
+                  option.selected = true;
+                  foundMatch = true;
+                  console.log('✅ String-based series match found:', option.value);
+                  break;
+                }
+                
+                // CNSWPL FIX: Try partial matching for complex names
+                if (option.value.includes(selectedSeries) || option.textContent.includes(selectedSeries)) {
+                  option.selected = true;
+                  foundMatch = true;
+                  console.log('✅ Partial series match found:', option.value);
+                  break;
+                }
               }
             }
             
@@ -350,7 +392,7 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
               console.log('⚠️  Series selection failed completely');
               console.log('   Original series:', selectedSeries);
               console.log('   Transformed series:', transformedSelectedSeries);
-              console.log('   Available options:', data.series.slice(0, 10), '...');
+              console.log('   Available options:', Array.from(seriesSel.options).map(opt => opt.textContent).slice(0, 10), '...');
             }
           }
         }
@@ -386,14 +428,48 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
           const seriesSel = document.getElementById('series');
           seriesSel.innerHTML = '<option value="">Select a series...</option>';
           if (data.series && Array.isArray(data.series)) {
-            data.series.forEach(series => {
+            data.series.forEach(seriesItem => {
               const option = document.createElement('option');
-              option.value = series;
-              option.textContent = series;
+              
+              // Handle both object and string formats in fallback
+              if (typeof seriesItem === 'object' && seriesItem !== null && seriesItem.id) {
+                const displayName = seriesItem.display || seriesItem.name || `Series ${seriesItem.id}`;
+                option.value = JSON.stringify({
+                  id: seriesItem.id,
+                  name: seriesItem.name || '',
+                  display: displayName
+                });
+                option.textContent = displayName;
+              } else {
+                option.value = seriesItem;
+                option.textContent = seriesItem;
+              }
+              
               seriesSel.appendChild(option);
             });
             if (selectedSeries) {
+              // Try to select the series in fallback scenario
               seriesSel.value = transformedSelectedSeries;
+              
+              if (seriesSel.value !== transformedSelectedSeries) {
+                // Try object-based matching for fallback too
+                for (let option of seriesSel.options) {
+                  try {
+                    const parsedValue = JSON.parse(option.value);
+                    if (parsedValue.display === transformedSelectedSeries || parsedValue.name === transformedSelectedSeries) {
+                      option.selected = true;
+                      break;
+                    }
+                  } catch (e) {
+                    // String comparison fallback
+                    if (option.textContent === transformedSelectedSeries || option.value.includes(selectedSeries)) {
+                      option.selected = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              
               console.log('✅ Set selected series from fallback:', transformedSelectedSeries);
             }
           }
