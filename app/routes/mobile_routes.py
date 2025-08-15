@@ -1639,22 +1639,9 @@ def get_player_season_history_by_id(player_id):
                             OR series ~ '^Division\\s+[0-9]+'
                             OR series ~ '^Chicago[:\\s]+[0-9]+'
                         )
-                        ORDER BY 
-                            -- ✅ PRIORITY 1: Prefer current series with flexible matching (handles "Chicago 13" vs "Chicago: 13")
-                            CASE 
-                                WHEN %s IS NOT NULL AND (
-                                    series = %s 
-                                    OR series = REPLACE(%s, ' ', ': ')
-                                    OR REPLACE(series, ':', '') = REPLACE(%s, ':', '')
-                                ) THEN 1 
-                                ELSE 2 
-                            END,
-                            -- ✅ PRIORITY 2: Fallback to highest numeric value
-                            CASE 
-                                WHEN series ~ '\\d+' THEN 
-                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
-                                ELSE 0 
-                            END DESC
+                        -- ✅ FIXED: Now prioritize by match count (most matches wins)
+                        GROUP BY series
+                        ORDER BY COUNT(*) DESC, series DESC
                         LIMIT 1
                     ) as preferred_series
                 FROM season_boundaries sb
@@ -1672,7 +1659,7 @@ def get_player_season_history_by_id(player_id):
             LIMIT 10
         """
 
-        season_records = execute_query(season_history_query, [player_db_id, current_series_name, current_series_name, current_series_name, current_series_name])
+        season_records = execute_query(season_history_query, [player_db_id])
 
         print(f"[DEBUG] Season History by ID - Query returned {len(season_records) if season_records else 0} records")
         
