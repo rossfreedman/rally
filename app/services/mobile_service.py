@@ -607,11 +607,12 @@ def get_player_analysis(user):
                 other_teams_result = execute_query(other_teams_query, [player_id, league_id_int, team_context])
                 other_team_ids = [team['team_id'] for team in other_teams_result if team['team_id']]
                 
+
+                
                 if other_team_ids:
-                    # Exclude matches where player was with other permanent teams
-                    # Logic: Show matches where player participated BUT NOT matches for his other permanent teams
-                    other_teams_placeholders = ','.join(['%s'] * len(other_team_ids))
-                    history_query = f"""
+                    # CORRECTED LOGIC: Only show matches where current team was involved
+                    # This eliminates substitute appearances for other series completely
+                    history_query = """
                         SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
                             id,
                             TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -630,11 +631,10 @@ def get_player_analysis(user):
                         WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                         AND league_id = %s
                         AND match_date >= %s AND match_date <= %s
-                        AND NOT (home_team_id IN ({other_teams_placeholders}) OR away_team_id IN ({other_teams_placeholders}))
+                        AND (home_team_id = %s OR away_team_id = %s)
                         ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
                     """
-                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end] + other_team_ids + other_team_ids
-                    print(f"[DEBUG] Player analysis EXCLUDING matches from other permanent teams: player_id={player_id}, current_team={team_context}, excluding_teams={other_team_ids}")
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context]
                 else:
                     # No other teams to exclude - show all matches
                     history_query = """
@@ -981,12 +981,7 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 for i in range(1, 6)
             }
         
-        # DEBUG LOGGING
-        print(f"[COURT DEBUG] Starting court analysis for player {player_id}")
-        print(f"[COURT DEBUG] Total player matches: {len(player_matches)}")
-        for i, match in enumerate(player_matches):
-            print(f"[COURT DEBUG] Match {i+1}: {match.get('Date', 'Unknown')} {match.get('Home Team', '')} vs {match.get('Away Team', '')} | ID: {match.get('tenniscores_match_id', 'None')}")
-        print(f"[COURT DEBUG] User team context: {user.get('team_id') if user else None}")
+
 
         def parse_date(date_str):
             if not date_str:
@@ -1089,14 +1084,8 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         # Fallback to court 1 if no tenniscores_match_id
                         court_number = 1
                     
-                    # DEBUG LOGGING
-                    print(f"[COURT DEBUG] Match {match.get('Date', 'Unknown')} {match.get('Home Team', '')} vs {match.get('Away Team', '')}: Match ID={tenniscores_match_id}, Court={court_number}, Looking for Court {i}")
-                    
                     if court_number == i:  # This match belongs to court i
                         court_matches.append(match)
-                        print(f"[COURT DEBUG] ✅ Added match to Court {i}")
-                
-                print(f"[COURT DEBUG] Court {i} final matches: {len(court_matches)}")
 
                 wins = losses = 0
                 partner_win_counts = {}
