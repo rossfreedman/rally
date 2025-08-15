@@ -186,7 +186,7 @@ class User(Base):
             if team:
                 context.league_id = team.league_id
         
-        context.last_updated = func.now()
+        context.updated_at = func.now()
         session.commit()
         
         return context
@@ -434,10 +434,17 @@ class UserContext(Base):
     
     __tablename__ = "user_contexts"
     
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    id = Column(Integer, primary_key=True)  # Production has SERIAL PRIMARY KEY
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     league_id = Column(Integer, ForeignKey("leagues.id"))  # Changed from active_league_id to match production schema
     team_id = Column(Integer, ForeignKey("teams.id"))      # Changed from active_team_id to match production schema
-    last_updated = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    # Match production schema columns
+    series_id = Column(Integer, ForeignKey("series.id"))
+    club = Column(String(255))
+    context_type = Column(String(50), default='current')
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
     # Relationships
     user = relationship("User", backref="context")
