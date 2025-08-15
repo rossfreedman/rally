@@ -592,25 +592,26 @@ def get_player_analysis(user):
         # FIXED: Handle duplicate match records by using DISTINCT ON
         if league_id_int:
             # Show current season matches for this player in this league
-            # Add SERIES filtering when team context is available - only show matches within current series
+            # Add CLUB-BASED filtering when team context is available - show own team + same club substitutes
             if team_context:
-                # Get the series_id for the current team context to filter by series
-                series_query = """
-                    SELECT series_id 
+                # Get the club_id and series_id for the current team context
+                team_info_query = """
+                    SELECT club_id, series_id 
                     FROM teams 
                     WHERE id = %s
                 """
-                series_result = execute_query_one(series_query, [team_context])
-                if not series_result or not series_result.get('series_id'):
-                    print(f"[ERROR] Could not find series_id for team {team_context}")
+                team_info_result = execute_query_one(team_info_query, [team_context])
+                if not team_info_result or not team_info_result.get('club_id'):
+                    print(f"[ERROR] Could not find team info for team {team_context}")
                     return {"player_analysis": []}
                 
-                current_series_id = series_result['series_id']
-                print(f"[DEBUG] Series-based filtering: team {team_context} -> series {current_series_id}")
+                current_club_id = team_info_result['club_id']
+                current_series_id = team_info_result['series_id']
+                print(f"[DEBUG] Club-based filtering: team {team_context} -> club {current_club_id}, series {current_series_id}")
                 
-                # SERIES-BASED LOGIC: Only show matches within the current series context
-                # 1. Current team matches within the series
-                # 2. Substitute matches within the SAME series only (exclude other series entirely)
+                # CLUB-BASED LOGIC: Show own team + same club different series matches
+                # 1. Current team matches (own team)
+                # 2. Substitute matches (same club_id, different series)
                 history_query = """
                     SELECT DISTINCT ON (ms.match_date, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id)
                         ms.id,
@@ -632,10 +633,10 @@ def get_player_analysis(user):
                     WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
                     AND ms.league_id = %s
                     AND ms.match_date >= %s AND ms.match_date <= %s
-                    AND (ht.series_id = %s OR at.series_id = %s)
+                    AND (ht.club_id = %s OR at.club_id = %s)
                     ORDER BY ms.match_date DESC, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id, ms.id DESC
                 """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, current_series_id, current_series_id]
+                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, current_club_id, current_club_id]
             else:
                 # Original query without team filtering (preserves substitute appearances)
                 history_query = """
@@ -884,7 +885,7 @@ def get_player_analysis(user):
         career_stats = get_career_stats_from_db(player_id)
 
         # Calculate court analysis for individual player
-        court_analysis = calculate_individual_court_analysis(player_matches, player_id, user, current_series_id)
+        court_analysis = calculate_individual_court_analysis(player_matches, player_id, user, current_series_id, current_club_id, team_context)
 
         # Initialize empty player history
         player_history = {"progression": "", "seasons": []}
@@ -926,7 +927,7 @@ def get_player_analysis(user):
         }
 
 
-def calculate_individual_court_analysis(player_matches, player_id, user=None, current_series_id=None):
+def calculate_individual_court_analysis(player_matches, player_id, user=None, current_series_id=None, current_club_id=None, team_context=None):
     """
     Calculate court analysis for an individual player based on their matches.
     Adapted from the team court analysis logic to work for individual players.
@@ -1165,46 +1166,46 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                         except Exception as e:
                             print(f"Error getting player's own team: {e}")
                         
-                        # SERIES-BASED SUBSTITUTE DETECTION:
-                        # Check if partner is substituting within the current series context
-                        # Since matches are already filtered by series, any substitute is within same series
+                        # CLUB-BASED SUBSTITUTE DETECTION:
+                        # Check if this is a substitute match (same club, different series from user's current series)
                         try:
-                            # Get partner's normal teams within the current series
-                            partner_series_teams_query = """
-                                SELECT p.team_id 
-                                FROM players p
-                                JOIN teams t ON p.team_id = t.id
-                                WHERE p.tenniscores_player_id = %s 
-                                AND p.league_id = %s
-                                AND t.series_id = %s
-                                AND p.is_active = true
-                            """
-                            partner_series_teams = execute_query(partner_series_teams_query, [partner, league_id_int, current_series_id])
-                            partner_series_team_ids = [team['team_id'] for team in partner_series_teams if team['team_id']]
-                            
-                            # Partner is substitute if match team is NOT one of their normal teams in this series
-                            if partner_series_team_ids and match_team_id and match_team_id not in partner_series_team_ids:
-                                partner_win_counts[partner]["is_substitute"] = True
+                            # Determine if this match is a substitute match for the logged-in player
+                            # A substitute match is when player played for same club but different series
+                            if match_team_id != team_context:  # Not the player's current team
+                                # Check if match team is same club but different series
+                                match_team_query = """
+                                    SELECT club_id, series_id
+                                    FROM teams 
+                                    WHERE id = %s
+                                """
+                                match_team_result = execute_query_one(match_team_query, [match_team_id])
                                 
-                                # Get series name for substitute label (already in current series)
-                                try:
-                                    series_query = """
-                                        SELECT s.name as series_name, s.display_name as series_display_name
-                                        FROM teams t
-                                        JOIN series s ON t.series_id = s.id
-                                        WHERE t.id = %s
-                                    """
-                                    series_result = execute_query_one(series_query, [match_team_id])
-                                    if series_result:
-                                        series_name = series_result.get("series_display_name") or series_result["series_name"]
-                                        from app.routes.api_routes import convert_chicago_to_series_for_ui
-                                        display_series_name = convert_chicago_to_series_for_ui(series_name)
-                                        partner_win_counts[partner]["substitute_series"] = display_series_name
-                                except Exception as e:
-                                    print(f"Error getting series name for substitute: {e}")
-                                    partner_win_counts[partner]["substitute_series"] = "Unknown Series"
+                                if (match_team_result and 
+                                    match_team_result.get('club_id') == current_club_id and
+                                    match_team_result.get('series_id') != current_series_id):
+                                    
+                                    # This is a substitute match - mark partner as being in a substitute context
+                                    partner_win_counts[partner]["is_substitute"] = True
+                                    
+                                    # Get series name for substitute label
+                                    try:
+                                        series_query = """
+                                            SELECT s.name as series_name, s.display_name as series_display_name
+                                            FROM teams t
+                                            JOIN series s ON t.series_id = s.id
+                                            WHERE t.id = %s
+                                        """
+                                        series_result = execute_query_one(series_query, [match_team_id])
+                                        if series_result:
+                                            series_name = series_result.get("series_display_name") or series_result["series_name"]
+                                            from app.routes.api_routes import convert_chicago_to_series_for_ui
+                                            display_series_name = convert_chicago_to_series_for_ui(series_name)
+                                            partner_win_counts[partner]["substitute_series"] = display_series_name
+                                    except Exception as e:
+                                        print(f"Error getting series name for substitute: {e}")
+                                        partner_win_counts[partner]["substitute_series"] = "Unknown Series"
                         except Exception as e:
-                            print(f"Error checking partner substitute status: {e}")
+                            print(f"Error checking substitute status: {e}")
                             # Default to not a substitute if we can't determine
 
                 win_rate = (
