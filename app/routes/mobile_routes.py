@@ -1276,19 +1276,15 @@ def get_season_history():
                             OR series ~ '^Division\s+[0-9]+'
                             OR series ~ '^Chicago[:\s]+[0-9]+'
                         )
-                        ORDER BY 
-                            CASE 
-                                WHEN series ~ '\d+' THEN 
-                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
-                                ELSE 0 
-                            END DESC
+                        GROUP BY series
+                        ORDER BY COUNT(*) DESC, series DESC
                         LIMIT 1
-                    ) as highest_series
+                    ) as most_active_series
                 FROM season_boundaries sb
                 CROSS JOIN career_start cs
             )
             SELECT 
-                highest_series as series,
+                most_active_series as series,
                 season_year,
                 pti_start,
                 pti_end,
@@ -1808,19 +1804,15 @@ def get_player_season_history(player_name):
                             OR series ~ '^Division\s+[0-9]+'
                             OR series ~ '^Chicago[:\s]+[0-9]+'
                         )
-                        ORDER BY 
-                            CASE 
-                                WHEN series ~ '\d+' THEN 
-                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
-                                ELSE 0 
-                            END DESC
+                        GROUP BY series
+                        ORDER BY COUNT(*) DESC, series DESC
                         LIMIT 1
-                    ) as highest_series
+                    ) as most_active_series
                 FROM season_boundaries sb
                 CROSS JOIN career_start cs
             )
             SELECT 
-                highest_series as series,
+                most_active_series as series,
                 season_year,
                 pti_start,
                 pti_end,
