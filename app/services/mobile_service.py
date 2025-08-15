@@ -610,10 +610,9 @@ def get_player_analysis(user):
 
                 
                 if other_team_ids:
-                    # SIMPLE LOGIC: Only show current team matches + where logged-in player substituted
-                    # Get ALL of player's normal team IDs (current team + other permanent teams)
-                    all_player_teams = [team_context] + other_team_ids
-                    all_teams_placeholders = ','.join(['%s'] * len(all_player_teams))
+                    # CORRECT LOGIC: Current team matches + actual substitutes (exclude OTHER permanent teams)
+                    # Only exclude OTHER permanent teams, not the current team
+                    other_teams_placeholders = ','.join(['%s'] * len(other_team_ids))
                     
                     history_query = f"""
                         SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
@@ -636,11 +635,11 @@ def get_player_analysis(user):
                         AND match_date >= %s AND match_date <= %s
                         AND (
                             (home_team_id = %s OR away_team_id = %s) OR
-                            NOT (home_team_id IN ({all_teams_placeholders}) OR away_team_id IN ({all_teams_placeholders}))
+                            (NOT (home_team_id IN ({other_teams_placeholders}) OR away_team_id IN ({other_teams_placeholders})))
                         )
                         ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
                     """
-                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context] + all_player_teams + all_player_teams
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context] + other_team_ids + other_team_ids
                 else:
                     # No other teams to exclude - show all matches
                     history_query = """
