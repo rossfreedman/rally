@@ -1410,23 +1410,64 @@ def get_player_season_history_by_id(player_id):
         print(f"[DEBUG] Season History by ID - Player ID: {player_id}")
 
         # Find the player in the database by tenniscores_player_id, prioritizing the one with PTI history
-        player_query = """
-            SELECT 
-                p.id,
-                p.tenniscores_player_id,
-                p.pti as current_pti,
-                p.series_id,
-                s.name as series_name,
-                p.first_name,
-                p.last_name,
-                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-            FROM players p
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.tenniscores_player_id = %s
-            ORDER BY history_count DESC, p.id DESC
-            LIMIT 1
-        """
-        player_data = execute_query_one(player_query, [player_id])
+        # FIXED: Use team context filtering just like /api/season-history endpoint
+        from app.services.session_service import get_session_data_for_user
+        
+        # Get current user's session data to determine team context
+        current_user_email = session.get("user", {}).get("email")
+        session_data = None
+        if current_user_email:
+            session_data = get_session_data_for_user(current_user_email)
+        
+        current_team_id = session_data.get("team_id") if session_data else None
+        
+        # Get player's database ID - prioritize the player record for current team context
+        if current_team_id:
+            # First try to get the player record that matches the current team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.tenniscores_player_id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    p.first_name,
+                    p.last_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                ORDER BY history_count DESC, p.id DESC
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_query, [player_id, current_team_id])
+            print(f"[DEBUG] Season History by ID - Team Context: Using team_id {current_team_id}")
+        else:
+            # Fallback to any player record if no team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.tenniscores_player_id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    p.first_name,
+                    p.last_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s
+                ORDER BY history_count DESC, p.id DESC
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_query, [player_id])
+            print(f"[DEBUG] Season History by ID - No Team Context: Using fallback query")
 
         if not player_data:
             print(f"[DEBUG] Season History by ID - Player '{player_id}' not found in database")
