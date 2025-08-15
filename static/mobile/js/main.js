@@ -53,10 +53,9 @@ function initLoadingIndicator() {
     // Create loading overlay
     createLoadingOverlay();
     
-    // Initialize home page buttons (if on home page)
-    if (window.location.pathname.endsWith('/mobile') || window.location.pathname.endsWith('/mobile/') || window.location.pathname.endsWith('/mobile/home_submenu')) {
-        initHomePageButtons();
-    }
+    // Initialize home page buttons (on all pages that have them)
+    // This ensures loading indicators work on both home_submenu and index templates
+    initHomePageButtons();
     
     // Initialize navigation drawer links (on all pages)
     initNavDrawerLinks();
@@ -71,16 +70,22 @@ function initLoadingIndicator() {
 function initHomePageButtons() {
     console.log('Initializing home page buttons');
     
-    // Target iOS-style cards and all button types
-    const homePageButtons = document.querySelectorAll('.ios-card, .icon-btn, .logout-btn, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button');
+    // Target all possible button types and also generic links with navigation
+    const homePageButtons = document.querySelectorAll('a[href*="/mobile/"], .ios-card, .icon-btn, .logout-btn, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button, .submenu-item');
     
-    homePageButtons.forEach(button => {
+    console.log(`Found ${homePageButtons.length} buttons to initialize`);
+    
+    homePageButtons.forEach((button, index) => {
+        console.log(`Button ${index}: ${button.className} - href: ${button.href}`);
+        
         // Skip if this button is inside the nav drawer
         if (button.closest('#navDrawer')) {
+            console.log(`Skipping button ${index} - inside nav drawer`);
             return;
         }
         
         button.addEventListener('click', function(e) {
+            console.log(`Home button clicked: ${this.href}`);
             handleNavigationClick(e, this, 'home-btn-loading');
         });
     });
