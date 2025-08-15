@@ -622,8 +622,22 @@ form.addEventListener('submit', function(e) {
       console.log('✅ Settings update successful');
       window.app && window.app.showToast && window.app.showToast('Settings updated!', 'success');
       
-      // Reload page after a short delay to ensure all components are updated
-      setTimeout(() => window.location.reload(), 1000);
+      // PRODUCTION FIX: Force hard refresh to bypass caching issues
+      setTimeout(() => {
+        console.log('🔄 Force refreshing page with cache bypass...');
+        // First, manually refresh session via API
+        fetch('/api/refresh-session', { method: 'POST' })
+          .then(r => r.json())
+          .then(sessionResp => {
+            console.log('🔄 Session refresh response:', sessionResp);
+            // Then hard reload to get fresh page content
+            window.location.reload(true); // Hard reload bypasses cache
+          })
+          .catch(err => {
+            console.warn('⚠️ Session refresh failed, proceeding with page reload:', err);
+            window.location.reload(true); // Hard reload anyway
+          });
+      }, 1500); // Slightly longer delay for production
     } else {
       console.log('❌ Settings update failed:', resp.message);
       window.app && window.app.showToast && window.app.showToast(resp.message || 'Update failed', 'error');
