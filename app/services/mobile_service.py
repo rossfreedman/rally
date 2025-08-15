@@ -1193,42 +1193,56 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         except Exception as e:
                             print(f"Error getting player's own team: {e}")
                         
-                        # Check if partner is playing for a different team than the player's own team
-                        # Determine which team the player is actually playing for in this match
-                        player_match_team_id = None
+                        # CORRECTED: Check if the PARTNER is a substitute by checking their normal team vs match team
+                        # Determine which team this match was for
+                        match_team_id = None
                         if is_home:
-                            player_match_team_id = match.get("home_team_id")
+                            match_team_id = match.get("home_team_id")
                         else:
-                            player_match_team_id = match.get("away_team_id")
+                            match_team_id = match.get("away_team_id")
                         
-                        # Check if partner is playing for a different team than the player's own team
-                        # The partner is a substitute if the PLAYER is playing for a different team than their own team
-                        if player_own_team_id and player_match_team_id and str(player_match_team_id) != str(player_own_team_id):
-                            # Player is playing as a substitute for a different team, so their partners are also substitutes
-                            partner_win_counts[partner]["is_substitute"] = True
+                        # Check if the PARTNER is playing for a different team than their normal team
+                        try:
+                            partner_teams_query = """
+                                SELECT team_id 
+                                FROM players 
+                                WHERE tenniscores_player_id = %s 
+                                AND league_id = %s
+                                AND is_active = true
+                            """
+                            partner_teams = execute_query(partner_teams_query, [partner, league_id_int])
+                            partner_team_ids = [team['team_id'] for team in partner_teams if team['team_id']]
                             
-                            # Get series name for the substitute team
-                            if not partner_win_counts[partner]["substitute_series"]:
-                                try:
-                                    series_query = """
-                                        SELECT s.name as series_name, s.display_name as series_display_name
-                                        FROM teams t
-                                        JOIN series s ON t.series_id = s.id
-                                        WHERE t.id = %s
-                                    """
-                                    series_result = execute_query_one(series_query, [match_team_id])
-                                    if series_result:
-                                        # Use display_name if available, otherwise fall back to name
-                                        series_name = series_result.get("series_display_name") or series_result["series_name"]
-                                        
-                                        # Convert Chicago format to Series format for UI display
-                                        from app.routes.api_routes import convert_chicago_to_series_for_ui
-                                        display_series_name = convert_chicago_to_series_for_ui(series_name)
-                                        
-                                        partner_win_counts[partner]["substitute_series"] = display_series_name
-                                except Exception as e:
-                                    print(f"Error getting series name for team {match_team_id}: {e}")
-                                    partner_win_counts[partner]["substitute_series"] = "Unknown Series"
+                            # Partner is a substitute if the match team is NOT one of their normal teams
+                            if partner_team_ids and match_team_id and match_team_id not in partner_team_ids:
+                                partner_win_counts[partner]["is_substitute"] = True
+                                
+                                # Get series name for the substitute team
+                                if not partner_win_counts[partner]["substitute_series"]:
+                                    try:
+                                        series_query = """
+                                            SELECT s.name as series_name, s.display_name as series_display_name
+                                            FROM teams t
+                                            JOIN series s ON t.series_id = s.id
+                                            WHERE t.id = %s
+                                        """
+                                        series_result = execute_query_one(series_query, [match_team_id])
+                                        if series_result:
+                                            # Use display_name if available, otherwise fall back to name
+                                            series_name = series_result.get("series_display_name") or series_result["series_name"]
+                                            
+                                            # Convert Chicago format to Series format for UI display
+                                            from app.routes.api_routes import convert_chicago_to_series_for_ui
+                                            display_series_name = convert_chicago_to_series_for_ui(series_name)
+                                            
+                                            partner_win_counts[partner]["substitute_series"] = display_series_name
+                                    except Exception as e:
+                                        print(f"Error getting series name for team {match_team_id}: {e}")
+                                        partner_win_counts[partner]["substitute_series"] = "Unknown Series"
+                        except Exception as e:
+                            print(f"Error checking partner substitute status: {e}")
+                            # Default to not a substitute if we can't determine
+                            pass
 
                 win_rate = (
                     round((wins / (wins + losses) * 100), 1)
