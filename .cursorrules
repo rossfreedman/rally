@@ -41,3 +41,9 @@
 # Safeguards
 - Remind me periodically to test my changes in a dev/staging environment.
 - If a change could introduce bugs or technical debt, flag it with a warning and suggest mitigation.
+
+# Database Updates
+- Use database migrations consistently across all environments
+- Keep SQLAlchemy models in sync with actual database schema
+- Test registration flows in staging before production deployment
+- Consider database schema comparison scripts to catch drift early
