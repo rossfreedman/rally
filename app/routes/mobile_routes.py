@@ -1329,6 +1329,40 @@ def get_season_history():
                 print(
                     f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}, Matches: {record['matches_count']}"
                 )
+        
+        # ENHANCED DEBUG: Show detailed series selection for 2024-2025 season specifically
+        debug_2024_query = """
+            SELECT 
+                sd.series,
+                COUNT(*) as match_count,
+                MIN(sd.date) as first_match,
+                MAX(sd.date) as last_match
+            FROM player_history sd
+            WHERE sd.player_id = %s
+            AND CASE 
+                WHEN EXTRACT(MONTH FROM sd.date) >= 8 THEN EXTRACT(YEAR FROM sd.date)
+                ELSE EXTRACT(YEAR FROM sd.date) - 1
+            END = 2024
+            AND POSITION('tournament' IN LOWER(sd.series)) = 0
+            AND POSITION('pti' IN LOWER(sd.series)) = 0
+            AND (
+                sd.series ~ '^Series\s+[0-9]+'
+                OR sd.series ~ '^Division\s+[0-9]+'
+                OR sd.series ~ '^Chicago[:\s]+[0-9]+'
+            )
+            GROUP BY sd.series
+            ORDER BY COUNT(*) DESC, sd.series DESC
+        """
+        debug_2024_results = execute_query(debug_2024_query, [player_db_id])
+        print(f"[DEBUG] Season History - 2024-2025 season series breakdown:")
+        for record in debug_2024_results:
+            print(f"  {record['series']}: {record['match_count']} matches ({record['first_match']} to {record['last_match']})")
+        
+        if debug_2024_results:
+            selected_series = debug_2024_results[0]['series']
+            print(f"[DEBUG] Season History - SELECTED for 2024-2025: {selected_series} (with {debug_2024_results[0]['match_count']} matches)")
+        else:
+            print(f"[DEBUG] Season History - NO SERIES FOUND for 2024-2025 season")
 
         if not season_records:
             print(
@@ -1828,6 +1862,40 @@ def get_player_season_history(player_name):
         print(
             f"[DEBUG] Player Season History - Player ID {player_db_id} query returned {len(season_records) if season_records else 0} records"
         )
+        
+        # ENHANCED DEBUG: Show 2024-2025 series selection for this endpoint too
+        debug_2024_query = """
+            SELECT 
+                sd.series,
+                COUNT(*) as match_count,
+                MIN(sd.date) as first_match,
+                MAX(sd.date) as last_match
+            FROM player_history sd
+            WHERE sd.player_id = %s
+            AND CASE 
+                WHEN EXTRACT(MONTH FROM sd.date) >= 8 THEN EXTRACT(YEAR FROM sd.date)
+                ELSE EXTRACT(YEAR FROM sd.date) - 1
+            END = 2024
+            AND POSITION('tournament' IN LOWER(sd.series)) = 0
+            AND POSITION('pti' IN LOWER(sd.series)) = 0
+            AND (
+                sd.series ~ '^Series\s+[0-9]+'
+                OR sd.series ~ '^Division\s+[0-9]+'
+                OR sd.series ~ '^Chicago[:\s]+[0-9]+'
+            )
+            GROUP BY sd.series
+            ORDER BY COUNT(*) DESC, sd.series DESC
+        """
+        debug_2024_results = execute_query(debug_2024_query, [player_db_id])
+        print(f"[DEBUG] Player Season History - 2024-2025 season series breakdown:")
+        for record in debug_2024_results:
+            print(f"  {record['series']}: {record['match_count']} matches ({record['first_match']} to {record['last_match']})")
+        
+        if debug_2024_results:
+            selected_series = debug_2024_results[0]['series']
+            print(f"[DEBUG] Player Season History - SELECTED for 2024-2025: {selected_series} (with {debug_2024_results[0]['match_count']} matches)")
+        else:
+            print(f"[DEBUG] Player Season History - NO SERIES FOUND for 2024-2025 season")
 
         # SECOND: If no records found with player_id, try matching by tenniscores_player_id in the match data
         # This is a more targeted approach than the broad series matching
