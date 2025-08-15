@@ -71,8 +71,8 @@ function initLoadingIndicator() {
 function initHomePageButtons() {
     console.log('Initializing home page buttons');
     
-    // Target iOS-style cards and legacy buttons
-    const homePageButtons = document.querySelectorAll('.ios-card, .icon-btn, .logout-btn');
+    // Target iOS-style cards and all button types
+    const homePageButtons = document.querySelectorAll('.ios-card, .icon-btn, .logout-btn, .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button');
     
     homePageButtons.forEach(button => {
         // Skip if this button is inside the nav drawer
