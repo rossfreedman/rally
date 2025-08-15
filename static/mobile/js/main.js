@@ -147,10 +147,10 @@ function handleNavigationClick(event, element, loadingClass) {
     // Show loading indicator
     showLoadingIndicator(getLoadingTextForUrl(href));
     
-    // Navigate after a short delay (allows loading indicator to show)
+    // Navigate after a longer delay (allows loading indicator to show)
     setTimeout(() => {
         window.location.href = href;
-    }, 150);
+    }, 800);
     
     // Safety timeout - hide loading indicator after 10 seconds if still showing
     setTimeout(() => {
