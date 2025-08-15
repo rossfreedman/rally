@@ -610,9 +610,10 @@ def get_player_analysis(user):
 
                 
                 if other_team_ids:
-                    # CORRECTED LOGIC: Only show matches where current team was involved
-                    # This eliminates substitute appearances for other series completely
-                    history_query = """
+                    # BALANCED LOGIC: Include current team matches + player's actual substitute appearances
+                    # Exclude matches from other permanent teams where player didn't participate
+                    other_teams_placeholders = ','.join(['%s'] * len(other_team_ids))
+                    history_query = f"""
                         SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
                             id,
                             TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -631,10 +632,13 @@ def get_player_analysis(user):
                         WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                         AND league_id = %s
                         AND match_date >= %s AND match_date <= %s
-                        AND (home_team_id = %s OR away_team_id = %s)
+                        AND (
+                            (home_team_id = %s OR away_team_id = %s) OR
+                            NOT (home_team_id IN ({other_teams_placeholders}) OR away_team_id IN ({other_teams_placeholders}))
+                        )
                         ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
                     """
-                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context]
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context] + other_team_ids + other_team_ids
                 else:
                     # No other teams to exclude - show all matches
                     history_query = """
