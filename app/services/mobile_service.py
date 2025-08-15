@@ -980,6 +980,13 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 }
                 for i in range(1, 6)
             }
+        
+        # DEBUG LOGGING
+        print(f"[COURT DEBUG] Starting court analysis for player {player_id}")
+        print(f"[COURT DEBUG] Total player matches: {len(player_matches)}")
+        for i, match in enumerate(player_matches):
+            print(f"[COURT DEBUG] Match {i+1}: {match.get('Date', 'Unknown')} {match.get('Home Team', '')} vs {match.get('Away Team', '')} | ID: {match.get('tenniscores_match_id', 'None')}")
+        print(f"[COURT DEBUG] User team context: {user.get('team_id') if user else None}")
 
         def parse_date(date_str):
             if not date_str:
@@ -1082,8 +1089,14 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         # Fallback to court 1 if no tenniscores_match_id
                         court_number = 1
                     
+                    # DEBUG LOGGING
+                    print(f"[COURT DEBUG] Match {match.get('Date', 'Unknown')} {match.get('Home Team', '')} vs {match.get('Away Team', '')}: Match ID={tenniscores_match_id}, Court={court_number}, Looking for Court {i}")
+                    
                     if court_number == i:  # This match belongs to court i
                         court_matches.append(match)
+                        print(f"[COURT DEBUG] ✅ Added match to Court {i}")
+                
+                print(f"[COURT DEBUG] Court {i} final matches: {len(court_matches)}")
 
                 wins = losses = 0
                 partner_win_counts = {}
