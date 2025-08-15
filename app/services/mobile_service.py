@@ -1041,50 +1041,20 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 # Fallback: Use only player's matches even without league filter
                 all_matches_on_dates = player_matches
 
-            # Group matches by date and team matchup
-            matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
-            for match in all_matches_on_dates:
-                date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-                matches_by_date_and_teams[date][team_matchup].append(match)
-
-            # Find the maximum court number from the player's matches
-            max_court = 5  # Default to 5 courts to include Court 5  # Default to 4 courts
+            # SIMPLIFIED: Find max court directly from player's matches
+            max_court = 4  # Default to 4 courts
             for match in player_matches:
-                match_date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-                
-                # Find this specific match in the grouped data
-                team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
-                
-                # Find the match with the same players to get its tenniscores_match_id
-                for team_match in team_day_matches:
-                    # Match by checking if it's the same match (by players)
-                    if (
-                        match.get("Home Player 1") == team_match.get("Home Player 1")
-                        and match.get("Home Player 2") == team_match.get("Home Player 2")
-                        and match.get("Away Player 1") == team_match.get("Away Player 1")
-                        and match.get("Away Player 2") == team_match.get("Away Player 2")
-                    ):
-                        # Extract court number from tenniscores_match_id
-                        tenniscores_match_id = team_match.get("tenniscores_match_id", "")
-                        if tenniscores_match_id and "_Line" in tenniscores_match_id:
-                            # Extract line number from tenniscores_match_id
-                            line_parts = tenniscores_match_id.split("_Line")
-                            if len(line_parts) > 1:
-                                line_part = line_parts[-1]  # Take the last part
-                                try:
-                                    court_number = int(line_part)
-                                    max_court = max(max_court, court_number)
-                                except ValueError:
-                                    pass
-                        break
+                tenniscores_match_id = match.get("tenniscores_match_id", "")
+                if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                    line_parts = tenniscores_match_id.split("_Line")
+                    if len(line_parts) > 1:
+                        try:
+                            court_number = int(line_parts[-1])
+                            max_court = max(max_court, court_number)
+                        except ValueError:
+                            pass
             
-            # Use the maximum court number found, but cap at 6 for safety
+            # Cap at 6 for safety
             max_court = min(max_court, 6)
             
             # Initialize court stats for all courts up to max_court
@@ -1092,50 +1062,28 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                 court_name = f"court{i}"  # Template expects "court1", "court2", etc.
                 court_matches = []
 
-                # Find matches for this court using tenniscores_match_id logic
+                # SIMPLIFIED: Find matches for this court directly from player's matches
                 for match in player_matches:
-                    match_date = match.get("Date")
-                    home_team = match.get("Home Team", "")
-                    away_team = match.get("Away Team", "")
-                    team_matchup = f"{home_team} vs {away_team}"
-
-                    # Find this specific match in the grouped data
-                    team_day_matches = matches_by_date_and_teams[match_date][team_matchup]
+                    tenniscores_match_id = match.get("tenniscores_match_id", "")
+                    court_number = None
                     
-                    # Find the match with the same players to get its tenniscores_match_id
-                    for team_match in team_day_matches:
-                        # Match by checking if it's the same match (by players)
-                        if (
-                            match.get("Home Player 1") == team_match.get("Home Player 1")
-                            and match.get("Home Player 2") == team_match.get("Home Player 2")
-                            and match.get("Away Player 1") == team_match.get("Away Player 1")
-                            and match.get("Away Player 2") == team_match.get("Away Player 2")
-                        ):
-                            # Extract court number from tenniscores_match_id
-                            tenniscores_match_id = team_match.get("tenniscores_match_id", "")
-                            court_number = None
-                            
-                            if tenniscores_match_id and "_Line" in tenniscores_match_id:
-                                # Extract line number from tenniscores_match_id (e.g., "12345_Line2_Line2" -> 2)
-                                # Handle duplicate _Line pattern by taking the last occurrence
-                                line_parts = tenniscores_match_id.split("_Line")
-                                if len(line_parts) > 1:
-                                    line_part = line_parts[-1]  # Take the last part
-                                    try:
-                                        court_number = int(line_part)
-                                    except ValueError:
-                                        # Fallback to database ID order if parsing fails
-                                        court_number = ((team_day_matches.index(team_match) % 4) + 1)
-                                else:
-                                    # Fallback to database ID order if no line number found
-                                    court_number = ((team_day_matches.index(team_match) % 4) + 1)
-                            else:
-                                # Fallback to database ID order if no tenniscores_match_id
-                                court_number = ((team_day_matches.index(team_match) % 4) + 1)
-                            
-                            if court_number == i:  # This match belongs to court i (1-4)
-                                court_matches.append(match)
-                            break
+                    if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                        # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                        line_parts = tenniscores_match_id.split("_Line")
+                        if len(line_parts) > 1:
+                            try:
+                                court_number = int(line_parts[-1])
+                            except ValueError:
+                                # Fallback to court 1 if parsing fails
+                                court_number = 1
+                        else:
+                            court_number = 1
+                    else:
+                        # Fallback to court 1 if no tenniscores_match_id
+                        court_number = 1
+                    
+                    if court_number == i:  # This match belongs to court i
+                        court_matches.append(match)
 
                 wins = losses = 0
                 partner_win_counts = {}
