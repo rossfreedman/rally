@@ -610,9 +610,11 @@ def get_player_analysis(user):
 
                 
                 if other_team_ids:
-                    # BALANCED LOGIC: Include current team matches + player's actual substitute appearances
-                    # Exclude matches from other permanent teams where player didn't participate
-                    other_teams_placeholders = ','.join(['%s'] * len(other_team_ids))
+                    # SIMPLE LOGIC: Only show current team matches + where logged-in player substituted
+                    # Get ALL of player's normal team IDs (current team + other permanent teams)
+                    all_player_teams = [team_context] + other_team_ids
+                    all_teams_placeholders = ','.join(['%s'] * len(all_player_teams))
+                    
                     history_query = f"""
                         SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
                             id,
@@ -634,11 +636,11 @@ def get_player_analysis(user):
                         AND match_date >= %s AND match_date <= %s
                         AND (
                             (home_team_id = %s OR away_team_id = %s) OR
-                            NOT (home_team_id IN ({other_teams_placeholders}) OR away_team_id IN ({other_teams_placeholders}))
+                            NOT (home_team_id IN ({all_teams_placeholders}) OR away_team_id IN ({all_teams_placeholders}))
                         )
                         ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
                     """
-                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context] + other_team_ids + other_team_ids
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, team_context, team_context] + all_player_teams + all_player_teams
                 else:
                     # No other teams to exclude - show all matches
                     history_query = """
@@ -1193,56 +1195,9 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         except Exception as e:
                             print(f"Error getting player's own team: {e}")
                         
-                        # CORRECTED: Check if the PARTNER is a substitute by checking their normal team vs match team
-                        # Determine which team this match was for
-                        match_team_id = None
-                        if is_home:
-                            match_team_id = match.get("home_team_id")
-                        else:
-                            match_team_id = match.get("away_team_id")
-                        
-                        # Check if the PARTNER is playing for a different team than their normal team
-                        try:
-                            partner_teams_query = """
-                                SELECT team_id 
-                                FROM players 
-                                WHERE tenniscores_player_id = %s 
-                                AND league_id = %s
-                                AND is_active = true
-                            """
-                            partner_teams = execute_query(partner_teams_query, [partner, league_id_int])
-                            partner_team_ids = [team['team_id'] for team in partner_teams if team['team_id']]
-                            
-                            # Partner is a substitute if the match team is NOT one of their normal teams
-                            if partner_team_ids and match_team_id and match_team_id not in partner_team_ids:
-                                partner_win_counts[partner]["is_substitute"] = True
-                                
-                                # Get series name for the substitute team
-                                if not partner_win_counts[partner]["substitute_series"]:
-                                    try:
-                                        series_query = """
-                                            SELECT s.name as series_name, s.display_name as series_display_name
-                                            FROM teams t
-                                            JOIN series s ON t.series_id = s.id
-                                            WHERE t.id = %s
-                                        """
-                                        series_result = execute_query_one(series_query, [match_team_id])
-                                        if series_result:
-                                            # Use display_name if available, otherwise fall back to name
-                                            series_name = series_result.get("series_display_name") or series_result["series_name"]
-                                            
-                                            # Convert Chicago format to Series format for UI display
-                                            from app.routes.api_routes import convert_chicago_to_series_for_ui
-                                            display_series_name = convert_chicago_to_series_for_ui(series_name)
-                                            
-                                            partner_win_counts[partner]["substitute_series"] = display_series_name
-                                    except Exception as e:
-                                        print(f"Error getting series name for team {match_team_id}: {e}")
-                                        partner_win_counts[partner]["substitute_series"] = "Unknown Series"
-                        except Exception as e:
-                            print(f"Error checking partner substitute status: {e}")
-                            # Default to not a substitute if we can't determine
-                            pass
+                        # SIMPLIFIED: No partner substitute detection needed
+                        # Only care about showing matches where the logged-in player substituted
+                        # Partners are just shown normally without substitute labels
 
                 win_rate = (
                     round((wins / (wins + losses) * 100), 1)
