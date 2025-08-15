@@ -488,6 +488,51 @@ def get_last_3_matches():
                 not is_home and winner == "away"
             )
 
+            # ✅ ADD COURT NUMBER CALCULATION
+            # Get all matches for this team matchup on this date to determine court assignment
+            home_team = match.get("Home Team")
+            away_team = match.get("Away Team")
+            match_date = match.get("match_date")
+            
+            court_number = "Court 1"  # default
+            if home_team and away_team and match_date:
+                try:
+                    matchup_query = """
+                        SELECT id FROM match_scores
+                        WHERE match_date = %s AND home_team = %s AND away_team = %s
+                        ORDER BY id
+                    """
+                    matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
+                    
+                    # Find court number based on position in sorted list
+                    # We need the current match ID to determine position
+                    current_match_query = """
+                        SELECT id FROM match_scores 
+                        WHERE match_date = %s AND home_team = %s AND away_team = %s 
+                        AND home_player_1_id = %s AND home_player_2_id = %s
+                        AND away_player_1_id = %s AND away_player_2_id = %s
+                        AND winner = %s AND scores = %s
+                        ORDER BY id
+                        LIMIT 1
+                    """
+                    current_match = execute_query_one(current_match_query, [
+                        match_date, home_team, away_team,
+                        match.get("Home Player 1"), match.get("Home Player 2"),
+                        match.get("Away Player 1"), match.get("Away Player 2"),
+                        match.get("Winner"), match.get("Scores")
+                    ])
+                    
+                    if current_match and matchup_matches:
+                        current_match_id = current_match["id"]
+                        for idx, matchup_match in enumerate(matchup_matches):
+                            if matchup_match["id"] == current_match_id:
+                                court_number = f"Court {idx + 1}"
+                                break
+                                
+                except Exception as e:
+                    print(f"[DEBUG] Error calculating court number: {e}")
+                    court_number = "Court 1"  # fallback
+
             # Get partner name
             if is_home:
                 partner_id = (
@@ -577,6 +622,7 @@ def get_last_3_matches():
                 "opponent1_name": opponent1_name,
                 "opponent2_name": opponent2_name,
                 "match_result": "Won" if player_won else "Lost",
+                "court_number": court_number,  # ✅ ADD COURT NUMBER
             }
             processed_matches.append(processed_match)
 
@@ -875,6 +921,218 @@ def get_team_last_3_matches():
         import traceback
 
         print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve team matches"}), 500
+
+
+@api_bp.route("/api/team-last-3-matches-by-id")
+@login_required
+def get_team_last_3_matches_by_id():
+    """Get the last 3 matches for a specific team by team_id"""
+    try:
+        team_id = request.args.get("team_id")
+        
+        if not team_id:
+            return jsonify({"error": "Team ID is required"}), 400
+
+        # Get team information
+        team_query = """
+            SELECT t.id, t.team_name, c.name as club_name, s.name as series_name, l.id as league_id
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            WHERE t.id = %s
+        """
+        team_record = execute_query_one(team_query, [team_id])
+
+        if not team_record:
+            return jsonify({"error": "Team not found"}), 404
+
+        team_name = team_record["team_name"]
+        league_id_int = team_record["league_id"]
+
+        # Query the last 3 TEAM matches (not individual player matches)
+        # Group by date and teams to get unique team match dates
+        team_matches_query = """
+            WITH team_match_dates AS (
+                SELECT DISTINCT 
+                    match_date,
+                    home_team,
+                    away_team
+                FROM match_scores
+                WHERE (home_team_id = %s OR away_team_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+                LIMIT 3
+            )
+            SELECT 
+                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                ms.match_date,
+                ms.home_team as "Home Team",
+                ms.away_team as "Away Team",
+                ms.winner as "Winner",
+                ms.scores as "Scores",
+                ms.home_player_1_id as "Home Player 1",
+                ms.home_player_2_id as "Home Player 2",
+                ms.away_player_1_id as "Away Player 1",
+                ms.away_player_2_id as "Away Player 2",
+                ms.id as "Match ID"
+            FROM match_scores ms
+            INNER JOIN team_match_dates tmd ON (
+                ms.match_date = tmd.match_date 
+                AND ms.home_team = tmd.home_team 
+                AND ms.away_team = tmd.away_team
+            )
+            WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+            AND ms.league_id = %s
+            ORDER BY ms.match_date DESC, ms.id
+        """
+        matches = execute_query(team_matches_query, [team_id, team_id, league_id_int, team_id, team_id, league_id_int])
+
+        if not matches:
+            return jsonify({"error": "No matches found for this team"}), 404
+
+        # Import helper function for name conversion
+        from app.services.mobile_service import get_player_name_from_id
+
+        # Group matches by date and teams to create team match summaries
+        team_matches_dict = {}
+        
+        for match in matches:
+            match_date = match["Date"]
+            home_team = match["Home Team"]
+            away_team = match["Away Team"]
+            
+            # Create unique key for each team matchup
+            match_key = f"{match_date}_{home_team}_{away_team}"
+            
+            if match_key not in team_matches_dict:
+                # Determine if our team is home or away
+                is_home_team = home_team == team_name
+                opponent_team = away_team if is_home_team else home_team
+                
+                team_matches_dict[match_key] = {
+                    "date": match_date,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "opponent_team": opponent_team,
+                    "is_home_team": is_home_team,
+                    "individual_matches": [],
+                    "scores": [],
+                    "wins": 0,
+                    "losses": 0
+                }
+            
+            # Add this individual match to the team match
+            team_match = team_matches_dict[match_key]
+            
+            # Determine if this individual match was won by our team
+            winner = match["Winner"]
+            if winner:
+                if (team_match["is_home_team"] and winner.lower() == "home") or \
+                   (not team_match["is_home_team"] and winner.lower() == "away"):
+                    team_match["wins"] += 1
+                else:
+                    team_match["losses"] += 1
+            
+            # Convert player IDs to names
+            home_player_1_name = get_player_name_from_id(match["Home Player 1"]) if match["Home Player 1"] else "Unknown"
+            home_player_2_name = get_player_name_from_id(match["Home Player 2"]) if match["Home Player 2"] else "Unknown"
+            away_player_1_name = get_player_name_from_id(match["Away Player 1"]) if match["Away Player 1"] else "Unknown"
+            away_player_2_name = get_player_name_from_id(match["Away Player 2"]) if match["Away Player 2"] else "Unknown"
+            
+            # Store individual match data with match ID for court assignment
+            individual_match = {
+                "home_players": f"{home_player_1_name} & {home_player_2_name}",
+                "away_players": f"{away_player_1_name} & {away_player_2_name}",
+                "scores": match["Scores"],
+                "winner": winner,
+                "match_id": match["Match ID"]
+            }
+            
+            team_match["individual_matches"].append(individual_match)
+            if match["Scores"]:
+                team_match["scores"].append(match["Scores"])
+
+        # Convert to list and format for frontend with court-by-court breakdown
+        formatted_matches = []
+        for team_match in team_matches_dict.values():
+            # Determine overall team result
+            team_won = team_match["wins"] > team_match["losses"]
+            
+            # Get all players for home and away (fallback for old format)
+            home_players = list(set([m["home_players"] for m in team_match["individual_matches"]]))
+            away_players = list(set([m["away_players"] for m in team_match["individual_matches"]]))
+            
+            # Create court-by-court results
+            court_results = []
+            
+            # Group individual matches by court (determine court from position)
+            individual_matches = team_match["individual_matches"]
+            
+            # Sort matches by database ID to determine court assignment (same as court analysis)
+            individual_matches.sort(key=lambda x: x["match_id"])
+            
+            for idx, match in enumerate(individual_matches):
+                # Determine court number (1-4) based on database ID order position
+                court_number = (idx % 4) + 1
+                
+                # Determine if this court result was won by our team
+                winner = match["winner"]
+                court_won = False
+                if winner:
+                    if (team_match["is_home_team"] and winner.lower() == "home") or \
+                       (not team_match["is_home_team"] and winner.lower() == "away"):
+                        court_won = True
+                
+                # Get the players for this specific court/match
+                if team_match["is_home_team"]:
+                    our_players = match["home_players"]
+                    opponent_players = match["away_players"]
+                else:
+                    our_players = match["away_players"]
+                    opponent_players = match["home_players"]
+                
+                court_result = {
+                    "court_number": court_number,
+                    "score": match["scores"] or "No score",
+                    "won": court_won,
+                    "players": our_players,
+                    "opponent_players": opponent_players
+                }
+                
+                court_results.append(court_result)
+            
+            # Sort court results by court number
+            court_results.sort(key=lambda x: x["court_number"])
+            
+            formatted_match = {
+                "date": team_match["date"],
+                "opponent_team": team_match["opponent_team"],
+                "team_won": team_won,
+                "home_team": team_match["home_team"],
+                "away_team": team_match["away_team"],
+                "home_players": "; ".join(home_players),
+                "away_players": "; ".join(away_players),
+                "all_scores": "; ".join(team_match["scores"]),
+                "wins": team_match["wins"],
+                "losses": team_match["losses"],
+                "court_results": court_results
+            }
+            
+            formatted_matches.append(formatted_match)
+
+        # Sort by date (newest first)
+        formatted_matches.sort(key=lambda x: x["date"], reverse=True)
+
+        return jsonify({
+            "matches": formatted_matches,
+            "team_name": team_name,
+            "team_id": team_id
+        })
+
+    except Exception as e:
+        print(f"Error retrieving team matches: {e}")
         return jsonify({"error": "Failed to retrieve team matches"}), 500
 
 
@@ -3199,10 +3457,11 @@ def get_user_facing_series_by_league():
             except Exception as e:
                 print(f"[WARNING] Could not convert integer league_id: {e}")
             
-        # SIMPLIFIED: Get series with display names using the new display_name column
+        # ✅ ID-BASED: Get series with IDs, names, and display names
         # FILTER: Only include series that have teams or players (excluding empty artifacts)
-        simplified_query = """
+        id_based_query = """
             SELECT DISTINCT 
+                s.id as series_id,
                 s.name as database_series_name,
                 COALESCE(s.display_name, s.name) as display_name
             FROM series s
@@ -3215,12 +3474,13 @@ def get_user_facing_series_by_league():
               )
             ORDER BY s.name
         """
-        series_data = execute_query(simplified_query, (league_id,))
+        series_data = execute_query(id_based_query, (league_id,))
         
-        # Process all series and use display_name if available, fallback to transformations
-        user_facing_names = []
+        # ✅ ID-BASED: Process all series and return objects with IDs, names, and display
+        series_objects = []
         
         for series_item in series_data:
+            series_id = series_item["series_id"]
             database_name = series_item["database_series_name"]
             display_name = series_item["display_name"]
             
@@ -3228,6 +3488,9 @@ def get_user_facing_series_by_league():
             if league_id and league_id.startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
                 print(f"[API] Skipping problematic series: {database_name}")
                 continue
+            
+            # Determine user-facing display name
+            user_facing_name = database_name  # Default
             
             # Special handling for CNSWPL to create consistent, user-friendly names
             if league_id == 'CNSWPL':
@@ -3250,22 +3513,30 @@ def get_user_facing_series_by_league():
                             user_facing_name = converted_name
                             print(f"[API] Applied fallback transformation: '{database_name}' -> '{user_facing_name}'")
             
-            user_facing_names.append(user_facing_name)
+            # ✅ ID-BASED: Create series object with all necessary data
+            series_objects.append({
+                "id": series_id,
+                "name": database_name,
+                "display": user_facing_name
+            })
         
-        # DEDUPLICATION FIX: Remove duplicates while preserving order
-        # This fixes the issue where both "Chicago X" and "Division X" map to "Series X"
-        seen = set()
-        series_names = []
-        for name in user_facing_names:
-            if name not in seen:
-                seen.add(name)
-                series_names.append(name)
+        # ✅ ID-BASED: DEDUPLICATION FIX using series objects 
+        # Remove duplicates by display name while preserving order and IDs
+        seen_displays = set()
+        unique_series = []
+        for series_obj in series_objects:
+            display_name = series_obj["display"]
+            if display_name not in seen_displays:
+                seen_displays.add(display_name)
+                unique_series.append(series_obj)
                 
-        print(f"[API] Deduplicated series list: {len(user_facing_names)} -> {len(series_names)} unique series")
+        print(f"[API] Deduplicated series list: {len(series_objects)} -> {len(unique_series)} unique series")
 
-        # CNSWPL-specific sorting: Day League (1,2,3...) -> Night League (A,B,C...) -> Sunday Night (N)
-        def get_cnswpl_sort_key(series_name):
+        # ✅ ID-BASED: CNSWPL-specific sorting using series objects
+        def get_cnswpl_sort_key_obj(series_obj):
             import re
+            
+            series_name = series_obj["display"]
             
             # For CNSWPL league, implement the user's three-category system:
             # 1. Day League (Series 1, 2, 3...)
@@ -3339,10 +3610,12 @@ def get_user_facing_series_by_league():
             # Everything else goes last (sorted alphabetically)
             return (2, 0, 0, series_name)
 
-        series_names.sort(key=get_cnswpl_sort_key)
+        # ✅ ID-BASED: Sort series objects and return
+        unique_series.sort(key=get_cnswpl_sort_key_obj)
         
-        print(f"[API] Returning user-facing series for {league_id}: {series_names}")
-        return jsonify({"series": series_names})
+        print(f"[API] Returning ID-based series for {league_id}: {len(unique_series)} series with IDs")
+        print(f"[API] Sample series object: {unique_series[0] if unique_series else 'None'}")
+        return jsonify({"series": unique_series})
 
     except Exception as e:
         print(f"Error getting user-facing series by league: {str(e)}")
@@ -9110,32 +9383,39 @@ def get_partner_matches_team():
         else:
             print(f"[DEBUG] API: No team_id provided, using current player approach")
             
-            # For analyze-me page, try to get user's current team context from session
-            session_team_id = user.get("team_id")
-            if session_team_id:
-                print(f"[DEBUG] API: Found session team_id: {session_team_id}")
-                team_query = """
-                    SELECT t.id, t.team_name, COALESCE(t.team_alias, t.team_name) as display_name,
-                           c.name as club_name, s.name as series_name
-                    FROM teams t
-                    JOIN clubs c ON t.club_id = c.id
-                    JOIN series s ON t.series_id = s.id
-                    WHERE t.id = %s
-                """
-                if league_id_int:
-                    team_query += " AND t.league_id = %s"
-                    team_info = execute_query_one(team_query, [session_team_id, league_id_int])
+            # Check if this is analyze-me page (current_player matches session user) or player detail page
+            session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            
+            if current_player == session_player_name:
+                print(f"[DEBUG] API: Analyze-me page detected - using session team context")
+                # For analyze-me page, try to get user's current team context from session
+                session_team_id = user.get("team_id")
+                if session_team_id:
+                    print(f"[DEBUG] API: Found session team_id: {session_team_id}")
+                    team_query = """
+                        SELECT t.id, t.team_name, COALESCE(t.team_alias, t.team_name) as display_name,
+                               c.name as club_name, s.name as series_name
+                        FROM teams t
+                        JOIN clubs c ON t.club_id = c.id
+                        JOIN series s ON t.series_id = s.id
+                        WHERE t.id = %s
+                    """
+                    if league_id_int:
+                        team_query += " AND t.league_id = %s"
+                        team_info = execute_query_one(team_query, [session_team_id, league_id_int])
+                    else:
+                        team_info = execute_query_one(team_query, [session_team_id])
+                    
+                    if team_info:
+                        team_id = session_team_id  # Set team_id for later use
+                        team_name = team_info["team_name"]
+                        print(f"[DEBUG] API: Using session team context - ID: {team_id}, Name: '{team_name}'")
+                    else:
+                        print(f"[DEBUG] API: Session team_id {session_team_id} not found in database")
                 else:
-                    team_info = execute_query_one(team_query, [session_team_id])
-                
-                if team_info:
-                    team_id = session_team_id  # Set team_id for later use
-                    team_name = team_info["team_name"]
-                    print(f"[DEBUG] API: Using session team context - ID: {team_id}, Name: '{team_name}'")
-                else:
-                    print(f"[DEBUG] API: Session team_id {session_team_id} not found in database")
+                    print(f"[DEBUG] API: No session team_id available")
             else:
-                print(f"[DEBUG] API: No session team_id available")
+                print(f"[DEBUG] API: Player detail page detected - will find player's actual team after name conversion")
         
         # Calculate current season boundaries
         from datetime import datetime
@@ -9225,9 +9505,36 @@ def get_partner_matches_team():
             player_id = main_player_id
             print(f"[DEBUG] API: Using session player ID: {player_id}")
         else:
-            # Convert name to player ID (for teams-players page)
+            # Convert name to player ID (for teams-players page OR player detail page without team context)
             player_id = get_player_id_from_name(main_player, team_name)
             print(f"[DEBUG] API: Player ID for '{main_player}': {player_id}")
+            
+            # For player detail page requests (no team context), find the player's actual team
+            if not team_name and player_id:
+                print(f"[DEBUG] API: Player detail page detected - finding actual team for player '{main_player}'")
+                # Find the team(s) this player actually plays for
+                player_teams_query = """
+                    SELECT DISTINCT t.team_name, t.id as team_id, COUNT(ms.id) as match_count
+                    FROM players p
+                    JOIN teams t ON p.team_id = t.id
+                    LEFT JOIN match_scores ms ON (
+                        (ms.home_player_1_id = p.tenniscores_player_id OR ms.home_player_2_id = p.tenniscores_player_id OR
+                         ms.away_player_1_id = p.tenniscores_player_id OR ms.away_player_2_id = p.tenniscores_player_id)
+                        AND ms.match_date >= %s AND ms.match_date <= %s
+                    )
+                    WHERE p.tenniscores_player_id = %s
+                    GROUP BY t.team_name, t.id
+                    ORDER BY match_count DESC, t.id DESC
+                    LIMIT 1
+                """
+                player_team_result = execute_query_one(player_teams_query, [season_start, season_end, player_id])
+                
+                if player_team_result and player_team_result['team_name']:
+                    team_name = player_team_result['team_name']
+                    team_id = player_team_result['team_id']
+                    print(f"[DEBUG] API: Found player's primary team - ID: {team_id}, Name: '{team_name}', Match count: {player_team_result['match_count']}")
+                else:
+                    print(f"[DEBUG] API: Could not find team for player '{main_player}' with ID '{player_id}'")
         
         # Build match query for the specific team and player with enhanced debugging
         if team_name:
@@ -9365,6 +9672,7 @@ def get_partner_matches_team():
         print(f"[DEBUG] API: Found {len(raw_matches) if raw_matches else 0} raw matches")
         print(f"[DEBUG] API: Filtering by partner='{partner_filter}' court='{court_filter}'")
         
+
         # If no matches found with full name, try individual name parts (only for name-based search with team)
         if not raw_matches and not player_id and team_name and len(name_parts) > 1:
             print(f"[DEBUG] API: Trying fallback search with name parts: '{first_name_pattern}' and '{last_name_pattern}'")
@@ -9601,6 +9909,240 @@ def get_partner_matches_team():
             formatted_matches.append(formatted_match)
         
         print(f"[DEBUG] API: After filtering, returning {len(formatted_matches)} matches")
+        
+        # ✅ SUBSTITUTE PARTNER FIX: If no matches after filtering and this is a partner query, try league-wide
+        if len(formatted_matches) == 0 and team_name and partner_filter and current_player:
+            print(f"[DEBUG] API: No matches found after filtering for partner '{partner_filter}' on team '{team_name}', trying league-wide search...")
+            
+            # Build league-wide query 
+            league_wide_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                    ms.match_date,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.scores,
+                    ms.id,
+                    CASE 
+                        WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
+                        WHEN ms.away_player_1_id = %s OR ms.away_player_2_id = %s THEN FALSE
+                        ELSE NULL
+                    END as player_was_home,
+                    CASE 
+                        WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                        WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                        ELSE FALSE
+                    END as player_won
+                FROM match_scores ms
+                WHERE ms.match_date >= %s 
+                    AND ms.match_date <= %s
+                    AND ms.league_id = %s
+                    AND (
+                        ms.home_player_1_id = %s OR 
+                        ms.home_player_2_id = %s OR 
+                        ms.away_player_1_id = %s OR 
+                        ms.away_player_2_id = %s
+                    )
+                ORDER BY ms.match_date DESC, ms.id DESC
+            """
+            
+            league_wide_params = [
+                player_id, player_id, player_id, player_id,  # For home/away detection
+                player_id, player_id, player_id, player_id,  # For win calculation
+                season_start, season_end, league_id_int,     # Season and league filters
+                player_id, player_id, player_id, player_id   # Player filters
+            ]
+            
+            league_wide_matches = execute_query(league_wide_query, league_wide_params)
+            print(f"[DEBUG] API: League-wide search found {len(league_wide_matches) if league_wide_matches else 0} raw matches")
+            
+            if league_wide_matches:
+                # ✅ DEBUG: Show sample partner names and courts found
+                print(f"[DEBUG] API: Analyzing first 5 league-wide matches for debugging...")
+                for i, match in enumerate(league_wide_matches[:5]):
+                    is_home = match["player_was_home"]
+                    home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                    away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                    
+                    # Find partner name
+                    if is_home:
+                        partner_id = next((p for p in home_players if p and p != player_id), None)
+                    else:
+                        partner_id = next((p for p in away_players if p and p != player_id), None)
+                    
+                    partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown"
+                    
+                    # Extract court from team names or match data
+                    home_team = match["home_team"]
+                    away_team = match["away_team"]
+                    court_number = "Unknown"
+                    
+                    # Method 1: Check if there's a direct court field
+                    if "court" in match:
+                        court_number = str(match["court"])
+                    elif "court_number" in match:
+                        court_number = str(match["court_number"])
+                    # Method 2: Extract from team names containing "Court"
+                    elif "Court" in home_team or "Court" in away_team:
+                        for team in [home_team, away_team]:
+                            if "Court" in team:
+                                court_parts = team.split("Court")
+                                if len(court_parts) > 1:
+                                    court_num = court_parts[1].strip().split()[0]
+                                    court_number = f"Court {court_num}"
+                                    break
+                    # Method 3: Court might be calculated from match order/ID (common pattern)
+                    else:
+                        # For debugging, show what fields are available
+                        if i < 2:  # Only for first 2 matches
+                            available_fields = list(match.keys())
+                            print(f"[DEBUG] API:   Available match fields: {available_fields}")
+                    
+                    print(f"[DEBUG] API:   Match {i+1}: Partner='{partner_name}', Court='{court_number}', Home='{home_team}', Away='{away_team}'")
+                
+                print(f"[DEBUG] API: Looking for partner='{partner_filter}', court='{court_filter}'")
+                
+                # ✅ DEBUG: Check if Joel appears in ANY of the 21 matches
+                joel_matches = []
+                for i, match in enumerate(league_wide_matches):
+                    is_home = match["player_was_home"]
+                    home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                    away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                    
+                    if is_home:
+                        partner_id = next((p for p in home_players if p and p != player_id), None)
+                    else:
+                        partner_id = next((p for p in away_players if p and p != player_id), None)
+                    
+                    partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown"
+                    
+                    if "joel" in partner_name.lower():
+                        joel_matches.append((i+1, partner_name, match["home_team"], match["away_team"]))
+                
+                print(f"[DEBUG] API: Found {len(joel_matches)} matches with Joel variations:")
+                for match_num, name, home, away in joel_matches:
+                    print(f"[DEBUG] API:   Match {match_num}: Partner='{name}', Home='{home}', Away='{away}'")
+                
+                print(f"[DEBUG] API: Processing all {len(league_wide_matches)} matches...")
+                # Process league-wide matches with same filtering logic
+                league_formatted_matches = []
+                
+                for match in league_wide_matches:
+                    # Determine if player was home or away
+                    is_home = match["player_was_home"]
+                    
+                    if is_home:
+                        # Player is on home team
+                        home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                        away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                        
+                        # Find partner (the other home player)
+                        partner_name = "Unknown"
+                        for p in home_players:
+                            if p and p != player_id:
+                                partner_name = get_player_name_from_id(p)
+                                break
+                        
+                        # Convert opponent IDs to readable names
+                        if away_players[0]:
+                            opponent1_name = get_player_name_from_id(away_players[0])
+                        else:
+                            opponent1_name = "Unknown"
+                            
+                        if away_players[1]:
+                            opponent2_name = get_player_name_from_id(away_players[1])
+                        else:
+                            opponent2_name = "Unknown"
+                    
+                    else:
+                        # Player is on away team
+                        home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                        away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                        
+                        # Find partner (the other away player)
+                        partner_name = "Unknown"
+                        for p in away_players:
+                            if p and p != player_id:
+                                partner_name = get_player_name_from_id(p)
+                                break
+                        
+                        # Convert opponent IDs to readable names
+                        if home_players[0]:
+                            opponent1_name = get_player_name_from_id(home_players[0])
+                        else:
+                            opponent1_name = "Unknown"
+                            
+                        if home_players[1]:
+                            opponent2_name = get_player_name_from_id(home_players[1])
+                        else:
+                            opponent2_name = "Unknown"
+                    
+                    # ✅ FIXED: Extract court number using same logic as team-specific search
+                    home_team = match["home_team"]
+                    away_team = match["away_team"]
+                    match_date = match["match_date"]
+                    
+                    # Get all matches for this team matchup on this date to determine court assignment
+                    matchup_query = """
+                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores
+                        WHERE match_date = %s AND home_team = %s AND away_team = %s
+                        ORDER BY id
+                    """
+                    
+                    matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
+                    
+                    # Find court number based on position in sorted list
+                    court_number = "Court 1"  # default
+                    for idx, matchup_match in enumerate(matchup_matches):
+                        if matchup_match["id"] == match["id"]:
+                            court_number = f"Court {idx + 1}"
+                            break
+                    
+                    # Apply court filter if specified (using same logic as team-specific search)
+                    if court_filter and court_filter != "All Courts":
+                        court_match = str(court_number) == str(court_filter) or court_number == f"Court {court_filter}"
+                        print(f"[DEBUG] API: League-wide court filter check - found: '{court_number}' vs filter: '{court_filter}' -> match: {court_match}")
+                        if not court_match:
+                            print(f"[DEBUG] API: League-wide skipping match - court '{court_number}' doesn't match filter '{court_filter}'")
+                            continue
+                    
+                    # Apply partner filter if specified
+                    if partner_filter:
+                        partner_match = partner_name.lower().strip() == partner_filter.lower().strip()
+                        print(f"[DEBUG] API: League-wide partner filter check - found: '{partner_name}' vs filter: '{partner_filter}' -> match: {partner_match}")
+                        if not partner_match:
+                            print(f"[DEBUG] API: League-wide skipping match - partner '{partner_name}' doesn't match filter '{partner_filter}'")
+                            continue
+                    
+                    formatted_match = {
+                        "date": match["date"],
+                        "home_team": home_team,
+                        "away_team": away_team,
+                        "partner_name": partner_name or "Unknown",
+                        "opponent1_name": opponent1_name,
+                        "opponent2_name": opponent2_name,
+                        "scores": match["scores"] or "No score recorded",
+                        "court_number": court_number,
+                        "player_was_home": is_home,
+                        "player_won": match["player_won"],
+                        "match_result": "WIN" if match["player_won"] else "LOSS"
+                    }
+                    
+                    league_formatted_matches.append(formatted_match)
+                
+                # Use league-wide matches if we found any
+                if len(league_formatted_matches) > 0:
+                    formatted_matches = league_formatted_matches
+                    team_name = None  # Switch to league-wide mode
+                    print(f"[DEBUG] API: ✅ SUCCESS! Found {len(formatted_matches)} matches using league-wide search for substitute partner")
+                else:
+                    print(f"[DEBUG] API: League-wide search found raw matches but none passed filtering")
         
         return jsonify({
             "success": True,

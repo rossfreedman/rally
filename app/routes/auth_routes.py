@@ -15,6 +15,7 @@ from app.services.auth_service_refactored import (
     authenticate_user,
     get_clubs_list,
     register_user,
+    register_user_id_based,
 )
 from app.services.association_discovery_service import AssociationDiscoveryService
 from utils.logging import log_user_activity
@@ -77,7 +78,7 @@ def handle_register():
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
-        # ✅ FIX: Better field extraction with validation
+        # ✅ ID-BASED: Enhanced field extraction with series_id support
         email = (data.get("email", "") if data else "").strip().lower()
         password = (data.get("password", "") if data else "").strip()
         first_name = (data.get("firstName", "") if data else "").strip()
@@ -85,11 +86,16 @@ def handle_register():
         phone_number = (data.get("phoneNumber", "") if data else "").strip()
         league_id = (data.get("league", "") if data else "").strip()
         club_name = (data.get("club", "") if data else "").strip()
+        
+        # NEW: ID-based series handling (backward compatible)
+        series_id = data.get("series_id") if data else None
         series_name = (data.get("series", "") if data else "").strip()
+        series_display = (data.get("series_display", "") if data else "").strip()
+        
         ad_deuce_preference = (data.get("adDeuce", "") if data else "").strip()
         dominant_hand = (data.get("dominantHand", "") if data else "").strip()
 
-        # ✅ FIX: Improved validation with specific error messages
+        # ✅ ID-BASED: Improved validation with series_id priority
         missing_fields = []
         if not email:
             missing_fields.append("email")
@@ -105,8 +111,10 @@ def handle_register():
             missing_fields.append("league")
         if not club_name:
             missing_fields.append("club")
-        if not series_name:
-            missing_fields.append("series")
+        
+        # Require either series_id (preferred) or series_name (backward compatibility)
+        if not series_id and not series_name:
+            missing_fields.append("series or series_id")
 
         if missing_fields:
             return (
@@ -114,10 +122,23 @@ def handle_register():
                 400,
             )
 
-        # Use service to register user with mandatory player association
-        result = register_user(
-            email, password, first_name, last_name, league_id, club_name, series_name, 
-            ad_deuce_preference=ad_deuce_preference, dominant_hand=dominant_hand, phone_number=phone_number
+        # ✅ ID-BASED: Use service to register user with series_id priority
+        logger.info(f"Registration request for {email}: series_id={series_id}, series_name='{series_name}', series_display='{series_display}'")
+        
+        # Call register_user with ID-based approach
+        result = register_user_id_based(
+            email=email,
+            password=password, 
+            first_name=first_name,
+            last_name=last_name,
+            league_id=league_id,
+            club_name=club_name,
+            series_id=series_id,
+            series_name=series_name,  # Fallback for backward compatibility
+            series_display=series_display,  # For logging purposes
+            ad_deuce_preference=ad_deuce_preference,
+            dominant_hand=dominant_hand,
+            phone_number=phone_number
         )
 
         if not result["success"]:

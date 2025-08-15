@@ -680,27 +680,63 @@
 
         // Load series filtered by league
         function loadSeriesByLeague(leagueId = null) {
-            // Use the new API endpoint that returns user-facing series names from database mappings
+            // ✅ ID-BASED: Use the enhanced API endpoint that returns series objects with IDs
             const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
+            
+            console.log('🔍 Loading ID-based series for league:', leagueId);
             
             fetch(url).then(r => r.json()).then(data => {
                 const seriesSelect = document.getElementById('series');
                 seriesSelect.innerHTML = '<option value="">Select your series</option>';
                 
                 if (data.series && Array.isArray(data.series)) {
-                    // Series names are already properly formatted by the database mapping system
-                    // No need for client-side transformations - just use them directly
-                    data.series.forEach(series => {
+                    console.log('📊 Received series data:', data.series);
+                    
+                    data.series.forEach(seriesObj => {
                         const option = document.createElement('option');
-                        option.value = series;  // Use the user-facing name as the value
-                        option.textContent = series;  // Display the user-facing name
+                        
+                        // ✅ DEFENSIVE: Check if we have the new ID-based format
+                        if (typeof seriesObj === 'object' && seriesObj !== null && seriesObj.id) {
+                            // ✅ NEW: ID-based format with series objects
+                            const displayName = seriesObj.display || seriesObj.name || `Series ${seriesObj.id}`;
+                            
+                            option.value = JSON.stringify({
+                                id: seriesObj.id,
+                                name: seriesObj.name || '',
+                                display: displayName
+                            });
+                            option.textContent = displayName;  // Show user-friendly name
+                            
+                            // Add data attributes for debugging
+                            option.setAttribute('data-series-id', seriesObj.id);
+                            option.setAttribute('data-series-name', seriesObj.name || '');
+                            option.setAttribute('data-series-display', displayName);
+                            
+                            console.log(`  ✅ ID-based series: ${displayName} (ID: ${seriesObj.id})`);
+                        } else if (typeof seriesObj === 'string') {
+                            // 📜 LEGACY: String format (backward compatibility)
+                            option.value = seriesObj;
+                            option.textContent = seriesObj;
+                            console.log(`  📜 Legacy series: ${seriesObj}`);
+                        } else {
+                            // 🚨 FALLBACK: Handle unexpected format
+                            console.error('  ❌ Unexpected series format:', seriesObj);
+                            const fallbackText = String(seriesObj) || 'Unknown Series';
+                            option.value = fallbackText;
+                            option.textContent = fallbackText;
+                        }
+                        
                         seriesSelect.appendChild(option);
                     });
+                    
+                    console.log(`✅ Populated series dropdown with ${data.series.length} options`);
                 }
             }).catch(error => {
-                console.error('Error loading series:', error);
+                console.error('❌ Error loading ID-based series:', error);
                 // Fallback to original API if new one fails
                 const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+                console.log('🔄 Falling back to legacy series API');
+                
                 fetch(fallbackUrl).then(r => r.json()).then(data => {
                     const seriesSelect = document.getElementById('series');
                     seriesSelect.innerHTML = '<option value="">Select your series</option>';
@@ -711,6 +747,32 @@
                             option.textContent = series;
                             seriesSelect.appendChild(option);
                         });
+                        console.log(`📜 Fallback: Populated series dropdown with ${data.series.length} legacy options`);
+                    }
+                }).catch(fallbackError => {
+                    console.error('❌ Fallback series loading also failed:', fallbackError);
+                    
+                    // 🆘 EMERGENCY FALLBACK: Hard-coded APTA Chicago series for immediate fix
+                    if (leagueId === 'APTA_CHICAGO') {
+                        console.log('🆘 Using emergency hard-coded APTA Chicago series');
+                        const seriesSelect = document.getElementById('series');
+                        seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                        
+                        const emergencySeries = [
+                            'Series 1', 'Series 2', 'Series 3', 'Series 4', 'Series 5',
+                            'Series 6', 'Series 7', 'Series 8', 'Series 9', 'Series 10',
+                            'Series 11', 'Series 12', 'Series 13', 'Series 14', 'Series 15',
+                            'Series 16', 'Series 17', 'Series 18', 'Series 19', 'Series 20'
+                        ];
+                        
+                        emergencySeries.forEach(series => {
+                            const option = document.createElement('option');
+                            option.value = series;
+                            option.textContent = series;
+                            seriesSelect.appendChild(option);
+                        });
+                        
+                        console.log('🆘 Emergency fallback populated with 20 APTA Chicago series');
                     }
                 });
             });
@@ -946,39 +1008,74 @@
             }
             
             try {
-                // Debug logging to help troubleshoot registration issues
-                console.log('🔍 Registration Debug - Form Values:');
+                // ✅ ID-BASED: Enhanced debug logging and series data extraction
+                console.log('🔍 ID-BASED Registration Debug - Form Values:');
                 console.log('  Email:', email);
                 console.log('  First Name:', firstName);
                 console.log('  Last Name:', lastName);
                 console.log('  League:', league);
                 console.log('  Club:', club);
-                console.log('  Series:', series);
+                console.log('  Series (raw):', series);
                 
-                // Check what the selected series option actually contains
+                // ✅ ID-BASED: Extract series data from dropdown
                 const seriesSelect = document.getElementById('series');
                 const selectedOption = seriesSelect.options[seriesSelect.selectedIndex];
-                console.log('  Series Display Text:', selectedOption?.textContent);
-                console.log('  Series Value (submitted):', selectedOption?.value);
+                let seriesId = null;
+                let seriesDisplay = null;
                 
+                // Check if we have ID-based series data
+                if (selectedOption && selectedOption.value) {
+                    try {
+                        // Try to parse as JSON (new ID-based format)
+                        const seriesData = JSON.parse(selectedOption.value);
+                        if (seriesData.id) {
+                            seriesId = seriesData.id;
+                            seriesDisplay = seriesData.display || selectedOption.textContent;
+                            console.log('  ✅ ID-BASED Series Data:', seriesData);
+                        }
+                    } catch (e) {
+                        // Fallback: treat as series name (backward compatibility)
+                        seriesDisplay = selectedOption.value;
+                        console.log('  📜 LEGACY Series Name:', seriesDisplay);
+                    }
+                }
+                
+                console.log('  Series ID:', seriesId);
+                console.log('  Series Display:', seriesDisplay);
+                console.log('  Series Value (raw):', selectedOption?.value);
+                
+                // ✅ ID-BASED: Build registration payload with series_id priority
+                const registrationPayload = {
+                    email,
+                    phoneNumber,
+                    password,
+                    firstName,
+                    lastName,
+                    league,
+                    club,
+                    adDeuce,
+                    dominantHand
+                };
+
+                // Add series data based on what we extracted
+                if (seriesId) {
+                    // NEW: ID-based registration (preferred)
+                    registrationPayload.series_id = seriesId;
+                    registrationPayload.series_display = seriesDisplay;
+                    console.log('  📤 Sending ID-based registration with series_id:', seriesId);
+                } else {
+                    // FALLBACK: Name-based registration (backward compatibility)
+                    registrationPayload.series = series;
+                    console.log('  📤 Sending legacy registration with series name:', series);
+                }
+
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     credentials: 'include',
-                    body: JSON.stringify({
-                        email,
-                        phoneNumber,
-                        password,
-                        firstName,
-                        lastName,
-                        league,
-                        club,
-                        series,
-                        adDeuce,
-                        dominantHand
-                    })
+                    body: JSON.stringify(registrationPayload)
                 });
                 
                 const data = await response.json();

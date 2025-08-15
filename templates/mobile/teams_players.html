@@ -234,20 +234,27 @@
                             {% for player in players %}
                             <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
                                 <div class="flex-1">
-                                    <div class="flex items-center gap-2">
-                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-gray-900 hover:text-blue-600">{{ player.name }}</a>
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="font-bold text-gray-900">{{ player.name }}</span>
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ player.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                             style="background-color: #045454; color: #bff863;"
+                                             onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
+                                             title="Click to view matches with {{ player.name }}">
+                                            View {{ player.matches|default(0) }} match{{ 'es' if player.matches != 1 else '' }}
+                                        </button>
                                         {% if player.isSubstitute %}
-                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
                                             <i class="fas fa-exchange-alt mr-1"></i>
                                             Sub
                                         </span>
                                         {% endif %}
-                                    </div>
-                                    <div class="text-sm text-gray-600">
-                                        <button onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
-                                                class="text-blue-600 hover:text-blue-800 font-medium underline bg-transparent border-none p-0 cursor-pointer">
-                                            {{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}
-                                        </button>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
@@ -308,21 +315,28 @@
                                 <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Win Rate</th>
-                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Partner</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for player in team_analysis_data.top_players %}
                             <tr class="border-b border-gray-50 hover:bg-gray-50">
                                 <td class="py-2 px-2">
-                                    <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-blue-600 hover:text-blue-800">
-                                        {{ player.name }}
-                                    </a>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ player.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
+                                    </div>
                                 </td>
                                 <td class="py-2 px-2 text-center">
-                                    <button onclick="openPartnerMatchesModal('{{ player.name }}', 'All Courts', {{ player.matches }})" 
-                                            class="text-blue-600 hover:text-blue-800 font-medium underline bg-transparent border-none p-0 cursor-pointer">
-                                        {{ player.matches }}
+                                    <button type="button" class="partner-matches-btn inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none" 
+                                             style="background-color: #045454; color: #bff863;"
+                                             onclick="openPartnerMatchesModal('{{ player.name }}', 'All Courts', {{ player.matches }})" 
+                                             title="Click to view matches with {{ player.name }}">
+                                        View {{ player.matches }}
                                     </button>
                                 </td>
                                 <td class="py-2 px-2 text-center">
@@ -335,11 +349,13 @@
                                         {{ win_rate }}%
                                     </span>
                                 </td>
-                                <td class="py-2 px-2">
-                                    {% if player.best_partner == "Threshold not met" %}
-                                        <span class="text-xs text-gray-500">{{ player.best_partner }}</span>
+                                <td class="py-2 px-2 text-center">
+                                    {% if player.pti %}
+                                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            {{ "%.1f"|format(player.pti) }}
+                                        </span>
                                     {% else %}
-                                        {{ player.best_partner }}
+                                        <span class="text-xs text-gray-500">N/A</span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -351,6 +367,51 @@
         </div>
         {% endif %}
 
+        {% endif %}
+
+        <!-- Last 3 Team Matches Card - Only show when team is selected -->
+        {% if selected_team_id %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-green-500 mr-2"></i>
+                    Last 3 Team Matches
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Loading State -->
+                <div id="teamLastMatchesLoading" class="flex items-center justify-center py-8">
+                    <div class="text-center">
+                        <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+                        <p class="text-gray-500 text-sm">Loading team matches...</p>
+                    </div>
+                </div>
+                
+                <!-- Error State -->
+                <div id="teamLastMatchesError" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Unable to Load Matches</h3>
+                    <p class="text-gray-500">Failed to load team match data</p>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="teamLastMatchesEmpty" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Team Matches</h3>
+                    <p class="text-gray-500">No team match data available yet</p>
+                </div>
+                
+                <!-- Matches List -->
+                <div id="teamLastMatchesList" class="space-y-4 hidden">
+                    <!-- Matches will be loaded here -->
+                </div>
+            </div>
+        </div>
         {% endif %}
 
     </div>
@@ -495,6 +556,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 10000);
         });
     }
+    
+    // Load team last 3 matches data if we have a selected team
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedTeamId = urlParams.get('team_id');
+    if (selectedTeamId) {
+        loadTeamLastMatches(selectedTeamId);
+    }
 });
 
 // Partner matches modal functionality
@@ -581,7 +649,15 @@ async function loadPartnerMatchesData(partnerName, courtName) {
         }
         
         // Get partner matches for this team and player
-        const response = await fetch(`/api/partner-matches-team?team_id=${selectedTeamId}&player_name=${encodeURIComponent(partnerName)}${courtName !== 'All Courts' ? `&court=${encodeURIComponent(courtName)}` : ''}`);
+        // Extract court number from courtName (e.g., "Court 1" -> "1")
+        let courtParam = '';
+        if (courtName !== 'All Courts') {
+            const courtNumber = courtName.replace(/^Court\s*/i, '').trim();
+            courtParam = `&court=${encodeURIComponent(courtNumber)}`;
+        }
+        const apiUrl = `/api/partner-matches-team?team_id=${selectedTeamId}&player_name=${encodeURIComponent(partnerName)}${courtParam}`;
+        console.log('[DEBUG] Teams-players API call:', apiUrl);
+        const response = await fetch(apiUrl);
         
         if (!response.ok) {
             throw new Error(`Failed to fetch partner matches: ${response.status}`);
@@ -711,6 +787,118 @@ function showMatchesError(message) {
             </div>
         </div>
     `;
+}
+
+// Function to load team's last 3 matches
+async function loadTeamLastMatches(teamId) {
+    const loading = document.getElementById('teamLastMatchesLoading');
+    const error = document.getElementById('teamLastMatchesError');
+    const empty = document.getElementById('teamLastMatchesEmpty');
+    const list = document.getElementById('teamLastMatchesList');
+    
+    if (!loading || !error || !empty || !list) {
+        console.log('Team last matches elements not found');
+        return;
+    }
+    
+    try {
+        console.log(`Loading team last matches for team_id: ${teamId}...`);
+        
+        // Show loading state
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+        empty.classList.add('hidden');
+        list.classList.add('hidden');
+        
+        // Create an API endpoint for team-specific last 3 matches
+        const response = await fetch(`/api/team-last-3-matches-by-id?team_id=${teamId}`);
+        console.log('Team last matches response status:', response.status);
+        
+        if (response.status === 404) {
+            console.log('No team last matches data available');
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch team matches: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Team last matches data:', data);
+        
+        if (data.error || !data.matches || data.matches.length === 0) {
+            console.log('No team matches found in response');
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        // Build matches list
+        let matchesHTML = '';
+        data.matches.forEach(match => {
+            // Determine team result (W or L)
+            const teamResult = match.team_won ? 'W' : 'L';
+            const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
+            const resultBg = teamResult === 'W' ? 'bg-green-100' : 'bg-red-100';
+            
+            matchesHTML += `
+                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                    <!-- Match Header -->
+                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-900">${match.date}</span>
+                                <span class="px-2 py-1 rounded-full text-xs font-medium ${resultBg} ${resultClass}">
+                                    ${teamResult}
+                                </span>
+                            </div>
+                            <span class="text-sm text-gray-600">vs ${match.opponent_team}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Court Results -->
+                    <div class="p-4">
+                        ${match.court_results ? match.court_results.map((court, index) => `
+                            <div class="flex items-center justify-between py-2 ${index > 0 ? 'border-t border-gray-100' : ''}">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">Court ${court.court_number}</span>
+                                    <span class="text-xs ${court.won ? 'text-green-600' : 'text-red-600'} font-medium">${court.won ? 'W' : 'L'}</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xs font-medium text-gray-900">${court.score}</div>
+                                    <div class="text-xs text-gray-500">${court.players}</div>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="text-sm text-gray-600 mb-2">${match.all_scores}</div>
+                            <div class="text-xs text-gray-500">
+                                <div>Home: ${match.home_players}</div>
+                                <div>Away: ${match.away_players}</div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Update matches list
+        list.innerHTML = matchesHTML;
+        
+        // Show matches list
+        loading.classList.add('hidden');
+        list.classList.remove('hidden');
+        
+        console.log('Team last matches loaded successfully');
+        
+    } catch (err) {
+        console.error('Error loading team last matches:', err);
+        if (loading && error) {
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+        }
+    }
 }
 </script>
 

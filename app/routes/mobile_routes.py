@@ -1397,12 +1397,16 @@ def get_player_season_history_by_id(player_id):
 
         player_db_id = player_data["id"]
 
+        # Get current series for prioritization
+        current_series_name = player_data.get("series_name", "")
+        
         # Debug logging
         print(f"[DEBUG] Season History by ID - Found player: {player_data['first_name']} {player_data['last_name']}")
         print(f"[DEBUG] Season History by ID - Player DB ID: {player_db_id}")
         print(f"[DEBUG] Season History by ID - History count: {player_data['history_count']}")
+        print(f"[DEBUG] Season History by ID - Current series: {current_series_name}")
 
-        # Get season history using the same query as the name-based endpoint
+        # ✅ FIXED: Get season history with current series prioritization
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -1450,19 +1454,34 @@ def get_player_season_history_by_id(player_id):
                         WHERE sd2.season_year = sb.season_year
                         AND POSITION('tournament' IN LOWER(series)) = 0
                         AND POSITION('pti' IN LOWER(series)) = 0
+                        AND (
+                            series ~ '^Series\\s+[0-9]+'
+                            OR series ~ '^Division\\s+[0-9]+'
+                            OR series ~ '^Chicago[:\\s]+[0-9]+'
+                        )
                         ORDER BY 
+                            -- ✅ PRIORITY 1: Prefer current series with flexible matching (handles "Chicago 13" vs "Chicago: 13")
+                            CASE 
+                                WHEN %s IS NOT NULL AND (
+                                    series = %s 
+                                    OR series = REPLACE(%s, ' ', ': ')
+                                    OR REPLACE(series, ':', '') = REPLACE(%s, ':', '')
+                                ) THEN 1 
+                                ELSE 2 
+                            END,
+                            -- ✅ PRIORITY 2: Fallback to highest numeric value
                             CASE 
                                 WHEN series ~ '\\d+' THEN 
                                     CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
                                 ELSE 0 
                             END DESC
                         LIMIT 1
-                    ) as highest_series
+                    ) as preferred_series
                 FROM season_boundaries sb
                 CROSS JOIN career_start cs
             )
             SELECT 
-                highest_series as series,
+                preferred_series as series,
                 season_year,
                 pti_start,
                 pti_end,
@@ -1473,7 +1492,7 @@ def get_player_season_history_by_id(player_id):
             LIMIT 10
         """
 
-        season_records = execute_query(season_history_query, [player_db_id])
+        season_records = execute_query(season_history_query, [player_db_id, current_series_name, current_series_name, current_series_name, current_series_name])
 
         print(f"[DEBUG] Season History by ID - Query returned {len(season_records) if season_records else 0} records")
 

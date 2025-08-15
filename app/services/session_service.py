@@ -26,21 +26,25 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     This is the centralized session builder used by login, registration, and league switching.
     """
     try:
-        # Get comprehensive user data with player associations via league_context prioritization
+        # ✅ ENHANCED: Get user data with UserContext active_team_id prioritization
         query = """
             SELECT DISTINCT ON (u.id)
                 u.id, u.email, u.first_name, u.last_name, u.is_admin,
                 u.ad_deuce_preference, u.dominant_hand, u.league_context,
                 
-                -- Player data (prioritize league_context team)
+                -- Player data (prioritize UserContext active_team_id first)
                 c.name as club, c.logo_filename as club_logo,
                 s.name as series, p.tenniscores_player_id,
                 c.id as club_id, s.id as series_id, t.id as team_id,
                 t.team_name, t.display_name,
                 
                 -- League data
-                l.id as league_db_id, l.league_id as league_string_id, l.league_name
+                l.id as league_db_id, l.league_id as league_string_id, l.league_name,
+                
+                -- UserContext data
+                uc.active_team_id as context_team_id
             FROM users u
+            LEFT JOIN user_contexts uc ON u.id = uc.user_id
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
             LEFT JOIN clubs c ON p.club_id = c.id
@@ -49,11 +53,13 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             LEFT JOIN leagues l ON p.league_id = l.id
             WHERE u.email = %s
             ORDER BY u.id, 
-                     -- PRIORITY 1: League context match (most important)
+                     -- PRIORITY 1: UserContext active_team_id match (registration choice)
+                     (CASE WHEN p.team_id = uc.active_team_id THEN 1 ELSE 2 END),
+                     -- PRIORITY 2: League context match (league preference)
                      (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
-                     -- PRIORITY 2: Team has team_id (prefer teams over unassigned players)
+                     -- PRIORITY 3: Team has team_id (prefer teams over unassigned players)
                      (CASE WHEN p.team_id IS NOT NULL THEN 1 ELSE 2 END),
-                     -- PRIORITY 3: Most recent player record (newer registrations first)
+                     -- PRIORITY 4: Most recent player record (newer registrations first)
                      p.id DESC
             LIMIT 1
         """

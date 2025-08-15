@@ -1344,3 +1344,456 @@ def fix_team_assignments_for_existing_users() -> Dict[str, Any]:
 
     finally:
         db_session.close()
+
+
+def register_user_id_based(email: str, password: str, first_name: str, last_name: str, 
+                          league_id: str, club_name: str, series_id: int = None, 
+                          series_name: str = None, series_display: str = None,
+                          ad_deuce_preference: str = None, dominant_hand: str = None, 
+                          phone_number: str = None) -> Dict[str, Any]:
+    """
+    ID-BASED REGISTRATION: Register user with bulletproof series_id matching.
+    
+    This function prioritizes series_id for exact matching, with series_name as fallback
+    for backward compatibility.
+    
+    Args:
+        email: User's email address
+        password: User's password
+        first_name: User's first name
+        last_name: User's last name
+        league_id: League identifier (e.g., 'APTA_CHICAGO')
+        club_name: Club name
+        series_id: Series database ID (preferred, bulletproof)
+        series_name: Series name (fallback for backward compatibility)
+        series_display: Display name for logging (e.g., "Series 13")
+        ad_deuce_preference: Ad/deuce preference
+        dominant_hand: Dominant hand
+        phone_number: Phone number for SMS notifications
+        
+    Returns:
+        Dict with success status and user data or error message
+    """
+    db_session = SessionLocal()
+    
+    try:
+        # Check if user already exists
+        existing_user = db_session.query(User).filter(User.email.ilike(email)).first()
+        if existing_user:
+            logger.warning(f"Registration FAILED: Email {email} already exists")
+            return {"success": False, "error": "Email already registered"}
+
+        # Validate inputs
+        if not series_id and not series_name:
+            logger.warning(f"Registration FAILED: No series identifier provided for {email}")
+            return {"success": False, "error": "Either series_id or series_name must be provided"}
+
+        # Create user record
+        hashed_password = hash_password(password)
+        new_user = User(
+            email=email,
+            password_hash=hashed_password,
+            first_name=first_name,
+            last_name=last_name,
+            ad_deuce_preference=ad_deuce_preference,
+            dominant_hand=dominant_hand,
+            is_admin=False
+        )
+        
+        db_session.add(new_user)
+        db_session.flush()  # Get user ID but don't commit yet
+        
+        logger.info(f"ID-BASED Registration: Created new user (pending commit): {email}")
+        
+        # ✅ ID-BASED PLAYER LOOKUP
+        try:
+            from utils.database_player_lookup import find_player_by_database_lookup_id, find_player_by_database_lookup
+            
+            player_lookup_result = None
+            lookup_method = "unknown"
+            
+            # PRIORITY 1: Use series_id if provided (bulletproof approach)
+            if series_id:
+                logger.info(f"ID-BASED Registration: Using series_id={series_id} for {email}")
+                player_lookup_result = find_player_by_database_lookup_id(
+                    first_name=first_name,
+                    last_name=last_name,
+                    club_name=club_name,
+                    series_id=series_id,
+                    league_id=league_id
+                )
+                lookup_method = f"series_id={series_id}"
+                
+            # FALLBACK: Use series_name if series_id not provided or failed
+            if not player_lookup_result or player_lookup_result.get("match_type") == "no_match":
+                if series_name:
+                    logger.info(f"ID-BASED Registration: Falling back to series_name='{series_name}' for {email}")
+                    player_lookup_result = find_player_by_database_lookup(
+                        first_name=first_name,
+                        last_name=last_name,
+                        club_name=club_name,
+                        series_name=series_name,
+                        league_id=league_id
+                    )
+                    lookup_method = f"series_name='{series_name}' (fallback)"
+            
+            logger.info(f"ID-BASED Registration: Player lookup result for {email} using {lookup_method}: {player_lookup_result}")
+            
+            # Check if player was found
+            if not player_lookup_result or not player_lookup_result.get("player"):
+                logger.warning(f"ID-BASED Registration FAILED: No player found for {email} with provided details")
+                
+                # Enhanced logging for debugging
+                log_user_activity(
+                    email, 
+                    "registration_failed", 
+                    action="id_based_player_lookup_failed",
+                    first_name=first_name,
+                    last_name=last_name,
+                    details={
+                        "reason": "No player found with provided details",
+                        "lookup_method": lookup_method,
+                        "lookup_attempt": {
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "league_id": league_id,
+                            "club_name": club_name,
+                            "series_id": series_id,
+                            "series_name": series_name,
+                            "series_display": series_display
+                        },
+                        "player_lookup_result": player_lookup_result
+                    }
+                )
+                
+                db_session.rollback()
+                return {
+                    "success": False, 
+                    "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                }
+            
+            player_data = player_lookup_result["player"]
+            player_id = player_data["tenniscores_player_id"]
+            
+            # Get the full player record from database
+            player_record = db_session.query(Player).filter(
+                Player.tenniscores_player_id == player_id,
+                Player.is_active == True
+            ).first()
+            
+            if not player_record:
+                logger.warning(f"ID-BASED Registration FAILED: Player record not found in database for {email}, player_id: {player_id}")
+                
+                log_user_activity(
+                    email, 
+                    "registration_failed", 
+                    action="player_record_not_found",
+                    details={
+                        "reason": "Player record not found in database",
+                        "player_id": player_id,
+                        "lookup_method": lookup_method,
+                        "lookup_attempt": {
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "league_id": league_id,
+                            "club_name": club_name,
+                            "series_id": series_id,
+                            "series_name": series_name
+                        }
+                    }
+                )
+                
+                db_session.rollback()
+                return {
+                    "success": False, 
+                    "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                }
+            
+            # Use the same team context logic as the original register_user function
+            # Find all teams for this player
+            player_teams = db_session.query(Player).filter(
+                Player.tenniscores_player_id == player_id,
+                Player.is_active == True
+            ).all()
+            
+            preferred_team = None
+            
+            # ENHANCED: For ID-based registration, we can be more precise about team selection
+            if series_id:
+                # If we have series_id, find the exact team that matches
+                for team_player in player_teams:
+                    if team_player.series_id == series_id:
+                        club = db_session.query(Club).filter(Club.id == team_player.club_id).first()
+                        if club and club.name.strip().lower() == club_name.strip().lower():
+                            preferred_team = team_player
+                            logger.info(f"ID-BASED Registration: Found exact series_id + club match for {email}")
+                            break
+                
+                # If no exact club+series match, try series-only match
+                if not preferred_team:
+                    for team_player in player_teams:
+                        if team_player.series_id == series_id:
+                            preferred_team = team_player
+                            logger.info(f"ID-BASED Registration: Found series_id match (different club) for {email}")
+                            break
+            
+            # Fallback to original club-based matching if series_id approach didn't work
+            if not preferred_team:
+                for team_player in player_teams:
+                    club = db_session.query(Club).filter(Club.id == team_player.club_id).first()
+                    series = db_session.query(Series).filter(Series.id == team_player.series_id).first()
+                    db_club = (club.name if club else "").strip().lower()
+                    db_series = (series.name if series else "").strip().lower()
+                    reg_club = (club_name or "").strip().lower()
+                    reg_series = (series_name or "").strip().lower()
+                    
+                    if db_club == reg_club and db_series == reg_series:
+                        preferred_team = team_player
+                        logger.info(f"ID-BASED Registration: Found club+series name match for {email}")
+                        break
+                        
+                # If not found, try to match just club
+                if not preferred_team:
+                    for team_player in player_teams:
+                        club = db_session.query(Club).filter(Club.id == team_player.club_id).first()
+                        db_club = (club.name if club else "").strip().lower()
+                        reg_club = (club_name or "").strip().lower()
+                        if db_club == reg_club:
+                            preferred_team = team_player
+                            logger.info(f"ID-BASED Registration: Found club-only match for {email}")
+                            break
+                            
+                # If still not found, fall back to the first team
+                if not preferred_team and player_teams:
+                    preferred_team = player_teams[0]
+                    logger.info(f"ID-BASED Registration: Using first available team for {email}")
+            
+            # Set league context based on preferred team
+            if preferred_team:
+                new_user.league_context = preferred_team.league_id
+                club = db_session.query(Club).filter(Club.id == preferred_team.club_id).first()
+                series = db_session.query(Series).filter(Series.id == preferred_team.series_id).first()
+                logger.info(f"ID-BASED Registration: Set league_context to {preferred_team.league_id} for {(club.name if club else '')} - {(series.name if series else '')} (team_id: {preferred_team.team_id}) for {email}")
+                
+                # ✅ CRITICAL FIX: Set active_team_id in UserContext to remember registration choice
+                from app.models.database_models import UserContext
+                
+                user_context = UserContext(
+                    user_id=new_user.id,
+                    active_league_id=preferred_team.league_id,
+                    active_team_id=preferred_team.team_id
+                )
+                db_session.add(user_context)
+                logger.info(f"ID-BASED Registration: Set UserContext active_team_id={preferred_team.team_id} for {email}")
+                
+            else:
+                new_user.league_context = player_record.league_id
+                logger.info(f"ID-BASED Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']} (no preferred team found)")
+            
+            # Handle existing placeholder associations (same as original)
+            existing_association = db_session.query(UserPlayerAssociation).filter(
+                UserPlayerAssociation.tenniscores_player_id == player_id
+            ).first()
+            
+            if existing_association:
+                existing_user = db_session.query(User).filter(
+                    User.id == existing_association.user_id
+                ).first()
+                
+                if existing_user and existing_user.email.endswith('@placeholder.rally'):
+                    logger.info(f"ID-BASED Registration: Removing placeholder association for player {player_id}")
+                    db_session.delete(existing_association)
+                    
+                    # Clean up placeholder user if needed
+                    other_associations = db_session.query(UserPlayerAssociation).filter(
+                        UserPlayerAssociation.user_id == existing_user.id,
+                        UserPlayerAssociation.tenniscores_player_id != player_id
+                    ).count()
+                    
+                    if other_associations == 0:
+                        logger.info(f"ID-BASED Registration: Removing empty placeholder user {existing_user.email}")
+                        
+                        # Clean up foreign key references
+                        try:
+                            from app.models.database_models import GroupMember, ActivityLog
+                            
+                            group_memberships = db_session.query(GroupMember).filter(
+                                GroupMember.user_id == existing_user.id
+                            ).all()
+                            for membership in group_memberships:
+                                db_session.delete(membership)
+                            
+                            activity_logs = db_session.query(ActivityLog).filter(
+                                ActivityLog.user_id == existing_user.id
+                            ).all()
+                            for log in activity_logs:
+                                db_session.delete(log)
+                            
+                            db_session.delete(existing_user)
+                            logger.info(f"ID-BASED Registration: Successfully cleaned up placeholder user")
+                            
+                        except Exception as cleanup_error:
+                            logger.error(f"ID-BASED Registration: Error cleaning up placeholder user: {cleanup_error}")
+                            # Continue with registration despite cleanup error
+                
+                elif existing_user and not existing_user.email.endswith('@placeholder.rally'):
+                    logger.warning(f"ID-BASED Registration FAILED: Player {player_id} already associated with real user {existing_user.email}")
+                    
+                    log_user_activity(
+                        email, 
+                        "registration_failed", 
+                        action="player_already_associated",
+                        details={
+                            "reason": "Player identity already associated with another account",
+                            "existing_user_email": existing_user.email,
+                            "player_id": player_id,
+                            "lookup_method": lookup_method
+                        }
+                    )
+                    
+                    db_session.rollback()
+                    return {
+                        "success": False, 
+                        "error": "Player identity is already associated with another account. If this is your player record, please contact support.",
+                        "security_issue": True
+                    }
+            
+            # Create new association
+            if not existing_association or (existing_association and existing_user and existing_user.email.endswith('@placeholder.rally')):
+                association = UserPlayerAssociation(
+                    user_id=new_user.id,
+                    tenniscores_player_id=player_id
+                )
+                db_session.add(association)
+            
+            # Assign player to team for polls functionality
+            team_assigned = assign_player_to_team(player_record, db_session)
+            if team_assigned:
+                logger.info(f"ID-BASED Registration: Team assignment successful for {player_record.full_name}")
+            
+            # Log successful association
+            logger.info(f"ID-BASED Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']}) using {lookup_method}")
+            
+        except Exception as e:
+            logger.error(f"ID-BASED Registration FAILED: Player lookup error for {email}: {e}")
+            
+            log_user_activity(
+                email, 
+                "registration_failed", 
+                action="id_based_lookup_exception",
+                details={
+                    "reason": "Exception during player lookup",
+                    "error": str(e),
+                    "lookup_attempt": {
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "league_id": league_id,
+                        "club_name": club_name,
+                        "series_id": series_id,
+                        "series_name": series_name
+                    }
+                }
+            )
+            
+            db_session.rollback()
+            return {
+                "success": False, 
+                "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+            }
+
+        # Commit all changes
+        db_session.commit()
+        logger.info(f"ID-BASED Registration: Successfully committed registration for {email}")
+        
+        # Log successful registration
+        log_user_activity(
+            email, 
+            "registration_successful", 
+            action="id_based_player_linking_successful",
+            first_name=first_name,
+            last_name=last_name,
+            details={
+                "player_id": player_id,
+                "lookup_method": lookup_method,
+                "player_data": {
+                    "first_name": player_data.get("first_name"),
+                    "last_name": player_data.get("last_name"),
+                    "club_name": player_data.get("club_name"),
+                    "series_name": player_data.get("series_name"),
+                    "league_id": player_data.get("league_id")
+                },
+                "team_assigned": team_assigned,
+                "registration_data": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "league_id": league_id,
+                    "club_name": club_name,
+                    "series_id": series_id,
+                    "series_name": series_name,
+                    "series_display": series_display,
+                    "phone_number_provided": bool(phone_number)
+                }
+            }
+        )
+        
+        # Build session data using session service
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(email)
+        
+        # Send welcome SMS notification if phone number is provided
+        if phone_number:
+            try:
+                from app.services.notifications_service import send_sms_notification
+                
+                welcome_message = "You're in! Your Rally registration was successful. We'll keep you posted on pickup games, team polls, match lineups, and more. Visit: lovetorally.com/app anytime to login.\n\nLet's go!"
+                
+                sms_result = send_sms_notification(
+                    to_number=phone_number,
+                    message=welcome_message,
+                    test_mode=False
+                )
+                
+                if sms_result["success"]:
+                    logger.info(f"ID-BASED Registration: Welcome SMS sent successfully to {phone_number}")
+                else:
+                    logger.warning(f"ID-BASED Registration: Failed to send welcome SMS to {phone_number}: {sms_result.get('error', 'Unknown error')}")
+                    
+            except Exception as sms_error:
+                logger.error(f"ID-BASED Registration: Error sending welcome SMS to {phone_number}: {str(sms_error)}")
+
+        return {
+            "success": True,
+            "message": "Registration successful!",
+            "user": session_data,
+            "player_id": player_id,
+            "lookup_method": lookup_method
+        }
+
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"ID-BASED Registration: Unexpected error for {email}: {str(e)}")
+        
+        log_user_activity(
+            email,
+            "registration_failed", 
+            action="id_based_unexpected_error",
+            details={
+                "error": str(e),
+                "registration_data": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "league_id": league_id,
+                    "club_name": club_name,
+                    "series_id": series_id,
+                    "series_name": series_name
+                }
+            }
+        )
+        
+        return {
+            "success": False,
+            "error": "An unexpected error occurred during registration. Please try again or contact support."
+        }
+
+    finally:
+        db_session.close()

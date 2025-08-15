@@ -1167,21 +1167,48 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
                         if won:
                             partner_win_counts[partner]["wins"] += 1
                         
-                        # Check if this partner is a substitute (playing for different team than the player's own team)
-                        # First, get the player's own team ID from the players table
+                        # ✅ ENHANCED: Check if this partner is a substitute using user's team context
+                        # Get the player's own team ID prioritizing user's current team context
                         player_own_team_id = None
                         try:
-                            player_team_query = """
-                                SELECT team_id 
-                                FROM players 
-                                WHERE tenniscores_player_id = %s 
-                                AND league_id = %s
-                                LIMIT 1
-                            """
-                            player_team_result = execute_query_one(player_team_query, [player_id, league_id_int])
-                            if player_team_result:
-                                player_own_team_id = player_team_result["team_id"]
-                                print(f"[DEBUG] Player {player_id} own team ID: {player_own_team_id}, match team ID: {match_team_id}")
+                            # PRIORITY 1: Use user's current team context if available
+                            if user and user.get("team_id"):
+                                user_team_id = user.get("team_id")
+                                
+                                # Check if the player is actually on the user's current team
+                                player_teams_query = """
+                                    SELECT team_id 
+                                    FROM players 
+                                    WHERE tenniscores_player_id = %s 
+                                    AND league_id = %s
+                                    AND is_active = true
+                                """
+                                player_teams = execute_query(player_teams_query, [player_id, league_id_int])
+                                player_team_ids = [team['team_id'] for team in player_teams if team['team_id']]
+                                
+                                if user_team_id in player_team_ids:
+                                    # Player is on user's current team, use that as reference
+                                    player_own_team_id = user_team_id
+                                    print(f"[DEBUG] Court analysis: Using user team context {user_team_id} for player {player_id}")
+                                elif player_team_ids:
+                                    # Player is not on user's team, use their primary team
+                                    player_own_team_id = player_team_ids[0]  # Pick first team
+                                    print(f"[DEBUG] Court analysis: Player {player_id} not on user team {user_team_id}, using primary team {player_own_team_id}")
+                            else:
+                                # FALLBACK: Legacy method - get any team for this player
+                                player_team_query = """
+                                    SELECT team_id 
+                                    FROM players 
+                                    WHERE tenniscores_player_id = %s 
+                                    AND league_id = %s
+                                    AND is_active = true
+                                    LIMIT 1
+                                """
+                                player_team_result = execute_query_one(player_team_query, [player_id, league_id_int])
+                                if player_team_result:
+                                    player_own_team_id = player_team_result["team_id"]
+                                    print(f"[DEBUG] Court analysis: Using legacy team lookup {player_own_team_id} for player {player_id}")
+                                    
                         except Exception as e:
                             print(f"Error getting player's own team: {e}")
                         
@@ -4473,7 +4500,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                         
                         # Check if this player is a substitute
                         if not player_win_counts[p].get("is_substitute_checked"):
-                            is_sub = is_substitute_player(p, match_team_id)
+                            is_sub = is_substitute_player(p, match_team_id, user_team_id=team_id)
                             player_win_counts[p]["is_substitute"] = is_sub
                             player_win_counts[p]["is_substitute_checked"] = True
                         
@@ -4731,6 +4758,27 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     print(f"    -> Not enough matches ({pstats['matches']} < 2)")
             print(f"  Final best partner: {best_partner} ({best_partner_rate}%)")
 
+            # Get PTI data for this player
+            player_pti = None
+            if player_id:
+                try:
+                    # Query PTI from players table
+                    pti_query = """
+                        SELECT p.pti 
+                        FROM players p 
+                        WHERE p.tenniscores_player_id = %s 
+                        AND p.league_id = %s 
+                        AND p.is_active = true
+                        ORDER BY p.id DESC 
+                        LIMIT 1
+                    """
+                    pti_result = execute_query_one(pti_query, [player_id, league_id_int])
+                    if pti_result and pti_result["pti"] is not None:
+                        player_pti = float(pti_result["pti"])
+                except Exception as e:
+                    print(f"[DEBUG] Error getting PTI for player {player_id}: {e}")
+                    player_pti = None
+
             top_players.append(
                 {
                     "name": player_name,
@@ -4738,6 +4786,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "winRate": win_rate,  # Changed to camelCase for consistency
                     "best_court": best_court or "Threshold not met",
                     "best_partner": best_partner if best_partner else "Threshold not met",
+                    "pti": player_pti,  # Add PTI data for template
                 }
             )
 
@@ -5832,34 +5881,64 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
         return []
 
 
-def is_substitute_player(player_id, match_team_id, user_league_id=None):
+def is_substitute_player(player_id, match_team_id, user_league_id=None, user_team_id=None):
     """
-    Determine if a player is a substitute (playing for a different team than their primary team)
+    ✅ ENHANCED: Determine if a player is a substitute with user team context support
     
     Args:
         player_id: The player's tenniscores_player_id
         match_team_id: The team ID or team name they're playing for in this match
-        user_league_id: Optional league ID for context
+        user_league_id: Optional league ID for context (deprecated)
+        user_team_id: User's current team context (preferred method)
         
     Returns:
         bool: True if player is a substitute, False otherwise
     """
     try:
-        # Get the player's primary team assignment
-        player_query = """
-            SELECT team_id, league_id, club_id, series_id
-            FROM players 
-            WHERE tenniscores_player_id = %s AND is_active = true
-            ORDER BY wins DESC, losses ASC
-            LIMIT 1
-        """
-        player_record = execute_query_one(player_query, (player_id,))
-        
-        if not player_record or not player_record.get('team_id'):
-            # Player has no primary team assignment, not a substitute
-            return False
+        # ✅ ENHANCED: Use user's current team context if available
+        if user_team_id:
+            # Get all teams for this player to check against user's current team
+            player_teams_query = """
+                SELECT team_id, league_id, club_id, series_id
+                FROM players 
+                WHERE tenniscores_player_id = %s AND is_active = true
+            """
+            player_teams = execute_query(player_teams_query, (player_id,))
             
-        primary_team_id = player_record.get('team_id')
+            if not player_teams:
+                # Player has no team assignments, not a substitute
+                return False
+            
+            # Check if player is registered with the user's current team
+            player_team_ids = [team['team_id'] for team in player_teams if team['team_id']]
+            
+            if user_team_id in player_team_ids:
+                # Player is registered with user's current team, use that as reference
+                reference_team_id = user_team_id
+                print(f"[DEBUG] Substitute check: Using user team context {user_team_id} for player {player_id}")
+            else:
+                # Player is not on user's current team, use their primary team
+                # This handles cases where we're looking at other players
+                primary_team_record = max(player_teams, key=lambda x: (x.get('wins', 0), -x.get('losses', 0)))
+                reference_team_id = primary_team_record.get('team_id')
+                print(f"[DEBUG] Substitute check: Player {player_id} not on user team {user_team_id}, using primary team {reference_team_id}")
+        else:
+            # ✅ FALLBACK: Legacy method - use player's primary team assignment
+            player_query = """
+                SELECT team_id, league_id, club_id, series_id
+                FROM players 
+                WHERE tenniscores_player_id = %s AND is_active = true
+                ORDER BY wins DESC, losses ASC
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_query, (player_id,))
+            
+            if not player_record or not player_record.get('team_id'):
+                # Player has no primary team assignment, not a substitute
+                return False
+                
+            reference_team_id = player_record.get('team_id')
+            print(f"[DEBUG] Substitute check: Using legacy primary team {reference_team_id} for player {player_id}")
         
         # Handle case where match_team_id is a team name (string) instead of team ID (integer)
         if isinstance(match_team_id, str):
@@ -5872,10 +5951,13 @@ def is_substitute_player(player_id, match_team_id, user_league_id=None):
                 match_team_id = team_record.get('id')
             else:
                 # If we can't find the team, assume not a substitute
+                print(f"[DEBUG] Substitute check: Could not find team ID for team name '{match_team_id}'")
                 return False
         
-        # If they're playing for a different team than their primary team, they're a substitute
-        return primary_team_id != match_team_id
+        # ✅ ENHANCED: Compare with reference team (user's team context or player's primary team)
+        is_sub = reference_team_id != match_team_id
+        print(f"[DEBUG] Substitute check: Player {player_id} - Reference team: {reference_team_id}, Match team: {match_team_id}, Is substitute: {is_sub}")
+        return is_sub
         
     except Exception as e:
         print(f"Error determining substitute status for player {player_id}: {e}")

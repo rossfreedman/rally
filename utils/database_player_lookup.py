@@ -718,6 +718,191 @@ def search_players_by_name(
         return []
 
 
+def find_player_by_database_lookup_id(
+    first_name: str, last_name: str, club_name: str, series_id: int, league_id: str
+) -> Optional[Dict[str, Any]]:
+    """
+    BULLETPROOF: Find player using series_id instead of name matching.
+    No transformations, no fallbacks needed - just exact matching.
+    
+    Args:
+        first_name: Player's first name (supports variations like Rob->Robert)
+        last_name: Player's last name
+        club_name: Club name
+        series_id: Series database ID (stable, unique identifier)
+        league_id: League identifier (e.g., 'NSTF', 'APTA_CHICAGO')
+    
+    Returns:
+        Dict with match result or None if no match found
+    """
+    try:
+        # Normalize inputs
+        norm_last = normalize_name(last_name)
+        norm_club = normalize_name(club_name)
+        
+        # Get name variations for first name (keep this flexibility)
+        first_name_variations = get_name_variations(first_name)
+        
+        logger.info(
+            f"ID-based lookup for: {first_name} {last_name} ({club_name}, series_id={series_id}, {league_id})"
+        )
+        logger.info(f"First name variations: {first_name_variations}")
+        
+        # Get league database ID
+        league_record = execute_query_one(
+            "SELECT id FROM leagues WHERE league_id = %s", (league_id,)
+        )
+        
+        if not league_record:
+            logger.warning(f"League {league_id} not found in database")
+            return {
+                "match_type": "error",
+                "player": None,
+                "message": f"League {league_id} not found in database",
+            }
+        
+        league_db_id = league_record["id"]
+        
+        # Build name conditions for flexible first name matching
+        name_conditions = " OR ".join(
+            ["LOWER(TRIM(p.first_name)) = %s"] * len(first_name_variations)
+        )
+        
+        # BULLETPROOF PRIMARY QUERY: Use series_id for exact matching
+        primary_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id  
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s 
+            AND p.is_active = true
+            AND ({name_conditions})
+            AND LOWER(TRIM(p.last_name)) = %s  
+            AND LOWER(TRIM(c.name)) = %s
+            AND p.series_id = %s
+        """
+        
+        params = (
+            [league_db_id] + first_name_variations + 
+            [norm_last, norm_club, series_id]
+        )
+        
+        primary_matches = execute_query(primary_query, params)
+        
+        if len(primary_matches) == 1:
+            player = primary_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED PRIMARY: Perfect match - {match_info}: {player['tenniscores_player_id']}")
+            return {
+                "match_type": "exact",
+                "player": player,
+                "message": f"Perfect match using series ID {series_id}",
+            }
+        elif len(primary_matches) > 1:
+            player_ids = [m["tenniscores_player_id"] for m in primary_matches]
+            logger.warning(f"⚠️ ID-BASED PRIMARY: Multiple exact matches found: {player_ids}")
+            return {
+                "match_type": "multiple",
+                "players": primary_matches,
+                "message": f"Multiple players found with same details (series_id={series_id})",
+            }
+        else:
+            logger.info(f"❌ ID-BASED PRIMARY: No exact matches found for series_id={series_id}")
+        
+        # FALLBACK 1: Drop club requirement but keep series_id (series is more specific than club)
+        logger.info(f"ID-BASED FALLBACK 1: Drop club, keep series_id={series_id}")
+        
+        fallback1_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({name_conditions})
+            AND LOWER(TRIM(p.last_name)) = %s
+            AND p.series_id = %s
+        """
+        
+        fallback1_params = [league_db_id] + first_name_variations + [norm_last, series_id]
+        fallback1_matches = execute_query(fallback1_query, fallback1_params)
+        
+        if len(fallback1_matches) == 1:
+            player = fallback1_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 1: Found match (different club) - {match_info}: {player['tenniscores_player_id']}")
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Name + series match (series_id={series_id}, club: {player['club_name']} vs requested {club_name})",
+            }
+        elif len(fallback1_matches) > 1:
+            logger.warning(f"⚠️ ID-BASED FALLBACK 1: Multiple matches found")
+            return {
+                "match_type": "multiple_high_confidence",
+                "players": fallback1_matches,
+                "message": f"Multiple high-confidence matches found (series_id={series_id})",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 1: No matches for series_id={series_id}")
+        
+        # FALLBACK 2: Drop series requirement, keep club (for cases where user selected wrong series)
+        logger.info(f"ID-BASED FALLBACK 2: Drop series_id, keep club")
+        
+        fallback2_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({name_conditions})
+            AND LOWER(TRIM(p.last_name)) = %s
+            AND LOWER(TRIM(c.name)) = %s
+        """
+        
+        fallback2_params = [league_db_id] + first_name_variations + [norm_last, norm_club]
+        fallback2_matches = execute_query(fallback2_query, fallback2_params)
+        
+        if len(fallback2_matches) == 1:
+            player = fallback2_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 2: Found match (different series) - {match_info}: {player['tenniscores_player_id']}")
+            return {
+                "match_type": "medium_confidence",
+                "player": player,
+                "message": f"Medium-confidence match: Name + club match (series: {player['series_name']} vs requested series_id={series_id})",
+            }
+        elif len(fallback2_matches) > 1:
+            logger.warning(f"⚠️ ID-BASED FALLBACK 2: Multiple matches found")
+            return {
+                "match_type": "multiple_medium_confidence", 
+                "players": fallback2_matches,
+                "message": f"Multiple medium-confidence matches found (club: {club_name})",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 2: No matches for club {club_name}")
+        
+        # No matches found
+        logger.warning(f"❌ ID-BASED: No matches found for {first_name} {last_name} (series_id={series_id}, club={club_name})")
+        return {
+            "match_type": "no_match",
+            "player": None,
+            "message": f"No player found matching the provided details (series_id={series_id})",
+        }
+        
+    except Exception as e:
+        logger.error(f"ID-based player lookup error: {str(e)}")
+        return {
+            "match_type": "error",
+            "player": None,
+            "message": f"Database error during lookup: {str(e)}",
+        }
+
+
 def find_potential_player_matches(
     first_name: str,
     last_name: str,
