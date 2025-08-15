@@ -1034,55 +1034,12 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None):
             season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
             
             if league_id_int:
-                all_matches_on_dates = execute_query(
-                    """
-                    SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                        ms.match_date,
-                        ms.id,
-                        ms.tenniscores_match_id,
-                        ms.home_team as "Home Team",
-                        ms.away_team as "Away Team",
-                        ms.home_team_id,
-                        ms.away_team_id,
-                        ms.winner as "Winner",
-                        ms.home_player_1_id as "Home Player 1",
-                        ms.home_player_2_id as "Home Player 2",
-                        ms.away_player_1_id as "Away Player 1",
-                        ms.away_player_2_id as "Away Player 2"
-                    FROM match_scores ms
-                    WHERE ms.match_date = ANY(%s)
-                    AND ms.league_id = %s
-                    AND ms.match_date >= %s AND ms.match_date <= %s
-                    ORDER BY ms.match_date ASC, ms.id ASC
-                """,
-                    (player_dates, league_id_int, season_start, season_end),
-                )
+                # FIXED: Use only the player's actual matches for court analysis
+                # Don't fetch additional matches from database - only use matches where player participated
+                all_matches_on_dates = player_matches
             else:
-                # Fallback: no league filter if league_id not available, but still filter by current season
-                all_matches_on_dates = execute_query(
-                    """
-                    SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                        ms.match_date,
-                        ms.id,
-                        ms.tenniscores_match_id,
-                        ms.home_team as "Home Team",
-                        ms.away_team as "Away Team",
-                        ms.home_team_id,
-                        ms.away_team_id,
-                        ms.winner as "Winner",
-                        ms.home_player_1_id as "Home Player 1",
-                        ms.home_player_2_id as "Home Player 2",
-                        ms.away_player_1_id as "Away Player 1",
-                        ms.away_player_2_id as "Away Player 2"
-                    FROM match_scores ms
-                    WHERE ms.match_date = ANY(%s)
-                    AND ms.match_date >= %s AND ms.match_date <= %s
-                    ORDER BY ms.match_date ASC, ms.id ASC
-                """,
-                    (player_dates, season_start, season_end),
-                )
+                # Fallback: Use only player's matches even without league filter
+                all_matches_on_dates = player_matches
 
             # Group matches by date and team matchup
             matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
