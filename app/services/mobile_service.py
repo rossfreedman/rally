@@ -594,7 +594,8 @@ def get_player_analysis(user):
             # Show current season matches for this player in this league
             # Add team filtering when team context is available to fix Court Performance showing wrong team data
             if team_context:
-                # Filter by specific team for accurate Court Performance
+                # SIMPLE APPROACH: Show all matches where player participated, then filter court analysis by team context
+                # This preserves substitutes while letting court analysis handle team-specific logic
                 history_query = """
                     SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
                         id,
@@ -613,12 +614,11 @@ def get_player_analysis(user):
                     FROM match_scores
                     WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                     AND league_id = %s
-                    AND (home_team_id = %s OR away_team_id = %s)
                     AND match_date >= %s AND match_date <= %s
                     ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
                 """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int, team_context, team_context, season_start, season_end]
-                print(f"[DEBUG] Player analysis showing CURRENT SEASON matches with team context: player_id={player_id}, league_id={league_id_int}, team_id={team_context}")
+                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]
+                print(f"[DEBUG] Player analysis showing ALL CURRENT SEASON matches (team filtering handled in court analysis): player_id={player_id}, league_id={league_id_int}, team_context={team_context}")
             else:
                 # Original query without team filtering (preserves substitute appearances)
                 history_query = """
