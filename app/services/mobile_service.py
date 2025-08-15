@@ -594,31 +594,72 @@ def get_player_analysis(user):
             # Show current season matches for this player in this league
             # Add team filtering when team context is available to fix Court Performance showing wrong team data
             if team_context:
-                # SIMPLE APPROACH: Show all matches where player participated, then filter court analysis by team context
-                # This preserves substitutes while letting court analysis handle team-specific logic
-                history_query = """
-                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
-                        id,
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        home_team_id,
-                        away_team_id,
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        tenniscores_match_id
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND league_id = %s
-                    AND match_date >= %s AND match_date <= %s
-                    ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+                # SMART FILTERING: Include current team matches + substitutes, exclude other permanent teams
+                # Get player's other team IDs in this league (excluding current team)
+                other_teams_query = """
+                    SELECT team_id 
+                    FROM players 
+                    WHERE tenniscores_player_id = %s 
+                      AND league_id = %s 
+                      AND team_id != %s
+                      AND is_active = true
                 """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]
-                print(f"[DEBUG] Player analysis showing ALL CURRENT SEASON matches (team filtering handled in court analysis): player_id={player_id}, league_id={league_id_int}, team_context={team_context}")
+                other_teams_result = execute_query(other_teams_query, [player_id, league_id_int, team_context])
+                other_team_ids = [team['team_id'] for team in other_teams_result if team['team_id']]
+                
+                if other_team_ids:
+                    # Exclude matches where player was with other permanent teams
+                    # Logic: Show matches where player participated BUT NOT matches for his other permanent teams
+                    other_teams_placeholders = ','.join(['%s'] * len(other_team_ids))
+                    history_query = f"""
+                        SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                            id,
+                            TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                            home_team as "Home Team",
+                            away_team as "Away Team",
+                            home_team_id,
+                            away_team_id,
+                            winner as "Winner",
+                            scores as "Scores",
+                            home_player_1_id as "Home Player 1",
+                            home_player_2_id as "Home Player 2",
+                            away_player_1_id as "Away Player 1",
+                            away_player_2_id as "Away Player 2",
+                            tenniscores_match_id
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                        AND league_id = %s
+                        AND match_date >= %s AND match_date <= %s
+                        AND NOT (home_team_id IN ({other_teams_placeholders}) OR away_team_id IN ({other_teams_placeholders}))
+                        ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+                    """
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end] + other_team_ids + other_team_ids
+                    print(f"[DEBUG] Player analysis EXCLUDING matches from other permanent teams: player_id={player_id}, current_team={team_context}, excluding_teams={other_team_ids}")
+                else:
+                    # No other teams to exclude - show all matches
+                    history_query = """
+                        SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                            id,
+                            TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                            home_team as "Home Team",
+                            away_team as "Away Team",
+                            home_team_id,
+                            away_team_id,
+                            winner as "Winner",
+                            scores as "Scores",
+                            home_player_1_id as "Home Player 1",
+                            home_player_2_id as "Home Player 2",
+                            away_player_1_id as "Away Player 1",
+                            away_player_2_id as "Away Player 2",
+                            tenniscores_match_id
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                        AND league_id = %s
+                        AND match_date >= %s AND match_date <= %s
+                        ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+                    """
+                    query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]
+                    print(f"[DEBUG] Player analysis showing ALL matches (no other teams to exclude): player_id={player_id}, team_context={team_context}")
             else:
                 # Original query without team filtering (preserves substitute appearances)
                 history_query = """
