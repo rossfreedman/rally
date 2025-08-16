@@ -1109,36 +1109,68 @@ def send_admin_activity_notification(user_email: str, activity_type: str, page: 
         Dict: Result of email sending
     """
     
-    # Create email subject using requested format
+    # Helper function to convert technical page names to human-readable format
+    def humanize_page_name(page_name):
+        if not page_name:
+            return "Unknown Page"
+        
+        # Remove common prefixes
+        page_name = page_name.replace("mobile_", "").replace("admin_", "").replace("api_", "")
+        
+        # Handle specific cases
+        page_mappings = {
+            "my_series": "My Series",
+            "analyze_me": "Analyze Me", 
+            "player_detail": "Player Detail",
+            "home_submenu": "Home Page",
+            "home_alt1": "Home Page",
+            "home_classic": "Home Page",
+            "my_team": "My Team",
+            "my_club": "My Club",
+            "user_activity": "User Activity",
+            "player_search": "Player Search",
+            "player_stats": "Player Stats",
+            "schedule_lesson": "Schedule Lesson",
+            "email_team": "Email Team",
+            "practice_times": "Practice Times",
+            "availability": "Availability",
+            "team_schedule": "Team Schedule",
+            "find_people_to_play": "Find People to Play",
+            "pickup_games": "Pickup Games",
+            "private_groups": "Private Groups",
+            "create_pickup_game": "Create Pickup Game",
+            "reserve_court": "Reserve Court",
+            "share_rally": "Share Rally",
+            "create_team": "Create Team",
+            "matchup_simulator": "Matchup Simulator",
+            "polls": "Polls"
+        }
+        
+        # Check for exact matches first
+        if page_name in page_mappings:
+            return page_mappings[page_name]
+        
+        # Generic conversion: replace underscores with spaces and title case
+        return page_name.replace("_", " ").title()
+    
+    # Create email subject using requested format (without "Rally Activity:")
     user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
-    page_display = page if page else "unknown page"
-    subject = f"Rally Activity: {user_name} - {page_display}"
+    page_display = humanize_page_name(page)
+    subject = f"{user_name} - {page_display}"
     
     if is_impersonating:
-        subject = f"Rally Admin Impersonation: {user_name} - {page_display}"
+        subject = f"Admin Impersonation: {user_name} - {page_display}"
     
     # Create email content using requested format
     content_parts = [
-        f"Rally Activity Alert:",
+        f"Rally Activity:",
         f"{user_name} visited {page_display}",
         f"Activity: {activity_type}",
     ]
     
-    # Add optional details if present
-    if action:
-        content_parts.append(f"Action: {action}")
-    if details:
-        content_parts.append(f"Details: {details}")
+    # Keep it simple - only add impersonation note if needed
     if is_impersonating:
         content_parts.append("⚠️ Note: This activity was performed while impersonating another user")
-    
-    content_parts.extend([
-        f"",
-        f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Email: {user_email}",
-        f"",
-        f"Visit Rally Admin Panel: https://www.lovetorally.com/admin"
-    ])
     
     content = "\n".join(content_parts)
     
