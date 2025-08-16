@@ -516,7 +516,8 @@ class EnhancedProxyRotator:
             if proxy_info.username and proxy_info.password:
                 proxy_url = f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
             else:
-                proxy_url = f"http://{proxy_info.host}:{proxy_info.port}"
+                # Use working credentials as fallback
+                proxy_url = f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@{proxy_info.host}:{proxy_info.port}"
             
             proxies = {
                 "http": proxy_url,
@@ -1083,8 +1084,8 @@ class EnhancedProxyRotator:
         if proxy_info and proxy_info.username and proxy_info.password:
             return f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
         else:
-            # Fallback to basic proxy (for backward compatibility)
-            return f"http://us.decodo.com:{self.current_port}"
+            # Use working credentials as fallback (from working_proxy_config.json)
+            return f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:{self.current_port}"
     
     def report_success(self, port: int = None, latency: float = None):
         """Report successful request for proxy."""
