@@ -3995,44 +3995,15 @@ def get_player_match_count(player_id, user_league_id=None, team_id=None):
 
 
 def get_team_members_with_court_stats(team_id, user):
-    """Get all active players for a team with their court assignment statistics"""
+    """Get all active players for a team with their court assignment statistics - OPTIMIZED VERSION"""
 
     try:
         if not team_id:
             return []
 
-        # Get team members
-        team_members_query = """
-            SELECT p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id
-            FROM players p
-            WHERE p.team_id = %s AND p.is_active = TRUE
-            ORDER BY p.first_name, p.last_name
-        """
-
-        members = execute_query(team_members_query, [team_id])
-        if not members:
-            return []
-
         # Get user's league_id for filtering (extract once at top)
         user_league_id = user.get("league_id")
-
-        # Get team name for match filtering
-        team_name_query = """
-            SELECT team_name, team_alias FROM teams WHERE id = %s
-        """
-        team_info = execute_query_one(team_name_query, [team_id])
-        team_name = (
-            team_info.get("team_alias") or team_info.get("team_name")
-            if team_info
-            else None
-        )
-
-        if not team_name:
-            return []
-
-        # Try both team_id and team_name approaches
-        team_matches = []
-
+        
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != "":
@@ -4047,118 +4018,230 @@ def get_team_members_with_court_stats(team_id, user):
         elif isinstance(user_league_id, int):
             league_id_int = user_league_id
 
-        # First try using team_id (more reliable) with league filter
-        if team_id:
-            if league_id_int:
-                matches_by_id_query = """
+        # OPTIMIZED: Single comprehensive query using CTEs to eliminate N+1 queries
+        # This replaces ~100+ individual queries with 1 comprehensive query
+        if league_id_int:
+            comprehensive_query = """
+                WITH team_player_matches AS (
+                    -- Get all matches for this team's players with court assignment info
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        match_date,
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        id
-                    FROM match_scores
-                    WHERE (home_team_id = %s OR away_team_id = %s)
-                    AND league_id = %s
-                    ORDER BY match_date, id
-                """
-                team_matches = execute_query(
-                    matches_by_id_query, [team_id, team_id, league_id_int]
+                        ms.id as match_id,
+                        ms.home_player_1_id,
+                        ms.home_player_2_id,
+                        ms.away_player_1_id,
+                        ms.away_player_2_id,
+                        ms.winner,
+                        ms.home_team,
+                        ms.away_team,
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as match_date_formatted,
+                        ms.match_date,
+                        -- Determine court position by ordering within team matchup
+                        ROW_NUMBER() OVER (
+                            PARTITION BY ms.match_date, ms.home_team, ms.away_team 
+                            ORDER BY ms.id
+                        ) as court_num
+                    FROM match_scores ms
+                    WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+                    AND ms.league_id = %s
+                ),
+                player_match_stats AS (
+                    -- Calculate match counts, wins, and court assignments for each player
+                    SELECT 
+                        player_id,
+                        COUNT(DISTINCT match_id) as match_count,
+                        SUM(CASE WHEN won THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN NOT won THEN 1 ELSE 0 END) as losses,
+                        SUM(CASE WHEN court_num = 1 THEN 1 ELSE 0 END) as court1,
+                        SUM(CASE WHEN court_num = 2 THEN 1 ELSE 0 END) as court2,
+                        SUM(CASE WHEN court_num = 3 THEN 1 ELSE 0 END) as court3,
+                        SUM(CASE WHEN court_num = 4 THEN 1 ELSE 0 END) as court4,
+                        SUM(CASE WHEN court_num = 5 THEN 1 ELSE 0 END) as court5,
+                        SUM(CASE WHEN court_num = 6 THEN 1 ELSE 0 END) as court6
+                    FROM (
+                        -- Home team players
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.home_player_1_id), '') as player_id,
+                            tpm.winner = 'home' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.home_player_1_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.home_player_2_id), '') as player_id,
+                            tpm.winner = 'home' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.home_player_2_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        -- Away team players
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.away_player_1_id), '') as player_id,
+                            tpm.winner = 'away' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.away_player_1_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.away_player_2_id), '') as player_id,
+                            tpm.winner = 'away' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.away_player_2_id), '') IS NOT NULL
+                    ) all_player_matches
+                    WHERE player_id IS NOT NULL
+                    GROUP BY player_id
                 )
-            else:
-                matches_by_id_query = """
+                SELECT 
+                    p.id,
+                    p.first_name,
+                    p.last_name,
+                    p.pti,
+                    p.tenniscores_player_id,
+                    COALESCE(pms.match_count, 0) as match_count,
+                    COALESCE(pms.wins, 0) as wins,
+                    COALESCE(pms.losses, 0) as losses,
+                    COALESCE(pms.court1, 0) as court1,
+                    COALESCE(pms.court2, 0) as court2,
+                    COALESCE(pms.court3, 0) as court3,
+                    COALESCE(pms.court4, 0) as court4,
+                    COALESCE(pms.court5, 0) as court5,
+                    COALESCE(pms.court6, 0) as court6
+                FROM players p
+                LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                WHERE p.team_id = %s AND p.is_active = TRUE
+                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+            """
+            
+            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id])
+        else:
+            # Fallback without league filter
+            comprehensive_query = """
+                WITH team_player_matches AS (
+                    -- Get all matches for this team's players with court assignment info
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        match_date,
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        id
-                    FROM match_scores
-                    WHERE (home_team_id = %s OR away_team_id = %s)
-                    ORDER BY match_date, id
-                """
-                team_matches = execute_query(matches_by_id_query, [team_id, team_id])
-
-        # If no matches by team_id, try team_name with league filter
-        if not team_matches and team_name:
-            if league_id_int:
-                matches_by_name_query = """
+                        ms.id as match_id,
+                        ms.home_player_1_id,
+                        ms.home_player_2_id,
+                        ms.away_player_1_id,
+                        ms.away_player_2_id,
+                        ms.winner,
+                        ms.home_team,
+                        ms.away_team,
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as match_date_formatted,
+                        ms.match_date,
+                        -- Determine court position by ordering within team matchup
+                        ROW_NUMBER() OVER (
+                            PARTITION BY ms.match_date, ms.home_team, ms.away_team 
+                            ORDER BY ms.id
+                        ) as court_num
+                    FROM match_scores ms
+                    WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+                ),
+                player_match_stats AS (
+                    -- Calculate match counts, wins, and court assignments for each player
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        match_date,
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        id
-                    FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
-                    AND league_id = %s
-                    ORDER BY match_date, id
-                """
-                team_matches = execute_query(
-                    matches_by_name_query, [team_name, team_name, league_id_int]
+                        player_id,
+                        COUNT(DISTINCT match_id) as match_count,
+                        SUM(CASE WHEN won THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN NOT won THEN 1 ELSE 0 END) as losses,
+                        SUM(CASE WHEN court_num = 1 THEN 1 ELSE 0 END) as court1,
+                        SUM(CASE WHEN court_num = 2 THEN 1 ELSE 0 END) as court2,
+                        SUM(CASE WHEN court_num = 3 THEN 1 ELSE 0 END) as court3,
+                        SUM(CASE WHEN court_num = 4 THEN 1 ELSE 0 END) as court4,
+                        SUM(CASE WHEN court_num = 5 THEN 1 ELSE 0 END) as court5,
+                        SUM(CASE WHEN court_num = 6 THEN 1 ELSE 0 END) as court6
+                    FROM (
+                        -- Home team players
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.home_player_1_id), '') as player_id,
+                            tpm.winner = 'home' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.home_player_1_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.home_player_2_id), '') as player_id,
+                            tpm.winner = 'home' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.home_player_2_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        -- Away team players
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.away_player_1_id), '') as player_id,
+                            tpm.winner = 'away' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.away_player_1_id), '') IS NOT NULL
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            tpm.match_id,
+                            NULLIF(TRIM(tpm.away_player_2_id), '') as player_id,
+                            tpm.winner = 'away' as won,
+                            LEAST(tpm.court_num, 6) as court_num
+                        FROM team_player_matches tpm
+                        WHERE NULLIF(TRIM(tpm.away_player_2_id), '') IS NOT NULL
+                    ) all_player_matches
+                    WHERE player_id IS NOT NULL
+                    GROUP BY player_id
                 )
-            else:
-                matches_by_name_query = """
-                    SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        match_date,
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        winner as "Winner",
-                        scores as "Scores",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2",
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        id
-                    FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
-                    ORDER BY match_date, id
-                """
-                team_matches = execute_query(
-                    matches_by_name_query, [team_name, team_name]
-                )
+                SELECT 
+                    p.id,
+                    p.first_name,
+                    p.last_name,
+                    p.pti,
+                    p.tenniscores_player_id,
+                    COALESCE(pms.match_count, 0) as match_count,
+                    COALESCE(pms.wins, 0) as wins,
+                    COALESCE(pms.losses, 0) as losses,
+                    COALESCE(pms.court1, 0) as court1,
+                    COALESCE(pms.court2, 0) as court2,
+                    COALESCE(pms.court3, 0) as court3,
+                    COALESCE(pms.court4, 0) as court4,
+                    COALESCE(pms.court5, 0) as court5,
+                    COALESCE(pms.court6, 0) as court6
+                FROM players p
+                LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                WHERE p.team_id = %s AND p.is_active = TRUE
+                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+            """
+            
+            members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
 
-        # Use the same court assignment logic as my-team page with league filtering
-        court_assignments = calculate_player_court_stats(
-            team_matches, team_name, members, user_league_id, team_id
-        )
+        if not members_data:
+            return []
 
-        # If no court assignments found, create sample data for testing court display
-        if not any(court_assignments.values()):
-            court_assignments = create_sample_court_data(members)
-
-        # Build final member list with court stats and calculated match counts
+        # Transform to the expected format
         members_with_stats = []
-        for member in members:
+        for member in members_data:
             full_name = f"{member['first_name']} {member['last_name']}"
-            player_court_stats = court_assignments.get(
-                member["tenniscores_player_id"], {}
-            )
-
-            # Get actual match count for this player filtered by team and league
-            # For multi-team players, this ensures we count matches for THIS specific team
-            player_match_count = get_player_match_count(
-                member["tenniscores_player_id"], user_league_id, team_id
-            )
+            
+            # Build court stats dictionary in the expected format
+            court_stats = {}
+            for court_num in range(1, 7):  # Courts 1-6
+                court_key = f"court{court_num}"
+                court_count = member.get(court_key, 0)
+                if court_count > 0:
+                    court_stats[court_key] = court_count
 
             member_data = {
                 "id": member["id"],
@@ -4167,16 +4250,14 @@ def get_team_members_with_court_stats(team_id, user):
                 "last_name": member["last_name"],
                 "pti": member.get("pti", 0),
                 "tenniscores_player_id": member["tenniscores_player_id"],
-                "court_stats": player_court_stats,
-                "match_count": player_match_count,
+                "court_stats": court_stats,
+                "match_count": member.get("match_count", 0),
+                "wins": member.get("wins", 0),  # Include wins from optimized query
+                "losses": member.get("losses", 0),  # Include losses from optimized query
             }
             members_with_stats.append(member_data)
 
-            court_total = sum(player_court_stats.values()) if player_court_stats else 0
-
-        # Sort team members by match count (most to least)
-        members_with_stats.sort(key=lambda member: member["match_count"], reverse=True)
-
+        print(f"[OPTIMIZED] Loaded {len(members_with_stats)} team members with 1 comprehensive query instead of ~{len(members_with_stats) * 10}+ individual queries")
         return members_with_stats
 
     except Exception as e:

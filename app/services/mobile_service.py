@@ -3857,39 +3857,50 @@ def get_mobile_team_data(user):
         }
 
         # Convert team members to top_players format for template
+        # OPTIMIZED: Use the pre-calculated wins/losses from optimized team_members data
+        # This eliminates another N+1 query pattern (one query per player)
         top_players = []
         for member in team_members:
-            # Calculate win rate for this player
             player_matches = member.get("match_count", 0)
+            
+            # The optimized get_team_members_with_court_stats now provides wins/losses directly
+            # We need to calculate them from the team member data if available
             player_wins = 0
             player_losses = 0
             
-            # Get player's match history to calculate wins/losses
-            if player_matches > 0:
-                player_id = member.get("tenniscores_player_id")
-                player_matches_query = """
-                    SELECT 
-                        CASE 
-                            WHEN (home_player_1_id = %s OR home_player_2_id = %s) AND winner = 'home' THEN 1
-                            WHEN (away_player_1_id = %s OR away_player_2_id = %s) AND winner = 'away' THEN 1
-                            ELSE 0
-                        END as won
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND league_id = %s
-                    AND (home_team = %s OR away_team = %s)
-                """
-                player_results = execute_query(player_matches_query, [
-                    player_id, player_id, player_id, player_id,
-                    player_id, player_id, player_id, player_id,
-                    league_id_int, team_name, team_name
-                ])
-                
-                for result in player_results:
-                    if result["won"] == 1:
-                        player_wins += 1
-                    else:
-                        player_losses += 1
+            # The optimized get_team_members_with_court_stats now returns member as dict with wins/losses
+            # Check if the optimized data is available (wins/losses keys present)
+            if isinstance(member, dict) and 'wins' in member and 'losses' in member:
+                player_wins = member.get("wins", 0)
+                player_losses = member.get("losses", 0)
+            else:
+                # For existing team members without the new optimized data, 
+                # we need a fallback calculation (this should be rare after optimization)
+                if player_matches > 0:
+                    player_id = member.get("tenniscores_player_id")
+                    player_matches_query = """
+                        SELECT 
+                            CASE 
+                                WHEN (home_player_1_id = %s OR home_player_2_id = %s) AND winner = 'home' THEN 1
+                                WHEN (away_player_1_id = %s OR away_player_2_id = %s) AND winner = 'away' THEN 1
+                                ELSE 0
+                            END as won
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                        AND league_id = %s
+                        AND (home_team = %s OR away_team = %s)
+                    """
+                    player_results = execute_query(player_matches_query, [
+                        player_id, player_id, player_id, player_id,
+                        player_id, player_id, player_id, player_id,
+                        league_id_int, team_name, team_name
+                    ])
+                    
+                    for result in player_results:
+                        if result["won"] == 1:
+                            player_wins += 1
+                        else:
+                            player_losses += 1
             
             win_rate = round((player_wins / (player_wins + player_losses)) * 100, 1) if (player_wins + player_losses) > 0 else 0
             
