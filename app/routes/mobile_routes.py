@@ -2194,25 +2194,20 @@ def serve_mobile_settings():
             # Use helper function to determine if we should preserve session or refresh
             current_session = session.get("user", {})
             
-            if should_preserve_session_context(user_email, current_session):
-                # Preserve current session (team switch protection + no league switch detected)
-                session_user = current_session
-                print(f"[DEBUG] Settings: Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+            # ALWAYS refresh session data for settings page to show latest personal data
+            print(f"[DEBUG] Settings: Always refreshing from database to show latest personal data")
+            fresh_session_data = get_session_data_for_user(user_email)
+            
+            if fresh_session_data:
+                # Update Flask session with fresh data
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_user = fresh_session_data
+                print(f"[DEBUG] Settings: Using fresh session data with latest personal info")
             else:
-                # Session is incomplete, invalid, or league switch detected - refresh from database
-                print(f"[DEBUG] Settings: Session incomplete or league switch detected, refreshing from database")
-                fresh_session_data = get_session_data_for_user(user_email)
-                
-                if fresh_session_data:
-                    # Update Flask session with fresh data
-                    session["user"] = fresh_session_data
-                    session.modified = True
-                    session_user = fresh_session_data
-                    print(f"[DEBUG] Settings: Using fresh session data and updated Flask session")
-                else:
-                    # Fallback to existing session
-                    session_user = session["user"]
-                    print(f"[DEBUG] Settings: Using fallback session data: {session['user']}")
+                # Fallback to existing session
+                session_user = session["user"]
+                print(f"[DEBUG] Settings: Using fallback session data: {session['user']}")
 
         session_data = {"user": session_user, "authenticated": True}
 
