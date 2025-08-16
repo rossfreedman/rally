@@ -7,12 +7,14 @@ from flask import request
 
 logger = logging.getLogger(__name__)
 
-# Ross Freedman's phone number for admin notifications
-ADMIN_PHONE_NUMBER = "773-213-8911"
+# Admin email for notifications (configured in SendGridConfig.ADMIN_EMAIL)
+# This constant is kept for backwards compatibility but email notifications
+# now use SendGridConfig.ADMIN_EMAIL from environment variables
+ADMIN_EMAIL_LEGACY = "ross@lovetorally.com"
 
 
 def log_user_activity(user_email, activity_type, **kwargs):
-    """Log user activity to the database with enhanced SMS notifications"""
+    """Log user activity to the database with enhanced email notifications"""
     try:
         # Extract common fields from kwargs
         page = kwargs.pop("page", None)
@@ -43,15 +45,15 @@ def log_user_activity(user_email, activity_type, **kwargs):
             )
         except Exception as db_error:
             logger.error(f"Database logging failed: {db_error}")
-            # Continue with SMS notification even if database fails
+            # Continue with email notification even if database fails
 
-        # Check if detailed logging notifications are enabled and send SMS
+        # Check if detailed logging notifications are enabled and send email
         try:
             _send_detailed_logging_notification(
                 user_email, activity_type, page, action, details, is_impersonating, first_name, last_name
             )
-        except Exception as sms_error:
-            logger.error(f"SMS notification failed: {sms_error}")
+        except Exception as email_error:
+            logger.error(f"Email notification failed: {email_error}")
 
         return True
 
@@ -95,33 +97,39 @@ def _log_to_database(user_email, activity_type, page, action, details_json, is_i
 
 
 def _send_detailed_logging_notification(user_email, activity_type, page, action, details, is_impersonating, first_name=None, last_name=None):
-    """Send SMS notification if detailed logging notifications are enabled"""
+    """Send email notification if detailed logging notifications are enabled"""
     try:
         # Check if detailed logging notifications are enabled
         from app.services.admin_service import get_detailed_logging_notifications_setting
         
         if not get_detailed_logging_notifications_setting():
-            return  # Feature is disabled, don't send SMS
+            return  # Feature is disabled, don't send email
 
         # Check if the user whose activity is being logged is an admin
-        # Do not send activity tracking SMS for admin users
+        # Do not send activity tracking email for admin users
         if _is_user_admin(user_email):
-            logger.info(f"Skipping activity tracking SMS for admin user: {user_email}")
+            logger.info(f"Skipping activity tracking email for admin user: {user_email}")
             return
 
-        # Import SMS service
-        from app.services.notifications_service import send_sms_notification
+        # Import email service
+        from app.services.notifications_service import send_admin_activity_notification
 
-        # Create a human-readable SMS message
-        message = _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating, first_name, last_name)
-
-        # Send SMS to admin
-        send_sms_notification(ADMIN_PHONE_NUMBER, message)
+        # Send email to admin
+        send_admin_activity_notification(
+            user_email=user_email,
+            activity_type=activity_type,
+            page=page,
+            action=action,
+            details=details,
+            is_impersonating=is_impersonating,
+            first_name=first_name,
+            last_name=last_name
+        )
         
-        logger.info(f"Detailed logging SMS sent for {user_email} - {activity_type}")
+        logger.info(f"Detailed logging email sent for {user_email} - {activity_type}")
 
     except Exception as e:
-        logger.error(f"Failed to send detailed logging SMS: {str(e)}")
+        logger.error(f"Failed to send detailed logging email: {str(e)}")
         raise
 
 

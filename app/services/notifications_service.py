@@ -16,8 +16,10 @@ from typing import Dict, Optional, Tuple
 
 import requests
 from requests.auth import HTTPBasicAuth
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
-from config import TwilioConfig
+from config import TwilioConfig, SendGridConfig
 
 
 # Configure logging
@@ -931,4 +933,276 @@ def send_pickup_game_leave_confirmation(user_id: int, game_id: int) -> Dict:
         return {
             "success": False,
             "error": f"Failed to send confirmation: {str(e)}"
-        } 
+        }
+
+
+def validate_email_address(email: str) -> Tuple[bool, str]:
+    """
+    Validate email address format
+    
+    Args:
+        email (str): Email address to validate
+        
+    Returns:
+        Tuple[bool, str]: (is_valid, formatted_email_or_error_message)
+    """
+    if not email:
+        return False, "Email address is required"
+    
+    # Basic email validation regex
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    
+    if re.match(email_pattern, email.strip()):
+        return True, email.strip().lower()
+    else:
+        return False, "Invalid email address format"
+
+
+def send_email_notification(to_email: str, subject: str, content: str, html_content: str = None, test_mode: bool = False) -> Dict:
+    """
+    Send an email using SendGrid API
+    
+    Args:
+        to_email (str): Recipient email address
+        subject (str): Email subject line
+        content (str): Plain text email content
+        html_content (str): Optional HTML email content
+        test_mode (bool): If True, validates but doesn't actually send
+        
+    Returns:
+        Dict: Result with status and any errors
+    """
+    
+    # Validate configuration
+    config_status = SendGridConfig.validate_config()
+    if not config_status["is_valid"]:
+        return {
+            "success": False,
+            "error": f"SendGrid not configured. Missing: {', '.join(config_status['missing_vars'])}",
+            "status_code": None,
+            "message_id": None
+        }
+    
+    # Validate email address
+    is_valid_email, email_result = validate_email_address(to_email)
+    if not is_valid_email:
+        return {
+            "success": False,
+            "error": email_result,
+            "status_code": None,
+            "message_id": None
+        }
+    
+    formatted_email = email_result
+    
+    # Validate content
+    if not subject or not subject.strip():
+        return {
+            "success": False,
+            "error": "Email subject is required",
+            "status_code": None,
+            "message_id": None
+        }
+    
+    if not content or not content.strip():
+        return {
+            "success": False,
+            "error": "Email content is required",
+            "status_code": None,
+            "message_id": None
+        }
+    
+    # Test mode - validate but don't send
+    if test_mode:
+        return {
+            "success": True,
+            "message": "Test mode - email validated successfully",
+            "formatted_email": formatted_email,
+            "subject": subject,
+            "content_length": len(content),
+            "status_code": 200,
+            "message_id": "test_email_id"
+        }
+    
+    # Send email with SendGrid
+    return _send_email_with_sendgrid(formatted_email, subject, content, html_content)
+
+
+def _send_email_with_sendgrid(to_email: str, subject: str, content: str, html_content: str = None) -> Dict:
+    """
+    Send email using SendGrid API
+    
+    Args:
+        to_email (str): Validated email address
+        subject (str): Email subject
+        content (str): Plain text content
+        html_content (str): Optional HTML content
+        
+    Returns:
+        Dict: Result with status and any errors
+    """
+    
+    try:
+        # Create the email message
+        message = Mail(
+            from_email=(SendGridConfig.FROM_EMAIL, SendGridConfig.FROM_NAME),
+            to_emails=to_email,
+            subject=subject,
+            plain_text_content=content,
+            html_content=html_content or f"<p>{content.replace(chr(10), '<br>')}</p>"
+        )
+        
+        # Initialize SendGrid client
+        sg = SendGridAPIClient(api_key=SendGridConfig.API_KEY)
+        
+        # Set EU data residency if enabled
+        if SendGridConfig.EU_DATA_RESIDENCY:
+            sg.set_sendgrid_data_residency("eu")
+            logger.info("EU data residency enabled for SendGrid")
+        
+        # Send email
+        response = sg.send(message)
+        
+        # Check response status
+        if response.status_code in [200, 201, 202]:
+            logger.info(f"Email sent successfully to {to_email}")
+            return {
+                "success": True,
+                "status_code": response.status_code,
+                "message_id": response.headers.get('X-Message-Id', 'unknown'),
+                "message": "Email sent successfully"
+            }
+        else:
+            logger.error(f"SendGrid returned status {response.status_code}: {response.body}")
+            return {
+                "success": False,
+                "error": f"SendGrid error: Status {response.status_code}",
+                "status_code": response.status_code,
+                "message_id": None
+            }
+            
+    except Exception as e:
+        logger.error(f"SendGrid email sending failed: {str(e)}")
+        return {
+            "success": False,
+            "error": f"Email sending failed: {str(e)}",
+            "status_code": None,
+            "message_id": None
+        }
+
+
+def send_admin_activity_notification(user_email: str, activity_type: str, page: str = None, action: str = None, details: str = None, is_impersonating: bool = False, first_name: str = None, last_name: str = None) -> Dict:
+    """
+    Send email notification to admin about user activity
+    
+    Args:
+        user_email (str): Email of user performing activity
+        activity_type (str): Type of activity
+        page (str): Page where activity occurred
+        action (str): Specific action taken
+        details (str): Additional details about the activity
+        is_impersonating (bool): Whether activity was performed while impersonating
+        first_name (str): User's first name
+        last_name (str): User's last name
+        
+    Returns:
+        Dict: Result of email sending
+    """
+    
+    # Create email subject
+    subject = f"🔔 Rally Activity Alert: {activity_type}"
+    if is_impersonating:
+        subject = f"👥 Rally Admin Impersonation Activity: {activity_type}"
+    
+    # Create email content
+    user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
+    
+    content_parts = [
+        f"User Activity Alert",
+        f"=" * 50,
+        f"User: {user_name} ({user_email})",
+        f"Activity: {activity_type}",
+    ]
+    
+    if page:
+        content_parts.append(f"Page: {page}")
+    if action:
+        content_parts.append(f"Action: {action}")
+    if details:
+        content_parts.append(f"Details: {details}")
+    if is_impersonating:
+        content_parts.append("⚠️ Note: This activity was performed while impersonating another user")
+    
+    content_parts.extend([
+        f"",
+        f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Platform: Rally Paddle Tennis Platform",
+        f"",
+        f"Visit Rally Admin Panel: https://www.lovetorally.com/admin"
+    ])
+    
+    content = "\n".join(content_parts)
+    
+    # Create HTML version
+    html_content = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #2c3e50; margin-bottom: 20px;">
+                {'👥 Rally Admin Impersonation Activity' if is_impersonating else '🔔 Rally Activity Alert'}
+            </h2>
+            
+            <div style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr><td style="font-weight: bold; padding: 5px 0;">User:</td><td style="padding: 5px 0;">{user_name} ({user_email})</td></tr>
+                    <tr><td style="font-weight: bold; padding: 5px 0;">Activity:</td><td style="padding: 5px 0;">{activity_type}</td></tr>
+                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Page:</td><td style="padding: 5px 0;">{page}</td></tr>' if page else ''}
+                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Action:</td><td style="padding: 5px 0;">{action}</td></tr>' if action else ''}
+                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Details:</td><td style="padding: 5px 0;">{details}</td></tr>' if details else ''}
+                    <tr><td style="font-weight: bold; padding: 5px 0;">Timestamp:</td><td style="padding: 5px 0;">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
+                </table>
+                
+                {f'<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 15px;"><strong>⚠️ Note:</strong> This activity was performed while impersonating another user</div>' if is_impersonating else ''}
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <a href="https://www.lovetorally.com/admin" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+                    Visit Rally Admin Panel
+                </a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Send email to admin
+    return send_email_notification(
+        to_email=SendGridConfig.ADMIN_EMAIL,
+        subject=subject,
+        content=content,
+        html_content=html_content
+    )
+
+
+def get_sendgrid_status() -> Dict:
+    """Get SendGrid configuration status"""
+    config = SendGridConfig.validate_config()
+    
+    status = {
+        "configured": config["is_valid"],
+        "api_key": config["api_key"],
+        "from_email": config["from_email"],
+        "from_name": config["from_name"],
+        "admin_email": config["admin_email"],
+        "eu_data_residency": config["eu_data_residency"],
+        "missing_vars": config["missing_vars"]
+    }
+    
+    if config["is_valid"]:
+        status["status_message"] = "✅ SendGrid is properly configured"
+        status["status_color"] = "green"
+    else:
+        status["status_message"] = f"❌ Missing: {', '.join(config['missing_vars'])}"
+        status["status_color"] = "red"
+    
+    return status 
