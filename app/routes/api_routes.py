@@ -2596,6 +2596,9 @@ def get_user_settings():
     """Get user settings for the settings page"""
     try:
         user_email = session["user"]["email"]
+        session_user_data = session.get("user", {})
+        logger.info(f"get-user-settings called for: {user_email}")
+        logger.info(f"Session user data: first_name={session_user_data.get('first_name')}, last_name={session_user_data.get('last_name')}, email={session_user_data.get('email')}")
 
         # Get basic user data including league_context
         user_data = execute_query_one(
@@ -2742,6 +2745,7 @@ def get_user_settings():
             "dominant_hand": user_data["dominant_hand"] or "",
         }
 
+        logger.info(f"get-user-settings response for {user_email}: first_name={response_data['first_name']}, last_name={response_data['last_name']}, email={response_data['email']}, phone={response_data['phone_number']}")
         return jsonify(response_data)
 
     except Exception as e:
@@ -2780,6 +2784,12 @@ def update_settings():
         # Validate required fields
         if not data.get("firstName") or not data.get("lastName") or not data.get("email"):
             return jsonify({"error": "First name, last name, and email are required"}), 400
+
+        # SECURITY FIX: Prevent users from updating other users' data
+        form_email = data.get("email", "").strip().lower()
+        if form_email != user_email:
+            logger.warning(f"SECURITY ALERT: User {user_email} attempted to update data for {form_email}")
+            return jsonify({"error": "You can only update your own account"}), 403
 
         logger.info(f"Settings update for {user_email}: {data}")
 
@@ -2830,7 +2840,7 @@ def update_settings():
             string_to_numeric = {
                 "APTA_CHICAGO": 4930,
                 "NSTF": 4933,
-                "CNSWPL": 4491,
+                "CNSWPL": 4932,  # Fixed: was 4491, should be 4932
                 "CITA": 4496
             }
             
@@ -2851,6 +2861,42 @@ def update_settings():
         
         print(f"[DEBUG] League comparison: current={current_league_id} ({normalized_current}) vs new={new_league_id} ({normalized_new}) => switched={league_switched}")
         
+        # *** CRITICAL FIX: UPDATE USER DATA FIRST (before any league switching) ***
+        # This ensures phone number and personal data always gets saved
+        logger.info(f"*** UPDATING USER PERSONAL DATA FIRST for {user_email} ***")
+        
+        update_fields = ["first_name = %s", "last_name = %s", "email = %s", "ad_deuce_preference = %s", "dominant_hand = %s", "phone_number = %s"]
+        update_values = [data.get("firstName"), data.get("lastName"), data.get("email"), data.get("adDeuce", ""), data.get("dominantHand", ""), data.get("phoneNumber", "")]
+        
+        # Handle password update if provided
+        current_password = data.get("currentPassword", "").strip()
+        logger.info(f"Password field received: '{current_password}' (length: {len(current_password)})")
+        if current_password:
+            from werkzeug.security import generate_password_hash
+            password_hash = generate_password_hash(current_password, method='pbkdf2:sha256')
+            update_fields.append("password_hash = %s")
+            update_values.append(password_hash)
+            logger.info(f"*** Password update will be included in database update for user {user_email} ***")
+        else:
+            logger.info(f"No password change requested for user {user_email}")
+        
+        # Execute user data update
+        update_query = f"UPDATE users SET {', '.join(update_fields)} WHERE email = %s"
+        update_values.append(user_email)
+        
+        phone_number = data.get("phoneNumber", "")
+        logger.info(f"Updating user data: phone_number='{phone_number}' for user {user_email}")
+        logger.info(f"Final update query: {update_query}")
+        logger.info(f"Update fields being set: {update_fields}")
+        logger.info(f"Password included in update: {'password_hash = %s' in update_fields}")
+        
+        success = execute_update(update_query, update_values)
+        if not success:
+            logger.error(f"Database update failed for user {user_email}")
+            return jsonify({"success": False, "message": "Database update failed"}), 500
+        
+        logger.info(f"*** USER DATA UPDATE SUCCESSFUL for {user_email} ***")
+        
         if league_switched:
             logger.info(f"League switch detected in settings: {current_league_id} -> {new_league_id}")
             
@@ -2860,7 +2906,7 @@ def update_settings():
                 league_string_mapping = {
                     "4930": "APTA_CHICAGO",
                     "4933": "NSTF", 
-                    "4491": "CNSWPL",
+                    "4932": "CNSWPL",  # Fixed: was 4491, should be 4932
                     "4496": "CITA"
                 }
                 new_league_string = league_string_mapping.get(str(new_league_id))
@@ -2876,13 +2922,62 @@ def update_settings():
                     # After league switch, get fresh session data
                     fresh_session_data = get_session_data_for_user(user_email)
                     if fresh_session_data:
+                        # CRITICAL FIX: Ensure fresh session includes updated phone number from database
+                        # The session refresh might not include the phone number we just updated
+                        fresh_session_data["phone_number"] = data.get("phoneNumber", "")
+                        fresh_session_data["first_name"] = data.get("firstName", "")
+                        fresh_session_data["last_name"] = data.get("lastName", "")
+                        fresh_session_data["ad_deuce_preference"] = data.get("adDeuce", "")
+                        fresh_session_data["dominant_hand"] = data.get("dominantHand", "")
+                        
                         session["user"] = fresh_session_data
                         session.modified = True
                         logger.info(f"League switched successfully via settings: {fresh_session_data.get('league_name')}")
                         
+                        # Send SMS notification to user about league switch
+                        logger.info(f"*** ATTEMPTING SMS NOTIFICATION (league switch) for {user_email} ***")
+                        try:
+                            from app.services.notifications_service import send_sms_notification
+                            
+                            # Use the NEW phone number from the form data, not the old session data
+                            user_phone = data.get("phoneNumber", "")
+                            logger.info(f"User phone number for league switch SMS (NEW number): '{user_phone}'")
+                            
+                            if user_phone:
+                                league_name = fresh_session_data.get('league_name', 'Unknown')
+                                club_name = fresh_session_data.get('club', 'Unknown')
+                                series_name = fresh_session_data.get('series', 'Unknown')
+                                
+                                # Build detailed change message
+                                specific_changes = []
+                                specific_changes.append(f"League switched to {league_name}")
+                                specific_changes.append(f"Club: {club_name}")
+                                specific_changes.append(f"Series: {series_name}")
+                                
+                                changes_detail = ", ".join(specific_changes)
+                                sms_message = f"Rally Settings Updated: {changes_detail}. If you didn't make these changes, please contact support."
+                                
+                                logger.info(f"League switch SMS message to send: '{sms_message}'")
+                                logger.info(f"Calling send_sms_notification({user_phone}, message)")
+                                
+                                sms_result = send_sms_notification(user_phone, sms_message)
+                                logger.info(f"League switch SMS result: {sms_result}")
+                                
+                                if sms_result.get("success"):
+                                    logger.info(f"✅ League switch SMS notification sent successfully to user {user_email} at {user_phone}")
+                                else:
+                                    logger.error(f"❌ Failed to send league switch SMS to user {user_email}: {sms_result.get('error')}")
+                            else:
+                                logger.warning(f"⚠️ No phone number available for league switch SMS notification to {user_email}")
+                                
+                        except Exception as sms_error:
+                            logger.error(f"❌ Exception sending league switch SMS notification: {str(sms_error)}")
+                            import traceback
+                            logger.error(f"League switch SMS Exception traceback: {traceback.format_exc()}")
+                        
                         return jsonify({
                             "success": True,
-                            "message": f"Settings updated and switched to {fresh_session_data.get('league_name')}",
+                            "message": f"Personal data updated and switched to {fresh_session_data.get('league_name')}",
                             "user": fresh_session_data,
                             "league_switched": True
                         })
@@ -2983,42 +3078,7 @@ def update_settings():
                    f"has_player_id={bool(current_tenniscores_player_id)}, "
                    f"settings_changed={settings_changed}")
 
-        # Update basic user data first
-        update_fields = []
-        update_values = []
-        
-        # Standard fields
-        update_fields.extend([
-            "first_name = %s", "last_name = %s", "email = %s",
-            "ad_deuce_preference = %s", "dominant_hand = %s", "phone_number = %s"
-        ])
-        update_values.extend([
-            data.get("firstName"),
-            data.get("lastName"), 
-            data.get("email"),
-            data.get("adDeuce", ""),
-            data.get("dominantHand", ""),
-            data.get("phoneNumber", "")
-        ])
-        
-        # Handle password update if provided
-        current_password = data.get("currentPassword", "").strip()
-        if current_password:
-            from werkzeug.security import generate_password_hash
-            password_hash = generate_password_hash(current_password, method='pbkdf2:sha256')
-            update_fields.append("password_hash = %s")
-            update_values.append(password_hash)
-            logger.info(f"Password update requested for user {user_email}")
-        
-        # Build and execute the update query
-        update_query = f"""
-            UPDATE users 
-            SET {', '.join(update_fields)}
-            WHERE email = %s
-        """
-        update_values.append(user_email)
-        
-        execute_query(update_query, update_values)
+
 
         # Handle league switching if league changed
         if new_league_id and new_league_id != current_league_id:
@@ -3167,11 +3227,21 @@ def update_settings():
                 logger.warning(f"Series '{database_series_name}' not found in database")
 
         # Rebuild session from database (this gets the updated league_context and player association)
+        logger.info(f"*** REACHING REGULAR UPDATE PATH - getting fresh session data for {user_email} ***")
         fresh_session_data = get_session_data_for_user(user_email)
+        logger.info(f"Fresh session data retrieved: {bool(fresh_session_data)}")
         if fresh_session_data:
+            # CRITICAL FIX: Ensure fresh session includes updated personal data
+            # The session refresh might not include the personal data we just updated
+            fresh_session_data["phone_number"] = data.get("phoneNumber", "")
+            fresh_session_data["first_name"] = data.get("firstName", "")
+            fresh_session_data["last_name"] = data.get("lastName", "")
+            fresh_session_data["ad_deuce_preference"] = data.get("adDeuce", "")
+            fresh_session_data["dominant_hand"] = data.get("dominantHand", "")
+            
             session["user"] = fresh_session_data
             session.modified = True
-            logger.info(f"Session updated: {fresh_session_data.get('league_name', 'Unknown')} - {fresh_session_data.get('club', 'Unknown')}")
+            logger.info(f"Session updated with fresh personal data: {fresh_session_data.get('league_name', 'Unknown')} - {fresh_session_data.get('club', 'Unknown')}")
             
             # Enhanced logging for settings update
             settings_update_details = {
@@ -3211,6 +3281,122 @@ def update_settings():
                 action="update_user_settings",
                 details=settings_update_details
             )
+            
+            # Send admin email notification about settings change
+            try:
+                from app.services.notifications_service import send_admin_activity_notification
+                
+                changes_summary = []
+                if new_league_id != current_league_id:
+                    changes_summary.append(f"League: {current_league_id} → {new_league_id}")
+                if new_club != current_club:
+                    changes_summary.append(f"Club: {current_club} → {new_club}")
+                if new_series != current_series:
+                    changes_summary.append(f"Series: {current_series} → {new_series}")
+                if data.get('phoneNumber'):
+                    changes_summary.append("Phone number updated")
+                if current_password:
+                    changes_summary.append("Password changed")
+                if player_lookup_success:
+                    changes_summary.append("Player ID found")
+                
+                changes_detail = "; ".join(changes_summary) if changes_summary else "Profile information updated"
+                
+                send_admin_activity_notification(
+                    user_email=user_email,
+                    activity_type="settings_update",
+                    page="mobile_settings",
+                    action="update_user_settings",
+                    details=changes_detail,
+                    first_name=data.get('firstName', ''),
+                    last_name=data.get('lastName', '')
+                )
+                logger.info(f"Admin email notification sent for settings change: {user_email}")
+            except Exception as email_error:
+                logger.error(f"Failed to send admin email notification: {str(email_error)}")
+            
+            # Send SMS notification to user about their settings changes
+            logger.info(f"*** ATTEMPTING SMS NOTIFICATION for {user_email} ***")
+            try:
+                from app.services.notifications_service import send_sms_notification
+                
+                # Use the NEW phone number from the form data, not the old session data
+                user_phone = data.get("phoneNumber", "")
+                logger.info(f"User phone number for SMS (NEW number): '{user_phone}'")
+                
+                if user_phone:
+                    # Build user-friendly SMS message for regular updates (no league switching)
+                    user_changes = []
+                    # Note: League switching is handled separately and shouldn't reach this path
+                    
+                    # Check for phone number change by comparing old vs new
+                    current_phone = current_user_data.get('phone_number', '')
+                    new_phone = data.get('phoneNumber', '')
+                    if new_phone != current_phone:
+                        user_changes.append(f"Phone number changed from {current_phone} to {new_phone}")
+                        logger.info(f"Phone number change detected: '{current_phone}' -> '{new_phone}'")
+                    
+                    # Check for email change
+                    current_email = current_user_data.get('email', '')
+                    new_email = data.get('email', '')
+                    if new_email != current_email:
+                        user_changes.append(f"Email changed from {current_email} to {new_email}")
+                        logger.info(f"Email change detected: '{current_email}' -> '{new_email}'")
+                    
+                    # Check for name changes
+                    current_first = current_user_data.get('first_name', '')
+                    new_first = data.get('firstName', '')
+                    if new_first != current_first:
+                        user_changes.append(f"First name changed from {current_first} to {new_first}")
+                        
+                    current_last = current_user_data.get('last_name', '')
+                    new_last = data.get('lastName', '')
+                    if new_last != current_last:
+                        user_changes.append(f"Last name changed from {current_last} to {new_last}")
+                    
+                    # Check for preference changes
+                    current_deuce = current_user_data.get('ad_deuce_preference', '')
+                    new_deuce = data.get('adDeuce', '')
+                    if new_deuce != current_deuce:
+                        user_changes.append(f"Scoring preference changed from {current_deuce} to {new_deuce}")
+                        
+                    current_hand = current_user_data.get('dominant_hand', '')
+                    new_hand = data.get('dominantHand', '')
+                    if new_hand != current_hand:
+                        user_changes.append(f"Dominant hand changed from {current_hand} to {new_hand}")
+                    
+                    if current_password:
+                        user_changes.append("Password changed")
+                    if player_lookup_success:
+                        user_changes.append("Player profile linked")
+                    
+                    if user_changes:
+                        changes_text = ", ".join(user_changes)
+                        sms_message = f"Rally Settings Updated: {changes_text}. If you didn't make these changes, please contact support."
+                    else:
+                        sms_message = "Your Rally settings have been updated successfully."
+                    
+                    # Add detailed change information to SMS
+                    logger.info(f"Changes detected for SMS: {user_changes}")
+                    
+                    logger.info(f"SMS message to send: '{sms_message}'")
+                    logger.info(f"Calling send_sms_notification({user_phone}, message)")
+                    
+                    # Send SMS notification
+                    sms_result = send_sms_notification(user_phone, sms_message)
+                    logger.info(f"SMS result: {sms_result}")
+                    
+                    if sms_result.get("success"):
+                        logger.info(f"✅ SMS notification sent successfully to user {user_email} at {user_phone}")
+                    else:
+                        logger.error(f"❌ Failed to send SMS to user {user_email}: {sms_result.get('error')}")
+                else:
+                    logger.warning(f"⚠️ No phone number available for SMS notification to {user_email}")
+                    
+            except Exception as sms_error:
+                logger.error(f"❌ Exception sending SMS notification to user: {str(sms_error)}")
+                import traceback
+                logger.error(f"SMS Exception traceback: {traceback.format_exc()}")
             
             # Add player lookup status and password update to response
             success_message = "Settings updated successfully"

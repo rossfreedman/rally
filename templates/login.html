@@ -966,7 +966,23 @@
             setButtonLoading(registerButton, true);
             
             const email = document.getElementById('registerEmail').value;
-            const phoneNumber = document.getElementById('phoneNumber').value;
+            let phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            // Automatically add +1 prefix for database storage (same logic as settings)
+            if (phoneNumber) {
+                // Remove any existing formatting
+                phoneNumber = phoneNumber.replace(/[^\d]/g, '');
+                
+                // Add +1 prefix if not already present
+                if (phoneNumber.length === 10) {
+                    phoneNumber = '+1' + phoneNumber;
+                } else if (phoneNumber.length === 11 && phoneNumber.startsWith('1')) {
+                    phoneNumber = '+' + phoneNumber;
+                } else if (!phoneNumber.startsWith('+1')) {
+                    phoneNumber = '+1' + phoneNumber;
+                }
+            }
+            
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const firstName = document.getElementById('firstName').value;

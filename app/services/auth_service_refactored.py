@@ -1395,6 +1395,7 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
             password_hash=hashed_password,
             first_name=first_name,
             last_name=last_name,
+            phone_number=phone_number,
             ad_deuce_preference=ad_deuce_preference,
             dominant_hand=dominant_hand,
             is_admin=False
