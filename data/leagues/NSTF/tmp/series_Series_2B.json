@@ -1,0 +1,79 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "08/14",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Wilmette S2B",
+    "Away Team": "108",
+    "Scores": "Wilmette S2B",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Birchwood S2B",
+    "Away Team": "10/11",
+    "Scores": "Birchwood S2B",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Ravinia Green S2B",
+    "Away Team": "9/10",
+    "Scores": "Ravinia Green S2B",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Lake Forest S2B",
+    "Away Team": "10/11",
+    "Scores": "Lake Forest S2B",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Tennaqua S2B",
+    "Away Team": "9/11",
+    "Scores": "Tennaqua S2B",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_2B_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 2B",
+    "Date": null,
+    "Home Team": "Winnetka S2B",
+    "Away Team": "10/10",
+    "Scores": "Winnetka S2B",
+    "Winner": null
+  }
+]

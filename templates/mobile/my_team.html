@@ -131,7 +131,7 @@
                                 <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Win Rate</th>
-                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Partner</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -157,11 +157,11 @@
                                         {{ player.winRate }}%
                                     </span>
                                 </td>
-                                <td class="py-3 px-2 text-gray-700">
-                                    {% if player.best_partner == "N/A" %}
-                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                <td class="py-3 px-2 text-center text-gray-700">
+                                    {% if player.pti %}
+                                        <span class="font-medium">{{ "%.1f"|format(player.pti) }}</span>
                                     {% else %}
-                                        {{ player.best_partner }}
+                                        <span class="text-xs text-gray-400">-</span>
                                     {% endif %}
                                 </td>
                             </tr>

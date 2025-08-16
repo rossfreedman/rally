@@ -2906,7 +2906,6 @@ def update_settings():
             
             # Find the team_id that matches the new club/series combination
             from app.services.session_service import switch_user_team_in_league
-            from database import execute_query_one
             
             # Look up team_id for the new club/series combination
             # Use series_id if available (more reliable), otherwise fall back to series name
@@ -3670,7 +3669,6 @@ def get_user_facing_series_by_league():
             # If that fails, treat as string league ID and look up database ID
             print(f"[DEBUG] Converting string league_id '{league_id}' to database ID")
             try:
-                from database import execute_query_one
                 league_lookup = execute_query_one(
                     "SELECT id FROM leagues WHERE league_id = %s", 
                     [league_id]

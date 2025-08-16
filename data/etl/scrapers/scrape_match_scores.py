@@ -190,40 +190,8 @@ class EnhancedMatchScraper:
             print(f"   ❌ Blocking detected: {detection.value}")
             return []
 
-    def _get_tmp_dir(self, league_subdomain: str) -> str:
-        """Return a per-league temp directory path for series JSONs, ensure it exists."""
-        import os, sys
-        # Resolve canonical league directory via helper
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-        try:
-            from data.etl.utils.league_directory_manager import get_league_file_path
-            final_path = get_league_file_path(league_subdomain, "match_history.json")
-        finally:
-            sys.path.pop(0)
-        tmp_dir = os.path.join(os.path.dirname(final_path), "tmp")
-        os.makedirs(tmp_dir, exist_ok=True)
-        return tmp_dir
-
-    def _sanitize_series_name(self, series_name: str) -> str:
-        import re
-        slug = re.sub(r"[^A-Za-z0-9]+", "_", series_name or "series").strip("_")
-        return slug or "series"
-
-    def _save_series_temp(self, league_subdomain: str, series_name: str, series_matches: List[Dict]) -> str:
-        """Write a temporary JSON for a single series (atomic write). Returns filepath."""
-        import json, os
-        tmp_dir = self._get_tmp_dir(league_subdomain)
-        fname = f"series_{self._sanitize_series_name(series_name)}.json"
-        path = os.path.join(tmp_dir, fname)
-        tmp = path + ".tmp"
-        with open(tmp, "w") as f:
-            json.dump(series_matches, f, indent=2)
-        os.replace(tmp, path)
-        print(f"💾 Saved temp series file: {path} ({len(series_matches)} matches)")
-        return path
-
-        # Parse series links (simplified for example)
-        series_links = self._extract_series_links(main_html)
+        # Parse series links
+        series_links = self._extract_series_links(main_html, league_subdomain)
         print(f"   📋 Found {len(series_links)} series")
         
         # Show filtering information
@@ -266,25 +234,81 @@ class EnhancedMatchScraper:
             # Parse matches from series page
             print(f"   🔍 Parsing matches from {series_name}...")
             series_matches, matches_processed_in_series = self._extract_matches_from_series(
-                series_html, series_name, total_matches_processed, total_series
+                series_html, series_name, total_matches_processed, total_series, league_subdomain
             )
             total_matches_processed += matches_processed_in_series
             
-            # Apply date filtering if in delta mode
-            if self.config.delta_mode and self.config.start_date and self.config.end_date:
-                print(f"   📅 Filtering matches by date range...")
-                series_matches = self._filter_matches_by_date(series_matches)
-            
-            all_matches.extend(series_matches)
-            print(f"   ✅ Series {series_name}: {len(series_matches)} matches")
-
-            # Save per-series temp JSON to avoid all-or-nothing loss
-            self._save_series_temp(league_subdomain, series_name, series_matches)
+            # Save temporary series file for atomic operations
+            if series_matches:
+                self._save_series_temp(league_subdomain, series_name, series_matches)
+                all_matches.extend(series_matches)
+                print(f"   ✅ Added {len(series_matches)} matches from {series_name}")
+            else:
+                print(f"   ⚠️ No matches found in {series_name}")
         
-        self.metrics["leagues_scraped"].append(league_subdomain)
-        print(f"   🎉 Completed scraping {league_subdomain}: {len(all_matches)} total matches")
+        # Final consolidation
+        if all_matches:
+            self._save_final_matches(league_subdomain, all_matches)
+            print(f"\n✅ Successfully scraped {len(all_matches)} total matches")
+        else:
+            print(f"\n⚠️ No matches found for {league_subdomain}")
         
         return all_matches
+
+    def _get_tmp_dir(self, league_subdomain: str) -> str:
+        """Return a per-league temp directory path for series JSONs, ensure it exists."""
+        import os, sys
+        # Resolve canonical league directory via helper
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        try:
+            from data.etl.utils.league_directory_manager import get_league_file_path
+            final_path = get_league_file_path(league_subdomain, "match_history.json")
+        finally:
+            sys.path.pop(0)
+        tmp_dir = os.path.join(os.path.dirname(final_path), "tmp")
+        os.makedirs(tmp_dir, exist_ok=True)
+        return tmp_dir
+
+    def _sanitize_series_name(self, series_name: str) -> str:
+        import re
+        slug = re.sub(r"[^A-Za-z0-9]+", "_", series_name or "series").strip("_")
+        return slug or "series"
+
+    def _save_series_temp(self, league_subdomain: str, series_name: str, series_matches: List[Dict]) -> str:
+        """Write a temporary JSON for a single series (atomic write). Returns filepath."""
+        import json, os
+        tmp_dir = self._get_tmp_dir(league_subdomain)
+        fname = f"series_{self._sanitize_series_name(series_name)}.json"
+        path = os.path.join(tmp_dir, fname)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(series_matches, f, indent=2)
+        os.replace(tmp, path)
+        print(f"💾 Saved temp series file: {path} ({len(series_matches)} matches)")
+        return path
+
+    def _save_final_matches(self, league_subdomain: str, all_matches: List[Dict]) -> str:
+        """Save final consolidated matches to the league's main match_history.json file."""
+        import json, os, sys
+        # Resolve canonical league directory via helper
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        try:
+            from data.etl.utils.league_directory_manager import get_league_file_path
+            final_path = get_league_file_path(league_subdomain, "match_history.json")
+        finally:
+            sys.path.pop(0)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(final_path), exist_ok=True)
+        
+        # Atomic write to avoid corruption
+        tmp_path = final_path + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(all_matches, f, indent=2)
+        os.replace(tmp_path, final_path)
+        
+        print(f"💾 Saved final matches file: {final_path} ({len(all_matches)} matches)")
+        return final_path
     
     def _scrape_with_http(self, league_subdomain: str, series_filter: str = None) -> List[Dict]:
         """Scrape using HTTP requests as fallback."""
@@ -311,7 +335,7 @@ class EnhancedMatchScraper:
             # Parse the main page to extract series links
             main_html = response.text
             print(f"\n🔍 Analyzing main page to find series...")
-            series_links = self._extract_series_links(main_html)
+            series_links = self._extract_series_links(main_html, league_subdomain)
             
             if not series_links:
                 print(f"⚠️ No series links found for {league_subdomain}")
@@ -362,7 +386,7 @@ class EnhancedMatchScraper:
                     # Parse matches from series page
                     print(f"🔍 Extracting matches from {series_name}...")
                     series_matches, matches_processed_in_series = self._extract_matches_from_series(
-                        series_response.text, series_name, total_matches_processed, total_series
+                        series_response.text, series_name, total_matches_processed, total_series, league_subdomain
                     )
                     total_matches_processed += matches_processed_in_series
                     
@@ -394,7 +418,7 @@ class EnhancedMatchScraper:
             print(f"❌ HTTP scraping failed: {e}")
             return []
 
-    def _extract_series_links(self, html: str) -> List[Tuple[str, str]]:
+    def _extract_series_links(self, html: str, league_subdomain: str = None) -> List[Tuple[str, str]]:
         """Extract series links from main page based on league."""
         series_links = []
         
@@ -402,18 +426,29 @@ class EnhancedMatchScraper:
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             
-            # Determine league type based on URL patterns in the HTML
+            # Determine league type based on league subdomain first, then HTML content
+            league_lower = (league_subdomain or "").lower()
             html_lower = html.lower()
             
-            if 'cnswpl' in html_lower or 'cns' in html_lower:
+            if 'nstf' in league_lower:
+                # NSTF League - use NSTF-specific format
+                return self._extract_nstf_series_links(html, league_subdomain)
+            elif 'cnswpl' in league_lower or 'cns' in league_lower or 'cnswpl' in html_lower or 'cns' in html_lower:
                 # CNSWPL League - use Series format
                 return self._extract_cnswpl_series_links(html)
-            elif 'apta' in html_lower or 'chicago' in html_lower:
+            elif 'apta' in league_lower or 'chicago' in league_lower or 'apta' in html_lower or 'chicago' in html_lower:
                 # APTA Chicago - use Line format
                 return self._extract_apta_series_links(html)
             else:
-                # Default to CNSWPL format for now
-                return self._extract_cnswpl_series_links(html)
+                # For unknown leagues, try to determine from HTML content only
+                print(f"   ⚠️ Unknown league '{league_subdomain}', attempting to determine from HTML content")
+                if 'cnswpl' in html_lower or 'cns' in html_lower:
+                    return self._extract_cnswpl_series_links(html)
+                elif 'apta' in html_lower or 'chicago' in html_lower:
+                    return self._extract_apta_series_links(html)
+                else:
+                    print(f"   ⚠️ No series links found for league '{league_subdomain}'")
+                    return []
             
         except Exception as e:
             print(f"   ❌ Error extracting series links: {e}")
@@ -536,15 +571,76 @@ class EnhancedMatchScraper:
             print(f"   📊 Total lines found: {len(series_links)}")
             return series_links
             
-            print(f"   📊 Total lines found: {len(series_links)}")
-            return series_links
-            
         except Exception as e:
             print(f"   ❌ Error extracting APTA series links: {e}")
             return []
+
+    def _extract_nstf_series_links(self, html: str, league_subdomain: str) -> List[Tuple[str, str]]:
+        """Extract series links for NSTF format."""
+        series_links = []
+        
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            print(f"   🔍 Looking for NSTF series links...")
+            
+            # Method 1: Look for links containing "series" 
+            links = soup.find_all('a', href=True)
+            for link in links:
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                
+                # Look for series patterns specific to NSTF
+                if any(keyword in text.lower() for keyword in ['series', 'division', 'league']):
+                    if href.startswith('/'):
+                        full_url = f"https://{league_subdomain}.tenniscores.com{href}"
+                    else:
+                        full_url = href
+                    series_links.append((text, full_url))
+                    print(f"   📋 Added NSTF series: {text}")
+            
+            # Method 2: Look for team links (NSTF might use team= parameters like APTA)
+            import re
+            team_links = soup.find_all("a", href=re.compile(r"team="))
+            for link in team_links:
+                href = link.get("href", "")
+                text = link.get_text(strip=True)
+                
+                if text and href:
+                    # For NSTF, use the text as-is for series name
+                    full_url = f"https://{league_subdomain}.tenniscores.com{href}" if href.startswith('/') else href
+                    series_links.append((text, full_url))
+                    print(f"   📋 Added NSTF team: {text}")
+            
+            # Method 3: Look for other common NSTF patterns
+            if not series_links:
+                print(f"   🔍 No direct series links found, looking for other NSTF patterns...")
+                # Look for any links that might be series/team related
+                all_links = soup.find_all('a', href=True)
+                for link in all_links:
+                    href = link.get('href', '')
+                    text = link.get_text(strip=True)
+                    
+                    # Include links that contain mod= parameter (common in TennisScores)
+                    if 'mod=' in href and text and len(text.strip()) > 0:
+                        full_url = f"https://{league_subdomain}.tenniscores.com{href}" if href.startswith('/') else href
+                        series_links.append((text, full_url))
+                        print(f"   📋 Added NSTF link: {text}")
+            
+            # If still no series found, don't fall back to other leagues - just return empty
+            if not series_links:
+                print(f"   ⚠️ No NSTF series found - this may be normal if no active series exist")
+            
+            print(f"   📊 Total NSTF series found: {len(series_links)}")
+            return series_links
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting NSTF series links: {e}")
+            return []
     
     def _extract_matches_from_series(self, html: str, series_name: str, 
-                                   current_total_processed: int = 0, total_series: int = 1) -> Tuple[List[Dict], int]:
+                                   current_total_processed: int = 0, total_series: int = 1, league_subdomain: str = None) -> Tuple[List[Dict], int]:
         """Extract detailed matches from series page for CNSWPL (like APTA format).
         
         Returns:
@@ -580,12 +676,15 @@ class EnhancedMatchScraper:
                         match_id = href.split('sch=')[1].split('&')[0] if 'sch=' in href else None
                         
                         # Follow the match link to get detailed data
+                        # Use the correct league subdomain instead of hard-coding cnswpl
+                        base_domain = f"https://{league_subdomain}.tenniscores.com" if league_subdomain else "https://cnswpl.tenniscores.com"
+                        
                         if href.startswith('/'):
-                            match_url = f"https://cnswpl.tenniscores.com{href}"
+                            match_url = f"{base_domain}{href}"
                         elif href.startswith('http'):
                             match_url = href
                         else:
-                            match_url = f"https://cnswpl.tenniscores.com/{href}"
+                            match_url = f"{base_domain}/{href}"
                         
                         # Calculate progress within this series and overall
                         series_percent_complete = (i / len(match_links)) * 100

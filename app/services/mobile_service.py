@@ -628,12 +628,12 @@ def get_player_analysis(user):
                         ms.away_player_2_id as "Away Player 2",
                         ms.tenniscores_match_id
                     FROM match_scores ms
-                    JOIN teams ht ON ms.home_team_id = ht.id
-                    JOIN teams at ON ms.away_team_id = at.id
+                    LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                    LEFT JOIN teams at ON ms.away_team_id = at.id
                     WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
                     AND ms.league_id = %s
                     AND ms.match_date >= %s AND ms.match_date <= %s
-                    AND (ht.club_id = %s OR at.club_id = %s)
+                    AND (ht.club_id = %s OR at.club_id = %s OR ht.club_id IS NULL OR at.club_id IS NULL OR ms.home_team_id IS NULL OR ms.away_team_id IS NULL)
                     ORDER BY ms.match_date DESC, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id, ms.id DESC
                 """
                 query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, current_club_id, current_club_id]
@@ -3897,7 +3897,7 @@ def get_mobile_team_data(user):
                 "name": member.get("name", ""),
                 "matches": player_matches,
                 "winRate": win_rate,
-                "best_partner": "N/A",  # Could be calculated if needed
+                "pti": member.get("pti", 0),  # Include PTI data from member
                 "is_substitute": member.get("is_substitute", False)
             }
             top_players.append(player_data)

@@ -1,0 +1,79 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "08/14",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Wilmette S1 T2",
+    "Away Team": "9/9",
+    "Scores": "Wilmette S1 T2",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Wilmette S1 T1",
+    "Away Team": "9/9",
+    "Scores": "Wilmette S1 T1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Birchwood S1",
+    "Away Team": "9/9",
+    "Scores": "Birchwood S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Tennaqua S1",
+    "Away Team": "9/9",
+    "Scores": "Tennaqua S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Lake Forest  S1",
+    "Away Team": "8/8",
+    "Scores": "Lake Forest  S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_1_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 1",
+    "Date": null,
+    "Home Team": "Midtown S1",
+    "Away Team": "0/0",
+    "Scores": "Midtown S1",
+    "Winner": null
+  }
+]
