@@ -473,25 +473,45 @@ class NSTFScraper(BaseLeagueScraper):
                                     away_team = text
                                     break
             
-            # Method 2: Look for score patterns in NSTF format  
+            # Method 2: Look for score patterns in NSTF format with aggressive debugging
             all_text = soup.get_text()
             import re
+            
+            # Debug: Show some sample text to understand NSTF format
+            text_sample = ' '.join(all_text.split()[:100])  # First 100 words
+            print(f"  🔍 NSTF HTML sample: {text_sample[:200]}...")
+            
+            # Look for ANY number-dash-number patterns first
+            all_number_patterns = re.findall(r'\d+-\d+', all_text)
+            if all_number_patterns:
+                print(f"  🔢 Found number patterns: {all_number_patterns[:10]}")  # Show first 10
+            
             # Look for NSTF score patterns like "6-4, 6-2" or "4-6, 6-4, 6-2"
             score_patterns = [
                 r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas: "6-4, 6-2"
                 r'\d+-\d+(?:\s*,\s*\d+-\d+){1,2}',  # 2-3 sets: "6-4, 6-2" or "4-6, 6-4, 6-2"
                 r'\d+-\d+\s*,\s*\d+-\d+',      # Simple 2 sets: "6-4, 6-2"
+                r'\d+-\d+',                    # Single set (fallback)
             ]
             
-            for pattern in score_patterns:
+            for i, pattern in enumerate(score_patterns):
                 score_match = re.search(pattern, all_text)
                 if score_match:
                     scores = score_match.group()
                     # Clean up the score format
                     scores = re.sub(r'\s+', ' ', scores)  # Normalize whitespace
                     scores = re.sub(r'\s*,\s*', ', ', scores)  # Normalize comma spacing
-                    print(f"  🎾 Extracted score: {scores}")
+                    print(f"  🎾 Extracted score (pattern {i+1}): {scores}")
                     break
+            else:
+                print(f"  ⚠️  No score patterns found in NSTF HTML")
+                # Try to find ANY tennis-like scores
+                simple_scores = re.findall(r'\b\d{1,2}-\d{1,2}\b', all_text)
+                if simple_scores:
+                    scores = ', '.join(simple_scores[:3])  # Take first 3 scores
+                    print(f"  💡 Fallback scores found: {scores}")
+                else:
+                    scores = "Unknown Scores"
             
             return {
                 "Home Team": home_team,
@@ -707,16 +727,31 @@ class NSTFScraper(BaseLeagueScraper):
             # Look for score patterns in table cells that match NSTF format
             tables = soup.find_all('table')
             line_num = 1
+            all_table_text = []
             
-            for table in tables:
+            for table_idx, table in enumerate(tables):
                 rows = table.find_all('tr')
-                for row in rows:
+                table_content = []
+                
+                for row_idx, row in enumerate(rows):
                     cells = row.find_all(['td', 'th'])
                     cell_texts = [cell.get_text(strip=True) for cell in cells]
+                    table_content.extend(cell_texts)
+                    
+                    # Debug: Show table content for first few tables
+                    if table_idx < 2 and row_idx < 3:
+                        print(f"    Table {table_idx+1}, Row {row_idx+1}: {cell_texts}")
                     
                     # Look for NSTF score patterns in each row
                     for text in cell_texts:
+                        if not text or len(text) < 3:  # Skip empty/short cells
+                            continue
+                            
                         import re
+                        # Look for ANY number-dash-number patterns first
+                        if re.search(r'\d+-\d+', text):
+                            print(f"    🔢 Found potential score in cell: '{text}'")
+                        
                         # Look for NSTF-style scores: "6-4, 6-2" or "4-6, 6-4, 6-2"  
                         score_patterns = [
                             r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas
@@ -724,7 +759,7 @@ class NSTFScraper(BaseLeagueScraper):
                             r'\d+-\d+'                     # Single set (fallback)
                         ]
                         
-                        for pattern in score_patterns:
+                        for pattern_idx, pattern in enumerate(score_patterns):
                             score_match = re.search(pattern, text)
                             if score_match and line_num <= 4:
                                 score_text = score_match.group()
@@ -735,7 +770,7 @@ class NSTFScraper(BaseLeagueScraper):
                                     "score": score_text,
                                     "winner": self._determine_winner_from_score(score_text)
                                 }
-                                print(f"  📊 Line {line_num} score: {score_text}")
+                                print(f"  📊 Line {line_num} score found (pattern {pattern_idx+1}): {score_text}")
                                 line_num += 1
                                 break
                         
@@ -744,6 +779,14 @@ class NSTFScraper(BaseLeagueScraper):
                     
                     if line_num > 4:
                         break
+                
+                all_table_text.extend(table_content)
+                if line_num > 4:
+                    break
+            
+            # Debug: If no line scores found, show what was in tables
+            if not lines_data:
+                print(f"  ⚠️  No line scores found. Sample table content: {all_table_text[:20]}")
             
             print(f"📊 NSTF: Extracted {len(lines_data)} line scores")
             
