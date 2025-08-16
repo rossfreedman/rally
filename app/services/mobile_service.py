@@ -4531,26 +4531,47 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "summary": summary,
                 }
                 
-        # OPTIMIZATION: Batch substitute detection for all courts at once
-        # Collect all unique player IDs from all courts
+        # OPTIMIZATION: Pre-build player ID → name lookup to avoid repeated calls
+        # Build lookup once from team matches instead of calling get_player_name_from_id repeatedly
+        player_id_to_name = {}
+        player_name_to_id = {}
+        all_player_ids_in_matches = set()
+        
+        for match in team_matches:
+            is_home = match.get("Home Team") == team
+            if is_home:
+                player_ids = [match.get("Home Player 1"), match.get("Home Player 2")]
+            else:
+                player_ids = [match.get("Away Player 1"), match.get("Away Player 2")]
+            
+            for pid in player_ids:
+                if pid and pid not in player_id_to_name:
+                    all_player_ids_in_matches.add(pid)
+        
+        # Single batch query to get all player names at once
+        if all_player_ids_in_matches:
+            try:
+                name_lookup_query = """
+                    SELECT tenniscores_player_id, first_name, last_name
+                    FROM players 
+                    WHERE tenniscores_player_id = ANY(%s) AND is_active = true
+                """
+                name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
+                for row in name_results:
+                    player_id = row["tenniscores_player_id"]
+                    full_name = f"{row['first_name']} {row['last_name']}"
+                    player_id_to_name[player_id] = full_name
+                    player_name_to_id[full_name] = player_id
+            except Exception as e:
+                print(f"[DEBUG] Error in batch name lookup: {e}")
+        
+        # Now collect player IDs from court analysis using the pre-built lookup
         all_court_player_ids = set()
         for court_name, court_data in court_analysis.items():
             for player in court_data.get("key_players", []):
                 player_name = player.get("name")
-                if player_name:
-                    # Extract player ID from the court analysis data (we need to reverse lookup)
-                    # Since we have the match data, we can find the player ID from the matches
-                    for match in team_matches:
-                        is_home = match.get("Home Team") == team
-                        if is_home:
-                            player_ids = [match.get("Home Player 1"), match.get("Home Player 2")]
-                        else:
-                            player_ids = [match.get("Away Player 1"), match.get("Away Player 2")]
-                        
-                        for pid in player_ids:
-                            if pid and get_player_name_from_id(pid) == player_name:
-                                all_court_player_ids.add(pid)
-                                break
+                if player_name and player_name in player_name_to_id:
+                    all_court_player_ids.add(player_name_to_id[player_name])
         
         # Batch substitute detection query - single query for all players
         substitute_lookup = {}
@@ -4569,27 +4590,15 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                 print(f"[DEBUG] Error in batch substitute lookup: {e}")
                 substitute_lookup = {}
         
-        # Apply substitute detection results to court analysis
+        # Apply substitute detection results to court analysis using pre-built lookups
         for court_name, court_data in court_analysis.items():
             for player in court_data.get("key_players", []):
                 player_name = player.get("name")
                 is_substitute = False
                 
-                if player_name and substitute_lookup:
-                    # Find the player ID for this name
-                    for match in team_matches:
-                        is_home = match.get("Home Team") == team
-                        if is_home:
-                            player_ids = [match.get("Home Player 1"), match.get("Home Player 2")]
-                        else:
-                            player_ids = [match.get("Away Player 1"), match.get("Away Player 2")]
-                        
-                        for pid in player_ids:
-                            if pid and get_player_name_from_id(pid) == player_name:
-                                is_substitute = substitute_lookup.get(pid, False)
-                                break
-                        if is_substitute:
-                            break
+                if player_name and player_name in player_name_to_id:
+                    player_id = player_name_to_id[player_name]
+                    is_substitute = substitute_lookup.get(player_id, False)
                 
                 player["isSubstitute"] = is_substitute
 
