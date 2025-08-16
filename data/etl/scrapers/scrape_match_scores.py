@@ -50,9 +50,18 @@ class ScrapingConfig:
 class BaseLeagueScraper:
     """Base class for league-specific scrapers."""
     
-    def __init__(self, config: ScrapingConfig, league_subdomain: str):
+    def __init__(self, config: ScrapingConfig, league_subdomain: str, parent_scraper=None):
         self.config = config
         self.league_subdomain = league_subdomain.upper()
+        self.parent_scraper = parent_scraper
+    
+    def _safe_request_for_league_scraper(self, url: str, description: str = "page") -> Optional[str]:
+        """Make a safe request using the parent scraper's method."""
+        if self.parent_scraper and hasattr(self.parent_scraper, '_safe_request'):
+            return self.parent_scraper._safe_request(url, description)
+        else:
+            print(f"⚠️ No parent scraper available for request: {url}")
+            return None
         
     def extract_series_links(self, html: str) -> List[Tuple[str, str]]:
         """Extract series links - must be implemented by subclasses."""
@@ -153,10 +162,8 @@ class CNSWPLScraper(BaseLeagueScraper):
                         print(f"🔗 CNSWPL Match Progress: {i}/{len(match_links)} ({series_percent_complete:.1f}% of {series_name}) | Overall: {overall_matches_processed}/{estimated_total_matches} ({overall_percent_complete:.1f}%)")
                         print(f"   Processing: {href}")
                         
-                        # Get detailed CNSWPL match page
-                        from data.etl.scrapers.scrape_match_scores import EnhancedMatchScraper
-                        scraper = EnhancedMatchScraper(self.config)
-                        match_response = scraper._safe_request(match_url, f"CNSWPL match detail page {i}")
+                        # Get detailed CNSWPL match page using parent scraper's request method
+                        match_response = self._safe_request_for_league_scraper(match_url, f"CNSWPL match detail page {i}")
                         if match_response:
                             detailed_matches = self._extract_cnswpl_detailed_match_data(match_response, series_name, match_id)
                             if detailed_matches:
@@ -298,10 +305,8 @@ class NSTFScraper(BaseLeagueScraper):
                         print(f"🔗 NSTF Match Progress: {i}/{len(match_links)} ({series_percent_complete:.1f}% of {series_name}) | Overall: {overall_matches_processed}/{estimated_total_matches} ({overall_percent_complete:.1f}%)")
                         print(f"   Processing: {href}")
                         
-                        # Get detailed NSTF match page
-                        from data.etl.scrapers.scrape_match_scores import EnhancedMatchScraper
-                        scraper = EnhancedMatchScraper(self.config)
-                        match_response = scraper._safe_request(match_url, f"NSTF match detail page {i}")
+                        # Get detailed NSTF match page using parent scraper's request method
+                        match_response = self._safe_request_for_league_scraper(match_url, f"NSTF match detail page {i}")
                         if match_response:
                             detailed_matches = self._extract_nstf_detailed_match_data(match_response, series_name, match_id)
                             if detailed_matches:
