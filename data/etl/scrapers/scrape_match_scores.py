@@ -463,11 +463,11 @@ class EnhancedMatchScraper:
         league_lower = league_subdomain.lower()
         
         if league_lower == "nstf":
-            return NSTFScraper(self.config, league_subdomain)
+            return NSTFScraper(self.config, league_subdomain, parent_scraper=self)
         elif league_lower in ["cnswpl", "cns"]:
-            return CNSWPLScraper(self.config, league_subdomain)
+            return CNSWPLScraper(self.config, league_subdomain, parent_scraper=self)
         elif league_lower in ["aptachicago", "apta"]:
-            return APTAScraper(self.config, league_subdomain)
+            return APTAScraper(self.config, league_subdomain, parent_scraper=self)
         else:
             raise ValueError(f"Unsupported league: {league_subdomain}")
     
