@@ -481,36 +481,114 @@ class NSTFScraper(BaseLeagueScraper):
             text_sample = ' '.join(all_text.split()[:100])  # First 100 words
             print(f"  🔍 NSTF HTML sample: {text_sample[:200]}...")
             
-            # Look for ANY number-dash-number patterns first
+            # AGGRESSIVE SCORE EXTRACTION STRATEGY
+            # Strategy 1: Look for ANY number-dash-number patterns and filter aggressively
             all_number_patterns = re.findall(r'\d+-\d+', all_text)
             if all_number_patterns:
-                print(f"  🔢 Found number patterns: {all_number_patterns[:10]}")  # Show first 10
-            
-            # Look for NSTF score patterns like "6-4, 6-2" or "4-6, 6-4, 6-2"
-            score_patterns = [
-                r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas: "6-4, 6-2"
-                r'\d+-\d+(?:\s*,\s*\d+-\d+){1,2}',  # 2-3 sets: "6-4, 6-2" or "4-6, 6-4, 6-2"
-                r'\d+-\d+\s*,\s*\d+-\d+',      # Simple 2 sets: "6-4, 6-2"
-                r'\d+-\d+',                    # Single set (fallback)
-            ]
-            
-            for i, pattern in enumerate(score_patterns):
-                score_match = re.search(pattern, all_text)
-                if score_match:
-                    scores = score_match.group()
-                    # Clean up the score format
-                    scores = re.sub(r'\s+', ' ', scores)  # Normalize whitespace
-                    scores = re.sub(r'\s*,\s*', ', ', scores)  # Normalize comma spacing
-                    print(f"  🎾 Extracted score (pattern {i+1}): {scores}")
-                    break
-            else:
-                print(f"  ⚠️  No score patterns found in NSTF HTML")
-                # Try to find ANY tennis-like scores
-                simple_scores = re.findall(r'\b\d{1,2}-\d{1,2}\b', all_text)
-                if simple_scores:
-                    scores = ', '.join(simple_scores[:3])  # Take first 3 scores
-                    print(f"  💡 Fallback scores found: {scores}")
+                print(f"  🔢 Found {len(all_number_patterns)} number patterns: {all_number_patterns[:15]}")
+                
+                # Filter for tennis-like scores (0-15 range, no dates or large numbers)
+                tennis_scores = []
+                for pattern in all_number_patterns:
+                    parts = pattern.split('-')
+                    if len(parts) == 2:
+                        try:
+                            left, right = int(parts[0]), int(parts[1])
+                            # Tennis scores: 0-15 range, but exclude likely non-tennis patterns
+                            if (0 <= left <= 15 and 0 <= right <= 15 and 
+                                not (left > 12 or right > 12) and  # Avoid dates like 01-15
+                                not (left == 1 and right <= 4) and  # Avoid court numbers like 1-4
+                                not (left <= 4 and right == 1)):   # Avoid reverse court numbers
+                                tennis_scores.append(pattern)
+                        except ValueError:
+                            continue
+                
+                if tennis_scores:
+                    print(f"  🎾 Tennis-like scores: {tennis_scores}")
+                    # Format as comma-separated sets
+                    if len(tennis_scores) >= 2:
+                        scores = ', '.join(tennis_scores[:3])  # Take max 3 sets
+                        print(f"  ✅ Strategy 1 success: {scores}")
+                    else:
+                        scores = tennis_scores[0]
+                        print(f"  ✅ Strategy 1 single set: {scores}")
                 else:
+                    print(f"  ⚠️  No tennis-like scores in number patterns")
+                    scores = "Unknown Scores"
+            else:
+                print(f"  ⚠️  No number patterns found at all")
+                scores = "Unknown Scores"
+            
+            # Strategy 2: If Strategy 1 failed, try traditional regex patterns
+            if scores == "Unknown Scores":
+                print(f"  🔄 Trying Strategy 2: Traditional patterns")
+                score_patterns = [
+                    r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas: "6-4, 6-2"
+                    r'\d+-\d+(?:\s*,\s*\d+-\d+){1,2}',  # 2-3 sets
+                    r'\d+-\d+\s*,\s*\d+-\d+',      # Simple 2 sets
+                ]
+                
+                for i, pattern in enumerate(score_patterns):
+                    score_match = re.search(pattern, all_text)
+                    if score_match:
+                        scores = score_match.group()
+                        # Clean up the score format
+                        scores = re.sub(r'\s+', ' ', scores)  # Normalize whitespace
+                        scores = re.sub(r'\s*,\s*', ', ', scores)  # Normalize comma spacing
+                        
+                        # Validate that all parts are tennis scores
+                        score_parts = [part.strip() for part in scores.split(',')]
+                        valid_parts = []
+                        for part in score_parts:
+                            if re.match(r'^\d+-\d+$', part):
+                                left, right = map(int, part.split('-'))
+                                if (0 <= left <= 15 and 0 <= right <= 15 and 
+                                    not (left == 1 and right <= 4) and 
+                                    not (left <= 4 and right == 1)):
+                                    valid_parts.append(part)
+                        
+                        if valid_parts:
+                            teams_and_score["Scores"] = ', '.join(valid_parts)
+                            print(f"  ✅ Strategy 2 pattern {i+1}: {', '.join(valid_parts)}")
+                            break
+            
+            # Strategy 3: Super aggressive - look in HTML elements specifically
+            if scores == "Unknown Scores":
+                print(f"  🔄 Trying Strategy 3: HTML element search")
+                # Look in table cells for scores
+                tables = soup.find_all('table')
+                for table in tables:
+                    cells = table.find_all(['td', 'th'])
+                    for cell in cells:
+                        cell_text = cell.get_text(strip=True)
+                        # Look for score-like patterns in individual cells
+                        if re.match(r'^\d+-\d+(?:\s*,\s*\d+-\d+)*$', cell_text):
+                            scores = cell_text
+                            print(f"  ✅ Strategy 3 table cell: {scores}")
+                            break
+                    if scores != "Unknown Scores":
+                        break
+            
+            # Strategy 4: Last resort - ANY reasonable looking scores
+            if scores == "Unknown Scores":
+                print(f"  🔄 Trying Strategy 4: Last resort")
+                simple_scores = re.findall(r'\b\d{1,2}-\d{1,2}\b', all_text)
+                filtered_scores = []
+                for score in simple_scores:
+                    parts = score.split('-')
+                    if len(parts) == 2:
+                        try:
+                            left, right = int(parts[0]), int(parts[1])
+                            if 0 <= left <= 15 and 0 <= right <= 15:
+                                filtered_scores.append(score)
+                        except ValueError:
+                            continue
+                
+                if filtered_scores:
+                    scores = ', '.join(filtered_scores[:2])  # Take first 2
+                    print(f"  💡 Strategy 4 fallback: {scores}")
+                else:
+                    print(f"  ❌ All strategies failed")
                     scores = "Unknown Scores"
             
             return {
@@ -742,17 +820,55 @@ class NSTFScraper(BaseLeagueScraper):
                     if table_idx < 2 and row_idx < 3:
                         print(f"    Table {table_idx+1}, Row {row_idx+1}: {cell_texts}")
                     
-                    # Look for NSTF score patterns in each row
+                    # AGGRESSIVE LINE SCORE EXTRACTION
                     for text in cell_texts:
                         if not text or len(text) < 3:  # Skip empty/short cells
                             continue
                             
                         import re
-                        # Look for ANY number-dash-number patterns first
-                        if re.search(r'\d+-\d+', text):
-                            print(f"    🔢 Found potential score in cell: '{text}'")
                         
-                        # Look for NSTF-style scores: "6-4, 6-2" or "4-6, 6-4, 6-2"  
+                        # Strategy 1: Look for exact score match in cell
+                        if re.match(r'^\d+-\d+(?:\s*,\s*\d+-\d+)*$', text.strip()):
+                            # This cell contains ONLY a score (perfect match)
+                            score_text = re.sub(r'\s*,\s*', ', ', text.strip())
+                            lines_data[line_num] = {
+                                "score": score_text,
+                                "winner": self._determine_winner_from_score(score_text)
+                            }
+                            print(f"  📊 Line {line_num} EXACT score match: {score_text}")
+                            line_num += 1
+                            continue
+                        
+                        # Strategy 2: Look for any number-dash-number patterns and filter
+                        number_patterns = re.findall(r'\d+-\d+', text)
+                        if number_patterns:
+                            print(f"    🔢 Cell '{text}' contains patterns: {number_patterns}")
+                            
+                            # Filter for tennis-like scores
+                            tennis_scores = []
+                            for pattern in number_patterns:
+                                parts = pattern.split('-')
+                                if len(parts) == 2:
+                                    try:
+                                        left, right = int(parts[0]), int(parts[1])
+                                        if (0 <= left <= 15 and 0 <= right <= 15 and 
+                                            not (left == 1 and right <= 4) and 
+                                            not (left <= 4 and right == 1)):
+                                            tennis_scores.append(pattern)
+                                    except ValueError:
+                                        continue
+                            
+                            if tennis_scores and line_num <= 4:
+                                score_text = ', '.join(tennis_scores[:3])  # Max 3 sets
+                                lines_data[line_num] = {
+                                    "score": score_text,
+                                    "winner": self._determine_winner_from_score(score_text)
+                                }
+                                print(f"  📊 Line {line_num} filtered score: {score_text}")
+                                line_num += 1
+                                continue
+                        
+                        # Strategy 3: Traditional pattern matching (fallback)
                         score_patterns = [
                             r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas
                             r'\d+-\d+\s*,\s*\d+-\d+',      # Two sets
@@ -770,7 +886,7 @@ class NSTFScraper(BaseLeagueScraper):
                                     "score": score_text,
                                     "winner": self._determine_winner_from_score(score_text)
                                 }
-                                print(f"  📊 Line {line_num} score found (pattern {pattern_idx+1}): {score_text}")
+                                print(f"  📊 Line {line_num} pattern {pattern_idx+1}: {score_text}")
                                 line_num += 1
                                 break
                         
@@ -801,26 +917,41 @@ class NSTFScraper(BaseLeagueScraper):
             import re
             sets = re.findall(r'(\d+)-(\d+)', score_text)
             if not sets:
+                print(f"    ⚠️  No sets found in score: '{score_text}'")
                 return "tie"
             
             home_sets_won = 0
             away_sets_won = 0
             
+            print(f"    🧮 Analyzing sets: {sets}")
+            
             for home_score, away_score in sets:
-                if int(home_score) > int(away_score):
+                home_val = int(home_score)
+                away_val = int(away_score)
+                
+                if home_val > away_val:
                     home_sets_won += 1
-                elif int(away_score) > int(home_score):
+                    print(f"      Set {home_score}-{away_score}: HOME wins")
+                elif away_val > home_val:
                     away_sets_won += 1
+                    print(f"      Set {home_score}-{away_score}: AWAY wins")
+                else:
+                    print(f"      Set {home_score}-{away_score}: TIE (rare)")
+            
+            print(f"    📊 Final: Home {home_sets_won} sets, Away {away_sets_won} sets")
             
             if home_sets_won > away_sets_won:
-                return "home"
+                winner = "home"
             elif away_sets_won > home_sets_won:
-                return "away"
+                winner = "away"
             else:
-                return "tie"
+                winner = "tie"
+            
+            print(f"    🏆 Winner: {winner}")
+            return winner
                 
         except Exception as e:
-            print(f"❌ Error determining winner from score {score_text}: {e}")
+            print(f"❌ Error determining winner from score '{score_text}': {e}")
             return "tie"
 
 class APTAScraper(BaseLeagueScraper):
