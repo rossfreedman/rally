@@ -1109,23 +1109,22 @@ def send_admin_activity_notification(user_email: str, activity_type: str, page: 
         Dict: Result of email sending
     """
     
-    # Create email subject
-    subject = f"🔔 Rally Activity Alert: {activity_type}"
-    if is_impersonating:
-        subject = f"👥 Rally Admin Impersonation Activity: {activity_type}"
-    
-    # Create email content
+    # Create email subject using requested format
     user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
+    page_display = page if page else "unknown page"
+    subject = f"Rally Activity: {user_name} - {page_display}"
     
+    if is_impersonating:
+        subject = f"Rally Admin Impersonation: {user_name} - {page_display}"
+    
+    # Create email content using requested format
     content_parts = [
-        f"User Activity Alert",
-        f"=" * 50,
-        f"User: {user_name} ({user_email})",
+        f"Rally Activity Alert:",
+        f"{user_name} visited {page_display}",
         f"Activity: {activity_type}",
     ]
     
-    if page:
-        content_parts.append(f"Page: {page}")
+    # Add optional details if present
     if action:
         content_parts.append(f"Action: {action}")
     if details:
@@ -1136,7 +1135,7 @@ def send_admin_activity_notification(user_email: str, activity_type: str, page: 
     content_parts.extend([
         f"",
         f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Platform: Rally Paddle Tennis Platform",
+        f"Email: {user_email}",
         f"",
         f"Visit Rally Admin Panel: https://www.lovetorally.com/admin"
     ])
