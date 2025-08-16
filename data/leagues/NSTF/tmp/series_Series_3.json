@@ -1,0 +1,79 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "08/14",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Valley Lo S3",
+    "Away Team": "135",
+    "Scores": "Valley Lo S3",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Lake Forest S3",
+    "Away Team": "10/11",
+    "Scores": "Lake Forest S3",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Birchwood S3",
+    "Away Team": "10/11",
+    "Scores": "Birchwood S3",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Old Willow S3",
+    "Away Team": "10/11",
+    "Scores": "Old Willow S3",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Skokie S3",
+    "Away Team": "10/10",
+    "Scores": "Skokie S3",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Series_3_14",
+    "source_league": "CNSWPL",
+    "Series": "Series 3",
+    "Date": null,
+    "Home Team": "Tennaqua S3",
+    "Away Team": "10/10",
+    "Scores": "Tennaqua S3",
+    "Winner": null
+  }
+]

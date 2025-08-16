@@ -1,0 +1,90 @@
+[
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Team",
+    "Away Team": "Pts",
+    "Scores": "08/14",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Wilmette S1 T2",
+    "Away Team": "9/9",
+    "Scores": "Wilmette S1 T2",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Wilmette S1 T1",
+    "Away Team": "9/9",
+    "Scores": "Wilmette S1 T1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Birchwood S1",
+    "Away Team": "9/9",
+    "Scores": "Birchwood S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Tennaqua S1",
+    "Away Team": "9/9",
+    "Scores": "Tennaqua S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Lake Forest  S1",
+    "Away Team": "8/8",
+    "Scores": "Lake Forest  S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_14",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Midtown S1",
+    "Away Team": "0/0",
+    "Scores": "Midtown S1",
+    "Winner": null
+  },
+  {
+    "league_id": "CNSWPL",
+    "match_id": "table_Wilmette_S1_T1_219",
+    "source_league": "CNSWPL",
+    "Series": "Wilmette S1 T1",
+    "Date": null,
+    "Home Team": "Wilmette S1 T1WLCaptainsClyde Woods(C)00Rick  Aguayo(CC)23PlayersMark  Ainsworth01Carlos Alcantar62James Balon31Chuck Blumenthal00Brian Bonds01Colin Bunn11Tom Conradi00Dwayne Daarol30Rex Daarol21Adam Davis11Ernesto Diaz00Mark  Fessler00Ceasar Fuenticilla20Terrence Gamboa42Guillermo Garcia31Howard Gartzman10George Georgiadis31Andrew Gingsberg00Eric  Gordon11Ben Grais00Mark Hanson12Freddy Hasnovi10Brad Hensley21Andrew Huang01Paul  James00Russ Kerr11Greg Korak00Rex Lao22Dan Lek00John Leubner00Andrew Martin31Eric Matten00Garvin Murray00John Mysz00Jay Nazario01Juan Pagador02Steve Ptasinski00John Rabb00Jonny Rabb00Tom Rebarchak00Andy Snyder42Dan Stolar00Scott Ummel40Cesar Uribe11Todd Wagner00Todd Wagner10Brian  Welch00Eric Yu00Joseph Zabat30Paul Zuffa00Paul Zuffa00",
+    "Away Team": "Wilmette S1 T1",
+    "Scores": "Wilmette S1 T1WLCaptainsClyde Woods(C)00Rick  Aguayo(CC)23PlayersMark  Ainsworth01Carlos Alcantar62James Balon31Chuck Blumenthal00Brian Bonds01Colin Bunn11Tom Conradi00Dwayne Daarol30Rex Daarol21Adam Davis11Ernesto Diaz00Mark  Fessler00Ceasar Fuenticilla20Terrence Gamboa42Guillermo Garcia31Howard Gartzman10George Georgiadis31Andrew Gingsberg00Eric  Gordon11Ben Grais00Mark Hanson12Freddy Hasnovi10Brad Hensley21Andrew Huang01Paul  James00Russ Kerr11Greg Korak00Rex Lao22Dan Lek00John Leubner00Andrew Martin31Eric Matten00Garvin Murray00John Mysz00Jay Nazario01Juan Pagador02Steve Ptasinski00John Rabb00Jonny Rabb00Tom Rebarchak00Andy Snyder42Dan Stolar00Scott Ummel40Cesar Uribe11Todd Wagner00Todd Wagner10Brian  Welch00Eric Yu00Joseph Zabat30Paul Zuffa00Paul Zuffa00",
+    "Winner": null
+  }
+]
