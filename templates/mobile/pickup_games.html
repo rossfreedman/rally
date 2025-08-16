@@ -997,22 +997,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     }
 
-    // Show success message for deleting games (orange background)
+    // Show success message for deleting games (enhanced green background with direct CSS)
     function showDeleteSuccess(message) {
         const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 left-4 right-4 bg-orange-500 text-white p-6 rounded-lg shadow-xl z-50 transform transition-all duration-300';
-        successDiv.style.zIndex = '9999';
-        successDiv.style.position = 'fixed';
-        successDiv.style.top = '1rem';
-        successDiv.style.left = '1rem';
-        successDiv.style.right = '1rem';
-        successDiv.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+        
+        // Apply styling directly via CSS for better compatibility
+        successDiv.style.cssText = `
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.1), 0 0 0 2px #6ee7b7;
+            border: 2px solid #6ee7b7;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1rem;
+        `;
         successDiv.innerHTML = `
-            <div class="flex items-center gap-3">
-                <i class="fas fa-trash text-2xl text-orange-200"></i>
-                <span class="font-semibold text-lg flex-1">${message}</span>
-                <button onclick="this.parentNode.parentNode.remove()" class="ml-2 text-orange-200 hover:text-white transition-colors">
-                    <i class="fas fa-times text-xl"></i>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <i class="fas fa-check-circle" style="font-size: 1.5rem; color: #d1fae5;"></i>
+                <span style="flex: 1; font-weight: 600;">${message}</span>
+                <button onclick="this.parentNode.remove()" 
+                        style="color: #d1fae5; background: none; border: none; cursor: pointer; font-size: 1.25rem; padding: 0.25rem;">
+                    <i class="fas fa-times"></i>
                 </button>
             </div>
         `;

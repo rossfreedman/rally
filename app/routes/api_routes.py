@@ -9232,42 +9232,16 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
 
 
 def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
-    """Get pickup games notifications for games where user meets criteria"""
+    """Get pickup games notifications for games where user meets criteria (club and league only)"""
     notifications = []
     
     try:
-        # Get user's PTI and series information from all player associations
-        # Find a player record with a valid PTI (not None)
-        user_info_query = """
-            SELECT 
-                p.pti as user_pti,
-                p.series_id as user_series_id,
-                s.name as user_series_name,
-                c.name as user_club_name
-            FROM user_player_associations upa
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            LEFT JOIN series s ON p.series_id = s.id
-            LEFT JOIN clubs c ON p.club_id = c.id
-            WHERE upa.user_id = %s AND p.pti IS NOT NULL
-            ORDER BY p.pti DESC
-            LIMIT 1
-        """
-        
-        user_info = execute_query_one(user_info_query, [user_id])
-        
-        if not user_info or not user_info.get("user_pti"):
-            return notifications
-        
-        user_pti = user_info["user_pti"]
-        user_series_id = user_info["user_series_id"]
-        user_club_name = user_info["user_club_name"]
-        
         # Get current date/time for determining upcoming games
         now = datetime.now()
         current_date = now.date()
         current_time = now.time()
         
-        # Find pickup games where user meets criteria (including league filtering)
+        # Find pickup games where user meets criteria (simplified: only club and league filtering)
         pickup_games_query = """
             SELECT 
                 pg.id,
@@ -9275,25 +9249,14 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
                 pg.game_date,
                 pg.game_time,
                 pg.players_requested,
-                pg.pti_low,
-                pg.pti_high,
-                pg.series_low,
-                pg.series_high,
                 pg.club_only,
                 COUNT(pgp.id) as current_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
             WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
-            AND (pg.pti_low <= %s AND pg.pti_high >= %s)
             AND (
                 pg.league_id IS NULL OR 
                 pg.league_id = %s
-            )
-            AND (
-                (pg.series_low IS NULL AND pg.series_high IS NULL) OR
-                (pg.series_low IS NOT NULL AND pg.series_low <= %s) OR
-                (pg.series_high IS NOT NULL AND pg.series_high >= %s) OR
-                (pg.series_low IS NOT NULL AND pg.series_high IS NOT NULL AND pg.series_low <= %s AND pg.series_high >= %s)
             )
             AND (
                 pg.club_only = false OR 
@@ -9312,14 +9275,12 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
             GROUP BY pg.id
             HAVING COUNT(pgp.id) < pg.players_requested
             ORDER BY pg.game_date ASC, pg.game_time ASC
-            LIMIT 3
+            LIMIT 5
         """
         
         matching_games = execute_query(pickup_games_query, [
             current_date, current_date, current_time,
-            user_pti, user_pti,
             league_id,
-            user_series_id, user_series_id, user_series_id, user_series_id,
             user_id,
             user_id
         ])
