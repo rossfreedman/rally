@@ -4531,13 +4531,67 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "summary": summary,
                 }
                 
-        # OPTIMIZATION: Batch substitute detection for all courts at once  
-        # Note: Substitute detection is complex and was causing N+1 queries
-        # For now, we'll set all isSubstitute to False to maintain performance
-        # This can be enhanced later with a more efficient batch query
+        # OPTIMIZATION: Batch substitute detection for all courts at once
+        # Collect all unique player IDs from all courts
+        all_court_player_ids = set()
         for court_name, court_data in court_analysis.items():
             for player in court_data.get("key_players", []):
-                player["isSubstitute"] = False  # Default to False for performance
+                player_name = player.get("name")
+                if player_name:
+                    # Extract player ID from the court analysis data (we need to reverse lookup)
+                    # Since we have the match data, we can find the player ID from the matches
+                    for match in team_matches:
+                        is_home = match.get("Home Team") == team
+                        if is_home:
+                            player_ids = [match.get("Home Player 1"), match.get("Home Player 2")]
+                        else:
+                            player_ids = [match.get("Away Player 1"), match.get("Away Player 2")]
+                        
+                        for pid in player_ids:
+                            if pid and get_player_name_from_id(pid) == player_name:
+                                all_court_player_ids.add(pid)
+                                break
+        
+        # Batch substitute detection query - single query for all players
+        substitute_lookup = {}
+        if all_court_player_ids and team_id:
+            try:
+                substitute_batch_query = """
+                    SELECT tenniscores_player_id, 
+                           CASE WHEN team_id = %s THEN false ELSE true END as is_substitute
+                    FROM players 
+                    WHERE tenniscores_player_id = ANY(%s) AND is_active = true
+                """
+                substitute_results = execute_query(substitute_batch_query, [team_id, list(all_court_player_ids)])
+                substitute_lookup = {row["tenniscores_player_id"]: row["is_substitute"] for row in substitute_results}
+                print(f"[DEBUG] Batch substitute lookup completed for {len(substitute_results)} players")
+            except Exception as e:
+                print(f"[DEBUG] Error in batch substitute lookup: {e}")
+                substitute_lookup = {}
+        
+        # Apply substitute detection results to court analysis
+        for court_name, court_data in court_analysis.items():
+            for player in court_data.get("key_players", []):
+                player_name = player.get("name")
+                is_substitute = False
+                
+                if player_name and substitute_lookup:
+                    # Find the player ID for this name
+                    for match in team_matches:
+                        is_home = match.get("Home Team") == team
+                        if is_home:
+                            player_ids = [match.get("Home Player 1"), match.get("Home Player 2")]
+                        else:
+                            player_ids = [match.get("Away Player 1"), match.get("Away Player 2")]
+                        
+                        for pid in player_ids:
+                            if pid and get_player_name_from_id(pid) == player_name:
+                                is_substitute = substitute_lookup.get(pid, False)
+                                break
+                        if is_substitute:
+                            break
+                
+                player["isSubstitute"] = is_substitute
 
 
         # Top Players Table
