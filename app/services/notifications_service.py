@@ -1153,20 +1153,44 @@ def send_admin_activity_notification(user_email: str, activity_type: str, page: 
         # Generic conversion: replace underscores with spaces and title case
         return page_name.replace("_", " ").title()
     
-    # Create email subject using requested format (without "Rally Activity:")
+    # Create email subject using requested format 
     user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
-    page_display = humanize_page_name(page)
-    subject = f"{user_name} - {page_display}"
+    
+    # Special formatting for login and registration activities
+    if activity_type == "login":
+        subject = f"{user_name} - Login: Successful"
+        content_parts = [
+            f"Rally Activity:",
+            f"{user_name} logged in successfully",
+            f"Activity: {activity_type}",
+        ]
+    elif activity_type == "login_failed":
+        subject = f"{user_name} - Login: Unsuccessful"
+        content_parts = [
+            f"Rally Activity:",
+            f"{user_name} login failed",
+            f"Activity: {activity_type}",
+        ]
+    elif activity_type in ["registration_successful", "registration_failed"]:
+        status = "Successful" if "successful" in activity_type else "Unsuccessful"
+        subject = f"{user_name} - Registration: {status}"
+        content_parts = [
+            f"Rally Activity:",
+            f"{user_name} registration {status.lower()}",
+            f"Activity: {activity_type}",
+        ]
+    else:
+        # Regular page visit formatting
+        page_display = humanize_page_name(page)
+        subject = f"{user_name} - {page_display}"
+        content_parts = [
+            f"Rally Activity:",
+            f"{user_name} visited {page_display}",
+            f"Activity: {activity_type}",
+        ]
     
     if is_impersonating:
-        subject = f"Admin Impersonation: {user_name} - {page_display}"
-    
-    # Create email content using requested format
-    content_parts = [
-        f"Rally Activity:",
-        f"{user_name} visited {page_display}",
-        f"Activity: {activity_type}",
-    ]
+        subject = f"Admin Impersonation: {subject}"
     
     # Keep it simple - only add impersonation note if needed
     if is_impersonating:
