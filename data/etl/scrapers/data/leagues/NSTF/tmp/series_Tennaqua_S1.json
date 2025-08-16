@@ -16,8 +16,8 @@
     "Away Player 2": "Adam Margol",
     "Away Player 1 ID": "nndz-WlNhd3hyYjhnUT09",
     "Away Player 2 ID": "nndz-WlNTNXlMbjdndz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6, 6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -36,8 +36,8 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WlNTNXlMbjdnUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-1, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -56,8 +56,8 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -76,8 +76,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNnhMYitoZz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -96,8 +96,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 4-6, 2-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -176,8 +176,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 6-0, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -196,8 +196,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -216,8 +216,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMai9nZz09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 6-4, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -236,8 +236,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNng3MzRqQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -256,8 +256,8 @@
     "Away Player 2": "Joseph Zabat",
     "Away Player 1 ID": "nndz-WlNTNXliejlodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -276,8 +276,8 @@
     "Away Player 2": "Rick  Aguayo",
     "Away Player 1 ID": "nndz-WlNld3liZjRndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajRqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -296,8 +296,8 @@
     "Away Player 2": "Brad Hensley",
     "Away Player 1 ID": "nndz-WlNlNXdienhnZz09",
     "Away Player 2 ID": "nndz-WlNTNHhyM3hoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -316,8 +316,8 @@
     "Away Player 2": "Terrence Gamboa",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9nQT09",
     "Away Player 2 ID": "nndz-WlNTNXhMNzhnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -336,7 +336,7 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "4-6, 7-5",
     "Winner": "tie"
   },
   {
@@ -356,8 +356,8 @@
     "Away Player 2": "Bryan Fernley",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WlNhd3hyYjhnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 4-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -376,8 +376,8 @@
     "Away Player 2": "Jeff Moran",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WkMrNng3MzhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 7-5",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -396,7 +396,7 @@
     "Away Player 2": "Adam Weiss",
     "Away Player 1 ID": "nndz-WkMrNnhMMy9nQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajhqQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "7-5, 0-6",
     "Winner": "tie"
   },
   {
@@ -416,8 +416,8 @@
     "Away Player 2": "Alfred Tam",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WkMrNng3MzloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -436,8 +436,8 @@
     "Away Player 2": "Rafa Lozado",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WlNlNXdienhnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -456,8 +456,8 @@
     "Away Player 2": "Brad Hensley",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNTNHhyM3hoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -496,8 +496,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMZjZqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -516,8 +516,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -536,8 +536,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -556,8 +556,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9nQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -576,8 +576,8 @@
     "Away Player 2": "Youngbin Lim",
     "Away Player 1 ID": "nndz-WlNhd3hyYjhnUT09",
     "Away Player 2 ID": "nndz-WlNTNXhiLy9nQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -596,8 +596,8 @@
     "Away Player 2": "Marc Adams",
     "Away Player 1 ID": "nndz-WlNhd3hyYjhndz09",
     "Away Player 2 ID": "nndz-WkMrNng3LzloUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -616,8 +616,8 @@
     "Away Player 2": "Doug Lee",
     "Away Player 1 ID": "nndz-WkMrOXlMbjlndz09",
     "Away Player 2 ID": "nndz-WkMrNng3LzdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -656,8 +656,8 @@
     "Away Player 2": "Manish Shah",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -676,8 +676,8 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -696,8 +696,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNng3ejRodz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -716,8 +716,8 @@
     "Away Player 2": "Brian Hardner",
     "Away Player 1 ID": "nndz-WkMrNnhMcndnZz09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -736,8 +736,8 @@
     "Away Player 2": "Joseph Zabat",
     "Away Player 1 ID": "nndz-WkMrNnhMajRqQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -816,8 +816,8 @@
     "Away Player 2": "George Georgiadis",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNTNXhyZjRoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -836,8 +836,8 @@
     "Away Player 2": "Scott Ummel",
     "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
     "Away Player 2 ID": "nndz-WlNlNXg3ZjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -856,8 +856,8 @@
     "Away Player 2": "Gregg Levin",
     "Away Player 1 ID": "nndz-WkMrNng3NzZqQT09",
     "Away Player 2 ID": "nndz-WkMrNng3ejZnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 3-6, 4-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -876,8 +876,8 @@
     "Away Player 2": "George Fenton",
     "Away Player 1 ID": "nndz-WkMrNng3NzdnZz09",
     "Away Player 2 ID": "nndz-WkMrNnhMai9nZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-1, 7-5",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -896,8 +896,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WlNhd3liNzVoQT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -916,8 +916,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-6, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -936,8 +936,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WlNlNHdMNytodz09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 3-6, 10-8",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -956,8 +956,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WlNlNXg3ZjZqQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -976,8 +976,8 @@
     "Away Player 2": "Mark  Ainsworth",
     "Away Player 1 ID": "nndz-WlNld3liZjRndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMMzdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -996,8 +996,8 @@
     "Away Player 2": "Jim Franke",
     "Away Player 1 ID": "nndz-WlNlNHdMNytoQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1016,7 +1016,7 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMdjdnQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "6-3, 4-6",
     "Winner": "tie"
   },
   {
@@ -1036,8 +1036,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1056,8 +1056,8 @@
     "Away Player 2": "Joseph Zabat",
     "Away Player 1 ID": "nndz-WlNTNXliejlodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1076,8 +1076,8 @@
     "Away Player 2": "Rick  Aguayo",
     "Away Player 1 ID": "nndz-WlNld3liZjRndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajRqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1096,8 +1096,8 @@
     "Away Player 2": "Brad Hensley",
     "Away Player 1 ID": "nndz-WlNlNXdienhnZz09",
     "Away Player 2 ID": "nndz-WlNTNHhyM3hoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1116,8 +1116,8 @@
     "Away Player 2": "Terrence Gamboa",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9nQT09",
     "Away Player 2 ID": "nndz-WlNTNXhMNzhnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1136,8 +1136,8 @@
     "Away Player 2": "Alfred Tam",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WkMrNng3MzloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1156,8 +1156,8 @@
     "Away Player 2": "Rafa Lozado",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WlNlNXdienhnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1176,8 +1176,8 @@
     "Away Player 2": "Brad Hensley",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNTNHhyM3hoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1196,8 +1196,8 @@
     "Away Player 2": "Rick  Aguayo",
     "Away Player 1 ID": "nndz-WlNTNXliejlodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajRqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1213,11 +1213,11 @@
     "Home Player 1 ID": "nndz-WlNTNXhMcndoUT09",
     "Home Player 2 ID": "nndz-WlNld3liZjRndz09",
     "Away Player 1": "Carlos Alcantar",
-    "Away Player 2": "George Georgiadis",
+    "Away Player 2": "Juan Pagador",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
-    "Away Player 2 ID": "nndz-WlNTNXhyZjRoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "nndz-WkMrOHdiYjRodz09",
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1233,11 +1233,11 @@
     "Home Player 1 ID": "nndz-WkMrNnhMcjloUT09",
     "Home Player 2 ID": "nndz-WlNTNXhMajZoUT09",
     "Away Player 1": "Rex Daarol",
-    "Away Player 2": "Joseph Zabat",
+    "Away Player 2": "Rex Lao",
     "Away Player 1 ID": "nndz-WlNhd3liejdodz09",
-    "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "nndz-WkMrOHdibi9qQT09",
+    "Scores": "6-4, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1256,8 +1256,8 @@
     "Away Player 2": "Chris Longeway",
     "Away Player 1 ID": "nndz-WkMrNnhMditqUT09",
     "Away Player 2 ID": "nndz-WkMrOHdMLzlnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 3-6, 0-11",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1276,8 +1276,8 @@
     "Away Player 2": "Jack Schwab",
     "Away Player 1 ID": "nndz-WkMrNng3MzZnQT09",
     "Away Player 2 ID": "nndz-WlNld3hyNzhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1296,8 +1296,8 @@
     "Away Player 2": "Scott Ummel",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNlNXg3ZjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 3-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1316,8 +1316,8 @@
     "Away Player 2": "Rick  Aguayo",
     "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajRqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1336,8 +1336,8 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMdjdnQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1356,8 +1356,8 @@
     "Away Player 2": "Marty Singer",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WlNld3libitnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1369,15 +1369,15 @@
     "Home Team": "Line 1",
     "Away Team": "James Balon/Andy Snyder",
     "Home Player 1": "James Balon",
-    "Home Player 2": "Russ Kerr",
+    "Home Player 2": "Unknown Player H1B",
     "Home Player 1 ID": "nndz-WlNlNXhyai9ndz09",
-    "Home Player 2 ID": "nndz-WlNhd3liNzVodz09",
-    "Away Player 1": "Carlos Alcantar",
-    "Away Player 2": "Rex Lao",
-    "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
-    "Away Player 2 ID": "nndz-WkMrOHdibi9qQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 2 ID": "unknown_h1b",
+    "Away Player 1": "Unknown Player A1A",
+    "Away Player 2": "Unknown Player A1B",
+    "Away Player 1 ID": "unknown_a1a",
+    "Away Player 2 ID": "unknown_a1b",
+    "Scores": "4-6, 6-3, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1388,16 +1388,16 @@
     "Date": "05-Jun-25",
     "Home Team": "Line 1",
     "Away Team": "James Balon/Andy Snyder",
-    "Home Player 1": "Andy Snyder",
-    "Home Player 2": "Mark Hanson",
-    "Home Player 1 ID": "nndz-WlNld3liZjRndz09",
-    "Home Player 2 ID": "nndz-WlNld3liZjRqUT09",
-    "Away Player 1": "Ceasar Fuenticilla",
-    "Away Player 2": "Rex Daarol",
-    "Away Player 1 ID": "nndz-WkMrOHdiYjRoUT09",
-    "Away Player 2 ID": "nndz-WlNhd3liejdodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H2A",
+    "Home Player 2": "Unknown Player H2B",
+    "Home Player 1 ID": "unknown_h2a",
+    "Home Player 2 ID": "unknown_h2b",
+    "Away Player 1": "Unknown Player A2A",
+    "Away Player 2": "Unknown Player A2B",
+    "Away Player 1 ID": "unknown_a2a",
+    "Away Player 2 ID": "unknown_a2b",
+    "Scores": "6-0, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1408,16 +1408,16 @@
     "Date": "05-Jun-25",
     "Home Team": "Line 1",
     "Away Team": "James Balon/Andy Snyder",
-    "Home Player 1": "Adam Morgan",
-    "Home Player 2": "George Fenton",
-    "Home Player 1 ID": "nndz-WkMrNng3Nytndz09",
-    "Home Player 2 ID": "nndz-WkMrNnhMai9nZz09",
-    "Away Player 1": "Steve Rotblatt",
-    "Away Player 2": "Ethan Cantor",
-    "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
-    "Away Player 2 ID": "nndz-WkMrNng3NzloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H3A",
+    "Home Player 2": "Unknown Player H3B",
+    "Home Player 1 ID": "unknown_h3a",
+    "Home Player 2 ID": "unknown_h3b",
+    "Away Player 1": "Unknown Player A3A",
+    "Away Player 2": "Unknown Player A3B",
+    "Away Player 1 ID": "unknown_a3a",
+    "Away Player 2 ID": "unknown_a3b",
+    "Scores": "8-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1428,16 +1428,16 @@
     "Date": "05-Jun-25",
     "Home Team": "Line 1",
     "Away Team": "James Balon/Andy Snyder",
-    "Home Player 1": "Gabe Schlussel",
-    "Home Player 2": "Robert Fenton",
-    "Home Player 1 ID": "nndz-WkMrNng3NzdnZz09",
-    "Home Player 2 ID": "nndz-WkMrNng3MzRqQT09",
-    "Away Player 1": "Jarrod Cohen",
-    "Away Player 2": "Lowell Cantor",
-    "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
-    "Away Player 2 ID": "nndz-WkMrOHdManhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H4A",
+    "Home Player 2": "Unknown Player H4B",
+    "Home Player 1 ID": "unknown_h4a",
+    "Home Player 2 ID": "unknown_h4b",
+    "Away Player 1": "Unknown Player A4A",
+    "Away Player 2": "Unknown Player A4B",
+    "Away Player 1 ID": "unknown_a4a",
+    "Away Player 2 ID": "unknown_a4b",
+    "Scores": "5-7, 6-7",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1456,8 +1456,8 @@
     "Away Player 2": "Joseph Zabat",
     "Away Player 1 ID": "nndz-WkMrNnhMajRqQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1476,8 +1476,8 @@
     "Away Player 2": "Colin Bunn",
     "Away Player 1 ID": "nndz-WkMrOHdiYjRodz09",
     "Away Player 2 ID": "nndz-WlNTNXlMbjZndz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-5, 4-6, 6-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1496,8 +1496,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-5, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1516,8 +1516,8 @@
     "Away Player 2": "Lowell Cantor",
     "Away Player 1 ID": "nndz-WkMrNng3NzZqQT09",
     "Away Player 2 ID": "nndz-WkMrOHdManhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-5, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1528,16 +1528,16 @@
     "Date": "07-Aug-25",
     "Home Team": "Line 1",
     "Away Team": "Guillermo Garcia/Cesar Uribe",
-    "Home Player 1": "Guillermo Garcia",
-    "Home Player 2": "Colin Bunn",
-    "Home Player 1 ID": "nndz-WlNTNXhMcndoUT09",
-    "Home Player 2 ID": "nndz-WlNTNXlMbjZndz09",
-    "Away Player 1": "Carlos Alcantar",
-    "Away Player 2": "George Georgiadis",
-    "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
-    "Away Player 2 ID": "nndz-WlNTNXhyZjRoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H1A",
+    "Home Player 2": "Unknown Player H1B",
+    "Home Player 1 ID": "unknown_h1a",
+    "Home Player 2 ID": "unknown_h1b",
+    "Away Player 1": "Unknown Player A1A",
+    "Away Player 2": "Unknown Player A1B",
+    "Away Player 1 ID": "unknown_a1a",
+    "Away Player 2 ID": "unknown_a1b",
+    "Scores": "4-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1548,16 +1548,16 @@
     "Date": "07-Aug-25",
     "Home Team": "Line 1",
     "Away Team": "Guillermo Garcia/Cesar Uribe",
-    "Home Player 1": "Cesar Uribe",
-    "Home Player 2": "Andrew Huang",
-    "Home Player 1 ID": "nndz-WkMrNnhMcjloUT09",
-    "Home Player 2 ID": "nndz-WlNTNHhMMzRnUT09",
-    "Away Player 1": "Terrence Gamboa",
-    "Away Player 2": "Scott Ummel",
-    "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
-    "Away Player 2 ID": "nndz-WlNlNXg3ZjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H2A",
+    "Home Player 2": "Unknown Player H2B",
+    "Home Player 1 ID": "unknown_h2a",
+    "Home Player 2 ID": "unknown_h2b",
+    "Away Player 1": "Unknown Player A2A",
+    "Away Player 2": "Unknown Player A2B",
+    "Away Player 1 ID": "unknown_a2a",
+    "Away Player 2 ID": "unknown_a2b",
+    "Scores": "5-7, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1568,16 +1568,16 @@
     "Date": "07-Aug-25",
     "Home Team": "Line 1",
     "Away Team": "Guillermo Garcia/Cesar Uribe",
-    "Home Player 1": "Jonny Raab",
-    "Home Player 2": "Steve Rotblatt",
-    "Home Player 1 ID": "nndz-WkMrOHlMbjhodz09",
-    "Home Player 2 ID": "nndz-WkMrNnhMbjRqUT09",
-    "Away Player 1": "Adam Berman",
-    "Away Player 2": "Gregg Levin",
-    "Away Player 1 ID": "nndz-WkMrNng3NzZqQT09",
-    "Away Player 2 ID": "nndz-WkMrNng3ejZnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H3A",
+    "Home Player 2": "Unknown Player H3B",
+    "Home Player 1 ID": "unknown_h3a",
+    "Home Player 2 ID": "unknown_h3b",
+    "Away Player 1": "Unknown Player A3A",
+    "Away Player 2": "Unknown Player A3B",
+    "Away Player 1 ID": "unknown_a3a",
+    "Away Player 2 ID": "unknown_a3b",
+    "Scores": "6-3, 3-6, 4-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1588,16 +1588,16 @@
     "Date": "07-Aug-25",
     "Home Team": "Line 1",
     "Away Team": "Guillermo Garcia/Cesar Uribe",
-    "Home Player 1": "Adam Gooze",
-    "Home Player 2": "Steve Fisher",
-    "Home Player 1 ID": "nndz-WkMrNng3LzlqQT09",
-    "Home Player 2 ID": "nndz-WkMrNng3LzVnUT09",
-    "Away Player 1": "Gabe Schlussel",
-    "Away Player 2": "George Fenton",
-    "Away Player 1 ID": "nndz-WkMrNng3NzdnZz09",
-    "Away Player 2 ID": "nndz-WkMrNnhMai9nZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Home Player 1": "Unknown Player H4A",
+    "Home Player 2": "Unknown Player H4B",
+    "Home Player 1 ID": "unknown_h4a",
+    "Home Player 2 ID": "unknown_h4b",
+    "Away Player 1": "Unknown Player A4A",
+    "Away Player 2": "Unknown Player A4B",
+    "Away Player 1 ID": "unknown_a4a",
+    "Away Player 2 ID": "unknown_a4b",
+    "Scores": "6-1, 7-5",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1616,8 +1616,8 @@
     "Away Player 2": "Bobby Miller",
     "Away Player 1 ID": "nndz-WkMrOHdManhodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1636,8 +1636,8 @@
     "Away Player 2": "Vince LoGrande",
     "Away Player 1 ID": "nndz-WkMrNng3NzloZz09",
     "Away Player 2 ID": "nndz-WkMrNnhMdjZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1656,8 +1656,8 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNng3ejhoZz09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1676,8 +1676,8 @@
     "Away Player 2": "Marty Singer",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
     "Away Player 2 ID": "nndz-WlNld3libitnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1686,8 +1686,8 @@
     "Line": "Line 1",
     "series": "Tennaqua S1",
     "Date": "24-Jul-25",
-    "Home Team": "Line 1",
-    "Away Team": "Bob Wise/Gabe Schlussel",
+    "Home Team": "Unknown Home Team",
+    "Away Team": "Unknown Away Team",
     "Home Player 1": "Bob Wise",
     "Home Player 2": "Bruce Pinsof",
     "Home Player 1 ID": "nndz-WkMrNng3Ly9oQT09",
@@ -1696,8 +1696,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 6-0, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1706,8 +1706,8 @@
     "Line": "Line 2",
     "series": "Tennaqua S1",
     "Date": "24-Jul-25",
-    "Home Team": "Line 1",
-    "Away Team": "Bob Wise/Gabe Schlussel",
+    "Home Team": "Unknown Home Team",
+    "Away Team": "Unknown Away Team",
     "Home Player 1": "Gabe Schlussel",
     "Home Player 2": "Lowell Cantor",
     "Home Player 1 ID": "nndz-WkMrNng3NzdnZz09",
@@ -1716,8 +1716,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1726,8 +1726,8 @@
     "Line": "Line 3",
     "series": "Tennaqua S1",
     "Date": "24-Jul-25",
-    "Home Team": "Line 1",
-    "Away Team": "Bob Wise/Gabe Schlussel",
+    "Home Team": "Unknown Home Team",
+    "Away Team": "Unknown Away Team",
     "Home Player 1": "Adam Berman",
     "Home Player 2": "Unknown Player H3B",
     "Home Player 1 ID": "nndz-WkMrNng3NzZqQT09",
@@ -1736,8 +1736,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMai9nZz09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 6-4, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1746,8 +1746,8 @@
     "Line": "Line 4",
     "series": "Tennaqua S1",
     "Date": "24-Jul-25",
-    "Home Team": "Line 1",
-    "Away Team": "Bob Wise/Gabe Schlussel",
+    "Home Team": "Unknown Home Team",
+    "Away Team": "Unknown Away Team",
     "Home Player 1": "Steve Rotblatt",
     "Home Player 2": "Unknown Player H4B",
     "Home Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
@@ -1756,8 +1756,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNng3MzRqQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1776,8 +1776,8 @@
     "Away Player 2": "David Hunt",
     "Away Player 1 ID": "nndz-WkMrNnhMajdnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 2-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1796,8 +1796,8 @@
     "Away Player 2": "Tim Richmond",
     "Away Player 1 ID": "nndz-WlNld3hyNzhodz09",
     "Away Player 2 ID": "nndz-WkMrNng3Mytndz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1816,8 +1816,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1836,8 +1836,8 @@
     "Away Player 2": "Haskell Weiss",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjRnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1845,7 +1845,7 @@
     "source_league": "NSTF",
     "Line": "Line 1",
     "series": "Tennaqua S1",
-    "Date": "19-Jun-25",
+    "Date": null,
     "Home Team": "Line 1",
     "Away Team": "Phil Davis/Dave Travetto",
     "Home Player 1": "Phil Davis",
@@ -1856,8 +1856,8 @@
     "Away Player 2": "Paul P. Patt",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WkMrOHhiLzZnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "0-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1865,7 +1865,7 @@
     "source_league": "NSTF",
     "Line": "Line 2",
     "series": "Tennaqua S1",
-    "Date": "19-Jun-25",
+    "Date": null,
     "Home Team": "Line 1",
     "Away Team": "Phil Davis/Dave Travetto",
     "Home Player 1": "Dave Travetto",
@@ -1876,8 +1876,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNng3ejhoZz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1885,7 +1885,7 @@
     "source_league": "NSTF",
     "Line": "Line 3",
     "series": "Tennaqua S1",
-    "Date": "19-Jun-25",
+    "Date": null,
     "Home Team": "Line 1",
     "Away Team": "Phil Davis/Dave Travetto",
     "Home Player 1": "Engleman Chris",
@@ -1896,8 +1896,8 @@
     "Away Player 2": "Haskell Weiss",
     "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjRnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -1905,7 +1905,7 @@
     "source_league": "NSTF",
     "Line": "Line 4",
     "series": "Tennaqua S1",
-    "Date": "19-Jun-25",
+    "Date": null,
     "Home Team": "Line 1",
     "Away Team": "Phil Davis/Dave Travetto",
     "Home Player 1": "Steve Fisher",
@@ -1916,8 +1916,8 @@
     "Away Player 2": "Jonah Shapiro",
     "Away Player 1 ID": "nndz-WkMrNng3LzRodz09",
     "Away Player 2 ID": "nndz-WlNTNXhMejRnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1936,8 +1936,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMZjZqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1956,8 +1956,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1976,8 +1976,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -1996,8 +1996,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9nQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2016,8 +2016,8 @@
     "Away Player 2": "Rex Lao",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WkMrOHdibi9qQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 6-3, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2036,8 +2036,8 @@
     "Away Player 2": "Rex Daarol",
     "Away Player 1 ID": "nndz-WkMrOHdiYjRoUT09",
     "Away Player 2 ID": "nndz-WlNhd3liejdodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2056,8 +2056,8 @@
     "Away Player 2": "Ethan Cantor",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNng3NzloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "8-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2076,8 +2076,8 @@
     "Away Player 2": "Lowell Cantor",
     "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
     "Away Player 2 ID": "nndz-WkMrOHdManhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7, 6-7",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2096,8 +2096,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2116,8 +2116,8 @@
     "Away Player 2": "Paul Sundberg",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMYjVoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 3-6, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2136,8 +2136,8 @@
     "Away Player 2": "David Hunt",
     "Away Player 1 ID": "nndz-WkMrNnhMdjVnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 2-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2156,8 +2156,8 @@
     "Away Player 2": "Doug Lee",
     "Away Player 1 ID": "nndz-WkMrNng3MzZnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-6, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2176,8 +2176,8 @@
     "Away Player 2": "Adam Margol",
     "Away Player 1 ID": "nndz-WlNhd3hyYjhnUT09",
     "Away Player 2 ID": "nndz-WlNTNXlMbjdndz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6, 6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2196,8 +2196,8 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WlNTNXlMbjdnUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-1, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2216,8 +2216,8 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2236,8 +2236,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNnhMYitoZz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2253,11 +2253,11 @@
     "Home Player 1 ID": "nndz-WkMrNng3Ly9oQT09",
     "Home Player 2 ID": "nndz-WkMrNnhMai9nZz09",
     "Away Player 1": "Lowell Cantor",
-    "Away Player 2": "Bobby Miller",
+    "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WkMrOHdManhodz09",
-    "Away Player 2 ID": "nndz-WkMrNnhMajloZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a1b",
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2273,11 +2273,11 @@
     "Home Player 1 ID": "nndz-WkMrNng3LzRodz09",
     "Home Player 2 ID": "nndz-WkMrNng3MzRqQT09",
     "Away Player 1": "Ethan Cantor",
-    "Away Player 2": "Vince LoGrande",
+    "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WkMrNng3NzloZz09",
-    "Away Player 2 ID": "nndz-WkMrNnhMdjZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a2b",
+    "Scores": "4-6, 6-0, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2289,15 +2289,15 @@
     "Home Team": "Line 1",
     "Away Team": "Bob Wise/Jeff Feldman",
     "Home Player 1": "Phil Davis",
-    "Home Player 2": "Jim Franke",
+    "Home Player 2": "Unknown Player H3B",
     "Home Player 1 ID": "nndz-WkMrNnhMdjdnQT09",
-    "Home Player 2 ID": "nndz-WkMrNnhMcjhodz09",
+    "Home Player 2 ID": "unknown_h3b",
     "Away Player 1": "Brian Hanover",
-    "Away Player 2": "Mark Burnosky",
+    "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNng3ejhoZz09",
-    "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a3b",
+    "Scores": "6-3, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2309,15 +2309,15 @@
     "Home Team": "Line 1",
     "Away Team": "Bob Wise/Jeff Feldman",
     "Home Player 1": "Bryan Caruso",
-    "Home Player 2": "Curtis Baddeley",
+    "Home Player 2": "Unknown Player H4B",
     "Home Player 1 ID": "nndz-WkMrNnhMZndodz09",
-    "Home Player 2 ID": "nndz-WkMrNng3ejRodz09",
+    "Home Player 2 ID": "unknown_h4b",
     "Away Player 1": "Adam Weiss",
-    "Away Player 2": "Marty Singer",
+    "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
-    "Away Player 2 ID": "nndz-WlNld3libitnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a4b",
+    "Scores": "2-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2336,8 +2336,8 @@
     "Away Player 2": "Mark  Ainsworth",
     "Away Player 1 ID": "nndz-WlNld3liZjRndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMMzdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2356,8 +2356,8 @@
     "Away Player 2": "Jim Franke",
     "Away Player 1 ID": "nndz-WlNlNHdMNytoQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2376,7 +2376,7 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMdjdnQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "6-3, 4-6",
     "Winner": "tie"
   },
   {
@@ -2396,8 +2396,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2413,11 +2413,11 @@
     "Home Player 1 ID": "nndz-WkMrNng3ejhoZz09",
     "Home Player 2 ID": "nndz-WkMrNng3MzhoZz09",
     "Away Player 1": "Joshua Gray",
-    "Away Player 2": "Mark Burnosky",
+    "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WlNld3lMajloZz09",
-    "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a1b",
+    "Scores": "0-6, 0-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2433,11 +2433,11 @@
     "Home Player 1 ID": "nndz-WkMrNnhMcndnZz09",
     "Home Player 2 ID": "nndz-WkMrNnhMajVoQT09",
     "Away Player 1": "Adam Weiss",
-    "Away Player 2": "Brian Hardner",
+    "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
-    "Away Player 2 ID": "nndz-WkMrOHc3ZnhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a2b",
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2449,15 +2449,15 @@
     "Home Team": "Line 1",
     "Away Team": "Brian Hanover/Chris Kosky",
     "Home Player 1": "Stephen Cervieri",
-    "Home Player 2": "David Hunt",
+    "Home Player 2": "Unknown Player H3B",
     "Home Player 1 ID": "nndz-WkMrOXlMbjlndz09",
-    "Home Player 2 ID": "nndz-WkMrNng3LzZoZz09",
+    "Home Player 2 ID": "unknown_h3b",
     "Away Player 1": "Mark Schacher",
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMajdnUT09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2469,15 +2469,15 @@
     "Home Team": "Line 1",
     "Away Team": "Brian Hanover/Chris Kosky",
     "Home Player 1": "Mike McCullough",
-    "Home Player 2": "Andy Pfahl (S)",
+    "Home Player 2": "Unknown Player H4B",
     "Home Player 1 ID": "nndz-WkMrNng3MzZnUT09",
-    "Home Player 2 ID": "nndz-WkMrOXlMbjlqQT09",
+    "Home Player 2 ID": "unknown_h4b",
     "Away Player 1": "Mark Trager",
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMdjVnUT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2496,7 +2496,7 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "4-6, 7-5",
     "Winner": "tie"
   },
   {
@@ -2516,8 +2516,8 @@
     "Away Player 2": "Bryan Fernley",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WlNhd3hyYjhnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 4-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2536,8 +2536,8 @@
     "Away Player 2": "Jeff Moran",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WkMrNng3MzhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 7-5",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2556,7 +2556,7 @@
     "Away Player 2": "Adam Weiss",
     "Away Player 1 ID": "nndz-WkMrNnhMMy9nQT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajhqQT09",
-    "Scores": "Unknown Scores",
+    "Scores": "7-5, 0-6",
     "Winner": "tie"
   },
   {
@@ -2656,8 +2656,8 @@
     "Away Player 2": "Paul P. Patt",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WkMrOHhiLzZnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "0-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2676,8 +2676,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNng3ejhoZz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2696,8 +2696,8 @@
     "Away Player 2": "Haskell Weiss",
     "Away Player 1 ID": "nndz-WlNTNXhMejRodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjRnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "5-7",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2716,8 +2716,8 @@
     "Away Player 2": "Jonah Shapiro",
     "Away Player 1 ID": "nndz-WkMrNng3LzRodz09",
     "Away Player 2 ID": "nndz-WlNTNXhMejRnUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2736,8 +2736,8 @@
     "Away Player 2": "Scott Ummel",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNlNXg3ZjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 3-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2756,8 +2756,8 @@
     "Away Player 2": "Rick  Aguayo",
     "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
     "Away Player 2 ID": "nndz-WkMrNnhMajRqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2776,8 +2776,8 @@
     "Away Player 2": "Mark Burnosky",
     "Away Player 1 ID": "nndz-WkMrNnhMdjdnQT09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2796,8 +2796,8 @@
     "Away Player 2": "Marty Singer",
     "Away Player 1 ID": "nndz-WkMrNnhMZndodz09",
     "Away Player 2 ID": "nndz-WlNld3libitnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2816,8 +2816,8 @@
     "Away Player 2": "Manish Shah",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjZqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2836,8 +2836,8 @@
     "Away Player 2": "Chas Schinzer",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2856,8 +2856,8 @@
     "Away Player 2": "JoJo Yap",
     "Away Player 1 ID": "nndz-WkMrNng3ejRodz09",
     "Away Player 2 ID": "nndz-WkMrNnhManhoUT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2876,8 +2876,8 @@
     "Away Player 2": "Brian Hardner",
     "Away Player 1 ID": "nndz-WkMrNnhMcndnZz09",
     "Away Player 2 ID": "nndz-WkMrOHc3ZnhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2896,8 +2896,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WkMrOHhiMzlqUT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 4-6, 2-10",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -2916,8 +2916,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WlNTNXhiLy9ndz09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 7-5",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2936,8 +2936,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNng3ejVoUT09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-1, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2956,8 +2956,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMbjZqQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-5, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2976,8 +2976,8 @@
     "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WlNhd3liNzVoQT09",
     "Away Player 2 ID": "unknown_a1b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -2996,8 +2996,8 @@
     "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WlNTNXhMNzhnZz09",
     "Away Player 2 ID": "unknown_a2b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-6, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3016,8 +3016,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WlNlNHdMNytodz09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 3-6, 10-8",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3036,8 +3036,8 @@
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WlNlNXg3ZjZqQT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3053,11 +3053,11 @@
     "Home Player 1 ID": "nndz-WkMrNng3ejhoZz09",
     "Home Player 2 ID": "nndz-WkMrNng3MzhoZz09",
     "Away Player 1": "Joshua Gray",
-    "Away Player 2": "Mark Burnosky",
+    "Away Player 2": "Unknown Player A1B",
     "Away Player 1 ID": "nndz-WlNld3lMajloZz09",
-    "Away Player 2 ID": "nndz-WkMrOHc3ZnhnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a1b",
+    "Scores": "0-6, 0-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3073,11 +3073,11 @@
     "Home Player 1 ID": "nndz-WkMrNnhMcndnZz09",
     "Home Player 2 ID": "nndz-WkMrNnhMajVoQT09",
     "Away Player 1": "Adam Weiss",
-    "Away Player 2": "Brian Hardner",
+    "Away Player 2": "Unknown Player A2B",
     "Away Player 1 ID": "nndz-WkMrNnhMajhqQT09",
-    "Away Player 2 ID": "nndz-WkMrOHc3ZnhoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Away Player 2 ID": "unknown_a2b",
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3096,8 +3096,8 @@
     "Away Player 2": "Unknown Player A3B",
     "Away Player 1 ID": "nndz-WkMrNnhMajdnUT09",
     "Away Player 2 ID": "unknown_a3b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3109,15 +3109,15 @@
     "Home Team": "Line 1",
     "Away Team": "Brian Hanover/Chris Kosky",
     "Home Player 1": "Mike McCullough",
-    "Home Player 2": "Andy Pfahl (S)",
+    "Home Player 2": "Unknown Player H4B",
     "Home Player 1 ID": "nndz-WkMrNng3MzZnUT09",
-    "Home Player 2 ID": "nndz-WkMrOXlMbjlqQT09",
+    "Home Player 2 ID": "unknown_h4b",
     "Away Player 1": "Mark Trager",
     "Away Player 2": "Unknown Player A4B",
     "Away Player 1 ID": "nndz-WkMrNnhMdjVnUT09",
     "Away Player 2 ID": "unknown_a4b",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-0, 6-0",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3136,8 +3136,8 @@
     "Away Player 2": "David Hunt",
     "Away Player 1 ID": "nndz-WkMrNnhMajdnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 2-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3156,8 +3156,8 @@
     "Away Player 2": "Tim Richmond",
     "Away Player 1 ID": "nndz-WlNld3hyNzhodz09",
     "Away Player 2 ID": "nndz-WkMrNng3Mytndz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "4-6, 1-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3176,8 +3176,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "2-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3196,8 +3196,8 @@
     "Away Player 2": "Haskell Weiss",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMbjRnQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3296,8 +3296,8 @@
     "Away Player 2": "George Georgiadis",
     "Away Player 1 ID": "nndz-WkMrOXlMMzRoQT09",
     "Away Player 2 ID": "nndz-WlNTNXhyZjRoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3316,8 +3316,8 @@
     "Away Player 2": "Joseph Zabat",
     "Away Player 1 ID": "nndz-WlNhd3liejdodz09",
     "Away Player 2 ID": "nndz-WkMrNnhMcjRoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-3",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3336,8 +3336,8 @@
     "Away Player 2": "Chris Longeway",
     "Away Player 1 ID": "nndz-WkMrNnhMditqUT09",
     "Away Player 2 ID": "nndz-WkMrOHdMLzlnZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-3, 3-6, 0-11",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3356,8 +3356,8 @@
     "Away Player 2": "Jack Schwab",
     "Away Player 1 ID": "nndz-WkMrNng3MzZnQT09",
     "Away Player 2 ID": "nndz-WlNld3hyNzhodz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 4-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3376,8 +3376,8 @@
     "Away Player 2": "Youngbin Lim",
     "Away Player 1 ID": "nndz-WlNhd3hyYjhnUT09",
     "Away Player 2 ID": "nndz-WlNTNXhiLy9nQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 6-2",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3456,8 +3456,8 @@
     "Away Player 2": "Bruce Pinsof",
     "Away Player 1 ID": "nndz-WkMrNnhMbjRqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMajloQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "3-6, 3-6",
+    "Winner": "away"
   },
   {
     "league_id": "NSTF",
@@ -3476,8 +3476,8 @@
     "Away Player 2": "Paul Sundberg",
     "Away Player 1 ID": "nndz-WkMrNnhMbjVqUT09",
     "Away Player 2 ID": "nndz-WkMrNnhMYjVoQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-4, 3-6, 6-1",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3496,8 +3496,8 @@
     "Away Player 2": "David Hunt",
     "Away Player 1 ID": "nndz-WkMrNnhMdjVnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzZoZz09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "6-2, 2-6, 6-4",
+    "Winner": "home"
   },
   {
     "league_id": "NSTF",
@@ -3516,7 +3516,7 @@
     "Away Player 2": "Doug Lee",
     "Away Player 1 ID": "nndz-WkMrNng3MzZnUT09",
     "Away Player 2 ID": "nndz-WkMrNng3LzdqQT09",
-    "Scores": "Unknown Scores",
-    "Winner": "tie"
+    "Scores": "7-6, 6-1",
+    "Winner": "home"
   }
 ]

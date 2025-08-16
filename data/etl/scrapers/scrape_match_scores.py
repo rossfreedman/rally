@@ -798,113 +798,84 @@ class NSTFScraper(BaseLeagueScraper):
         return players_data
     
     def _extract_nstf_line_data(self, soup) -> dict:
-        """Extract line-specific scores and winners from NSTF match page."""
+        """Extract line-specific scores and winners from NSTF match page using proper table structure."""
         lines_data = {}
         
         try:
-            # Look for score patterns in table cells that match NSTF format
-            tables = soup.find_all('table')
-            line_num = 1
-            all_table_text = []
+            # Find all NSTF line tables with class 'standings-table2'
+            line_tables = soup.find_all('table', class_='standings-table2')
+            print(f"  🏓 Found {len(line_tables)} NSTF line tables")
             
-            for table_idx, table in enumerate(tables):
+            for line_idx, table in enumerate(line_tables):
+                line_num = line_idx + 1
+                
+                # Extract all rows from this line table
                 rows = table.find_all('tr')
-                table_content = []
+                if len(rows) < 2:
+                    continue
                 
+                print(f"  🔍 Processing Line {line_num} table with {len(rows)} rows")
+                
+                # Initialize score collection for this line
+                home_scores = []
+                away_scores = []
+                
+                # Process each row to collect scores from pts2 cells
                 for row_idx, row in enumerate(rows):
-                    cells = row.find_all(['td', 'th'])
-                    cell_texts = [cell.get_text(strip=True) for cell in cells]
-                    table_content.extend(cell_texts)
+                    # Find all score cells (td with class 'pts2')
+                    score_cells = row.find_all('td', class_='pts2')
                     
-                    # Debug: Show table content for first few tables
-                    if table_idx < 2 and row_idx < 3:
-                        print(f"    Table {table_idx+1}, Row {row_idx+1}: {cell_texts}")
-                    
-                    # AGGRESSIVE LINE SCORE EXTRACTION
-                    for text in cell_texts:
-                        if not text or len(text) < 3:  # Skip empty/short cells
-                            continue
-                            
-                        import re
+                    if score_cells:
+                        print(f"    Row {row_idx+1}: Found {len(score_cells)} score cells")
                         
-                        # Strategy 1: Look for exact score match in cell
-                        if re.match(r'^\d+-\d+(?:\s*,\s*\d+-\d+)*$', text.strip()):
-                            # This cell contains ONLY a score (perfect match)
-                            score_text = re.sub(r'\s*,\s*', ', ', text.strip())
-                            lines_data[line_num] = {
-                                "score": score_text,
-                                "winner": self._determine_winner_from_score(score_text)
-                            }
-                            print(f"  📊 Line {line_num} EXACT score match: {score_text}")
-                            line_num += 1
-                            continue
+                        # Extract scores from cells
+                        row_scores = []
+                        for cell in score_cells:
+                            score_text = cell.get_text(strip=True)
+                            if score_text and score_text.isdigit():
+                                score_val = int(score_text)
+                                if 0 <= score_val <= 15:  # Valid tennis score
+                                    row_scores.append(score_val)
+                                    print(f"      Score cell: {score_val}")
                         
-                        # Strategy 2: Look for any number-dash-number patterns and filter
-                        number_patterns = re.findall(r'\d+-\d+', text)
-                        if number_patterns:
-                            print(f"    🔢 Cell '{text}' contains patterns: {number_patterns}")
-                            
-                            # Filter for tennis-like scores
-                            tennis_scores = []
-                            for pattern in number_patterns:
-                                parts = pattern.split('-')
-                                if len(parts) == 2:
-                                    try:
-                                        left, right = int(parts[0]), int(parts[1])
-                                        if (0 <= left <= 15 and 0 <= right <= 15 and 
-                                            not (left == 1 and right <= 4) and 
-                                            not (left <= 4 and right == 1)):
-                                            tennis_scores.append(pattern)
-                                    except ValueError:
-                                        continue
-                            
-                            if tennis_scores and line_num <= 4:
-                                score_text = ', '.join(tennis_scores[:3])  # Max 3 sets
-                                lines_data[line_num] = {
-                                    "score": score_text,
-                                    "winner": self._determine_winner_from_score(score_text)
-                                }
-                                print(f"  📊 Line {line_num} filtered score: {score_text}")
-                                line_num += 1
-                                continue
-                        
-                        # Strategy 3: Traditional pattern matching (fallback)
-                        score_patterns = [
-                            r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas
-                            r'\d+-\d+\s*,\s*\d+-\d+',      # Two sets
-                            r'\d+-\d+'                     # Single set (fallback)
-                        ]
-                        
-                        for pattern_idx, pattern in enumerate(score_patterns):
-                            score_match = re.search(pattern, text)
-                            if score_match and line_num <= 4:
-                                score_text = score_match.group()
-                                # Clean up the score format
-                                score_text = re.sub(r'\s*,\s*', ', ', score_text)
-                                
-                                lines_data[line_num] = {
-                                    "score": score_text,
-                                    "winner": self._determine_winner_from_score(score_text)
-                                }
-                                print(f"  📊 Line {line_num} pattern {pattern_idx+1}: {score_text}")
-                                line_num += 1
-                                break
-                        
-                        if line_num > 4:  # Stop after finding 4 lines
-                            break
-                    
-                    if line_num > 4:
-                        break
+                        # Assign scores to home/away based on row position
+                        if row_idx == 0:  # First row is home team
+                            home_scores = row_scores
+                        elif row_idx == 1:  # Second row is away team  
+                            away_scores = row_scores
                 
-                all_table_text.extend(table_content)
-                if line_num > 4:
-                    break
+                # Build score string from collected scores
+                if home_scores and away_scores:
+                    # Pair up scores to create sets
+                    sets = []
+                    max_sets = min(len(home_scores), len(away_scores))
+                    
+                    for i in range(max_sets):
+                        home_score = home_scores[i]
+                        away_score = away_scores[i]
+                        
+                        # Skip empty or invalid scores
+                        if home_score == 0 and away_score == 0:
+                            continue
+                            
+                        sets.append(f"{home_score}-{away_score}")
+                    
+                    if sets:
+                        score_text = ', '.join(sets)
+                        winner = self._determine_winner_from_score(score_text)
+                        
+                        lines_data[line_num] = {
+                            "score": score_text,
+                            "winner": winner
+                        }
+                        
+                        print(f"  📊 Line {line_num} extracted: {score_text} (Winner: {winner})")
+                    else:
+                        print(f"  ⚠️  Line {line_num}: No valid sets found")
+                else:
+                    print(f"  ⚠️  Line {line_num}: Missing home ({len(home_scores)}) or away ({len(away_scores)}) scores")
             
-            # Debug: If no line scores found, show what was in tables
-            if not lines_data:
-                print(f"  ⚠️  No line scores found. Sample table content: {all_table_text[:20]}")
-            
-            print(f"📊 NSTF: Extracted {len(lines_data)} line scores")
+            print(f"📊 NSTF: Successfully extracted {len(lines_data)} line scores using table structure")
             
         except Exception as e:
             print(f"❌ NSTF: Error extracting line data: {e}")
