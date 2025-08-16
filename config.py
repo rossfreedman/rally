@@ -43,6 +43,41 @@ class TwilioConfig:
         }
 
 
+class SendGridConfig:
+    """Configuration for SendGrid email notifications"""
+    API_KEY = os.getenv("SENDGRID_API_KEY")
+    FROM_EMAIL = os.getenv("SENDGRID_FROM_EMAIL", "noreply@lovetorally.com")
+    FROM_NAME = os.getenv("SENDGRID_FROM_NAME", "Rally Platform")
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "ross@lovetorally.com")
+    EU_DATA_RESIDENCY = os.getenv("SENDGRID_EU_DATA_RESIDENCY", "false").lower() == "true"
+    
+    @classmethod
+    def is_configured(cls):
+        """Check if SendGrid is properly configured"""
+        return bool(cls.API_KEY and cls.FROM_EMAIL and cls.ADMIN_EMAIL)
+    
+    @classmethod
+    def validate_config(cls):
+        """Validate SendGrid configuration and return status"""
+        missing = []
+        if not cls.API_KEY:
+            missing.append("SENDGRID_API_KEY")
+        if not cls.FROM_EMAIL:
+            missing.append("SENDGRID_FROM_EMAIL")  
+        if not cls.ADMIN_EMAIL:
+            missing.append("ADMIN_EMAIL")
+            
+        return {
+            "is_valid": len(missing) == 0,
+            "missing_vars": missing,
+            "api_key": cls.API_KEY[:10] + "..." if cls.API_KEY else None,
+            "from_email": cls.FROM_EMAIL,
+            "from_name": cls.FROM_NAME,
+            "admin_email": cls.ADMIN_EMAIL,
+            "eu_data_residency": cls.EU_DATA_RESIDENCY
+        }
+
+
 def get_openai_api_key():
     """Get OpenAI API key with validation"""
     if not OPENAI_API_KEY:

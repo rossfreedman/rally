@@ -19,3 +19,4 @@ gunicorn==21.2.0
 alembic>=1.13.1
 rapidfuzz==3.13.0
 flask_login==0.6.3
+sendgrid==6.11.0

@@ -271,6 +271,7 @@ class NSTFScraper(BaseLeagueScraper):
             from bs4 import BeautifulSoup
             soup = BeautifulSoup(html, 'html.parser')
             
+            print(f"\n🏆 NSTF: Starting series extraction for {series_name}")
             print(f"🔍 NSTF: Parsing matches from {series_name}...")
             
             # NSTF also uses individual match pages with print_match.php  
@@ -313,6 +314,10 @@ class NSTFScraper(BaseLeagueScraper):
                                 matches.extend(detailed_matches)
                                 match_count += len(detailed_matches)
                                 print(f"✅ NSTF: Extracted {len(detailed_matches)} lines from match")
+                                
+                                # Save incremental temp file every 10 matches
+                                if len(matches) % 40 == 0:  # Every 10 matches (4 lines each = 40 line matches)
+                                    self._save_incremental_temp_file("nstf", series_name, matches, len(matches))
                         
                         matches_processed_in_series += 1
                         
@@ -320,7 +325,8 @@ class NSTFScraper(BaseLeagueScraper):
                         print(f"⚠️ NSTF: Error processing match link: {e}")
                         continue
             
-            print(f"📊 NSTF: Total matches extracted: {match_count}")
+            print(f"📊 NSTF: {series_name} completed - Total matches extracted: {match_count}")
+            print(f"🎯 Series Summary: {len(matches)} line matches from {matches_processed_in_series} team matches")
             
         except Exception as e:
             print(f"❌ NSTF: Error extracting matches: {e}")
@@ -352,15 +358,74 @@ class NSTFScraper(BaseLeagueScraper):
     def _extract_nstf_date(self, soup) -> str:
         """Extract match date from NSTF match page."""
         try:
-            # NSTF-specific date extraction logic
+            # Enhanced NSTF date extraction with proper formatting
+            import re
+            from datetime import datetime
+            
+            def format_to_nstf_date(date_str):
+                """Convert various date formats to NSTF format (DD-MMM-YY)"""
+                try:
+                    # Try different input formats
+                    formats_to_try = [
+                        ('%B %d, %Y', 'May 29, 2025'),      # May 29, 2025
+                        ('%b %d, %Y', 'May 29, 2025'),       # May 29, 2025  
+                        ('%m/%d/%y', '5/29/25'),             # 5/29/25
+                        ('%m/%d/%Y', '5/29/2025'),           # 5/29/2025
+                        ('%d-%b-%y', '29-May-25'),           # Already correct format
+                    ]
+                    
+                    for fmt, example in formats_to_try:
+                        try:
+                            parsed_date = datetime.strptime(date_str, fmt)
+                            # Format to NSTF standard: DD-MMM-YY
+                            nstf_date = parsed_date.strftime('%d-%b-%y')
+                            return nstf_date
+                        except ValueError:
+                            continue
+                    
+                    return date_str  # Return as-is if no format matches
+                except:
+                    return date_str
+            
+            # Method 1: Look in page title first
+            title = soup.find('title')
+            if title:
+                title_text = title.get_text()
+                date_patterns = [
+                    r'\d{1,2}-[A-Za-z]{3}-\d{2,4}',           # 29-May-25
+                    r'[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}',     # May 29, 2025
+                    r'\d{1,2}/\d{1,2}/\d{2,4}',              # 5/29/25
+                ]
+                
+                for pattern in date_patterns:
+                    date_match = re.search(pattern, title_text)
+                    if date_match:
+                        raw_date = date_match.group()
+                        formatted_date = format_to_nstf_date(raw_date)
+                        print(f"  📅 Found date in title: {raw_date} -> {formatted_date}")
+                        return formatted_date
+            
+            # Method 2: Look in all text elements
             date_elements = soup.find_all(text=True)
             for element in date_elements:
-                if isinstance(element, str) and '-' in element:
-                    # Look for date patterns like "10-Jul-25"
-                    import re
-                    date_match = re.search(r'\d{1,2}-[A-Za-z]{3}-\d{2}', element)
-                    if date_match:
-                        return date_match.group()
+                if isinstance(element, str):
+                    text = element.strip()
+                    if len(text) > 5:  # Skip very short strings
+                        date_patterns = [
+                            r'\d{1,2}-[A-Za-z]{3}-\d{2,4}',
+                            r'[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}',
+                            r'\d{1,2}/\d{1,2}/\d{2,4}',
+                        ]
+                        
+                        for pattern in date_patterns:
+                            date_match = re.search(pattern, text)
+                            if date_match:
+                                raw_date = date_match.group()
+                                formatted_date = format_to_nstf_date(raw_date)
+                                print(f"  📅 Found date in text: {raw_date} -> {formatted_date}")
+                                return formatted_date
+            
+            print(f"  ⚠️  No date found in NSTF match page")
             return None
         except Exception as e:
             print(f"❌ NSTF: Error extracting date: {e}")
@@ -369,52 +434,351 @@ class NSTFScraper(BaseLeagueScraper):
     def _extract_nstf_teams_and_score(self, soup) -> dict:
         """Extract team names and scores from NSTF match page."""
         try:
-            # NSTF-specific team and score extraction
-            # This will need to be customized based on NSTF's actual HTML structure
+            # Extract team names from the page content
+            home_team = "Unknown Home Team"
+            away_team = "Unknown Away Team"
+            scores = "Unknown Scores"
+            
+            # Method 1: Look for team names in page title or headers
+            title = soup.find('title')
+            if title:
+                title_text = title.get_text()
+                # Look for patterns like "Team A vs Team B" or "Team A - Team B"
+                import re
+                team_match = re.search(r'([^-\n]+)\s*(?:vs\.?|v\.?|-)\s*([^-\n]+)', title_text)
+                if team_match:
+                    home_team = team_match.group(1).strip()
+                    away_team = team_match.group(2).strip()
+                    print(f"  🏆 Extracted teams from title: {home_team} vs {away_team}")
+            
+            # Method 2: Look for team names in table headers or cells
+            if home_team == "Unknown Home Team":
+                tables = soup.find_all('table')
+                for table in tables:
+                    cells = table.find_all(['td', 'th'])
+                    cell_texts = [cell.get_text(strip=True) for cell in cells]
+                    
+                    # Look for team names in the first few cells
+                    if len(cell_texts) >= 2:
+                        for i in range(min(10, len(cell_texts))):
+                            text = cell_texts[i]
+                            # Look for words that might be team names (not numbers, dates, or short words)
+                            if (len(text) > 3 and 
+                                not re.match(r'^\d+[-/]\d+', text) and  # Not a date
+                                not re.match(r'^\d+$', text) and        # Not just a number
+                                any(char.isalpha() for char in text)):  # Contains letters
+                                if home_team == "Unknown Home Team":
+                                    home_team = text
+                                elif away_team == "Unknown Away Team" and text != home_team:
+                                    away_team = text
+                                    break
+            
+            # Method 2: Look for score patterns in NSTF format  
+            all_text = soup.get_text()
+            import re
+            # Look for NSTF score patterns like "6-4, 6-2" or "4-6, 6-4, 6-2"
+            score_patterns = [
+                r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas: "6-4, 6-2"
+                r'\d+-\d+(?:\s*,\s*\d+-\d+){1,2}',  # 2-3 sets: "6-4, 6-2" or "4-6, 6-4, 6-2"
+                r'\d+-\d+\s*,\s*\d+-\d+',      # Simple 2 sets: "6-4, 6-2"
+            ]
+            
+            for pattern in score_patterns:
+                score_match = re.search(pattern, all_text)
+                if score_match:
+                    scores = score_match.group()
+                    # Clean up the score format
+                    scores = re.sub(r'\s+', ' ', scores)  # Normalize whitespace
+                    scores = re.sub(r'\s*,\s*', ', ', scores)  # Normalize comma spacing
+                    print(f"  🎾 Extracted score: {scores}")
+                    break
+            
             return {
-                "Home Team": "NSTF Home Team",  # Placeholder - needs actual implementation
-                "Away Team": "NSTF Away Team",  # Placeholder - needs actual implementation
-                "Scores": "NSTF Scores"         # Placeholder - needs actual implementation
+                "Home Team": home_team,
+                "Away Team": away_team,
+                "Scores": scores
             }
         except Exception as e:
             print(f"❌ NSTF: Error extracting teams and score: {e}")
-            return {}
+            return {
+                "Home Team": "Unknown Home Team",
+                "Away Team": "Unknown Away Team", 
+                "Scores": "Unknown Scores"
+            }
     
     def _extract_nstf_lines(self, soup, series_name: str, match_id: str, match_date: str, teams_and_score: dict) -> List[Dict]:
-        """Extract NSTF line-specific data with proper league assignment."""
+        """Extract NSTF line-specific data with actual player names and IDs."""
         line_matches = []
         
         try:
-            # NSTF-specific line extraction logic
-            # This is a simplified implementation - needs customization for actual NSTF format
-            for line_num in range(1, 5):  # Assume 4 lines per match
+            # Extract actual player data from NSTF match page
+            players_data = self._extract_nstf_players(soup)
+            
+            # NSTF typically has 4 lines per match (doubles format)
+            lines_data = self._extract_nstf_line_data(soup)
+            
+            # Create line matches with real data
+            for line_num in range(1, 5):  # 4 lines per match
+                line_index = line_num - 1
+                
+                # Get player data for this line
+                home_player1 = players_data.get(f"home_player_{line_num}_1", {})
+                home_player2 = players_data.get(f"home_player_{line_num}_2", {})
+                away_player1 = players_data.get(f"away_player_{line_num}_1", {})
+                away_player2 = players_data.get(f"away_player_{line_num}_2", {})
+                
+                # Get line score data
+                line_score = lines_data.get(line_num, {})
+                
                 line_match = {
-                    "league_id": "NSTF",  # CRITICAL: Always NSTF for this scraper
+                    "league_id": "NSTF",
                     "match_id": f"{match_id}_Line{line_num}",
                     "source_league": "NSTF",
                     "Line": f"Line {line_num}",
+                    "series": series_name,  # Add missing series field
                     "Date": match_date,
                     "Home Team": teams_and_score.get("Home Team"),
                     "Away Team": teams_and_score.get("Away Team"),
-                    "Home Player 1": "NSTF Player 1",  # Placeholder
-                    "Home Player 2": "NSTF Player 2",  # Placeholder  
-                    "Away Player 1": "NSTF Player 3",  # Placeholder
-                    "Away Player 2": "NSTF Player 4",  # Placeholder
-                    "Home Player 1 ID": f"nstf_player_{line_num}_1",  # Placeholder
-                    "Home Player 2 ID": f"nstf_player_{line_num}_2",  # Placeholder
-                    "Away Player 1 ID": f"nstf_player_{line_num}_3",  # Placeholder
-                    "Away Player 2 ID": f"nstf_player_{line_num}_4",  # Placeholder
-                    "Scores": teams_and_score.get("Scores"),
-                    "Winner": "home"  # Placeholder
+                    "Home Player 1": home_player1.get("name", f"Unknown Player H{line_num}A"),
+                    "Home Player 2": home_player2.get("name", f"Unknown Player H{line_num}B"),
+                    "Home Player 1 ID": home_player1.get("id", f"unknown_h{line_num}a"),
+                    "Home Player 2 ID": home_player2.get("id", f"unknown_h{line_num}b"),
+                    "Away Player 1": away_player1.get("name", f"Unknown Player A{line_num}A"),
+                    "Away Player 2": away_player2.get("name", f"Unknown Player A{line_num}B"),
+                    "Away Player 1 ID": away_player1.get("id", f"unknown_a{line_num}a"),
+                    "Away Player 2 ID": away_player2.get("id", f"unknown_a{line_num}b"),
+                    "Scores": line_score.get("score", teams_and_score.get("Scores")),
+                    "Winner": self._determine_nstf_winner(line_score, teams_and_score)
                 }
                 line_matches.append(line_match)
             
-            print(f"✅ NSTF: Created {len(line_matches)} line matches with league_id=NSTF")
+            print(f"✅ NSTF: Created {len(line_matches)} line matches with actual player data")
             
         except Exception as e:
             print(f"❌ NSTF: Error extracting lines: {e}")
             
         return line_matches
+    
+    def _determine_nstf_winner(self, line_score: dict, teams_and_score: dict) -> str:
+        """Determine winner based on line score data in NSTF format."""
+        try:
+            # Method 1: Use line-specific score if available
+            if line_score and "score" in line_score:
+                score_text = line_score["score"]
+                if score_text and score_text != "Unknown Scores":
+                    # Parse scores like "6-4, 6-2" or "4-6, 6-4, 6-2"
+                    import re
+                    sets = re.findall(r'(\d+)-(\d+)', score_text)
+                    if sets:
+                        home_sets_won = 0
+                        away_sets_won = 0
+                        
+                        for home_score, away_score in sets:
+                            if int(home_score) > int(away_score):
+                                home_sets_won += 1
+                            elif int(away_score) > int(home_score):
+                                away_sets_won += 1
+                        
+                        if home_sets_won > away_sets_won:
+                            return "home"
+                        elif away_sets_won > home_sets_won:
+                            return "away"
+                        else:
+                            return "tie"
+            
+            # Method 2: Use overall match score
+            overall_score = teams_and_score.get("Scores", "")
+            if overall_score and overall_score != "Unknown Scores":
+                # Similar logic for overall score
+                import re
+                sets = re.findall(r'(\d+)-(\d+)', overall_score)
+                if sets and len(sets) >= 2:  # At least 2 sets to determine winner
+                    home_sets_won = 0
+                    away_sets_won = 0
+                    
+                    for home_score, away_score in sets:
+                        if int(home_score) > int(away_score):
+                            home_sets_won += 1
+                        elif int(away_score) > int(home_score):
+                            away_sets_won += 1
+                    
+                    if home_sets_won >= 2:  # Best of 3 sets
+                        return "home"
+                    elif away_sets_won >= 2:
+                        return "away"
+                    else:
+                        return "tie"
+            
+            # Default fallback
+            return "tie"
+            
+        except Exception as e:
+            print(f"❌ Error determining winner: {e}")
+            return "tie"
+    
+    def _extract_nstf_players(self, soup) -> dict:
+        """Extract player names and IDs from NSTF match page."""
+        players_data = {}
+        
+        try:
+            # Find all player links in the format: player.php?print&p=PLAYER_ID
+            player_links = soup.find_all('a', href=True)
+            player_count = 0
+            total_links = len(player_links)
+            
+            print(f"  🔍 NSTF: Scanning {total_links} links for player data...")
+            
+            for link in player_links:
+                href = link.get('href', '')
+                if 'player.php?print&p=' in href:
+                    # Extract player ID from href
+                    player_id = href.split('p=')[1].split('&')[0]
+                    player_name = link.text.strip()
+                    
+                    if player_id and player_name:
+                        player_count += 1
+                        
+                        # Better player positioning logic
+                        if player_count <= 8:  # Expecting 8 players total
+                            # For NSTF doubles: 2 players per line, 4 lines per match
+                            # Players 1-4: Home team (lines 1-4)
+                            # Players 5-8: Away team (lines 1-4)
+                            
+                            if player_count <= 4:
+                                # Home team players
+                                line_num = player_count
+                                team_prefix = "home"
+                                player_pos = "1"  # Only one player per line per team for now
+                            else:
+                                # Away team players  
+                                line_num = player_count - 4
+                                team_prefix = "away"
+                                player_pos = "1"
+                            
+                            key = f"{team_prefix}_player_{line_num}_{player_pos}"
+                            
+                            players_data[key] = {
+                                "name": player_name,
+                                "id": player_id
+                            }
+                            
+                            print(f"  📍 NSTF Player {player_count}: {player_name} (ID: {player_id}) -> {key}")
+                            
+                        # Also look for doubles partners - check if there are additional players in same table row
+                        # This is simplified - in real implementation would parse table structure more carefully
+                        if player_count > 8:
+                            # Handle doubles partners
+                            base_player = ((player_count - 9) % 4) + 1
+                            is_home = player_count <= 12
+                            team_prefix = "home" if is_home else "away"
+                            line_num = base_player
+                            
+                            key = f"{team_prefix}_player_{line_num}_2"  # Second player in doubles
+                            
+                            players_data[key] = {
+                                "name": player_name,
+                                "id": player_id
+                            }
+                            
+                            print(f"  📍 NSTF Doubles Partner {player_count}: {player_name} (ID: {player_id}) -> {key}")
+            
+            print(f"🎾 NSTF: Extracted {len(players_data)} player records")
+            
+            # If no players found, show some debug info
+            if len(players_data) == 0:
+                print(f"  ⚠️  No player links found in format 'player.php?print&p='")
+                print(f"  🔍 Sample links found:")
+                sample_links = player_links[:5]
+                for i, link in enumerate(sample_links):
+                    href = link.get('href', '')
+                    text = link.text.strip()[:50]
+                    print(f"    {i+1}. {href} -> '{text}'")
+            
+        except Exception as e:
+            print(f"❌ NSTF: Error extracting players: {e}")
+            
+        return players_data
+    
+    def _extract_nstf_line_data(self, soup) -> dict:
+        """Extract line-specific scores and winners from NSTF match page."""
+        lines_data = {}
+        
+        try:
+            # Look for score patterns in table cells that match NSTF format
+            tables = soup.find_all('table')
+            line_num = 1
+            
+            for table in tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    cell_texts = [cell.get_text(strip=True) for cell in cells]
+                    
+                    # Look for NSTF score patterns in each row
+                    for text in cell_texts:
+                        import re
+                        # Look for NSTF-style scores: "6-4, 6-2" or "4-6, 6-4, 6-2"  
+                        score_patterns = [
+                            r'\d+-\d+(?:\s*,\s*\d+-\d+)+',  # Multiple sets with commas
+                            r'\d+-\d+\s*,\s*\d+-\d+',      # Two sets
+                            r'\d+-\d+'                     # Single set (fallback)
+                        ]
+                        
+                        for pattern in score_patterns:
+                            score_match = re.search(pattern, text)
+                            if score_match and line_num <= 4:
+                                score_text = score_match.group()
+                                # Clean up the score format
+                                score_text = re.sub(r'\s*,\s*', ', ', score_text)
+                                
+                                lines_data[line_num] = {
+                                    "score": score_text,
+                                    "winner": self._determine_winner_from_score(score_text)
+                                }
+                                print(f"  📊 Line {line_num} score: {score_text}")
+                                line_num += 1
+                                break
+                        
+                        if line_num > 4:  # Stop after finding 4 lines
+                            break
+                    
+                    if line_num > 4:
+                        break
+            
+            print(f"📊 NSTF: Extracted {len(lines_data)} line scores")
+            
+        except Exception as e:
+            print(f"❌ NSTF: Error extracting line data: {e}")
+            
+        return lines_data
+    
+    def _determine_winner_from_score(self, score_text: str) -> str:
+        """Determine winner from a score string like '6-4, 6-2' or '4-6, 6-4, 6-2'."""
+        try:
+            import re
+            sets = re.findall(r'(\d+)-(\d+)', score_text)
+            if not sets:
+                return "tie"
+            
+            home_sets_won = 0
+            away_sets_won = 0
+            
+            for home_score, away_score in sets:
+                if int(home_score) > int(away_score):
+                    home_sets_won += 1
+                elif int(away_score) > int(home_score):
+                    away_sets_won += 1
+            
+            if home_sets_won > away_sets_won:
+                return "home"
+            elif away_sets_won > home_sets_won:
+                return "away"
+            else:
+                return "tie"
+                
+        except Exception as e:
+            print(f"❌ Error determining winner from score {score_text}: {e}")
+            return "tie"
 
 class APTAScraper(BaseLeagueScraper):
     """APTA-specific scraper with dedicated extraction logic."""
@@ -588,6 +952,37 @@ class EnhancedMatchScraper:
         except Exception as e:
             if self.config.verbose:
                 print(f"⚠️ Failed to save temp file for {series_name}: {e}")
+            # Don't fail the scraping if temp file creation fails
+    
+    def _save_incremental_temp_file(self, league_subdomain: str, series_name: str, series_matches: List[Dict], current_count: int):
+        """Save incremental temp file during series processing."""
+        try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+            from data.etl.utils.league_directory_manager import get_league_file_path
+            
+            # Get the league directory
+            league_data_dir = os.path.dirname(get_league_file_path(league_subdomain, "match_history.json"))
+            tmp_dir = os.path.join(league_data_dir, 'tmp')
+            
+            # Create tmp directory if it doesn't exist
+            os.makedirs(tmp_dir, exist_ok=True)
+            
+            # Clean series name for filename with progress indicator
+            safe_series_name = series_name.replace(' ', '_').replace('/', '_').replace('\\', '_')
+            temp_file_path = os.path.join(tmp_dir, f"series_{safe_series_name}_partial_{current_count}.json")
+            
+            # Save series matches to temp file
+            import json
+            with open(temp_file_path, 'w') as f:
+                json.dump(series_matches, f, indent=2)
+            
+            print(f"💾 Incremental temp file saved: {temp_file_path} ({current_count} line matches)")
+            
+        except Exception as e:
+            if self.config.verbose:
+                print(f"⚠️ Failed to save incremental temp file for {series_name}: {e}")
             # Don't fail the scraping if temp file creation fails
     
     def _safe_request(self, url: str, description: str = "page") -> Optional[str]:
