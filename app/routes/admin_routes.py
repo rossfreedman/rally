@@ -46,7 +46,8 @@ from app.services.admin_service import (
     update_series_name,
     update_user_info,
     get_detailed_logging_notifications_setting,
-    set_detailed_logging_notifications_setting
+    set_detailed_logging_notifications_setting,
+    get_lineup_escrow_analytics
 )
 
 # ETL service imports temporarily disabled
@@ -263,6 +264,18 @@ def serve_team_notifications():
     
     return render_template(
         "mobile/team_notifications.html", session_data={"user": session["user"]}
+    )
+
+
+@admin_bp.route("/admin/pre-register-user")
+@login_required
+@admin_required
+def serve_pre_register_user():
+    """Serve the admin pre-register user page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_pre_register_user")
+    
+    return render_template(
+        "admin/pre_register_user.html", session_data={"user": session["user"]}
     )
 
 
@@ -2555,6 +2568,150 @@ def send_team_notification():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/pre-register-user", methods=["POST"])
+@login_required
+@admin_required
+def api_pre_register_user():
+    """Admin API endpoint to pre-register a single user"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        # Extract and validate required fields
+        email = data.get("email", "").strip().lower()
+        first_name = data.get("firstName", "").strip()
+        last_name = data.get("lastName", "").strip()
+        phone_number = data.get("phoneNumber", "").strip()
+        league_id = data.get("league", "").strip()
+        club_name = data.get("club", "").strip()
+        series_name = data.get("series", "").strip()
+        
+        # Registration options
+        generate_password = data.get("generatePassword", True)
+        send_notifications = data.get("sendNotifications", True)
+        
+        # Validate required fields
+        missing_fields = []
+        if not email:
+            missing_fields.append("email")
+        if not first_name:
+            missing_fields.append("firstName")
+        if not last_name:
+            missing_fields.append("lastName")
+        if not phone_number:
+            missing_fields.append("phoneNumber")
+        if not league_id:
+            missing_fields.append("league")
+        if not club_name:
+            missing_fields.append("club")
+        if not series_name:
+            missing_fields.append("series")
+        
+        if missing_fields:
+            return jsonify({
+                "success": False,
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
+        
+        # Validate phone number (should be 10 digits)
+        if len(phone_number) != 10 or not phone_number.isdigit():
+            return jsonify({
+                "success": False,
+                "error": "Phone number must be exactly 10 digits"
+            }), 400
+        
+        # Import the registration function
+        from app.services.auth_service_refactored import register_user
+        import secrets
+        import string
+        
+        # Generate temporary password if requested
+        temp_password = None
+        if generate_password:
+            # Generate secure temporary password
+            alphabet = string.ascii_letters + string.digits
+            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+        else:
+            # Use a default temporary password
+            temp_password = "Rally2024!"
+        
+        # Log admin action
+        admin_email = session["user"]["email"]
+        log_admin_action(
+            admin_email,
+            "pre_register_user",
+            {
+                "target_email": email,
+                "target_name": f"{first_name} {last_name}",
+                "league_id": league_id,
+                "club_name": club_name,
+                "series_name": series_name,
+                "phone_number": phone_number,
+                "generate_password": generate_password,
+                "send_notifications": send_notifications
+            }
+        )
+        
+        # Attempt to register the user
+        registration_result = register_user(
+            email=email,
+            password=temp_password,
+            first_name=first_name,
+            last_name=last_name,
+            league_id=league_id,
+            club_name=club_name,
+            series_name=series_name,
+            phone_number=phone_number,
+            ad_deuce_preference="Ad",  # Default
+            dominant_hand="Right"     # Default
+        )
+        
+        if not registration_result["success"]:
+            return jsonify({
+                "success": False,
+                "error": registration_result["error"]
+            }), 400
+        
+        # Send SMS notification if requested
+        if send_notifications:
+            try:
+                from app.services.notifications_service import send_sms_message
+                
+                message = f"Welcome to Rally! Your account has been created.\n\nLogin at: https://lovetorally.com\nEmail: {email}\nTemp Password: {temp_password}\n\nPlease change your password after first login."
+                
+                # Format phone number for SMS (add +1 prefix)
+                formatted_phone = f"+1{phone_number}"
+                sms_result = send_sms_message(formatted_phone, message)
+                
+                if not sms_result["success"]:
+                    # Log SMS failure but don't fail the registration
+                    print(f"SMS notification failed for {email}: {sms_result.get('error', 'Unknown error')}")
+                    
+            except Exception as sms_error:
+                # Log SMS error but don't fail the registration
+                print(f"SMS notification error for {email}: {str(sms_error)}")
+        
+        # Return success response
+        response_data = {
+            "success": True,
+            "message": f"User {first_name} {last_name} ({email}) has been successfully registered."
+        }
+        
+        # Include temp password in response if generated
+        if generate_password:
+            response_data["tempPassword"] = temp_password
+            
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error in pre-register user: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Registration failed: {str(e)}"
+        }), 500
+
+
 @admin_bp.route('/admin/lineup-escrow-analytics')
 @login_required
 def admin_lineup_escrow_analytics():
@@ -2563,8 +2720,7 @@ def admin_lineup_escrow_analytics():
         flash('Access denied. Admin privileges required.', 'error')
         return redirect(url_for('index'))
     
-    admin_service = AdminService()
-    analytics = admin_service.get_lineup_escrow_analytics()
+    analytics = get_lineup_escrow_analytics()
     
     if analytics is None:
         flash('Error loading analytics data.', 'error')

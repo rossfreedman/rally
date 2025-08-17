@@ -702,7 +702,7 @@ class NSTFScraper(BaseLeagueScraper):
         return line_matches
     
     def _determine_nstf_winner(self, line_score: dict, teams_and_score: dict) -> str:
-        """Determine winner based on line score data in NSTF format with enhanced logic."""
+        """Determine winner based on line score data in NSTF format."""
         try:
             # Method 1: Use line-specific score if available
             if line_score and "score" in line_score:
@@ -715,54 +715,11 @@ class NSTFScraper(BaseLeagueScraper):
                         home_sets_won = 0
                         away_sets_won = 0
                         
-                        for away_score, home_score in sets:  # CORRECTED: First score is AWAY, second is HOME
-                            try:
-                                away = int(away_score)
-                                home = int(home_score)
-                                
-                                if home > away:
-                                    home_sets_won += 1
-                                elif away > home:
-                                    away_sets_won += 1
-                            except ValueError:
-                                continue
-                        
-                        # Enhanced logic: require clear majority
-                        if home_sets_won > away_sets_won:
-                            return "home"
-                        elif away_sets_won > home_sets_won:
-                            return "away"
-                        elif home_sets_won == away_sets_won and home_sets_won > 0:
-                            return "tie"
-                        
-            # Method 2: Use line-specific winner if available
-            if line_score and "winner" in line_score:
-                line_winner = line_score["winner"]
-                if line_winner in ["home", "away", "tie"]:
-                    return line_winner
-            
-            # Method 3: Fallback to overall match score
-            if teams_and_score and "Scores" in teams_and_score:
-                match_scores = teams_and_score["Scores"]
-                if match_scores and match_scores != "Unknown Scores":
-                    # Use same logic as above for consistency
-                    import re
-                    sets = re.findall(r'(\d+)-(\d+)', match_scores)
-                    if sets:
-                        home_sets_won = 0
-                        away_sets_won = 0
-                        
-                        for away_score, home_score in sets:  # CORRECTED: First score is AWAY, second is HOME
-                            try:
-                                away = int(away_score)
-                                home = int(home_score)
-                                
-                                if home > away:
-                                    home_sets_won += 1
-                                elif away > home:
-                                    away_sets_won += 1
-                            except ValueError:
-                                continue
+                        for home_score, away_score in sets:
+                            if int(home_score) > int(away_score):
+                                home_sets_won += 1
+                            elif int(away_score) > int(home_score):
+                                away_sets_won += 1
                         
                         if home_sets_won > away_sets_won:
                             return "home"
@@ -771,12 +728,36 @@ class NSTFScraper(BaseLeagueScraper):
                         else:
                             return "tie"
             
-            # Method 4: Default fallback
+            # Method 2: Use overall match score
+            overall_score = teams_and_score.get("Scores", "")
+            if overall_score and overall_score != "Unknown Scores":
+                # Similar logic for overall score
+                import re
+                sets = re.findall(r'(\d+)-(\d+)', overall_score)
+                if sets and len(sets) >= 2:  # At least 2 sets to determine winner
+                    home_sets_won = 0
+                    away_sets_won = 0
+                    
+                    for home_score, away_score in sets:
+                        if int(home_score) > int(away_score):
+                            home_sets_won += 1
+                        elif int(away_score) > int(home_score):
+                            away_sets_won += 1
+                    
+                    if home_sets_won >= 2:  # Best of 3 sets
+                        return "home"
+                    elif away_sets_won >= 2:
+                        return "away"
+                    else:
+                        return "tie"
+            
+            # Default fallback
             return "tie"
             
         except Exception as e:
-            print(f"❌ Error determining NSTF winner: {e}")
+            print(f"❌ Error determining winner: {e}")
             return "tie"
+    
     def _extract_nstf_players(self, soup) -> dict:
         """Extract player names and IDs from NSTF match page."""
         players_data = {}
