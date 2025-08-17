@@ -4057,19 +4057,39 @@ def get_teams_players_data(user, team_id=None):
         # Get all teams in user's league with their IDs - only filter if we have a valid league_id
         if league_id_int:
             teams_query = """
-                SELECT DISTINCT t.id as team_id, t.team_name, t.display_name
+                SELECT DISTINCT 
+                    t.id as team_id, 
+                    t.team_name, 
+                    t.display_name,
+                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
+                    CAST(
+                        COALESCE(
+                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
+                            '0'
+                        ) AS INTEGER
+                    ) as team_number
                 FROM teams t
                 JOIN series_stats ss ON t.team_name = ss.team
                 WHERE ss.league_id = %s AND t.league_id = %s
-                ORDER BY t.team_name
+                ORDER BY team_base_name, team_number
             """
             all_teams_data = execute_query(teams_query, [league_id_int, league_id_int])
         else:
             teams_query = """
-                SELECT DISTINCT t.id as team_id, t.team_name, t.display_name
+                SELECT DISTINCT 
+                    t.id as team_id, 
+                    t.team_name, 
+                    t.display_name,
+                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
+                    CAST(
+                        COALESCE(
+                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
+                            '0'
+                        ) AS INTEGER
+                    ) as team_number
                 FROM teams t
                 JOIN series_stats ss ON t.team_name = ss.team
-                ORDER BY t.team_name
+                ORDER BY team_base_name, team_number
             """
             all_teams_data = execute_query(teams_query)
 
