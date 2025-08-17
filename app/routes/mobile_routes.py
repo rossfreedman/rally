@@ -610,6 +610,22 @@ def serve_mobile_player_detail(player_id):
         # Import the direct player analysis function
         from app.services.mobile_service import get_player_analysis
         analyze_data = get_player_analysis(player_user_dict)
+        
+        # DEBUG: Print court analysis data for Joel Braunstein specifically
+        if analyze_data and 'court_analysis' in analyze_data:
+            court_analysis = analyze_data['court_analysis']
+            print(f"\n🔍 DEBUG PLAYER DETAIL: Court analysis for {actual_player_id}")
+            for court_name, court_data in court_analysis.items():
+                partners = court_data.get('topPartners', [])
+                print(f"  {court_name}: {len(partners)} partners")
+                for partner in partners:
+                    if 'Joel' in partner.get('name', '') and 'Braunstein' in partner.get('name', ''):
+                        print(f"    >>> JOEL FOUND: {partner}")
+                        print(f"        matches: {partner.get('matches')}")
+                        print(f"        wins: {partner.get('wins')}")
+                        print(f"        losses: {partner.get('losses')}")
+                        print(f"        winRate: {partner.get('winRate')}")
+            print("🔍 DEBUG PLAYER DETAIL: End court analysis\n")
     else:
         # Final fallback to name-based analysis
         from app.services.mobile_service import get_player_analysis_by_name

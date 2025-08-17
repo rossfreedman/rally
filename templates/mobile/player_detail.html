@@ -317,6 +317,23 @@
                         {% if stats and stats.topPartners %}
                         <div>
                             <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
+                            
+                            <!-- DEBUG: Show raw court analysis data -->
+                            <div style="background: #ffeb3b; padding: 10px; margin: 10px 0; border: 2px solid #f57c00; font-family: monospace; font-size: 11px;">
+                                <strong>🔍 DEBUG: {{ court.replace('court', 'Court ')|title }} Analysis</strong><br>
+                                Court Stats: {{ stats|tojson }}<br>
+                                Partners Count: {{ stats.topPartners|length }}<br>
+                                {% for debug_p in stats.topPartners %}
+                                <div style="border-left: 3px solid #e91e63; padding-left: 8px; margin: 5px 0;">
+                                    <strong>{{ debug_p.name }}</strong>: 
+                                    matches={{ debug_p.matches|default('MISSING') }}, 
+                                    wins={{ debug_p.wins|default('MISSING') }}, 
+                                    losses={{ debug_p.losses|default('MISSING') }},
+                                    winRate={{ debug_p.winRate|default('MISSING') }}%
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
                             <div class="space-y-2">
                                 {% for p in stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
