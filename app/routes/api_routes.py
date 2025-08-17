@@ -9980,13 +9980,13 @@ def get_partner_matches_team():
                             ms.scores,
                             ms.id,
                             CASE 
-                                WHEN ms.home_team = %s THEN TRUE
-                                WHEN ms.away_team = %s THEN FALSE
+                                WHEN ht.club_id = %s THEN TRUE
+                                WHEN at.club_id = %s THEN FALSE
                                 ELSE NULL
                             END as player_was_home,
                             CASE 
-                                WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
-                                WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
+                                WHEN ht.club_id = %s AND ms.winner = 'home' THEN TRUE
+                                WHEN at.club_id = %s AND ms.winner = 'away' THEN TRUE
                                 ELSE FALSE
                             END as player_won
                         FROM match_scores ms
@@ -10007,9 +10007,9 @@ def get_partner_matches_team():
                         ORDER BY ms.match_date DESC, ms.id DESC
                     """
                     
-                    # Smart filtering query parameters 
+                    # Smart filtering query parameters (using club_id instead of team_name for home/away detection)
                     query_params = [
-                        team_name, team_name, team_name, team_name,  # CASE statements
+                        current_club_id, current_club_id, current_club_id, current_club_id,  # Club-based CASE statements
                         season_start, season_end, league_id_int,      # Basic filters
                         current_club_id, current_club_id, current_club_id, current_club_id,  # Smart NULL filtering
                         f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
@@ -10018,9 +10018,9 @@ def get_partner_matches_team():
                     
                     # If we have exact player ID, update query to use exact match instead of LIKE
                     if player_id:
-                        # Update smart filtering query parameters to use exact player ID
+                        # Update smart filtering query parameters to use exact player ID (club-based CASE statements)
                         query_params = [
-                            team_name, team_name, team_name, team_name,  # CASE statements
+                            current_club_id, current_club_id, current_club_id, current_club_id,  # Club-based CASE statements
                             season_start, season_end, league_id_int,      # Basic filters
                             current_club_id, current_club_id, current_club_id, current_club_id,  # Smart NULL filtering
                             player_id, player_id, player_id, player_id    # Exact player ID instead of patterns
@@ -10294,6 +10294,10 @@ def get_partner_matches_team():
         raw_matches = execute_query(base_query, query_params)
         print(f"[DEBUG] API: Found {len(raw_matches) if raw_matches else 0} raw matches")
         print(f"[DEBUG] API: Filtering by partner='{partner_filter}' court='{court_filter}'")
+        
+        # Enhanced debug: Show details of each raw match before filtering
+        for i, match in enumerate(raw_matches or []):
+            print(f"[DEBUG] API: Raw match {i+1}: {match.get('date')} - {match.get('home_team')} vs {match.get('away_team')} (ID: {match.get('id')})")
         
 
         # If no matches found with full name, try individual name parts (only for name-based search with team)
