@@ -637,10 +637,12 @@ def get_player_analysis(user):
                     WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
                     AND ms.league_id = %s
                     AND ms.match_date >= %s AND ms.match_date <= %s
-                    AND (ht.club_id = %s OR at.club_id = %s)
+                    AND (ht.club_id = %s OR at.club_id = %s OR 
+                         (ms.home_team_id IS NULL AND at.club_id = %s) OR 
+                         (ms.away_team_id IS NULL AND ht.club_id = %s))
                     ORDER BY ms.match_date DESC, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id, ms.id DESC
                 """
-                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, current_club_id, current_club_id]
+                query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end, current_club_id, current_club_id, current_club_id, current_club_id]
             else:
                 # Original query without team filtering (preserves substitute appearances)
                 history_query = """

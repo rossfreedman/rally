@@ -9947,86 +9947,285 @@ def get_partner_matches_team():
                     print(f"[DEBUG] API: Could not find team for player '{main_player}' with ID '{player_id}'")
         
         # Build match query for the specific team and player with enhanced debugging
+        smart_filtering_applied = False
         if team_name:
-            # Team-specific query (for teams-players page)
-            base_query = """
-                SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
-                    ms.match_date,
-                    ms.home_team,
-                    ms.away_team,
-                    ms.home_player_1_id,
-                    ms.home_player_2_id,
-                    ms.away_player_1_id,
-                    ms.away_player_2_id,
-                    ms.winner,
-                    ms.scores,
-                    ms.id,
-                    CASE 
-                        WHEN ms.home_team = %s THEN TRUE
-                        WHEN ms.away_team = %s THEN FALSE
-                        ELSE NULL
-                    END as player_was_home,
-                    CASE 
-                        WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
-                        WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
-                        ELSE FALSE
-                    END as player_won
-                FROM match_scores ms
-                WHERE ms.match_date >= %s 
-                    AND ms.match_date <= %s
-                    AND (ms.home_team = %s OR ms.away_team = %s)
-                    AND (
-                        LOWER(ms.home_player_1_id) LIKE LOWER(%s) OR 
-                        LOWER(ms.home_player_2_id) LIKE LOWER(%s) OR 
-                        LOWER(ms.away_player_1_id) LIKE LOWER(%s) OR 
-                        LOWER(ms.away_player_2_id) LIKE LOWER(%s)
-                    )
-                ORDER BY ms.match_date DESC, ms.id DESC
-            """
+            # Team-specific query (for teams-players page AND analyze-me page with team context)
+            # Check if we need smart filtering for analyze-me page
+            user_team_context = user.get("team_context") or user.get("team_id")
+            
+            if user_team_context and current_player == session_player_name:
+                # Apply smart filtering for analyze-me page
+                print(f"[DEBUG] API: Applying team-specific smart filtering for analyze-me page (team_context: {user_team_context})")
+                
+                # Get team club info for smart filtering
+                team_info_query = "SELECT club_id, series_id FROM teams WHERE id = %s"
+                team_info_result = execute_query_one(team_info_query, [int(user_team_context)])
+                
+                if team_info_result:
+                    current_club_id = team_info_result['club_id']
+                    print(f"[DEBUG] API: Team-specific smart filtering: team {user_team_context} -> club {current_club_id}")
+                    
+                    # Use smart filtering query with club_id and NULL logic
+                    base_query = """
+                        SELECT 
+                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            ms.match_date,
+                            ms.home_team,
+                            ms.away_team,
+                            ms.home_player_1_id,
+                            ms.home_player_2_id,
+                            ms.away_player_1_id,
+                            ms.away_player_2_id,
+                            ms.winner,
+                            ms.scores,
+                            ms.id,
+                            CASE 
+                                WHEN ms.home_team = %s THEN TRUE
+                                WHEN ms.away_team = %s THEN FALSE
+                                ELSE NULL
+                            END as player_was_home,
+                            CASE 
+                                WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
+                                WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
+                                ELSE FALSE
+                            END as player_won
+                        FROM match_scores ms
+                        LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                        LEFT JOIN teams at ON ms.away_team_id = at.id
+                        WHERE ms.match_date >= %s 
+                            AND ms.match_date <= %s
+                            AND ms.league_id = %s
+                            AND (ht.club_id = %s OR at.club_id = %s OR
+                                 (ms.home_team_id IS NULL AND at.club_id = %s) OR
+                                 (ms.away_team_id IS NULL AND ht.club_id = %s))
+                            AND (
+                                LOWER(ms.home_player_1_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.home_player_2_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.away_player_1_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.away_player_2_id) LIKE LOWER(%s)
+                            )
+                        ORDER BY ms.match_date DESC, ms.id DESC
+                    """
+                    
+                    # Smart filtering query parameters 
+                    query_params = [
+                        team_name, team_name, team_name, team_name,  # CASE statements
+                        season_start, season_end, league_id_int,      # Basic filters
+                        current_club_id, current_club_id, current_club_id, current_club_id,  # Smart NULL filtering
+                        f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
+                    ]
+                    smart_filtering_applied = True
+                    
+                    # If we have exact player ID, update query to use exact match instead of LIKE
+                    if player_id:
+                        # Update smart filtering query parameters to use exact player ID
+                        query_params = [
+                            team_name, team_name, team_name, team_name,  # CASE statements
+                            season_start, season_end, league_id_int,      # Basic filters
+                            current_club_id, current_club_id, current_club_id, current_club_id,  # Smart NULL filtering
+                            player_id, player_id, player_id, player_id    # Exact player ID instead of patterns
+                        ]
+                        # Update query to use exact match instead of LIKE
+                        base_query = base_query.replace("LOWER(ms.home_player_1_id) LIKE LOWER(%s)", "ms.home_player_1_id = %s")
+                        base_query = base_query.replace("LOWER(ms.home_player_2_id) LIKE LOWER(%s)", "ms.home_player_2_id = %s")
+                        base_query = base_query.replace("LOWER(ms.away_player_1_id) LIKE LOWER(%s)", "ms.away_player_1_id = %s")
+                        base_query = base_query.replace("LOWER(ms.away_player_2_id) LIKE LOWER(%s)", "ms.away_player_2_id = %s")
+                else:
+                    print(f"[DEBUG] API: No team info found for team {user_team_context}, falling back to basic query")
+                    # Fall back to basic team query if team info not found
+                    base_query = """
+                        SELECT 
+                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            ms.match_date,
+                            ms.home_team,
+                            ms.away_team,
+                            ms.home_player_1_id,
+                            ms.home_player_2_id,
+                            ms.away_player_1_id,
+                            ms.away_player_2_id,
+                            ms.winner,
+                            ms.scores,
+                            ms.id,
+                            CASE 
+                                WHEN ms.home_team = %s THEN TRUE
+                                WHEN ms.away_team = %s THEN FALSE
+                                ELSE NULL
+                            END as player_was_home,
+                            CASE 
+                                WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
+                                WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
+                                ELSE FALSE
+                            END as player_won
+                        FROM match_scores ms
+                        WHERE ms.match_date >= %s 
+                            AND ms.match_date <= %s
+                            AND (ms.home_team = %s OR ms.away_team = %s)
+                            AND (
+                                LOWER(ms.home_player_1_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.home_player_2_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.away_player_1_id) LIKE LOWER(%s) OR 
+                                LOWER(ms.away_player_2_id) LIKE LOWER(%s)
+                            )
+                        ORDER BY ms.match_date DESC, ms.id DESC
+                    """
+                    query_params = [
+                        team_name, team_name, team_name, team_name,  # CASE statements
+                        season_start, season_end, team_name, team_name,  # Basic filters
+                        f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
+                    ]
+                    smart_filtering_applied = True
+            else:
+                # Regular team-specific query (for teams-players page)
+                print(f"[DEBUG] API: Using regular team-specific query for teams-players page")
+                base_query = """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        ms.match_date,
+                        ms.home_team,
+                        ms.away_team,
+                        ms.home_player_1_id,
+                        ms.home_player_2_id,
+                        ms.away_player_1_id,
+                        ms.away_player_2_id,
+                        ms.winner,
+                        ms.scores,
+                        ms.id,
+                        CASE 
+                            WHEN ms.home_team = %s THEN TRUE
+                            WHEN ms.away_team = %s THEN FALSE
+                            ELSE NULL
+                        END as player_was_home,
+                        CASE 
+                            WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
+                            WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
+                            ELSE FALSE
+                        END as player_won
+                    FROM match_scores ms
+                    WHERE ms.match_date >= %s 
+                        AND ms.match_date <= %s
+                        AND (ms.home_team = %s OR ms.away_team = %s)
+                        AND (
+                            LOWER(ms.home_player_1_id) LIKE LOWER(%s) OR 
+                            LOWER(ms.home_player_2_id) LIKE LOWER(%s) OR 
+                            LOWER(ms.away_player_1_id) LIKE LOWER(%s) OR 
+                            LOWER(ms.away_player_2_id) LIKE LOWER(%s)
+                        )
+                    ORDER BY ms.match_date DESC, ms.id DESC
+                """
+                query_params = [
+                    team_name, team_name, team_name, team_name,  # CASE statements
+                    season_start, season_end, team_name, team_name,  # Basic filters
+                    f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
+                ]
+                smart_filtering_applied = True
         else:
-            # League-wide query (for player detail page)
-            base_query = """
-                SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
-                    ms.match_date,
-                    ms.home_team,
-                    ms.away_team,
-                    ms.home_player_1_id,
-                    ms.home_player_2_id,
-                    ms.away_player_1_id,
-                    ms.away_player_2_id,
-                    ms.winner,
-                    ms.scores,
-                    ms.id,
-                    CASE 
-                        WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) THEN TRUE
-                        WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) THEN FALSE
-                        ELSE NULL
-                    END as player_was_home,
-                    CASE 
-                        WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
-                        WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
-                        ELSE FALSE
-                    END as player_won
-                FROM match_scores ms
-                WHERE ms.match_date >= %s 
-                    AND ms.match_date <= %s
-                    AND (
-                        ms.home_player_1_id = %s OR 
-                        ms.home_player_2_id = %s OR 
-                        ms.away_player_1_id = %s OR 
-                        ms.away_player_2_id = %s
-                    )
-                ORDER BY ms.match_date DESC, ms.id DESC
-            """
+            # League-wide query with team context filtering (for analyze-me page)
+            # Check if this is analyze-me page (user has team context)
+            user_team_context = user.get("team_context") or user.get("team_id")
+            
+            if user_team_context and current_player == session_player_name:
+                # Apply team context filtering like mobile_service.py does
+                print(f"[DEBUG] API: Applying team context filtering for analyze-me page (team_context: {user_team_context})")
+                
+                # Get team club info
+                team_info_query = "SELECT club_id, series_id FROM teams WHERE id = %s"
+                team_info_result = execute_query_one(team_info_query, [int(user_team_context)])
+                
+                if team_info_result:
+                    current_club_id = team_info_result['club_id']
+                    print(f"[DEBUG] API: Team context filtering: team {user_team_context} -> club {current_club_id}")
+                    
+                    base_query = """
+                        SELECT 
+                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            ms.match_date,
+                            ms.home_team,
+                            ms.away_team,
+                            ms.home_player_1_id,
+                            ms.home_player_2_id,
+                            ms.away_player_1_id,
+                            ms.away_player_2_id,
+                            ms.winner,
+                            ms.scores,
+                            ms.id,
+                            CASE 
+                                WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) THEN TRUE
+                                WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) THEN FALSE
+                                ELSE NULL
+                            END as player_was_home,
+                            CASE 
+                                WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                                WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                                ELSE FALSE
+                            END as player_won
+                        FROM match_scores ms
+                        LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                        LEFT JOIN teams at ON ms.away_team_id = at.id
+                        WHERE ms.match_date >= %s 
+                            AND ms.match_date <= %s
+                            AND ms.league_id = %s
+                            AND (ht.club_id = %s OR at.club_id = %s OR 
+                                 (ms.home_team_id IS NULL AND at.club_id = %s) OR 
+                                 (ms.away_team_id IS NULL AND ht.club_id = %s))
+                            AND (
+                                ms.home_player_1_id = %s OR 
+                                ms.home_player_2_id = %s OR 
+                                ms.away_player_1_id = %s OR 
+                                ms.away_player_2_id = %s
+                            )
+                        ORDER BY ms.match_date DESC, ms.id DESC
+                    """
+                    # Parameters will be updated below for team context filtering
+                else:
+                    print(f"[DEBUG] API: Could not find team info for team_context {user_team_context}, falling back to league-wide query")
+                    current_club_id = None
+            else:
+                print(f"[DEBUG] API: No team context or not analyze-me page, using league-wide query")
+                current_club_id = None
+            
+            if current_club_id is None:
+                # Fallback to original league-wide query (for player detail page)
+                base_query = """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        ms.match_date,
+                        ms.home_team,
+                        ms.away_team,
+                        ms.home_player_1_id,
+                        ms.home_player_2_id,
+                        ms.away_player_1_id,
+                        ms.away_player_2_id,
+                        ms.winner,
+                        ms.scores,
+                        ms.id,
+                        CASE 
+                            WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) THEN TRUE
+                            WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) THEN FALSE
+                            ELSE NULL
+                        END as player_was_home,
+                        CASE 
+                            WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                            WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                            ELSE FALSE
+                        END as player_won
+                    FROM match_scores ms
+                    WHERE ms.match_date >= %s 
+                        AND ms.match_date <= %s
+                        AND (
+                            ms.home_player_1_id = %s OR 
+                            ms.home_player_2_id = %s OR 
+                            ms.away_player_1_id = %s OR 
+                            ms.away_player_2_id = %s
+                        )
+                    ORDER BY ms.match_date DESC, ms.id DESC
+                """
         
         # Use exact player ID if found, otherwise fall back to name patterns
         if player_id:
             print(f"[DEBUG] API: Using exact player ID search: {player_id}")
             
-            if team_name:
-                # Team-specific query parameters
+            if team_name and not smart_filtering_applied:
+                # Team-specific query parameters (only if smart filtering wasn't already applied)
                 query_params = [
                     team_name, team_name, team_name, team_name,  # For home/away and win calculations
                     season_start, season_end,  # Season boundaries
@@ -10039,13 +10238,27 @@ def get_partner_matches_team():
                 base_query = base_query.replace("LOWER(ms.away_player_1_id) LIKE LOWER(%s)", "ms.away_player_1_id = %s")
                 base_query = base_query.replace("LOWER(ms.away_player_2_id) LIKE LOWER(%s)", "ms.away_player_2_id = %s")
             else:
-                # League-wide query parameters (no team filtering)
-                query_params = [
-                    player_id, player_id, player_id, player_id,  # For home/away detection
-                    player_id, player_id, player_id, player_id,  # For win calculations
-                    season_start, season_end,  # Season boundaries
-                    player_id, player_id, player_id, player_id  # Player filters
-                ]
+                # League-wide query parameters - check if team context filtering is applied
+                if current_club_id is not None and not smart_filtering_applied:
+                    # Team context filtering parameters
+                    query_params = [
+                        player_id, player_id, player_id, player_id,  # For home/away detection
+                        player_id, player_id, player_id, player_id,  # For win calculations
+                        season_start, season_end,  # Season boundaries
+                        league_id_int,  # League filter
+                        current_club_id, current_club_id,  # Club filters
+                        current_club_id, current_club_id,  # Smart NULL filtering
+                        player_id, player_id, player_id, player_id  # Player filters
+                    ]
+                else:
+                    # No team filtering parameters (only if smart filtering wasn't already applied)
+                    if not smart_filtering_applied:
+                        query_params = [
+                            player_id, player_id, player_id, player_id,  # For home/away detection
+                            player_id, player_id, player_id, player_id,  # For win calculations
+                            season_start, season_end,  # Season boundaries
+                            player_id, player_id, player_id, player_id  # Player filters
+                        ]
         else:
             print(f"[DEBUG] API: Falling back to name pattern search")
             # More flexible player pattern matching - try multiple patterns
@@ -10056,8 +10269,8 @@ def get_partner_matches_team():
             first_name_pattern = f"%{name_parts[0]}%" if name_parts else player_pattern
             last_name_pattern = f"%{name_parts[-1]}%" if len(name_parts) > 1 else player_pattern
             
-            if team_name:
-                # Team-specific query parameters
+            if team_name and not smart_filtering_applied:
+                # Team-specific query parameters (only if smart filtering wasn't already applied)
                 query_params = [
                     team_name, team_name, team_name, team_name,  # For home/away and win calculations
                     season_start, season_end,  # Season boundaries
