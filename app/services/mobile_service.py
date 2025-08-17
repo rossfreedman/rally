@@ -545,6 +545,10 @@ def get_player_analysis(user):
         # Get team context if available (for multi-team players)
         team_context = user.get("team_context")
 
+        # Initialize current_series_id and current_club_id for court analysis
+        current_series_id = None
+        current_club_id = None
+
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
         user_league_name = user.get("league_name", "")

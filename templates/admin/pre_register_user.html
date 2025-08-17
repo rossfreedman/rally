@@ -1,0 +1,433 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pre-register User{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Pre-register User</h1>
+        <p class="text-gray-600">Create an account for a player with email and phone number</p>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div id="messageContainer" class="hidden mb-6">
+        <div id="successMessage" class="hidden alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <h4 class="font-bold">User registered successfully!</h4>
+                <p id="successDetails" class="text-sm"></p>
+            </div>
+        </div>
+        <div id="errorMessage" class="hidden alert alert-error">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <h4 class="font-bold">Registration failed</h4>
+                <p id="errorDetails" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+        <div class="p-6">
+            <form id="preRegisterForm" class="space-y-6">
+                <!-- Personal Information Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Personal Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">First Name <span class="text-red-500">*</span></span>
+                            </label>
+                            <input type="text" id="firstName" name="firstName" class="input input-bordered w-full" required>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Last Name <span class="text-red-500">*</span></span>
+                            </label>
+                            <input type="text" id="lastName" name="lastName" class="input input-bordered w-full" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Information Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Contact Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Email <span class="text-red-500">*</span></span>
+                            </label>
+                            <input type="email" id="email" name="email" class="input input-bordered w-full" required>
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Used for login and notifications</span>
+                            </label>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Phone Number <span class="text-red-500">*</span></span>
+                            </label>
+                            <input type="tel" id="phoneNumber" name="phoneNumber" class="input input-bordered w-full" 
+                                   placeholder="(555) 123-4567" required>
+                            <label class="label">
+                                <span class="label-text-alt text-gray-500">Used for SMS notifications</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Assignment Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Team Assignment</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">League <span class="text-red-500">*</span></span>
+                            </label>
+                            <select id="league" name="league" class="select select-bordered w-full" required>
+                                <option value="">Select a league...</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Club <span class="text-red-500">*</span></span>
+                            </label>
+                            <select id="club" name="club" class="select select-bordered w-full" required disabled>
+                                <option value="">Select a club...</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Series <span class="text-red-500">*</span></span>
+                            </label>
+                            <select id="series" name="series" class="select select-bordered w-full" required disabled>
+                                <option value="">Select a series...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registration Options Section -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Registration Options</h3>
+                    <div class="space-y-4">
+                        <label class="flex items-start cursor-pointer">
+                            <input type="checkbox" id="generatePassword" name="generatePassword" 
+                                   class="checkbox checkbox-primary mr-3 mt-1" checked>
+                            <div>
+                                <span class="text-gray-900 font-medium">Generate temporary password</span>
+                                <p class="text-sm text-gray-600">User will be prompted to change their password on first login.</p>
+                            </div>
+                        </label>
+                        
+                        <label class="flex items-start cursor-pointer">
+                            <input type="checkbox" id="sendNotifications" name="sendNotifications" 
+                                   class="checkbox checkbox-primary mr-3 mt-1" checked>
+                            <div>
+                                <span class="text-gray-900 font-medium">Send SMS notification</span>
+                                <p class="text-sm text-gray-600">Player will receive a welcome message with login instructions.</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-4 pt-6 border-t">
+                    <button type="button" class="btn btn-ghost" onclick="clearForm()">Clear Form</button>
+                    <button type="submit" id="submitBtn" class="btn bg-black hover:bg-gray-800 text-yellow-400">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Register User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-8 max-w-sm mx-4 text-center shadow-lg">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style="border-color: #6B21A8;"></div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Registering User...</h3>
+        <p class="text-gray-600">Please wait while we process the registration.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form
+    loadLeagues();
+    setupFormHandlers();
+    setupPhoneNumberFormatting();
+});
+
+// Load leagues dropdown
+function loadLeagues() {
+    fetch('/api/get-leagues')
+        .then(response => response.json())
+        .then(data => {
+            const leagueSelect = document.getElementById('league');
+            leagueSelect.innerHTML = '<option value="">Select a league...</option>';
+            
+            data.leagues.forEach(league => {
+                const option = document.createElement('option');
+                option.value = league.league_id;
+                option.textContent = league.league_name;
+                leagueSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading leagues:', error);
+            showErrorMessage('Failed to load leagues. Please refresh the page.');
+        });
+}
+
+// Load clubs by league
+function loadClubsByLeague(leagueId) {
+    const clubSelect = document.getElementById('club');
+    const seriesSelect = document.getElementById('series');
+    
+    if (!leagueId) {
+        clubSelect.disabled = true;
+        seriesSelect.disabled = true;
+        clubSelect.innerHTML = '<option value="">Select a club...</option>';
+        seriesSelect.innerHTML = '<option value="">Select a series...</option>';
+        return;
+    }
+    
+    clubSelect.disabled = false;
+    clubSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    fetch(`/api/get-clubs-by-league?league_id=${leagueId}`)
+        .then(response => response.json())
+        .then(data => {
+            clubSelect.innerHTML = '<option value="">Select a club...</option>';
+            data.clubs.forEach(club => {
+                const option = document.createElement('option');
+                option.value = club;
+                option.textContent = club;
+                clubSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading clubs:', error);
+            clubSelect.innerHTML = '<option value="">Error loading clubs</option>';
+        });
+}
+
+// Load series by league
+function loadSeriesByLeague(leagueId) {
+    const seriesSelect = document.getElementById('series');
+    
+    if (!leagueId) {
+        seriesSelect.disabled = true;
+        seriesSelect.innerHTML = '<option value="">Select a series...</option>';
+        return;
+    }
+    
+    seriesSelect.disabled = false;
+    seriesSelect.innerHTML = '<option value="">Loading...</option>';
+    
+    fetch(`/api/get-series-by-league?league_id=${leagueId}`)
+        .then(response => response.json())
+        .then(data => {
+            seriesSelect.innerHTML = '<option value="">Select a series...</option>';
+            data.series.forEach(series => {
+                const option = document.createElement('option');
+                option.value = series.name;
+                option.textContent = series.display_name || series.name;
+                seriesSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error loading series:', error);
+            seriesSelect.innerHTML = '<option value="">Error loading series</option>';
+        });
+}
+
+// Setup form event handlers
+function setupFormHandlers() {
+    const form = document.getElementById('preRegisterForm');
+    const leagueSelect = document.getElementById('league');
+    
+    // League change handler
+    leagueSelect.addEventListener('change', function() {
+        const selectedLeague = this.value;
+        loadClubsByLeague(selectedLeague);
+        loadSeriesByLeague(selectedLeague);
+        
+        // Clear club and series selections
+        document.getElementById('club').value = '';
+        document.getElementById('series').value = '';
+    });
+    
+    // Form submission handler
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        submitRegistration();
+    });
+}
+
+// Phone number formatting
+function setupPhoneNumberFormatting() {
+    const phoneInput = document.getElementById('phoneNumber');
+    phoneInput.addEventListener('input', function() {
+        let value = this.value.replace(/\D/g, '');
+        if (value.length >= 6) {
+            value = `(${value.slice(0,3)}) ${value.slice(3,6)}-${value.slice(6,10)}`;
+        } else if (value.length >= 3) {
+            value = `(${value.slice(0,3)}) ${value.slice(3)}`;
+        }
+        this.value = value;
+    });
+}
+
+// Submit registration
+function submitRegistration() {
+    const form = document.getElementById('preRegisterForm');
+    const formData = new FormData(form);
+    
+    // Validate form
+    if (!validateForm()) {
+        return;
+    }
+    
+    // Prepare data
+    const registrationData = {
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
+        email: formData.get('email'),
+        phoneNumber: formData.get('phoneNumber').replace(/\D/g, ''), // Remove formatting
+        league: formData.get('league'),
+        club: formData.get('club'),
+        series: formData.get('series'),
+        generatePassword: document.getElementById('generatePassword').checked,
+        sendNotifications: document.getElementById('sendNotifications').checked
+    };
+    
+    // Show loading modal
+    showLoadingModal(true);
+    
+    // Submit registration
+    fetch('/api/admin/pre-register-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showLoadingModal(false);
+        
+        if (data.success) {
+            showSuccessMessage(data.message, data.tempPassword);
+            clearForm();
+        } else {
+            showErrorMessage(data.error);
+        }
+    })
+    .catch(error => {
+        showLoadingModal(false);
+        console.error('Error:', error);
+        showErrorMessage('An error occurred during registration. Please try again.');
+    });
+}
+
+// Validate form
+function validateForm() {
+    const requiredFields = ['firstName', 'lastName', 'email', 'phoneNumber', 'league', 'club', 'series'];
+    const phoneNumber = document.getElementById('phoneNumber').value.replace(/\D/g, '');
+    
+    for (const field of requiredFields) {
+        const element = document.getElementById(field);
+        if (!element.value.trim()) {
+            element.focus();
+            showErrorMessage(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}.`);
+            return false;
+        }
+    }
+    
+    if (phoneNumber.length !== 10) {
+        document.getElementById('phoneNumber').focus();
+        showErrorMessage('Please enter a valid 10-digit phone number.');
+        return false;
+    }
+    
+    return true;
+}
+
+// Show/hide loading modal
+function showLoadingModal(show) {
+    const modal = document.getElementById('loadingModal');
+    if (show) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+// Show success message
+function showSuccessMessage(message, tempPassword = null) {
+    const container = document.getElementById('messageContainer');
+    const successMessage = document.getElementById('successMessage');
+    const successDetails = document.getElementById('successDetails');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    let details = message;
+    if (tempPassword) {
+        details += ` Temporary password: ${tempPassword}`;
+    }
+    
+    successDetails.textContent = details;
+    
+    container.classList.remove('hidden');
+    successMessage.classList.remove('hidden');
+    errorMessage.classList.add('hidden');
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
+// Show error message
+function showErrorMessage(message) {
+    const container = document.getElementById('messageContainer');
+    const successMessage = document.getElementById('successMessage');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorDetails = document.getElementById('errorDetails');
+    
+    errorDetails.textContent = message;
+    
+    container.classList.remove('hidden');
+    errorMessage.classList.remove('hidden');
+    successMessage.classList.add('hidden');
+    
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
+
+// Clear form
+function clearForm() {
+    const form = document.getElementById('preRegisterForm');
+    form.reset();
+    
+    // Reset dropdowns
+    document.getElementById('club').disabled = true;
+    document.getElementById('series').disabled = true;
+    document.getElementById('club').innerHTML = '<option value="">Select a club...</option>';
+    document.getElementById('series').innerHTML = '<option value="">Select a series...</option>';
+    
+    // Hide messages
+    document.getElementById('messageContainer').classList.add('hidden');
+    
+    // Re-enable checkboxes to default state
+    document.getElementById('generatePassword').checked = true;
+    document.getElementById('sendNotifications').checked = true;
+}
+</script>
+{% endblock %}
+
+
