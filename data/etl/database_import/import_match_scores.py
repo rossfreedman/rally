@@ -278,7 +278,7 @@ class MatchScoresETL:
         
         successful_count = 0
         
-        # First, try batch insert for performance
+        # First, try batch upsert for performance
         try:
             cursor.executemany(
                 """
@@ -288,6 +288,20 @@ class MatchScoresETL:
                     scores, winner, league_id, tenniscores_match_id, created_at
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (tenniscores_match_id) 
+                DO UPDATE SET
+                    match_date = EXCLUDED.match_date,
+                    home_team = EXCLUDED.home_team,
+                    away_team = EXCLUDED.away_team,
+                    home_team_id = EXCLUDED.home_team_id,
+                    away_team_id = EXCLUDED.away_team_id,
+                    home_player_1_id = EXCLUDED.home_player_1_id,
+                    home_player_2_id = EXCLUDED.home_player_2_id,
+                    away_player_1_id = EXCLUDED.away_player_1_id,
+                    away_player_2_id = EXCLUDED.away_player_2_id,
+                    scores = EXCLUDED.scores,
+                    winner = EXCLUDED.winner,
+                    league_id = EXCLUDED.league_id
                 """,
                 batch_data
             )
@@ -295,7 +309,7 @@ class MatchScoresETL:
             return len(batch_data)
             
         except Exception as batch_error:
-            logger.warning(f"⚠️ Batch insert failed, processing individually: {batch_error}")
+            logger.warning(f"⚠️ Batch upsert failed, processing individually: {batch_error}")
             
             # If batch fails, process each record individually to isolate the problematic ones
             # First rollback the failed transaction
@@ -311,37 +325,53 @@ class MatchScoresETL:
                             scores, winner, league_id, tenniscores_match_id, created_at
                         )
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        ON CONFLICT (tenniscores_match_id) 
+                        DO UPDATE SET
+                            match_date = EXCLUDED.match_date,
+                            home_team = EXCLUDED.home_team,
+                            away_team = EXCLUDED.away_team,
+                            home_team_id = EXCLUDED.home_team_id,
+                            away_team_id = EXCLUDED.away_team_id,
+                            home_player_1_id = EXCLUDED.home_player_1_id,
+                            home_player_2_id = EXCLUDED.home_player_2_id,
+                            away_player_1_id = EXCLUDED.away_player_1_id,
+                            away_player_2_id = EXCLUDED.away_player_2_id,
+                            scores = EXCLUDED.scores,
+                            winner = EXCLUDED.winner,
+                            league_id = EXCLUDED.league_id
                         """,
                         record_data
                     )
-                    # Commit each successful individual insert
+                    # Commit each successful individual upsert
                     cursor.connection.commit()
                     successful_count += 1
                     
                 except Exception as individual_error:
                     # Log the specific record that failed and rollback this individual transaction
-                    match_id = record_data[12] if len(record_data) > 12 else "unknown"
+                    match_id = record_data[12] if len(record_data) > 12 else "unknown"  # tenniscores_match_id is at position 12
                     home_team = record_data[1] if len(record_data) > 1 else "unknown"
                     away_team = record_data[2] if len(record_data) > 2 else "unknown"
-                    logger.error(f"❌ Failed to insert match {home_team} vs {away_team} ({match_id}): {individual_error}")
+                    logger.error(f"❌ Failed to upsert match {home_team} vs {away_team} ({match_id}): {individual_error}")
                     cursor.connection.rollback()
                     self.stats['errors'] += 1
             
             return successful_count
     
     def deduplicate_batch(self, batch_data: List[tuple]) -> List[tuple]:
-        """Remove duplicates from batch based on unique constraint fields (match_date, home_team, away_team, winner, scores)"""
+        """Remove duplicates from batch based on tenniscores_match_id"""
         seen_keys = set()
         unique_batch = []
         
         for record in batch_data:
-            # Extract the unique constraint fields (positions 0, 1, 2, 10, 9)
-            # (match_date, home_team, away_team, winner, scores)
-            unique_key = (record[0], record[1], record[2], record[10], record[9])
+            # Extract tenniscores_match_id (position 12)
+            unique_key = record[12] if len(record) > 12 else None
             
-            if unique_key not in seen_keys:
+            if unique_key and unique_key not in seen_keys:
                 seen_keys.add(unique_key)
                 unique_batch.append(record)
+            elif not unique_key:
+                # If no tenniscores_match_id, skip this record
+                logger.warning(f"Skipping record without tenniscores_match_id: {record[1] if len(record) > 1 else 'unknown'} vs {record[2] if len(record) > 2 else 'unknown'}")
         
         return unique_batch
     

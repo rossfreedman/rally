@@ -620,6 +620,7 @@ class MatchScore(Base):
     away_player_2_id = Column(Text)
     scores = Column(Text)
     winner = Column(Text)  # 'home' or 'away'
+    tenniscores_match_id = Column(Text, unique=True)  # Unique identifier from source system
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Relationships
