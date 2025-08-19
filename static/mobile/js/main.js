@@ -258,7 +258,7 @@ function getLoadingTextForUrl(url) {
         '/mobile/practice-times': 'Loading Practice Times...',
         
         // Additional pages
-        '/mobile/lineup-escrow': 'Loading Lineup Escrow...',
+        '/mobile/create-lineup': 'Loading Create Lineup...',
         '/mobile/email-team': 'Loading Email Tool...',
         '/mobile/training-videos': 'Loading Training Videos...',
         '/mobile/settings': 'Loading Profile...',

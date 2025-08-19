@@ -38,62 +38,76 @@
                     </div>
                 </div>
 
-                <!-- Series Filter (Second) -->
-                <div>
-                    <label for="seriesFilter" class="block text-sm font-medium text-gray-700 mb-2">Series</label>
-                    <select id="seriesFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">All Series</option>
-                    </select>
+                <!-- Advanced Search Toggle -->
+                <div class="flex justify-center">
+                    <button id="advancedSearchToggle" class="px-4 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 font-medium text-sm flex items-center">
+                        <i class="fas fa-cog mr-2"></i>
+                        <span id="advancedSearchText">Advanced Search</span>
+                        <i id="advancedSearchIcon" class="fas fa-chevron-down ml-2"></i>
+                    </button>
                 </div>
 
-                <!-- PTI Range Filter (Third) -->
-                <div id="ptiFiltersSection" style="display: none;">
-                    <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                        <div>
-                            <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
-                            <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="-30" max="100" value="-30" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30</span></div>
-                        </div>
-                        <div>
-                            <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
-                            <input type="range" id="ptiMaxSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="0" max="100" value="100" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
-                        </div>
-                        <div class="text-xs text-gray-500 text-center">
-                            Available Range: <span id="ptiRangeDisplay">-30 - 100</span>
-                        </div>
+                <!-- Advanced Filters Section (Hidden by default) -->
+                <div id="advancedFiltersSection" style="display: none;" class="space-y-4 border-t border-gray-200 pt-4">
+                    
+                    <!-- Series Filter -->
+                    <div>
+                        <label for="seriesFilter" class="block text-sm font-medium text-gray-700 mb-2">Series</label>
+                        <select id="seriesFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">All Series</option>
+                        </select>
                     </div>
-                </div>
 
-                <!-- Club Filter Checkbox (Fourth) -->
-                <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 shadow-sm">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                                <i class="fas fa-building text-blue-600 text-lg"></i>
+                    <!-- PTI Range Filter -->
+                    <div id="ptiFiltersSection">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
+                        <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                            <div>
+                                <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
+                                <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                       min="-30" max="100" value="-30" step="0.1">
+                                <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30</span></div>
                             </div>
                             <div>
-                                <label for="clubOnlyFilter" class="text-base font-bold text-gray-900 cursor-pointer flex items-center">
-                                    <span id="clubOnlyLabel">My Club</span>&nbsp;only
-                                    <i class="fas fa-filter text-blue-600 ml-2"></i>
-                                </label>
-                                <p class="text-sm text-gray-600 font-medium">Show only players from your club</p>
+                                <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
+                                <input type="range" id="ptiMaxSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                       min="0" max="100" value="100" step="0.1">
+                                <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
+                            </div>
+                            <div class="text-xs text-gray-500 text-center">
+                                Available Range: <span id="ptiRangeDisplay">-30 - 100</span>
                             </div>
                         </div>
-                        <div class="flex items-center">
-                            <!-- Checkbox -->
-                            <input type="checkbox" id="clubOnlyFilter" checked 
-                                   class="w-6 h-6 text-blue-600 bg-white border-2 border-blue-300 rounded focus:ring-blue-500 focus:ring-2 shadow-sm">
+                    </div>
+
+                    <!-- Club Filter Checkbox -->
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-building text-blue-600 text-lg"></i>
+                                </div>
+                                <div>
+                                    <label for="clubOnlyFilter" class="text-base font-bold text-gray-900 cursor-pointer flex items-center">
+                                        <span id="clubOnlyLabel">My Club</span>&nbsp;only
+                                        <i class="fas fa-filter text-blue-600 ml-2"></i>
+                                    </label>
+                                    <p class="text-sm text-gray-600 font-medium">Show only players from your club</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <!-- Checkbox (unchecked by default) -->
+                                <input type="checkbox" id="clubOnlyFilter" 
+                                       class="w-6 h-6 text-blue-600 bg-white border-2 border-blue-300 rounded focus:ring-blue-500 focus:ring-2 shadow-sm">
+                            </div>
+                        </div>
+                        <!-- Status Indicator -->
+                        <div id="clubFilterStatus" class="mt-3 flex items-center" style="display: none;">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                            <span class="text-sm font-semibold text-green-700">Club filter is ON</span>
                         </div>
                     </div>
-                    <!-- Status Indicator -->
-                    <div id="clubFilterStatus" class="mt-3 flex items-center">
-                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                        <span class="text-sm font-semibold text-green-700">Club filter is ON</span>
-                    </div>
+
                 </div>
 
                 <!-- Filter Buttons -->
@@ -113,8 +127,8 @@
 
         
 
-        <!-- Players List Section -->
-        <div id="playersCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- Players List Section (Hidden initially) -->
+        <div id="playersCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="display: none;">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-users text-green-500 mr-2"></i>
@@ -130,18 +144,7 @@
 
             <!-- Players List -->
             <div id="playersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
-                <!-- Initial placeholder -->
-                <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
-                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-search text-blue-500 text-2xl"></i>
-                    </div>
-                    <p class="text-gray-700 text-center text-sm font-medium mb-2">
-                        Ready to find players in your league!
-                    </p>
-                    <p class="text-gray-500 text-center text-xs">
-                        Enter a name, select a series, or adjust PTI range, then click "Apply Filters"
-                    </p>
-                </div>
+                <!-- Players will be populated here -->
             </div>
         </div>
 
@@ -549,8 +552,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
     const clubOnlyFilter = document.getElementById('clubOnlyFilter');
     const clubOnlyLabel = document.getElementById('clubOnlyLabel');
+    const clubFilterStatus = document.getElementById('clubFilterStatus');
     const applyFiltersBtn = document.getElementById('applyFilters');
     const resetFiltersBtn = document.getElementById('resetFilters');
+    
+    // Advanced Search Elements
+    const advancedSearchToggle = document.getElementById('advancedSearchToggle');
+    const advancedFiltersSection = document.getElementById('advancedFiltersSection');
+    const advancedSearchText = document.getElementById('advancedSearchText');
+    const advancedSearchIcon = document.getElementById('advancedSearchIcon');
     
     // Selection UI Elements
     const messageButtonContainer = document.getElementById('messageButtonContainer');
@@ -712,6 +722,32 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('PTI slider elements not found');
         }
         
+        // Advanced Search Toggle
+        advancedSearchToggle.addEventListener('click', function() {
+            const isVisible = advancedFiltersSection.style.display !== 'none';
+            
+            if (isVisible) {
+                // Hide advanced filters
+                advancedFiltersSection.style.display = 'none';
+                advancedSearchText.textContent = 'Advanced Search';
+                advancedSearchIcon.className = 'fas fa-chevron-down ml-2';
+            } else {
+                // Show advanced filters
+                advancedFiltersSection.style.display = 'block';
+                advancedSearchText.textContent = 'Hide Advanced';
+                advancedSearchIcon.className = 'fas fa-chevron-up ml-2';
+            }
+        });
+        
+        // Club filter status toggle
+        clubOnlyFilter.addEventListener('change', function() {
+            if (this.checked) {
+                clubFilterStatus.style.display = 'flex';
+            } else {
+                clubFilterStatus.style.display = 'none';
+            }
+        });
+
         // Selection events
         messageSelectedBtn.addEventListener('click', showSelectedPlayersModal);
         closeModal.addEventListener('click', hideSelectedPlayersModal);
@@ -745,14 +781,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validate that at least one filter criteria is provided
             const hasNameFilter = firstNameFilter.value.trim() || lastNameFilter.value.trim();
             const hasSeriesFilter = seriesFilter.value;
-            const ptiFiltersSection = document.getElementById('ptiFiltersSection');
-            const hasPtiFilter = ptiFiltersSection.style.display !== 'none' && 
+            
+            // Check if advanced filters are visible and PTI filter is applied
+            const advancedVisible = advancedFiltersSection.style.display !== 'none';
+            const hasPtiFilter = advancedVisible && 
                                 (parseFloat(ptiMinSlider.value) > ptiRange.min || parseFloat(ptiMaxSlider.value) < ptiRange.max);
             
             if (!hasNameFilter && !hasSeriesFilter && !hasPtiFilter) {
                 showError('Please enter at least one search criteria (name, series, or PTI range)');
+                // Don't show Players section for validation errors
                 return;
             }
+            
+            // Show the Players section when search begins
+            const playersCard = document.getElementById('playersCard');
+            playersCard.style.display = 'block';
             
             // Build query parameters
             const params = new URLSearchParams();
@@ -764,8 +807,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add club filter parameter
             params.append('club_only', clubOnlyFilter.checked);
             
-            // Only add PTI filters if PTI filters section is visible and values are changed from defaults
-            if (ptiFiltersSection.style.display !== 'none') {
+            // Only add PTI filters if advanced filters are visible and values are changed from defaults
+            if (advancedVisible) {
                 const ptiMin = parseFloat(ptiMinSlider.value);
                 const ptiMax = parseFloat(ptiMaxSlider.value);
                 if (!isNaN(ptiMin) && ptiMin > ptiRange.min) params.append('pti_min', ptiMin);
@@ -1607,7 +1650,7 @@ document.addEventListener('DOMContentLoaded', function() {
         seriesFilter.value = '';
         firstNameFilter.value = '';
         lastNameFilter.value = '';
-        clubOnlyFilter.checked = true; // Reset to default checked state
+        clubOnlyFilter.checked = false; // Reset to default unchecked state
         updateClubFilterStatus(); // Update status after reset
         
         // Only reset PTI filters if they are visible
@@ -1620,17 +1663,12 @@ document.addEventListener('DOMContentLoaded', function() {
             ptiMaxValue.textContent = ptiRange.max;
         }
         
-        // Clear results and show placeholder
-        playersList.innerHTML = `
-            <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-search text-gray-400 text-2xl"></i>
-                </div>
-                <p class="text-gray-500 text-center text-sm">
-                    Use the filters above to search for players at your club
-                </p>
-            </div>
-        `;
+        // Hide the Players section
+        const playersCard = document.getElementById('playersCard');
+        playersCard.style.display = 'none';
+        
+        // Clear results
+        playersList.innerHTML = '';
         updateSelectionUI();
     }
 

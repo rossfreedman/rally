@@ -4,11 +4,12 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from flask import jsonify, render_template, request, session
+from flask import jsonify, render_template, request, session, make_response
 from flask_login import login_required
 
 from app.models.database_models import SessionLocal
 from app.services.lineup_escrow_service import LineupEscrowService
+from app.services.session_service import get_session_data_for_user
 from utils.ai import client, get_or_create_assistant
 from utils.auth import login_required
 from utils.db import execute_query, execute_query_one, execute_update
@@ -643,18 +644,24 @@ def init_lineup_routes(app):
             print(f"Error serving lineup confirmation page: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/mobile/lineup-escrow")
+    @app.route("/mobile/create-lineup")
     @login_required
-    def serve_mobile_lineup_escrow():
-        """Serve the mobile Lineup Escrow page"""
+    def serve_mobile_create_lineup():
+        """Serve the mobile Create Lineup page"""
         session_data = {"user": session["user"], "authenticated": True}
         log_user_activity(
             session["user"]["email"],
             "page_visit",
-            page="mobile_lineup_escrow",
-            details="Accessed mobile lineup escrow page",
+            page="mobile_create_lineup",
+            details="Accessed mobile create lineup page",
         )
-        return render_template("mobile/lineup_escrow.html", session_data=session_data)
+        
+        # Add cache-busting headers to prevent caching issues
+        response = make_response(render_template("mobile/create_lineup.html", session_data=session_data))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     @app.route("/mobile/lineup-messaging")
     @login_required
@@ -957,7 +964,7 @@ def init_lineup_routes(app):
             print(f"Error searching for player: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE"])
+    @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE", "PUT"])
     @login_required
     def saved_lineups():
         """Handle saved lineups"""
@@ -1015,9 +1022,42 @@ def init_lineup_routes(app):
                     else:
                         return jsonify(result), 400
                         
+                elif request.method == "PUT":
+                    data = request.json
+                    lineup_id = data.get("lineup_id")
+                    
+                    if not lineup_id:
+                        return jsonify({"error": "lineup_id is required"}), 400
+                        
+                    result = escrow_service.update_saved_lineup(
+                        lineup_id=int(lineup_id),
+                        user_id=user["id"],
+                        lineup_name=data.get("lineup_name"),
+                        lineup_data=data.get("lineup_data")
+                    )
+                    
+                    if result["success"]:
+                        return jsonify(result)
+                    else:
+                        return jsonify(result), 400
+                        
         except Exception as e:
             print(f"Error handling saved lineups: {str(e)}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/mobile/saved-lineups")
+    @login_required 
+    def serve_saved_lineups_page():
+        """Serve the saved lineups page"""
+        try:
+            # Get session data for context (using same pattern as other routes)
+            session_data = {"user": session["user"], "authenticated": True}
+            return render_template("mobile/saved_lineups.html", session_data=session_data)
+        except Exception as e:
+            print(f"Error serving saved lineups page: {str(e)}")
+            # Create basic session data for error template
+            session_data = {"user": session.get("user", {}), "authenticated": True}
+            return render_template("mobile/error.html", error="Unable to load saved lineups page", session_data=session_data), 500
 
     @app.route("/mobile/lineup-escrow-view/<escrow_token>")
     def serve_lineup_escrow_view(escrow_token):

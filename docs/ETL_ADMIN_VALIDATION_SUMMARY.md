@@ -18,7 +18,7 @@ This document summarizes the comprehensive testing and validation of the ETL Adm
   - `scraper_match_scores.py`
   - `scraper_schedule.py`
   - `scraper_stats.py`
-  - `scraper_player_history.py`
+  - `scraper_player_history_optimized.py`
 - **ETL Scripts Exist**: ✅ Both ETL database scripts found
   - `consolidate_league_jsons_to_all.py`
   - `import_all_jsons_to_database.py`
@@ -100,8 +100,8 @@ All individual scrapers are present and have been syntax-validated:
    - Collects team performance statistics
    - Processes series standings and records
 
-5. **Player History Scraper** (`scraper_player_history.py`) ✅
-   - Detailed player performance tracking
+5. **Player History Scraper** (`scraper_player_history_optimized.py`) ✅
+   - Detailed player performance tracking with concurrent processing
    - Historical statistics and career data
 
 ## ETL Database Scripts Validation
@@ -149,7 +149,7 @@ data/
 │   │   ├── scraper_match_scores.py
 │   │   ├── scraper_schedule.py
 │   │   ├── scraper_stats.py
-│   │   └── scraper_player_history.py
+│   │   └── scraper_player_history_optimized.py
 │   └── database_import/             ✅ All present
 │       ├── consolidate_league_jsons_to_all.py
 │       └── import_all_jsons_to_database.py

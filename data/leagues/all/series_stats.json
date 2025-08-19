@@ -8341,61 +8341,61 @@
   },
   {
     "series": "Series 1",
-    "team": "Wilmette S1 T1",
+    "team": "Wilmette S1 T2",
     "league_id": "NSTF",
-    "points": 71,
+    "points": 97,
     "matches": {
-      "won": 4,
-      "lost": 3,
+      "won": 8,
+      "lost": 1,
       "tied": 0,
-      "percentage": "57.1%"
+      "percentage": "88.9%"
     },
     "lines": {
-      "won": 23,
+      "won": 31,
       "lost": 11,
       "for": 0,
       "ret": 0,
-      "percentage": "67.6%"
+      "percentage": "73.8%"
     },
     "sets": {
-      "won": 48,
-      "lost": 23,
-      "percentage": "67.6%"
+      "won": 61,
+      "lost": 27,
+      "percentage": "69.3%"
     },
     "games": {
-      "won": 378,
-      "lost": 265,
-      "percentage": "58.8%"
+      "won": 434,
+      "lost": 327,
+      "percentage": "57.0%"
     },
     "source_league": "NSTF"
   },
   {
     "series": "Series 1",
-    "team": "Wilmette S1 T2",
+    "team": "Wilmette S1 T1",
     "league_id": "NSTF",
-    "points": 70,
+    "points": 88,
     "matches": {
-      "won": 6,
-      "lost": 1,
+      "won": 5,
+      "lost": 4,
       "tied": 0,
-      "percentage": "85.7%"
+      "percentage": "55.6%"
     },
     "lines": {
-      "won": 22,
-      "lost": 10,
+      "won": 28,
+      "lost": 16,
       "for": 0,
       "ret": 0,
-      "percentage": "68.8%"
+      "percentage": "63.6%"
     },
     "sets": {
-      "won": 43,
-      "lost": 22,
-      "percentage": "66.2%"
+      "won": 60,
+      "lost": 33,
+      "percentage": "64.5%"
     },
     "games": {
-      "won": 310,
-      "lost": 238,
-      "percentage": "56.6%"
+      "won": 497,
+      "lost": 375,
+      "percentage": "57.0%"
     },
     "source_league": "NSTF"
   },
@@ -8403,29 +8403,29 @@
     "series": "Series 1",
     "team": "Birchwood S1",
     "league_id": "NSTF",
-    "points": 57,
+    "points": 72,
     "matches": {
-      "won": 4,
-      "lost": 3,
+      "won": 5,
+      "lost": 4,
       "tied": 0,
-      "percentage": "57.1%"
+      "percentage": "55.6%"
     },
     "lines": {
-      "won": 18,
-      "lost": 16,
+      "won": 23,
+      "lost": 21,
       "for": 0,
       "ret": 0,
-      "percentage": "52.9%"
+      "percentage": "52.3%"
     },
     "sets": {
-      "won": 37,
-      "lost": 41,
-      "percentage": "47.4%"
+      "won": 47,
+      "lost": 53,
+      "percentage": "47.0%"
     },
     "games": {
-      "won": 334,
-      "lost": 377,
-      "percentage": "47.0%"
+      "won": 444,
+      "lost": 496,
+      "percentage": "47.2%"
     },
     "source_league": "NSTF"
   },
@@ -8433,29 +8433,29 @@
     "series": "Series 1",
     "team": "Tennaqua S1",
     "league_id": "NSTF",
-    "points": 52,
+    "points": 53,
     "matches": {
       "won": 3,
-      "lost": 4,
+      "lost": 5,
       "tied": 1,
-      "percentage": "37.5%"
+      "percentage": "33.3%"
     },
     "lines": {
       "won": 11,
-      "lost": 20,
+      "lost": 25,
       "for": 0,
       "ret": 0,
-      "percentage": "35.5%"
+      "percentage": "30.6%"
     },
     "sets": {
-      "won": 30,
-      "lost": 44,
-      "percentage": "40.5%"
+      "won": 31,
+      "lost": 54,
+      "percentage": "36.5%"
     },
     "games": {
-      "won": 314,
-      "lost": 364,
-      "percentage": "46.3%"
+      "won": 339,
+      "lost": 426,
+      "percentage": "44.3%"
     },
     "source_league": "NSTF"
   },
@@ -8463,29 +8463,29 @@
     "series": "Series 1",
     "team": "Lake Forest  S1",
     "league_id": "NSTF",
-    "points": 34,
+    "points": 39,
     "matches": {
       "won": 0,
-      "lost": 6,
+      "lost": 7,
       "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
-      "won": 6,
-      "lost": 23,
+      "won": 7,
+      "lost": 27,
       "for": 0,
       "ret": 0,
-      "percentage": "20.7%"
+      "percentage": "20.6%"
     },
     "sets": {
-      "won": 17,
-      "lost": 45,
-      "percentage": "27.4%"
+      "won": 21,
+      "lost": 53,
+      "percentage": "28.4%"
     },
     "games": {
-      "won": 217,
-      "lost": 309,
-      "percentage": "41.3%"
+      "won": 281,
+      "lost": 371,
+      "percentage": "43.1%"
     },
     "source_league": "NSTF"
   },
@@ -8523,29 +8523,29 @@
     "series": "Series 3",
     "team": "Valley Lo S3",
     "league_id": "NSTF",
-    "points": 123,
+    "points": 135,
     "matches": {
-      "won": 9,
+      "won": 10,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 41,
-      "lost": 3,
+      "won": 45,
+      "lost": 4,
       "for": 0,
       "ret": 0,
-      "percentage": "93.2%"
+      "percentage": "91.8%"
     },
     "sets": {
-      "won": 78,
+      "won": 84,
       "lost": 11,
-      "percentage": "87.6%"
+      "percentage": "88.4%"
     },
     "games": {
-      "won": 528,
-      "lost": 220,
-      "percentage": "70.6%"
+      "won": 564,
+      "lost": 231,
+      "percentage": "70.9%"
     },
     "source_league": "NSTF"
   },
@@ -8553,29 +8553,59 @@
     "series": "Series 3",
     "team": "Lake Forest S3",
     "league_id": "NSTF",
-    "points": 78,
+    "points": 81,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
-      "won": 26,
-      "lost": 19,
+      "won": 27,
+      "lost": 23,
       "for": 0,
       "ret": 0,
-      "percentage": "57.8%"
+      "percentage": "54.0%"
     },
     "sets": {
       "won": 49,
-      "lost": 34,
-      "percentage": "59.0%"
+      "lost": 40,
+      "percentage": "55.1%"
     },
     "games": {
-      "won": 404,
-      "lost": 320,
-      "percentage": "55.8%"
+      "won": 415,
+      "lost": 356,
+      "percentage": "53.8%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 3",
+    "team": "Birchwood S3",
+    "league_id": "NSTF",
+    "points": 70,
+    "matches": {
+      "won": 4,
+      "lost": 6,
+      "tied": 0,
+      "percentage": "40.0%"
+    },
+    "lines": {
+      "won": 22,
+      "lost": 28,
+      "for": 0,
+      "ret": 0,
+      "percentage": "44.0%"
+    },
+    "sets": {
+      "won": 35,
+      "lost": 50,
+      "percentage": "41.2%"
+    },
+    "games": {
+      "won": 328,
+      "lost": 397,
+      "percentage": "45.2%"
     },
     "source_league": "NSTF"
   },
@@ -8586,56 +8616,26 @@
     "points": 67,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
       "won": 20,
-      "lost": 21,
+      "lost": 26,
       "for": 0,
       "ret": 0,
-      "percentage": "48.8%"
+      "percentage": "43.5%"
     },
     "sets": {
       "won": 40,
-      "lost": 33,
-      "percentage": "54.8%"
+      "lost": 43,
+      "percentage": "48.2%"
     },
     "games": {
       "won": 355,
-      "lost": 325,
-      "percentage": "52.2%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 3",
-    "team": "Birchwood S3",
-    "league_id": "NSTF",
-    "points": 55,
-    "matches": {
-      "won": 3,
-      "lost": 5,
-      "tied": 0,
-      "percentage": "37.5%"
-    },
-    "lines": {
-      "won": 17,
-      "lost": 23,
-      "for": 0,
-      "ret": 0,
-      "percentage": "42.5%"
-    },
-    "sets": {
-      "won": 25,
-      "lost": 43,
-      "percentage": "36.8%"
-    },
-    "games": {
-      "won": 260,
-      "lost": 341,
-      "percentage": "43.3%"
+      "lost": 385,
+      "percentage": "48.0%"
     },
     "source_league": "NSTF"
   },
@@ -8643,29 +8643,29 @@
     "series": "Series 3",
     "team": "Skokie S3",
     "league_id": "NSTF",
-    "points": 40,
+    "points": 56,
     "matches": {
-      "won": 2,
-      "lost": 6,
+      "won": 3,
+      "lost": 7,
       "tied": 0,
-      "percentage": "25.0%"
+      "percentage": "30.0%"
     },
     "lines": {
-      "won": 12,
-      "lost": 26,
+      "won": 17,
+      "lost": 31,
       "for": 0,
       "ret": 0,
-      "percentage": "31.6%"
+      "percentage": "35.4%"
     },
     "sets": {
-      "won": 31,
-      "lost": 57,
-      "percentage": "35.2%"
+      "won": 38,
+      "lost": 67,
+      "percentage": "36.2%"
     },
     "games": {
-      "won": 347,
-      "lost": 468,
-      "percentage": "42.6%"
+      "won": 403,
+      "lost": 536,
+      "percentage": "42.9%"
     },
     "source_league": "NSTF"
   },
@@ -8673,29 +8673,29 @@
     "series": "Series 3",
     "team": "Tennaqua S3",
     "league_id": "NSTF",
-    "points": 35,
+    "points": 50,
     "matches": {
-      "won": 0,
+      "won": 1,
       "lost": 9,
       "tied": 0,
-      "percentage": "0.0%"
+      "percentage": "10.0%"
     },
     "lines": {
-      "won": 10,
+      "won": 15,
       "lost": 34,
       "for": 0,
       "ret": 0,
-      "percentage": "22.7%"
+      "percentage": "30.6%"
     },
     "sets": {
-      "won": 22,
+      "won": 32,
       "lost": 67,
-      "percentage": "24.7%"
+      "percentage": "32.3%"
     },
     "games": {
-      "won": 271,
+      "won": 331,
       "lost": 491,
-      "percentage": "35.6%"
+      "percentage": "40.3%"
     },
     "source_league": "NSTF"
   },
@@ -8823,29 +8823,29 @@
     "series": "Series 2A",
     "team": "Midtown S2A",
     "league_id": "NSTF",
-    "points": 109,
+    "points": 124,
     "matches": {
-      "won": 9,
+      "won": 10,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 35,
+      "won": 40,
       "lost": 10,
       "for": 0,
       "ret": 0,
-      "percentage": "77.8%"
+      "percentage": "80.0%"
     },
     "sets": {
-      "won": 73,
+      "won": 83,
       "lost": 28,
-      "percentage": "72.3%"
+      "percentage": "74.8%"
     },
     "games": {
-      "won": 550,
+      "won": 610,
       "lost": 339,
-      "percentage": "61.9%"
+      "percentage": "64.3%"
     },
     "source_league": "NSTF"
   },
@@ -8853,29 +8853,29 @@
     "series": "Series 2A",
     "team": "Tennaqua S2A",
     "league_id": "NSTF",
-    "points": 107,
+    "points": 122,
     "matches": {
-      "won": 7,
+      "won": 8,
       "lost": 2,
       "tied": 0,
-      "percentage": "77.8%"
+      "percentage": "80.0%"
     },
     "lines": {
-      "won": 34,
+      "won": 39,
       "lost": 11,
       "for": 0,
       "ret": 0,
-      "percentage": "75.6%"
+      "percentage": "78.0%"
     },
     "sets": {
-      "won": 73,
+      "won": 83,
       "lost": 27,
-      "percentage": "73.0%"
+      "percentage": "75.5%"
     },
     "games": {
-      "won": 485,
-      "lost": 340,
-      "percentage": "58.8%"
+      "won": 545,
+      "lost": 360,
+      "percentage": "60.2%"
     },
     "source_league": "NSTF"
   },
@@ -8886,26 +8886,26 @@
     "points": 79,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
       "won": 24,
-      "lost": 21,
+      "lost": 26,
       "for": 0,
       "ret": 0,
-      "percentage": "53.3%"
+      "percentage": "48.0%"
     },
     "sets": {
       "won": 49,
-      "lost": 43,
-      "percentage": "53.3%"
+      "lost": 53,
+      "percentage": "48.0%"
     },
     "games": {
-      "won": 446,
-      "lost": 378,
-      "percentage": "54.1%"
+      "won": 466,
+      "lost": 438,
+      "percentage": "51.5%"
     },
     "source_league": "NSTF"
   },
@@ -8913,29 +8913,29 @@
     "series": "Series 2A",
     "team": "Skokie S2A",
     "league_id": "NSTF",
-    "points": 34,
+    "points": 51,
     "matches": {
-      "won": 1,
-      "lost": 6,
-      "tied": 0,
-      "percentage": "14.3%"
+      "won": 2,
+      "lost": 7,
+      "tied": 1,
+      "percentage": "20.0%"
     },
     "lines": {
-      "won": 10,
-      "lost": 25,
+      "won": 17,
+      "lost": 31,
       "for": 0,
       "ret": 0,
-      "percentage": "28.6%"
+      "percentage": "35.4%"
     },
     "sets": {
-      "won": 24,
-      "lost": 51,
-      "percentage": "32.0%"
+      "won": 34,
+      "lost": 57,
+      "percentage": "37.4%"
     },
     "games": {
-      "won": 240,
-      "lost": 382,
-      "percentage": "38.6%"
+      "won": 325,
+      "lost": 443,
+      "percentage": "42.3%"
     },
     "source_league": "NSTF"
   },
@@ -8943,29 +8943,29 @@
     "series": "Series 2A",
     "team": "Northmoor S2A",
     "league_id": "NSTF",
-    "points": 27,
+    "points": 39,
     "matches": {
-      "won": 0,
+      "won": 2,
       "lost": 7,
-      "tied": 0,
-      "percentage": "0.0%"
+      "tied": 1,
+      "percentage": "20.0%"
     },
     "lines": {
-      "won": 8,
-      "lost": 26,
+      "won": 14,
+      "lost": 30,
       "for": 0,
       "ret": 0,
-      "percentage": "23.5%"
+      "percentage": "31.8%"
     },
     "sets": {
-      "won": 18,
-      "lost": 56,
-      "percentage": "24.3%"
+      "won": 24,
+      "lost": 60,
+      "percentage": "28.6%"
     },
     "games": {
-      "won": 256,
-      "lost": 418,
-      "percentage": "38.0%"
+      "won": 309,
+      "lost": 456,
+      "percentage": "40.4%"
     },
     "source_league": "NSTF"
   },
@@ -8973,29 +8973,29 @@
     "series": "Series 2A",
     "team": "Exmoor S2A",
     "league_id": "NSTF",
-    "points": 26,
+    "points": 32,
     "matches": {
       "won": 1,
-      "lost": 6,
+      "lost": 9,
       "tied": 0,
-      "percentage": "14.3%"
+      "percentage": "10.0%"
     },
     "lines": {
-      "won": 8,
-      "lost": 26,
+      "won": 10,
+      "lost": 36,
       "for": 0,
       "ret": 0,
-      "percentage": "23.5%"
+      "percentage": "21.7%"
     },
     "sets": {
-      "won": 17,
-      "lost": 49,
-      "percentage": "25.8%"
+      "won": 21,
+      "lost": 69,
+      "percentage": "23.3%"
     },
     "games": {
-      "won": 185,
-      "lost": 305,
-      "percentage": "37.8%"
+      "won": 224,
+      "lost": 443,
+      "percentage": "33.6%"
     },
     "source_league": "NSTF"
   },
@@ -9003,89 +9003,29 @@
     "series": "Series 2B",
     "team": "Wilmette S2B",
     "league_id": "NSTF",
-    "points": 93,
+    "points": 108,
     "matches": {
-      "won": 7,
+      "won": 8,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 31,
+      "won": 36,
       "lost": 4,
       "for": 0,
       "ret": 0,
-      "percentage": "88.6%"
+      "percentage": "90.0%"
     },
     "sets": {
-      "won": 61,
+      "won": 71,
       "lost": 11,
-      "percentage": "84.7%"
+      "percentage": "86.6%"
     },
     "games": {
-      "won": 408,
-      "lost": 187,
-      "percentage": "68.6%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 2B",
-    "team": "Lake Forest S2B",
-    "league_id": "NSTF",
-    "points": 70,
-    "matches": {
-      "won": 5,
-      "lost": 3,
-      "tied": 0,
-      "percentage": "62.5%"
-    },
-    "lines": {
-      "won": 22,
-      "lost": 18,
-      "for": 0,
-      "ret": 0,
-      "percentage": "55.0%"
-    },
-    "sets": {
-      "won": 45,
-      "lost": 40,
-      "percentage": "52.9%"
-    },
-    "games": {
-      "won": 361,
-      "lost": 342,
-      "percentage": "51.4%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 2B",
-    "team": "Ravinia Green S2B",
-    "league_id": "NSTF",
-    "points": 65,
-    "matches": {
-      "won": 5,
-      "lost": 3,
-      "tied": 0,
-      "percentage": "62.5%"
-    },
-    "lines": {
-      "won": 21,
-      "lost": 19,
-      "for": 0,
-      "ret": 0,
-      "percentage": "52.5%"
-    },
-    "sets": {
-      "won": 40,
-      "lost": 42,
-      "percentage": "48.8%"
-    },
-    "games": {
-      "won": 379,
-      "lost": 390,
-      "percentage": "49.3%"
+      "won": 469,
+      "lost": 207,
+      "percentage": "69.4%"
     },
     "source_league": "NSTF"
   },
@@ -9093,29 +9033,89 @@
     "series": "Series 2B",
     "team": "Birchwood S2B",
     "league_id": "NSTF",
-    "points": 60,
+    "points": 83,
     "matches": {
-      "won": 4,
+      "won": 6,
       "lost": 4,
+      "tied": 0,
+      "percentage": "60.0%"
+    },
+    "lines": {
+      "won": 26,
+      "lost": 22,
+      "for": 0,
+      "ret": 0,
+      "percentage": "54.2%"
+    },
+    "sets": {
+      "won": 57,
+      "lost": 46,
+      "percentage": "55.3%"
+    },
+    "games": {
+      "won": 484,
+      "lost": 445,
+      "percentage": "52.1%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 2B",
+    "team": "Ravinia Green S2B",
+    "league_id": "NSTF",
+    "points": 80,
+    "matches": {
+      "won": 6,
+      "lost": 3,
+      "tied": 0,
+      "percentage": "66.7%"
+    },
+    "lines": {
+      "won": 26,
+      "lost": 19,
+      "for": 0,
+      "ret": 0,
+      "percentage": "57.8%"
+    },
+    "sets": {
+      "won": 50,
+      "lost": 42,
+      "percentage": "54.3%"
+    },
+    "games": {
+      "won": 439,
+      "lost": 404,
+      "percentage": "52.1%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 2B",
+    "team": "Lake Forest S2B",
+    "league_id": "NSTF",
+    "points": 78,
+    "matches": {
+      "won": 5,
+      "lost": 5,
       "tied": 0,
       "percentage": "50.0%"
     },
     "lines": {
-      "won": 19,
-      "lost": 20,
+      "won": 24,
+      "lost": 25,
       "for": 0,
       "ret": 0,
-      "percentage": "48.7%"
+      "percentage": "49.0%"
     },
     "sets": {
-      "won": 41,
-      "lost": 40,
-      "percentage": "50.6%"
+      "won": 51,
+      "lost": 56,
+      "percentage": "47.7%"
     },
     "games": {
-      "won": 369,
-      "lost": 366,
-      "percentage": "50.2%"
+      "won": 440,
+      "lost": 457,
+      "percentage": "49.1%"
     },
     "source_league": "NSTF"
   },
@@ -9126,26 +9126,26 @@
     "points": 58,
     "matches": {
       "won": 3,
-      "lost": 5,
+      "lost": 6,
       "tied": 0,
-      "percentage": "37.5%"
+      "percentage": "33.3%"
     },
     "lines": {
       "won": 18,
-      "lost": 22,
+      "lost": 27,
       "for": 0,
       "ret": 0,
-      "percentage": "45.0%"
+      "percentage": "40.0%"
     },
     "sets": {
       "won": 39,
-      "lost": 46,
-      "percentage": "45.9%"
+      "lost": 56,
+      "percentage": "41.1%"
     },
     "games": {
-      "won": 382,
-      "lost": 409,
-      "percentage": "48.3%"
+      "won": 402,
+      "lost": 470,
+      "percentage": "46.1%"
     },
     "source_league": "NSTF"
   },
@@ -9156,26 +9156,26 @@
     "points": 35,
     "matches": {
       "won": 0,
-      "lost": 9,
+      "lost": 10,
       "tied": 0,
       "percentage": "0.0%"
     },
     "lines": {
       "won": 8,
-      "lost": 36,
+      "lost": 41,
       "for": 0,
       "ret": 0,
-      "percentage": "18.2%"
+      "percentage": "16.3%"
     },
     "sets": {
       "won": 26,
-      "lost": 73,
-      "percentage": "26.3%"
+      "lost": 83,
+      "percentage": "23.9%"
     },
     "games": {
-      "won": 304,
-      "lost": 509,
-      "percentage": "37.4%"
+      "won": 318,
+      "lost": 569,
+      "percentage": "35.9%"
     },
     "source_league": "NSTF"
   },

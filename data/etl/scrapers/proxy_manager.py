@@ -267,25 +267,40 @@ def is_blocked(response: requests.Response) -> bool:
         # Check response body length (suspiciously short responses)
         content = response.text.lower() if response.text else ""
         if len(content) < 100:
-            logger.warning(f"🚫 Suspiciously short response: {len(content)} chars")
-            return True
+            # But allow short responses if they contain expected tennis content
+            tennis_indicators = ["tennis", "match", "player", "score", "league", "series", "club"]
+            if not any(indicator in content for indicator in tennis_indicators):
+                logger.warning(f"🚫 Suspiciously short response: {len(content)} chars")
+                return True
         
-        # Check for known blocking text patterns
+        # Check for known blocking text patterns (refined to avoid CDN false positives)
         blocking_patterns = [
             "access denied",
             "verify you are human", 
             "bot detected",
             "please complete the security check",
-            "cloudflare",
+            "cloudflare ray id",         # More specific than just "cloudflare"
+            "ddos protection by cloudflare", # More specific than just "cloudflare"
             "attention required",
             "checking your browser",
             "ddos protection",
-            "security challenge",
+            "security challenge", 
             "suspicious activity",
             "blocked for security",
             "captcha",
             "recaptcha"
         ]
+        
+        # ALLOW legitimate CDN references (these are NOT blocking)
+        if any(cdn in content for cdn in [
+            "cdnjs.cloudflare.com",
+            "cdn.cloudflare.com", 
+            "ajax.cloudflare.com"
+        ]):
+            # If we see CDN references, only flag as blocked if we also see protection patterns
+            protection_keywords = ["ray id", "challenge", "checking your browser", "ddos protection"]
+            if not any(keyword in content for keyword in protection_keywords):
+                return False  # CDN reference without protection = legitimate
         
         for pattern in blocking_patterns:
             if pattern in content:

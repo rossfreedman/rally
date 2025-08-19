@@ -414,11 +414,21 @@ class EnhancedStealthBrowser:
         """Detect if the page is blocked or showing CAPTCHA."""
         html_lower = html.lower()
         
-        # Check for CAPTCHA indicators
+        # Check for CAPTCHA indicators (refined to avoid CDN false positives)
         captcha_indicators = [
             "captcha", "robot", "bot check", "verify you are human",
-            "cloudflare", "access denied", "blocked"
+            "cloudflare ray id", "ddos protection by cloudflare", 
+            "access denied", "blocked"
         ]
+        
+        # ALLOW legitimate CDN references 
+        if any(cdn in html_lower for cdn in [
+            "cdnjs.cloudflare.com", "cdn.cloudflare.com", "ajax.cloudflare.com"
+        ]):
+            # Only flag if we see actual protection patterns along with CDN
+            protection_patterns = ["ray id", "challenge", "checking your browser"]
+            if not any(pattern in html_lower for pattern in protection_patterns):
+                pass  # Skip CAPTCHA detection for legitimate CDN usage
         
         for indicator in captcha_indicators:
             if indicator in html_lower:

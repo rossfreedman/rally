@@ -1,0 +1,151 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-exclamation-triangle text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Error</h1>
+                <p class="text-sm text-gray-500">Something went wrong</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
+        
+        <!-- Error Message -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Oops! Something went wrong</h3>
+                {% if error %}
+                    <p class="text-gray-600 mb-4">{{ error }}</p>
+                {% else %}
+                    <p class="text-gray-600 mb-4">We encountered an unexpected error. Please try again.</p>
+                {% endif %}
+                <div class="flex flex-col gap-3 max-w-xs mx-auto">
+                    <button onclick="history.back()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Go Back
+                    </button>
+                    <a href="/mobile" class="w-full px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
+                        <i class="fas fa-home mr-2"></i>
+                        Home
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<style>
+/* Custom styles matching the mobile design system */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-red-600 { background-color: #dc2626; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-600 { background-color: #2563eb; }
+
+/* Text utilities */
+.text-gray-900 { color: #111827; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-white { color: #ffffff; }
+.text-red-500 { color: #ef4444; }
+.text-blue-600 { color: #2563eb; }
+
+/* Border utilities */
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Flexbox utilities */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+
+/* Width utilities */
+.w-full { width: 100%; }
+.w-12 { width: 3rem; }
+.h-12 { height: 3rem; }
+.max-w-xs { max-width: 20rem; }
+
+/* Margin utilities */
+.ml-4 { margin-left: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+/* Padding utilities */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.p-6 { padding: 1.5rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+
+/* Font utilities */
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+/* Text size utilities */
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+
+/* Layout utilities */
+.overflow-hidden { overflow: hidden; }
+.text-center { text-align: center; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+
+/* Gap utilities */
+.gap-3 { gap: 0.75rem; }
+
+/* Hover utilities */
+.hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+.hover\:bg-blue-100:hover { background-color: #dbeafe; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Button styling */
+button, a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+}
+</style>
+{% endblock %}
