@@ -21,7 +21,7 @@
     <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
 
         <!-- Saved Lineups Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 hidden">
             <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-save text-purple-500 mr-2"></i>
@@ -234,6 +234,62 @@ let selectedPlayerForTap = null;
 
 // Functions are loaded and ready
 
+// Immediate debug logging
+console.log('🔧 lineup.html JavaScript file loaded');
+console.log('🔧 SessionStorage at script load:', Object.keys(sessionStorage));
+
+// Check if we need to load a saved lineup
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM Content Loaded - checking for lineup data');
+    
+    const loadLineupData = sessionStorage.getItem('loadLineupData');
+    const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
+    const editLineupName = sessionStorage.getItem('editLineupName');
+    
+    console.log('📋 SessionStorage contents:');
+    console.log('  - loadLineupData:', loadLineupData ? 'YES' : 'NO');
+    console.log('  - isEditMode:', isEditMode);
+    console.log('  - editLineupName:', editLineupName);
+    
+    if (loadLineupData) {
+        console.log('✅ Found lineup data, will load after players are available:', loadLineupData);
+        
+        // Store the lineup data to load after players are ready
+        window.pendingLineupData = loadLineupData;
+        
+        // Clear the session storage
+        sessionStorage.removeItem('loadLineupData');
+    } else {
+        console.log('❌ No lineup data found in sessionStorage');
+    }
+    
+    // Update UI for edit mode
+    if (isEditMode) {
+        console.log('🎨 Updating UI for edit mode:', editLineupName);
+        
+        // Update page title and description
+        document.querySelector('h1').textContent = 'Edit Lineup';
+        document.querySelector('h1').nextElementSibling.textContent = `Editing: ${editLineupName}`;
+        
+        // Update button text
+        const sendButton = document.getElementById('manual-send');
+        sendButton.innerHTML = 'Save Changes';
+        
+        // Update icon to save icon instead of clipboard
+        const headerIcon = document.querySelector('.fas.fa-clipboard-list');
+        headerIcon.className = 'fas fa-edit text-white text-lg';
+    }
+});
+
+// Fallback window load event
+window.addEventListener('load', () => {
+    console.log('🔧 Window load event - secondary check for lineup data');
+    const loadLineupData = sessionStorage.getItem('loadLineupData');
+    if (loadLineupData) {
+        console.log('🔧 Found lineup data on window load:', loadLineupData);
+    }
+});
+
 // Player position determination
 function getPlayerPosition(playerName, rating) {
   // This would ideally come from the database, but for now we'll use some logic
@@ -368,6 +424,15 @@ function renderPlayersForManual() {
   });
   
   updateModeUI();
+  
+  // Check if we have pending lineup data to populate after players are loaded
+  if (window.pendingLineupData) {
+    console.log('🔧 Players loaded, now populating pending lineup data');
+    setLineupFromText(window.pendingLineupData);
+    updateManualLineupSummary();
+    // Clear the pending data
+    window.pendingLineupData = null;
+  }
 }
 
 function handleDragStart(e) {
@@ -623,7 +688,7 @@ function updateManualLineupSummary() {
     return;
   }
   
-  let lineupText = 'LINEUP:\n\n';
+  let lineupText = 'LINEUP:<br>';
   
   // Sort courts numerically
   const sortedCourts = Object.keys(manualLineup).sort((a, b) => parseInt(a) - parseInt(b));
@@ -633,27 +698,32 @@ function updateManualLineupSummary() {
     const player1 = courtData['1'];
     const player2 = courtData['2'];
     
-    lineupText += `Court ${court}: `;
-    
     if (player1 && player2) {
-      lineupText += `${player1.name} & ${player2.name}\n`;
+      lineupText += `Court ${court}: ${player1.name} & ${player2.name}<br>`;
     } else if (player1) {
-      lineupText += `${player1.name} & [Need Partner]\n`;
+      lineupText += `Court ${court}: ${player1.name} & [Need Partner]<br>`;
     } else if (player2) {
-      lineupText += `[Need Partner] & ${player2.name}\n`;
+      lineupText += `Court ${court}: [Need Partner] & ${player2.name}<br>`;
     }
   });
   
-  summaryText.textContent = lineupText;
+  summaryText.innerHTML = lineupText;
   summary.classList.remove('hidden');
   
-  // Enable send button if we have at least one complete court
+  // Enable send button if we have at least one complete court, or if we're in edit mode with any players assigned
   const hasCompleteCourt = sortedCourts.some(court => {
     const courtData = manualLineup[court];
     return courtData['1'] && courtData['2'];
   });
   
-  sendButton.disabled = !hasCompleteCourt;
+  const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
+  const hasAnyPlayer = sortedCourts.some(court => {
+    const courtData = manualLineup[court];
+    return courtData['1'] || courtData['2'];
+  });
+  
+  // In edit mode, allow saving if there are any players assigned; in create mode, require at least one complete court
+  sendButton.disabled = isEditMode ? !hasAnyPlayer : !hasCompleteCourt;
 }
 
 function sendManualLineup() {
@@ -663,13 +733,85 @@ function sendManualLineup() {
   }
   
   // Create lineup text from manual assignments
-  const lineupText = document.getElementById('manual-lineup-text').textContent;
+  const lineupText = document.getElementById('manual-lineup-text').innerHTML;
   
-  // Store lineup in sessionStorage for the confirmation page
-  sessionStorage.setItem('createdLineup', lineupText);
+  // Check if we're in edit mode
+  const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
   
-  // Redirect to lineup confirmation page (Step 2)
-  window.location.href = '/mobile/lineup-confirmation';
+  if (isEditMode) {
+    // In edit mode - save changes directly
+    saveEditedLineup(lineupText);
+  } else {
+    // Normal mode - store lineup in sessionStorage for the confirmation page
+    sessionStorage.setItem('createdLineup', lineupText);
+    
+    // Redirect to lineup confirmation page (Step 2)
+    window.location.href = '/mobile/lineup-confirmation';
+  }
+}
+
+// Save edited lineup function
+async function saveEditedLineup(lineupText) {
+  try {
+    const editLineupId = sessionStorage.getItem('editLineupId');
+    const editLineupName = sessionStorage.getItem('editLineupName');
+    
+    if (!editLineupId || !editLineupName) {
+      throw new Error('Edit context not found');
+    }
+    
+    // Get user and team data
+    const user = window.sessionData?.user || {};
+    const teamId = user.team_id;
+    
+    if (!teamId) {
+      throw new Error('No team ID found');
+    }
+    
+    // Show loading state
+    const sendButton = document.getElementById('manual-send');
+    const originalText = sendButton.innerHTML;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving Changes...';
+    sendButton.disabled = true;
+    
+    // Update the lineup in the database
+    const response = await fetch('/api/saved-lineups', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        lineup_id: parseInt(editLineupId),
+        lineup_name: editLineupName,
+        lineup_data: lineupText,
+        team_id: teamId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update lineup');
+    }
+    
+    // Clear edit context
+    sessionStorage.removeItem('editLineupId');
+    sessionStorage.removeItem('editLineupName');
+    sessionStorage.removeItem('isEditMode');
+    
+    // Show success and redirect back to saved lineups page
+    alert('Lineup updated successfully!');
+    window.location.href = '/mobile/saved-lineups';
+    
+  } catch (error) {
+    console.error('Error saving lineup changes:', error);
+    alert(`Error saving changes: ${error.message}`);
+    
+    // Reset button
+    const sendButton = document.getElementById('manual-send');
+    sendButton.innerHTML = 'Save Changes';
+    sendButton.disabled = false;
+  }
 }
 
 // goToRallyAI function removed - now redirects to separate AI page
@@ -1008,8 +1150,8 @@ fetchSavedLineups();
 function getCurrentLineupText() {
     // Try to get from summary if visible
     const summary = document.getElementById('manual-lineup-text');
-    if (summary && summary.textContent.trim()) {
-        return summary.textContent.trim();
+    if (summary && summary.innerHTML.trim()) {
+        return summary.innerHTML.trim();
     }
     // Otherwise, build from court positions
     let text = '';
@@ -1025,36 +1167,133 @@ function getCurrentLineupText() {
 
 // Helper: set lineup from text (populate courts)
 function setLineupFromText(lineupText) {
-    // Parse the text and fill the courts
-    // Expected format:
-    // Court 1:
-    //   Ad: Player Name
-    //   Deuce: Player Name
-    // ...
-    const lines = lineupText.split('\n');
-    let courtIdx = -1;
+    console.log('🔧 setLineupFromText called with:', lineupText);
+    
+    // Clear existing lineup
+    manualLineup = {};
+    
+    // Parse the HTML lineup format: "LINEUP:<br>Court 1: Player1 & Player2<br>Court 2: Player3 & Player4<br>"
+    // First, convert <br> tags to newlines and decode HTML entities
+    let normalizedText = lineupText.replace(/<br\s*\/?>/gi, '\n');
+    normalizedText = normalizedText.replace(/&amp;/g, '&'); // Decode &amp; to &
+    normalizedText = normalizedText.replace(/&lt;/g, '<'); // Decode &lt; to <
+    normalizedText = normalizedText.replace(/&gt;/g, '>'); // Decode &gt; to >
+    normalizedText = normalizedText.replace(/&quot;/g, '"'); // Decode &quot; to "
+    console.log('🔧 Normalized text:', normalizedText);
+    
+    const lines = normalizedText.split('\n');
+    
     lines.forEach(line => {
-        const courtMatch = line.match(/^Court (\d+):/);
+        // Match pattern: "Court X: Player1 & Player2"
+        const courtMatch = line.match(/^Court (\d+):\s*(.+)$/);
         if (courtMatch) {
-            courtIdx = parseInt(courtMatch[1], 10) - 1;
-            return;
-        }
-        const adMatch = line.match(/^\s*Ad: (.+)$/);
-        const deuceMatch = line.match(/^\s*Deuce: (.+)$/);
-        if (courtIdx >= 0) {
-            if (adMatch) {
-                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[0].querySelector('.drop-text').textContent = adMatch[1];
-            }
-            if (deuceMatch) {
-                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[1].querySelector('.drop-text').textContent = deuceMatch[1];
+            const courtNum = parseInt(courtMatch[1], 10);
+            const playersText = courtMatch[2].trim();
+            console.log(`🔧 Found Court ${courtNum}: ${playersText}`);
+            
+            // Split by & to get individual players
+            const players = playersText.split('&').map(p => p.trim());
+            
+            if (players.length >= 2) {
+                const player1 = players[0];
+                const player2 = players[1];
+                
+                // Skip placeholder text like "[Need Partner]"
+                if (player1 && !player1.includes('[Need Partner]')) {
+                    assignPlayerToCourt(player1, courtNum, 'Ad');
+                }
+                if (player2 && !player2.includes('[Need Partner]')) {
+                    assignPlayerToCourt(player2, courtNum, 'Deuce');
+                }
             }
         }
     });
-    // Optionally update summary
-    if (document.getElementById('manual-lineup-summary')) {
-        document.getElementById('manual-lineup-summary').classList.remove('hidden');
-        document.getElementById('manual-lineup-text').textContent = lineupText;
+    
+    // Update the lineup summary
+    updateManualLineupSummary();
+    console.log('🔧 Lineup populated, manualLineup:', manualLineup);
+}
+
+// Helper: assign a player to a specific court and position
+function assignPlayerToCourt(playerName, courtNum, position) {
+    console.log(`🔧 Assigning ${playerName} to Court ${courtNum} ${position}`);
+    
+    // Clean up the player name (trim whitespace)
+    const cleanPlayerName = playerName.trim();
+    
+    // Find the player in the available players pool - try exact match first
+    let playerElement = document.querySelector(`[data-player-name="${cleanPlayerName}"]`);
+    
+    // If exact match not found, try partial matching
+    if (!playerElement) {
+        const allPlayerElements = document.querySelectorAll('[data-player-name]');
+        playerElement = Array.from(allPlayerElements).find(el => {
+            const elPlayerName = el.getAttribute('data-player-name');
+            return elPlayerName && (
+                elPlayerName.includes(cleanPlayerName) || 
+                cleanPlayerName.includes(elPlayerName) ||
+                elPlayerName.toLowerCase() === cleanPlayerName.toLowerCase()
+            );
+        });
     }
+    
+    if (!playerElement) {
+        console.log(`❌ Player ${cleanPlayerName} not found in available players pool`);
+        console.log(`Available players:`, Array.from(document.querySelectorAll('[data-player-name]')).map(el => el.getAttribute('data-player-name')));
+        return;
+    }
+    
+    // Find the target court position
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) {
+        console.log(`❌ Court ${courtNum} container not found`);
+        return;
+    }
+    
+    const courtPosition = position === 'Ad' ? 
+        courtContainer.querySelectorAll('.court-position')[0] : 
+        courtContainer.querySelectorAll('.court-position')[1];
+        
+    if (!courtPosition) {
+        console.log(`❌ Court ${courtNum} ${position} position not found`);
+        return;
+    }
+    
+    // Check if position is already occupied
+    if (courtPosition.querySelector('.player-card')) {
+        const existingPlayer = courtPosition.querySelector('.player-card');
+        movePlayerToPool(existingPlayer);
+    }
+    
+    // Move player from pool to court position
+    playerElement.remove();
+    
+    // Style the player card for court position
+    const playerType = playerElement.dataset.playerType;
+    const playerTypeColors = {
+        'Ad': '#70e6bb',
+        'Deuce': '#6f90d6', 
+        'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    playerElement.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+    playerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+    
+    // Clear the position and add the player
+    courtPosition.innerHTML = '';
+    courtPosition.appendChild(playerElement);
+    
+    // Update manual lineup data
+    if (!manualLineup[courtNum]) manualLineup[courtNum] = {};
+    // Convert position names to numbers: Ad = 1, Deuce = 2
+    const positionKey = position === 'Ad' ? '1' : '2';
+    manualLineup[courtNum][positionKey] = {
+        name: cleanPlayerName,
+        rating: playerElement.dataset.playerRating
+    };
+    
+    console.log(`✅ Successfully assigned ${cleanPlayerName} to Court ${courtNum} ${position}`);
 }
 
 </script>

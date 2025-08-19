@@ -40,7 +40,7 @@ Rally's scraper system now includes comprehensive JSON backup protection and sta
 - `scrape_match_scores.py` - Uses standardized directories
 - `scrape_stats.py` - Updated build_league_data_dir()
 - `scrape_schedule.py` - Updated build_league_data_dir()
-- `scraper_player_history.py` - Updated build_league_data_dir()
+- `scraper_player_history_optimized.py` - Updated build_league_data_dir() (optimized version only)
 
 ## 🚀 **How It Works**
 

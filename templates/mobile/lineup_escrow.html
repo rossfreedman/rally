@@ -458,17 +458,42 @@ let selectedTeamId = null;
 let selectedTeamName = '';
 let selectedCaptainName = '';
 
+// Clear any stale lineup data
+function clearStaleLineupData() {
+    // Clear any lineup-related sessionStorage that might be stale
+    const keysToCheck = ['loadLineupData', 'savedLineupData'];
+    keysToCheck.forEach(key => {
+        if (sessionStorage.getItem(key)) {
+            console.log(`🧹 Clearing stale ${key} from sessionStorage`);
+            sessionStorage.removeItem(key);
+        }
+    });
+}
+
 // Load and setup the page
 document.addEventListener('DOMContentLoaded', () => {
+    // Clear any stale data first
+    clearStaleLineupData();
+    
+    // Debug: Log all sessionStorage keys
+    console.log('🔍 Lineup Escrow - SessionStorage keys:', Object.keys(sessionStorage));
+    
     // Load the lineup from sessionStorage
     const createdLineup = sessionStorage.getItem('createdLineup');
-    if (createdLineup) {
+    console.log('🔍 Lineup Escrow - Found createdLineup:', createdLineup ? 'YES' : 'NO');
+    
+    if (createdLineup && createdLineup.trim()) {
+        console.log('✅ Lineup Escrow - Loading lineup from sessionStorage');
         lineupText = createdLineup;
         // Clear the sessionStorage after using it
         sessionStorage.removeItem('createdLineup');
         showCurrentLineup();
     } else {
-        lineupText = 'No lineup found';
+        console.log('❌ Lineup Escrow - No valid lineup found, showing options');
+        lineupText = '';
+        // Ensure we start fresh - show options and hide current lineup
+        document.getElementById('current-lineup-section').classList.add('hidden');
+        document.getElementById('lineup-options-section').classList.remove('hidden');
     }
     
     // Initialize the message body with default text
@@ -803,7 +828,17 @@ function editLineup() {
 
 function clearLineup() {
     if (confirm('Are you sure you want to clear the current lineup?')) {
-        lineupText = 'No lineup found';
+        console.log('🧹 User manually clearing lineup');
+        lineupText = '';
+        
+        // Clear any lineup-related sessionStorage
+        ['createdLineup', 'loadLineupData', 'savedLineupData'].forEach(key => {
+            if (sessionStorage.getItem(key)) {
+                console.log(`🧹 Clearing ${key} from sessionStorage`);
+                sessionStorage.removeItem(key);
+            }
+        });
+        
         document.getElementById('current-lineup-section').classList.add('hidden');
         document.getElementById('lineup-options-section').classList.remove('hidden');
         updateMessageBody();

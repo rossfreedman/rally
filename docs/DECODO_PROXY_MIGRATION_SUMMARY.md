@@ -13,8 +13,7 @@ The Rally scraper system has been successfully migrated from ScraperAPI to Decod
   - `scrape_schedule.py` 
   - `scrape_players.py`
   - `scrape_match_scores_incremental.py`
-  - `scraper_player_history.py`
-  - `scraper_player_history_optimized.py`
+  - `scraper_player_history_optimized.py` (optimized version only)
 
 ### 2. **New Decodo Functions**
 ```python

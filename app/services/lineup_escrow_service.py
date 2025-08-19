@@ -463,6 +463,60 @@ class LineupEscrowService:
                 "error": f"Failed to delete lineup: {str(e)}"
             }
 
+    def update_saved_lineup(self, lineup_id: int, user_id: int, lineup_name: str = None, lineup_data: str = None) -> Dict:
+        """
+        Update a saved lineup
+        
+        Args:
+            lineup_id: ID of the lineup to update
+            user_id: ID of the user (for verification)
+            lineup_name: New name for the lineup (optional)
+            lineup_data: New data for the lineup (optional)
+            
+        Returns:
+            Dict with success status
+        """
+        try:
+            lineup = self.db_session.query(SavedLineup).filter(
+                SavedLineup.id == lineup_id,
+                SavedLineup.user_id == user_id,
+                SavedLineup.is_active == True
+            ).first()
+            
+            if not lineup:
+                return {
+                    "success": False,
+                    "error": "Lineup not found"
+                }
+            
+            # Update fields if provided
+            if lineup_name is not None:
+                lineup.lineup_name = lineup_name
+            if lineup_data is not None:
+                lineup.lineup_data = lineup_data
+                
+            lineup.updated_at = datetime.now(timezone.utc)
+            self.db_session.commit()
+            
+            return {
+                "success": True,
+                "message": "Lineup updated successfully",
+                "lineup": {
+                    "id": lineup.id,
+                    "name": lineup.lineup_name,
+                    "data": lineup.lineup_data,
+                    "updated_at": lineup.updated_at.isoformat()
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating saved lineup: {str(e)}")
+            self.db_session.rollback()
+            return {
+                "success": False,
+                "error": f"Failed to update lineup: {str(e)}"
+            }
+
     def _generate_escrow_token(self) -> str:
         """Generate a unique escrow token"""
         return f"escrow_{secrets.token_urlsafe(16)}"
