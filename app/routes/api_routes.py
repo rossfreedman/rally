@@ -305,6 +305,104 @@ def api_contact_sub_send():
         return jsonify({"success": False, "error": "Internal error sending message"}), 500
 
 
+@api_bp.route("/api/send-lineup-message", methods=["POST"])
+@login_required
+def send_lineup_message():
+    """Send lineup message to team members via SMS or email"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        message = data.get("message", "").strip()
+        message_type = data.get("message_type", "sms").lower()  # 'sms' or 'email'
+        recipients = data.get("recipients", [])  # List of recipient info
+        
+        if not message:
+            return jsonify({"success": False, "error": "Message content is required"}), 400
+        
+        if len(message) > 1600:
+            return jsonify({"success": False, "error": "Message too long (max 1600 characters)"}), 400
+        
+        if not recipients:
+            return jsonify({"success": False, "error": "No recipients specified"}), 400
+        
+        user = session["user"]
+        user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
+        
+        # Track results
+        successful_sends = 0
+        failed_sends = 0
+        send_results = []
+        
+        if message_type == "sms":
+            # Send SMS to each recipient
+            for recipient in recipients:
+                name = recipient.get("name", "")
+                phone = recipient.get("phone", "")
+                
+                if not phone:
+                    failed_sends += 1
+                    send_results.append({
+                        "name": name,
+                        "status": "failed",
+                        "error": "No phone number available"
+                    })
+                    continue
+                
+                try:
+                    result = send_sms_notification(
+                        to_number=phone,
+                        message=message,
+                        test_mode=False
+                    )
+                    
+                    if result["success"]:
+                        successful_sends += 1
+                        send_results.append({
+                            "name": name,
+                            "phone": phone,
+                            "status": "sent",
+                            "message_sid": result.get("message_sid")
+                        })
+                    else:
+                        failed_sends += 1
+                        send_results.append({
+                            "name": name,
+                            "phone": phone,
+                            "status": "failed",
+                            "error": result.get("error")
+                        })
+                        
+                except Exception as e:
+                    failed_sends += 1
+                    send_results.append({
+                        "name": name,
+                        "phone": phone,
+                        "status": "failed",
+                        "error": str(e)
+                    })
+            
+            # Return results
+            return jsonify({
+                "success": successful_sends > 0,
+                "message": f"SMS sent to {successful_sends} of {len(recipients)} recipients",
+                "successful_sends": successful_sends,
+                "failed_sends": failed_sends,
+                "results": send_results
+            })
+        
+        else:
+            # Email functionality - placeholder for now
+            return jsonify({
+                "success": False,
+                "error": "Email functionality not yet implemented"
+            }), 501
+    
+    except Exception as e:
+        logger.error(f"/api/send-lineup-message error: {str(e)}")
+        return jsonify({"success": False, "error": "Internal error sending message"}), 500
+
+
 @api_bp.route("/api/series-stats")
 @login_required
 def get_series_stats():

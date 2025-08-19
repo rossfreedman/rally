@@ -234,12 +234,20 @@ function updateUIForMessageType() {
 function updateMessageBody() {
     const messageBody = document.getElementById('message-body');
     
+    // Convert <br> tags to actual line breaks and HTML entities to proper characters
+    const formattedLineupText = lineupText
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"');
+    
     if (isEmailMode) {
         messageBody.value = `Hi team,
 
 Here's our lineup for the upcoming match:
 
-${lineupText}
+${formattedLineupText}
 
 Please confirm your availability and let me know if you have any questions.
 
@@ -247,7 +255,7 @@ Thanks!`;
     } else {
         messageBody.value = `Team Lineup:
 
-${lineupText}
+${formattedLineupText}
 
 Please confirm availability. Thanks!`;
     }
@@ -425,29 +433,111 @@ function updateRecipientCount() {
     sendBtnSubtitle.textContent = `(${count})`;
 }
 
-function sendMessage() {
+async function sendMessage() {
     const btn = document.getElementById('send-message-btn');
     const originalHTML = btn.innerHTML;
     
-    // Show loading state
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
-    btn.disabled = true;
-    
-    // Simulate sending delay
-    setTimeout(() => {
-        if (isEmailMode) {
-            alert('Email sent successfully!');
-        } else {
-            alert('Texting functionality not implemented yet.');
+    try {
+        // Show loading state
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+        btn.disabled = true;
+        
+        // Get message content
+        const messageBody = document.getElementById('message-body').value.trim();
+        if (!messageBody) {
+            alert('Please enter a message');
+            return;
         }
         
-        // Reset button and redirect
+        // Get recipients
+        const recipients = [];
+        const allTeamChecked = document.getElementById('all-team').checked;
+        
+        if (allTeamChecked) {
+            // Get all team members from the loaded data (from loadTeamMemberCount function)
+            const user = window.sessionData?.user || {};
+            const series = user.series;
+            const teamId = user.team_id || '';
+            
+            // Fetch team members with contact info
+            const response = await fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`);
+            const players = await response.json();
+            
+            // Phone number mapping from club directory (same as in showIndividualRecipients)
+            const phoneDirectory = {
+                'Ross Freedman': '(773) 213-8911',
+                'Jonathan Blume': '(773) 354-1484', 
+                'Howard Dakoff': '(312) 804-9899',
+                'Victor Forman': '(703) 463-1853',
+                'Andrew Franger': '(847) 946-5507',
+                'Mike Lieberman': '(847) 644-6034',
+                'Paul Patt': '(262) 888-0366',
+                'Adam Seyb': '(312) 493-5764',
+                'Stephen Statkus': '(773) 450-1688',
+                'Brian Stutland': '(312) 318-9191'
+            };
+            
+            players.forEach(player => {
+                const phone = phoneDirectory[player.name] || null;
+                if (phone) {
+                    recipients.push({
+                        name: player.name,
+                        phone: phone
+                    });
+                }
+            });
+        } else {
+            // Get individually selected recipients
+            const selectedCheckboxes = document.querySelectorAll('.member-checkbox:checked');
+            selectedCheckboxes.forEach(checkbox => {
+                const container = checkbox.closest('div');
+                const name = container.querySelector('label').textContent;
+                const phone = container.querySelector('.text-xs').textContent;
+                
+                recipients.push({
+                    name: name,
+                    phone: phone
+                });
+            });
+        }
+        
+        if (recipients.length === 0) {
+            alert('No recipients selected or no phone numbers available');
+            return;
+        }
+        
+        // Send the message
+        const sendResponse = await fetch('/api/send-lineup-message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: messageBody,
+                message_type: isEmailMode ? 'email' : 'sms',
+                recipients: recipients
+            })
+        });
+        
+        const result = await sendResponse.json();
+        
+        if (result.success) {
+            alert(result.message || 'Message sent successfully!');
+            // Redirect back to lineup confirmation
+            window.location.href = '/mobile/lineup-confirmation';
+        } else {
+            alert(`Error: ${result.error || 'Failed to send message'}`);
+        }
+        
+    } catch (error) {
+        console.error('Error sending message:', error);
+        alert('Error sending message. Please try again.');
+        
+    } finally {
+        // Reset button state
         btn.innerHTML = originalHTML;
         btn.disabled = false;
-        
-        // Redirect back to home or lineup confirmation
-        window.location.href = '/mobile';
-    }, 2000);
+    }
 }
 
 function loadTeamMemberCount() {

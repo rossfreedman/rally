@@ -151,21 +151,24 @@
                     <label for="player-search" class="block text-sm font-medium text-gray-700 mb-2">
                         Search for Captain
                     </label>
-                    <div class="relative flex flex-col gap-2">
+                    <div class="relative">
                         <input 
                             type="text" 
                             id="player-search"
                             class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="Enter captain's first and last name"
+                            placeholder="Start typing captain's name..."
+                            autocomplete="off"
                         />
-                        <button 
-                            id="search-btn"
-                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors w-full"
-                        >
-                            Search
-                        </button>
+                        <!-- Type-ahead dropdown -->
+                        <div id="typeahead-dropdown" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            <!-- Results will be populated here -->
+                        </div>
+                        <!-- Loading indicator -->
+                        <div id="search-loading" class="hidden absolute right-3 top-3">
+                            <i class="fas fa-spinner fa-spin text-gray-400"></i>
+                        </div>
                     </div>
-                    <p class="text-xs text-gray-500 mt-1">Search by first and last name to find the captain's teams</p>
+                    <p class="text-xs text-gray-500 mt-1">Type at least 2 characters to search for captains</p>
                 </div>
 
                 <!-- Search Results -->
@@ -470,50 +473,117 @@ function clearStaleLineupData() {
     });
 }
 
-// Load and setup the page
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize the lineup escrow page
+function initializeLineupEscrow() {
+    console.log('🔍 Lineup Escrow - Initializing page...');
+    
     // Clear any stale data first
     clearStaleLineupData();
     
     // Debug: Log all sessionStorage keys
     console.log('🔍 Lineup Escrow - SessionStorage keys:', Object.keys(sessionStorage));
     
-    // Load the lineup from sessionStorage
-    const createdLineup = sessionStorage.getItem('createdLineup');
-    console.log('🔍 Lineup Escrow - Found createdLineup:', createdLineup ? 'YES' : 'NO');
+    // Check for escrow data first (highest priority)
+    const escrowLineupData = sessionStorage.getItem('escrowLineupData');
+    console.log('🔍 Lineup Escrow - Found escrowLineupData:', escrowLineupData ? 'YES' : 'NO');
     
-    if (createdLineup && createdLineup.trim()) {
-        console.log('✅ Lineup Escrow - Loading lineup from sessionStorage');
-        lineupText = createdLineup;
+    if (escrowLineupData && escrowLineupData.trim()) {
+        console.log('✅ Lineup Escrow - Loading lineup from escrow flow');
+        lineupText = escrowLineupData;
         // Clear the sessionStorage after using it
-        sessionStorage.removeItem('createdLineup');
+        sessionStorage.removeItem('escrowLineupData');
         showCurrentLineup();
     } else {
-        console.log('❌ Lineup Escrow - No valid lineup found, showing options');
-        lineupText = '';
-        // Ensure we start fresh - show options and hide current lineup
-        document.getElementById('current-lineup-section').classList.add('hidden');
-        document.getElementById('lineup-options-section').classList.remove('hidden');
+        // Load the lineup from sessionStorage (normal flow)
+        const createdLineup = sessionStorage.getItem('createdLineup');
+        console.log('🔍 Lineup Escrow - Found createdLineup:', createdLineup ? 'YES' : 'NO');
+        
+        if (createdLineup && createdLineup.trim()) {
+            console.log('✅ Lineup Escrow - Loading lineup from sessionStorage');
+            lineupText = createdLineup;
+            // Clear the sessionStorage after using it
+            sessionStorage.removeItem('createdLineup');
+            showCurrentLineup();
+        } else {
+            console.log('❌ Lineup Escrow - No valid lineup found, showing options');
+            lineupText = '';
+            // Ensure we start fresh - show options and hide current lineup
+            document.getElementById('current-lineup-section').classList.add('hidden');
+            document.getElementById('lineup-options-section').classList.remove('hidden');
+        }
     }
     
     // Initialize the message body with default text
     updateMessageBody();
     
-    // Setup event listeners
+    // Setup event listeners (critical for type-ahead functionality)
     setupEventListeners();
+}
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', initializeLineupEscrow);
+
+// Reinitialize when page becomes visible (handles navigation from other pages)
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        console.log('🔍 Page became visible, reinitializing event listeners...');
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+            setupEventListeners(); // Only re-setup event listeners, not data loading
+        }, 100);
+    }
+});
+
+// Additional fallback for focus events (when user returns to tab)
+window.addEventListener('focus', function() {
+    console.log('🔍 Window gained focus, ensuring event listeners...');
+    setTimeout(() => {
+        setupEventListeners(); // Only re-setup event listeners
+    }, 100);
 });
 
 function setupEventListeners() {
     // Message body changes
     document.getElementById('lineup-message').oninput = updatePreviewAndCount;
     
-    // Player search
-    document.getElementById('search-btn').onclick = searchPlayer;
-    document.getElementById('player-search').onkeypress = (e) => {
-        if (e.key === 'Enter') {
-            searchPlayer();
-        }
-    };
+    // Type-ahead search
+    const searchInput = document.getElementById('player-search');
+    
+    if (searchInput) {
+        // Debounced search on input
+        let searchTimeout;
+        searchInput.oninput = (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                hideTypeaheadDropdown();
+                return;
+            }
+            
+            // Debounce search by 300ms
+            searchTimeout = setTimeout(() => {
+                performTypeaheadSearch(query);
+            }, 300);
+        };
+        
+        // Handle keyboard navigation
+        searchInput.onkeydown = handleTypeaheadKeydown;
+        
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !document.getElementById('typeahead-dropdown').contains(e.target)) {
+                hideTypeaheadDropdown();
+            }
+        });
+        
+        console.log('✅ Type-ahead search handlers attached');
+        
+        // Clear any test values
+        searchInput.value = '';
+    } else {
+        console.error('❌ Search input not found!');
+    }
     
     // Actions
     document.getElementById('send-message-btn').onclick = sendMessage;
@@ -578,23 +648,29 @@ function updatePreview() {
     updatePreviewAndCount();
 }
 
-async function searchPlayer() {
-    const searchInput = document.getElementById('player-search');
-    const searchBtn = document.getElementById('search-btn');
-    const searchResults = document.getElementById('search-results');
-    const teamsList = document.getElementById('teams-list');
+// Type-ahead search variables
+let currentSearchResults = [];
+let selectedIndex = -1;
+
+// Helper function to escape HTML characters
+function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+async function performTypeaheadSearch(query) {
+    console.log('🔍 Performing type-ahead search for:', query);
     
-    const playerName = searchInput.value.trim();
+    const loadingIndicator = document.getElementById('search-loading');
+    const dropdown = document.getElementById('typeahead-dropdown');
     
-    if (!playerName) {
-        alert('Please enter a player name to search.');
-        return;
-    }
-    
-    // Show loading state
-    const originalBtnText = searchBtn.textContent;
-    searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    searchBtn.disabled = true;
+    // Show loading
+    loadingIndicator.classList.remove('hidden');
     
     try {
         const response = await fetch('/api/lineup-escrow/search-player', {
@@ -603,60 +679,162 @@ async function searchPlayer() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                player_name: playerName
+                player_name: query
             })
         });
         
         const result = await response.json();
         
         if (result.success) {
-            // Display teams
-            teamsList.innerHTML = '';
-            
-            if (result.teams.length === 0) {
-                teamsList.innerHTML = '<p class="text-sm text-gray-500">No teams found for this player.</p>';
-            } else {
-                result.teams.forEach(team => {
-                    const teamDiv = document.createElement('div');
-                    teamDiv.className = 'bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors';
-                    teamDiv.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="text-base font-semibold text-gray-800 mb-1">${team.player_name}</div>
-                                <h4 class="font-medium text-gray-900">${team.team_name}</h4>
-                                <p class="text-sm text-gray-600">${team.league_name} - ${team.club_name}</p>
-                                <p class="text-xs text-gray-500">Series: ${team.series_name}</p>
-                            </div>
-                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors" onclick="selectTeam(${team.team_id}, '${team.team_name}', '${team.player_name}')">
-                                Select
-                            </button>
-                        </div>
-                    `;
-                    teamsList.appendChild(teamDiv);
-                });
-            }
-            
-            searchResults.classList.remove('hidden');
-            
-            // Auto-scroll down 100px after search results appear
-            setTimeout(() => {
-                window.scrollBy({
-                    top: 100,
-                    behavior: 'smooth'
-                });
-            }, 300);
+            currentSearchResults = result.teams || [];
+            displayTypeaheadResults(currentSearchResults);
         } else {
-            alert(`Error: ${result.error}`);
+            console.error('Search failed:', result.error);
+            hideTypeaheadDropdown();
         }
         
     } catch (error) {
-        console.error('Error searching for player:', error);
-        alert('An error occurred while searching for the player. Please try again.');
+        console.error('Error performing type-ahead search:', error);
+        hideTypeaheadDropdown();
     } finally {
-        // Reset button
-        searchBtn.textContent = originalBtnText;
-        searchBtn.disabled = false;
+        // Hide loading
+        loadingIndicator.classList.add('hidden');
     }
+}
+
+function displayTypeaheadResults(teams) {
+    const dropdown = document.getElementById('typeahead-dropdown');
+    
+    if (teams.length === 0) {
+        dropdown.innerHTML = '<div class="p-3 text-sm text-gray-500">No captains found</div>';
+        dropdown.classList.remove('hidden');
+        return;
+    }
+    
+    dropdown.innerHTML = '';
+    
+    teams.forEach((team, index) => {
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'p-3 cursor-pointer hover:bg-gray-100 border-b border-gray-100 last:border-b-0 typeahead-item';
+        resultDiv.dataset.index = index;
+        
+        resultDiv.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <div class="font-semibold text-gray-900">${escapeHtml(team.player_name)}</div>
+                    <div class="text-sm text-gray-600">${escapeHtml(team.team_name)}</div>
+                    <div class="text-xs text-gray-500">${escapeHtml(team.league_name)} - ${escapeHtml(team.club_name)} - ${escapeHtml(team.series_name)}</div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-400 mt-1"></i>
+            </div>
+        `;
+        
+        resultDiv.onclick = () => selectCaptainFromTypeahead(team, index);
+        dropdown.appendChild(resultDiv);
+    });
+    
+    dropdown.classList.remove('hidden');
+    selectedIndex = -1; // Reset selection
+}
+
+function selectCaptainFromTypeahead(team, index) {
+    console.log('🎯 Selected captain:', team);
+    
+    // Update input with selected name
+    document.getElementById('player-search').value = team.player_name;
+    
+    // Hide dropdown
+    hideTypeaheadDropdown();
+    
+    // Auto-populate captain phone if we have it (you can extend this)
+    const captainPhoneInput = document.getElementById('captain-contact');
+    if (captainPhoneInput && !captainPhoneInput.value.trim()) {
+        // You could lookup phone number here or have it in the team data
+        captainPhoneInput.placeholder = 'Enter captain\'s phone number';
+    }
+    
+    // Store selected team data for later use
+    window.selectedCaptainData = team;
+    selectedCaptainName = team.player_name;
+    selectedTeamId = team.team_id;
+    selectedTeamName = team.team_name;
+    
+    // Update UI to show selected team
+    showSelectedTeamInfo(team);
+    
+    // Auto-scroll to next section
+    setTimeout(() => {
+        document.getElementById('captain-contact').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+    }, 100);
+}
+
+function showSelectedTeamInfo(team) {
+    // Show selected team info section
+    document.getElementById('selected-team-info').classList.remove('hidden');
+    document.getElementById('team-details').innerHTML = `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                <span class="font-semibold text-green-800">Captain Selected</span>
+            </div>
+            <p class="text-sm"><strong>Captain:</strong> ${escapeHtml(team.player_name)}</p>
+            <p class="text-sm"><strong>Team:</strong> ${escapeHtml(team.team_name)}</p>
+            <p class="text-sm"><strong>League:</strong> ${escapeHtml(team.league_name)} - ${escapeHtml(team.club_name)}</p>
+            <p class="text-sm"><strong>Series:</strong> ${escapeHtml(team.series_name)}</p>
+        </div>
+    `;
+}
+
+function hideTypeaheadDropdown() {
+    document.getElementById('typeahead-dropdown').classList.add('hidden');
+    selectedIndex = -1;
+}
+
+function handleTypeaheadKeydown(e) {
+    const dropdown = document.getElementById('typeahead-dropdown');
+    if (dropdown.classList.contains('hidden')) return;
+    
+    const items = dropdown.querySelectorAll('.typeahead-item');
+    if (items.length === 0) return;
+    
+    switch (e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % items.length;
+            updateSelectedItem(items);
+            break;
+            
+        case 'ArrowUp':
+            e.preventDefault();
+            selectedIndex = selectedIndex <= 0 ? items.length - 1 : selectedIndex - 1;
+            updateSelectedItem(items);
+            break;
+            
+        case 'Enter':
+            e.preventDefault();
+            if (selectedIndex >= 0 && selectedIndex < currentSearchResults.length) {
+                selectCaptainFromTypeahead(currentSearchResults[selectedIndex], selectedIndex);
+            }
+            break;
+            
+        case 'Escape':
+            e.preventDefault();
+            hideTypeaheadDropdown();
+            break;
+    }
+}
+
+function updateSelectedItem(items) {
+    items.forEach((item, index) => {
+        if (index === selectedIndex) {
+            item.classList.add('bg-blue-100');
+        } else {
+            item.classList.remove('bg-blue-100');
+        }
+    });
 }
 
 function selectTeam(teamId, teamName, playerName) {
@@ -667,8 +845,8 @@ function selectTeam(teamId, teamName, playerName) {
     // Update UI to show selected team
     document.getElementById('selected-team-info').classList.remove('hidden');
     document.getElementById('team-details').innerHTML = `
-        <p><strong>Team:</strong> ${teamName}</p>
-        <p><strong>Captain:</strong> ${playerName}</p>
+        <p><strong>Team:</strong> ${escapeHtml(teamName)}</p>
+        <p><strong>Captain:</strong> ${escapeHtml(playerName)}</p>
     `;
     
     // Hide search results
@@ -815,7 +993,7 @@ function hideDirectLineupInput() {
 
 function showCurrentLineup() {
     if (lineupText && lineupText !== 'No lineup found') {
-        document.getElementById('lineup-display').textContent = lineupText;
+        document.getElementById('lineup-display').innerHTML = lineupText;
         document.getElementById('current-lineup-section').classList.remove('hidden');
         document.getElementById('lineup-options-section').classList.add('hidden');
     }
@@ -832,7 +1010,7 @@ function clearLineup() {
         lineupText = '';
         
         // Clear any lineup-related sessionStorage
-        ['createdLineup', 'loadLineupData', 'savedLineupData'].forEach(key => {
+        ['createdLineup', 'loadLineupData', 'savedLineupData', 'escrowLineupData'].forEach(key => {
             if (sessionStorage.getItem(key)) {
                 console.log(`🧹 Clearing ${key} from sessionStorage`);
                 sessionStorage.removeItem(key);

@@ -464,15 +464,43 @@ function clearStaleLineupData() {
     });
 }
 
+// Debug function to check all sessionStorage
+function debugSessionStorage() {
+    console.log('🔍 DEBUG - All sessionStorage contents:');
+    for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        const value = sessionStorage.getItem(key);
+        console.log(`  ${key}: ${value ? value.substring(0, 50) + '...' : 'NULL'}`);
+    }
+}
+
 // Load and setup the page
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 Create Lineup - DOMContentLoaded fired');
+    debugSessionStorage();
     // Clear any stale data first
     clearStaleLineupData();
     
     // Debug: Log all sessionStorage keys
     console.log('🔍 Lineup Escrow - SessionStorage keys:', Object.keys(sessionStorage));
     
-    // Check for edit mode first
+    // Check for escrow data FIRST (highest priority)
+    const escrowLineupData = sessionStorage.getItem('escrowLineupData');
+    console.log('🔍 Create Lineup - Found escrowLineupData:', escrowLineupData ? 'YES' : 'NO');
+    if (escrowLineupData) {
+        console.log('🔍 Create Lineup - escrowLineupData content:', escrowLineupData.substring(0, 100) + '...');
+        console.log('✅ Create Lineup - Loading lineup from escrow flow (PRIORITY)');
+        lineupText = escrowLineupData;
+        console.log('✅ Create Lineup - Set lineupText to:', lineupText.substring(0, 100) + '...');
+        // Clear the sessionStorage after using it
+        sessionStorage.removeItem('escrowLineupData');
+        console.log('🧹 Create Lineup - Cleared escrowLineupData from sessionStorage');
+        showCurrentLineup();
+        console.log('✅ Create Lineup - Called showCurrentLineup()');
+        return; // Skip all other loading logic
+    }
+
+    // Check for edit mode second
     const editLineupData = sessionStorage.getItem('editLineupData');
     const editLineupId = sessionStorage.getItem('editLineupId');
     const editLineupName = sessionStorage.getItem('editLineupName');
@@ -499,28 +527,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load the lineup from sessionStorage (normal flow)
     const createdLineup = sessionStorage.getItem('createdLineup');
     console.log('🔍 Create Lineup - Found createdLineup:', createdLineup ? 'YES' : 'NO');
+    if (createdLineup) {
+        console.log('🔍 Create Lineup - createdLineup content:', createdLineup.substring(0, 100) + '...');
+    }
     
-    // Only load cached lineup if it's a valid lineup AND user came from lineup builder
-    // (indicated by presence of lineup data without br tags indicating it's been processed)
-    const isValidCachedLineup = createdLineup && 
-                               createdLineup.trim() && 
-                               !createdLineup.includes('<br>') &&
-                               createdLineup.includes('Court');
-    
-    if (isValidCachedLineup) {
-        console.log('✅ Create Lineup - Loading valid lineup from sessionStorage');
-        lineupText = createdLineup;
-        // Clear the sessionStorage after using it
-        sessionStorage.removeItem('createdLineup');
-        showCurrentLineup();
-    } else {
-        console.log('❌ Create Lineup - No valid lineup found or stale data, showing options');
-        // Clear any stale lineup data
-        sessionStorage.removeItem('createdLineup');
-        lineupText = '';
-        // Ensure we start fresh - show options and hide current lineup
-        document.getElementById('current-lineup-section').classList.add('hidden');
-        document.getElementById('lineup-options-section').classList.remove('hidden');
+    // Check if we have a valid cached lineup
+    {
+        // Only load cached lineup if it's a valid lineup AND user came from lineup builder
+        // (indicated by presence of lineup data without br tags indicating it's been processed)
+        const isValidCachedLineup = createdLineup && 
+                                   createdLineup.trim() && 
+                                   !createdLineup.includes('<br>') &&
+                                   createdLineup.includes('Court');
+        
+        if (isValidCachedLineup) {
+            console.log('✅ Create Lineup - Loading valid lineup from sessionStorage');
+            lineupText = createdLineup;
+            // Clear the sessionStorage after using it
+            sessionStorage.removeItem('createdLineup');
+            showCurrentLineup();
+        } else {
+            console.log('❌ Create Lineup - No valid lineup found or stale data, showing options');
+            // Clear any stale lineup data
+            sessionStorage.removeItem('createdLineup');
+            lineupText = '';
+            // Ensure we start fresh - show options and hide current lineup
+            document.getElementById('current-lineup-section').classList.add('hidden');
+            document.getElementById('lineup-options-section').classList.remove('hidden');
+        }
     }
     
     // Initialize the message body with default text
@@ -889,7 +923,7 @@ function clearLineup() {
         window.editContext = null;
         
         // Clear any lineup-related sessionStorage
-        ['createdLineup', 'loadLineupData', 'savedLineupData'].forEach(key => {
+        ['createdLineup', 'loadLineupData', 'savedLineupData', 'escrowLineupData'].forEach(key => {
             if (sessionStorage.getItem(key)) {
                 console.log(`🧹 Clearing ${key} from sessionStorage`);
                 sessionStorage.removeItem(key);

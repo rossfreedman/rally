@@ -663,6 +663,25 @@ def init_lineup_routes(app):
         response.headers['Expires'] = '0'
         return response
 
+    @app.route("/mobile/lineup-escrow")
+    @login_required
+    def serve_mobile_lineup_escrow():
+        """Serve the mobile Lineup Escrow page with captain selection"""
+        session_data = {"user": session["user"], "authenticated": True}
+        log_user_activity(
+            session["user"]["email"],
+            "page_visit",
+            page="mobile_lineup_escrow",
+            details="Accessed mobile lineup escrow page",
+        )
+        
+        # Add cache-busting headers to prevent caching issues
+        response = make_response(render_template("mobile/lineup_escrow.html", session_data=session_data))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+
     @app.route("/mobile/lineup-messaging")
     @login_required
     def serve_mobile_lineup_messaging():
@@ -906,25 +925,33 @@ def init_lineup_routes(app):
             if not player_name:
                 return jsonify({"error": "player_name is required"}), 400
             
+            # Get current user's league ID for filtering
+            current_user_league_id = session["user"].get("league_id")
+            if not current_user_league_id:
+                return jsonify({"error": "User league not found"}), 400
+            
             with SessionLocal() as db_session:
                 # Search for players by name (first name, last name, or full name)
                 from app.models.database_models import Player, Team, League, Club, Series
                 import re
+                
                 # Split name into parts for flexible search
                 name_parts = player_name.split()
                 if len(name_parts) >= 2:
                     first_name = name_parts[0]
                     last_name = name_parts[-1]
-                    # Search for exact matches first
-                    players = db_session.query(Player).filter(
-                        (Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
-                        (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%"))
+                    # Search for exact matches first, but only in the user's league
+                    players = db_session.query(Player).join(Team).filter(
+                        Team.league_id == current_user_league_id,
+                        ((Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
+                        (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%")))
                     ).all()
                 else:
-                    # Single name search
-                    players = db_session.query(Player).filter(
-                        (Player.first_name.ilike(f"%{player_name}%")) |
-                        (Player.last_name.ilike(f"%{player_name}%"))
+                    # Single name search, but only in the user's league
+                    players = db_session.query(Player).join(Team).filter(
+                        Team.league_id == current_user_league_id,
+                        ((Player.first_name.ilike(f"%{player_name}%")) |
+                        (Player.last_name.ilike(f"%{player_name}%")))
                     ).all()
                 if not players:
                     return jsonify({"error": "No players found with that name"}), 404
@@ -934,7 +961,7 @@ def init_lineup_routes(app):
                 for player in players:
                     if player.team_id and player.team_id not in seen_teams:
                         team = db_session.query(Team).filter(Team.id == player.team_id).first()
-                        if team:
+                        if team and team.league_id == current_user_league_id:  # Double-check league filtering
                             league = db_session.query(League).filter(League.id == team.league_id).first()
                             club = db_session.query(Club).filter(Club.id == team.club_id).first()
                             series = db_session.query(Series).filter(Series.id == team.series_id).first()
@@ -951,7 +978,7 @@ def init_lineup_routes(app):
                                 "team_name": team.display_name,
                                 "league_name": league.league_name if league else "Unknown League",
                                 "club_name": club.name if club else "Unknown Club",
-                                "series_display": series_display,
+                                "series_name": series_display,  # Fixed: was series_display, should be series_name
                                 "player_name": f"{player.first_name} {player.last_name}",
                                 "player_id": player.id
                             })
