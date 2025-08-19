@@ -322,6 +322,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(error => {
         console.log('🎯 Fallback to Simple League Context Manager');
     });
+    */
 });
 
 // Export for module usage if needed

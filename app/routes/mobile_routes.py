@@ -4939,7 +4939,9 @@ def serve_text_group(group_id):
 @login_required
 def serve_mobile_lineup_escrow_confirmation():
     """Serve the mobile lineup escrow confirmation page"""
-    return render_template("mobile/lineup_escrow_confirmation.html")
+    # Ensure session data is available for template
+    session_data = {"user": session["user"], "authenticated": True}
+    return render_template("mobile/lineup_escrow_confirmation.html", session_data=session_data)
 
 
 @mobile_bp.route('/mobile/grid-layout')

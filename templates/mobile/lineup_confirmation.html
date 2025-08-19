@@ -198,8 +198,24 @@ function sendToTeam() {
 }
 
 function sendViaEscrow() {
-    // Redirect to create lineup page with the lineup data
-    window.location.href = '/mobile/create-lineup';
+    // Store the lineup data for the escrow page
+    const createdLineup = sessionStorage.getItem('createdLineup');
+    console.log('🔍 Escrow Flow - createdLineup from sessionStorage:', createdLineup);
+    
+    if (createdLineup) {
+        sessionStorage.setItem('escrowLineupData', createdLineup);
+        console.log('✅ Escrow Flow - Stored escrowLineupData in sessionStorage');
+        
+        // Verify it was stored
+        const stored = sessionStorage.getItem('escrowLineupData');
+        console.log('🔍 Escrow Flow - Verification - escrowLineupData:', stored ? 'STORED' : 'NOT STORED');
+    } else {
+        console.error('❌ Escrow Flow - No createdLineup found in sessionStorage!');
+    }
+    
+    // Redirect to lineup escrow page with the lineup data
+    console.log('🔄 Escrow Flow - Redirecting to /mobile/lineup-escrow');
+    window.location.href = '/mobile/lineup-escrow';
 }
 
 function backToEdit() {
