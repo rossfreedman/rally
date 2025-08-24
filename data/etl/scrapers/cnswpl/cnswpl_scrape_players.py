@@ -497,36 +497,30 @@ class CNSWPLRosterScraper:
                 print(f"   ⚠️ No team links found - this might indicate a filtering issue")
             
             # Scrape each team's roster page
-            # Use a set to track unique player IDs PER TEAM (not across series)
-            # Players can legitimately appear on multiple teams within the same series
+            # Use a set to track unique player IDs to prevent duplicates
+            # Players should NOT appear on multiple teams within the same series
+            seen_player_ids = set()
             
             for i, (team_name, team_url) in enumerate(team_links):
                 print(f"   🎾 Scraping team {i+1}/{len(team_links)}: {team_name}")
                 print(f"      🌐 URL: {team_url}")
                 team_players = self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
                 
-                # Filter out duplicate players WITHIN THIS TEAM only (not across series)
-                team_seen_player_ids = set()  # Reset for each team
+                # Filter out duplicate players based on Player ID (series-level deduplication)
                 unique_team_players = []
-                duplicates_within_team = 0
-                
                 for player in team_players:
                     player_id = player.get('Player ID', '')
-                    if player_id and player_id not in team_seen_player_ids:
-                        team_seen_player_ids.add(player_id)
+                    if player_id and player_id not in seen_player_ids:
+                        seen_player_ids.add(player_id)
                         unique_team_players.append(player)
                     elif player_id:
-                        duplicates_within_team += 1
-                        print(f"         ⚠️ Skipping duplicate player WITHIN TEAM: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
+                        print(f"         ⚠️ Skipping duplicate player: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
                 
                 all_players.extend(unique_team_players)
                 
                 # Show team summary
                 if unique_team_players:
-                    if duplicates_within_team > 0:
-                        print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total, {duplicates_within_team} duplicates within team)")
-                    else:
-                        print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
+                    print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
                 else:
                     print(f"      ⚠️ Team {team_name}: No unique players found")
                 
@@ -590,54 +584,17 @@ class CNSWPLRosterScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
             players = []
             
-            # Look for specific sections to scrape from
-            # We only want: Captains, Players
-            # We DON'T want: Players Subbing for this Team, Players Also Subbing for Other Teams
+            # CNSWPL uses a table-based structure with class 'team_roster_table'
+            # Look for the main roster table first
+            roster_table = soup.find('table', class_='team_roster_table')
             
-            # Find all section headers to identify which sections to process
-            section_headers = soup.find_all(['h3', 'h4', 'h5', 'h6', 'div'], class_=True)
-            valid_sections = []
-            
-            for header in section_headers:
-                header_text = header.get_text(strip=True).lower()
-                
-                # More precise section detection - look for specific section types
-                is_captains_section = 'captains' in header_text
-                is_players_section = 'players' in header_text
-                is_sub_section = any(keyword in header_text for keyword in ['players subbing for this team', 'players also subbing for other teams', 'subbing for this team', 'subbing for other teams'])
-                
-                if (is_captains_section or is_players_section) and not is_sub_section:
-                    valid_sections.append(header)
-                    # Limit debug output to just the section name, not the entire HTML content
-                    section_name = header.get_text(strip=True)[:100]  # Limit to first 100 chars
-                    if len(header.get_text(strip=True)) > 100:
-                        section_name += "..."
-                    print(f"       📋 Found valid section: {section_name}")
-                elif is_sub_section:
-                    # Limit debug output to just the section name, not the entire HTML content
-                    section_name = header.get_text(strip=True)[:100]  # Limit to first 100 chars
-                    if len(header.get_text(strip=True)) > 100:
-                        section_name += "..."
-                    print(f"       ⚠️ Skipping sub section: {section_name}")
-                # Note: We don't print anything for sections that don't match our criteria
-            
-            # If we can't find section headers, fall back to the old method but with sub filtering
-            if not valid_sections:
-                print(f"       ⚠️ No clear sections found, using fallback method with sub filtering")
+            if roster_table:
+                print(f"       📋 Found team roster table, processing table structure")
+                players = self._extract_players_from_table(roster_table, team_name, team_url, series_name, series_url)
+            else:
+                print(f"       ⚠️ No team roster table found, trying fallback method")
+                # Fall back to the old method but with sub filtering
                 return self._extract_players_fallback_with_sub_filtering(soup, team_name, team_url, series_name, series_url)
-            
-            # Process each valid section
-            for section in valid_sections:
-                # Limit debug output to just the section name, not the entire HTML content
-                section_name = section.get_text(strip=True)[:100]  # Limit to first 100 chars
-                if len(section.get_text(strip=True)) > 100:
-                    section_name += "..."
-                print(f"       🎯 Processing section: {section_name}")
-                
-                # Find all player links within this section
-                section_players = self._extract_players_from_section(section, team_name, team_url, series_name, series_url)
-                players.extend(section_players)
-                print(f"         ✅ Found {len(section_players)} players in {section_name}")
             
             print(f"     ✅ Found {len(players)} total players on {team_name} roster (excluding subs)")
             return players
@@ -646,82 +603,119 @@ class CNSWPLRosterScraper:
             print(f"     ❌ Error scraping team {team_name}: {e}")
             return []
     
-    def _extract_players_from_section(self, section_element, team_name: str, team_url: str, series_name: str, series_url: str) -> List[Dict]:
-        """Extract players from a specific section, filtering out sub players"""
+    def _extract_players_from_table(self, table_element, team_name: str, team_url: str, series_name: str, series_url: str) -> List[Dict]:
+        """Extract players from the CNSWPL team roster table structure"""
         players = []
         
-        # Find all player links within this section
-        player_links = section_element.find_all('a', href=True)
+        # Find all table headers to identify sections
+        table_headers = table_element.find_all('th')
+        section_info = []
         
-        for link in player_links:
-            href = link.get('href', '')
-            player_name = link.get_text(strip=True)
+        print(f"         🔍 Found {len(table_headers)} table headers")
+        
+        # Process each header to identify sections
+        for i, header in enumerate(table_headers):
+            header_text = header.get_text(strip=True).lower()
             
-            # Skip if this is not a player link
-            if '/player.php?print&p=' not in href or not player_name or len(player_name.split()) < 2:
+            if 'captains' in header_text:
+                section_info.append(('captains', i))
+                print(f"         📋 Found Captains section at column {i}")
+            elif 'players' in header_text and 'subbing' not in header_text:
+                section_info.append(('players', i))
+                print(f"         📋 Found Players section at column {i}")
+            elif 'subbing' in header_text:
+                print(f"         ⚠️ Skipping subbing section at column {i}")
+        
+        if not section_info:
+            print(f"         ⚠️ No valid sections found in table")
+            return []
+        
+        # Find all table rows (skip header row)
+        table_rows = table_element.find_all('tr')[1:]  # Skip header row
+        
+        print(f"         🔍 Processing {len(table_rows)} player rows")
+        
+        # Process each row
+        for row in table_rows:
+            cells = row.find_all('td')
+            if len(cells) < len(table_headers):
                 continue
             
-            # FILTER OUT SUB PLAYERS - this is the key fix
-            if '(S↑)' in player_name or '(S)' in player_name:
-                print(f"           ⚠️ Skipping sub player: {player_name}")
-                continue
-            
-            # Extract player ID from href
-            player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
-            
-            # Check for captain indicators and clean player name
-            is_captain = False
-            clean_player_name = player_name
-            
-            if '(C)' in player_name:
-                is_captain = True
-                clean_player_name = player_name.replace('(C)', '').strip()
-                print(f"           🎯 CAPTAIN DETECTED: {player_name} -> {clean_player_name}")
-            elif '(CC)' in player_name:
-                is_captain = True
-                clean_player_name = player_name.replace('(CC)', '').strip()
-                print(f"           🎯 CO-CAPTAIN DETECTED: {player_name} -> {clean_player_name}")
-            
-            # Parse team name to get club and series info
-            club_name = team_name
-            team_series = series_name
-            
-            # Extract club name from team name (e.g., "Tennaqua I" -> "Tennaqua")
-            if ' ' in team_name:
-                parts = team_name.split()
-                if parts[-1] in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] or parts[-1].isdigit():
-                    club_name = ' '.join(parts[:-1])
-            
-            # Enhanced name parsing with compound first name handling (use clean name)
-            first_name, last_name = self._parse_player_name(clean_player_name)
-            
-            # Convert player ID to cnswpl_ format for ETL compatibility
-            cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
-            
-            # Create player record
-            player_data = {
-                'League': 'CNSWPL',
-                'Series': team_series,
-                'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
-                'Club': club_name,
-                'Location ID': club_name.upper().replace(' ', '_'),
-                'Player ID': cnswpl_player_id,
-                'First Name': first_name,
-                'Last Name': last_name,
-                'PTI': 'N/A',
-                'Wins': '0',
-                'Losses': '0',
-                'Win %': '0.0%',
-                'Captain': 'Yes' if is_captain else '',
-                'Source URL': team_url,
-                'source_league': 'CNSWPL',
-                'validation_issues': [f'Scraped from {team_name} team roster'],
-                'scrape_source': 'team_roster_page',
-                'scrape_team': team_name,
-                'scrape_series': series_name
-            }
-            
-            players.append(player_data)
+            # Process each section column
+            for section_type, column_index in section_info:
+                if column_index < len(cells):
+                    cell = cells[column_index]
+                    
+                    # Look for player links in this cell
+                    player_links = cell.find_all('a', href=True)
+                    
+                    for link in player_links:
+                        href = link.get('href', '')
+                        if '/player.php?print&p=' not in href:
+                            continue
+                        
+                        # Get the player name from the link
+                        player_name = link.get_text(strip=True)
+                        
+                        # Get the full cell text to check for captain indicators
+                        cell_text = cell.get_text(strip=True)
+                        
+                        # Check for captain indicators in the cell text (not just link text)
+                        is_captain = False
+                        clean_player_name = player_name
+                        
+                        if '(C)' in cell_text:
+                            is_captain = True
+                            clean_player_name = player_name
+                            print(f"           🎯 CAPTAIN DETECTED: {player_name} (from cell text: {cell_text[:50]})")
+                        elif '(CC)' in cell_text:
+                            is_captain = True
+                            clean_player_name = player_name
+                            print(f"           🎯 CO-CAPTAIN DETECTED: {player_name} (from cell text: {cell_text[:50]})")
+                        
+                        # Extract player ID from href
+                        player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                        
+                        # Parse team name to get club and series info
+                        club_name = team_name
+                        team_series = series_name
+                        
+                        # Extract club name from team name (e.g., "Tennaqua I" -> "Tennaqua")
+                        if ' ' in team_name:
+                            parts = team_name.split()
+                            if parts[-1] in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] or parts[-1].isdigit():
+                                club_name = ' '.join(parts[:-1])
+                        
+                        # Enhanced name parsing with compound first name handling (use clean name)
+                        first_name, last_name = self._parse_player_name(clean_player_name)
+                        
+                        # Convert player ID to cnswpl_ format for ETL compatibility
+                        cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
+                        
+                        # Create player record
+                        player_data = {
+                            'League': 'CNSWPL',
+                            'Series': team_series,
+                            'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
+                            'Club': club_name,
+                            'Location ID': club_name.upper().replace(' ', '_'),
+                            'Player ID': cnswpl_player_id,
+                            'First Name': first_name,
+                            'Last Name': last_name,
+                            'PTI': 'N/A',
+                            'Wins': '0',
+                            'Losses': '0',
+                            'Win %': '0.0%',
+                            'Captain': 'Yes' if is_captain else '',
+                            'Source URL': team_url,
+                            'source_league': 'CNSWPL',
+                            'validation_issues': [f'Scraped from {team_name} team roster'],
+                            'scrape_source': 'team_roster_page',
+                            'scrape_team': team_name,
+                            'scrape_series': series_name
+                        }
+                        
+                        players.append(player_data)
         
         return players
     
