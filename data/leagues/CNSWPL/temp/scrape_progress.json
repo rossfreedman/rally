@@ -1,17 +1,20 @@
 {
   "completed_series": [
+    "Series 12",
     "Series 4",
     "Series 7",
     "Series 6",
     "Series 2",
     "Series 5",
+    "Series 11",
+    "Series 13",
     "Series 1",
     "Series 8",
     "Series 3",
     "Series 10",
     "Series 9"
   ],
-  "last_update": "2025-08-24T15:24:25.902281",
-  "total_players": 910,
-  "series_files_created": 10
+  "last_update": "2025-08-24T15:33:17.871404",
+  "total_players": 1207,
+  "series_files_created": 13
 }
