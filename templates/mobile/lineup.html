@@ -688,7 +688,7 @@ function updateManualLineupSummary() {
     return;
   }
   
-  let lineupText = 'LINEUP:<br>';
+  let lineupText = '';
   
   // Sort courts numerically
   const sortedCourts = Object.keys(manualLineup).sort((a, b) => parseInt(a) - parseInt(b));
@@ -698,12 +698,15 @@ function updateManualLineupSummary() {
     const player1 = courtData['1'];
     const player2 = courtData['2'];
     
+    // Add court header
+    lineupText += `Court ${court}:\n`;
+    
     if (player1 && player2) {
-      lineupText += `Court ${court}: ${player1.name} & ${player2.name}<br>`;
+      lineupText += `${player1.name} (Ad) ${player2.name} (Deuce)\n\n`;
     } else if (player1) {
-      lineupText += `Court ${court}: ${player1.name} & [Need Partner]<br>`;
+      lineupText += `${player1.name} (Ad) [Need Partner] (Deuce)\n\n`;
     } else if (player2) {
-      lineupText += `Court ${court}: [Need Partner] & ${player2.name}<br>`;
+      lineupText += `[Need Partner] (Ad) ${player2.name} (Deuce)\n\n`;
     }
   });
   
@@ -1157,10 +1160,18 @@ function getCurrentLineupText() {
     let text = '';
     document.querySelectorAll('.court-container').forEach((court, i) => {
         text += `Court ${i+1}:\n`;
-        court.querySelectorAll('.court-position').forEach((pos, j) => {
-            text += `  ${j === 0 ? 'Ad' : 'Deuce'}: ${pos.textContent.trim()}\n`;
-        });
-        text += '\n';
+        const adPlayer = court.querySelectorAll('.court-position')[0];
+        const deucePlayer = court.querySelectorAll('.court-position')[1];
+        
+        if (adPlayer && deucePlayer) {
+            text += `${adPlayer.textContent.trim()} (Ad) ${deucePlayer.textContent.trim()} (Deuce)\n\n`;
+        } else if (adPlayer) {
+            text += `${adPlayer.textContent.trim()} (Ad)\n\n`;
+        } else if (deucePlayer) {
+            text += `${deucePlayer.textContent.trim()} (Deuce)\n\n`;
+        } else {
+            text += '\n';
+        }
     });
     return text.trim();
 }
@@ -1172,7 +1183,7 @@ function setLineupFromText(lineupText) {
     // Clear existing lineup
     manualLineup = {};
     
-    // Parse the HTML lineup format: "LINEUP:<br>Court 1: Player1 & Player2<br>Court 2: Player3 & Player4<br>"
+    // Parse the HTML lineup format: "LINEUP:<br>Court 1: Player1 & Player2<br>Court 2: Player3 & Player4<br>" (old format) or new format
     // First, convert <br> tags to newlines and decode HTML entities
     let normalizedText = lineupText.replace(/<br\s*\/?>/gi, '\n');
     normalizedText = normalizedText.replace(/&amp;/g, '&'); // Decode &amp; to &

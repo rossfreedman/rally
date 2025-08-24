@@ -194,6 +194,62 @@ class LineupEscrowService:
                 "error": f"Failed to submit lineup: {str(e)}"
             }
 
+    def _clean_lineup_text(self, lineup_text: str) -> str:
+        """Clean lineup text by removing HTML entities and formatting consistently"""
+        if not lineup_text:
+            return lineup_text
+        
+        # Handle double-encoded HTML entities first
+        cleaned = lineup_text.replace('&lt;br&gt;', '\n').replace('&amp;amp;', '&')
+        
+        # Then handle single-encoded HTML entities
+        cleaned = cleaned.replace('<br>', '\n').replace('&amp;', '&')
+        
+        # Remove any trailing <br> tags
+        cleaned = cleaned.rstrip('<br>')
+        
+        # Convert old format to new format if needed
+        # Old format: "LINEUP:\nCourt 1: Player1 & Player2\n"
+        # New format: "Court 1:\n  Ad: Player1\n  Deuce: Player2\n"
+        if cleaned.startswith('LINEUP:'):
+            lines = cleaned.split('\n')
+            new_lines = []
+            
+            for line in lines:
+                if line.startswith('LINEUP:'):
+                    continue  # Skip the LINEUP: header
+                elif line.startswith('Court ') and '&' in line:
+                    # Parse "Court X: Player1 & Player2" format
+                    court_match = line.split(':')
+                    if len(court_match) == 2:
+                        court_header = court_match[0].strip()
+                        players_text = court_match[1].strip()
+                        players = players_text.split('&')
+                        
+                        if len(players) == 2:
+                            player1 = players[0].strip()
+                            player2 = players[1].strip()
+                            
+                            # Add court header once
+                            new_lines.append(f"{court_header}:")
+                            
+                            # Skip placeholder text
+                            if not player1.startswith('[Need Partner]'):
+                                new_lines.append(f"  Ad: {player1}")
+                            if not player2.startswith('[Need Partner]'):
+                                new_lines.append(f"  Deuce: {player2}")
+                            new_lines.append('')  # Add blank line between courts
+                        else:
+                            new_lines.append(line)
+                    else:
+                        new_lines.append(line)
+                else:
+                    new_lines.append(line)
+            
+            cleaned = '\n'.join(new_lines)
+        
+        return cleaned
+
     def get_escrow_details(self, escrow_token: str, viewer_contact: str) -> Dict:
         """
         Get escrow details for viewing
@@ -263,11 +319,11 @@ class LineupEscrowService:
             if escrow.status == 'both_submitted':
                 return {
                     "success": True,
-                    "escrow": {
+                    "escrow_data": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
-                        "recipient_lineup": escrow.recipient_lineup,
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup),
+                        "recipient_lineup": self._clean_lineup_text(escrow.recipient_lineup),
                         "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
                         "recipient_submitted_at": escrow.recipient_submitted_at.isoformat() if escrow.recipient_submitted_at else None,
                         "subject": escrow.subject,
@@ -275,7 +331,9 @@ class LineupEscrowService:
                         "initiator_team_name": initiator_team_name,
                         "recipient_team_name": recipient_team_name,
                         "initiator_club_name": initiator_club_name,
-                        "recipient_club_name": recipient_club_name
+                        "recipient_club_name": recipient_club_name,
+                        "initiator_team_id": escrow.initiator_team_id,
+                        "recipient_team_id": escrow.recipient_team_id
                     },
                     "both_lineups_visible": True
                 }
@@ -283,10 +341,10 @@ class LineupEscrowService:
                 # For pending status, only the recipient can view (initiator sees blurred)
                 return {
                     "success": True,
-                    "escrow": {
+                    "escrow_data": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup),
                         "recipient_lineup": None,
                         "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
                         "recipient_submitted_at": None,
@@ -296,7 +354,9 @@ class LineupEscrowService:
                         "initiator_team_name": initiator_team_name,
                         "recipient_team_name": recipient_team_name,
                         "initiator_club_name": initiator_club_name,
-                        "recipient_club_name": recipient_club_name
+                        "recipient_club_name": recipient_club_name,
+                        "initiator_team_id": escrow.initiator_team_id,
+                        "recipient_team_id": escrow.recipient_team_id
                     },
                     "both_lineups_visible": False
                 }
@@ -306,8 +366,8 @@ class LineupEscrowService:
                     "escrow": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
-                        "recipient_lineup": escrow.recipient_lineup,
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup),
+                        "recipient_lineup": self._clean_lineup_text(escrow.recipient_lineup),
                         "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
                         "recipient_submitted_at": escrow.recipient_submitted_at.isoformat() if escrow.recipient_submitted_at else None,
                         "subject": escrow.subject,
@@ -555,7 +615,8 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
-            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
+            # Use the new opposing captain page for initial lineup submission
+            view_url = f"{base_url}/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={contact_param}"
             
             club_name = ""
             # 1. Try team-based lookup
@@ -636,12 +697,14 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
+            # For completion notifications, use the view page since both lineups are visible
             view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
             
             # Get initiator user
             initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
             if initiator and initiator.phone_number:
                 # Notify initiator (use their own contact info)
+                # For completion notifications, use the view page since both lineups are visible
                 initiator_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}"
                 message = f"🏓 Lineup Escrow™ Complete!\n\nBoth lineups are ready to view.\n\nView results: {initiator_url}"
                 send_sms_notification(
@@ -702,7 +765,8 @@ class LineupEscrowService:
         if not escrow:
             return False
         # Compose message (no lineup included)
-        link = f"https://rally.club/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={escrow.recipient_contact}"
+        # Use the new opposing captain page for initial lineup submission
+        link = f"https://rally.club/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={escrow.recipient_contact}"
         subject = "Lineup Escrow™ - View and Submit Your Lineup"
         message = f"You have received a Lineup Escrow™ request from another captain.\n\nClick the link below to view and submit your lineup. Both lineups will be revealed simultaneously after submission.\n\n{link}\n\nDo not reply to this message."
         # Send email (implementation omitted)
