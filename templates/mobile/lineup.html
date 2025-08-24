@@ -702,11 +702,11 @@ function updateManualLineupSummary() {
     lineupText += `Court ${court}:\n`;
     
     if (player1 && player2) {
-      lineupText += `${player1.name} (Ad) ${player2.name} (Deuce)\n\n`;
+      lineupText += `${player1.name}\n${player2.name}\n\n`;
     } else if (player1) {
-      lineupText += `${player1.name} (Ad) [Need Partner] (Deuce)\n\n`;
+      lineupText += `${player1.name}\n[Need Partner]\n\n`;
     } else if (player2) {
-      lineupText += `[Need Partner] (Ad) ${player2.name} (Deuce)\n\n`;
+      lineupText += `[Need Partner]\n${player2.name}\n\n`;
     }
   });
   
@@ -1164,11 +1164,11 @@ function getCurrentLineupText() {
         const deucePlayer = court.querySelectorAll('.court-position')[1];
         
         if (adPlayer && deucePlayer) {
-            text += `${adPlayer.textContent.trim()} (Ad) ${deucePlayer.textContent.trim()} (Deuce)\n\n`;
+            text += `${adPlayer.textContent.trim()}\n${deucePlayer.textContent.trim()}\n\n`;
         } else if (adPlayer) {
-            text += `${adPlayer.textContent.trim()} (Ad)\n\n`;
+            text += `${adPlayer.textContent.trim()}\n\n`;
         } else if (deucePlayer) {
-            text += `${deucePlayer.textContent.trim()} (Deuce)\n\n`;
+            text += `${deucePlayer.textContent.trim()}\n\n`;
         } else {
             text += '\n';
         }
@@ -1195,27 +1195,26 @@ function setLineupFromText(lineupText) {
     const lines = normalizedText.split('\n');
     
     lines.forEach(line => {
-        // Match pattern: "Court X: Player1 & Player2"
+        // Match pattern: "Court X: Player1 Player2" (new format without & separator)
         const courtMatch = line.match(/^Court (\d+):\s*(.+)$/);
         if (courtMatch) {
             const courtNum = parseInt(courtMatch[1], 10);
             const playersText = courtMatch[2].trim();
             console.log(`🔧 Found Court ${courtNum}: ${playersText}`);
             
-            // Split by & to get individual players
-            const players = playersText.split('&').map(p => p.trim());
+            // Split by whitespace to get individual players (new format)
+            const players = playersText.split(/\s+/).filter(p => p.trim() && !p.includes('[Need Partner]'));
             
             if (players.length >= 2) {
                 const player1 = players[0];
                 const player2 = players[1];
                 
-                // Skip placeholder text like "[Need Partner]"
-                if (player1 && !player1.includes('[Need Partner]')) {
-                    assignPlayerToCourt(player1, courtNum, 'Ad');
-                }
-                if (player2 && !player2.includes('[Need Partner]')) {
-                    assignPlayerToCourt(player2, courtNum, 'Deuce');
-                }
+                // Assign players to positions
+                assignPlayerToCourt(player1, courtNum, 'Ad');
+                assignPlayerToCourt(player2, courtNum, 'Deuce');
+            } else if (players.length === 1) {
+                // Only one player assigned
+                assignPlayerToCourt(players[0], courtNum, 'Ad');
             }
         }
     });

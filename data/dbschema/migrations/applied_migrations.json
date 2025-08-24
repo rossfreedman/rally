@@ -14,5 +14,12 @@
       "production",
       "staging"
     ]
+  },
+  {
+    "filename": "20250115_130000_add_team_ids_to_lineup_escrow.sql",
+    "applied_at": "2025-08-24T12:22:30.000000",
+    "applied_to": [
+      "staging"
+    ]
   }
 ]

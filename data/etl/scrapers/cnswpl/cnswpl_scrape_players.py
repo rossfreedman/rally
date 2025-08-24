@@ -497,29 +497,36 @@ class CNSWPLRosterScraper:
                 print(f"   ⚠️ No team links found - this might indicate a filtering issue")
             
             # Scrape each team's roster page
-            # Use a set to track unique player IDs to prevent duplicates
-            seen_player_ids = set()
+            # Use a set to track unique player IDs PER TEAM (not across series)
+            # Players can legitimately appear on multiple teams within the same series
             
             for i, (team_name, team_url) in enumerate(team_links):
                 print(f"   🎾 Scraping team {i+1}/{len(team_links)}: {team_name}")
                 print(f"      🌐 URL: {team_url}")
                 team_players = self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
                 
-                # Filter out duplicate players based on Player ID
+                # Filter out duplicate players WITHIN THIS TEAM only (not across series)
+                team_seen_player_ids = set()  # Reset for each team
                 unique_team_players = []
+                duplicates_within_team = 0
+                
                 for player in team_players:
                     player_id = player.get('Player ID', '')
-                    if player_id and player_id not in seen_player_ids:
-                        seen_player_ids.add(player_id)
+                    if player_id and player_id not in team_seen_player_ids:
+                        team_seen_player_ids.add(player_id)
                         unique_team_players.append(player)
                     elif player_id:
-                        print(f"         ⚠️ Skipping duplicate player: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
+                        duplicates_within_team += 1
+                        print(f"         ⚠️ Skipping duplicate player WITHIN TEAM: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
                 
                 all_players.extend(unique_team_players)
                 
                 # Show team summary
                 if unique_team_players:
-                    print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
+                    if duplicates_within_team > 0:
+                        print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total, {duplicates_within_team} duplicates within team)")
+                    else:
+                        print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
                 else:
                     print(f"      ⚠️ Team {team_name}: No unique players found")
                 
@@ -593,13 +600,26 @@ class CNSWPLRosterScraper:
             
             for header in section_headers:
                 header_text = header.get_text(strip=True).lower()
-                if any(keyword in header_text for keyword in ['captains', 'players']):
-                    # Skip sections that contain "subbing" or "sub"
-                    if 'subbing' not in header_text and 'sub' not in header_text:
-                        valid_sections.append(header)
-                        print(f"       📋 Found valid section: {header.get_text(strip=True)}")
-                    else:
-                        print(f"       ⚠️ Skipping sub section: {header.get_text(strip=True)}")
+                
+                # More precise section detection - look for specific section types
+                is_captains_section = 'captains' in header_text
+                is_players_section = 'players' in header_text
+                is_sub_section = any(keyword in header_text for keyword in ['players subbing for this team', 'players also subbing for other teams', 'subbing for this team', 'subbing for other teams'])
+                
+                if (is_captains_section or is_players_section) and not is_sub_section:
+                    valid_sections.append(header)
+                    # Limit debug output to just the section name, not the entire HTML content
+                    section_name = header.get_text(strip=True)[:100]  # Limit to first 100 chars
+                    if len(header.get_text(strip=True)) > 100:
+                        section_name += "..."
+                    print(f"       📋 Found valid section: {section_name}")
+                elif is_sub_section:
+                    # Limit debug output to just the section name, not the entire HTML content
+                    section_name = header.get_text(strip=True)[:100]  # Limit to first 100 chars
+                    if len(header.get_text(strip=True)) > 100:
+                        section_name += "..."
+                    print(f"       ⚠️ Skipping sub section: {section_name}")
+                # Note: We don't print anything for sections that don't match our criteria
             
             # If we can't find section headers, fall back to the old method but with sub filtering
             if not valid_sections:
@@ -608,7 +628,10 @@ class CNSWPLRosterScraper:
             
             # Process each valid section
             for section in valid_sections:
-                section_name = section.get_text(strip=True)
+                # Limit debug output to just the section name, not the entire HTML content
+                section_name = section.get_text(strip=True)[:100]  # Limit to first 100 chars
+                if len(section.get_text(strip=True)) > 100:
+                    section_name += "..."
                 print(f"       🎯 Processing section: {section_name}")
                 
                 # Find all player links within this section
