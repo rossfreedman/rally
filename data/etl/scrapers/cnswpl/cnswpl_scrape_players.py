@@ -607,115 +607,125 @@ class CNSWPLRosterScraper:
         """Extract players from the CNSWPL team roster table structure"""
         players = []
         
-        # Find all table headers to identify sections
-        table_headers = table_element.find_all('th')
-        section_info = []
+        # Find all table rows
+        all_rows = table_element.find_all('tr')
         
-        print(f"         🔍 Found {len(table_headers)} table headers")
+        print(f"         🔍 Found {len(all_rows)} total rows")
         
-        # Process each header to identify sections
-        for i, header in enumerate(table_headers):
-            header_text = header.get_text(strip=True).lower()
-            
-            if 'captains' in header_text:
-                section_info.append(('captains', i))
-                print(f"         📋 Found Captains section at column {i}")
-            elif 'players' in header_text and 'subbing' not in header_text:
-                section_info.append(('players', i))
-                print(f"         📋 Found Players section at column {i}")
-            elif 'subbing' in header_text:
-                print(f"         ⚠️ Skipping subbing section at column {i}")
-        
-        if not section_info:
-            print(f"         ⚠️ No valid sections found in table")
-            return []
-        
-        # Find all table rows (skip header row)
-        table_rows = table_element.find_all('tr')[1:]  # Skip header row
-        
-        print(f"         🔍 Processing {len(table_rows)} player rows")
+        # Track current section
+        current_section = None
         
         # Process each row
-        for row in table_rows:
-            cells = row.find_all('td')
-            if len(cells) < len(table_headers):
+        for row_idx, row in enumerate(all_rows):
+            cells = row.find_all(['td', 'th'])
+            
+            if not cells:
                 continue
             
-            # Process each section column
-            for section_type, column_index in section_info:
-                if column_index < len(cells):
-                    cell = cells[column_index]
+            # Check if this is a section header (has colspan attribute)
+            first_cell = cells[0]
+            colspan = first_cell.get('colspan', '1')
+            
+            if colspan != '1':
+                # This is a section header
+                section_text = first_cell.get_text(strip=True).lower()
+                
+                if 'captains' in section_text:
+                    current_section = 'captains'
+                    print(f"         📋 Found Captains section at row {row_idx + 1}")
+                elif 'players' in section_text and 'subbing' not in section_text:
+                    current_section = 'players'
+                    print(f"         📋 Found Players section at row {row_idx + 1}")
+                elif 'subbing' in section_text:
+                    current_section = 'subbing'
+                    print(f"         ⚠️ Skipping subbing section at row {row_idx + 1}")
+                else:
+                    current_section = None
+                    print(f"         ⚠️ Unknown section: {section_text}")
+                
+                # Skip section header rows
+                continue
+            
+            # This is a data row (should have 4 cells: player, empty, wins, losses)
+            if len(cells) == 4 and current_section in ['captains', 'players']:
+                # First cell contains player info
+                player_cell = cells[0]
+                
+                # Look for player links in this cell
+                player_links = player_cell.find_all('a', href=True)
+                
+                for link in player_links:
+                    href = link.get('href', '')
+                    if '/player.php?print&p=' not in href:
+                        continue
                     
-                    # Look for player links in this cell
-                    player_links = cell.find_all('a', href=True)
+                    # Get the player name from the link
+                    player_name = link.get_text(strip=True)
                     
-                    for link in player_links:
-                        href = link.get('href', '')
-                        if '/player.php?print&p=' not in href:
-                            continue
-                        
-                        # Get the player name from the link
-                        player_name = link.get_text(strip=True)
-                        
-                        # Get the full cell text to check for captain indicators
-                        cell_text = cell.get_text(strip=True)
-                        
-                        # Check for captain indicators in the cell text (not just link text)
-                        is_captain = False
-                        clean_player_name = player_name
-                        
-                        if '(C)' in cell_text:
-                            is_captain = True
-                            clean_player_name = player_name
-                            print(f"           🎯 CAPTAIN DETECTED: {player_name} (from cell text: {cell_text[:50]})")
-                        elif '(CC)' in cell_text:
-                            is_captain = True
-                            clean_player_name = player_name
-                            print(f"           🎯 CO-CAPTAIN DETECTED: {player_name} (from cell text: {cell_text[:50]})")
-                        
-                        # Extract player ID from href
-                        player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
-                        
-                        # Parse team name to get club and series info
-                        club_name = team_name
-                        team_series = series_name
-                        
-                        # Extract club name from team name (e.g., "Tennaqua I" -> "Tennaqua")
-                        if ' ' in team_name:
-                            parts = team_name.split()
-                            if parts[-1] in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] or parts[-1].isdigit():
-                                club_name = ' '.join(parts[:-1])
-                        
-                        # Enhanced name parsing with compound first name handling (use clean name)
-                        first_name, last_name = self._parse_player_name(clean_player_name)
-                        
-                        # Convert player ID to cnswpl_ format for ETL compatibility
-                        cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
-                        
-                        # Create player record
-                        player_data = {
-                            'League': 'CNSWPL',
-                            'Series': team_series,
-                            'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
-                            'Club': club_name,
-                            'Location ID': club_name.upper().replace(' ', '_'),
-                            'Player ID': cnswpl_player_id,
-                            'First Name': first_name,
-                            'Last Name': last_name,
-                            'PTI': 'N/A',
-                            'Wins': '0',
-                            'Losses': '0',
-                            'Win %': '0.0%',
-                            'Captain': 'Yes' if is_captain else '',
-                            'Source URL': team_url,
-                            'source_league': 'CNSWPL',
-                            'validation_issues': [f'Scraped from {team_name} team roster'],
-                            'scrape_source': 'team_roster_page',
-                            'scrape_team': team_name,
-                            'scrape_series': series_name
-                        }
-                        
-                        players.append(player_data)
+                    # Get the full cell text to check for captain indicators
+                    cell_text = player_cell.get_text(strip=True)
+                    
+                    # Check for captain indicators in the cell text
+                    is_captain = False
+                    clean_player_name = player_name
+                    
+                    if '(C)' in cell_text:
+                        is_captain = True
+                        print(f"           🎯 CAPTAIN DETECTED: {player_name}")
+                    elif '(CC)' in cell_text:
+                        is_captain = True
+                        print(f"           🎯 CO-CAPTAIN DETECTED: {player_name}")
+                    
+                    # Extract player ID from href
+                    player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                    
+                    # Parse team name to get club and series info
+                    club_name = team_name
+                    team_series = series_name
+                    
+                    # Extract club name from team name (e.g., "Tennaqua I" -> "Tennaqua")
+                    if ' ' in team_name:
+                        parts = team_name.split()
+                        if parts[-1] in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] or parts[-1].isdigit():
+                            club_name = ' '.join(parts[:-1])
+                    
+                    # Enhanced name parsing with compound first name handling
+                    first_name, last_name = self._parse_player_name(clean_player_name)
+                    
+                    # Convert player ID to cnswpl_ format for ETL compatibility
+                    cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
+                    
+                    # Create player record
+                    player_data = {
+                        'League': 'CNSWPL',
+                        'Series': team_series,
+                        'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
+                        'Club': club_name,
+                        'Location ID': club_name.upper().replace(' ', '_'),
+                        'Player ID': cnswpl_player_id,
+                        'First Name': first_name,
+                        'Last Name': last_name,
+                        'PTI': 'N/A',
+                        'Wins': '0',
+                        'Losses': '0',
+                        'Win %': '0.0%',
+                        'Captain': 'Yes' if is_captain else '',
+                        'Source URL': team_url,
+                        'source_league': 'CNSWPL',
+                        'validation_issues': [f'Scraped from {team_name} team roster'],
+                        'scrape_source': 'team_roster_page',
+                        'scrape_team': team_name,
+                        'scrape_series': series_name
+                    }
+                    
+                    players.append(player_data)
+                    print(f"           🎾 Added player: {player_name} (section: {current_section})")
+            
+            elif len(cells) != 4:
+                # Skip rows that don't have the expected 4-cell structure
+                print(f"         ⚠️ Row {row_idx + 1} has {len(cells)} cells, skipping")
+        
+        print(f"         ✅ Total players extracted: {len(players)}")
         
         return players
     
@@ -1168,6 +1178,27 @@ class CNSWPLRosterScraper:
         main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'players.json')
         
         if os.path.exists(main_output_file):
+            # BACKUP EXISTING players.json BEFORE OVERWRITING
+            try:
+                backup_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'backup')
+                os.makedirs(backup_dir, exist_ok=True)
+                
+                backup_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                backup_filename = f"players_backup_{backup_timestamp}.json"
+                backup_file = os.path.join(backup_dir, backup_filename)
+                
+                # Copy existing players.json to backup
+                with open(main_output_file, 'r', encoding='utf-8') as source:
+                    with open(backup_file, 'w', encoding='utf-8') as dest:
+                        dest.write(source.read())
+                
+                print(f"🛡️ BACKUP CREATED: {backup_file}")
+                print(f"   📁 Protected {len(existing_players):,} existing players")
+                
+            except Exception as e:
+                print(f"⚠️ WARNING: Failed to create backup: {e}")
+                print(f"   ⚠️ Existing players.json may be lost if update proceeds!")
+            
             with open(main_output_file, 'r', encoding='utf-8') as f:
                 existing_players = json.load(f)
             
@@ -1196,6 +1227,7 @@ class CNSWPLRosterScraper:
             print(f"   📁 Individual series files: data/leagues/CNSWPL/temp/")
             print(f"   📁 Final aggregated data: {main_output_file}")
             print(f"   📁 Timestamped backup: {output_file}")
+            print(f"   🛡️ Safety backup: data/leagues/CNSWPL/backup/")
 
     def get_html_with_fallback(self, url: str) -> str:
         """
