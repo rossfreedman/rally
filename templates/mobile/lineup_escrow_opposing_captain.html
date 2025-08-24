@@ -848,7 +848,9 @@ function handleDrop(e) {
         
         // Update manual lineup data
         if (!manualLineup[court]) manualLineup[court] = {};
-        manualLineup[court][position] = {
+        // Convert position names to numbers: Ad = 1, Deuce = 2 (consistent with tap mode)
+        const positionKey = position === 'Ad' ? '1' : '2';
+        manualLineup[court][positionKey] = {
             name: playerName,
             rating: draggedPlayer.dataset.playerRating
         };
@@ -873,9 +875,10 @@ function movePlayerToPool(playerElement) {
     const court = playerElement.parentElement.dataset.court;
     const position = playerElement.parentElement.dataset.position;
     
-    // Remove from lineup data
-    if (manualLineup[court] && manualLineup[court][position]) {
-        delete manualLineup[court][position];
+    // Remove from lineup data - convert position to key format
+    const positionKey = position === 'Ad' ? '1' : '2';
+    if (manualLineup[court] && manualLineup[court][positionKey]) {
+        delete manualLineup[court][positionKey];
         if (Object.keys(manualLineup[court]).length === 0) {
             delete manualLineup[court];
         }
@@ -940,6 +943,8 @@ function updateManualLineupSummary() {
     
     // Enable submit button if we have a complete lineup (8 players)
     console.log(`Lineup validation: ${totalPlayers}/8 players, button disabled: ${totalPlayers < 8}`);
+    console.log('Manual lineup data:', manualLineup);
+    console.log('Submit button element:', submitBtn);
     submitBtn.disabled = totalPlayers < 8;
 }
 
