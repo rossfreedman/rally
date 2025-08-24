@@ -195,7 +195,7 @@ class LineupEscrowService:
             }
 
     def _clean_lineup_text(self, lineup_text: str) -> str:
-        """Clean lineup text by removing HTML entities and formatting consistently"""
+        """Clean lineup text by removing HTML entities and preserving clean format"""
         if not lineup_text:
             return lineup_text
         
@@ -208,9 +208,9 @@ class LineupEscrowService:
         # Remove any trailing <br> tags
         cleaned = cleaned.rstrip('<br>')
         
-        # Convert old format to new format if needed
+        # Handle old legacy formats that might still exist in database
         # Old format: "LINEUP:\nCourt 1: Player1 & Player2\n"
-        # New format: "Court 1:\n  Ad: Player1\n  Deuce: Player2\n"
+        # Old format: "Court 1:\n  Ad: Player1\n  Deuce: Player2\n"
         if cleaned.startswith('LINEUP:'):
             lines = cleaned.split('\n')
             new_lines = []
@@ -233,16 +233,24 @@ class LineupEscrowService:
                             # Add court header once
                             new_lines.append(f"{court_header}:")
                             
-                            # Skip placeholder text
+                            # Skip placeholder text and add players on separate lines
                             if not player1.startswith('[Need Partner]'):
-                                new_lines.append(f"  Ad: {player1}")
+                                new_lines.append(f"  {player1}")
                             if not player2.startswith('[Need Partner]'):
-                                new_lines.append(f"  Deuce: {player2}")
+                                new_lines.append(f"  {player2}")
                             new_lines.append('')  # Add blank line between courts
                         else:
                             new_lines.append(line)
                     else:
                         new_lines.append(line)
+                elif line.startswith('  Ad:') or line.startswith('  Deuce:'):
+                    # Convert old "Ad:" and "Deuce:" format to clean format
+                    if line.startswith('  Ad:'):
+                        player_name = line.replace('  Ad:', '').strip()
+                        new_lines.append(f"  {player_name}")
+                    elif line.startswith('  Deuce:'):
+                        player_name = line.replace('  Deuce:', '').strip()
+                        new_lines.append(f"  {player_name}")
                 else:
                     new_lines.append(line)
             
