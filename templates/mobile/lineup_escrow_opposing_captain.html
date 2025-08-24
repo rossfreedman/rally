@@ -848,8 +848,8 @@ function handleDrop(e) {
         
         // Update manual lineup data
         if (!manualLineup[court]) manualLineup[court] = {};
-        // Convert position names to numbers: Ad = 1, Deuce = 2 (consistent with tap mode)
-        const positionKey = position === 'Ad' ? '1' : '2';
+        // Position is already "1" or "2" from HTML data attributes
+        const positionKey = position;
         manualLineup[court][positionKey] = {
             name: playerName,
             rating: draggedPlayer.dataset.playerRating
@@ -875,8 +875,8 @@ function movePlayerToPool(playerElement) {
     const court = playerElement.parentElement.dataset.court;
     const position = playerElement.parentElement.dataset.position;
     
-    // Remove from lineup data - convert position to key format
-    const positionKey = position === 'Ad' ? '1' : '2';
+    // Remove from lineup data - position is already "1" or "2"
+    const positionKey = position;
     if (manualLineup[court] && manualLineup[court][positionKey]) {
         delete manualLineup[court][positionKey];
         if (Object.keys(manualLineup[court]).length === 0) {
@@ -924,6 +924,9 @@ function updateManualLineupSummary() {
         const courtPlayers = manualLineup[court];
         const playerCount = Object.keys(courtPlayers).length;
         totalPlayers += playerCount;
+        
+        console.log(`🔍 Court ${court}: ${playerCount} players, keys:`, Object.keys(courtPlayers));
+        console.log(`🔍 Court ${court} data:`, courtPlayers);
         
         summaryHTML += `<div class="mb-2"><strong>Court ${court}:</strong> `;
         
@@ -1061,14 +1064,17 @@ function handleCourtPositionTap(e) {
     
     // Update manual lineup data
     if (!manualLineup[court]) manualLineup[court] = {};
-    // Convert position names to numbers: Ad = 1, Deuce = 2
-    const positionKey = position === 'Ad' ? '1' : '2';
+    // Position is already "1" or "2" from HTML data attributes
+    const positionKey = position;
     manualLineup[court][positionKey] = {
         name: selectedPlayerForTap,
         rating: playerElement.dataset.playerRating
     };
     
     console.log(`✅ Successfully assigned ${selectedPlayerForTap} to Court ${court} ${position}`);
+    console.log(`🔍 Position key: ${positionKey}, Court: ${court}`);
+    console.log(`🔍 Manual lineup after assignment:`, manualLineup);
+    console.log(`🔍 Court ${court} data:`, manualLineup[court]);
     
     // Clear selection and update summary
     clearPlayerSelection();
