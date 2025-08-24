@@ -200,7 +200,7 @@
                     <!-- Lineup Summary -->
                     <div id="manual-lineup-summary" class="mt-6 bg-gray-50 rounded-lg p-4 hidden">
                         <h4 class="font-semibold text-gray-900 mb-3">Lineup Summary</h4>
-                        <div id="manual-lineup-text" class="text-sm text-gray-700 whitespace-pre-line font-mono"></div>
+                        <div id="manual-lineup-text" class="text-sm text-gray-700 whitespace-pre-line font-mono leading-relaxed" style="line-height: 1.8; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;"></div>
                     </div>
                 </div>
             </div>
@@ -693,20 +693,25 @@ function updateManualLineupSummary() {
   // Sort courts numerically
   const sortedCourts = Object.keys(manualLineup).sort((a, b) => parseInt(a) - parseInt(b));
   
-  sortedCourts.forEach(court => {
+  sortedCourts.forEach((court, index) => {
     const courtData = manualLineup[court];
     const player1 = courtData['1'];
     const player2 = courtData['2'];
     
-    // Add court header
+    // Add court header with better formatting
     lineupText += `Court ${court}:\n`;
     
     if (player1 && player2) {
-      lineupText += `${player1.name}\n${player2.name}\n\n`;
+      lineupText += `  ${player1.name}\n  ${player2.name}\n`;
     } else if (player1) {
-      lineupText += `${player1.name}\n[Need Partner]\n\n`;
+      lineupText += `  ${player1.name}\n  [Need Partner]\n`;
     } else if (player2) {
-      lineupText += `[Need Partner]\n${player2.name}\n\n`;
+      lineupText += `  [Need Partner]\n  ${player2.name}\n`;
+    }
+    
+    // Add spacing between courts (but not after the last court)
+    if (index < sortedCourts.length - 1) {
+      lineupText += `\n`;
     }
   });
   
