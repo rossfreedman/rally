@@ -948,7 +948,18 @@ function updateManualLineupSummary() {
     console.log(`Lineup validation: ${totalPlayers}/8 players, button disabled: ${totalPlayers < 8}`);
     console.log('Manual lineup data:', manualLineup);
     console.log('Submit button element:', submitBtn);
-    submitBtn.disabled = totalPlayers < 8;
+    
+    if (totalPlayers === 8) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        submitBtn.classList.add('bg-green-600', 'cursor-pointer');
+        console.log('✅ Submit button ENABLED - all courts filled');
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        submitBtn.classList.remove('bg-green-600', 'cursor-pointer');
+        console.log(`❌ Submit button DISABLED - only ${totalPlayers}/8 players assigned`);
+    }
 }
 
 // Mode switching and tap functionality
@@ -1075,9 +1086,18 @@ function handleCourtPositionTap(e) {
     console.log(`🔍 Position key: ${positionKey}, Court: ${court}`);
     console.log(`🔍 Manual lineup after assignment:`, manualLineup);
     console.log(`🔍 Court ${court} data:`, manualLineup[court]);
+    console.log(`🔍 All court keys:`, Object.keys(manualLineup));
     
     // Clear selection and update summary
     clearPlayerSelection();
+    
+    // Debug: Log the current state
+    console.log('🔍 After assignment - Current manualLineup:', manualLineup);
+    console.log('🔍 Court keys:', Object.keys(manualLineup));
+    for (const court in manualLineup) {
+        console.log(`🔍 Court ${court}:`, manualLineup[court]);
+    }
+    
     updateManualLineupSummary();
 }
 
