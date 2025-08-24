@@ -656,11 +656,13 @@ def init_lineup_routes(app):
             details="Accessed mobile create lineup page",
         )
         
-        # Add cache-busting headers to prevent caching issues
+        # Enhanced cache-busting with timestamp and aggressive headers
         response = make_response(render_template("mobile/create_lineup.html", session_data=session_data))
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
         response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+        response.headers['Expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+        response.headers['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers['ETag'] = f'"{int(time.time())}"'
         return response
 
     @app.route("/mobile/lineup-escrow")
