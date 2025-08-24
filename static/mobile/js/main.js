@@ -281,6 +281,24 @@ function getLoadingTextForUrl(url) {
  * Check if the user is authenticated
  */
 function checkAuthentication() {
+    // Skip authentication check for routes that don't require login
+    const currentPath = window.location.pathname;
+    const publicRoutes = [
+        '/login',
+        '/register', 
+        '/forgot-password',
+        '/mobile/lineup-escrow-opposing',
+        '/mobile/lineup-escrow-view'
+    ];
+    
+    // Check if current path matches any public route
+    const isPublicRoute = publicRoutes.some(route => currentPath.includes(route));
+    
+    if (isPublicRoute) {
+        console.log('Skipping authentication check for public route:', currentPath);
+        return;
+    }
+    
     // If we don't have session data, check authentication status
     if (!window.sessionData || !window.sessionData.authenticated) {
         fetch('/api/check-auth')
