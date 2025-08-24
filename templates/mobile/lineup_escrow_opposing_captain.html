@@ -925,8 +925,7 @@ function updateManualLineupSummary() {
         const playerCount = Object.keys(courtPlayers).length;
         totalPlayers += playerCount;
         
-        console.log(`🔍 Court ${court}: ${playerCount} players, keys:`, Object.keys(courtPlayers));
-        console.log(`🔍 Court ${court} data:`, courtPlayers);
+
         
         summaryHTML += `<div class="mb-2"><strong>Court ${court}:</strong> `;
         
@@ -1082,21 +1081,12 @@ function handleCourtPositionTap(e) {
         rating: playerElement.dataset.playerRating
     };
     
-    console.log(`✅ Successfully assigned ${selectedPlayerForTap} to Court ${court} ${position}`);
-    console.log(`🔍 Position key: ${positionKey}, Court: ${court}`);
-    console.log(`🔍 Manual lineup after assignment:`, manualLineup);
-    console.log(`🔍 Court ${court} data:`, manualLineup[court]);
-    console.log(`🔍 All court keys:`, Object.keys(manualLineup));
+
     
     // Clear selection and update summary
     clearPlayerSelection();
     
-    // Debug: Log the current state
-    console.log('🔍 After assignment - Current manualLineup:', manualLineup);
-    console.log('🔍 Court keys:', Object.keys(manualLineup));
-    for (const court in manualLineup) {
-        console.log(`🔍 Court ${court}:`, manualLineup[court]);
-    }
+
     
     updateManualLineupSummary();
 }
