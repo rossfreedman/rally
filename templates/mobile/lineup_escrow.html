@@ -762,6 +762,9 @@ function selectCaptainFromTypeahead(team, index) {
     // Update UI to show selected team
     showSelectedTeamInfo(team);
     
+    // Update message body with selected captain name
+    updateMessageBody();
+    
     // Auto-scroll to next section
     setTimeout(() => {
         document.getElementById('captain-contact').scrollIntoView({ 

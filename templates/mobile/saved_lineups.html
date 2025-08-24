@@ -72,6 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🔍 User data:', user);
     console.log('🔍 Team ID:', teamId);
     loadSavedLineups();
+    
+    // Set up event delegation for lineup buttons
+    setupEventDelegation();
 });
 
 async function loadSavedLineups() {
@@ -161,15 +164,15 @@ function createLineupCard(lineup) {
                 <pre class="text-sm text-gray-800 whitespace-pre-wrap font-mono">${lineup.data}</pre>
             </div>
             <div class="flex gap-3">
-                <button onclick="editLineup(${lineup.id})" class="flex-1 px-4 py-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <button data-lineup-id="${lineup.id}" class="edit-lineup-btn flex-1 px-4 py-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
                     <i class="fas fa-edit mr-2"></i>
                     Edit
                 </button>
-                <button onclick="deleteLineup(${lineup.id})" class="flex-1 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <button data-lineup-id="${lineup.id}" class="delete-lineup-btn flex-1 px-4 py-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
                     <i class="fas fa-trash mr-2"></i>
                     Delete
                 </button>
-                <button onclick="useLineup('${escapeHtml(lineup.data)}')" class="flex-1 px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <button data-lineup-data="${escapeHtml(lineup.data)}" class="use-lineup-btn flex-1 px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
                     <i class="fas fa-play mr-2"></i>
                     Use
                 </button>
@@ -260,6 +263,31 @@ async function deleteLineup(lineupId) {
         console.error('Error deleting lineup:', error);
         alert(`Error deleting lineup: ${error.message}`);
     }
+}
+
+function setupEventDelegation() {
+    // Handle lineup button clicks using event delegation
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.use-lineup-btn')) {
+            const button = e.target.closest('.use-lineup-btn');
+            const lineupData = button.getAttribute('data-lineup-data');
+            if (lineupData) {
+                useLineup(lineupData);
+            }
+        } else if (e.target.closest('.edit-lineup-btn')) {
+            const button = e.target.closest('.edit-lineup-btn');
+            const lineupId = button.getAttribute('data-lineup-id');
+            if (lineupId) {
+                editLineup(parseInt(lineupId));
+            }
+        } else if (e.target.closest('.delete-lineup-btn')) {
+            const button = e.target.closest('.delete-lineup-btn');
+            const lineupId = button.getAttribute('data-lineup-id');
+            if (lineupId) {
+                deleteLineup(parseInt(lineupId));
+            }
+        }
+    });
 }
 
 function useLineup(lineupData) {

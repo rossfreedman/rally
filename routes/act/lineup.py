@@ -4,7 +4,7 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from flask import jsonify, render_template, request, session, make_response
+from flask import jsonify, render_template, request, session, make_response, redirect
 from flask_login import login_required
 
 from app.models.database_models import SessionLocal
@@ -991,6 +991,61 @@ def init_lineup_routes(app):
             print(f"Error searching for player: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/api/opposing-team-players/<int:team_id>", methods=["GET"])
+    def get_opposing_team_players(team_id):
+        """Get players for the opposing team in lineup escrow (no login required)"""
+        try:
+            with SessionLocal() as db_session:
+                from app.models.database_models import Player, Team, Club, Series
+                
+                # Get team information
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if not team:
+                    return jsonify({"error": "Team not found"}), 404
+                
+                # Get all players for this team
+                players = db_session.query(Player).filter(Player.team_id == team_id).all()
+                
+                if not players:
+                    return jsonify({"error": "No players found for this team"}), 404
+                
+                # Format player data
+                player_data = []
+                for player in players:
+                    # Get position preference (Ad, Deuce, Either)
+                    position_preference = None
+                    if player.pti:
+                        pti = float(player.pti)
+                        if pti >= 60:
+                            position_preference = 'Either'  # High-rated players can play both sides
+                        elif pti >= 50:
+                            position_preference = 'Ad'      # Mid-high rated players typically play Ad
+                        elif pti >= 45:
+                            position_preference = 'Deuce'   # Mid-rated players typically play Deuce
+                        elif pti >= 40:
+                            position_preference = 'Either'  # Lower rated players might need flexibility
+                    
+                    player_data.append({
+                        "id": player.id,
+                        "name": f"{player.first_name} {player.last_name}",
+                        "first_name": player.first_name,
+                        "last_name": player.last_name,
+                        "rating": player.pti or 0,
+                        "position_preference": position_preference,
+                        "tenniscores_player_id": player.tenniscores_player_id
+                    })
+                
+                return jsonify({
+                    "success": True,
+                    "team_id": team_id,
+                    "team_name": team.display_name,
+                    "players": player_data
+                })
+                
+        except Exception as e:
+            print(f"Error getting opposing team players: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
     @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE", "PUT"])
     @login_required
     def saved_lineups():
@@ -1106,13 +1161,74 @@ def init_lineup_routes(app):
                                          error=result.get("error", "Escrow session not found."))
                 
                 # Pass escrow data to template
-                session_data = {"user": None, "authenticated": False}  # No login required
-                return render_template("mobile/lineup_escrow_view.html", 
+                # Create minimal session data for non-authenticated users
+                session_data = {
+                    "user": {
+                        "is_admin": False,
+                        "tenniscores_player_id": None
+                    }, 
+                    "authenticated": False
+                }  # No login required
+                # Add cache-busting headers to prevent caching issues
+                response = make_response(render_template("mobile/lineup_escrow_view.html", 
                                      session_data=session_data,
-                                     escrow_data=result["escrow"],
-                                     both_lineups_visible=result["both_lineups_visible"])
+                                     escrow_data=result["escrow_data"],
+                                     both_lineups_visible=result["both_lineups_visible"]))
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
+                return response
                                      
         except Exception as e:
             print(f"Error serving lineup escrow view: {str(e)}")
             return render_template("mobile/lineup_escrow_error.html", 
                                  error="An error occurred while loading the lineup escrow.")
+
+    @app.route("/mobile/lineup-escrow-opposing/<escrow_token>", methods=["GET"])
+    def serve_mobile_lineup_escrow_opposing(escrow_token):
+        """Serve the mobile Lineup Escrow opposing captain page with drag and drop interface"""
+        try:
+            viewer_contact = request.args.get("contact", "")
+            
+            if not viewer_contact:
+                return jsonify({"error": "contact parameter is required"}), 400
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                
+                if result["success"]:
+                    escrow_data = result["escrow_data"]
+                    both_lineups_visible = result["both_lineups_visible"]
+                    
+                    # If both lineups are already visible, redirect to view page
+                    if both_lineups_visible:
+                        return redirect(f"/mobile/lineup-escrow/view/{escrow_token}?contact={viewer_contact}")
+                    
+                    # Render the opposing captain template
+                    # Create minimal session data for non-authenticated users
+                    session_data = {
+                        "user": {
+                            "is_admin": False,
+                            "tenniscores_player_id": None
+                        }, 
+                        "authenticated": False
+                    }
+                    # Add cache-busting headers to prevent caching issues
+                    response = make_response(render_template(
+                        "mobile/lineup_escrow_opposing_captain.html",
+                        escrow_data=escrow_data,
+                        both_lineups_visible=both_lineups_visible,
+                        session_data=session_data
+                    ))
+                    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                    response.headers['Pragma'] = 'no-cache'
+                    response.headers['Expires'] = '0'
+                    return response
+                else:
+                    return jsonify({"error": result.get("error", "Unknown error")}), 400
+                    
+        except Exception as e:
+            print(f"Error serving lineup escrow opposing page: {str(e)}")
+            return jsonify({"error": str(e)}), 500

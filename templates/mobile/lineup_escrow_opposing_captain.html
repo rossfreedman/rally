@@ -1,0 +1,1186 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = False %}
+
+{% block title %}Submit Your Lineup | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-clipboard-list text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">
+                    Submit Your Lineup
+                </h1>
+                <p class="text-sm text-gray-500">
+                    Use the drag and drop interface to create your lineup
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Status Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Lineup Escrow™ Status
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">
+                            <strong>Status:</strong> 
+                            <span class="font-semibold text-yellow-600">
+                                Waiting for your lineup
+                            </span>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <strong>Opposing captain submitted:</strong> 
+                            {{ escrow_data.initiator_submitted_at.split('T')[0] if escrow_data.initiator_submitted_at else 'Not submitted' }}
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <strong>Your team:</strong> 
+                            {{ escrow_data.recipient_team_name }} ({{ escrow_data.recipient_club_name }})
+                        </p>
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-yellow-100">
+                            <i class="fas fa-clock text-yellow-600 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How This Works -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                    How This Works
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
+                    <p class="text-sm text-yellow-800">
+                        <strong>{{ escrow_data.initiator_team_name }}'s lineup has been submitted.</strong> Once you submit your lineup, both lineups will be shared at the exact same time.
+                    </p>
+                </div>
+                <p class="text-xs text-gray-600 mt-3">
+                    This ensures fair competition by preventing either captain from seeing the other's lineup before submitting their own.
+                </p>
+            </div>
+        </div>
+
+        <!-- Message Card - Hidden -->
+        {% if false %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-envelope text-blue-500 mr-2"></i>
+                    Message from Opposing Captain
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-800 whitespace-pre-wrap">
+                        {{ escrow_data.message_body.replace('[club name]', escrow_data.message_body) if '[club name]' in escrow_data.message_body else escrow_data.message_body }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Opposing Team Lineup (Blurred) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-blue-500 mr-2"></i>
+                    {{ escrow_data.initiator_team_name }} ({{ escrow_data.initiator_club_name }})
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="lineup-blur-container blurred-lineup mb-6">
+                    {% if escrow_data.initiator_lineup %}
+                        <div class="lineup-display text-gray-800 text-base">
+                            {% for line in escrow_data.initiator_lineup.split('\n') %}
+                                {% if line.strip() %}
+                                    {% if line.startswith('LINEUP:') %}
+                                        <div class="font-semibold text-lg mb-2">{{ line }}</div>
+                                    {% elif line.startswith('Court ') %}
+                                        <div class="font-semibold mt-4 mb-2">{{ line }}</div>
+                                    {% elif '(Ad)' in line or '(Deuce)' in line %}
+                                        {# Parse new format but remove position labels #}
+                                        {% if '(Ad)' in line %}
+                                            {% set player_name = line.split('(Ad)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name }}</div>
+                                        {% endif %}
+                                        {% if '(Deuce)' in line %}
+                                            {% set player_name = line.split('(Deuce)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name }}</div>
+                                        {% endif %}
+                                    {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
+                                        {# Parse old format with "Ad:" and "Deuce:" labels #}
+                                        {% if line.startswith('  Ad:') %}
+                                            {% set player_name = line.replace('  Ad:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name }}</div>
+                                        {% elif line.startswith('  Deuce:') %}
+                                            {% set player_name = line.replace('  Deuce:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name }}</div>
+                                        {% endif %}
+                                    {% elif '&' in line %}
+                                        {# Fallback for old format - don't assume positions #}
+                                        {% set players = line.split('&') %}
+                                        {% if players|length == 2 %}
+                                            <div class="ml-4 mb-1">{{ players[0].strip() }}</div>
+                                            <div class="ml-4 mb-1">{{ players[1].strip() }}</div>
+                                        {% else %}
+                                            <div class="ml-4 mb-1">{{ line }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="ml-4 mb-1">{{ line }}</div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="mt-4 text-xs text-yellow-700 bg-yellow-50 rounded p-2 flex items-center">
+                    <i class="fas fa-lock mr-2"></i>
+                    Opposing lineup will be revealed after you submit yours
+                </div>
+            </div>
+        </div>
+
+        <!-- Your Lineup Builder -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-tools text-green-500 mr-2"></i>
+                    Create Your Lineup
+                </h2>
+            </div>
+            
+            <div class="p-4">
+                <!-- Available Players Pool -->
+                <div class="mb-4">
+                    <h3 class="font-semibold mb-2 text-gray-900 text-sm">Available Players</h3>
+                    <p class="text-xs text-gray-600 mb-2" id="instruction-text">Drag players from here to the courts below:</p>
+                    
+                    <!-- Color Legend -->
+                    <div class="mb-2 flex gap-4 text-xs">
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-2 rounded" style="background-color: #70e6bb;"></div>
+                            <span class="text-gray-500">Ad</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-2 rounded" style="background-color: #6f90d6;"></div>
+                            <span class="text-gray-500">Deuce</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-2 rounded" style="background-color: #fbbf24;"></div>
+                            <span class="text-gray-500">Either</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <div class="w-2 h-2 rounded" style="background-color: #d1d5db;"></div>
+                            <span class="text-gray-500">No preference</span>
+                        </div>
+                    </div>
+                    
+                    <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: 200px; -webkit-overflow-scrolling: touch; padding-bottom: 0.75rem;">
+                        <div class="text-gray-400 text-center text-sm" id="loading-players">Loading your team players...</div>
+                    </div>
+                </div>
+
+                <!-- Selected Player Indicator (for tap mode) -->
+                <div id="selected-player-indicator" class="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <span class="text-sm font-medium text-yellow-800">Selected: </span>
+                            <span id="selected-player-name" class="text-sm text-yellow-900"></span>
+                        </div>
+                        <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-xs">
+                            Clear
+                        </button>
+                    </div>
+                    <p class="text-xs text-yellow-700 mt-1">Tap a court position to assign this player</p>
+                </div>
+
+                <!-- Courts -->
+                <div class="space-y-3">
+                    <h3 class="font-semibold text-gray-900 text-sm">Courts</h3>
+                    
+                    <!-- Court 1 -->
+                    <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                            Court 1
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="1" data-position="1">
+                                    <span class="drop-text">Player 1</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="1" data-position="2">
+                                    <span class="drop-text">Player 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Court 2 -->
+                    <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                            Court 2
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="2" data-position="1">
+                                    <span class="drop-text">Player 1</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="2" data-position="2">
+                                    <span class="drop-text">Player 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Court 3 -->
+                    <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                            Court 3
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="3" data-position="1">
+                                    <span class="drop-text">Player 1</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="3" data-position="2">
+                                    <span class="drop-text">Player 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Court 4 -->
+                    <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                            Court 4
+                        </h4>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="4" data-position="1">
+                                    <span class="drop-text">Player 1</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="4" data-position="2">
+                                    <span class="drop-text">Player 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lineup Summary -->
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 class="font-semibold text-blue-900 text-sm mb-2">Your Lineup Summary</h4>
+                    <div id="lineup-summary" class="text-xs text-blue-800">
+                        <p>Drag players to courts to build your lineup...</p>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="mt-6">
+                    <button 
+                        id="submit-lineup-btn"
+                        class="non-navigation-btn w-full bg-green-600 text-white rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        Submit Lineup
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center py-4">
+            <p class="text-xs text-gray-500">
+                Lineup Escrow™ - Fair lineup disclosure between captains
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Lineup display styling */
+.lineup-display {
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+}
+
+.lineup-display .font-semibold {
+    color: #1f2937;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.lineup-display .mb-1 {
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+    background-color: #f9fafb;
+    padding-left: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Hover effects */
+.hover\:scale-102:hover {
+    transform: scale(1.02);
+}
+
+/* Transitions */
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Spacing */
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+/* Colors */
+.bg-green-600 { background-color: #059669 !important; }
+.bg-blue-600 { background-color: #2563eb !important; }
+.bg-yellow-600 { background-color: #d97706 !important; }
+.bg-sky-600 { background-color: #0284c7 !important; }
+
+.text-green-600 { color: #059669 !important; }
+.text-blue-600 { color: #2563eb !important; }
+.text-yellow-600 { color: #d97706 !important; }
+.text-sky-600 { color: #0284c7 !important; }
+
+.bg-green-100 { background-color: #dcfce7 !important; }
+.bg-blue-100 { background-color: #dbeafe !important; }
+.bg-yellow-100 { background-color: #fef3c7 !important; }
+.bg-sky-100 { background-color: #e0f2fe !important; }
+
+.bg-green-50 { background-color: #f0fdf4 !important; }
+.bg-blue-50 { background-color: #eff6ff !important; }
+.bg-yellow-50 { background-color: #fffbeb !important; }
+.bg-sky-50 { background-color: #f0f9ff !important; }
+
+/* Typography */
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+
+/* Layout */
+.flex { display: flex !important; }
+.items-center { align-items: center !important; }
+.justify-center { justify-content: center !important; }
+.justify-between { justify-content: space-between !important; }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Opacity */
+.opacity-75 { opacity: 0.75; }
+.opacity-90 { opacity: 0.9; }
+
+/* Font Awesome icons */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+
+.lineup-blur-container {
+    position: relative;
+}
+.blurred-lineup {
+    filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+}
+.blurred-lineup::after {
+    content: "\1F512 Lineup hidden until both are submitted";
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+    color: #b45309;
+    background: rgba(255,255,255,0.85);
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 1.5rem 0.5rem;
+    border-radius: 0.5rem;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Drag and Drop Styles */
+.player-card {
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.player-card:hover {
+    transform: translateY(-2px);
+}
+
+.player-card.dragging {
+    transform: rotate(5deg);
+    z-index: 1000;
+}
+
+.court-position {
+    transition: all 0.2s ease;
+    min-height: 4rem;
+}
+
+.court-position.drag-over {
+    transform: scale(1.02);
+    border-style: solid !important;
+}
+
+.court-container {
+    transition: all 0.2s ease;
+}
+
+#available-players-pool {
+    transition: all 0.2s ease;
+}
+
+#available-players-pool.drop-zone-active {
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+    border-style: solid !important;
+    transform: scale(1.02);
+}
+
+.drop-zone-active {
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+    border-style: solid !important;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+</style>
+
+<script>
+// Initialize page data
+window.escrowData = {{ escrow_data | tojson | safe }};
+window.recipientTeamId = {{ escrow_data.recipient_team_id | tojson | safe }};
+
+// Global variables
+let players = [];
+let manualLineup = {};
+let selectedPlayerForTap = null;
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', () => {
+    setupDragAndDrop();
+    loadOpposingTeamPlayers();
+});
+
+function setupDragAndDrop() {
+    // Setup drop zones
+    const courtPositions = document.querySelectorAll('.court-position');
+    
+    courtPositions.forEach(position => {
+        // Drag events
+        position.addEventListener('dragover', handleDragOver);
+        position.addEventListener('drop', handleDrop);
+        position.addEventListener('dragleave', handleDragLeave);
+        
+        // Tap events for tap mode
+        position.addEventListener('click', handleCourtPositionTap);
+        position.addEventListener('touchstart', (e) => {
+            if (selectedPlayerForTap) {
+                e.currentTarget.touchStartTime = Date.now();
+            }
+        }, { passive: false });
+        position.addEventListener('touchend', handleCourtPositionTouch, { passive: false });
+    });
+    
+    // Setup the available players pool as a drop zone
+    const pool = document.getElementById('available-players-pool');
+    pool.addEventListener('dragover', handleDragOver);
+    pool.addEventListener('drop', handleDropToPool);
+    
+    // Setup clear selection button
+    const clearBtn = document.getElementById('clear-selection');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearPlayerSelection);
+    }
+}
+
+function loadOpposingTeamPlayers() {
+    if (!window.recipientTeamId) {
+        document.getElementById('loading-players').innerHTML = '<div class="text-red-500 text-center text-sm">Error: Team ID not found</div>';
+        return;
+    }
+    
+    // Load players for the opposing team
+    fetch(`/api/opposing-team-players/${window.recipientTeamId}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            players = data.players || [];
+            renderPlayers();
+        })
+        .catch(error => {
+            console.error('Error loading players:', error);
+            document.getElementById('loading-players').innerHTML = `<div class="text-red-500 text-center text-sm">Failed to load players: ${error.message}</div>`;
+        });
+}
+
+function renderPlayers() {
+    const pool = document.getElementById('available-players-pool');
+    pool.innerHTML = '';
+    
+    if (players.length === 0) {
+        pool.innerHTML = '<div class="text-gray-400 text-center text-sm">No players available</div>';
+        return;
+    }
+    
+    // Player type colors
+    const playerTypeColors = {
+        'Ad': '#70e6bb',
+        'Deuce': '#6f90d6',
+        'Either': '#fbbf24'
+    };
+    
+    // Gray color for no preference
+    const grayColor = '#d1d5db';
+    
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        
+        // Get position preference from database, fallback to no preference
+        const positionPreference = player.position_preference;
+        let playerType = '';
+        let typeColor = grayColor;
+        
+        if (positionPreference && playerTypeColors[positionPreference]) {
+            playerType = positionPreference;
+            typeColor = playerTypeColors[positionPreference];
+        }
+        
+        playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+        playerDiv.dataset.playerName = player.name;
+        playerDiv.dataset.playerRating = player.rating;
+        playerDiv.dataset.playerType = playerType;
+        
+        // Set background color based on player type
+        playerDiv.style.backgroundColor = typeColor;
+        
+        // Always enable dragging
+        playerDiv.draggable = true;
+        playerDiv.style.cursor = 'grab';
+        
+        // Always show position type - either preference or "Ct pref not set" for uniform height
+        const typeDisplay = playerType 
+            ? `<div class="text-xs text-gray-700 mt-1">${playerType}</div>` 
+            : `<div class="text-xs text-gray-500 mt-1" style="font-size: 0.625rem;">Ct pref not set</div>`;
+        
+        playerDiv.innerHTML = `
+            <div class="font-medium text-gray-900 text-sm">${player.name}</div>
+            ${typeDisplay}
+        `;
+        
+        // Add both drag and tap event listeners simultaneously
+        // Drag events
+        playerDiv.addEventListener('dragstart', handleDragStart);
+        playerDiv.addEventListener('dragend', handleDragEnd);
+        playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+        playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+        playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+        
+        // Tap events - add both click and touch for better mobile support
+        playerDiv.addEventListener('click', handlePlayerTap);
+        playerDiv.addEventListener('touchend', (e) => {
+            // If not dragging and touch is quick, treat as tap
+            if (!touchedPlayer && e.timeStamp - (e.currentTarget.touchStartStamp || 0) < 300) {
+                e.preventDefault();
+                handlePlayerTap(e);
+            }
+        }, { passive: false });
+        playerDiv.addEventListener('touchstart', (e) => {
+            e.currentTarget.touchStartStamp = e.timeStamp;
+        }, { passive: true });
+        
+        pool.appendChild(playerDiv);
+    });
+    
+    updateModeUI();
+}
+
+function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.playerName);
+    e.target.classList.add('opacity-50');
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('opacity-50');
+}
+
+// Touch event handlers for mobile support
+let touchedPlayer = null;
+let touchOffset = { x: 0, y: 0 };
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    touchedPlayer = e.target.closest('.player-card');
+    if (touchedPlayer) {
+        const touch = e.touches[0];
+        const rect = touchedPlayer.getBoundingClientRect();
+        touchOffset.x = touch.clientX - rect.left;
+        touchOffset.y = touch.clientY - rect.top;
+        
+        touchedPlayer.classList.add('opacity-50', 'dragging');
+        
+        // Create a visual feedback element
+        touchedPlayer.style.position = 'fixed';
+        touchedPlayer.style.zIndex = '1000';
+        touchedPlayer.style.pointerEvents = 'none';
+    }
+}
+
+function handleTouchMove(e) {
+    if (!touchedPlayer) return;
+    e.preventDefault();
+    
+    const touch = e.touches[0];
+    touchedPlayer.style.left = (touch.clientX - touchOffset.x) + 'px';
+    touchedPlayer.style.top = (touch.clientY - touchOffset.y) + 'px';
+    
+    // Find element under touch point
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropZone = elementBelow?.closest('.court-position') || elementBelow?.closest('#available-players-pool');
+    
+    // Remove previous highlights
+    document.querySelectorAll('.drop-zone-active').forEach(el => {
+        el.classList.remove('drop-zone-active');
+    });
+    
+    // Highlight current drop zone
+    if (dropZone) {
+        dropZone.classList.add('drop-zone-active');
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!touchedPlayer) return;
+    e.preventDefault();
+    
+    const touch = e.changedTouches[0];
+    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropZone = elementBelow?.closest('.court-position') || elementBelow?.closest('#available-players-pool');
+    
+    // Remove visual feedback
+    touchedPlayer.classList.remove('opacity-50', 'dragging');
+    touchedPlayer.style.position = '';
+    touchedPlayer.style.left = '';
+    touchedPlayer.style.top = '';
+    touchedPlayer.style.zIndex = '';
+    touchedPlayer.style.pointerEvents = '';
+    
+    // Remove highlights
+    document.querySelectorAll('.drop-zone-active').forEach(el => {
+        el.classList.remove('drop-zone-active');
+    });
+    
+    // Handle drop
+    if (dropZone) {
+        const playerName = touchedPlayer.dataset.playerName;
+        
+        if (dropZone.id === 'available-players-pool') {
+            // Dropping back to pool
+            if (touchedPlayer.parentElement.classList.contains('court-position')) {
+                movePlayerToPool(touchedPlayer);
+            }
+        } else if (dropZone.classList.contains('court-position')) {
+            // Dropping to court position
+            const court = dropZone.dataset.court;
+            const position = dropZone.dataset.position;
+            
+            // Check if position is already occupied
+            if (dropZone.querySelector('.player-card')) {
+                const existingPlayer = dropZone.querySelector('.player-card');
+                movePlayerToPool(existingPlayer);
+            }
+            
+            // Move player to court position
+            touchedPlayer.remove();
+            touchedPlayer.className = 'player-card bg-white border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+            dropZone.innerHTML = '';
+            dropZone.appendChild(touchedPlayer);
+            
+            // Update manual lineup data
+            if (!manualLineup[court]) manualLineup[court] = {};
+            manualLineup[court][position] = {
+                name: playerName,
+                rating: touchedPlayer.dataset.playerRating
+            };
+            
+            updateManualLineupSummary();
+        }
+    }
+    
+    touchedPlayer = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+}
+
+function handleDragLeave(e) {
+    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+    
+    const playerName = e.dataTransfer.getData('text/plain');
+    const courtPosition = e.currentTarget;
+    const court = courtPosition.dataset.court;
+    const position = courtPosition.dataset.position;
+    
+    // Check if position is already occupied
+    if (courtPosition.querySelector('.player-card')) {
+        // Move existing player back to pool
+        const existingPlayer = courtPosition.querySelector('.player-card');
+        movePlayerToPool(existingPlayer);
+    }
+    
+    // Find and move the dragged player
+    const draggedPlayer = document.querySelector(`[data-player-name="${playerName}"]`);
+    if (draggedPlayer) {
+        // Remove from current location
+        draggedPlayer.remove();
+        
+        // Add to court position - preserve player type color
+        const playerType = draggedPlayer.dataset.playerType;
+        const playerTypeColors = {
+            'Ad': '#70e6bb',
+            'Deuce': '#6f90d6', 
+            'Either': '#fbbf24'
+        };
+        const grayColor = '#d1d5db';
+        
+        draggedPlayer.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+        draggedPlayer.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+        courtPosition.innerHTML = '';
+        courtPosition.appendChild(draggedPlayer);
+        
+        // Update manual lineup data
+        if (!manualLineup[court]) manualLineup[court] = {};
+        manualLineup[court][position] = {
+            name: playerName,
+            rating: draggedPlayer.dataset.playerRating
+        };
+        
+        updateManualLineupSummary();
+    }
+}
+
+function handleDropToPool(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+    
+    const playerName = e.dataTransfer.getData('text/plain');
+    const draggedPlayer = document.querySelector(`[data-player-name="${playerName}"]`);
+    
+    if (draggedPlayer && draggedPlayer.parentElement.classList.contains('court-position')) {
+        movePlayerToPool(draggedPlayer);
+    }
+}
+
+function movePlayerToPool(playerElement) {
+    const court = playerElement.parentElement.dataset.court;
+    const position = playerElement.parentElement.dataset.position;
+    
+    // Remove from lineup data
+    if (manualLineup[court] && manualLineup[court][position]) {
+        delete manualLineup[court][position];
+        if (Object.keys(manualLineup[court]).length === 0) {
+            delete manualLineup[court];
+        }
+    }
+    
+    // Move back to pool - preserve player type color
+    const playerType = playerElement.dataset.playerType;
+    const playerTypeColors = {
+        'Ad': '#70e6bb',
+        'Deuce': '#6f90d6',
+        'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    playerElement.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+    playerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+    playerElement.style.cursor = 'grab';
+    
+    // Reset drop zone text properly
+    const currentCourt = playerElement.parentElement.dataset.court;
+    const currentPosition = playerElement.parentElement.dataset.position;
+    playerElement.parentElement.innerHTML = `<span class="drop-text">Player ${currentPosition}</span>`;
+    
+    document.getElementById('available-players-pool').appendChild(playerElement);
+    
+    updateManualLineupSummary();
+}
+
+function updateManualLineupSummary() {
+    const summaryDiv = document.getElementById('lineup-summary');
+    const submitBtn = document.getElementById('submit-lineup-btn');
+    
+    if (Object.keys(manualLineup).length === 0) {
+        summaryDiv.innerHTML = '<p>Drag players to courts to build your lineup...</p>';
+        submitBtn.disabled = true;
+        return;
+    }
+    
+    let summaryHTML = '';
+    let totalPlayers = 0;
+    
+    for (const court in manualLineup) {
+        const courtPlayers = manualLineup[court];
+        const playerCount = Object.keys(courtPlayers).length;
+        totalPlayers += playerCount;
+        
+        summaryHTML += `<div class="mb-2"><strong>Court ${court}:</strong> `;
+        
+        if (playerCount === 0) {
+            summaryHTML += 'No players assigned';
+        } else {
+            const players = Object.values(courtPlayers).map(p => p.name);
+            summaryHTML += players.join(', ');
+        }
+        
+        summaryHTML += '</div>';
+    }
+    
+    summaryHTML += `<div class="mt-3 text-sm"><strong>Total Players:</strong> ${totalPlayers}/8</div>`;
+    
+    summaryDiv.innerHTML = summaryHTML;
+    
+    // Enable submit button if we have a complete lineup (8 players)
+    console.log(`Lineup validation: ${totalPlayers}/8 players, button disabled: ${totalPlayers < 8}`);
+    submitBtn.disabled = totalPlayers < 8;
+}
+
+// Mode switching and tap functionality
+function updateModeUI() {
+    const instructionText = document.getElementById('instruction-text');
+    const selectedIndicator = document.getElementById('selected-player-indicator');
+    
+    // Update instruction text to show both methods work
+    if (instructionText) instructionText.textContent = 'Drag players to courts OR tap a player, then tap a court position:';
+    
+    // Show/hide selected player indicator based on current selection
+    if (selectedPlayerForTap) {
+        showSelectedPlayer(selectedPlayerForTap);
+    } else {
+        if (selectedIndicator) selectedIndicator.classList.add('hidden');
+    }
+    
+    // Update player cards styling to show both drag and tap are available
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.add('cursor-pointer'); // For tap functionality
+        card.style.cursor = 'grab'; // Visual indication for drag functionality
+    });
+}
+
+function handlePlayerTap(e) {
+    console.log('👤 Player tap event triggered for:', e.currentTarget.dataset.playerName);
+    
+    // Prevent event bubbling
+    e.stopPropagation();
+    
+    const playerName = e.currentTarget.dataset.playerName;
+    
+    // If clicking the same player, deselect
+    if (selectedPlayerForTap === playerName) {
+        console.log('🔄 Deselecting same player');
+        clearPlayerSelection();
+        return;
+    }
+    
+    // Select new player
+    console.log('✅ Selecting new player:', playerName);
+    selectedPlayerForTap = playerName;
+    
+    // Update visual feedback
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+    e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+    
+    showSelectedPlayer(playerName);
+}
+
+function showSelectedPlayer(playerName) {
+    const selectedIndicator = document.getElementById('selected-player-indicator');
+    const selectedName = document.getElementById('selected-player-name');
+    
+    if (selectedIndicator && selectedName) {
+        selectedName.textContent = playerName;
+        selectedIndicator.classList.remove('hidden');
+    }
+}
+
+function clearPlayerSelection() {
+    selectedPlayerForTap = null;
+    
+    // Remove visual feedback
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('border-blue-400', 'bg-blue-50');
+    });
+    
+    // Hide indicator
+    const selectedIndicator = document.getElementById('selected-player-indicator');
+    if (selectedIndicator) {
+        selectedIndicator.classList.add('hidden');
+    }
+}
+
+function handleCourtPositionTap(e) {
+    if (!selectedPlayerForTap) return;
+    
+    const courtPosition = e.currentTarget;
+    const court = courtPosition.dataset.court;
+    const position = courtPosition.dataset.position;
+    
+    // Find the selected player element
+    const playerElement = document.querySelector(`[data-player-name="${selectedPlayerForTap}"]`);
+    if (!playerElement) return;
+    
+    // Check if position is already occupied
+    if (courtPosition.querySelector('.player-card')) {
+        const existingPlayer = courtPosition.querySelector('.player-card');
+        movePlayerToPool(existingPlayer);
+    }
+    
+    // Move player from pool to court position
+    playerElement.remove();
+    
+    // Style the player card for court position
+    const playerType = playerElement.dataset.playerType;
+    const playerTypeColors = {
+        'Ad': '#70e6bb',
+        'Deuce': '#6f90d6', 
+        'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    playerElement.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+    playerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+    
+    // Clear the position and add the player
+    courtPosition.innerHTML = '';
+    courtPosition.appendChild(playerElement);
+    
+    // Update manual lineup data
+    if (!manualLineup[court]) manualLineup[court] = {};
+    // Convert position names to numbers: Ad = 1, Deuce = 2
+    const positionKey = position === 'Ad' ? '1' : '2';
+    manualLineup[court][positionKey] = {
+        name: selectedPlayerForTap,
+        rating: playerElement.dataset.playerRating
+    };
+    
+    console.log(`✅ Successfully assigned ${selectedPlayerForTap} to Court ${court} ${position}`);
+    
+    // Clear selection and update summary
+    clearPlayerSelection();
+    updateManualLineupSummary();
+}
+
+function handleCourtPositionTouch(e) {
+    if (!selectedPlayerForTap) return;
+    
+    // Check if this was a quick tap (not a drag)
+    const touchStartTime = e.currentTarget.touchStartTime || 0;
+    const touchEndTime = Date.now();
+    
+    if (touchEndTime - touchStartTime < 300) {
+        // Quick tap - treat as court position selection
+        handleCourtPositionTap(e);
+    }
+}
+
+// Setup submit button functionality
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Setting up submit button functionality...');
+    const submitBtn = document.getElementById('submit-lineup-btn');
+    if (submitBtn) {
+        console.log('Submit button found, adding click listener');
+        submitBtn.addEventListener('click', submitLineup);
+        // Also add a test click to verify it's working
+        submitBtn.addEventListener('click', (e) => {
+            console.log('Submit button clicked!', e);
+        });
+    } else {
+        console.error('Submit button not found!');
+    }
+});
+
+async function submitLineup() {
+    console.log('submitLineup function called!');
+    console.log('manualLineup:', manualLineup);
+    console.log('manualLineup keys:', Object.keys(manualLineup));
+    
+    if (Object.keys(manualLineup).length === 0) {
+        alert('Please create a lineup before submitting.');
+        return;
+    }
+    
+    // Convert lineup data to text format
+    let lineupText = '';
+    console.log('Converting lineup to text format...');
+    for (const court in manualLineup) {
+        lineupText += `Court ${court}:\n`;
+        const courtPlayers = manualLineup[court];
+        console.log(`Court ${court}:`, courtPlayers);
+        
+        if (courtPlayers['1']) {
+            lineupText += `  Ad: ${courtPlayers['1'].name}\n`;
+        }
+        if (courtPlayers['2']) {
+            lineupText += `  Deuce: ${courtPlayers['2'].name}\n`;
+        }
+        lineupText += '\n';
+    }
+    console.log('Final lineup text:', lineupText);
+    
+    // Get contact from URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const recipientContact = urlParams.get('contact');
+    
+    if (!recipientContact) {
+        alert('Contact information not found. Please use the original link.');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submit-lineup-btn');
+    const originalHTML = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+    submitBtn.disabled = true;
+    
+    try {
+        // Get escrow token from URL
+        const escrowToken = window.location.pathname.split('/').pop();
+        
+        // Submit lineup
+        const response = await fetch('/api/lineup-escrow/submit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                escrow_token: escrowToken,
+                recipient_contact: recipientContact,
+                recipient_lineup: lineupText
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message and redirect to view page
+            alert('Lineup submitted successfully! Both lineups are now visible.');
+            window.location.href = `/mobile/lineup-escrow-view/${escrowToken}?contact=${recipientContact}`;
+        } else {
+            alert(`Error: ${result.error}`);
+            // Reset button
+            submitBtn.innerHTML = originalHTML;
+            submitBtn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error submitting lineup:', error);
+        alert('An error occurred while submitting your lineup. Please try again.');
+        // Reset button
+        submitBtn.innerHTML = originalHTML;
+        submitBtn.disabled = false;
+    }
+}
+</script>
+
+{% endblock %}

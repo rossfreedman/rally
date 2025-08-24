@@ -74,9 +74,20 @@ def get_installed_chrome_version():
 
 # Import the proxy manager
 try:
-    from data.etl.scrapers.proxy_manager import get_proxy_rotator
+    from .proxy_manager import get_proxy_rotator
 except ImportError:
-    from proxy_manager import get_proxy_rotator
+    try:
+        from proxy_manager import get_proxy_rotator
+    except ImportError:
+        # Try direct import from current directory
+        import sys
+        import os
+        # Get the absolute path to the scrapers directory
+        current_file = os.path.abspath(__file__)
+        scrapers_dir = os.path.dirname(current_file)
+        if scrapers_dir not in sys.path:
+            sys.path.insert(0, scrapers_dir)
+        from proxy_manager import get_proxy_rotator
 
 class DetectionType(Enum):
     """Types of detection that can occur during scraping."""
@@ -236,6 +247,43 @@ class EnhancedStealthBrowser:
     
     def _create_driver(self):
         """Create a new Chrome driver with stealth settings and OS signal leak prevention."""
+        # Get a random user agent for this driver
+        user_agent = UserAgentManager.get_random_user_agent()
+        
+        # Try multiple ChromeDriver strategies
+        driver = None
+        strategies = [
+            ("Basic ChromeDriver", self._try_basic_chromedriver),
+            ("Selenium Wire with Proxy", self._try_selenium_wire),
+            ("WebDriver Manager", self._try_webdriver_manager),
+            ("Undetected ChromeDriver", self._try_undetected_chromedriver),
+            ("Standard ChromeDriver", self._try_standard_chromedriver),
+            ("Minimal Options", self._try_minimal_options)
+        ]
+        
+        for strategy_name, strategy_func in strategies:
+            try:
+                logger.info(f"🔧 Trying {strategy_name}...")
+                # Create fresh options for each strategy to avoid reuse issues
+                fresh_options = self._create_fresh_options(user_agent)
+                driver = strategy_func(fresh_options, user_agent)
+                if driver:
+                    logger.info(f"✅ Successfully created driver using {strategy_name}")
+                    break
+            except Exception as e:
+                logger.warning(f"⚠️ {strategy_name} failed: {e}")
+                continue
+        
+        if not driver:
+            raise Exception("All Chrome driver strategies failed")
+        
+        # Inject stealth scripts with OS-specific overrides
+        self._inject_stealth_scripts(driver, user_agent)
+        
+        return driver
+    
+    def _create_fresh_options(self, user_agent: str):
+        """Create fresh ChromeOptions for each strategy attempt."""
         options = uc.ChromeOptions()
         
         # Basic stealth settings - less restrictive
@@ -255,7 +303,21 @@ class EnhancedStealthBrowser:
             options.add_argument("--platform=Windows")
             options.add_argument("--window-size=1920,1080")
             # Use Windows User-Agent from UA manager
-            from data.etl.scrapers.user_agent_manager import get_user_agent_for_site
+            try:
+                from .user_agent_manager import get_user_agent_for_site
+            except ImportError:
+                import sys
+                import os
+                current_dir = os.path.dirname(__file__)
+                parent_dir = os.path.dirname(current_dir)
+                if parent_dir not in sys.path:
+                    sys.path.insert(0, parent_dir)
+                # Get the absolute path to the scrapers directory
+                current_file = os.path.abspath(__file__)
+                scrapers_dir = os.path.dirname(current_file)
+                if scrapers_dir not in sys.path:
+                    sys.path.insert(0, scrapers_dir)
+                from user_agent_manager import get_user_agent_for_site
             user_agent = get_user_agent_for_site(self.current_url)
         else:
             # Set window size
@@ -269,34 +331,7 @@ class EnhancedStealthBrowser:
         if self.config.headless:
             options.add_argument("--headless")
         
-        # Try multiple ChromeDriver strategies
-        driver = None
-        strategies = [
-            ("Selenium Wire with Proxy", self._try_selenium_wire),
-            ("WebDriver Manager", self._try_webdriver_manager),
-            ("Undetected ChromeDriver", self._try_undetected_chromedriver),
-            ("Standard ChromeDriver", self._try_standard_chromedriver),
-            ("Minimal Options", self._try_minimal_options)
-        ]
-        
-        for strategy_name, strategy_func in strategies:
-            try:
-                logger.info(f"🔧 Trying {strategy_name}...")
-                driver = strategy_func(options, user_agent)
-                if driver:
-                    logger.info(f"✅ Successfully created driver using {strategy_name}")
-                    break
-            except Exception as e:
-                logger.warning(f"⚠️ {strategy_name} failed: {e}")
-                continue
-        
-        if not driver:
-            raise Exception("All Chrome driver strategies failed")
-        
-        # Inject stealth scripts with OS-specific overrides
-        self._inject_stealth_scripts(driver, user_agent)
-        
-        return driver
+        return options
     
     def _try_selenium_wire(self, options, user_agent):
         """Try Selenium Wire with proxy."""
@@ -317,29 +352,109 @@ class EnhancedStealthBrowser:
         try:
             from webdriver_manager.chrome import ChromeDriverManager
             driver_path = ChromeDriverManager().install()
-            return uc.Chrome(options=options, driver_executable_path=driver_path)
+            # Fix the path - WebDriver Manager sometimes returns the wrong file
+            if 'THIRD_PARTY_NOTICES' in driver_path:
+                # Extract the correct path to the actual chromedriver executable
+                base_dir = os.path.dirname(driver_path)
+                correct_path = os.path.join(base_dir, 'chromedriver')
+                if os.path.exists(correct_path):
+                    driver_path = correct_path
+                else:
+                    raise Exception(f"Could not find chromedriver executable in {base_dir}")
+            
+            # Use the working ChromeDriver directly
+            from selenium import webdriver
+            return webdriver.Chrome(executable_path=driver_path, options=options)
         except Exception as e:
             raise Exception(f"WebDriver Manager failed: {e}")
     
     def _try_undetected_chromedriver(self, options, user_agent):
         """Try undetected-chromedriver."""
-        chrome_version = get_installed_chrome_version()
-        version_main = int(chrome_version.split('.')[0])
-        return uc.Chrome(options=options, version_main=version_main)
+        try:
+            # Try the most basic approach first
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service
+            
+            # Use the working ChromeDriver we know has permissions
+            working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
+            if os.path.exists(working_driver_path):
+                service = Service(executable_path=working_driver_path)
+                return webdriver.Chrome(service=service, options=options)
+            else:
+                # Fallback to version-based approach
+                chrome_version = get_installed_chrome_version()
+                version_main = int(chrome_version.split('.')[0])
+                return uc.Chrome(options=options, version_main=version_main)
+        except Exception as e:
+            raise Exception(f"Undetected ChromeDriver failed: {e}")
     
     def _try_standard_chromedriver(self, options, user_agent):
         """Try standard ChromeDriver."""
-        from selenium import webdriver
-        return webdriver.Chrome(options=options)
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service
+            
+            # Use the working ChromeDriver directly
+            working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
+            if os.path.exists(working_driver_path):
+                service = Service(executable_path=working_driver_path)
+                return webdriver.Chrome(service=service, options=options)
+            else:
+                return webdriver.Chrome(options=options)
+        except Exception as e:
+            raise Exception(f"Standard ChromeDriver failed: {e}")
     
     def _try_minimal_options(self, options, user_agent):
         """Try with minimal options as last resort."""
-        minimal_options = uc.ChromeOptions()
-        minimal_options.add_argument("--no-sandbox")
-        minimal_options.add_argument("--disable-dev-shm-usage")
-        minimal_options.add_argument("--headless")
-        minimal_options.add_argument(f"--user-agent={user_agent}")
-        return uc.Chrome(options=minimal_options)
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service
+            
+            # Create very minimal options
+            minimal_options = webdriver.ChromeOptions()
+            minimal_options.add_argument("--no-sandbox")
+            minimal_options.add_argument("--disable-dev-shm-usage")
+            minimal_options.add_argument("--headless")
+            minimal_options.add_argument(f"--user-agent={user_agent}")
+            minimal_options.add_argument("--disable-gpu")
+            minimal_options.add_argument("--disable-extensions")
+            minimal_options.add_argument("--disable-plugins")
+            
+            # Use the working ChromeDriver directly
+            working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
+            if os.path.exists(working_driver_path):
+                service = Service(executable_path=working_driver_path)
+                return webdriver.Chrome(service=service, options=minimal_options)
+            else:
+                return webdriver.Chrome(options=minimal_options)
+        except Exception as e:
+            raise Exception(f"Minimal Options failed: {e}")
+    
+    def _try_basic_chromedriver(self, options, user_agent):
+        """Try the most basic ChromeDriver approach."""
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service
+            
+            # Create very minimal options
+            minimal_options = webdriver.ChromeOptions()
+            minimal_options.add_argument("--no-sandbox")
+            minimal_options.add_argument("--disable-dev-shm-usage")
+            minimal_options.add_argument("--headless")
+            minimal_options.add_argument(f"--user-agent={user_agent}")
+            minimal_options.add_argument("--disable-gpu")
+            minimal_options.add_argument("--disable-extensions")
+            minimal_options.add_argument("--disable-plugins")
+            
+            # Use the working ChromeDriver directly
+            working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
+            if os.path.exists(working_driver_path):
+                service = Service(executable_path=working_driver_path)
+                return webdriver.Chrome(service=service, options=minimal_options)
+            else:
+                return webdriver.Chrome(options=minimal_options)
+        except Exception as e:
+            raise Exception(f"Basic ChromeDriver failed: {e}")
     
     def _inject_stealth_scripts(self, driver, user_agent: str = None):
         """Inject JavaScript to hide automation indicators and override OS signals."""
@@ -350,14 +465,154 @@ class EnhancedStealthBrowser:
             # Override permissions
             "const originalQuery = window.navigator.permissions.query; window.navigator.permissions.query = (parameters) => (parameters.name === 'notifications' ? Promise.resolve({state: Notification.permission}) : originalQuery(parameters));",
             
-            # Override plugins
-            "Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});",
+            # Override plugins with realistic plugin array
+            "Object.defineProperty(navigator, 'plugins', {get: () => [{name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format'}, {name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: ''}, {name: 'Native Client', filename: 'internal-nacl-plugin', description: ''}]});",
             
             # Override languages
             "Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});",
             
-            # Override chrome
-            "window.chrome = {runtime: {}};"
+            # Override chrome runtime
+            "window.chrome = {runtime: {}};",
+            
+            # Override connection properties
+            "Object.defineProperty(navigator, 'connection', {get: () => ({effectiveType: '4g', rtt: 50, downlink: 10, saveData: false})});",
+            
+            # Override battery API
+            "Object.defineProperty(navigator, 'getBattery', {get: () => () => Promise.resolve({charging: true, chargingTime: 0, dischargingTime: Infinity, level: 0.85})});",
+            
+            # Override media devices
+            "Object.defineProperty(navigator, 'mediaDevices', {get: () => ({enumerateDevices: () => Promise.resolve([])})});",
+            
+            # Override geolocation
+            "Object.defineProperty(navigator, 'geolocation', {get: () => ({getCurrentPosition: () => {}, watchPosition: () => {}})});",
+            
+            # Override service worker
+            "Object.defineProperty(navigator, 'serviceWorker', {get: () => ({register: () => Promise.resolve(), getRegistrations: () => Promise.resolve([])})});",
+            
+            # Override storage
+            "Object.defineProperty(navigator, 'storage', {get: () => ({estimate: () => Promise.resolve({usage: 0, quota: 0})})});",
+            
+            # Override wake lock
+            "Object.defineProperty(navigator, 'wakeLock', {get: () => ({request: () => Promise.resolve()})});",
+            
+            # Override clipboard
+            "Object.defineProperty(navigator, 'clipboard', {get: () => ({readText: () => Promise.resolve(''), writeText: () => Promise.resolve()})});",
+            
+            # Override presentation
+            "Object.defineProperty(navigator, 'presentation', {get: () => ({defaultRequest: null, receiver: null})});",
+            
+            # Override credentials
+            "Object.defineProperty(navigator, 'credentials', {get: () => ({create: () => Promise.resolve(), get: () => Promise.resolve(), preventSilentAccess: () => {}})});",
+            
+            # Override locks
+            "Object.defineProperty(navigator, 'locks', {get: () => ({request: () => Promise.resolve(), query: () => Promise.resolve([])})});",
+            
+            # Override contacts
+            "Object.defineProperty(navigator, 'contacts', {get: () => ({select: () => Promise.resolve([])})});",
+            
+            # Override keyboard
+            "Object.defineProperty(navigator, 'keyboard', {get: () => ({lock: () => Promise.resolve(), unlock: () => {}})});",
+            
+            # Override virtual keyboard
+            "Object.defineProperty(navigator, 'virtualKeyboard', {get: () => ({show: () => {}, hide: () => {}})});",
+            
+            # Override xr
+            "Object.defineProperty(navigator, 'xr', {get: () => ({isSessionSupported: () => Promise.resolve(false)})});",
+            
+            # Override bluetooth
+            "Object.defineProperty(navigator, 'bluetooth', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            
+            # Override usb
+            "Object.defineProperty(navigator, 'usb', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            
+            # Override serial
+            "Object.defineProperty(navigator, 'serial', {get: () => ({requestPort: () => Promise.resolve()})});",
+            
+            # Override hid
+            "Object.defineProperty(navigator, 'hid', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            
+            # Override gamepad
+            "Object.defineProperty(navigator, 'gamepad', {get: () => ({getGamepads: () => []})});",
+            
+            # Override taintEnabled (legacy)
+            "Object.defineProperty(navigator, 'taintEnabled', {get: () => false});",
+            
+            # Override cookieEnabled
+            "Object.defineProperty(navigator, 'cookieEnabled', {get: () => true});",
+            
+            # Override onLine
+            "Object.defineProperty(navigator, 'onLine', {get: () => true});",
+            
+            # Override doNotTrack
+            "Object.defineProperty(navigator, 'doNotTrack', {get: () => null});",
+            
+            # Override maxTouchPoints
+            "Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 0});",
+            
+            # Override hardwareConcurrency (default)
+            "Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 8});",
+            
+            # Override deviceMemory (default)
+            "Object.defineProperty(navigator, 'deviceMemory', {get: () => 8});",
+            
+            # Override platform (default)
+            "Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});",
+            
+            # Override vendor
+            "Object.defineProperty(navigator, 'vendor', {get: () => 'Google Inc.'});",
+            
+            # Override product
+            "Object.defineProperty(navigator, 'product', {get: () => 'Gecko'});",
+            
+            # Override appName
+            "Object.defineProperty(navigator, 'appName', {get: () => 'Netscape'});",
+            
+            # Override appVersion
+            "Object.defineProperty(navigator, 'appVersion', {get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'});",
+            
+            # Override userAgent
+            "Object.defineProperty(navigator, 'userAgent', {get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'});",
+            
+            # Override screen properties
+            "Object.defineProperty(screen, 'width', {get: () => 1920});",
+            "Object.defineProperty(screen, 'height', {get: () => 1080});",
+            "Object.defineProperty(screen, 'availWidth', {get: () => 1920});",
+            "Object.defineProperty(screen, 'availHeight', {get: () => 1040});",
+            "Object.defineProperty(screen, 'colorDepth', {get: () => 24});",
+            "Object.defineProperty(screen, 'pixelDepth', {get: () => 24});",
+            
+            # Override window properties
+            "Object.defineProperty(window, 'outerWidth', {get: () => 1920});",
+            "Object.defineProperty(window, 'outerHeight', {get: () => 1040});",
+            "Object.defineProperty(window, 'innerWidth', {get: () => 1920});",
+            "Object.defineProperty(window, 'innerHeight', {get: () => 937});",
+            
+            # Override device pixel ratio
+            "Object.defineProperty(window, 'devicePixelRatio', {get: () => 1});",
+            
+            # Override timezone
+            "Object.defineProperty(Intl, 'DateTimeFormat', {get: () => function() { return {resolvedOptions: () => ({timeZone: 'America/New_York'})} }});",
+            
+            # Override canvas fingerprinting
+            "const originalGetContext = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(type) { if (type === '2d') { const context = originalGetContext.call(this, type); const originalFillText = context.fillText; context.fillText = function() { return originalFillText.apply(this, arguments); }; } return originalGetContext.call(this, type); };",
+            
+            # Override WebGL fingerprinting
+            "const getParameter = WebGLRenderingContext.prototype.getParameter; WebGLRenderingContext.prototype.getParameter = function(parameter) { if (parameter === 37445) { return 'Intel Inc.'; } if (parameter === 37446) { return 'Intel(R) Iris(TM) Graphics 6100'; } return getParameter.call(this, parameter); };",
+            
+            # Override audio fingerprinting
+            "const originalGetChannelData = AudioBuffer.prototype.getChannelData; AudioBuffer.prototype.getChannelData = function() { const channelData = originalGetChannelData.call(this); const originalSet = channelData.set; channelData.set = function() { return originalSet.apply(this, arguments); }; return channelData; };",
+            
+            # Override font fingerprinting
+            "Object.defineProperty(document, 'fonts', {get: () => ({ready: Promise.resolve(), check: () => true, load: () => Promise.resolve([])})});",
+            
+            # Override performance timing
+            "Object.defineProperty(performance, 'timing', {get: () => ({navigationStart: Date.now() - Math.random() * 1000, loadEventEnd: Date.now(), domContentLoadedEventEnd: Date.now() - Math.random() * 100})});",
+            
+            # Override memory info
+            "Object.defineProperty(performance, 'memory', {get: () => ({usedJSHeapSize: 10000000, totalJSHeapSize: 20000000, jsHeapSizeLimit: 2147483648})});",
+            
+            # Override network info
+            "Object.defineProperty(navigator, 'connection', {get: () => ({effectiveType: '4g', rtt: 50, downlink: 10, saveData: false, type: 'wifi'})});",
         ]
         
         # Add OS-specific overrides for APTA
@@ -459,7 +714,17 @@ class EnhancedStealthBrowser:
         self.current_url = url
         
         # Import UA manager functions
-        from data.etl.scrapers.user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+        try:
+            from .user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+        except ImportError:
+            import sys
+            import os
+            # Get the absolute path to the scrapers directory
+            current_file = os.path.abspath(__file__)
+            scrapers_dir = os.path.dirname(current_file)
+            if scrapers_dir not in sys.path:
+                sys.path.insert(0, scrapers_dir)
+            from user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
         
         # Get User-Agent for this request
         user_agent = get_user_agent_for_site(url)
@@ -478,6 +743,9 @@ class EnhancedStealthBrowser:
                 WebDriverWait(self.current_driver, self.config.timeout_seconds).until(
                     EC.presence_of_element_located((By.TAG_NAME, "body"))
                 )
+                
+                # Simulate human behavior to avoid detection
+                self._simulate_human_behavior(self.current_driver)
                 
                 # Get page content
                 html = self.current_driver.page_source
@@ -511,17 +779,9 @@ class EnhancedStealthBrowser:
                 self.session_metrics.browser_requests += 1
                 report_ua_success(user_agent, url)
                 
-                # Add randomized delay with occasional longer pauses
-                if self.request_count % 25 == 0 and self.request_count > 0:
-                    # Every ~25 requests, add a longer pause
-                    delay = random.uniform(8.0, 12.0)
-                    if self.config.verbose:
-                        logger.info(f"⏸️ Extended pause: {delay:.1f}s")
-                else:
-                    # Normal randomized delay
-                    delay = random.uniform(2.5, 5.5)
+                # Add realistic delays with human behavior patterns
+                self._add_realistic_delays()
                 
-                time.sleep(delay)
                 return True, html, None
                 
             except TimeoutException:
@@ -598,8 +858,29 @@ class EnhancedStealthBrowser:
     
     def _try_http_request(self, url: str, session_id: str = None) -> Optional[str]:
         """Try HTTP request first with proxy rotation and User-Agent management."""
-        from data.etl.scrapers.proxy_manager import make_proxy_request, is_blocked
-        from data.etl.scrapers.user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+        try:
+            from .proxy_manager import make_proxy_request, is_blocked
+        except ImportError:
+            import sys
+            import os
+            # Get the absolute path to the scrapers directory
+            current_file = os.path.abspath(__file__)
+            scrapers_dir = os.path.dirname(current_file)
+            if scrapers_dir not in sys.path:
+                sys.path.insert(0, scrapers_dir)
+            from proxy_manager import make_proxy_request, is_blocked
+        
+        try:
+            from .user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+        except ImportError:
+            import sys
+            import os
+            # Get the absolute path to the scrapers directory
+            current_file = os.path.abspath(__file__)
+            scrapers_dir = os.path.dirname(current_file)
+            if scrapers_dir not in sys.path:
+                sys.path.insert(0, scrapers_dir)
+            from user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
         
         start_time = time.time()
         
@@ -642,6 +923,9 @@ class EnhancedStealthBrowser:
             
             if self.config.verbose:
                 logger.info(f"✅ HTTP request successful ({len(html)} chars, {latency:.2f}s)")
+            
+            # Add realistic delays for HTTP requests too
+            self._add_realistic_delays()
             
             return html
             
@@ -691,6 +975,127 @@ class EnhancedStealthBrowser:
             logger.info(f"   Avg Latency per Proxy: {summary['avg_latency_per_proxy']}")
         if summary['proxy_success_rates']:
             logger.info(f"   Proxy Success Rates: {summary['proxy_success_rates']}")
+        
+        # Send summary SMS at end of session
+        self._send_session_summary_sms(summary)
+    
+    def _send_session_summary_sms(self, summary):
+        """Send a summary SMS at the end of the scraping session."""
+        try:
+            # Get proxy health status from the proxy rotator
+            if hasattr(self, 'proxy_rotator') and self.proxy_rotator:
+                proxy_stats = self.proxy_rotator.get_session_stats()
+                
+                # Create summary message
+                message = (
+                    f"Rally Scraping Session Complete\n"
+                    f"Duration: {summary['duration']:.1f}s\n"
+                    f"Success Rate: {summary['success_rate']:.1f}%\n"
+                    f"Total Requests: {summary['total_requests']}\n"
+                    f"Proxy Rotations: {summary['proxy_rotations']}\n"
+                    f"Healthy Proxies: {proxy_stats.get('healthy_proxies', 'N/A')}\n"
+                    f"Blocked Proxies: {proxy_stats.get('blocked_proxies', 'N/A')}\n"
+                    f"Leagues: {', '.join(summary['leagues_scraped']) if summary['leagues_scraped'] else 'None'}"
+                )
+                
+                # Send SMS using the proxy manager's SMS function
+                try:
+                    from .proxy_manager import send_urgent_sms
+                    if send_urgent_sms(message):
+                        logger.info("📱 Session summary SMS sent successfully")
+                    else:
+                        logger.warning("⚠️ Failed to send session summary SMS")
+                except ImportError:
+                    logger.debug("📱 SMS not available - skipping session summary")
+                    
+        except Exception as e:
+            logger.debug(f"📱 Session summary SMS failed: {e}")
+    
+    def _simulate_human_behavior(self, driver):
+        """Simulate realistic human browsing behavior to avoid detection."""
+        if not driver or self.config.headless:
+            return  # Skip in headless mode
+        
+        try:
+            # Random scroll patterns (like a human reading the page)
+            scroll_amount = random.randint(100, 800)
+            driver.execute_script(f"window.scrollBy(0, {scroll_amount});")
+            time.sleep(random.uniform(0.5, 2.0))
+            
+            # Sometimes scroll back up
+            if random.random() < 0.3:
+                driver.execute_script(f"window.scrollBy(0, -{scroll_amount//2});")
+                time.sleep(random.uniform(0.3, 1.5))
+            
+            # Random mouse movements (if not headless)
+            if not self.config.headless:
+                # Simulate mouse hover over random elements
+                try:
+                    elements = driver.find_elements(By.TAG_NAME, "a")[:5]  # First 5 links
+                    if elements:
+                        random_element = random.choice(elements)
+                        # Use ActionChains for realistic mouse movement
+                        from selenium.webdriver.common.action_chains import ActionChains
+                        actions = ActionChains(driver)
+                        actions.move_to_element(random_element).perform()
+                        time.sleep(random.uniform(0.2, 0.8))
+                except Exception:
+                    pass  # Ignore if mouse simulation fails
+            
+            # Random page interaction delays
+            interaction_delay = random.uniform(1.0, 3.0)
+            time.sleep(interaction_delay)
+            
+            # Sometimes move mouse to random position
+            if random.random() < 0.4 and not self.config.headless:
+                try:
+                    driver.execute_script("""
+                        var event = new MouseEvent('mousemove', {
+                            'view': window,
+                            'bubbles': true,
+                            'cancelable': true,
+                            'clientX': arguments[0],
+                            'clientY': arguments[1]
+                        });
+                        document.dispatchEvent(event);
+                    """, random.randint(100, 800), random.randint(100, 600))
+                except Exception:
+                    pass
+            
+            if self.config.verbose:
+                logger.debug(f"🎭 Simulated human behavior: scroll={scroll_amount}, delay={interaction_delay:.1f}s")
+                
+        except Exception as e:
+            if self.config.verbose:
+                logger.debug(f"⚠️ Human behavior simulation failed: {e}")
+    
+    def _add_realistic_delays(self):
+        """Add realistic delays between requests to mimic human browsing."""
+        # Base delay from config
+        base_delay = random.uniform(self.config.min_delay, self.config.max_delay)
+        
+        # Add jitter for natural variation
+        jitter = random.uniform(-0.5, 1.0)  # ±0.5s to +1s variation
+        
+        # Add time-of-day scaling (slower during business hours)
+        hour = datetime.now().hour
+        if 9 <= hour <= 17:  # Business hours
+            business_multiplier = random.uniform(1.2, 1.8)
+            base_delay *= business_multiplier
+        
+        # Add weekend behavior (slightly slower)
+        if datetime.now().weekday() >= 5:  # Weekend
+            weekend_multiplier = random.uniform(1.1, 1.4)
+            base_delay *= weekend_multiplier
+        
+        # Ensure minimum delay
+        final_delay = max(0.1, base_delay + jitter)
+        
+        if self.config.verbose:
+            logger.debug(f"⏱️ Realistic delay: {final_delay:.1f}s (base: {base_delay:.1f}s, jitter: {jitter:.1f}s)")
+        
+        time.sleep(final_delay)
+        return final_delay
 
 # Convenience function
 def detect_environment():
@@ -734,7 +1139,17 @@ def run_preflight_check():
     
     # Test proxy health
     try:
-        from data.etl.scrapers.proxy_manager import make_proxy_request
+        try:
+            from .proxy_manager import make_proxy_request
+        except ImportError:
+            import sys
+            import os
+            # Get the absolute path to the scrapers directory
+            current_file = os.path.abspath(__file__)
+            scrapers_dir = os.path.dirname(current_file)
+            if scrapers_dir not in sys.path:
+                sys.path.insert(0, scrapers_dir)
+            from proxy_manager import make_proxy_request
         test_response = make_proxy_request("https://nstf.tenniscores.com", timeout=10)
         if test_response:
             logger.info("✅ Proxy health test: PASSED")

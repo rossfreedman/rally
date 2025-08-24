@@ -84,6 +84,12 @@ function initHomePageButtons() {
             return;
         }
         
+        // Skip buttons that should not be treated as navigation buttons
+        if (button.id === 'submit-lineup-btn' || button.classList.contains('non-navigation-btn')) {
+            console.log(`Skipping button ${index} - non-navigation button (${button.id})`);
+            return;
+        }
+        
         button.addEventListener('click', function(e) {
             console.log(`Home button clicked: ${this.href}`);
             handleNavigationClick(e, this, 'home-btn-loading');
