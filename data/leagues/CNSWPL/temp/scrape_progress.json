@@ -1,20 +1,33 @@
 {
   "completed_series": [
-    "Series 12",
-    "Series 4",
     "Series 7",
-    "Series 6",
     "Series 2",
-    "Series 5",
+    "Series A",
+    "Series 9",
+    "Series E",
     "Series 11",
     "Series 13",
+    "Series 16",
+    "Series 15",
+    "Series 14",
+    "Series H",
+    "Series 12",
+    "Series D",
+    "Series I",
+    "Series 6",
+    "Series 17",
+    "Series 5",
+    "Series F",
     "Series 1",
-    "Series 8",
     "Series 3",
     "Series 10",
-    "Series 9"
+    "Series B",
+    "Series 4",
+    "Series G",
+    "Series C",
+    "Series 8"
   ],
-  "last_update": "2025-08-24T15:33:17.871404",
-  "total_players": 1207,
-  "series_files_created": 13
+  "last_update": "2025-08-24T16:06:54.845420",
+  "total_players": 2335,
+  "series_files_created": 26
 }
