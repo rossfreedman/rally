@@ -1,6 +1,27 @@
 {# Template Version: 2025-01-27 - Cache busting for lineup formatting updates #}
+<script>
+// Force cache refresh for this page
+if (performance.navigation.type === 1) {
+    // Page was refreshed, clear any cached data
+    sessionStorage.removeItem('lineupCache');
+} else {
+    // Page was navigated to, check if we need to force refresh
+    const lastVisit = sessionStorage.getItem('createLineupLastVisit');
+    const now = Date.now();
+    if (lastVisit && (now - parseInt(lastVisit)) > 300000) { // 5 minutes
+        // Force page refresh if it's been more than 5 minutes
+        window.location.reload(true);
+    }
+    sessionStorage.setItem('createLineupLastVisit', now);
+}
+</script>
 {% extends "mobile/layout.html" %}
 {% set show_back_arrow = True %}
+
+<!-- Cache-busting meta tags -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 
 {% block title %}Lineup Escrow™ | Rally{% endblock %}
 
