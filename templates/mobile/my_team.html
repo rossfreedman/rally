@@ -338,7 +338,8 @@
                     <div class="space-y-4">
                         {% for match in team_matches %}
                         <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-2">
+                            <!-- Team Matchup Header -->
+                            <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-medium text-gray-700">{{ match.date }}</span>
                                     <span class="px-2 py-1 rounded-full text-xs font-medium
@@ -347,12 +348,35 @@
                                         {{ match.result }}
                                     </span>
                                 </div>
-                                <span class="text-sm text-gray-600">vs {{ match.opponent }}</span>
+                                <div class="text-right">
+                                    <span class="text-sm text-gray-600">vs {{ match.opponent }}</span>
+                                    <div class="text-xs text-gray-500">
+                                        {{ match.wins }}-{{ match.losses }} ({{ match.total_matches }} matches)
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-600 mb-2">{{ match.scores }}</div>
-                            <div class="text-xs text-gray-500">
-                                <div>Home: {{ match.home_players }}</div>
-                                <div>Away: {{ match.away_players }}</div>
+                            
+
+                            
+                            <!-- Individual Matches -->
+                            <div class="space-y-2">
+                                <div class="text-xs font-medium text-gray-700 mb-2">Individual Matches:</div>
+                                {% for individual_match in match.individual_matches %}
+                                <div class="border-l-2 border-gray-200 pl-3 py-2">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs text-gray-600">{{ individual_match.scores }}</span>
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                                            {% if individual_match.result == 'W' %}bg-green-100 text-green-700
+                                            {% else %}bg-red-100 text-red-700{% endif %}">
+                                            {{ individual_match.result }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        <div>Home: {{ individual_match.home_players }}</div>
+                                        <div>Away: {{ individual_match.away_players }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}

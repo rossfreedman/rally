@@ -105,19 +105,25 @@ def should_preserve_session_context(user_email: str, current_session: dict) -> b
             print(f"[DEBUG] League mismatch detected: session_league_id={session_league_id} vs db_league_context={db_league_context}, will refresh from database")
             return False
         
-        # Check if current session has valid team context
+        # Check if current session has valid team context AND correct league_id
         has_valid_team_context = (
             current_session.get("team_id") is not None and
-            current_session.get("league_id") is not None and
             current_session.get("club") and
             current_session.get("series")
         )
         
-        if has_valid_team_context:
-            print(f"[DEBUG] Valid team context found, preserving session: {current_session.get('club')} - {current_session.get('series')} (league_id: {session_league_id})")
+        # CRITICAL FIX: Check if league_id is correct, not just if it exists
+        has_correct_league_id = (session_league_id == db_league_context)
+        
+        # ONLY preserve session if BOTH team context AND league_id are correct
+        if has_valid_team_context and has_correct_league_id:
+            print(f"[DEBUG] Valid team context and correct league_id found, preserving session: {current_session.get('club')} - {current_session.get('series')} (league_id: {session_league_id})")
             return True
         else:
-            print(f"[DEBUG] Session incomplete or invalid, will refresh from database")
+            if not has_correct_league_id:
+                print(f"[DEBUG] League ID mismatch detected, will refresh from database: session_league_id={session_league_id} vs db_league_context={db_league_context}")
+            else:
+                print(f"[DEBUG] Session incomplete or invalid, will refresh from database")
             return False
             
     except Exception as e:

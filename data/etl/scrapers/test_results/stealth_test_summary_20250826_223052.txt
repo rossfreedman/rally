@@ -1,0 +1,16 @@
+STEALTH BROWSER DETECTION TEST RESULTS
+==================================================
+
+Test Date: 2025-08-26T22:29:26.000222
+Overall Score: 25/100
+Status: POOR
+
+ISSUES FOUND:
+• Could not test headers
+• navigator.webdriver is detectable
+• Page loaded but title doesn't match expected format
+
+DETAILED RESULTS:
+• HTTPBin Headers: Issues detected
+• Navigator Properties: Detectable
+• APTA Chicago Access: Success

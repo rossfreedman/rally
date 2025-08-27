@@ -19,7 +19,6 @@ from app.models.database_models import (
     League,
     Player,
     Series,
-    SeriesLeague,
     Team,
     User,
     UserPlayerAssociation,
@@ -939,9 +938,10 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
                 FROM users u
                 JOIN user_player_associations upa ON u.id = upa.user_id
                 LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = TRUE
+                LEFT JOIN teams t ON p.team_id = t.id
                 LEFT JOIN clubs c ON p.club_id = c.id
                 LEFT JOIN series s ON p.series_id = s.id
-                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN leagues l ON t.league_id = l.id
                 WHERE u.email = %s
                 LIMIT 1
             """
@@ -1111,8 +1111,7 @@ def get_series_list(league_id: str = None) -> List[str]:
 
         if league_id:
             query = (
-                query.join(SeriesLeague)
-                .join(League)
+                query.join(League)
                 .filter(League.league_id == league_id)
             )
 

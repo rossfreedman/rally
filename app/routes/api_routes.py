@@ -62,6 +62,8 @@ def convert_chicago_to_series_for_ui(series_name):
     return series_name
 
 
+
+
 # ==============================
 # Contact Sub: Player Contact API
 # ==============================
@@ -213,7 +215,7 @@ def _resolve_player_db_contact(first: str, last: str, user_ctx: dict) -> dict:
         return {}
 
 
-@api_bp.route("/api/player-contact", methods=["GET"])
+@api_bp.route("/player-contact", methods=["GET"])
 @login_required
 def api_player_contact():
     """Return contact info for a player by first and last name.
@@ -256,7 +258,7 @@ def api_player_contact():
         return jsonify({"error": "Failed to get player contact"}), 500
 
 
-@api_bp.route("/api/contact-sub/send", methods=["POST"])
+@api_bp.route("/contact-sub/send", methods=["POST"])
 @login_required
 def api_contact_sub_send():
     """Send a text message to a player, resolving phone via DB or CSV if needed."""
@@ -305,7 +307,7 @@ def api_contact_sub_send():
         return jsonify({"success": False, "error": "Internal error sending message"}), 500
 
 
-@api_bp.route("/api/send-lineup-message", methods=["POST"])
+@api_bp.route("/send-lineup-message", methods=["POST"])
 @login_required
 def send_lineup_message():
     """Send lineup message to team members via SMS or email"""
@@ -403,81 +405,81 @@ def send_lineup_message():
         return jsonify({"success": False, "error": "Internal error sending message"}), 500
 
 
-@api_bp.route("/api/series-stats")
+@api_bp.route("/series-stats")
 @login_required
 def get_series_stats():
     """Get series statistics"""
     return get_series_stats_data()
 
 
-@api_bp.route("/api/test-log", methods=["GET"])
+@api_bp.route("/test-log", methods=["GET"])
 @login_required
 def test_log():
     """Test log endpoint"""
     return test_log_data()
 
 
-@api_bp.route("/api/verify-logging")
+@api_bp.route("/verify-logging")
 @login_required
 def verify_logging():
     """Verify logging"""
     return verify_logging_data()
 
 
-@api_bp.route("/api/log-click", methods=["POST"])
+@api_bp.route("/log-click", methods=["POST"])
 def log_click():
     """Log click events"""
     return log_click_data()
 
 
-@api_bp.route("/api/research-team")
+@api_bp.route("/research-team")
 @login_required
 def research_team():
     """Research team data"""
     return research_team_data()
 
 
-@api_bp.route("/api/player-court-stats/<player_name>")
+@api_bp.route("/player-court-stats/<player_name>")
 def player_court_stats(player_name):
     """Get player court statistics"""
     return get_player_court_stats_data(player_name)
 
 
-@api_bp.route("/api/research-my-team")
+@api_bp.route("/research-my-team")
 @login_required
 def research_my_team():
     """Research my team data"""
     return research_my_team_data()
 
 
-@api_bp.route("/api/research-me")
+@api_bp.route("/research-me")
 @login_required
 def research_me():
     """Research me data"""
     return research_me_data()
 
 
-@api_bp.route("/api/win-streaks")
+@api_bp.route("/win-streaks")
 @login_required
 def get_win_streaks():
     """Get win streaks"""
     return get_win_streaks_data()
 
 
-@api_bp.route("/api/player-streaks")
+@api_bp.route("/player-streaks")
 def get_player_streaks():
     """Get player streaks"""
     return get_player_streaks_data()
 
 
-@api_bp.route("/api/enhanced-streaks")
+@api_bp.route("/enhanced-streaks")
 @login_required
 def get_enhanced_streaks():
     """Get enhanced streaks"""
     return get_enhanced_streaks_data()
 
 
-@api_bp.route("/api/last-3-matches")
+@api_bp.route("/last-3-matches")
 @login_required
 def get_last_3_matches():
     """Get the last 3 matches for the current user"""
@@ -736,7 +738,7 @@ def get_last_3_matches():
         return jsonify({"error": "Failed to retrieve matches"}), 500
 
 
-@api_bp.route("/api/team-last-3-matches")
+@api_bp.route("/team-last-3-matches")
 @login_required
 def get_team_last_3_matches():
     """Get the last 3 matches for the current user's team using team_id"""
@@ -1022,7 +1024,7 @@ def get_team_last_3_matches():
         return jsonify({"error": "Failed to retrieve team matches"}), 500
 
 
-@api_bp.route("/api/team-last-3-matches-by-id")
+@api_bp.route("/team-last-3-matches-by-id")
 @login_required
 def get_team_last_3_matches_by_id():
     """Get the last 3 matches for a specific team by team_id"""
@@ -1234,14 +1236,14 @@ def get_team_last_3_matches_by_id():
         return jsonify({"error": "Failed to retrieve team matches"}), 500
 
 
-@api_bp.route("/api/all-teams-schedule-data")
+@api_bp.route("/all-teams-schedule-data")
 @login_required
 def get_all_teams_schedule_data():
     """Get all teams schedule data with team filter"""
     return get_all_teams_schedule_data_data()
 
 
-@api_bp.route("/api/current-season-matches")
+@api_bp.route("/current-season-matches")
 @login_required
 def get_current_season_matches():
     """Get current season matches for the logged-in user"""
@@ -1506,7 +1508,7 @@ def get_current_season_matches():
             return jsonify({"error": f"Failed to retrieve matches: {str(e)}"}), 500
 
 
-@api_bp.route("/api/team-current-season-matches")
+@api_bp.route("/team-current-season-matches")
 @login_required
 def get_team_current_season_matches():
     """Get current season matches for the team (used by my-team page)"""
@@ -1760,7 +1762,7 @@ def get_team_current_season_matches():
             return jsonify({"error": f"Failed to retrieve matches: {str(e)}"}), 500
 
 
-@api_bp.route("/api/find-training-video", methods=["POST"])
+@api_bp.route("/find-training-video", methods=["POST"])
 def find_training_video():
     """Find training video"""
     return find_training_video_data()
@@ -2115,7 +2117,7 @@ def generate_general_response(message, training_guide):
     return response
 
 
-@api_bp.route("/api/add-practice-times", methods=["POST"])
+@api_bp.route("/add-practice-times", methods=["POST"])
 @login_required
 def add_practice_times():
     """API endpoint to add practice times to the schedule"""
@@ -2403,21 +2405,21 @@ def add_practice_times():
         )
 
 
-@api_bp.route("/api/remove-practice-times", methods=["POST"])
+@api_bp.route("/remove-practice-times", methods=["POST"])
 @login_required
 def remove_practice_times():
     """Remove practice times"""
     return remove_practice_times_data()
 
 
-@api_bp.route("/api/team-schedule-data")
+@api_bp.route("/team-schedule-data")
 @login_required
 def get_team_schedule_data():
     """Get team schedule data"""
     return get_team_schedule_data_data()
 
 
-@api_bp.route("/api/availability", methods=["POST"])
+@api_bp.route("/availability", methods=["POST"])
 @login_required
 def update_availability():
     """Update player availability for matches"""
@@ -2688,7 +2690,7 @@ def update_availability():
         return jsonify({"error": f"Failed to update availability: {str(e)}"}), 500
 
 
-@api_bp.route("/api/get-user-settings")
+@api_bp.route("/get-user-settings")
 @login_required
 def get_user_settings():
     """Get user settings for the settings page"""
@@ -2865,7 +2867,7 @@ def convert_series_to_mapping_id(series_name, club_name, league_id=None):
     return f"{club_name} {series_name}"  # Simple fallback
 
 
-@api_bp.route("/api/update-settings", methods=["POST"])
+@api_bp.route("/update-settings", methods=["POST"])
 @login_required
 def update_settings():
     """Update user settings with intelligent player lookup"""
@@ -2935,16 +2937,14 @@ def update_settings():
                 return None
             
             # String to numeric mapping
-            string_to_numeric = {
-                "APTA_CHICAGO": 4930,
-                "NSTF": 4933,
-                "CNSWPL": 4932,  # Fixed: was 4491, should be 4932
-                "CITA": 4496
-            }
+            # REMOVED: Hardcoded league ID mappings that were causing incorrect league_id values
+            # The system should use actual database values, not hardcoded mappings
             
-            # If it's a string league ID, convert to numeric
-            if isinstance(league_id, str) and league_id in string_to_numeric:
-                return string_to_numeric[league_id]
+            # If it's already numeric, convert to int
+            try:
+                return int(league_id)
+            except (ValueError, TypeError):
+                return league_id
             
             # If it's already numeric, convert to int
             try:
@@ -3001,12 +3001,9 @@ def update_settings():
             # Handle both numeric IDs and string league IDs
             if str(new_league_id).isdigit():
                 # Convert numeric league_id to string format for switch_user_league
-                league_string_mapping = {
-                    "4930": "APTA_CHICAGO",
-                    "4933": "NSTF", 
-                    "4932": "CNSWPL",  # Fixed: was 4491, should be 4932
-                    "4496": "CITA"
-                }
+                # REMOVED: Hardcoded league ID mappings that were causing incorrect league_id values
+                # The system should use actual database values, not hardcoded mappings
+                league_string_mapping = {}
                 new_league_string = league_string_mapping.get(str(new_league_id))
             else:
                 # Already a string league ID like "APTA_CHICAGO"
@@ -3520,7 +3517,7 @@ def update_settings():
         return jsonify({"success": False, "message": f"Update failed: {str(e)}"}), 500
 
 
-@api_bp.route("/api/retry-player-id", methods=["POST"])
+@api_bp.route("/retry-player-id", methods=["POST"])
 @login_required
 def retry_player_id_lookup():
     """Manual retry of player ID lookup for current user"""
@@ -3754,7 +3751,7 @@ def retry_player_id_lookup():
         )
 
 
-@api_bp.route("/api/get-leagues")
+@api_bp.route("/get-leagues")
 def get_leagues():
     """Get all available leagues"""
     try:
@@ -3773,7 +3770,7 @@ def get_leagues():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/get-clubs-by-league")
+@api_bp.route("/get-clubs-by-league")
 def get_clubs_by_league():
     """Get clubs filtered by league"""
     try:
@@ -3804,7 +3801,7 @@ def get_clubs_by_league():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/get-series-by-league")
+@api_bp.route("/get-series-by-league")
 def get_series_by_league():
     """Get series filtered by league"""
     try:
@@ -3923,7 +3920,7 @@ def get_cnswpl_user_friendly_name(database_name, display_name):
     return name
 
 
-@api_bp.route("/api/get-user-facing-series-by-league")
+@api_bp.route("/get-user-facing-series-by-league")
 def get_user_facing_series_by_league():
     """Get user-facing series names using the series.display_name column - SIMPLIFIED VERSION"""
     try:
@@ -4138,7 +4135,7 @@ def get_user_facing_series_by_league():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/teams")
+@api_bp.route("/teams")
 @login_required
 def get_teams():
     """Get teams filtered by user's league"""
@@ -4194,7 +4191,7 @@ def get_teams():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/teams-with-ids")
+@api_bp.route("/teams-with-ids")
 @login_required
 def get_teams_with_ids():
     """Get teams with IDs filtered by user's league"""
@@ -4287,7 +4284,7 @@ def get_teams_with_ids():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/club-players-metadata")
+@api_bp.route("/club-players-metadata")
 @login_required
 def get_club_players_metadata():
     """Get metadata for club players page (series list, PTI range, etc.) without requiring filter criteria"""
@@ -4356,7 +4353,7 @@ def get_club_players_metadata():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/club-players")
+@api_bp.route("/club-players")
 @login_required
 def get_club_players():
     """Get all players at the user's club with optional filtering"""
@@ -4444,7 +4441,7 @@ def get_club_players():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/debug-club-data")
+@api_bp.route("/debug-club-data")
 @login_required
 def debug_club_data():
     """Debug endpoint to show user club and available clubs in players.json"""
@@ -4475,7 +4472,7 @@ def debug_club_data():
 # ==========================================
 
 
-@api_bp.route("/api/pti-analysis/players")
+@api_bp.route("/pti-analysis/players")
 @login_required
 def get_pti_analysis_players():
     """Get all players with PTI data for analysis - FIXED: Now league context aware"""
@@ -4553,7 +4550,7 @@ def get_pti_analysis_players():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/pti-analysis/player-history")
+@api_bp.route("/pti-analysis/player-history")
 @login_required
 def get_pti_analysis_player_history():
     """Get player history data for PTI analysis"""
@@ -4612,7 +4609,7 @@ def get_pti_analysis_player_history():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/pti-analysis/match-history")
+@api_bp.route("/pti-analysis/match-history")
 @login_required
 def get_pti_analysis_match_history():
     """Get match history data for PTI analysis - FIXED: Now league context aware"""
@@ -4695,7 +4692,7 @@ def get_pti_analysis_match_history():
         return jsonify({"error": str(e)}), 500
 
 
-@api_bp.route("/api/player-season-tracking", methods=["GET", "POST"])
+@api_bp.route("/player-season-tracking", methods=["GET", "POST"])
 @login_required
 def handle_player_season_tracking():
     """Handle getting and updating player season tracking data"""
@@ -4859,7 +4856,7 @@ def handle_player_season_tracking():
         return jsonify({"error": "Internal server error"}), 500
 
 
-@api_bp.route("/api/switch-team-context", methods=["POST"])
+@api_bp.route("/switch-team-context", methods=["POST"])
 @login_required
 def switch_team_context():
     """API endpoint for switching user's team/league context using existing league_context field"""
@@ -4985,7 +4982,7 @@ def switch_team_context():
         }), 500
 
 
-@api_bp.route("/api/switch-league", methods=["POST"])
+@api_bp.route("/switch-league", methods=["POST"])
 @login_required
 def switch_league():
     """Simple league switching API using new session service"""
@@ -5033,7 +5030,7 @@ def switch_league():
         return jsonify({"success": False, "error": f"League switch failed: {str(e)}"}), 500
 
 
-@api_bp.route("/api/session-refresh-status", methods=["GET"])
+@api_bp.route("/session-refresh-status", methods=["GET"])
 @login_required
 def get_session_refresh_status():
     """
@@ -5089,7 +5086,7 @@ def get_session_refresh_status():
         }), 500
 
 
-@api_bp.route("/api/refresh-session", methods=["POST"])
+@api_bp.route("/refresh-session", methods=["POST"])
 @login_required  
 def manual_refresh_session():
     """
@@ -5137,7 +5134,7 @@ def manual_refresh_session():
         }), 500
 
 
-@api_bp.route("/api/cleanup-session-refresh-signals", methods=["POST"])
+@api_bp.route("/cleanup-session-refresh-signals", methods=["POST"])
 @login_required
 def cleanup_session_refresh_signals():
     """
@@ -5169,7 +5166,7 @@ def cleanup_session_refresh_signals():
         }), 500
 
 
-@api_bp.route("/api/get-club-teams")
+@api_bp.route("/get-club-teams")
 @login_required
 def get_club_teams():
     """Get all teams for the user's club, filtered by league and sorted by series number"""
@@ -5279,7 +5276,7 @@ def get_club_teams():
         print(f"Error getting club teams: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
-@api_bp.route("/api/get-user-teams", methods=["GET"])
+@api_bp.route("/get-user-teams", methods=["GET"])
 @login_required
 def get_user_teams():
     """
@@ -5377,7 +5374,7 @@ def get_user_teams():
         }), 500
 
 
-@api_bp.route("/api/get-user-leagues", methods=["GET"])
+@api_bp.route("/get-user-leagues", methods=["GET"])
 @login_required
 def get_user_leagues():
     """
@@ -5445,7 +5442,7 @@ def get_user_leagues():
         }), 500
 
 
-@api_bp.route("/api/switch-team-in-league", methods=["POST"])
+@api_bp.route("/switch-team-in-league", methods=["POST"])
 @login_required
 def switch_team_in_league():
     """
@@ -5498,7 +5495,7 @@ def switch_team_in_league():
         return jsonify({"success": False, "error": f"Team switch failed: {str(e)}"}), 500
 
 
-@api_bp.route("/api/get-user-teams-in-current-league", methods=["GET"])
+@api_bp.route("/get-user-teams-in-current-league", methods=["GET"])
 @login_required
 def get_user_teams_in_current_league():
     """
@@ -5599,7 +5596,7 @@ def get_user_teams_in_current_league():
         }), 500
 
 
-@api_bp.route("/api/create-team/players")
+@api_bp.route("/create-team/players")
 @login_required
 def get_create_team_players():
     """Get all players with PTI data for team creation analysis"""
@@ -5705,7 +5702,7 @@ def get_create_team_players():
         return jsonify({"error": "Failed to get players data"}), 500
 
 
-@api_bp.route("/api/create-team/analyze-series")
+@api_bp.route("/create-team/analyze-series")
 @login_required
 def analyze_series_pti_ranges():
     """Analyze PTI ranges for all series to provide expert guidance"""
@@ -5843,7 +5840,7 @@ def analyze_series_pti_ranges():
         return jsonify({"error": "Failed to analyze series data"}), 500
 
 
-@api_bp.route("/api/create-team/calculate-balanced-ranges", methods=["POST"])
+@api_bp.route("/create-team/calculate-balanced-ranges", methods=["POST"])
 @login_required
 def calculate_balanced_pti_ranges():
     """Calculate balanced PTI ranges by stratifying all players evenly across series"""
@@ -6043,7 +6040,7 @@ def calculate_balanced_pti_ranges():
         return jsonify({"error": "Failed to calculate balanced ranges"}), 500
 
 
-@api_bp.route("/api/create-team/save", methods=["POST"])
+@api_bp.route("/create-team/save", methods=["POST"])
 @login_required
 def save_team_assignments():
     """Save team assignments (for future implementation)"""
@@ -6093,7 +6090,7 @@ def save_team_assignments():
         return jsonify({"error": "Failed to save team assignments"}), 500
 
 
-@api_bp.route("/api/create-team/update-range", methods=["POST"])
+@api_bp.route("/create-team/update-range", methods=["POST"])
 @login_required
 def update_pti_range():
     """Update PTI range for a series with real-time validation"""
@@ -6156,7 +6153,7 @@ def update_pti_range():
         return jsonify({"success": False, "error": "Failed to update PTI range"}), 500
 
 
-@api_bp.route("/api/create-team/update-series-range", methods=["POST"])
+@api_bp.route("/create-team/update-series-range", methods=["POST"])
 @login_required  
 def update_series_range():
     """Update PTI range for a specific series with enhanced validation and error handling"""
@@ -6285,7 +6282,7 @@ def update_series_range():
         }), 500
 
 
-@api_bp.route("/api/debug/database-state")
+@api_bp.route("/debug/database-state")
 @login_required
 def debug_database_state():
     """Debug endpoint to check database state - helps diagnose staging issues"""
@@ -6415,7 +6412,7 @@ def debug_database_state():
         }), 500
 
 
-@api_bp.route("/api/debug/test-mobile-service")
+@api_bp.route("/debug/test-mobile-service")
 @login_required
 def debug_test_mobile_service():
     """Debug endpoint to test mobile service directly on staging"""
@@ -6553,7 +6550,7 @@ def test_mobile_service_public():
 # PICKUP GAMES API ENDPOINTS
 # ==========================================
 
-@api_bp.route("/api/pickup-games", methods=["GET"])
+@api_bp.route("/pickup-games", methods=["GET"])
 @login_required
 def get_pickup_games():
     """Get all pickup games (upcoming and past) with participant details"""
@@ -6812,7 +6809,7 @@ def get_pickup_games():
         return jsonify({"error": "Failed to retrieve pickup games"}), 500
 
 
-@api_bp.route("/api/pickup-games", methods=["POST"])
+@api_bp.route("/pickup-games", methods=["POST"])
 @login_required
 def create_pickup_game():
     """Create a new pickup game"""
@@ -6991,7 +6988,7 @@ def create_pickup_game():
         return jsonify({"error": "Failed to create pickup game due to server error"}), 500
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>/join", methods=["POST"])
+@api_bp.route("/pickup-games/<int:game_id>/join", methods=["POST"])
 @login_required
 def join_pickup_game(game_id):
     """Join a pickup game"""
@@ -7106,7 +7103,7 @@ def join_pickup_game(game_id):
         return jsonify({"error": "Failed to join pickup game"}), 500
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>/add-player", methods=["POST"])
+@api_bp.route("/pickup-games/<int:game_id>/add-player", methods=["POST"])
 @login_required
 def add_player_to_pickup_game(game_id):
     """Add another player to a pickup game"""
@@ -7272,7 +7269,7 @@ def add_player_to_pickup_game(game_id):
         return jsonify({"error": "Failed to add player to pickup game"}), 500
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>", methods=["PUT"])
+@api_bp.route("/pickup-games/<int:game_id>", methods=["PUT"])
 @login_required
 def update_pickup_game(game_id):
     """Update an existing pickup game (only by creator)"""
@@ -7403,7 +7400,7 @@ def update_pickup_game(game_id):
         return jsonify({"error": "Failed to update pickup game due to server error"}), 500
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>", methods=["GET"])
+@api_bp.route("/pickup-games/<int:game_id>", methods=["GET"])
 @login_required
 def get_pickup_game(game_id):
     """Get a single pickup game for editing (only by creator)"""
@@ -7482,7 +7479,7 @@ def get_pickup_game(game_id):
 
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>/leave", methods=["DELETE"])
+@api_bp.route("/pickup-games/<int:game_id>/leave", methods=["DELETE"])
 @login_required
 def leave_pickup_game(game_id):
     """Leave a pickup game"""
@@ -7583,7 +7580,7 @@ def leave_pickup_game(game_id):
         return jsonify({"error": "Failed to leave pickup game"}), 500
 
 
-@api_bp.route("/api/pickup-games/<int:game_id>", methods=["DELETE"])
+@api_bp.route("/pickup-games/<int:game_id>", methods=["DELETE"])
 @login_required
 def delete_pickup_game(game_id):
     """Delete a pickup game (only by creator)"""
@@ -7672,7 +7669,7 @@ def delete_pickup_game(game_id):
         return jsonify({"error": "Failed to delete pickup game due to server error"}), 500
 
 
-@api_bp.route("/api/series-options", methods=["GET"])
+@api_bp.route("/series-options", methods=["GET"])
 @login_required  
 def get_series_options():
     """Get series options for dropdown in pickup game creation"""
@@ -7758,7 +7755,7 @@ def get_series_options():
 # GROUPS API ROUTES
 # =====================================================
 
-@api_bp.route("/api/groups", methods=["GET"])
+@api_bp.route("/groups", methods=["GET"])
 @login_required
 def get_user_groups():
     """Get all groups for the current user"""
@@ -7786,7 +7783,7 @@ def get_user_groups():
         return jsonify({"error": "Failed to retrieve groups"}), 500
 
 
-@api_bp.route("/api/groups", methods=["POST"])
+@api_bp.route("/groups", methods=["POST"])
 @login_required
 def create_group():
     """Create a new group"""
@@ -7828,7 +7825,7 @@ def create_group():
         return jsonify({"error": "Failed to create group"}), 500
 
 
-@api_bp.route("/api/groups/<int:group_id>", methods=["GET"])
+@api_bp.route("/groups/<int:group_id>", methods=["GET"])
 @login_required
 def get_group_details(group_id):
     """Get detailed information about a group"""
@@ -7853,7 +7850,7 @@ def get_group_details(group_id):
         return jsonify({"error": "Failed to retrieve group details"}), 500
 
 
-@api_bp.route("/api/groups/<int:group_id>", methods=["DELETE"])
+@api_bp.route("/groups/<int:group_id>", methods=["DELETE"])
 @login_required
 def delete_group(group_id):
     """Delete a group (creator only)"""
@@ -7883,7 +7880,7 @@ def delete_group(group_id):
         return jsonify({"error": "Failed to delete group"}), 500
 
 
-@api_bp.route("/api/groups/search-players", methods=["GET"])
+@api_bp.route("/groups/search-players", methods=["GET"])
 @login_required
 def search_players_for_groups():
     """Search for players to add to groups"""
@@ -7976,7 +7973,7 @@ def search_players_for_groups():
         return jsonify({"error": "Search failed"}), 500
 
 
-@api_bp.route("/api/groups/<int:group_id>/members", methods=["POST"])
+@api_bp.route("/groups/<int:group_id>/members", methods=["POST"])
 @login_required
 def add_group_member(group_id):
     """Add a member to a group"""
@@ -8039,7 +8036,7 @@ def add_group_member(group_id):
         return jsonify({"error": "Failed to add group member"}), 500
 
 
-@api_bp.route("/api/groups/<int:group_id>/members/<int:member_user_id>", methods=["DELETE"])
+@api_bp.route("/groups/<int:group_id>/members/<int:member_user_id>", methods=["DELETE"])
 @login_required
 def remove_group_member(group_id, member_user_id):
     """Remove a member from a group"""
@@ -8069,7 +8066,7 @@ def remove_group_member(group_id, member_user_id):
         return jsonify({"error": "Failed to remove group member"}), 500
 
 
-@api_bp.route("/api/groups/<int:group_id>", methods=["PUT"])
+@api_bp.route("/groups/<int:group_id>", methods=["PUT"])
 @login_required
 def update_group(group_id):
     """Update group details (creator only)"""
@@ -8111,7 +8108,7 @@ def update_group(group_id):
         return jsonify({"error": "Failed to update group"}), 500
 
 
-@api_bp.route("/api/groups/send-message", methods=["POST"])
+@api_bp.route("/groups/send-message", methods=["POST"])
 @login_required
 def send_group_message():
     """Send SMS messages to all members of a group"""
@@ -8181,7 +8178,7 @@ def send_group_message():
         }), 500
 
 
-@api_bp.route("/api/home/notifications")
+@api_bp.route("/home/notifications")
 @login_required
 def get_home_notifications():
     """Get personalized notifications for the home page in the specified order"""
@@ -8744,7 +8741,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
     return notifications
 
 
-@api_bp.route("/api/captain-messages", methods=["POST"])
+@api_bp.route("/captain-messages", methods=["POST"])
 @login_required
 def create_captain_message():
     """Create a new captain message for the team"""
@@ -8807,7 +8804,7 @@ def create_captain_message():
         return jsonify({"error": "Failed to create captain message"}), 500
 
 
-@api_bp.route("/api/captain-messages", methods=["DELETE"])
+@api_bp.route("/captain-messages", methods=["DELETE"])
 @login_required
 def remove_captain_message():
     """Remove the current captain message for the team"""
@@ -8875,7 +8872,7 @@ def remove_captain_message():
         return jsonify({"error": "Failed to remove captain message"}), 500
 
 
-@api_bp.route("/api/register-team-players", methods=["POST"])
+@api_bp.route("/register-team-players", methods=["POST"])
 @login_required
 def register_team_players():
     """Register multiple team players at once using the same registration logic as individual registration"""
@@ -9718,7 +9715,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
     return notifications
 
 
-@api_bp.route("/api/league-interest", methods=["POST"])
+@api_bp.route("/league-interest", methods=["POST"])
 def submit_league_interest():
     """Handle league interest form submissions"""
     try:
@@ -9795,7 +9792,7 @@ Submitted at: {datetime.now().strftime('%m/%d/%Y %I:%M %p')}
         }), 500
 
 
-@api_bp.route("/api/partner-matches-team")
+@api_bp.route("/partner-matches-team")
 @login_required
 def get_partner_matches_team():
     """Get partner matches for a specific player on a team (used by teams-players page)"""
@@ -9861,6 +9858,9 @@ def get_partner_matches_team():
                 print(f"[DEBUG] Could not convert league ID: {e}")
         elif isinstance(user_league_id, int):
             league_id_int = user_league_id
+        
+        # Initialize current_club_id to prevent UnboundLocalError
+        current_club_id = None
         
         # Get team info to verify access (only if team_id provided)
         team_name = None
@@ -10309,6 +10309,7 @@ def get_partner_matches_team():
                     FROM match_scores ms
                     WHERE ms.match_date >= %s 
                         AND ms.match_date <= %s
+                        AND (ms.home_team = %s OR ms.away_team = %s)
                         AND (
                             ms.home_player_1_id = %s OR 
                             ms.home_player_2_id = %s OR 
@@ -10325,10 +10326,11 @@ def get_partner_matches_team():
             if team_name and not smart_filtering_applied:
                 # Team-specific query parameters (only if smart filtering wasn't already applied)
                 query_params = [
-                    team_name, team_name, team_name, team_name,  # For home/away and win calculations
+                    player_id, player_id, player_id, player_id,  # For home/away detection (4 placeholders)
+                    player_id, player_id, player_id, player_id,  # For win calculations (4 placeholders)
                     season_start, season_end,  # Season boundaries
                     team_name, team_name,  # Team filters
-                    player_id, player_id, player_id, player_id  # Exact player ID
+                    player_id, player_id, player_id, player_id  # Exact player ID (4 placeholders)
                 ]
                 # Update query to use exact match instead of LIKE
                 base_query = base_query.replace("LOWER(ms.home_player_1_id) LIKE LOWER(%s)", "ms.home_player_1_id = %s")
@@ -10389,6 +10391,10 @@ def get_partner_matches_team():
         else:
             print(f"[DEBUG] API: Query params - team_name: {team_name}, player_pattern: {player_pattern}")
         
+        print(f"[DEBUG] API: Final base query: {base_query}")
+        print(f"[DEBUG] API: Final query params: {query_params}")
+        print(f"[DEBUG] API: Param count: {len(query_params)}")
+        
         raw_matches = execute_query(base_query, query_params)
         print(f"[DEBUG] API: Found {len(raw_matches) if raw_matches else 0} raw matches")
         print(f"[DEBUG] API: Filtering by partner='{partner_filter}' court='{court_filter}'")
@@ -10437,6 +10443,80 @@ def get_partner_matches_team():
             """
             team_matches = execute_query_one(team_check_query, [season_start, season_end, team_name, team_name])
             print(f"[DEBUG] API: Team {team_name} has {team_matches['match_count'] if team_matches else 0} total matches")
+            
+            # Try a simple direct query to find matches where both players played together
+            if player_id and partner_filter:
+                print(f"[DEBUG] API: Trying direct partner search...")
+                direct_partner_query = """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        ms.match_date,
+                        ms.home_team,
+                        ms.away_team,
+                        ms.home_player_1_id,
+                        ms.home_player_2_id,
+                        ms.away_player_1_id,
+                        ms.away_player_2_id,
+                        ms.winner,
+                        ms.scores,
+                        ms.id,
+                        CASE 
+                            WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) THEN TRUE
+                            WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) THEN FALSE
+                            ELSE NULL
+                        END as player_was_home,
+                        CASE 
+                            WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                            WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                            ELSE FALSE
+                        END as player_won
+                    FROM match_scores ms
+                    WHERE ms.match_date >= %s 
+                        AND ms.match_date <= %s
+                        AND (ms.home_team = %s OR ms.away_team = %s)
+                        AND (
+                            -- Both players on home team
+                            (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                            (ms.home_player_2_id = %s AND ms.home_player_1_id = %s) OR
+                            -- Both players on away team
+                            (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                            (ms.away_player_2_id = %s AND ms.away_player_1_id = %s)
+                        )
+                    ORDER BY ms.match_date DESC, ms.id DESC
+                """
+                
+                # First, get the partner's player ID
+                partner_id_query = """
+                    SELECT tenniscores_player_id 
+                    FROM players 
+                    WHERE CONCAT(first_name, ' ', last_name) = %s 
+                    LIMIT 1
+                """
+                partner_result = execute_query_one(partner_id_query, (partner_filter,))
+                
+                if partner_result:
+                    partner_id = partner_result["tenniscores_player_id"]
+                    print(f"[DEBUG] API: Found partner ID: {partner_id}")
+                    
+                    direct_params = [
+                        player_id, player_id, player_id, player_id,  # For home/away detection (4 placeholders)
+                        player_id, player_id, player_id, player_id,  # For win calculations (4 placeholders)
+                        season_start, season_end,  # Season boundaries
+                        team_name, team_name,  # Team filters
+                        player_id, partner_id,  # Home team case 1
+                        player_id, partner_id,  # Home team case 2
+                        player_id, partner_id,  # Away team case 1
+                        player_id, partner_id   # Away team case 2
+                    ]
+                    
+                    direct_matches = execute_query(direct_partner_query, direct_params)
+                    print(f"[DEBUG] API: Direct partner query found {len(direct_matches) if direct_matches else 0} matches")
+                    
+                    if direct_matches:
+                        print(f"[DEBUG] API: Direct query success! Using these matches instead.")
+                        raw_matches = direct_matches
+                else:
+                    print(f"[DEBUG] API: Could not find partner ID for '{partner_filter}'")
             
             # Check what player names exist for this team
             players_check_query = """
@@ -10887,7 +10967,7 @@ def get_partner_matches_team():
         }), 500
 
 
-@api_bp.route("/api/player-matches-detail")
+@api_bp.route("/player-matches-detail")
 @login_required
 def get_player_matches_detail():
     """Get all current season matches for a specific player (used by player detail page)"""

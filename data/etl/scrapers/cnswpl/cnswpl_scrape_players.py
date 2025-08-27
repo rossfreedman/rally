@@ -128,7 +128,7 @@ class CNSWPLRosterScraper:
                         time.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
                     
                     # Test the new proxy with a simple request
-                    test_response = stealth_browser.get_html("https://tenniscores.com")
+                    test_response = stealth_browser.get_html("https://tennisscores.com")
                     if test_response and len(test_response) > 100:
                         print("   ✅ Proxy rotation successful")
                         return True
@@ -553,7 +553,7 @@ class CNSWPLRosterScraper:
                 # Show series summary with team breakdown
                 team_counts = {}
                 for player in all_players:
-                    team = player.get('scrape_team', 'Unknown')
+                    team = player.get('Team', 'Unknown')
                     team_counts[team] = team_counts.get(team, 0) + 1
                 
                 print(f"   📊 Series {series_name} breakdown:")
@@ -698,10 +698,9 @@ class CNSWPLRosterScraper:
                     # Create player record
                     player_data = {
                         'League': 'CNSWPL',
-                        'Series': team_series,
-                        'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
                         'Club': club_name,
-                        'Location ID': club_name.upper().replace(' ', '_'),
+                        'Series': team_series,
+                        'Team': f"{club_name} {team_series.replace('Series ', '')}",
                         'Player ID': cnswpl_player_id,
                         'First Name': first_name,
                         'Last Name': last_name,
@@ -711,11 +710,7 @@ class CNSWPLRosterScraper:
                         'Win %': '0.0%',
                         'Captain': 'Yes' if is_captain else '',
                         'Source URL': team_url,
-                        'source_league': 'CNSWPL',
-                        'validation_issues': [f'Scraped from {team_name} team roster'],
-                        'scrape_source': 'team_roster_page',
-                        'scrape_team': team_name,
-                        'scrape_series': series_name
+                        'source_league': 'CNSWPL'
                     }
                     
                     players.append(player_data)
@@ -782,10 +777,9 @@ class CNSWPLRosterScraper:
                 # Create player record
                 player_data = {
                     'League': 'CNSWPL',
-                    'Series': team_series,
-                    'Series Mapping ID': f"{club_name} {team_series.replace('Series ', '')}",
                     'Club': club_name,
-                    'Location ID': club_name.upper().replace(' ', '_'),
+                    'Series': team_series,
+                    'Team': f"{club_name} {team_series.replace('Series ', '')}",
                     'Player ID': cnswpl_player_id,
                     'First Name': first_name,
                     'Last Name': last_name,
@@ -795,11 +789,7 @@ class CNSWPLRosterScraper:
                     'Win %': '0.0%',
                     'Captain': 'Yes' if is_captain else '',
                     'Source URL': team_url,
-                    'source_league': 'CNSWPL',
-                    'validation_issues': [f'Scraped from {team_name} team roster'],
-                    'scrape_source': 'team_roster_page',
-                    'scrape_team': team_name,
-                    'scrape_series': series_name
+                    'source_league': 'CNSWPL'
                 }
                 
                 players.append(player_data)
@@ -1167,14 +1157,7 @@ class CNSWPLRosterScraper:
             except Exception as e:
                 print(f"⚠️ Warning: Could not clean up temporary files: {e}")
         
-        # Save timestamped version
-        output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', f"players_comprehensive_{timestamp}.json")
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(self.all_players, f, indent=2, ensure_ascii=False)
-        
-        print(f"💾 Comprehensive results saved to: {output_file}")
-        
-        # Update main players.json file
+        # Update main players.json file directly
         main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'players.json')
         
         if os.path.exists(main_output_file):
@@ -1193,29 +1176,27 @@ class CNSWPLRosterScraper:
                         dest.write(source.read())
                 
                 print(f"🛡️ BACKUP CREATED: {backup_file}")
+                
+                # Get existing player count for backup message
+                with open(main_output_file, 'r', encoding='utf-8') as f:
+                    existing_players = json.load(f)
                 print(f"   📁 Protected {len(existing_players):,} existing players")
                 
             except Exception as e:
                 print(f"⚠️ WARNING: Failed to create backup: {e}")
                 print(f"   ⚠️ Existing players.json may be lost if update proceeds!")
-            
-            with open(main_output_file, 'r', encoding='utf-8') as f:
-                existing_players = json.load(f)
+                existing_players = []
             
             print(f"\n📊 COMPARISON WITH EXISTING DATA:")
             print(f"   Existing players.json: {len(existing_players):,} players")
             print(f"   New comprehensive data: {len(self.all_players):,} players")
             print(f"   Difference: {len(self.all_players) - len(existing_players):+,} players")
             
-            if len(self.all_players) > len(existing_players):
-                with open(main_output_file, 'w', encoding='utf-8') as f:
-                    json.dump(self.all_players, f, indent=2, ensure_ascii=False)
-                print(f"✅ UPDATED main file: {main_output_file}")
-                print(f"   📈 Added {len(self.all_players) - len(existing_players)} new players!")
-            elif len(self.all_players) == len(existing_players):
-                print(f"ℹ️ Same player count - keeping existing file")
-            else:
-                print(f"⚠️ Fewer players found - keeping existing file (investigate needed)")
+            # Always update with new data (since we're doing comprehensive scrapes)
+            with open(main_output_file, 'w', encoding='utf-8') as f:
+                json.dump(self.all_players, f, indent=2, ensure_ascii=False)
+            print(f"✅ UPDATED main file: {main_output_file}")
+            print(f"   📈 Replaced with {len(self.all_players)} current season players!")
         else:
             with open(main_output_file, 'w', encoding='utf-8') as f:
                 json.dump(self.all_players, f, indent=2, ensure_ascii=False)
@@ -1226,7 +1207,6 @@ class CNSWPLRosterScraper:
             print(f"   ✅ All {len(self.completed_series)} series processed")
             print(f"   📁 Individual series files: data/leagues/CNSWPL/temp/")
             print(f"   📁 Final aggregated data: {main_output_file}")
-            print(f"   📁 Timestamped backup: {output_file}")
             print(f"   🛡️ Safety backup: data/leagues/CNSWPL/backup/")
 
     def get_html_with_fallback(self, url: str) -> str:

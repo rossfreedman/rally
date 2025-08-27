@@ -185,27 +185,44 @@ class StealthConfig:
                  fast_mode: bool = False,
                  verbose: bool = False,
                  environment: str = "production",
-                 force_browser: bool = False):
+                 force_browser: bool = False,
+                 headless: bool = True,
+                 min_delay: float = None,
+                 max_delay: float = None,
+                 max_retries: int = None,
+                 base_backoff: float = None,
+                 max_backoff: float = None):
         self.fast_mode = fast_mode
         self.verbose = verbose
         self.environment = environment
         self.force_browser = force_browser
+        self.headless = headless
         
-        # Environment-specific defaults
-        if environment == "local":
-            self.min_delay = 1.0 if fast_mode else 1.5
-            self.max_delay = 3.0 if fast_mode else 4.0
-        elif environment == "staging":
-            self.min_delay = 1.5 if fast_mode else 2.5
-            self.max_delay = 4.0 if fast_mode else 6.0
-        else:  # production
-            self.min_delay = 2.0 if fast_mode else 3.0
-            self.max_delay = 5.0 if fast_mode else 8.0
+        # Environment-specific defaults (can be overridden)
+        if min_delay is None:
+            if environment == "local":
+                self.min_delay = 1.0 if fast_mode else 1.5
+            elif environment == "staging":
+                self.min_delay = 1.5 if fast_mode else 2.5
+            else:  # production
+                self.min_delay = 2.0 if fast_mode else 3.0
+        else:
+            self.min_delay = min_delay
+            
+        if max_delay is None:
+            if environment == "local":
+                self.max_delay = 3.0 if fast_mode else 4.0
+            elif environment == "staging":
+                self.max_delay = 4.0 if fast_mode else 6.0
+            else:  # production
+                self.max_delay = 5.0 if fast_mode else 8.0
+        else:
+            self.max_delay = max_delay
         
-        # Retry settings
-        self.max_retries = 3
-        self.base_backoff = 1.0
-        self.max_backoff = 10.0
+        # Retry settings (can be overridden)
+        self.max_retries = max_retries if max_retries is not None else 3
+        self.base_backoff = base_backoff if base_backoff is not None else 1.0
+        self.max_backoff = max_backoff if max_backoff is not None else 10.0
         
         # Proxy settings
         self.requests_per_proxy = 30
@@ -216,7 +233,6 @@ class StealthConfig:
         self.timeout_seconds = 30
         
         # Browser settings
-        self.headless = True
         self.window_width = 1920
         self.window_height = 1080
 
@@ -286,17 +302,55 @@ class EnhancedStealthBrowser:
         """Create fresh ChromeOptions for each strategy attempt."""
         options = uc.ChromeOptions()
         
-        # Basic stealth settings - less restrictive
+        # Enhanced stealth settings for APTA Chicago
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-plugins")
-        # Don't disable JavaScript - it's needed for most sites
-        # options.add_argument("--disable-javascript")
         options.add_argument("--disable-web-security")
         options.add_argument("--allow-running-insecure-content")
         options.add_argument("--disable-features=VizDisplayCompositor")
+        
+        # Advanced anti-detection
+        options.add_argument("--disable-ipc-flooding-protection")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument("--disable-client-side-phishing-detection")
+        options.add_argument("--no-first-run")
+        options.add_argument("--disable-safebrowsing")
+        options.add_argument("--disable-translate")
+        options.add_argument("--disable-default-apps")
+        options.add_argument("--disable-sync")
+        options.add_argument("--disable-background-timer-throttling")
+        options.add_argument("--disable-backgrounding-occluded-windows")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument("--disable-features=TranslateUI")
+        options.add_argument("--disable-ipc-flooding-protection")
+        options.add_argument("--disable-hang-monitor")
+        options.add_argument("--disable-prompt-on-repost")
+        options.add_argument("--disable-domain-reliability")
+        options.add_argument("--disable-component-extensions-with-background-pages")
+        options.add_argument("--disable-background-networking")
+        options.add_argument("--disable-background-timer-throttling")
+        options.add_argument("--disable-backgrounding-occluded-windows")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument("--disable-features=TranslateUI")
+        options.add_argument("--disable-ipc-flooding-protection")
+        options.add_argument("--disable-hang-monitor")
+        options.add_argument("--disable-prompt-on-repost")
+        options.add_argument("--disable-domain-reliability")
+        options.add_argument("--disable-component-extensions-with-background-pages")
+        options.add_argument("--disable-background-networking")
+        
+        # Hide automation indicators
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        options.add_experimental_option("prefs", {
+            "profile.default_content_setting_values.notifications": 2,
+            "profile.default_content_settings.popups": 0,
+            "profile.managed_default_content_settings.images": 2,
+            "profile.default_content_setting_values.media_stream": 2,
+        })
         
         # Avoid OS signal leaks - force Windows platform for APTA
         if hasattr(self, 'current_url') and "apta.tenniscores.com" in self.current_url:
@@ -458,186 +512,212 @@ class EnhancedStealthBrowser:
     
     def _inject_stealth_scripts(self, driver, user_agent: str = None):
         """Inject JavaScript to hide automation indicators and override OS signals."""
+        # Enhanced stealth scripts for APTA Chicago
         stealth_scripts = [
-            # Remove webdriver property
-            "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});",
+            # Core webdriver removal - most important
+            "Object.defineProperty(navigator, 'webdriver', {get: function() { return undefined; }, configurable: true});",
+            "delete window.navigator.webdriver;",
             
-            # Override permissions
-            "const originalQuery = window.navigator.permissions.query; window.navigator.permissions.query = (parameters) => (parameters.name === 'notifications' ? Promise.resolve({state: Notification.permission}) : originalQuery(parameters));",
-            
-            # Override plugins with realistic plugin array
-            "Object.defineProperty(navigator, 'plugins', {get: () => [{name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer', description: 'Portable Document Format'}, {name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai', description: ''}, {name: 'Native Client', filename: 'internal-nacl-plugin', description: ''}]});",
-            
-            # Override languages
-            "Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});",
+            # Remove automation flags
+            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;",
+            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;",
+            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;",
             
             # Override chrome runtime
-            "window.chrome = {runtime: {}};",
+            "if (!window.chrome) { window.chrome = {runtime: {}}; }",
             
-            # Override connection properties
-            "Object.defineProperty(navigator, 'connection', {get: () => ({effectiveType: '4g', rtt: 50, downlink: 10, saveData: false})});",
+            # Override permissions
+            "Object.defineProperty(navigator, 'permissions', {get: function() { return {query: function() { return Promise.resolve({state: 'granted'}); }}; }});",
             
-            # Override battery API
-            "Object.defineProperty(navigator, 'getBattery', {get: () => () => Promise.resolve({charging: true, chargingTime: 0, dischargingTime: Infinity, level: 0.85})});",
+            # Override plugins
+            "Object.defineProperty(navigator, 'plugins', {get: function() { return []; }});",
             
-            # Override media devices
-            "Object.defineProperty(navigator, 'mediaDevices', {get: () => ({enumerateDevices: () => Promise.resolve([])})});",
+            # Override languages
+            "Object.defineProperty(navigator, 'languages', {get: function() { return ['en-US', 'en']; }});",
             
-            # Override geolocation
-            "Object.defineProperty(navigator, 'geolocation', {get: () => ({getCurrentPosition: () => {}, watchPosition: () => {}})});",
+            # Override connection
+            "Object.defineProperty(navigator, 'connection', {get: function() { return {effectiveType: '4g', rtt: 50, downlink: 10}; }});",
             
-            # Override service worker
-            "Object.defineProperty(navigator, 'serviceWorker', {get: () => ({register: () => Promise.resolve(), getRegistrations: () => Promise.resolve([])})});",
+            # Override deviceMemory (only if not already defined)
+            "if (!navigator.deviceMemory) { Object.defineProperty(navigator, 'deviceMemory', {get: function() { return 8; }, configurable: true}); }",
             
-            # Override storage
-            "Object.defineProperty(navigator, 'storage', {get: () => ({estimate: () => Promise.resolve({usage: 0, quota: 0})})});",
+            # Override hardwareConcurrency (only if not already defined)
+            "if (!navigator.hardwareConcurrency) { Object.defineProperty(navigator, 'hardwareConcurrency', {get: function() { return 8; }, configurable: true}); }",
             
-            # Override wake lock
-            "Object.defineProperty(navigator, 'wakeLock', {get: () => ({request: () => Promise.resolve()})});",
+            # Override maxTouchPoints (only if not already defined)
+            "if (!navigator.maxTouchPoints) { Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true}); }",
             
-            # Override clipboard
-            "Object.defineProperty(navigator, 'clipboard', {get: () => ({readText: () => Promise.resolve(''), writeText: () => Promise.resolve()})});",
+            # Override platform (only if not already defined)
+            "if (!navigator.platform) { Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true}); }",
             
-            # Override presentation
-            "Object.defineProperty(navigator, 'presentation', {get: () => ({defaultRequest: null, receiver: null})});",
+            # Override vendor (only if not already defined)
+            "if (!navigator.vendor) { Object.defineProperty(navigator, 'vendor', {get: function() { return 'Google Inc.'; }, configurable: true}); }",
             
-            # Override credentials
-            "Object.defineProperty(navigator, 'credentials', {get: () => ({create: () => Promise.resolve(), get: () => Promise.resolve(), preventSilentAccess: () => {}})});",
+            # Override product (only if not already defined)
+            "if (!navigator.product) { Object.defineProperty(navigator, 'product', {get: function() { return 'Gecko'; }, configurable: true}); }",
             
-            # Override locks
-            "Object.defineProperty(navigator, 'locks', {get: () => ({request: () => Promise.resolve(), query: () => Promise.resolve([])})});",
+            # Override appName (only if not already defined)
+            "if (!navigator.appName) { Object.defineProperty(navigator, 'appName', {get: function() { return 'Netscape'; }, configurable: true}); }",
             
-            # Override contacts
-            "Object.defineProperty(navigator, 'contacts', {get: () => ({select: () => Promise.resolve([])})});",
+            # Override appVersion (only if not already defined)
+            "if (!navigator.appVersion) { Object.defineProperty(navigator, 'appVersion', {get: function() { return '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }",
             
-            # Override keyboard
-            "Object.defineProperty(navigator, 'keyboard', {get: () => ({lock: () => Promise.resolve(), unlock: () => {}})});",
+            # Override userAgent (only if not already defined)
+            "if (!navigator.userAgent) { Object.defineProperty(navigator, 'userAgent', {get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }",
             
-            # Override virtual keyboard
-            "Object.defineProperty(navigator, 'virtualKeyboard', {get: () => ({show: () => {}, hide: () => {}})});",
+            # Override screen properties (only if not already defined)
+            "if (!screen.width) { Object.defineProperty(screen, 'width', {get: function() { return 1920; }, configurable: true}); }",
+            "if (!screen.height) { Object.defineProperty(screen, 'height', {get: function() { return 1080; }, configurable: true}); }",
+            "if (!screen.availWidth) { Object.defineProperty(screen, 'availWidth', {get: function() { return 1920; }, configurable: true}); }",
+            "if (!screen.availHeight) { Object.defineProperty(screen, 'availHeight', {get: function() { return 1040; }, configurable: true}); }",
+            "if (!screen.colorDepth) { Object.defineProperty(screen, 'colorDepth', {get: function() { return 24; }, configurable: true}); }",
+            "if (!screen.pixelDepth) { Object.defineProperty(screen, 'pixelDepth', {get: function() { return 24; }, configurable: true}); }",
             
-            # Override xr
-            "Object.defineProperty(navigator, 'xr', {get: () => ({isSessionSupported: () => Promise.resolve(false)})});",
+            # Override window properties (only if not already defined)
+            "if (!window.outerWidth) { Object.defineProperty(window, 'outerWidth', {get: function() { return 1920; }, configurable: true}); }",
+            "if (!window.outerHeight) { Object.defineProperty(window, 'outerHeight', {get: function() { return 1040; }, configurable: true}); }",
+            "if (!window.innerWidth) { Object.defineProperty(window, 'innerWidth', {get: function() { return 1920; }, configurable: true}); }",
+            "if (!window.innerHeight) { Object.defineProperty(window, 'innerHeight', {get: function() { return 1040; }, configurable: true}); }",
             
-            # Override bluetooth
-            "Object.defineProperty(navigator, 'bluetooth', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            # Override timezone - Fixed syntax
+            "if (typeof Intl !== 'undefined') { Object.defineProperty(Intl, 'DateTimeFormat', {get: function() { return function() { return {resolvedOptions: function() { return {timeZone: 'America/Chicago'}; } }; }; }}); }",
             
-            # Override usb
-            "Object.defineProperty(navigator, 'usb', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            # Override language - Fixed syntax
+            "Object.defineProperty(navigator, 'language', {get: function() { return 'en-US'; }});",
             
-            # Override serial
-            "Object.defineProperty(navigator, 'serial', {get: () => ({requestPort: () => Promise.resolve()})});",
+            # Override cookieEnabled - Fixed syntax
+            "Object.defineProperty(navigator, 'cookieEnabled', {get: function() { return true; }});",
             
-            # Override hid
-            "Object.defineProperty(navigator, 'hid', {get: () => ({requestDevice: () => Promise.resolve()})});",
+            # Override onLine - Fixed syntax
+            "Object.defineProperty(navigator, 'onLine', {get: function() { return true; }});",
             
-            # Override gamepad
-            "Object.defineProperty(navigator, 'gamepad', {get: () => ({getGamepads: () => []})});",
+            # Override doNotTrack - Fixed syntax
+            "Object.defineProperty(navigator, 'doNotTrack', {get: function() { return null; }});",
             
-            # Override taintEnabled (legacy)
-            "Object.defineProperty(navigator, 'taintEnabled', {get: () => false});",
+            # Override mediaDevices - Fixed syntax
+            "Object.defineProperty(navigator, 'mediaDevices', {get: function() { return {enumerateDevices: function() { return Promise.resolve([]); } }; }});",
             
-            # Override cookieEnabled
-            "Object.defineProperty(navigator, 'cookieEnabled', {get: () => true});",
+            # Override geolocation - Fixed syntax
+            "Object.defineProperty(navigator, 'geolocation', {get: function() { return {getCurrentPosition: function() {}, watchPosition: function() {} }; }});",
             
-            # Override onLine
-            "Object.defineProperty(navigator, 'onLine', {get: () => true});",
+            # Override service worker - Fixed syntax
+            "Object.defineProperty(navigator, 'serviceWorker', {get: function() { return {register: function() { return Promise.resolve(); }, getRegistrations: function() { return Promise.resolve([]); } }; }});",
             
-            # Override doNotTrack
-            "Object.defineProperty(navigator, 'doNotTrack', {get: () => null});",
+            # Override storage - Fixed syntax
+            "Object.defineProperty(navigator, 'storage', {get: function() { return {estimate: function() { return Promise.resolve({usage: 0, quota: 0}); } }; }});",
             
-            # Override maxTouchPoints
-            "Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 0});",
+            # Override wake lock - Fixed syntax
+            "Object.defineProperty(navigator, 'wakeLock', {get: function() { return {request: function() { return Promise.resolve(); } }; }});",
             
-            # Override hardwareConcurrency (default)
-            "Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 8});",
+            # Override clipboard - Fixed syntax
+            "Object.defineProperty(navigator, 'clipboard', {get: function() { return {readText: function() { return Promise.resolve(''); }, writeText: function() { return Promise.resolve(); } }; }});",
             
-            # Override deviceMemory (default)
-            "Object.defineProperty(navigator, 'deviceMemory', {get: () => 8});",
+            # Override presentation - Fixed syntax
+            "Object.defineProperty(navigator, 'presentation', {get: function() { return {defaultRequest: null, receiver: null}; }});",
             
-            # Override platform (default)
-            "Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});",
+            # Override credentials - Fixed syntax
+            "Object.defineProperty(navigator, 'credentials', {get: function() { return {create: function() { return Promise.resolve(); }, get: function() { return Promise.resolve(); }, preventSilentAccess: function() {} }; }});",
             
-            # Override vendor
-            "Object.defineProperty(navigator, 'vendor', {get: () => 'Google Inc.'});",
+            # Override locks - Fixed syntax
+            "Object.defineProperty(navigator, 'locks', {get: function() { return {request: function() { return Promise.resolve(); }, query: function() { return Promise.resolve([]); } }; }});",
             
-            # Override product
-            "Object.defineProperty(navigator, 'product', {get: () => 'Gecko'});",
+            # Override contacts - Fixed syntax
+            "Object.defineProperty(navigator, 'contacts', {get: function() { return {select: function() { return Promise.resolve([]); } }; }});",
             
-            # Override appName
-            "Object.defineProperty(navigator, 'appName', {get: () => 'Netscape'});",
+            # Override keyboard - Fixed syntax
+            "Object.defineProperty(navigator, 'keyboard', {get: function() { return {lock: function() { return Promise.resolve(); }, unlock: function() {} }; }});",
             
-            # Override appVersion
-            "Object.defineProperty(navigator, 'appVersion', {get: () => '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'});",
+            # Override virtual keyboard - Fixed syntax
+            "Object.defineProperty(navigator, 'virtualKeyboard', {get: function() { return {show: function() {}, hide: function() {} }; }});",
             
-            # Override userAgent
-            "Object.defineProperty(navigator, 'userAgent', {get: () => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'});",
+            # Override xr - Fixed syntax
+            "Object.defineProperty(navigator, 'xr', {get: function() { return {isSessionSupported: function() { return Promise.resolve(false); } }; }});",
             
-            # Override screen properties
-            "Object.defineProperty(screen, 'width', {get: () => 1920});",
-            "Object.defineProperty(screen, 'height', {get: () => 1080});",
-            "Object.defineProperty(screen, 'availWidth', {get: () => 1920});",
-            "Object.defineProperty(screen, 'availHeight', {get: () => 1040});",
-            "Object.defineProperty(screen, 'colorDepth', {get: () => 24});",
-            "Object.defineProperty(screen, 'pixelDepth', {get: () => 24});",
+            # Override bluetooth - Fixed syntax
+            "Object.defineProperty(navigator, 'bluetooth', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
             
-            # Override window properties
-            "Object.defineProperty(window, 'outerWidth', {get: () => 1920});",
-            "Object.defineProperty(window, 'outerHeight', {get: () => 1040});",
-            "Object.defineProperty(window, 'innerWidth', {get: () => 1920});",
-            "Object.defineProperty(window, 'innerHeight', {get: () => 937});",
+            # Override usb - Fixed syntax
+            "Object.defineProperty(navigator, 'usb', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
             
-            # Override device pixel ratio
-            "Object.defineProperty(window, 'devicePixelRatio', {get: () => 1});",
+            # Override serial - Fixed syntax
+            "Object.defineProperty(navigator, 'serial', {get: function() { return {requestPort: function() { return Promise.resolve(); } }; }});",
             
-            # Override timezone
-            "Object.defineProperty(Intl, 'DateTimeFormat', {get: () => function() { return {resolvedOptions: () => ({timeZone: 'America/New_York'})} }});",
+            # Override hid - Fixed syntax
+            "Object.defineProperty(navigator, 'hid', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
             
-            # Override canvas fingerprinting
-            "const originalGetContext = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(type) { if (type === '2d') { const context = originalGetContext.call(this, type); const originalFillText = context.fillText; context.fillText = function() { return originalFillText.apply(this, arguments); }; } return originalGetContext.call(this, type); };",
+            # Override gamepad - Fixed syntax
+            "Object.defineProperty(navigator, 'gamepad', {get: function() { return {getGamepads: function() { return []; } }; }});",
             
-            # Override WebGL fingerprinting
-            "const getParameter = WebGLRenderingContext.prototype.getParameter; WebGLRenderingContext.prototype.getParameter = function(parameter) { if (parameter === 37445) { return 'Intel Inc.'; } if (parameter === 37446) { return 'Intel(R) Iris(TM) Graphics 6100'; } return getParameter.call(this, parameter); };",
+            # Override taintEnabled (legacy) - Fixed syntax
+            "Object.defineProperty(navigator, 'taintEnabled', {get: function() { return false; }});",
             
-            # Override audio fingerprinting
-            "const originalGetChannelData = AudioBuffer.prototype.getChannelData; AudioBuffer.prototype.getChannelData = function() { const channelData = originalGetChannelData.call(this); const originalSet = channelData.set; channelData.set = function() { return originalSet.apply(this, arguments); }; return channelData; };",
+            # Remove automation detection
+            "if (window.navigator && window.navigator.__proto__) { delete window.navigator.__proto__.webdriver; }",
+            "delete window.navigator.webdriver;",
             
-            # Override font fingerprinting
-            "Object.defineProperty(document, 'fonts', {get: () => ({ready: Promise.resolve(), check: () => true, load: () => Promise.resolve([])})});",
+            # Override toString behavior
+            "var originalFunction = Function.prototype.toString;",
+            "Function.prototype.toString = function() {",
+            "  if (this === Function.prototype.toString) return originalFunction.call(this);",
+            "  if (this === window.navigator.toString) return '[object Navigator]';",
+            "  if (window.navigator.webdriver && this === window.navigator.webdriver.toString) return '[object Navigator]';",
+            "  return originalFunction.call(this);",
+            "};",
             
-            # Override performance timing
-            "Object.defineProperty(performance, 'timing', {get: () => ({navigationStart: Date.now() - Math.random() * 1000, loadEventEnd: Date.now(), domContentLoadedEventEnd: Date.now() - Math.random() * 100})});",
+            # Override hasOwnProperty
+            "var originalHasOwnProperty = Object.prototype.hasOwnProperty;",
+            "Object.prototype.hasOwnProperty = function(prop) {",
+            "  if (prop === 'webdriver') return false;",
+            "  return originalHasOwnProperty.call(this, prop);",
+            "};",
             
-            # Override memory info
-            "Object.defineProperty(performance, 'memory', {get: () => ({usedJSHeapSize: 10000000, totalJSHeapSize: 20000000, jsHeapSizeLimit: 2147483648})});",
+            # Override property descriptors (complete version)
+            "Object.defineProperty(navigator, 'webdriver', {",
+            "  get: function() { return undefined; },",
+            "  set: function() {},",
+            "  configurable: true",
+            "});",
             
-            # Override network info
-            "Object.defineProperty(navigator, 'connection', {get: () => ({effectiveType: '4g', rtt: 50, downlink: 10, saveData: false, type: 'wifi'})});",
+            # Override toString for navigator
+            "navigator.toString = function() { return '[object Navigator]'; };",
+            
+            # Override constructor (simplified)
+            "navigator.constructor = function Navigator() {};",
+            
+            # Override propertyIsEnumerable
+            "navigator.propertyIsEnumerable = function(prop) {",
+            "  if (prop === 'webdriver') return false;",
+            "  return Object.prototype.propertyIsEnumerable.call(this, prop);",
+            "};"
         ]
         
         # Add OS-specific overrides for APTA
         if user_agent and "Windows" in user_agent:
+            # Extract the last part of the user agent for appVersion
+            ua_parts = user_agent.split(' ')
+            app_version = ua_parts[-1] if ua_parts else '5.0'
+            
             os_override_scripts = [
                 # Override platform to Windows
-                "Object.defineProperty(navigator, 'platform', {get: () => 'Win32'});",
+                "Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }});",
                 
                 # Override userAgent to match the selected Windows UA
-                f"Object.defineProperty(navigator, 'userAgent', {{get: () => '{user_agent}'}});",
+                "Object.defineProperty(navigator, 'userAgent', {get: function() { return '" + user_agent + "'; }});",
                 
                 # Override appVersion to match Windows
-                f"Object.defineProperty(navigator, 'appVersion', {{get: () => '{user_agent.split(' ')[-1]}'}});",
+                "Object.defineProperty(navigator, 'appVersion', {get: function() { return '" + app_version + "'; }});",
                 
                 # Override vendor to match Windows
-                "Object.defineProperty(navigator, 'vendor', {get: () => 'Google Inc.'});",
+                "Object.defineProperty(navigator, 'vendor', {get: function() { return 'Google Inc.'; }});",
                 
                 # Override product to match Windows
-                "Object.defineProperty(navigator, 'product', {get: () => 'Gecko'});",
+                "Object.defineProperty(navigator, 'product', {get: function() { return 'Gecko'; }});",
                 
                 # Override hardwareConcurrency to realistic Windows value
-                "Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 8});",
+                "Object.defineProperty(navigator, 'hardwareConcurrency', {get: function() { return 8; }});",
                 
                 # Override deviceMemory to realistic Windows value
-                "Object.defineProperty(navigator, 'deviceMemory', {get: () => 8});"
+                "Object.defineProperty(navigator, 'deviceMemory', {get: function() { return 8; }});"
             ]
             stealth_scripts.extend(os_override_scripts)
         

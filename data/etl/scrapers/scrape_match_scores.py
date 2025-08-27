@@ -205,6 +205,63 @@ class CNSWPLScraper(BaseLeagueScraper):
         except Exception as e:
             print(f"❌ CNSWPL: Error extracting detailed match data: {e}")
             return []
+    
+    def _lookup_roster_player_id(self, player_name: str) -> str:
+        """Look up existing roster player ID for CNSWPL players to avoid ID mismatches."""
+        try:
+            # Load the consolidated CNSWPL players.json to find existing player IDs
+            import json
+            import os
+            
+            players_file = "data/leagues/CNSWPL/players.json"
+            if not os.path.exists(players_file):
+                print(f"❌  CNSWPL players.json not found - cannot lookup player ID for '{player_name}'")
+                return None
+            
+            with open(players_file, 'r') as f:
+                players_data = json.load(f)
+            
+            # Search for player by name (case-insensitive)
+            first_name, last_name = self._parse_player_name(player_name)
+            if not first_name or not last_name:
+                print(f"❌  Could not parse player name '{player_name}' - cannot lookup player ID")
+                return None
+            
+            for player in players_data:
+                roster_first = player.get("First Name", "").strip()
+                roster_last = player.get("Last Name", "").strip()
+                roster_id = player.get("Player ID", "").strip()
+                
+                # Case-insensitive name matching
+                if (roster_first.lower() == first_name.lower() and 
+                    roster_last.lower() == last_name.lower() and 
+                    roster_id):
+                    print(f"✅  Found roster player ID for '{player_name}': {roster_id}")
+                    return roster_id
+            
+            print(f"❌  No roster player ID found for '{player_name}' - player not in roster data")
+            return None
+            
+        except Exception as e:
+            print(f"❌  Error looking up roster player ID for '{player_name}': {e}")
+            return None
+    
+    def _parse_player_name(self, full_name: str) -> tuple:
+        """Parse full name into first and last name."""
+        if not full_name:
+            return None, None
+        
+        name_parts = full_name.strip().split()
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            return first_name, last_name
+        elif len(name_parts) == 1:
+            return name_parts[0], ""
+        else:
+            return None, None
+    
+
 
 class NSTFScraper(BaseLeagueScraper):
     """NSTF-specific scraper with dedicated extraction logic."""
@@ -1969,6 +2026,8 @@ class EnhancedMatchScraper:
         # Create a hash of the player name for consistent ID generation
         return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
     
+
+    
     def _extract_cnswpl_date(self, soup) -> str:
         """Extract match date from CNSWPL match page header and convert to DD-MMM-YY format."""
         import re
@@ -2128,6 +2187,27 @@ class EnhancedMatchScraper:
                 # Use proper league mapping
                 league_name = self._get_league_name_from_subdomain(league_subdomain)
                 
+                # Look up roster player IDs for all players
+                home_player1_id = self._lookup_roster_player_id(home_players[0])
+                home_player2_id = self._lookup_roster_player_id(home_players[1])
+                away_player1_id = self._lookup_roster_player_id(away_players[0])
+                away_player2_id = self._lookup_roster_player_id(away_players[1])
+                
+                # Check if any players are missing roster IDs
+                missing_players = []
+                if not home_player1_id:
+                    missing_players.append(f"Home Player 1: {home_players[0]}")
+                if not home_player2_id:
+                    missing_players.append(f"Home Player 2: {home_players[1]}")
+                if not away_player1_id:
+                    missing_players.append(f"Away Player 1: {away_players[0]}")
+                if not away_player2_id:
+                    missing_players.append(f"Away Player 2: {away_players[1]}")
+                
+                if missing_players:
+                    print(f"❌  Missing roster player IDs for: {', '.join(missing_players)}")
+                    # Still create the match record but with None for missing IDs
+                
                 line_match = {
                     "league_id": league_name,
                     "match_id": f"{match_id}_Line{court_num}",
@@ -2140,10 +2220,10 @@ class EnhancedMatchScraper:
                     "Home Player 2": home_players[1],
                     "Away Player 1": away_players[0],
                     "Away Player 2": away_players[1],
-                    "Home Player 1 ID": f"cnswpl_{self._generate_player_id(home_players[0])}",
-                    "Home Player 2 ID": f"cnswpl_{self._generate_player_id(home_players[1])}",
-                    "Away Player 1 ID": f"cnswpl_{self._generate_player_id(away_players[0])}",
-                    "Away Player 2 ID": f"cnswpl_{self._generate_player_id(away_players[1])}",
+                    "Home Player 1 ID": home_player1_id,
+                    "Home Player 2 ID": home_player2_id,
+                    "Away Player 1 ID": away_player1_id,
+                    "Away Player 2 ID": away_player2_id,
                     "Scores": tennis_scores,
                     "Winner": winner
                 }

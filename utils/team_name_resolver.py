@@ -216,7 +216,7 @@ class TeamNameResolver:
         return (result[0], result[1]) if result else None
 
 
-def fix_orphaned_team_references(league_id: int = 4930, dry_run: bool = True) -> Dict:
+def fix_orphaned_team_references(league_id: int = 4783, dry_run: bool = True) -> Dict:  # Fixed: was 4930, should be 4783 (APTA Chicago)
     """
     Find and fix orphaned team references in match_scores table.
     
@@ -310,7 +310,7 @@ def fix_orphaned_team_references(league_id: int = 4930, dry_run: bool = True) ->
 
 if __name__ == "__main__":
     # Test the resolver
-    resolver = TeamNameResolver(4930)  # APTA Chicago
+    resolver = TeamNameResolver(4783)  # APTA Chicago (Fixed: was 4930, should be 4783)
     
     # Test cases
     test_names = [
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     
     # Test orphaned fixes
     print("\n=== TESTING ORPHANED FIXES (DRY RUN) ===")
-    fixes_result = fix_orphaned_team_references(4930, dry_run=True)
+    fixes_result = fix_orphaned_team_references(4783, dry_run=True)  # Fixed: was 4930, should be 4783
     print(f"Found {fixes_result['total_orphaned_matches']} orphaned matches")
     print(f"Can fix {len(fixes_result['fixes_suggested'])} matches")
     

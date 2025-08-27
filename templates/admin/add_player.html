@@ -1,0 +1,529 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Add Player{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Add Individual Player</h1>
+            <p class="text-gray-600 mt-2">Search for a player by name and add them to the system</p>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+        <div class="p-4 border-b">
+            <h2 class="text-xl font-semibold text-gray-800">Player Search Information</h2>
+        </div>
+        <div class="p-6">
+            <form id="addPlayerForm" class="space-y-4">
+                <!-- League Selection -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">League</span>
+                        <span class="label-text-alt text-red-500">*</span>
+                    </label>
+                    <select id="leagueSubdomain" name="league_subdomain" class="select select-bordered w-full" required>
+                        <option value="">Select a league</option>
+                        <option value="aptachicago">APTA Chicago</option>
+                        <option value="nstf">NSTF</option>
+                        <option value="cnswpl">CNSWPL</option>
+                        <option value="cita">CITA</option>
+                    </select>
+                    <div class="label">
+                        <span class="label-text-alt text-gray-500">Choose the league where the player competes</span>
+                    </div>
+                </div>
+
+                <!-- First Name -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">First Name</span>
+                        <span class="label-text-alt text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="firstName" 
+                        name="first_name" 
+                        placeholder="e.g., John" 
+                        class="input input-bordered w-full" 
+                        required
+                    />
+                    <div class="label">
+                        <span class="label-text-alt text-gray-500">
+                            Player's first name as it appears on the league website
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Last Name -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Last Name</span>
+                        <span class="label-text-alt text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="lastName" 
+                        name="last_name" 
+                        placeholder="e.g., Smith" 
+                        class="input input-bordered w-full" 
+                        required
+                    />
+                    <div class="label">
+                        <span class="label-text-alt text-gray-500">
+                            Player's last name as it appears on the league website
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Club -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Club</span>
+                        <span class="label-text-alt text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="club" 
+                        name="club" 
+                        placeholder="e.g., Glenbrook RC" 
+                        class="input input-bordered w-full" 
+                        required
+                    />
+                    <div class="label">
+                        <span class="label-text-alt text-gray-500">
+                            The club or facility where the player competes
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Series -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-medium">Series</span>
+                        <span class="label-text-alt text-red-500">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="series" 
+                        name="series" 
+                        placeholder="e.g., Series 8" 
+                        class="input input-bordered w-full" 
+                        required
+                    />
+                    <div class="label">
+                        <span class="label-text-alt text-gray-500">
+                            The series or division level (e.g., Series 8, Division 1a)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button 
+                        type="submit" 
+                        id="submitBtn"
+                        class="btn bg-black hover:bg-gray-800 text-yellow-400 w-full"
+                    >
+                        <i class="fas fa-search mr-2"></i>
+                        Search for Player
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Results Card -->
+    <div id="resultsCard" class="card bg-white shadow-sm rounded-xl overflow-hidden hidden">
+        <div class="p-4 border-b">
+            <h2 class="text-xl font-semibold text-gray-800">Results</h2>
+        </div>
+        <div class="p-6">
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <!-- Help Card -->
+    <div class="card bg-blue-50 border-blue-200 shadow-sm rounded-xl overflow-hidden">
+        <div class="p-4 border-b border-blue-200">
+            <h2 class="text-xl font-semibold text-blue-800">
+                <i class="fas fa-info-circle mr-2"></i>
+                How to Find Player IDs
+            </h2>
+        </div>
+        <div class="p-6 text-blue-800">
+            <div class="space-y-3">
+                <div>
+                    <h3 class="font-semibold">How It Works:</h3>
+                    <p class="text-sm">The system will search the league website for a player matching your input and automatically find their player ID.</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold">Required Information:</h3>
+                    <ul class="text-sm list-disc list-inside ml-2">
+                        <li><strong>League:</strong> The league where the player competes</li>
+                        <li><strong>Name:</strong> Player's full name as it appears on the website</li>
+                        <li><strong>Club:</strong> The facility where they play (e.g., "Tennaqua")</li>
+                        <li><strong>Series:</strong> Their division level (e.g., "Series 22", "Division 1a")</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-semibold">Search Process:</h3>
+                    <ol class="text-sm list-decimal list-inside ml-2">
+                        <li>Navigate to the correct series page for your league</li>
+                        <li>Find the team page for your club and series</li>
+                        <li>Search for the player's name on that team</li>
+                        <li>Extract the player ID and scrape their profile data</li>
+                        <li>Show confirmation page for review before saving</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addPlayerForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultsCard = document.getElementById('resultsCard');
+    const resultsContent = document.getElementById('resultsContent');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Get form data
+        const formData = new FormData(form);
+        const leagueSubdomain = formData.get('league_subdomain');
+        const firstName = formData.get('first_name').trim();
+        const lastName = formData.get('last_name').trim();
+        const club = formData.get('club').trim();
+        const series = formData.get('series').trim();
+        
+        // Validate
+        if (!leagueSubdomain || !firstName || !lastName || !club || !series) {
+            showAlert('Please fill in all required fields.', 'error');
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Searching for Player...';
+        
+        try {
+            // Make API call
+            const response = await fetch('/api/admin/add-player', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    league_subdomain: leagueSubdomain,
+                    first_name: firstName,
+                    last_name: lastName,
+                    club: club,
+                    series: series
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                if (result.needs_confirmation) {
+                    // Show confirmation page
+                    showConfirmationPage(result.player_data, {
+                        league_subdomain: leagueSubdomain,
+                        first_name: firstName,
+                        last_name: lastName,
+                        club: club,
+                        series: series
+                    });
+                } else {
+                    showResults(result, 'success');
+                    form.reset();
+                }
+            } else {
+                showResults({ error: result.error }, 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error:', error);
+            showResults({ error: 'Network error occurred. Please try again.' }, 'error');
+        } finally {
+            // Reset button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Search & Add Player';
+        }
+    });
+    
+    function showResults(result, type) {
+        if (type === 'success') {
+            const playerData = result.player_data;
+            resultsContent.innerHTML = `
+                <div class="alert alert-success mb-4">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${result.message}</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-gray-800">Player Details</h3>
+                        <div class="text-sm space-y-1">
+                            <div><strong>Name:</strong> ${playerData['First Name']} ${playerData['Last Name']}</div>
+                            <div><strong>Player ID:</strong> <code class="bg-gray-100 px-1 rounded">${playerData['Player ID']}</code></div>
+                            <div><strong>League:</strong> ${playerData['League']}</div>
+                            <div><strong>Club:</strong> ${playerData['Club']}</div>
+                            <div><strong>Series:</strong> ${playerData['Series']}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h3 class="font-semibold text-gray-800">Statistics</h3>
+                        <div class="text-sm space-y-1">
+                            <div><strong>PTI:</strong> ${playerData['PTI']}</div>
+                            <div><strong>Wins:</strong> ${playerData['Wins']}</div>
+                            <div><strong>Losses:</strong> ${playerData['Losses']}</div>
+                            <div><strong>Win %:</strong> ${playerData['Win %']}</div>
+                            <div><strong>Status:</strong> ${playerData['Captain']}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-600">
+                        <strong>Database ID:</strong> ${result.database_id}<br>
+                        <strong>JSON File:</strong> ${result.json_file}
+                    </div>
+                </div>
+            `;
+        } else {
+            resultsContent.innerHTML = `
+                <div class="alert alert-error mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${result.error}</span>
+                </div>
+                
+                <div class="text-sm text-gray-600">
+                    <p>Common issues:</p>
+                    <ul class="list-disc list-inside ml-4 mt-2">
+                        <li>Player ID format is incorrect</li>
+                        <li>Player doesn't exist on the league website</li>
+                        <li>League website is temporarily unavailable</li>
+                        <li>Player page requires authentication</li>
+                    </ul>
+                </div>
+            `;
+        }
+        
+        resultsCard.classList.remove('hidden');
+        resultsCard.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    // Function to show confirmation page
+    function showConfirmationPage(playerData, formData) {
+        const mainContent = document.querySelector('.container');
+        mainContent.innerHTML = `
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title text-2xl mb-6">Confirm Player Addition</h2>
+                    
+                    <div class="alert alert-info mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span>Please review the player information below before adding to the system.</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">Player Name</div>
+                                <div class="stat-value text-lg">${playerData['First Name'] || 'Unknown'} ${playerData['Last Name'] || ''}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats shadow">
+                            <div class="stat-title">Player ID</div>
+                            <div class="stat-value text-lg font-mono text-sm">${playerData['Player ID'] || 'Not Found'}</div>
+                        </div>
+                        
+                        <!-- Warning if player already exists -->
+                        <div class="alert alert-warning" id="existingPlayerWarning" style="display: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>
+                            <span>This player already exists in the system. Clicking "Confirm & Add Player" will update their information.</span>
+                        </div>
+                        
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">League</div>
+                                <div class="stat-value text-lg">${playerData['League'] || 'Unknown'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">Club</div>
+                                <div class="stat-value text-lg">${playerData['Club'] || 'Unknown'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-title">Series</div>
+                            <div class="stat-value text-lg">${playerData['Series'] || 'Unknown'}</div>
+                        </div>
+                        
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">PTI</div>
+                                <div class="stat-value text-lg">${playerData['PTI'] || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Debug: Show all available data -->
+                    <div class="mt-4 p-4 bg-gray-100 rounded-lg">
+                        <h3 class="font-semibold mb-2">Debug: All Player Data Fields</h3>
+                        <div class="text-sm font-mono">
+                            ${Object.keys(playerData).map(key => `${key}: ${playerData[key]}`).join('<br>')}
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-4 justify-end">
+                        <button id="goBackBtn" class="btn btn-outline">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Go Back
+                        </button>
+                        <button id="confirmAddBtn" class="btn btn-primary">
+                            <i class="fas fa-check mr-2"></i>
+                            Confirm & Add/Update Player
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Store both form data and player data for confirmation
+        window.confirmationFormData = formData;
+        window.confirmationPlayerData = playerData;
+        
+        // Check if player already exists and show warning
+        setTimeout(() => {
+            const existingPlayerWarning = document.getElementById('existingPlayerWarning');
+            if (existingPlayerWarning) {
+                // For now, we'll show the warning if the player has a Player ID
+                // In the future, we could make an API call to check existence
+                if (playerData['Player ID'] && playerData['Player ID'] !== 'Not Found') {
+                    existingPlayerWarning.style.display = 'flex';
+                }
+            }
+        }, 100);
+        
+        // Add event listeners to the confirmation page buttons
+        setTimeout(() => {
+            const goBackBtn = document.getElementById('goBackBtn');
+            const confirmAddBtn = document.getElementById('confirmAddBtn');
+            
+            if (goBackBtn) {
+                goBackBtn.addEventListener('click', goBack);
+            }
+            
+            if (confirmAddBtn) {
+                confirmAddBtn.addEventListener('click', confirmAddPlayer);
+            }
+        }, 200);
+    }
+    
+    // Function to go back to search form
+    function goBack() {
+        location.reload();
+    }
+    
+    // Function to confirm and add player
+    async function confirmAddPlayer() {
+        const formData = window.confirmationFormData;
+        const playerData = window.confirmationPlayerData;
+        
+        if (!formData) {
+            showAlert('Form data not found', 'error');
+            return;
+        }
+        
+        if (!playerData) {
+            showAlert('Player data not found', 'error');
+            return;
+        }
+        
+        // Show loading state
+        const confirmBtn = document.getElementById('confirmAddBtn');
+        const originalText = confirmBtn.textContent;
+        confirmBtn.textContent = 'Adding Player...';
+        confirmBtn.disabled = true;
+        
+        try {
+            // Send both form data and player data
+            const requestData = {
+                ...formData,
+                player_data: playerData
+            };
+            
+            const response = await fetch('/api/admin/confirm-add-player', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message
+                showAlert(result.message, 'success');
+                
+                // Go back to search form after a delay
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                // Show error message
+                showAlert(result.error || 'An error occurred', 'error');
+                confirmBtn.disabled = false;
+            }
+        } catch (error) {
+            showAlert('Network error occurred', 'error');
+            confirmBtn.disabled = false;
+        } finally {
+            // Reset button state
+            confirmBtn.textContent = originalText;
+        }
+    }
+    
+    function showAlert(message, type) {
+        // Create alert element
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type === 'error' ? 'error' : 'success'} mb-4`;
+        alert.innerHTML = `
+            <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Try to insert at top of form, or at top of container if form doesn't exist
+        const container = document.querySelector('.container');
+        if (form && form.parentNode) {
+            form.parentNode.insertBefore(alert, form);
+        } else if (container) {
+            container.insertBefore(alert, container.firstChild);
+        }
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}
