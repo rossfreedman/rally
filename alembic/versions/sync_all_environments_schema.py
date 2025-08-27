@@ -150,10 +150,32 @@ def upgrade() -> None:
     
     # 3. Create indexes for new tables
     op.execute("CREATE INDEX IF NOT EXISTS idx_user_contexts_user_id ON user_contexts(user_id)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_user_contexts_active ON user_contexts(is_active)")
+    # Only create is_active index if the column exists
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'user_contexts' AND column_name = 'is_active'
+            ) THEN
+                CREATE INDEX IF NOT EXISTS idx_user_contexts_active ON user_contexts(is_active);
+            END IF;
+        END $$;
+    """)
     
-    op.execute("CREATE INDEX IF NOT EXISTS idx_practice_times_team_date ON practice_times(team_id, practice_date)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_practice_times_date ON practice_times(practice_date)")
+    # Only create practice_times indexes if the columns exist
+    op.execute("""
+        DO $$
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM information_schema.columns 
+                WHERE table_name = 'practice_times' AND column_name = 'practice_date'
+            ) THEN
+                CREATE INDEX IF NOT EXISTS idx_practice_times_team_date ON practice_times(team_id, practice_date);
+                CREATE INDEX IF NOT EXISTS idx_practice_times_date ON practice_times(practice_date);
+            END IF;
+        END $$;
+    """)
     
     op.execute("CREATE INDEX IF NOT EXISTS idx_test_etl_runs_status ON test_etl_runs(status)")
     op.execute("CREATE INDEX IF NOT EXISTS idx_test_etl_runs_created ON test_etl_runs(created_at)")

@@ -50,7 +50,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN teams t ON p.team_id = t.id
-            LEFT JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN leagues l ON t.league_id = l.id  -- Fixed: t.league_id points to leagues.id, not p.league_id
             WHERE u.email = %s
             ORDER BY u.id, 
                      -- PRIORITY 1: League context match (league switching takes precedence)

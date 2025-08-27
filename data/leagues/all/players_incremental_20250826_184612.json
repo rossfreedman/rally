@@ -1,0 +1,97 @@
+[
+  {
+    "League": "APTA_CHICAGO",
+    "Series": "",
+    "Series Mapping ID": "Ruth Lake",
+    "Club": "Ruth Lake",
+    "Location ID": "RUTH_LAKE",
+    "Player ID": "nndz-WkNPd3hMajhqQT09",
+    "First Name": "Dave",
+    "Last Name": "Stang",
+    "PTI": "31.7",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "source_league": "APTA_CHICAGO",
+    "validation_issues": [
+      "No win/loss stats found"
+    ]
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Series": "",
+    "Series Mapping ID": "Glen View",
+    "Club": "Glen View",
+    "Location ID": "GLEN_VIEW",
+    "Player ID": "nndz-WkNPd3hMendqQT09",
+    "First Name": "Peter",
+    "Last Name": "Rose",
+    "PTI": "-8.5",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "source_league": "APTA_CHICAGO",
+    "validation_issues": [
+      "No win/loss stats found"
+    ]
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Series": "",
+    "Series Mapping ID": "Glenbrook RCKnollwood",
+    "Club": "Glenbrook RCKnollwood",
+    "Location ID": "GLENBROOK_RCKNOLLWOOD",
+    "Player ID": "nndz-WkM2L3hMLzdqQT09",
+    "First Name": "Andrew",
+    "Last Name": "Ong",
+    "PTI": "-3.3",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "source_league": "APTA_CHICAGO",
+    "validation_issues": [
+      "No win/loss stats found"
+    ]
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Series": "",
+    "Series Mapping ID": "Inverness",
+    "Club": "Inverness",
+    "Location ID": "INVERNESS",
+    "Player ID": "nndz-WkM2L3g3andnZz09",
+    "First Name": "Jonas",
+    "Last Name": "Merckx",
+    "PTI": "-17.7",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "source_league": "APTA_CHICAGO",
+    "validation_issues": [
+      "No win/loss stats found"
+    ]
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Series": "",
+    "Series Mapping ID": "Glen View",
+    "Club": "Glen View",
+    "Location ID": "GLEN_VIEW",
+    "Player ID": "nndz-WkNPd3hMendnUT09",
+    "First Name": "Paul",
+    "Last Name": "Rose",
+    "PTI": "-4.3",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "source_league": "APTA_CHICAGO",
+    "validation_issues": [
+      "No win/loss stats found"
+    ]
+  }
+]

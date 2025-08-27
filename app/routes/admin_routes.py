@@ -2406,7 +2406,13 @@ def get_team_notifications_team_info():
             JOIN players p ON t.id = p.team_id
             LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
             LEFT JOIN users u ON upa.user_id = u.id
-            WHERE upa.user_id = %s
+            WHERE t.id = (
+                SELECT DISTINCT p2.team_id
+                FROM players p2
+                JOIN user_player_associations upa2 ON p2.tenniscores_player_id = upa2.tenniscores_player_id
+                WHERE upa2.user_id = %s AND p2.team_id IS NOT NULL
+                LIMIT 1
+            )
             GROUP BY t.id, t.team_name, l.league_name, s.name
             LIMIT 1
         """
@@ -2461,6 +2467,7 @@ def send_team_notification():
         data = request.json
         message = data.get("message", "").strip()
         test_mode = data.get("test_mode", False)
+        selected_recipients = data.get("recipients", [])  # Get selected recipients from frontend
         
         if not message:
             return jsonify({"success": False, "error": "Message content is required"}), 400
@@ -2471,30 +2478,91 @@ def send_team_notification():
         user = session["user"]
         user_id = user["id"]
         
-        # Get team members with phone numbers
-        members_query = """
-            SELECT DISTINCT
-                u.id,
-                u.first_name,
-                u.last_name,
-                u.phone_number
-            FROM users u
-            JOIN user_player_associations upa ON u.id = upa.user_id
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            JOIN teams t ON p.team_id = t.id
-            WHERE t.id = (
-                SELECT DISTINCT p2.team_id
-                FROM players p2
-                JOIN user_player_associations upa2 ON p2.tenniscores_player_id = upa2.tenniscores_player_id
-                WHERE upa2.user_id = %s AND p2.team_id IS NOT NULL
-                LIMIT 1
-            )
-            AND u.phone_number IS NOT NULL 
-            AND u.phone_number != ''
-            AND u.id != %s  -- Don't send to self
-        """
+        # Determine which team members to send to
+        if selected_recipients and len(selected_recipients) > 0:
+            # Send to specifically selected recipients
+            print(f"Sending SMS to {len(selected_recipients)} selected recipients")
+            print(f"Selected recipients data: {selected_recipients}")
+            
+            # Get user details for selected recipients
+            import re
+            selected_phones = []
+            for r in selected_recipients:
+                phone = r.get('phone', '')
+                # Remove all non-digit characters
+                clean_phone = re.sub(r'\D', '', phone)
+                if clean_phone:
+                    selected_phones.append(clean_phone)
+            
+            print(f"Cleaned phone numbers: {selected_phones}")
+            
+            if not selected_phones:
+                return jsonify({
+                    "success": False, 
+                    "error": "No valid phone numbers found in selected recipients"
+                }), 400
+            
+            # Get user details for the selected phone numbers
+            recipients_query = """
+                SELECT DISTINCT
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.phone_number
+                FROM users u
+                WHERE u.phone_number IS NOT NULL 
+                AND u.phone_number != ''
+                AND u.id != %s  -- Don't send to self
+                AND (
+                    u.phone_number = ANY(%s)
+                    OR REPLACE(u.phone_number, '-', '') = ANY(%s)
+                    OR REPLACE(REPLACE(u.phone_number, '-', ''), '+', '') = ANY(%s)
+                )
+            """
+            
+            # Create arrays for phone number matching (with and without formatting)
+            phone_variants = []
+            for phone in selected_phones:
+                phone_variants.append(phone)
+                phone_variants.append(phone.replace('-', ''))
+                phone_variants.append(phone.replace('-', '').replace('+', ''))
+            
+            team_members = execute_query(recipients_query, [user_id, phone_variants, phone_variants, phone_variants])
+            
+        else:
+            # Send to all team members (when "All Team Members" is selected)
+            print(f"Sending SMS to all team members")
+            
+            # Get team members with phone numbers
+            members_query = """
+                SELECT DISTINCT
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.phone_number
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                WHERE t.id = (
+                    SELECT DISTINCT p2.team_id
+                    FROM players p2
+                    JOIN user_player_associations upa2 ON p2.tenniscores_player_id = upa2.tenniscores_player_id
+                    WHERE upa2.user_id = %s AND p2.team_id IS NOT NULL
+                    LIMIT 1
+                )
+                AND u.phone_number IS NOT NULL 
+                AND u.phone_number != ''
+                AND u.id != %s  -- Don't send to self
+            """
+            
+            team_members = execute_query(members_query, [user_id, user_id])
         
-        team_members = execute_query(members_query, [user_id, user_id])
+        print(f"Found {len(team_members)} team members to send SMS to")
+        team_member_info = []
+        for m in team_members:
+            team_member_info.append(f"{m['first_name']} {m['last_name']} ({m['phone_number']})")
+        print(f"Team members: {team_member_info}")
         
         if not team_members:
             return jsonify({
@@ -2727,5 +2795,93 @@ def admin_lineup_escrow_analytics():
         return redirect(url_for('admin_index'))
     
     return render_template('admin/lineup_escrow_analytics.html', analytics=analytics)
+
+@admin_bp.route('/admin/add-player')
+@admin_required
+def add_player_page():
+    """Admin page for adding individual players"""
+    return render_template('admin/add_player.html')
+
+@admin_bp.route("/api/admin/add-player", methods=["POST"])
+@admin_required
+def add_player_api():
+    """API endpoint to search for a player and show confirmation"""
+    try:
+        data = request.get_json()
+        league_subdomain = data.get('league_subdomain')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        club = data.get('club')
+        series = data.get('series')
+        
+        if not all([league_subdomain, first_name, last_name, club, series]):
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        # Import the player scraper service
+        from app.services.player_scraper_service import PlayerScraperService
+        
+        # Create scraper service instance
+        scraper_service = PlayerScraperService()
+        
+        # Search for the player (but don't save yet)
+        result = scraper_service.search_for_player(league_subdomain, first_name, last_name, club, series)
+        
+        if result:
+            return jsonify({
+                "success": True,
+                "message": "Player found! Please review the information below.",
+                "player_data": result,
+                "needs_confirmation": True
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"Could not find player {first_name} {last_name} in {club}, {series}"
+            }), 400
+            
+    except Exception as e:
+        print(f"Error searching for player: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route("/api/admin/confirm-add-player", methods=["POST"])
+@admin_required
+def confirm_add_player_api():
+    """API endpoint to confirm and add a player after review"""
+    try:
+        data = request.get_json()
+        league_subdomain = data.get('league_subdomain')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        club = data.get('club')
+        series = data.get('series')
+        player_data = data.get('player_data')  # Get the player data from frontend
+        
+        if not all([league_subdomain, first_name, last_name, club, series]):
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        # Import the player scraper service
+        from app.services.player_scraper_service import PlayerScraperService
+        
+        # Create scraper service instance
+        scraper_service = PlayerScraperService()
+        
+        # Now save the player to JSON and database using the provided player data
+        result = scraper_service.save_player_data(league_subdomain, first_name, last_name, club, series, player_data)
+        
+        if result.get('success'):
+            return jsonify({
+                "success": True,
+                "message": f"Player {first_name} {last_name} has been successfully added to the system!",
+                "player_data": result.get('player_data', {})
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get('error', 'Unknown error occurred')
+            }), 400
+            
+    except Exception as e:
+        print(f"Error confirming player addition: {e}")
+        return jsonify({"error": str(e)}), 500
 
 

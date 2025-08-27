@@ -283,10 +283,8 @@ class PlayersETL:
         
         # Cache series mappings (league_id, series_name) -> series_id
         cursor.execute("""
-            SELECT l.league_id, s.name, s.id 
-            FROM series s 
-            JOIN series_leagues sl ON s.id = sl.series_id
-            JOIN leagues l ON sl.league_id = l.id
+            SELECT league_id, name, id 
+            FROM series
         """)
         series_cache = {(row[0], row[1]): row[2] for row in cursor.fetchall()}
         
@@ -329,8 +327,8 @@ class PlayersETL:
             
             # Look up team ID
             team_id = None
-            if team_name and league_id:
-                team_id = team_cache.get((league_id, team_name))
+            if team_name and league_db_id:
+                team_id = team_cache.get((league_db_id, team_name))
                 if not team_id:
                     logger.warning(f"Team not found: {team_name} in {league_id}")
             
@@ -369,8 +367,8 @@ class PlayersETL:
             
             # Look up series ID
             series_id = None
-            if series_name and league_id:
-                series_id = series_cache.get((league_id, series_name))
+            if series_name and league_db_id:
+                series_id = series_cache.get((league_db_id, series_name))
                 if not series_id:
                     logger.warning(f"Series not found: {series_name} in {league_id}")
             

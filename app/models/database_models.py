@@ -224,9 +224,7 @@ class League(Base):
     # Relationships
     players = relationship("Player", back_populates="league")
     clubs = relationship("Club", secondary="club_leagues", back_populates="leagues")
-    series = relationship(
-        "Series", secondary="series_leagues", back_populates="leagues"
-    )
+    series = relationship("Series", back_populates="league", cascade="save-update, merge", passive_deletes=True)
     teams = relationship("Team", back_populates="league")
 
     def __repr__(self):
@@ -265,21 +263,25 @@ class Series(Base):
     __tablename__ = "series"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False, unique=True)
+    name = Column(String(255), nullable=False)
+    league_id = Column(Integer, ForeignKey("leagues.id", onupdate="CASCADE", ondelete="RESTRICT"), nullable=False)
     updated_at = Column(
         DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
 
     # Relationships
+    league = relationship("League", back_populates="series")
     players = relationship("Player", back_populates="series")
-    leagues = relationship(
-        "League", secondary="series_leagues", back_populates="series"
-    )
     teams = relationship("Team", back_populates="series")
     series_stats = relationship("SeriesStats", back_populates="series_obj")
 
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint("league_id", "name", name="uq_series_league_name"),
+    )
+
     def __repr__(self):
-        return f"<Series(id={self.id}, name='{self.name}')>"
+        return f"<Series(id={self.id}, name='{self.name}', league_id={self.league_id})>"
 
 
 class Team(Base):
@@ -518,21 +520,6 @@ class ClubLeague(Base):
 
     __table_args__ = (
         UniqueConstraint("club_id", "league_id", name="unique_club_league"),
-    )
-
-
-class SeriesLeague(Base):
-    """Series-League associations"""
-
-    __tablename__ = "series_leagues"
-
-    id = Column(Integer, primary_key=True)
-    series_id = Column(Integer, ForeignKey("series.id"), nullable=False)
-    league_id = Column(Integer, ForeignKey("leagues.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=func.now())
-
-    __table_args__ = (
-        UniqueConstraint("series_id", "league_id", name="unique_series_league"),
     )
 
 

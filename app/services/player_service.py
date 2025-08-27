@@ -438,7 +438,7 @@ def get_players_by_league_and_series_id(league_id, series_id, club_name=None, te
     try:
         base_query = """
             SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
-                   p.club_id, p.series_id, c.name as club_name, s.name as series_name,
+                   p.club_id, p.series_id, p.team_id, c.name as club_name, s.name as series_name,
                    l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage,
                    u.ad_deuce_preference, u.dominant_hand
             FROM players p
@@ -483,13 +483,29 @@ def get_players_by_league_and_series_id(league_id, series_id, club_name=None, te
         # Format for API response
         formatted_players = []
         for player in players:
-            # Calculate win rate
-            wins = player.get("wins", 0) or 0
-            losses = player.get("losses", 0) or 0
-            total_matches = wins + losses
-            win_rate = (
-                f"{(wins / total_matches * 100):.1f}%" if total_matches > 0 else "0.0%"
+            # Calculate record from match_scores table for accurate data
+            # Convert league_id string to integer for match_scores lookup
+            league_id_int = None
+            if player.get("league_id"):
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [player["league_id"]]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception:
+                    pass
+            
+            player_record = calculate_player_record_from_match_scores(
+                player["tenniscores_player_id"], 
+                league_id=league_id_int,
+                team_id=player.get("team_id")
             )
+            
+            # Use calculated record instead of stored values
+            wins = player_record["wins"]
+            losses = player_record["losses"]
+            win_rate = player_record["win_rate"]
 
             # Get preferences from database, default to None if not set
             position_preference = player.get("ad_deuce_preference")
@@ -804,3 +820,69 @@ def search_players_by_name(search_term, league_id=None, limit=20):
     except Exception as e:
         logger.error(f"Error searching players: {e}")
         return []
+
+
+def calculate_player_record_from_match_scores(player_id, league_id=None, team_id=None):
+    """
+    Calculate player's win/loss record from match_scores table
+    
+    Args:
+        player_id (str): Player's tenniscores_player_id
+        league_id (int, optional): League ID to filter matches
+        team_id (int, optional): Team ID to filter matches
+        
+    Returns:
+        dict: Dictionary with wins, losses, total_matches, and win_rate
+    """
+    try:
+        # Base query to count wins and losses
+        base_query = """
+            SELECT 
+                COUNT(CASE WHEN winner = 'home' AND (home_player_1_id = %s OR home_player_2_id = %s) THEN 1 END) as home_wins,
+                COUNT(CASE WHEN winner = 'away' AND (away_player_1_id = %s OR away_player_2_id = %s) THEN 1 END) as away_wins,
+                COUNT(CASE WHEN winner = 'home' AND (away_player_1_id = %s OR away_player_2_id = %s) THEN 1 END) as home_losses,
+                COUNT(CASE WHEN winner = 'away' AND (home_player_1_id = %s OR home_player_2_id = %s) THEN 1 END) as away_losses,
+                COUNT(*) as total_matches
+            FROM match_scores 
+            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+        """
+        
+        params = [player_id] * 12  # 12 placeholders for the 12 %s in the query
+        
+        # Add league filtering if provided
+        if league_id:
+            base_query += " AND league_id = %s"
+            params.append(league_id)
+            
+        # Add team filtering if provided
+        if team_id:
+            base_query += " AND (home_team_id = %s OR away_team_id = %s)"
+            params.append(team_id)
+            params.append(team_id)
+        
+        result = execute_query_one(base_query, params)
+        
+        if not result:
+            return {"wins": 0, "losses": 0, "total_matches": 0, "win_rate": "0.0%"}
+        
+        # Calculate totals
+        total_wins = (result.get("home_wins", 0) or 0) + (result.get("away_wins", 0) or 0)
+        total_losses = (result.get("home_losses", 0) or 0) + (result.get("away_losses", 0) or 0)
+        total_matches = result.get("total_matches", 0) or 0
+        
+        # Calculate win rate
+        if total_matches > 0:
+            win_rate = f"{(total_wins / total_matches * 100):.1f}%"
+        else:
+            win_rate = "0.0%"
+        
+        return {
+            "wins": total_wins,
+            "losses": total_losses,
+            "total_matches": total_matches,
+            "win_rate": win_rate
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating player record for {player_id}: {e}")
+        return {"wins": 0, "losses": 0, "total_matches": 0, "win_rate": "0.0%"}

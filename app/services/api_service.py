@@ -932,13 +932,12 @@ def remove_practice_times_data():
         # Count practice entries before removal using team_id for precision
         practice_description = f"{user_club} Practice - {user_series}"
 
-        # FIXED: Use team_id-based counting for accuracy (handle NULL league_id)
+        # FIXED: Use team_id-based counting for accuracy (ignore league_id mismatch)
         practice_count_query = """
             SELECT COUNT(*) as count
             FROM schedule 
             WHERE home_team_id = %(team_id)s
-            AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
-            AND home_team = %(practice_desc)s
+            AND home_team LIKE '%%Practice%%'
         """
 
         try:
@@ -946,8 +945,6 @@ def remove_practice_times_data():
                 practice_count_query,
                 {
                     "team_id": user_team_id,
-                    "league_id": league_id,
-                    "practice_desc": practice_description,
                 },
             )
             practice_count = (
@@ -971,21 +968,18 @@ def remove_practice_times_data():
                 }
             )
 
-        # FIXED: Remove practice entries using team_id for precision and security (handle NULL league_id)
+        # FIXED: Remove practice entries using team_id for precision and security (ignore league_id mismatch)
         try:
             delete_query = """
                 DELETE FROM schedule 
                 WHERE home_team_id = %(team_id)s
-                AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
-                AND home_team = %(practice_desc)s
+                AND home_team LIKE '%%Practice%%'
             """
 
             execute_query(
                 delete_query,
                 {
                     "team_id": user_team_id,
-                    "league_id": league_id,
-                    "practice_desc": practice_description,
                 },
             )
 
@@ -1974,3 +1968,189 @@ def get_all_teams_schedule_data_data():
         print(f"❌ Error in get_all_teams_schedule_data: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
+
+
+def add_practice_times_data():
+    """API endpoint to add practice times to the schedule"""
+    try:
+        import json
+        import os
+        from datetime import datetime, timedelta
+        from flask import jsonify, session, request
+
+        from utils.logging import log_user_activity
+
+        # Get form data
+        data = request.form
+        
+        # Validate required fields
+        first_date = data.get("first_date")
+        last_date = data.get("last_date")
+        day = data.get("day")
+        time = data.get("time")
+        
+        if not all([first_date, last_date, day, time]):
+            return jsonify({"success": False, "message": "Missing required fields"}), 400
+        
+        # Parse dates
+        try:
+            first_date_obj = datetime.strptime(first_date, "%Y-%m-%d").date()
+            last_date_obj = datetime.strptime(last_date, "%Y-%m-%d").date()
+        except ValueError:
+            return jsonify({"success": False, "message": "Invalid date format"}), 400
+        
+        # Get user's team information
+        user = session["user"]
+        user_club = user.get("club", "")
+        user_series = user.get("series", "")
+        
+        if not user_club:
+            return jsonify({"success": False, "message": "User club not found"}), 400
+        
+        if not user_series:
+            return jsonify({"success": False, "message": "User series not found"}), 400
+        
+        # Get team_id using the same priority-based logic as removal
+        user_team_id = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Practice addition: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+            print(f"[DEBUG] Practice addition: Using team_id from session: {user_team_id}")
+        
+        # PRIORITY 2: Use team_context from user if provided
+        if not user_team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                user_team_id = team_context
+                print(f"[DEBUG] Practice addition: Using team_context: {user_team_id}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not user_team_id:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+                    print(f"[DEBUG] Practice addition: Found team_id via session service: {user_team_id}")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
+        
+        if not user_team_id:
+            return jsonify({"success": False, "message": "Could not determine your team. Please check your profile settings."}), 400
+        
+        # Generate practice dates between first_date and last_date for the specified day
+        practice_dates = []
+        current_date = first_date_obj
+        
+        while current_date <= last_date_obj:
+            if current_date.strftime("%A") == day:
+                practice_dates.append(current_date)
+            current_date += timedelta(days=1)
+        
+        if not practice_dates:
+            return jsonify({"success": False, "message": f"No {day}s found between {first_date} and {last_date}"}), 400
+        
+        # Get league_id from the team (not from user, to avoid NULL issues)
+        from database_utils import execute_query, execute_query_one
+        
+        team_league_result = execute_query_one(
+            "SELECT league_id FROM teams WHERE id = %s",
+            [user_team_id]
+        )
+        
+        league_id = team_league_result["league_id"] if team_league_result else None
+        print(f"[DEBUG] Practice addition: team_league_result={team_league_result}, league_id={league_id}")
+        
+        # Get the actual team and series names from the database (not from user session)
+        team_info = execute_query_one(
+            """SELECT t.team_name, s.name as series_name, c.name as club_name 
+               FROM teams t 
+               JOIN series s ON t.series_id = s.id 
+               JOIN clubs c ON t.club_id = c.id 
+               WHERE t.id = %s""",
+            [user_team_id]
+        )
+        
+        if not team_info:
+            return jsonify({"success": False, "message": "Could not find team information"}), 400
+        
+        actual_team_name = team_info["team_name"]
+        actual_series_name = team_info["series_name"] 
+        actual_club_name = team_info["club_name"]
+        
+        print(f"[DEBUG] Practice addition: actual_team_name={actual_team_name}, actual_series_name={actual_series_name}, actual_club_name={actual_club_name}")
+        
+        # Create practice description using actual team/series names from database
+        practice_description = f"{actual_club_name} Practice - {actual_series_name}"
+        print(f"[DEBUG] Practice addition: practice_description={practice_description}")
+        
+        # Insert practice times
+        practices_added = []
+        inserted_count = 0
+        
+        for practice_date in practice_dates:
+            try:
+                # Check if practice already exists using team_id and date only (ignore name variations)
+                existing = execute_query_one(
+                    "SELECT id FROM schedule WHERE home_team_id = %s AND match_date = %s AND home_team LIKE '%%Practice%%'",
+                    [user_team_id, practice_date]
+                )
+                
+                if not existing:
+                    # Insert new practice time
+                    result = execute_query(
+                        """INSERT INTO schedule 
+                           (league_id, home_team_id, home_team, match_date, match_time)
+                           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                        [league_id, user_team_id, practice_description, practice_date, time]
+                    )
+                    
+                    if result:
+                        inserted_count += 1
+                        practices_added.append({
+                            "date": practice_date.strftime("%Y-%m-%d"),
+                            "time": time
+                        })
+                        print(f"✓ Added practice: {practice_date} at {time}")
+                    else:
+                        print(f"⚠️ Failed to insert practice: {practice_date} at {time}")
+                else:
+                    print(f"⚠️ Practice already exists: {practice_date} at {time}")
+                    
+            except Exception as e:
+                print(f"❌ Error adding practice for {practice_date}: {e}")
+                continue
+        
+        if inserted_count == 0:
+            return jsonify({
+                "success": False, 
+                "message": "No new practice times were added. They may already exist."
+            }), 400
+        
+        # Log the activity
+        log_user_activity(
+            user["email"],
+            "practice_times_added",
+            details=f"Added {inserted_count} practice times for {user_series} {day}s at {time} at {user_club} (team_id: {user_team_id})",
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully added {inserted_count} practice times!",
+            "count": inserted_count,
+            "day": day,
+            "time": time,
+            "series": user_series,
+            "club": user_club,
+            "first_date": first_date,
+            "last_date": last_date,
+            "practices_added": practices_added
+        })
+        
+    except Exception as e:
+        print(f"Error adding practice times: {str(e)}")
+        return jsonify({"success": False, "message": "An unexpected error occurred"}), 500
