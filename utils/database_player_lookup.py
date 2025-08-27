@@ -75,6 +75,21 @@ NAME_VARIATIONS = {
     "kenneth": ["ken"],
     "olg": ["olga"],  # Fix for Olg Martinsone case
     "olga": ["olg"],  # Bidirectional mapping
+    "jenn": ["jennifer", "jenny"],  # Fix for Jenn/Jennifer variations
+    "jennifer": ["jenn", "jenny"],  # Bidirectional mapping
+    "jenny": ["jennifer", "jenn"],  # Common nickname for Jennifer
+    "beth": ["bethany"],  # Common nickname for Bethany
+    "bethany": ["beth"],  # Bidirectional mapping
+    "liz": ["elizabeth", "lizzie"],  # Common nicknames for Elizabeth
+    "lizzie": ["elizabeth", "liz"],  # Common nicknames for Elizabeth
+    "elizabeth": ["liz", "lizzie", "beth"],  # Common variations
+    "katie": ["katherine", "kate"],  # Common nicknames for Katherine
+    "kate": ["katherine", "katie"],  # Common nicknames for Katherine
+    "katherine": ["katie", "kate"],  # Bidirectional mapping
+    "sue": ["susan", "suzanne"],  # Common nicknames for Susan
+    "susan": ["sue", "suzanne"],  # Bidirectional mapping
+    "cathy": ["catherine", "cath"],  # Common nicknames for Catherine
+    "catherine": ["cathy", "cath"],  # Bidirectional mapping
 }
 
 
@@ -962,6 +977,101 @@ def find_player_by_database_lookup_id(
             }
         else:
             logger.info(f"❌ ID-BASED FALLBACK 2: No matches for club {club_name}")
+        
+        # ===========================================
+        # FALLBACK 3: Drop first name requirement, keep last name + club + league
+        # This is the critical fallback that was missing!
+        # ===========================================
+        logger.info(f"ID-BASED FALLBACK 3: Drop first name, keep last name + club")
+        
+        fallback3_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({last_name_conditions})
+            AND LOWER(TRIM(c.name)) = %s
+        """
+        
+        fallback3_params = [league_db_id] + last_name_variations + [norm_club]
+        fallback3_matches = execute_query(fallback3_query, fallback3_params)
+        
+        if len(fallback3_matches) == 1:
+            player = fallback3_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 3: Found match (first name differs) - {match_info}: {player['tenniscores_player_id']}")
+            logger.info(f"✅ ID-BASED FALLBACK 3: Exact last name + club + league match (first name: '{player['first_name']}' vs requested '{first_name}')")
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Exact last name + club + league match (first name: {player['first_name']} vs requested {first_name})",
+            }
+        elif len(fallback3_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']} ({m['series_name']})"
+                for m in fallback3_matches
+            ]
+            logger.info(f"⚠️ ID-BASED FALLBACK 3: Multiple matches for {last_name} + {club_name}: {match_names}")
+            
+            # Return multiple matches for user selection
+            logger.info(f"✅ ID-BASED FALLBACK 3: Found multiple high-confidence matches - returning for user selection")
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback3_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact last name + club + league match with different first names.",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 3: No matches for {last_name} + {club_name}")
+        
+        # ===========================================
+        # FALLBACK 4: Drop first name requirement, keep last name + series + league
+        # ===========================================
+        logger.info(f"ID-BASED FALLBACK 4: Drop first name, keep last name + series")
+        
+        fallback4_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({last_name_conditions})
+            AND p.series_id = %s
+        """
+        
+        fallback4_params = [league_db_id] + last_name_variations + [series_id]
+        fallback4_matches = execute_query(fallback4_query, fallback4_params)
+        
+        if len(fallback4_matches) == 1:
+            player = fallback4_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 4: Found match (first name differs) - {match_info}: {player['tenniscores_player_id']}")
+            logger.info(f"✅ ID-BASED FALLBACK 4: Exact last name + series + league match (first name: '{player['first_name']}' vs requested '{first_name}')")
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Exact last name + series + league match (first name: {player['first_name']} vs requested {first_name})",
+            }
+        elif len(fallback4_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']} ({m['club_name']})"
+                for m in fallback4_matches
+            ]
+            logger.info(f"⚠️ ID-BASED FALLBACK 4: Multiple matches for {last_name} + series_id={series_id}: {match_names}")
+            
+            # Return multiple matches for user selection
+            logger.info(f"✅ ID-BASED FALLBACK 4: Found multiple high-confidence matches - returning for user selection")
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback4_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact last name + series + league match with different first names.",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 4: No matches for {last_name} + series_id={series_id}")
         
         # No matches found
         logger.warning(f"❌ ID-BASED: No matches found for {first_name} {last_name} (series_id={series_id}, club={club_name})")
