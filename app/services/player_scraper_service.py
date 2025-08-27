@@ -761,8 +761,8 @@ class PlayerScraperService:
         club_match = club_lower in team_lower
         series_match = False
         
-        if series_number:
-            # For APTA Chicago, check for series number patterns
+        if series_number and series_number.isdigit():
+            # For APTA Chicago numeric series, check for series number patterns
             # Pattern 1: "Series X" (e.g., "Series 22")
             if f"series {series_number}" in team_lower:
                 series_match = True
@@ -783,7 +783,7 @@ class PlayerScraperService:
             elif team_lower.endswith(f" - {series_number}"):
                 series_match = True
                 print(f"      ✅ Series match: ends with ' - {series_number}'")
-        else:
+        elif series_number and not series_number.isdigit():
             # For CNSWPL letter series (A-K), extract the letter and check for it
             if series_lower.startswith('series ') and len(series_lower) > 7:
                 # Extract the letter from "Series G (Night League)" -> "G"
@@ -828,28 +828,23 @@ class PlayerScraperService:
         # Check if series identifier matches using CNSWPL patterns
         series_match = False
         if series_identifier:
-            # For letter series (A-K), check for exact letter match
+            # For letter series (A-K), look for the letter at the end of the team name
             if series_identifier.isalpha() and series_identifier.upper() in 'ABCDEFGHIJK':
                 # Check for exact letter match (e.g., "Tennaqua G" should match "G")
-                if (f" {series_identifier} " in team_lower or 
-                    team_lower.endswith(f" {series_identifier}") or
-                    f" {series_identifier}(" in team_lower):
+                if team_lower.endswith(f" {series_identifier.lower()}"):
                     series_match = True
-                    print(f"      ✅ Series match: found '{series_identifier}' in '{team_lower}'")
+                    print(f"      ✅ CNSWPL Series match: found '{series_identifier.lower()}' in '{team_lower}'")
                 else:
-                    print(f"      ❌ Series match failed: '{series_identifier}' not found in '{team_lower}'")
-            # For numeric series (1-17), use word boundaries
+                    print(f"      ❌ CNSWPL Series match failed: '{series_identifier.lower()}' not found in '{team_lower}'")
+            # For numeric series (1-17), use the existing logic
             elif series_identifier.isdigit():
-                if (f" {series_identifier} " in team_lower or 
-                    team_lower.endswith(f" {series_identifier}") or
-                    f" {series_identifier}a" in team_lower or 
-                    f" {series_identifier}b" in team_lower):
+                if f" {series_identifier} " in team_lower or team_lower.endswith(f" {series_identifier}"):
                     series_match = True
-                    print(f"      ✅ Series match: found '{series_identifier}' in '{team_lower}'")
+                    print(f"      ✅ CNSWPL Series match: found '{series_identifier}' in '{team_lower}'")
                 else:
-                    print(f"      ❌ Series match failed: '{series_identifier}' not found in '{team_lower}'")
+                    print(f"      ❌ CNSWPL Series match failed: '{series_identifier}' not found in '{team_lower}'")
         
-        print(f"      Club match: {club_match}")
+        print(f"      Club match: {club_match} (looking for '{club_lower}' in '{team_lower}')")
         print(f"      Series match: {series_match}")
         print(f"      Final result: {club_match and series_match}")
         
@@ -895,6 +890,10 @@ class PlayerScraperService:
                 except Exception as driver_error:
                     print(f"   ❌ WebDriver failed: {driver_error}")
                     return None
+            
+            # For CNSWPL, use the CNSWPL-specific logic
+            if league_subdomain.lower() == 'cnswpl':
+                return self._search_cnswpl_team_page(soup, first_name, last_name, club, series, team_url)
             
             # Look for player links
             player_links = soup.find_all('a', href=True)
@@ -956,6 +955,169 @@ class PlayerScraperService:
         except Exception as e:
             print(f"   ❌ Error searching team page: {e}")
             return None
+    
+    def _search_cnswpl_team_page(self, soup: BeautifulSoup, first_name: str, last_name: str, club: str, series: str, team_url: str) -> Optional[Dict]:
+        """Search for a player on a CNSWPL team page using CNSWPL-specific logic"""
+        try:
+            print(f"   🎯 Using CNSWPL-specific team page search")
+            
+            # CNSWPL uses a table-based structure with class 'team_roster_table'
+            # Look for the main roster table first
+            roster_table = soup.find('table', class_='team_roster_table')
+            
+            if roster_table:
+                print(f"   📋 Found CNSWPL team roster table, processing table structure")
+                return self._extract_player_from_cnswpl_table(roster_table, first_name, last_name, club, series, team_url)
+            else:
+                print(f"   ⚠️ No CNSWPL team roster table found, trying fallback method")
+                # Fall back to general player link search
+                return self._search_cnswpl_player_links(soup, first_name, last_name, club, series, team_url)
+            
+        except Exception as e:
+            print(f"   ❌ Error in CNSWPL team page search: {e}")
+            return None
+    
+    def _extract_player_from_cnswpl_table(self, table_element, first_name: str, last_name: str, club: str, series: str, team_url: str) -> Optional[Dict]:
+        """Extract player from CNSWPL team roster table structure"""
+        try:
+            # Find all table rows
+            all_rows = table_element.find_all('tr')
+            
+            print(f"   🔍 Found {len(all_rows)} total rows in CNSWPL table")
+            
+            # Track current section
+            current_section = None
+            
+            # Process each row
+            for row_idx, row in enumerate(all_rows):
+                cells = row.find_all(['td', 'th'])
+                
+                if not cells:
+                    continue
+                
+                # Check if this is a section header (has colspan attribute)
+                first_cell = cells[0]
+                colspan = first_cell.get('colspan', '1')
+                
+                if colspan != '1':
+                    # This is a section header
+                    section_text = first_cell.get_text(strip=True).lower()
+                    
+                    if 'captains' in section_text:
+                        current_section = 'captains'
+                        print(f"   📋 Found Captains section at row {row_idx + 1}")
+                    elif 'players' in section_text and 'subbing' not in section_text:
+                        current_section = 'players'
+                        print(f"   📋 Found Players section at row {row_idx + 1}")
+                    elif 'subbing' in section_text:
+                        current_section = 'subbing'
+                        print(f"   ⚠️ Skipping subbing section at row {row_idx + 1}")
+                    else:
+                        current_section = None
+                        print(f"   ⚠️ Unknown section: {section_text}")
+                    
+                    # Skip section header rows
+                    continue
+                
+                # This is a data row (should have 4 cells: player, empty, wins, losses)
+                if len(cells) == 4 and current_section in ['captains', 'players']:
+                    # First cell contains player info
+                    player_cell = cells[0]
+                    
+                    # Look for player links in this cell
+                    player_links = player_cell.find_all('a', href=True)
+                    
+                    for link in player_links:
+                        href = link.get('href', '')
+                        if '/player.php?print&p=' not in href:
+                            continue
+                        
+                        # Get the player name from the link
+                        player_name = link.get_text(strip=True)
+                        
+                        # Check if this matches our target player
+                        if (first_name.lower() in player_name.lower() and 
+                            last_name.lower() in player_name.lower()):
+                            print(f"   🎯 Found player in CNSWPL table: {player_name}")
+                            
+                            # Extract player ID from href
+                            player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                            
+                            # Convert player ID to CNSWPL format for ETL compatibility
+                            cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
+                            
+                            # Create player record
+                            player_data = {
+                                'First Name': first_name,
+                                'Last Name': last_name,
+                                'Club': club,
+                                'Series': series,
+                                'League': 'CNSWPL',
+                                'Player ID': cnswpl_player_id
+                            }
+                            
+                            return player_data
+            
+            print(f"   ❌ Player {first_name} {last_name} not found in CNSWPL table")
+            return None
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting player from CNSWPL table: {e}")
+            return None
+    
+    def _search_cnswpl_player_links(self, soup: BeautifulSoup, first_name: str, last_name: str, club: str, series: str, team_url: str) -> Optional[Dict]:
+        """Fallback method to search for player links on CNSWPL team page"""
+        try:
+            print(f"   🔍 Fallback: Searching for player links on CNSWPL team page")
+            
+            # Look for player links
+            player_links = soup.find_all('a', href=True)
+            
+            for link in player_links:
+                link_text = link.get_text(strip=True)
+                href = link['href']
+                
+                # Check if this looks like a player name
+                if (first_name.lower() in link_text.lower() and 
+                    last_name.lower() in link_text.lower()):
+                    print(f"   🎯 Found player link: {link_text}")
+                    
+                    # Extract player data
+                    player_data = {
+                        'First Name': first_name,
+                        'Last Name': last_name,
+                        'Club': club,
+                        'Series': series,
+                        'League': 'CNSWPL',
+                        'Player ID': self._extract_player_id(href, 'cnswpl')
+                    }
+                    
+                    return player_data
+            
+            print(f"   ❌ Player {first_name} {last_name} not found in CNSWPL player links")
+            return None
+            
+        except Exception as e:
+            print(f"   ❌ Error searching CNSWPL player links: {e}")
+            return None
+    
+    def _convert_to_cnswpl_format(self, player_id: str) -> str:
+        """Convert player ID to CNSWPL format for ETL compatibility"""
+        try:
+            # Remove the nndz- prefix if present
+            if player_id.startswith('nndz-'):
+                player_id = player_id[5:]  # Remove 'nndz-' prefix
+            
+            # Add the cnswpl_ prefix
+            cnswpl_player_id = f"cnswpl_{player_id}"
+            
+            print(f"   🔄 Converted player ID: {player_id} -> {cnswpl_player_id}")
+            return cnswpl_player_id
+            
+        except Exception as e:
+            print(f"   ⚠️ Error converting player ID format: {e}")
+            # Return original if conversion fails
+            return player_id
     
     def _verify_player_identity(self, player_data: Dict, first_name: str, last_name: str, club: str, series: str) -> bool:
         """Verify that the scraped player data matches the expected player"""
