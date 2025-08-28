@@ -3093,56 +3093,37 @@ def get_club_players_data(
                     WHERE end_pti IS NOT NULL
                     ORDER BY player_id, date DESC
                 ),
-                player_match_records AS (
-                    -- Calculate win/loss records for each player-team combination in one query
+                player_series_records AS (
+                    -- Calculate win/loss records for each player-series combination (includes sub appearances)
                     SELECT 
-                        player_id,
-                        team_id,
-                        SUM(CASE WHEN won THEN 1 ELSE 0 END) as wins,
-                        SUM(CASE WHEN NOT won THEN 1 ELSE 0 END) as losses
-                    FROM (
-                        -- Home team players
-                        SELECT 
-                            NULLIF(TRIM(ms.home_player_1_id), '') as player_id,
-                            ms.home_team_id as team_id,
-                            ms.winner = 'home' as won
-                        FROM match_scores ms 
-                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.home_player_1_id), '') IS NOT NULL
-                        
-                        UNION ALL
-                        
-                        SELECT 
-                            NULLIF(TRIM(ms.home_player_2_id), '') as player_id,
-                            ms.home_team_id as team_id,
-                            ms.winner = 'home' as won
-                        FROM match_scores ms 
-                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.home_player_2_id), '') IS NOT NULL
-                        
-                        UNION ALL
-                        
-                        -- Away team players  
-                        SELECT 
-                            NULLIF(TRIM(ms.away_player_1_id), '') as player_id,
-                            ms.away_team_id as team_id,
-                            ms.winner = 'away' as won
-                        FROM match_scores ms 
-                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.away_player_1_id), '') IS NOT NULL
-                        
-                        UNION ALL
-                        
-                        SELECT 
-                            NULLIF(TRIM(ms.away_player_2_id), '') as player_id,
-                            ms.away_team_id as team_id,
-                            ms.winner = 'away' as won
-                        FROM match_scores ms 
-                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.away_player_2_id), '') IS NOT NULL
-                    ) all_player_matches
-                    WHERE player_id IS NOT NULL
-                    GROUP BY player_id, team_id
+                        p.tenniscores_player_id as player_id,
+                        p.series_id,
+                        COALESCE(SUM(CASE WHEN ms.winner = 'home' AND (ms.home_player_1_id = p.tenniscores_player_id OR ms.home_player_2_id = p.tenniscores_player_id) THEN 1
+                                          WHEN ms.winner = 'away' AND (ms.away_player_1_id = p.tenniscores_player_id OR ms.away_player_2_id = p.tenniscores_player_id) THEN 1
+                                          ELSE 0 END), 0) as wins,
+                        COALESCE(SUM(CASE WHEN ms.winner = 'away' AND (ms.home_player_1_id = p.tenniscores_player_id OR ms.home_player_2_id = p.tenniscores_player_id) THEN 1
+                                          WHEN ms.winner = 'home' AND (ms.away_player_1_id = p.tenniscores_player_id OR ms.away_player_2_id = p.tenniscores_player_id) THEN 1
+                                          ELSE 0 END), 0) as losses
+                    FROM players p
+                    LEFT JOIN match_scores ms ON (
+                        (ms.home_player_1_id = p.tenniscores_player_id OR ms.home_player_2_id = p.tenniscores_player_id OR 
+                         ms.away_player_2_id = p.tenniscores_player_id OR ms.away_player_1_id = p.tenniscores_player_id)
+                        AND ms.league_id = %s
+                        AND ms.winner IS NOT NULL
+                    )
+                    LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                    LEFT JOIN teams at ON ms.away_team_id = at.id
+                    WHERE p.tenniscores_player_id IS NOT NULL
+                    AND p.league_id = %s
+                    AND p.is_active = true
+                    AND (
+                        -- Player is on home team and home team is same club as player's current team
+                        (ms.home_player_1_id = p.tenniscores_player_id OR ms.home_player_2_id = p.tenniscores_player_id) AND ht.club_id = (SELECT club_id FROM teams WHERE id = p.team_id)
+                        OR
+                        -- Player is on away team and away team is same club as player's current team
+                        (ms.away_player_1_id = p.tenniscores_player_id OR ms.away_player_2_id = p.tenniscores_player_id) AND at.club_id = (SELECT club_id FROM teams WHERE id = p.team_id)
+                    )
+                    GROUP BY p.tenniscores_player_id, p.series_id
                 )
                 SELECT 
                     p.first_name as "First Name",
@@ -3156,30 +3137,28 @@ def get_club_players_data(
                     l.league_id as "League",
                     t.id as "Team ID",
                     t.team_name as "Team Name",
-                    -- Use calculated records or default to 0
-                    COALESCE(pmr.wins, 0) as "Wins",
-                    COALESCE(pmr.losses, 0) as "Losses"
+                    -- Use series-specific records (includes sub appearances)
+                    COALESCE(psr.wins, 0) as "Wins",
+                    COALESCE(psr.losses, 0) as "Losses"
                 FROM players p
                 LEFT JOIN clubs c ON p.club_id = c.id
                 LEFT JOIN series s ON p.series_id = s.id  
                 LEFT JOIN leagues l ON p.league_id = l.id
                 LEFT JOIN teams t ON p.team_id = t.id
                 LEFT JOIN player_latest_pti pti ON p.id = pti.player_id
-                LEFT JOIN player_match_records pmr ON p.tenniscores_player_id = pmr.player_id 
-                    AND t.id = pmr.team_id
+                LEFT JOIN player_series_records psr ON p.tenniscores_player_id = psr.player_id 
+                    AND p.series_id = psr.series_id
                 WHERE p.tenniscores_player_id IS NOT NULL
                 AND p.league_id = %s
                 AND p.is_active = true
                 ORDER BY p.first_name, p.last_name, t.team_name
             """
             
-            # Execute the comprehensive query with league_id repeated for each CTE
+            # Execute the comprehensive query with league_id for CTE and main query
             all_players = execute_query(comprehensive_query, (
-                user_league_db_id,  # For first player_match_records subquery
-                user_league_db_id,  # For second player_match_records subquery  
-                user_league_db_id,  # For third player_match_records subquery
-                user_league_db_id,  # For fourth player_match_records subquery
-                user_league_db_id   # For main query
+                user_league_db_id,  # For player_series_records CTE (match_scores join)
+                user_league_db_id,  # For player_series_records CTE (players WHERE)
+                user_league_db_id   # For main query WHERE
             ))
             
             print(f"Loaded {len(all_players)} player-team entries with records from database (OPTIMIZED)")
