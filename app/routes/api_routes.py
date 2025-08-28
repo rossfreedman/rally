@@ -490,17 +490,40 @@ def get_last_3_matches():
         if not player_id:
             return jsonify({"error": "Player ID not found"}), 404
 
-        # Get user's league for filtering
+        # Get user's league and team context for filtering
         user_league_id = user.get("league_id", "")
+        user_team_id = user.get("team_id")
+        user_club = user.get("club", "")
+        user_series = user.get("series", "")
+
+        print(f"[DEBUG] Last-3-matches: User league_id={user_league_id}, team_id={user_team_id}, club={user_club}, series={user_series}")
 
         # Convert league_id to integer if it's a string
         league_id_int = None
         if user_league_id and str(user_league_id).isdigit():
             league_id_int = int(user_league_id)
 
-        # Query the last 3 matches for this player (handle duplicate records)
+        # Build the WHERE clause for team filtering
+        team_filter_clause = ""
+        team_filter_params = []
+        
+        if user_team_id:
+            # Filter by specific team_id (most precise)
+            team_filter_clause = "AND (home_team IN (SELECT team_name FROM teams WHERE id = %s) OR away_team IN (SELECT team_name FROM teams WHERE id = %s))"
+            team_filter_params = [user_team_id, user_team_id]
+            print(f"[DEBUG] Last-3-matches: Using team_id filter: {user_team_id}")
+        elif user_club and user_series:
+            # Filter by club and series combination
+            team_filter_clause = "AND (home_team LIKE %s OR away_team LIKE %s)"
+            club_series_pattern = f"%{user_club}%{user_series}%"
+            team_filter_params = [club_series_pattern, club_series_pattern]
+            print(f"[DEBUG] Last-3-matches: Using club+series filter: {club_series_pattern}")
+        else:
+            print(f"[DEBUG] Last-3-matches: No team context available, will show all league matches")
+
+        # Query the last 3 matches for this player with team filtering
         if league_id_int:
-            matches_query = """
+            matches_query = f"""
                 SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     match_date,
@@ -515,34 +538,58 @@ def get_last_3_matches():
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
+                {team_filter_clause}
                 ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
                 LIMIT 3
             """
-            matches = execute_query(
-                matches_query,
-                [player_id, player_id, player_id, player_id, league_id_int],
-            )
+            query_params = [player_id, player_id, player_id, player_id, league_id_int] + team_filter_params
+            print(f"[DEBUG] Last-3-matches: Query with team filter: {matches_query}")
+            print(f"[DEBUG] Last-3-matches: Query params: {query_params}")
+            
+            matches = execute_query(matches_query, query_params)
         else:
-            matches_query = """
-                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    match_date,
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
-                LIMIT 3
-            """
-            matches = execute_query(
-                matches_query, [player_id, player_id, player_id, player_id]
-            )
+            # No league_id available, still apply team filtering if possible
+            if team_filter_clause:
+                matches_query = f"""
+                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    {team_filter_clause}
+                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    LIMIT 3
+                """
+                query_params = [player_id, player_id, player_id, player_id] + team_filter_params
+                matches = execute_query(matches_query, query_params)
+            else:
+                # No filtering possible, fall back to original behavior
+                matches_query = """
+                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    LIMIT 3
+                """
+                matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
 
         if not matches:
             return jsonify({"matches": [], "message": "No recent matches found"})
@@ -1255,9 +1302,13 @@ def get_current_season_matches():
             print(f"[DEBUG] API: No player ID found")
             return jsonify({"error": "Player ID not found"}), 404
 
-        # Get user's league for filtering - FIXED to use correct league_id
+        # Get user's league and team context for filtering
         user_league_id = user.get("league_id")
-        print(f"[DEBUG] API: User league ID from session: {user_league_id}")
+        user_team_id = user.get("team_id")
+        user_club = user.get("club", "")
+        user_series = user.get("series", "")
+        
+        print(f"[DEBUG] API: User league_id={user_league_id}, team_id={user_team_id}, club={user_club}, series={user_series}")
 
         # Convert league_id to integer if it's a string
         league_id_int = None
@@ -1275,6 +1326,24 @@ def get_current_season_matches():
             else:
                 print(f"[DEBUG] API: No valid league_id or league_context found")
 
+        # Build the WHERE clause for team filtering
+        team_filter_clause = ""
+        team_filter_params = []
+        
+        if user_team_id:
+            # Filter by specific team_id (most precise)
+            team_filter_clause = "AND (ms.home_team IN (SELECT team_name FROM teams WHERE id = %s) OR ms.away_team IN (SELECT team_name FROM teams WHERE id = %s))"
+            team_filter_params = [user_team_id, user_team_id]
+            print(f"[DEBUG] API: Using team_id filter: {user_team_id}")
+        elif user_club and user_series:
+            # Filter by club and series combination
+            team_filter_clause = "AND (ms.home_team LIKE %s OR ms.away_team LIKE %s)"
+            club_series_pattern = f"%{user_club}%{user_series}%"
+            team_filter_params = [club_series_pattern, club_series_pattern]
+            print(f"[DEBUG] API: Using club+series filter: {club_series_pattern}")
+        else:
+            print(f"[DEBUG] API: No team context available, will show all league matches")
+
         # Calculate current season boundaries (same as mobile_service.py)
         from datetime import datetime
         season_start = datetime(2024, 8, 1)  # August 1st, 2024
@@ -1284,7 +1353,7 @@ def get_current_season_matches():
         print(f"[DEBUG] API: Using individual player query for analyze-me page")
         
         if league_id_int:
-            matches_query = """
+            matches_query = f"""
                 SELECT 
                     TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                     ms.match_date,
@@ -1302,39 +1371,62 @@ def get_current_season_matches():
                 WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
                 AND ms.league_id = %s
                 AND ms.match_date >= %s AND ms.match_date <= %s
+                {team_filter_clause}
                 ORDER BY ms.match_date DESC, ms.id DESC
             """
-            print(f"[DEBUG] API: Executing individual player query with params: {[player_id, player_id, player_id, player_id, league_id_int, season_start, season_end]}")
-            matches = execute_query(
-                matches_query,
-                [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end],
-            )
+            query_params = [player_id, player_id, player_id, player_id, league_id_int, season_start, season_end] + team_filter_params
+            print(f"[DEBUG] API: Executing individual player query with team filter: {matches_query}")
+            print(f"[DEBUG] API: Query params: {query_params}")
+            matches = execute_query(matches_query, query_params)
             print(f"[DEBUG] API: Individual player query executed, found {len(matches) if matches else 0} matches")
         else:
             print(f"[DEBUG] API: Using fallback query without league_id")
-            matches_query = """
-                SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                    ms.match_date,
-                    ms.home_team as "Home Team",
-                    ms.away_team as "Away Team",
-                    ms.winner as "Winner",
-                    ms.scores as "Scores",
-                    ms.home_player_1_id as "Home Player 1",
-                    ms.home_player_2_id as "Home Player 2",
-                    ms.away_player_1_id as "Away Player 1",
-                    ms.away_player_2_id as "Away Player 2",
-                    ms.id,
-                    ms.tenniscores_match_id
-                FROM match_scores ms
-                WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
-                AND ms.match_date >= %s AND ms.match_date <= %s
-                ORDER BY ms.match_date DESC, ms.id DESC
-            """
-            matches = execute_query(
-                matches_query, [player_id, player_id, player_id, player_id, season_start, season_end]
-            )
-            print(f"[DEBUG] API: Fallback query executed, found {len(matches) if matches else 0} matches")
+            if team_filter_clause:
+                matches_query = f"""
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        ms.match_date,
+                        ms.home_team as "Home Team",
+                        ms.away_team as "Away Team",
+                        ms.winner as "Winner",
+                        ms.scores as "Scores",
+                        ms.home_player_1_id as "Home Player 1",
+                        ms.home_player_2_id as "Home Player 2",
+                        ms.away_player_1_id as "Away Player 1",
+                        ms.away_player_2_id as "Away Player 2",
+                        ms.id,
+                        ms.tenniscores_match_id
+                    FROM match_scores ms
+                    WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                    AND ms.match_date >= %s AND ms.match_date <= %s
+                    {team_filter_clause}
+                    ORDER BY ms.match_date DESC, ms.id DESC
+                """
+                query_params = [player_id, player_id, player_id, player_id, season_start, season_end] + team_filter_params
+                matches = execute_query(matches_query, query_params)
+                print(f"[DEBUG] API: Fallback query with team filter executed, found {len(matches) if matches else 0} matches")
+            else:
+                matches_query = """
+                    SELECT 
+                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        ms.match_date,
+                        ms.home_team as "Home Team",
+                        ms.away_team as "Away Team",
+                        ms.winner as "Winner",
+                        ms.scores as "Scores",
+                        ms.home_player_1_id as "Home Player 1",
+                        ms.home_player_2_id as "Home Player 2",
+                        ms.away_player_1_id as "Away Player 1",
+                        ms.away_player_2_id as "Away Player 2",
+                        ms.id,
+                        ms.tenniscores_match_id
+                    FROM match_scores ms
+                    WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                    AND ms.match_date >= %s AND ms.match_date <= %s
+                    ORDER BY ms.match_date DESC, ms.id DESC
+                """
+                matches = execute_query(matches_query, [player_id, player_id, player_id, player_id, season_start, season_end])
+                print(f"[DEBUG] API: Fallback query without team filter executed, found {len(matches) if matches else 0} matches")
 
         if not matches:
             return jsonify({"matches": [], "message": "No current season matches found"})
