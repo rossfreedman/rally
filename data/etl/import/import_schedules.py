@@ -6,11 +6,11 @@ This script imports schedule data from JSON files using upsert logic (ON CONFLIC
 It's designed to be incremental and idempotent - only updating schedules that have new data.
 
 Usage:
-    python3 data/etl/database_import/import_schedules.py [schedules_file]
+    python3 data/etl/import/import_schedules.py <LEAGUE_KEY>
 
 This script:
 1. Uses the database specified by RALLY_DATABASE environment variable (default: main)
-2. Loads schedule data from JSON file
+2. Loads schedule data from data/leagues/<LEAGUE_KEY>/schedules.json
 3. Imports schedules using upsert logic (ON CONFLICT DO UPDATE)
 4. Provides detailed logging and statistics
 """
@@ -31,7 +31,7 @@ sys.path.insert(0, project_root)
 # Convert project_root to Path object for proper path operations
 project_root = Path(project_root)
 
-from database_config import get_db
+from database_config import get_db, get_db_url, get_database_mode, is_local_development
 from utils.league_utils import normalize_league_id
 
 # Set up logging
@@ -45,26 +45,11 @@ logger = logging.getLogger(__name__)
 class SchedulesETL:
     """ETL class for importing schedules to database"""
     
-    def __init__(self, schedules_file: str = None):
-        # Define paths
-        self.data_dir = project_root / "data" / "leagues" / "all"
-        
-        if schedules_file:
-            self.schedules_file = Path(schedules_file)
-        else:
-            # Find the schedules file - try incremental first, then fallback to schedules.json
-            schedules_files = list(self.data_dir.glob("schedules_incremental_*.json"))
-            if schedules_files:
-                # Sort by modification time and get the most recent
-                schedules_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
-                self.schedules_file = schedules_files[0]
-            else:
-                # Fallback to schedules.json
-                schedules_file_path = self.data_dir / "schedules.json"
-                if schedules_file_path.exists():
-                    self.schedules_file = schedules_file_path
-                else:
-                    raise FileNotFoundError(f"No schedules file found in {self.data_dir}")
+    def __init__(self, league_key: str):
+        # Define paths - use league-specific directory
+        self.league_key = league_key
+        self.data_dir = project_root / "data" / "leagues" / league_key
+        self.schedules_file = self.data_dir / "schedules.json"
         
         # Statistics
         self.stats = {
@@ -75,9 +60,15 @@ class SchedulesETL:
             'skipped': 0
         }
         
+        # Show environment information
         logger.info("🔧 Schedules ETL initialized")
         logger.info(f"📁 Data directory: {self.data_dir}")
         logger.info(f"📄 Schedules file: {self.schedules_file}")
+        logger.info(f"🏆 League: {league_key}")
+        logger.info(f"🌍 Environment: {'Local Development' if is_local_development() else 'Railway/Production'}")
+        logger.info(f"🗄️ Database Mode: {get_database_mode()}")
+        logger.info(f"🔗 Database URL: {get_db_url()}")
+        logger.info("")
     
     def load_schedules_data(self) -> List[Dict]:
         """Load schedules data from JSON file"""
@@ -133,6 +124,52 @@ class SchedulesETL:
             return team_name.split(" - Series ")[0]
         return team_name
     
+    def find_team_in_database(self, team_name: str, league_id: str, team_cache: Dict) -> Optional[int]:
+        """Enhanced team lookup that tries multiple matching strategies"""
+        # Strategy 1: Exact match
+        team_id = team_cache.get((league_id, team_name))
+        if team_id:
+            return team_id
+        
+        # Strategy 2: Remove " - Series X" suffix
+        normalized_name = self.normalize_team_name_for_matching(team_name)
+        team_id = team_cache.get((league_id, normalized_name))
+        if team_id:
+            return team_id
+        
+        # Strategy 3: Try to match by removing series number suffix (e.g., "Team Name 1" -> "Team Name")
+        # This handles database format like "Hinsdale PC 1b 1" vs schedule format "Hinsdale PC 1b"
+        if team_name and team_name[-1].isdigit():
+            # Remove trailing number
+            base_name = team_name.rstrip('0123456789').rstrip()
+            team_id = team_cache.get((league_id, base_name))
+            if team_id:
+                return team_id
+        
+        # Strategy 4: Try to match by removing series number suffix from database names
+        # Look for database teams that start with the schedule team name
+        for (cache_league, cache_team), cache_team_id in team_cache.items():
+            if cache_league == league_id and cache_team.startswith(team_name + ' '):
+                return cache_team_id
+        
+        # Strategy 5: Handle Series SN naming variations
+        if "SN - Series SN" in team_name:
+            # Convert "Michigan Shores SN - Series SN" to "Michigan Shores - Series SN"
+            base_name = team_name.replace(" SN - Series SN", " - Series SN")
+            team_id = team_cache.get((league_id, base_name))
+            if team_id:
+                return team_id
+        
+        # Strategy 6: Handle Series SN with parentheses variations
+        if "SN (" in team_name and " - Series SN" in team_name:
+            # Convert "Prarie Club SN (1) - Series SN" to "Prarie Club - Series SN"
+            base_name = team_name.split("SN (")[0].rstrip() + " - Series SN"
+            team_id = team_cache.get((league_id, base_name))
+            if team_id:
+                return team_id
+        
+        return None
+    
     def process_schedule_record(self, record: Dict, league_cache: Dict, 
                               team_cache: Dict) -> Optional[tuple]:
         """Process a single schedule record and return data tuple for insertion"""
@@ -184,28 +221,14 @@ class SchedulesETL:
             away_team_id = None
             
             if home_team and home_team != "BYE":
-                # Try exact match first
-                home_team_id = team_cache.get((league_id, home_team))
-                
+                home_team_id = self.find_team_in_database(home_team, league_id, team_cache)
                 if not home_team_id:
-                    # Try normalized match (remove " - Series X" suffix)
-                    normalized_home_team = self.normalize_team_name_for_matching(home_team)
-                    home_team_id = team_cache.get((league_id, normalized_home_team))
-                    
-                    if not home_team_id:
-                        logger.warning(f"Home team not found: {home_team} in {league_id}")
+                    logger.warning(f"Home team not found: {home_team} in {league_id}")
             
             if away_team and away_team != "BYE":
-                # Try exact match first
-                away_team_id = team_cache.get((league_id, away_team))
-                
+                away_team_id = self.find_team_in_database(away_team, league_id, team_cache)
                 if not away_team_id:
-                    # Try normalized match (remove " - Series X" suffix)
-                    normalized_away_team = self.normalize_team_name_for_matching(away_team)
-                    away_team_id = team_cache.get((league_id, normalized_away_team))
-                    
-                    if not away_team_id:
-                        logger.warning(f"Away team not found: {away_team} in {league_id}")
+                    logger.warning(f"Away team not found: {away_team} in {league_id}")
             
             return (
                 match_date, match_time, home_team, away_team, 
@@ -370,11 +393,15 @@ def main():
     logger.info("🎯 Schedules ETL Script")
     logger.info("=" * 50)
     
-    # Get schedules file from command line argument
-    schedules_file = sys.argv[1] if len(sys.argv) > 1 else None
+    # Get league key from command line argument
+    if len(sys.argv) < 2:
+        logger.error("Usage: python3 data/etl/import/import_schedules.py <LEAGUE_KEY>")
+        sys.exit(1)
+    
+    league_key = sys.argv[1]
     
     try:
-        etl = SchedulesETL(schedules_file)
+        etl = SchedulesETL(league_key)
         etl.run()
     except Exception as e:
         logger.error(f"❌ Script failed: {e}")

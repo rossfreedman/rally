@@ -7,13 +7,15 @@
     "Player ID": "nndz-WkM2L3hMcjloQT09",
     "First Name": "David",
     "Last Name": "Israel",
-    "PTI": "N/A",
+    "PTI": "47.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -27,9 +29,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -43,9 +47,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -59,9 +65,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -75,9 +83,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -91,9 +101,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -107,9 +119,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -123,9 +137,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -139,9 +155,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -151,13 +169,15 @@
     "Player ID": "nndz-WkM2L3hMcjhoQT09",
     "First Name": "Golan",
     "Last Name": "Mor",
-    "PTI": "N/A",
+    "PTI": "58.6",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -167,13 +187,15 @@
     "Player ID": "nndz-WkM2L3hMcjhoZz09",
     "First Name": "Michael",
     "Last Name": "Schallman",
-    "PTI": "N/A",
+    "PTI": "51.3",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPOHhyai8%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Birchwood 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -183,13 +205,15 @@
     "Player ID": "nndz-WkNPd3hyZjZoQT09",
     "First Name": "Chris",
     "Last Name": "Walsh",
-    "PTI": "N/A",
+    "PTI": "61.0",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -199,13 +223,15 @@
     "Player ID": "nndz-WkNDNnlMbndodz09",
     "First Name": "Tom",
     "Last Name": "Mannard",
-    "PTI": "N/A",
+    "PTI": "52.4",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -215,13 +241,15 @@
     "Player ID": "nndz-WkNPd3lMcnhqQT09",
     "First Name": "Frank",
     "Last Name": "Barbaro",
-    "PTI": "N/A",
+    "PTI": "58.3",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -231,13 +259,15 @@
     "Player ID": "nndz-WkNPd3lMdi9odz09",
     "First Name": "Greg",
     "Last Name": "Braun",
-    "PTI": "N/A",
+    "PTI": "57.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -247,13 +277,33 @@
     "Player ID": "nndz-WkMrK3c3ajRqUT09",
     "First Name": "Tom",
     "Last Name": "Chaloux",
+    "PTI": "57.9",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Evanston",
+    "Series": "Series 24",
+    "Team": "Evanston 24",
+    "Player ID": "nndz-WlNTNHlMejlnUT09",
+    "First Name": "Ben",
+    "Last Name": "Hutchinson",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -267,9 +317,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -279,13 +331,15 @@
     "Player ID": "nndz-WkM2K3liajVnZz09",
     "First Name": "Marty",
     "Last Name": "Langhenry",
-    "PTI": "N/A",
+    "PTI": "58.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -295,13 +349,15 @@
     "Player ID": "nndz-WkNHd3c3ditnUT09",
     "First Name": "Tom",
     "Last Name": "Lesch",
-    "PTI": "N/A",
+    "PTI": "58.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -311,13 +367,33 @@
     "Player ID": "nndz-WkNPd3liaitodz09",
     "First Name": "Steve",
     "Last Name": "Levitas",
-    "PTI": "N/A",
+    "PTI": "57.2",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Evanston",
+    "Series": "Series 24",
+    "Team": "Evanston 24",
+    "Player ID": "nndz-WkNDd3lMdjlndz09",
+    "First Name": "Steven",
+    "Last Name": "MacGeachy",
+    "PTI": "53.6",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -327,13 +403,15 @@
     "Player ID": "nndz-WkNPd3lMcjVoZz09",
     "First Name": "Mike",
     "Last Name": "McSpedon",
-    "PTI": "N/A",
+    "PTI": "60.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -343,13 +421,15 @@
     "Player ID": "nndz-WlNlN3dMNytnZz09",
     "First Name": "Andrew",
     "Last Name": "Minkus",
-    "PTI": "N/A",
+    "PTI": "58.4",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -359,13 +439,15 @@
     "Player ID": "nndz-WkNDd3hyNytndz09",
     "First Name": "Rob",
     "Last Name": "Muno",
-    "PTI": "N/A",
+    "PTI": "55.3",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -379,9 +461,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiLzU%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Evanston 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -391,13 +475,15 @@
     "Player ID": "nndz-WkM2L3dyZjZoZz09",
     "First Name": "Matt",
     "Last Name": "Agase",
-    "PTI": "N/A",
+    "PTI": "64.8",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -411,9 +497,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -427,9 +515,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -443,9 +533,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -459,9 +551,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -475,9 +569,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -491,9 +587,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -507,9 +605,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -523,9 +623,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -539,9 +641,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -555,9 +659,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -571,9 +677,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -587,9 +695,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -603,9 +713,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMeng%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Glen View 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -616,12 +728,14 @@
     "First Name": "Matt",
     "Last Name": "Cirenza",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -635,9 +749,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -651,9 +767,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -667,9 +785,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -683,9 +803,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -699,9 +821,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -715,9 +839,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -731,9 +857,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -747,9 +875,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -763,9 +893,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -779,9 +911,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -795,9 +929,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -811,9 +947,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -827,9 +965,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -843,9 +983,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Skokie 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -856,12 +998,14 @@
     "First Name": "Herb",
     "Last Name": "Sauser",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -875,9 +1019,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -891,9 +1037,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -907,9 +1055,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -923,9 +1073,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -939,9 +1091,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -955,9 +1109,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -971,9 +1127,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -987,9 +1145,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1003,9 +1163,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1019,9 +1181,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1035,9 +1199,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhycjc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Sunset Ridge 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1048,12 +1214,14 @@
     "First Name": "Mark",
     "Last Name": "Eenigenburg",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1067,9 +1235,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1083,9 +1253,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1099,9 +1271,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1115,9 +1289,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1131,9 +1307,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1147,9 +1325,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1163,9 +1343,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1179,9 +1361,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1195,9 +1379,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1211,9 +1397,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1227,9 +1415,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1243,9 +1433,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1259,9 +1451,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1275,9 +1469,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1291,9 +1487,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Valley Lo 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1304,12 +1502,14 @@
     "First Name": "Jeff",
     "Last Name": "Chookaszian",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1323,9 +1523,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1339,9 +1541,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1355,9 +1559,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1371,9 +1577,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1387,9 +1595,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1403,9 +1613,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1419,9 +1631,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1435,9 +1649,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1451,9 +1667,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1467,9 +1685,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1483,9 +1703,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1499,9 +1721,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1515,9 +1739,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1531,9 +1757,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMZjg%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Westmoreland 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1544,12 +1772,14 @@
     "First Name": "John",
     "Last Name": "Flanagin",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1559,13 +1789,15 @@
     "Player ID": "nndz-WkNPd3liajdqQT09",
     "First Name": "Art",
     "Last Name": "Gunther",
-    "PTI": "N/A",
+    "PTI": "52.5",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1575,13 +1807,15 @@
     "Player ID": "nndz-WkNPd3lidjRodz09",
     "First Name": "Rick",
     "Last Name": "Baer",
-    "PTI": "N/A",
+    "PTI": "59.0",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1591,13 +1825,15 @@
     "Player ID": "nndz-WkM2K3hydndqQT09",
     "First Name": "Sean-Paul",
     "Last Name": "Beausang",
-    "PTI": "N/A",
+    "PTI": "52.9",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1607,13 +1843,15 @@
     "Player ID": "nndz-WlNlN3dMditnUT09",
     "First Name": "Tim",
     "Last Name": "Caprio",
-    "PTI": "N/A",
+    "PTI": "40.7",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1623,13 +1861,15 @@
     "Player ID": "nndz-WkNPd3liajZoUT09",
     "First Name": "Michael",
     "Last Name": "Charpentier",
-    "PTI": "N/A",
+    "PTI": "49.1",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1639,13 +1879,15 @@
     "Player ID": "nndz-WkNPd3liYjVnZz09",
     "First Name": "Matt",
     "Last Name": "Coleman",
-    "PTI": "N/A",
+    "PTI": "64.0",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1655,13 +1897,15 @@
     "Player ID": "nndz-WkNDNnlMbi9nQT09",
     "First Name": "David",
     "Last Name": "Fijol",
-    "PTI": "N/A",
+    "PTI": "55.2",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1675,9 +1919,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1687,13 +1933,15 @@
     "Player ID": "nndz-WkNPd3liejRqQT09",
     "First Name": "Jack",
     "Last Name": "Kanter",
-    "PTI": "N/A",
+    "PTI": "59.1",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1707,9 +1955,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1719,13 +1969,15 @@
     "Player ID": "nndz-WkNHeHhiNzhoZz09",
     "First Name": "Noah",
     "Last Name": "Rothschild",
-    "PTI": "N/A",
+    "PTI": "58.3",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1735,13 +1987,15 @@
     "Player ID": "nndz-WkM2L3lMMzlndz09",
     "First Name": "Joe",
     "Last Name": "Tippins",
-    "PTI": "N/A",
+    "PTI": "60.1",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiejk%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Wilmette PD 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1752,12 +2006,14 @@
     "First Name": "James",
     "Last Name": "Wigoda",
     "PTI": "N/A",
-    "Wins": "0",
+    "Wins": "",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1767,13 +2023,15 @@
     "Player ID": "nndz-WkM2L3hMYjdnUT09",
     "First Name": "Josep",
     "Last Name": "Barenys",
-    "PTI": "N/A",
+    "PTI": "43.2",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1787,9 +2045,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1803,9 +2063,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1819,9 +2081,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1835,9 +2099,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1851,9 +2117,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1867,9 +2135,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1883,9 +2153,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1899,9 +2171,11 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1911,13 +2185,15 @@
     "Player ID": "nndz-WkNHeHhML3hoQT09",
     "First Name": "Dan",
     "Last Name": "Pikelny",
-    "PTI": "N/A",
+    "PTI": "55.6",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
   },
   {
     "League": "APTA_CHICAGO",
@@ -1931,8 +2207,244 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyYnc%3D",
-    "source_league": "APTA_CHICAGO"
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winnetka 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNHd3hiai9oUT09",
+    "First Name": "Mike",
+    "Last Name": "Salgat",
+    "PTI": "46.1",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkM2NXdMandodz09",
+    "First Name": "Jason",
+    "Last Name": "Akemann",
+    "PTI": "56.3",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNPd3hyL3hndz09",
+    "First Name": "Lou",
+    "Last Name": "Ehrhard",
+    "PTI": "53.8",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNPd3hyajdndz09",
+    "First Name": "Doug",
+    "Last Name": "Falls",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkMreHdyNzRnUT09",
+    "First Name": "Andrew",
+    "Last Name": "Jones",
+    "PTI": "64.4",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNPd3hyL3hqUT09",
+    "First Name": "Brent",
+    "Last Name": "Jones",
+    "PTI": "41.6",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkM2L3c3ZjVnUT09",
+    "First Name": "Mack",
+    "Last Name": "Jones",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNDd3lMejZnZz09",
+    "First Name": "Sam",
+    "Last Name": "Kernahan",
+    "PTI": "62.1",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNPd3hyL3hodz09",
+    "First Name": "Steve",
+    "Last Name": "Kernahan",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkMrN3hidjVoUT09",
+    "First Name": "Andrew",
+    "Last Name": "Mcniven",
+    "PTI": "55.2",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkMrK3dMZndqUT09",
+    "First Name": "Matthew",
+    "Last Name": "Miclea",
+    "PTI": "42.1",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkM2NXlMbnhqQT09",
+    "First Name": "John",
+    "Last Name": "Plant",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Winter Club",
+    "Series": "Series 24",
+    "Team": "Winter Club 24",
+    "Player ID": "nndz-WkNPd3lMcnhoUT09",
+    "First Name": "Brent",
+    "Last Name": "Thoman",
+    "PTI": "60.0",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",
+    "source_league": "APTA_CHICAGO",
+    "extraction_method": "team_roster",
+    "team_context": "Winter Club 24"
   }
 ]

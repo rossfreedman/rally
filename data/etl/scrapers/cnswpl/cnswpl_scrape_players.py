@@ -58,6 +58,23 @@ class CNSWPLRosterScraper:
         
         # Load existing progress if not forcing restart
         self.load_existing_progress()
+        
+        # Use enhanced series discovery for better coverage
+        print("\n🔍 Discovering available series...")
+        discovered_series = self.discover_series_dynamically()
+        
+        # Fallback to hardcoded URLs if dynamic discovery fails
+        if not discovered_series or all(url == "DISCOVER" for _, url in discovered_series):
+            print("⚠️ Dynamic discovery incomplete, using hardcoded series URLs")
+            series_urls = self.get_series_urls()
+        else:
+            series_urls = discovered_series
+        
+        print(f"\n📋 Will scrape {len(series_urls)} series:")
+        for series_name, series_url in series_urls:
+            status = "✅ COMPLETED" if series_name in self.completed_series else "⏳ PENDING"
+            url_status = "🔍 DISCOVER" if series_url == "DISCOVER" else "✅ URL READY"
+            print(f"   - {series_name} {status} ({url_status})")
     
     def _initialize_stealth_browser(self) -> Optional[EnhancedStealthBrowser]:
         """
@@ -71,7 +88,7 @@ class CNSWPLRosterScraper:
             
             # Initialize user agent manager (will auto-detect config path)
             user_agent_manager = UserAgentManager()
-            current_user_agent = user_agent_manager.get_user_agent_for_site("https://cnswpl.tenniscores.com")
+            current_user_agent = user_agent_manager.get_user_agent_for_site("https://cnswpl.tennisscores.com")
             print(f"   🎭 Using User-Agent: {current_user_agent[:50]}...")
             
             # Enhanced stealth configuration with better error handling
@@ -86,7 +103,7 @@ class CNSWPLRosterScraper:
             
             # Test the browser with a simple request
             print("   🧪 Testing stealth browser...")
-            test_url = "https://cnswpl.tenniscores.com"
+            test_url = "https://cnswpl.tennisscores.com"
             test_response = stealth_browser.get_html(test_url)
             
             if test_response and len(test_response) > 100:
@@ -797,8 +814,7 @@ class CNSWPLRosterScraper:
         return players
     
     def discover_series_dynamically(self) -> List[Tuple[str, str]]:
-        """Try to discover all available series by scraping the main page"""
-
+        """Try to discover all available series by scraping the main page and navigation"""
         
         try:
             main_url = f"{self.base_url}/"
@@ -811,7 +827,7 @@ class CNSWPLRosterScraper:
             soup = BeautifulSoup(html_content, 'html.parser')
             series_links = []
             
-            # Look for series links
+            # Look for series links in navigation and content
             links = soup.find_all('a', href=True)
             for link in links:
                 href = link.get('href', '')
@@ -826,8 +842,31 @@ class CNSWPLRosterScraper:
                     series_links.append((text, full_url))
                     print(f"   📋 Discovered series: {text}")
             
+            # Also look for series patterns in text content
+            text_content = soup.get_text()
+            
+            # Find numeric series patterns (Series 1, Series 2, etc.)
+            import re
+            numeric_series = re.findall(r'\bSeries\s+(\d+)\b', text_content)
+            for series_num in numeric_series:
+                series_name = f"Series {series_num}"
+                if not any(name == series_name for name, _ in series_links):
+                    # Try to construct URL or mark for discovery
+                    series_links.append((series_name, "DISCOVER"))
+                    print(f"   📋 Discovered numeric series: {series_name}")
+            
+            # Find letter series patterns (Series A, Series B, etc.)
+            letter_series = re.findall(r'\bSeries\s+([A-K])\b', text_content)
+            for series_letter in letter_series:
+                series_name = f"Series {series_letter}"
+                if not any(name == series_name for name, _ in series_links):
+                    series_links.append((series_name, "DISCOVER"))
+                    print(f"   📋 Discovered letter series: {series_name}")
+            
             if series_links:
                 print(f"✅ Dynamically discovered {len(series_links)} series")
+                # Sort series for consistent ordering
+                series_links.sort(key=lambda x: self._sort_series_key(x[0]))
                 return series_links
             else:
                 print("⚠️ No series found dynamically, using hardcoded list")
@@ -836,6 +875,18 @@ class CNSWPLRosterScraper:
         except Exception as e:
             print(f"❌ Error during dynamic discovery: {e}")
             return self.get_series_urls()
+    
+    def _sort_series_key(self, series_name: str) -> float:
+        """Sort series by numeric value or letter position"""
+        series_id = series_name.replace('Series ', '').strip()
+        
+        if series_id.isdigit():
+            return float(series_id)
+        elif series_id.isalpha() and series_id in 'ABCDEFGHIJK':
+            # Convert letters to numbers for sorting (A=1, B=2, etc.)
+            return ord(series_id) - ord('A') + 1
+        else:
+            return float('inf')  # Put unknown series at the end
     
     def scrape_all_series(self):
         """Scrape all series comprehensively with progress tracking and resilience"""
@@ -852,13 +903,22 @@ class CNSWPLRosterScraper:
         # Load existing progress if available
         self.load_existing_progress()
         
-        # Use hardcoded series URLs for reliability
-        series_urls = self.get_series_urls()
+        # Use enhanced series discovery for better coverage
+        print("\n🔍 Discovering available series...")
+        discovered_series = self.discover_series_dynamically()
+        
+        # Fallback to hardcoded URLs if dynamic discovery fails
+        if not discovered_series or all(url == "DISCOVER" for _, url in discovered_series):
+            print("⚠️ Dynamic discovery incomplete, using hardcoded series URLs")
+            series_urls = self.get_series_urls()
+        else:
+            series_urls = discovered_series
         
         print(f"\n📋 Will scrape {len(series_urls)} series:")
-        for series_name, _ in series_urls:
+        for series_name, series_url in series_urls:
             status = "✅ COMPLETED" if series_name in self.completed_series else "⏳ PENDING"
-            print(f"   - {series_name} {status}")
+            url_status = "🔍 DISCOVER" if series_url == "DISCOVER" else "✅ URL READY"
+            print(f"   - {series_name} {status} ({url_status})")
         
         # Track progress and failures
         successful_series = len(self.completed_series)

@@ -15,6 +15,10 @@ import sys
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+# Add the project root to Python path to import database_config
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from database_config import get_db_url, get_database_mode, is_local_development
+
 
 def validate_league_key(league_key):
     """Validate the league key to prevent accidental deletion."""
@@ -298,14 +302,17 @@ def main():
     
     print(f"Ending season for league: {league_key}")
     
+    # Show environment information
+    print(f"Environment: {'Local Development' if is_local_development() else 'Railway/Production'}")
+    print(f"Database Mode: {get_database_mode()}")
+    print(f"Database URL: {get_db_url()}")
+    print()
+    
     # Database connection
     try:
-        conn = psycopg2.connect(os.environ["DATABASE_URL"])
+        conn = psycopg2.connect(get_db_url())
         conn.autocommit = False
         cur = conn.cursor()
-    except KeyError:
-        print("ERROR: DATABASE_URL environment variable not set")
-        sys.exit(1)
     except Exception as e:
         print(f"ERROR: Database connection failed: {e}")
         sys.exit(1)

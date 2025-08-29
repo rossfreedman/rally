@@ -594,11 +594,12 @@ def get_last_3_matches():
         if not matches:
             return jsonify({"matches": [], "message": "No recent matches found"})
 
-        # Helper function to get player name from ID
+        # Helper function to get player name from ID with enhanced fallback logic
         def get_player_name(player_id):
             if not player_id:
                 return None
             try:
+                # Strategy 1: Try exact match with tenniscores_player_id
                 if league_id_int:
                     name_query = """
                         SELECT first_name, last_name FROM players 
@@ -616,9 +617,49 @@ def get_last_3_matches():
 
                 if player_record:
                     return f"{player_record['first_name']} {player_record['last_name']}"
+                
+                # Strategy 2: Try to find player by partial ID match (handle format variations)
+                if league_id_int:
+                    # Look for players where the ID contains or is contained in the search ID
+                    fallback_query = """
+                        SELECT first_name, last_name, tenniscores_player_id FROM players 
+                        WHERE league_id = %s 
+                        AND (tenniscores_player_id LIKE %s OR %s LIKE CONCAT('%%', tenniscores_player_id, '%%'))
+                        LIMIT 1
+                    """
+                    player_record = execute_query_one(
+                        fallback_query, [league_id_int, f"%{player_id}%", player_id]
+                    )
+                    
+                    if player_record:
+                        print(f"[DEBUG] Found player by partial ID match: {player_id} -> {player_record['tenniscores_player_id']}")
+                        return f"{player_record['first_name']} {player_record['last_name']}"
+                
+                # Strategy 3: Try to find player by external_id if it exists
+                if league_id_int:
+                    external_id_query = """
+                        SELECT first_name, last_name FROM players 
+                        WHERE external_id = %s AND league_id = %s
+                    """
+                    player_record = execute_query_one(
+                        external_id_query, [player_id, league_id_int]
+                    )
+                    
+                    if player_record:
+                        return f"{player_record['first_name']} {player_record['last_name']}"
+                
+                # Strategy 4: Provide a more informative fallback
+                if player_id.startswith('cnswpl_'):
+                    # This is a CNSWPL player ID that we couldn't resolve
+                    if len(player_id) > 23:  # Hex format like cnswpl_8ae8bf3d03cc912b
+                        return f"Player {player_id[7:15]}..."  # Show part after 'cnswpl_'
+                    else:  # Base64 format like cnswpl_WkMrL3libitoUT09
+                        return f"Player {player_id[7:15]}..."  # Show part after 'cnswpl_'
                 else:
                     return f"Player {player_id[:8]}..."
-            except Exception:
+                    
+            except Exception as e:
+                print(f"[DEBUG] Error in get_player_name for {player_id}: {e}")
                 return f"Player {player_id[:8]}..."
 
         # Process matches to add readable information
