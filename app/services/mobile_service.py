@@ -3728,21 +3728,21 @@ def get_mobile_team_data(user):
                 games_won,
                 games_lost
             FROM series_stats
-            WHERE team = %s AND league_id = %s
+            WHERE team_id = %s AND league_id = %s
         """
-        print(f"[DEBUG] My-team: Querying series_stats with team='{team_name}' and league_id={league_id_int}")
-        team_stats = execute_query_one(team_stats_query, [team_name, league_id_int])
+        print(f"[DEBUG] My-team: Querying series_stats with team_id={team_id} and league_id={league_id_int}")
+        team_stats = execute_query_one(team_stats_query, [team_id, league_id_int])
         print(f"[DEBUG] My-team: Team stats query result: {team_stats}")
         
         # Let's also check what teams exist in series_stats for this league
         check_teams_query = """
-            SELECT DISTINCT team, league_id 
+            SELECT DISTINCT team_id, league_id 
             FROM series_stats 
             WHERE league_id = %s
-            ORDER BY team
+            ORDER BY team_id
         """
         existing_teams = execute_query(check_teams_query, [league_id_int])
-        print(f"[DEBUG] My-team: Teams in series_stats for league {league_id_int}: {[t['team'] for t in existing_teams]}")
+        print(f"[DEBUG] My-team: Teams in series_stats for league {league_id_int}: {[t['team_id'] for t in existing_teams]}")
 
         # If no stats found in series_stats, calculate them from match_scores
         if not team_stats:

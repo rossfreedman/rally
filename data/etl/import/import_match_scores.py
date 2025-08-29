@@ -21,7 +21,50 @@ import os
 import sys
 import re
 from datetime import datetime
-from import_utils import get_conn, get_league_id, column_exists, parse_datetime_safe
+import os
+import psycopg2
+
+# Add the project root to Python path to import database_config
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+from database_config import get_db_url, get_database_mode, is_local_development
+
+def get_conn():
+    """Get database connection using database_config for automatic environment detection."""
+    try:
+        return psycopg2.connect(get_db_url())
+    except Exception as e:
+        raise ValueError(f"Database connection failed: {e}")
+
+def get_league_id(cur, league_key):
+    """Get league ID from database using league_id or league_name."""
+    cur.execute(
+        "SELECT id FROM leagues WHERE league_id = %s OR league_name = %s LIMIT 1",
+        (league_key, league_key)
+    )
+    result = cur.fetchone()
+    if not result:
+        raise ValueError(f"League '{league_key}' not found in database")
+    return result[0]
+
+def column_exists(cur, table, column):
+    """Check if a column exists in a table."""
+    cur.execute("""
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = %s AND column_name = %s LIMIT 1
+    """, (table, column))
+    return cur.fetchone() is not None
+
+def parse_datetime_safe(datetime_str):
+    """Parse datetime string safely."""
+    if not datetime_str:
+        return None
+    try:
+        return datetime.strptime(datetime_str, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        try:
+            return datetime.strptime(datetime_str, "%Y-%m-%d")
+        except ValueError:
+            return None
 
 
 def load_json_file(file_path):
@@ -536,6 +579,13 @@ def main():
         json_path = f"data/leagues/{league_key}/match_history.json"
     
     print(f"Importing match scores for league: {league_key}")
+    
+    # Show environment information
+    print(f"Environment: {'Local Development' if is_local_development() else 'Railway/Production'}")
+    print(f"Database Mode: {get_database_mode()}")
+    print(f"Database URL: {get_db_url()}")
+    print()
+    
     print(f"Input file: {json_path}")
     
     try:

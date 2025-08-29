@@ -78,6 +78,8 @@ NAME_VARIATIONS = {
     "jenn": ["jennifer", "jenny"],  # Fix for Jenn/Jennifer variations
     "jennifer": ["jenn", "jenny"],  # Bidirectional mapping
     "jenny": ["jennifer", "jenn"],  # Common nickname for Jennifer
+    "jess": ["jessica"],  # Fix for Jess/Jessica variations
+    "jessica": ["jess"],  # Bidirectional mapping
     "beth": ["bethany"],  # Common nickname for Bethany
     "bethany": ["beth"],  # Bidirectional mapping
     "liz": ["elizabeth", "lizzie"],  # Common nicknames for Elizabeth

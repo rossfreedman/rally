@@ -2020,11 +2020,8 @@ class EnhancedMatchScraper:
                 print(f"   ❌ Error extracting from table row: {e}")
             return None
     
-    def _generate_player_id(self, player_name: str) -> str:
-        """Generate a unique player ID for CNSWPL players."""
-        import hashlib
-        # Create a hash of the player name for consistent ID generation
-        return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
+    # REMOVED: _generate_player_id function that created MD5 hashes
+    # This was problematic as it could create inconsistent player IDs
     
 
     

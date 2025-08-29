@@ -97,7 +97,7 @@ class APTAChicagoRosterScraper:
             
             # Test the browser with a Series page (which we know works) instead of root URL
             print("   🧪 Testing stealth browser on Series page...")
-            test_url = "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3Zz0%3D"
+            test_url = "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3MD0%3D"
             
             # Try multiple test attempts with different approaches
             max_test_attempts = 5  # More attempts for APTA
@@ -318,34 +318,80 @@ class APTAChicagoRosterScraper:
     def _team_belongs_to_series(self, team_name: str, series_identifier: str) -> bool:
         """
         Determine if a team belongs to the specified series in APTA Chicago.
-        APTA Chicago uses numbered series (1-22).
+        This method must be STRICT to prevent cross-series contamination.
+        
+        FIXED: Now uses word boundary matching to prevent partial matches
+        like "Tennaqua 22" incorrectly matching "Series 2".
         """
         if not team_name or not series_identifier:
             return False
         
         # Extract series number from series identifier
         if series_identifier.startswith("Series "):
-            series_value = series_identifier.replace("Series ", "")
+            # Extract just the number part, not the SW suffix
+            series_value = series_identifier.replace("Series ", "").replace(" SW", "")
         else:
-            series_value = series_identifier
+            series_value = series_identifier.replace(" SW", "")
         
-        # APTA Chicago team naming patterns:
-        # - "Club Name Series X" (e.g., "Chicago Series 22", "Glenbrook Series 8")
-        # - "Club Name X" (e.g., "Chicago 22", "Glenbrook 8")
-        # - "Club Name Series X" (e.g., "Chicago Series 22", "Glenbrook Series 8")
+        # CRITICAL FIX: Check SW status FIRST before any pattern matching
+        # This prevents SW teams from incorrectly matching regular series
         
-        # Check if team name contains the series identifier
-        if series_value.isdigit():
-            # Numeric series (1-22)
-            # Check for "Series X" pattern
-            if f"Series {series_value}" in team_name:
+        # Check if this is an SW series
+        is_sw_series = ' SW' in series_identifier
+        
+        # Check if this is an SW team
+        is_sw_team = ' SW' in team_name
+        
+        # SW teams must match SW series, regular teams must match regular series
+        if is_sw_series != is_sw_team:
+            return False  # Mismatch between SW status
+        
+        # SPECIAL CASE: Series 1 is actually a combined division that includes Series 1 and Series 2
+        if series_value == "1":
+            # Series 1 division includes teams ending with " - 1" or " - 2"
+            if team_name.endswith(" - 1") or team_name.endswith(" - 2"):
                 return True
-            # Check for " X" pattern (space + number)
-            if f" {series_value}" in team_name:
+            return False
+        
+        # FIXED: Use word boundary matching to prevent partial matches
+        # This prevents "Tennaqua 22" from matching "Series 2" (because "2" is not a word boundary)
+        import re
+        
+        # Create word boundary patterns to ensure exact series matching
+        # BUT only for the appropriate series type (SW vs regular)
+        if is_sw_series:
+            # SW series - only match SW patterns
+            word_boundary_patterns = [
+                rf'\b{re.escape(series_value)} SW\b',             # " 9 SW" (word boundary)
+                rf'\bSeries {re.escape(series_value)} SW\b',      # "Series 9 SW" (word boundary)
+            ]
+        else:
+            # Regular series - only match regular patterns
+            word_boundary_patterns = [
+                rf'\b{re.escape(series_value)}\b',                # " 9 " (word boundary)
+                rf'\bSeries {re.escape(series_value)}\b',         # "Series 9" (word boundary)
+            ]
+        
+        # Check for word boundary matches
+        for pattern in word_boundary_patterns:
+            if re.search(pattern, team_name):
                 return True
-            # Check for end-of-name pattern
+        
+        # Fallback to end-of-name patterns if word boundary patterns don't match
+        if is_sw_series:
+            # SW series - only match SW teams
+            if team_name.endswith(f" {series_value} SW"):
+                return True
+            if team_name.endswith(f" - {series_value} SW"):
+                return True
+        else:
+            # Regular series - only match regular teams
             if team_name.endswith(f" {series_value}"):
                 return True
+            if team_name.endswith(f" - {series_value}"):
+                return True
+        
+
         
         return False
 
@@ -459,10 +505,10 @@ class APTAChicagoRosterScraper:
         return nndz_player_id.replace('nndz-', 'apta_')
 
     def get_series_urls(self) -> List[Tuple[str, str]]:
-        """Generate URLs for APTA Chicago series (1-22)"""
+        """Generate URLs for APTA Chicago series including SW suffix series"""
         series_urls = []
         
-        # APTA Chicago uses numbered series (1-22)
+        # APTA Chicago uses numbered series (1-22) plus SW suffix series
         # These are the actual series URLs from the website
         series_urls_data = [
             # Numeric series (1-22)
@@ -473,12 +519,16 @@ class APTAChicagoRosterScraper:
             ("Series 5", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3WT0%3D"),
             ("Series 6", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3Zz0%3D"),
             ("Series 7", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMaz0%3D"),
+            ("Series 7 SW", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMaz0%3D"),
             ("Series 8", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMWT0%3D"),
             ("Series 9", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMYz0%3D"),
+            ("Series 9 SW", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMYz0%3D"),
             ("Series 10", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3ND0%3D"),
             ("Series 11", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3OD0%3D"),
+            ("Series 11 SW", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3OD0%3D"),
             ("Series 12", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
             ("Series 13", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 13 SW", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 14", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3bz0%3D"),
             ("Series 15", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3cz0%3D"),
             ("Series 16", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
@@ -538,6 +588,7 @@ class APTAChicagoRosterScraper:
             # Find all team links on the series page
             team_links = []
             all_links = soup.find_all('a', href=True)
+            seen_teams = set()  # Track seen teams to avoid duplicates
             
             print(f"   🔍 Found {len(all_links)} total links on page")
             
@@ -548,20 +599,37 @@ class APTAChicagoRosterScraper:
                 href = link.get('href', '')
                 text = link.get_text(strip=True)
                 
-                # Look for team links (they contain 'team=' parameter)
-                if 'team=' in href and text and any(keyword.lower() in text.lower() for keyword in ['Tennaqua', 'Winter Club', 'Lake Forest', 'Evanston', 'Prairie Club', 'Wilmette', 'North Shore', 'Valley Lo', 'Westmoreland', 'Indian Hill', 'Birchwood', 'Exmoor', 'Glen View', 'Glenbrook', 'Park Ridge', 'Skokie', 'Michigan Shores', 'Midtown', 'Hinsdale', 'Knollwood', 'Sunset Ridge', 'Briarwood', 'Biltmore', 'Barrington Hills', 'Bryn Mawr', 'Saddle & Cycle', 'Onwentsia', 'Lake Bluff', 'Lake Shore', 'Northmoor', 'Butterfield', 'River Forest', 'LifeSport', 'Winnetka']):
-                    
+                # Look for team links (they contain 'team=' parameter) - NO MORE KEYWORD RESTRICTIONS!
+                if 'team=' in href and text:
                     # Filter teams to only include those belonging to this specific series
                     if self._team_belongs_to_series(text, series_identifier):
+                        # Clean team name - remove prefixes like ">" and normalize
+                        clean_team_name = text
+                        if clean_team_name.startswith('>'):
+                            clean_team_name = clean_team_name[1:].strip()
+                        
+                        # Skip if we've already seen this team
+                        if clean_team_name in seen_teams:
+                            print(f"      ⚠️ Skipping duplicate team: {clean_team_name}")
+                            continue
+                        
+                        seen_teams.add(clean_team_name)
+                        
                         if href.startswith('/'):
                             full_url = f"{self.base_url}{href}"
                         else:
                             full_url = href
-                        team_links.append((text, full_url))
+                        team_links.append((clean_team_name, full_url))
             
             print(f"🏢 Found {len(team_links)} team links in {series_name}")
             
-            if not team_links:
+            # Show all discovered teams for verification
+            if team_links:
+                print(f"   📋 Discovered teams in {series_name}:")
+                for i, (team_name, team_url) in enumerate(team_links, 1):
+                    print(f"      {i:2d}. {team_name}")
+                print()
+            else:
                 print(f"   ⚠️ No team links found - this might indicate a filtering issue")
                 print(f"   🔍 Series identifier: '{series_identifier}'")
                 # Show some sample links for debugging
@@ -639,75 +707,170 @@ class APTAChicagoRosterScraper:
         """Parse a team roster page to extract player information"""
         soup = BeautifulSoup(html, 'html.parser')
         players = []
+        processed_players = set()  # Track processed players to avoid duplicates
         
-        # Look for player tables or lists
-        player_elements = soup.find_all(['tr', 'div', 'span'], class_=lambda x: x and 'player' in x.lower() if x else False)
+
         
-        if not player_elements:
-            # Try alternative selectors
-            player_elements = soup.find_all('td', string=lambda x: x and len(x.strip()) > 2 and x.strip()[0].isupper())
+        # Clean team name - remove prefixes like ">" and normalize
+        clean_team_name = team_name
+        if clean_team_name.startswith('>'):
+            clean_team_name = clean_team_name[1:].strip()
         
-        for element in player_elements:
-            text = element.get_text(strip=True)
-            if text and len(text) > 2 and len(text) < 50:
-                # Look for name-like patterns
-                if any(char.isupper() for char in text) and any(char.islower() for char in text):
-                    # Parse player name into first and last
-                    name_parts = text.strip().split()
-                    if len(name_parts) >= 2:
-                        first_name = name_parts[0]
-                        last_name = ' '.join(name_parts[1:])
-                    else:
-                        first_name = text.strip()
-                        last_name = ""
+        # Extract club name from team name
+        club_name = clean_team_name
+        if ' - ' in clean_team_name:
+            parts = clean_team_name.split(' - ')
+            if len(parts) == 2:
+                club_name = parts[0].strip()
+        
+        # CORRECT METHOD: Look for player table rows with the specific APTA Chicago structure
+        # Players are in <tr> elements with <td> containing player names in <a> tags
+        player_rows = soup.find_all('tr')
+        print(f"      🔍 Found {len(player_rows)} total table rows")
+        
+        for row in player_rows:
+            cells = row.find_all('td')
+            if len(cells) >= 4:  # Player row should have at least 4 cells: name, PTI, wins, losses
+                
+                # First cell contains player name in <a> tag
+                name_cell = cells[0]
+                player_link = name_cell.find('a', class_='lightbox-auto iframe link')
+                
+                if player_link:
+                    player_name = player_link.get_text(strip=True)
                     
-                    # Extract club name from team name
-                    club_name = team_name
-                    if ' - ' in team_name:
-                        parts = team_name.split(' - ')
-                        if len(parts) == 2:
-                            club_name = parts[0].strip()
-                    
-                    # Create a unique player record for THIS team appearance
-                    # This allows the same player to appear on multiple teams
-                    player_data = {
-                        'League': 'APTA_CHICAGO',
-                        'Club': club_name,
-                        'Series': f'Series {series_identifier}',
-                        'Team': team_name,
-                        'Player ID': f'nndz-{self._generate_player_id(text)}',  # Generate unique ID for this team appearance
-                        'First Name': first_name,
-                        'Last Name': last_name,
-                        'PTI': 'N/A',
-                        'Wins': '0',
-                        'Losses': '0',
-                        'Win %': '0.0%',
-                        'Captain': '',  # Could be enhanced to detect captain status
-                        'Source URL': team_name,  # Use team name as source for now
-                        'source_league': 'APTA_CHICAGO',
-                        'extraction_method': 'team_roster',
-                        'team_context': team_name  # Add team context to distinguish multiple appearances
-                    }
-                    players.append(player_data)
+                    # Skip if this is not a real player name (too short, contains numbers, etc.)
+                    if (len(player_name) > 3 and 
+                        ' ' in player_name and 
+                        not any(char.isdigit() for char in player_name) and
+                        any(char.isupper() for char in player_name) and 
+                        any(char.islower() for char in player_name)):
+                        
+                        # Clean player name - remove checkmarks and captain indicators
+                        clean_player_name = player_name.strip()
+                        
+                        # Remove checkmark symbols (✔, ✓, etc.)
+                        import re
+                        clean_player_name = re.sub(r'[✔✓☑☒☓]', '', clean_player_name)
+                        
+                        # Remove captain indicator "(C)" from name
+                        clean_player_name = re.sub(r'\s*\(C\)\s*$', '', clean_player_name)
+                        
+                        # Parse player name into first and last
+                        name_parts = clean_player_name.strip().split()
+                        if len(name_parts) >= 2:
+                            first_name = name_parts[0]
+                            last_name = ' '.join(name_parts[1:])
+                        else:
+                            first_name = clean_player_name.strip()
+                            last_name = ""
+                        
+                        # Extract PTI from second cell - clean it of any checkmarks or extra text
+                        pti_cell = cells[1] if len(cells) > 1 else None
+                        pti_raw = pti_cell.get_text(strip=True) if pti_cell else ''
+                        
+                        # Clean PTI value - remove checkmarks, captain indicators, and extra text
+                        pti_value = re.sub(r'[✔✓☑☒☓]', '', pti_raw)  # Remove checkmarks
+                        pti_value = re.sub(r'\s*\(C\)\s*', '', pti_value)  # Remove (C)
+                        pti_value = re.sub(r'^[A-Za-z\s]+', '', pti_value)  # Remove leading text (like "Mark Schaefer")
+                        pti_value = pti_value.strip()
+                        
+                        # If PTI is empty after cleaning, try to find numeric value
+                        if not pti_value or pti_value == '':
+                            # Look for any numeric value in the PTI cell
+                            numbers = re.findall(r'\d+\.?\d*', pti_raw)
+                            if numbers:
+                                pti_value = numbers[0]
+                            else:
+                                pti_value = 'N/A'
+                        
+                        # Extract wins from third cell - should be integer wins
+                        wins_cell = cells[2] if len(cells) > 2 else None
+                        wins_raw = wins_cell.get_text(strip=True) if wins_cell else '0'
+                        
+                        # Clean wins value - should be integer, not PTI
+                        wins_value = wins_raw.strip()
+                        if wins_value and wins_value.replace('.', '').isdigit():
+                            # This might actually be PTI data in wrong field
+                            if float(wins_value) > 10:  # PTI values are typically 30-70, wins are 0-20
+                                pti_value = wins_value  # Use this as PTI instead
+                                wins_value = '0'  # Reset wins to 0
+                        
+                        # Extract losses from fourth cell
+                        losses_cell = cells[3] if len(cells) > 3 else None
+                        losses_value = losses_cell.get_text(strip=True) if losses_cell else '0'
+                        
+                        # Calculate win percentage
+                        try:
+                            wins_int = int(wins_value) if wins_value.isdigit() else 0
+                            losses_int = int(losses_value) if losses_value.isdigit() else 0
+                            total_matches = wins_int + losses_int
+                            if total_matches > 0:
+                                win_percentage = f"{(wins_int / total_matches * 100):.1f}%"
+                            else:
+                                win_percentage = "0.0%"
+                        except (ValueError, ZeroDivisionError):
+                            win_percentage = "0.0%"
+                        
+                        # Check if player is captain (has checkmark or (C) in name or PTI)
+                        is_captain = 'No'
+                        if ('✓' in player_name or '✔' in player_name or 
+                            '(C)' in player_name or '(C)' in pti_raw):
+                            is_captain = 'Yes'
+                        
+                        # Extract real player ID from the link
+                        player_id = "Unknown"
+                        if player_link and player_link.get('href'):
+                            href = player_link.get('href')
+                            # Extract player ID from href like: /player.php?print&p=nndz-WkMrK3didjlnUT09
+                            if 'p=' in href:
+                                player_id = href.split('p=')[1].split('&')[0] if '&' in href.split('p=')[1] else href.split('p=')[1]
+                            elif 'player=' in href:
+                                player_id = href.split('player=')[1].split('&')[0]
+                            elif 'did=' in href:
+                                player_id = href.split('did=')[1].split('&')[0]
+                        
+                        # Check if we've already processed this player (by name + team combination)
+                        player_key = f"{first_name}_{last_name}_{clean_team_name}"
+                        if player_key in processed_players:
+                            print(f"      ⚠️ Skipping duplicate player: {first_name} {last_name}")
+                            continue
+                        
+                        # Mark this player as processed
+                        processed_players.add(player_key)
+                        
+                        # Create player record
+                        player_data = {
+                            'League': 'APTA_CHICAGO',
+                            'Club': club_name,
+                            'Series': f'Series {series_identifier}',
+                            'Team': clean_team_name.replace(' - ', ' '),  # Remove dash from team name
+                            'Player ID': player_id,
+                            'First Name': first_name,
+                            'Last Name': last_name,
+                            'PTI': pti_value,
+                            'Wins': wins_value,
+                            'Losses': losses_value,
+                            'Win %': win_percentage,
+                            'Captain': is_captain,
+                            'Source URL': f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",  # Full team roster URL
+                            'source_league': 'APTA_CHICAGO',
+                            'extraction_method': 'team_roster',
+                            'team_context': clean_team_name.replace(' - ', ' ')  # Remove dash from team context
+                        }
+                        players.append(player_data)
+                        print(f"      ✅ Extracted player: {first_name} {last_name} (PTI: {pti_value}, W: {wins_value}, L: {losses_value})")
         
+        print(f"      📊 Extracted {len(players)} players from {team_name}")
         return players
     
-    def _generate_player_id(self, player_name: str) -> str:
-        """Generate a unique player ID for team roster extraction"""
-        # Create a hash-based ID that's unique per player+team combination
-        import hashlib
-        # Use player name + timestamp to ensure uniqueness
-        unique_string = f"{player_name}_{int(time.time() * 1000)}"
-        hash_object = hashlib.md5(unique_string.encode())
-        # Take first 12 characters of hash and encode as base64
-        hash_hex = hash_object.hexdigest()[:12]
-        return hash_hex
+
     
     def _consolidate_all_temp_files(self) -> List[Dict]:
         """Consolidate all series temp files into a single player list"""
         print("🔍 Consolidating all temp series files...")
         
-        temp_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
+        temp_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
         all_players = []
         
         if not os.path.exists(temp_dir):
@@ -789,45 +952,221 @@ class APTAChicagoRosterScraper:
     # Removed _extract_win_loss_from_profile method - no longer needed
     
     def discover_series_dynamically(self) -> List[Tuple[str, str]]:
-        """Try to discover all available series by scraping the main page"""
-        print("🔍 Discovering available series from main page...")
+        """Discover all available series by scraping any series page for the series navigation"""
+        print("🔍 Discovering all available series from series page navigation...")
+        
+        discovered_series = []
         
         try:
-            main_url = f"{self.base_url}/"
-            html_content = self.get_html_content(main_url)
+            # Method 1: Scrape any series page to get the series navigation
+            # The series navigation appears on every page, so we can use any working series URL
+            print("   📋 Method 1: Scraping series page for navigation...")
             
-            if not html_content:
-                print("❌ Failed to get main page content")
-                return self.get_series_urls()  # Fallback to hardcoded list
+            # Use the working series URL the user provided
+            series_url = "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+            print(f"      🔍 Using series page: {series_url}")
             
-            soup = BeautifulSoup(html_content, 'html.parser')
-            series_links = []
+            html_content = self.get_html_content(series_url)
             
-            # Look for series links
-            links = soup.find_all('a', href=True)
-            for link in links:
-                href = link.get('href', '')
-                text = link.get_text(strip=True)
+            if html_content:
+                soup = BeautifulSoup(html_content, 'html.parser')
                 
-                # Look for series patterns in the link text
-                if any(keyword in text.lower() for keyword in ['series', 'division']):
-                    if href.startswith('/'):
-                        full_url = f"{self.base_url}{href}"
-                    else:
-                        full_url = href
-                    series_links.append((text, full_url))
-                    print(f"   📋 Discovered series: {text}")
+                # Look for the series navigation - it appears as a list of numbers at the top
+                # From the user's example: "Chicago 1 2 3 4 5 6 7 7 SW 8 9 9 SW 10 11 11 SW..."
+                
+                # Method 1a: Look for links with the specific pattern you showed:
+                # <a href="/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&amp;did=nndz-WkM2eHhMcz0%3D" style="color: rgb(0, 131, 78);" id="dividdrop_28855">1</a>
+                series_links = soup.find_all('a', href=True, id=lambda x: x and x.startswith('dividdrop_'))
+                
+                for link in series_links:
+                    href = link.get('href', '')
+                    text = link.get_text(strip=True)
+                    link_id = link.get('id', '')
+                    
+                    # Extract the series number from the link text
+                    if text.isdigit():
+                        series_num = text
+                        series_name = f"Series {series_num}"
+                        
+                        # Construct the full URL
+                        if href.startswith('/'):
+                            full_url = f"{self.base_url}{href}"
+                        else:
+                            full_url = href
+                        
+                        discovered_series.append((series_name, full_url))
+                        print(f"         📋 Found series link: {series_name} -> {full_url} (ID: {link_id})")
+                    
+                    # ENHANCED: Also look for SW suffix series (like "7 SW", "9 SW", "11 SW", "13 SW")
+                    elif ' SW' in text:
+                        # Extract the base series number and add SW suffix
+                        series_num = text.replace(' SW', '').strip()
+                        if series_num.isdigit():
+                            series_name = f"Series {series_num} SW"
+                            
+                            # Construct the full URL
+                            if href.startswith('/'):
+                                full_url = f"{self.base_url}{href}"
+                            else:
+                                full_url = href
+                            
+                            discovered_series.append((series_name, full_url))
+                            print(f"         📋 Found SW series link: {series_name} -> {full_url} (ID: {link_id})")
+                
+                # Method 1b: Look for the series navigation text pattern
+                # The navigation shows: "Chicago 1 2 3 4 5 6 7 7 SW 8 9 9 SW 10 11 11 SW..."
+                if not discovered_series:
+                    print("      📋 Method 1b: Looking for series navigation text pattern...")
+                    
+                    # Look for text that contains the series navigation pattern
+                    text_elements = soup.find_all(text=True)
+                    for element in text_elements:
+                        text = element.strip()
+                        if 'Chicago' in text and any(char.isdigit() for char in text):
+                            print(f"         📋 Found navigation text: {text}")
+                            
+                            # Extract series numbers from the text
+                            # Pattern: "Chicago 1 2 3 4 5 6 7 7 SW 8 9 9 SW 10 11 11 SW..."
+                            import re
+                            
+                            # Find regular series numbers
+                            series_numbers = re.findall(r'\b(\d+)\b', text)
+                            
+                            # ENHANCED: Also find SW suffix series
+                            sw_series_pattern = r'\b(\d+)\s+SW\b'
+                            sw_series_numbers = re.findall(sw_series_pattern, text)
+                            
+                            # Add regular series
+                            for series_num in series_numbers:
+                                series_name = f"Series {series_num}"
+                                
+                                # Try to construct the series URL using the known pattern
+                                # We know the mod parameter, but need to find the correct did for each series
+                                series_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                                
+                                discovered_series.append((series_name, series_url))
+                                print(f"            📋 Extracted: {series_name}")
+                            
+                            # Add SW suffix series
+                            for series_num in sw_series_numbers:
+                                series_name = f"Series {series_num} SW"
+                                
+                                # Try to construct the series URL using the known pattern
+                                series_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                                
+                                discovered_series.append((series_name, series_url))
+                                print(f"            📋 Extracted: {series_name}")
+                
+                # Method 1c: Look for any links that contain the series URL pattern
+                if not discovered_series:
+                    print("      📋 Method 1c: Looking for series URL patterns...")
+                    
+                    # Look for any links that contain the series URL pattern
+                    all_links = soup.find_all('a', href=True)
+                    for link in all_links:
+                        href = link.get('href', '')
+                        text = link.get_text(strip=True)
+                        
+                        # Look for URLs that contain the series pattern
+                        if 'mod=nndz-' in href and 'did=nndz-' in href:
+                            # This looks like a series link
+                            if text.isdigit():
+                                series_num = text
+                                series_name = f"Series {series_num}"
+                                
+                                # Construct the full URL
+                                if href.startswith('/'):
+                                    full_url = f"{self.base_url}{href}"
+                                else:
+                                    full_url = href
+                                
+                                discovered_series.append((series_name, full_url))
+                                print(f"         📋 Found series URL pattern: {series_name} -> {full_url}")
+                            
+                            # ENHANCED: Also handle SW suffix series
+                            elif ' SW' in text:
+                                series_num = text.replace(' SW', '').strip()
+                                if series_num.isdigit():
+                                    series_name = f"Series {series_num} SW"
+                                    
+                                    # Construct the full URL
+                                    if href.startswith('/'):
+                                        full_url = f"{self.base_url}{href}"
+                                    else:
+                                        full_url = href
+                                    
+                                    discovered_series.append((series_name, full_url))
+                                    print(f"         📋 Found SW series URL pattern: {series_name} -> {full_url}")
+                
+                if discovered_series:
+                    print(f"      ✅ Found {len(discovered_series)} series from navigation")
+                else:
+                    print("      ⚠️  No series links found in navigation")
             
-            if series_links:
-                print(f"✅ Dynamically discovered {len(series_links)} series")
-                return series_links
+            # Method 2: If the above doesn't work, try to find series in the page content
+            if not discovered_series:
+                print("   📋 Method 2: Looking for series in page content...")
+                
+                # Look for any text that mentions series numbers
+                text_elements = soup.find_all(text=True)
+                for element in text_elements:
+                    text = element.strip()
+                    if any(char.isdigit() for char in text) and len(text) < 10:
+                        # This might be a series number
+                        if text.isdigit() and 1 <= int(text) <= 50:
+                            series_num = text
+                            series_name = f"Series {series_num}"
+                            
+                            # Try to construct the series URL
+                            series_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                            
+                            discovered_series.append((series_name, series_url))
+                            print(f"         📋 Found potential series: {series_name}")
+            
+            # Remove duplicates and sort
+            unique_series = []
+            seen_names = set()
+            for name, url in discovered_series:
+                if name not in seen_names:
+                    unique_series.append((name, url))
+                    seen_names.add(name)
+            
+            # Sort by series number (handle SW suffix series properly)
+            def sort_key(item):
+                name = item[0]
+                if 'Series' in name:
+                    try:
+                        # Extract the base number from "Series X" or "Series X SW"
+                        base_name = name.replace('Series ', '').replace(' SW', '')
+                        base_num = int(base_name)
+                        
+                        # SW series should come after regular series (e.g., Series 7 SW comes after Series 7)
+                        if ' SW' in name:
+                            return base_num + 0.5  # This puts SW series between regular series
+                        else:
+                            return base_num
+                    except ValueError:
+                        return 999
+                return 999
+            
+            unique_series.sort(key=sort_key)
+            
+            print(f"\n🎯 Dynamic discovery complete!")
+            print(f"   Found {len(unique_series)} series from website navigation:")
+            for name, url in unique_series:
+                print(f"      - {name}")
+            
+            if unique_series:
+                return unique_series
             else:
-                print("⚠️ No series found dynamically, using hardcoded list")
-                return self.get_series_urls()
-                
+                print("   ⚠️  No series found from website navigation")
+                print("   🔄 Falling back to testing common series patterns...")
+                return self._test_common_series_patterns()
+            
         except Exception as e:
             print(f"❌ Error during dynamic discovery: {e}")
-            return self.get_series_urls()
+            print("   🔄 Falling back to testing common series patterns...")
+            return self._test_common_series_patterns()
     
     def scrape_all_series(self):
         """Scrape all series comprehensively with progress tracking and resilience"""
@@ -837,15 +1176,44 @@ class APTAChicagoRosterScraper:
             print(f"   This will scrape series: {series_list}")
         else:
             print("🚀 Starting APTA Chicago comprehensive series roster scraping...")
-            print("   This will scrape ALL series (1-22) from roster pages")
+            print("   This will scrape ALL series (1-22) plus SW suffix series from roster pages")
             print("   to capture every registered player, not just match participants.")
-        print("⏱️ This should take about 15-20 minutes to complete")
+        print("⏱️ This should take about 20-25 minutes to complete (including SW series)")
         
         # Load existing progress if available
         self.load_existing_progress()
         
-        # Use hardcoded series URLs for reliability
-        series_urls = self.get_series_urls()
+        # For targeted scraping, use hardcoded URLs to ensure accuracy
+        if self.target_series:
+            print("🎯 Using hardcoded URLs for targeted series scraping...")
+            series_urls = []
+            
+            # Hardcoded URLs for specific series to ensure accuracy
+            if '1' in self.target_series:
+                series_urls.append(("Series 1", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"))
+                print("   ✅ Added Series 1 with correct URL")
+            
+            if '22' in self.target_series:
+                series_urls.append(("Series 22", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D"))
+                print("   ✅ Added Series 22 with correct URL")
+            
+            # Add other series as needed
+            for series_id in self.target_series:
+                if series_id not in ['1', '22']:
+                    # Use dynamic discovery for other series
+                    print(f"   🔍 Discovering URL for Series {series_id}...")
+                    discovered_urls = self.discover_series_dynamically()
+                    for series_name, series_url in discovered_urls:
+                        if series_name == f"Series {series_id}":
+                            series_urls.append((series_name, series_url))
+                            print(f"   ✅ Added {series_name}")
+                            break
+            
+            print(f"   📋 Total target series: {len(series_urls)}")
+        else:
+            # For comprehensive scraping, use dynamic discovery
+            print("🔍 Discovering all available series dynamically...")
+            series_urls = self.discover_series_dynamically()
         
         print(f"\n📋 Will scrape {len(series_urls)} series:")
         for series_name, _ in series_urls:
@@ -941,8 +1309,8 @@ class APTAChicagoRosterScraper:
         if self.force_restart:
             # Clean up any existing progress files
             try:
-                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
-                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
+                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
+                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
                 
                 if os.path.exists(progress_file):
                     os.remove(progress_file)
@@ -959,7 +1327,7 @@ class APTAChicagoRosterScraper:
             return
             
         try:
-            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'tmp', 'scrape_progress.json')
+            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'tmp', 'scrape_progress.json')
             if os.path.exists(progress_file):
                 with open(progress_file, 'r', encoding='utf-8') as f:
                     progress_data = json.load(f)
@@ -967,7 +1335,7 @@ class APTAChicagoRosterScraper:
                     print(f"📂 Loaded progress: {len(self.completed_series)} series already completed")
                     
                 # Load existing player data
-                output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'tmp', 'players_comprehensive_partial.json')
+                output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'tmp', 'players_comprehensive_partial.json')
                 if os.path.exists(output_file):
                     with open(output_file, 'r', encoding='utf-8') as f:
                         self.all_players = json.load(f)
@@ -981,7 +1349,7 @@ class APTAChicagoRosterScraper:
         """Save individual series file and progress after each completed series"""
         try:
             # Create data/leagues/APTA_CHICAGO/temp directory if it doesn't exist
-            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
             os.makedirs(series_dir, exist_ok=True)
             
             # Save individual series file
@@ -994,7 +1362,7 @@ class APTAChicagoRosterScraper:
             print(f"📁 Saved {series_name} to: {series_file} ({len(series_players)} players)")
             
             # Save progress tracking
-            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
+            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
             progress_data = {
                 'completed_series': list(self.completed_series),
                 'last_update': datetime.now().isoformat(),
@@ -1005,7 +1373,7 @@ class APTAChicagoRosterScraper:
                 json.dump(progress_data, f, indent=2)
                 
             # Save current aggregate player data (only if we have aggregate data)
-            output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
+            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
             if self.all_players:  # Only save if we have aggregate data
                 with open(output_file, 'w', encoding='utf-8') as f:
                     json.dump(self.all_players, f, indent=2, ensure_ascii=False)
@@ -1054,7 +1422,7 @@ class APTAChicagoRosterScraper:
     def save_intermediate_results(self):
         """Save intermediate results during long scrape (legacy method)"""
         try:
-            output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'players_intermediate.json')
+            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'players_intermediate.json')
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(self.all_players, f, indent=2, ensure_ascii=False)
             print(f"   💾 Intermediate results saved to {output_file}")
@@ -1069,7 +1437,7 @@ class APTAChicagoRosterScraper:
             print(f"\n🏁 FINALIZING COMPREHENSIVE SCRAPE RESULTS...")
             
             # Show individual series files created
-            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
             if os.path.exists(series_dir):
                 series_files = [f for f in os.listdir(series_dir) if f.endswith('.json')]
                 print(f"📁 Individual series files created: {len(series_files)}")
@@ -1078,8 +1446,8 @@ class APTAChicagoRosterScraper:
             
             # Clean up progress files since we're done
             try:
-                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'scrape_progress.json')
-                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'players_comprehensive_partial.json')
+                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'scrape_progress.json')
+                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'players_comprehensive_partial.json')
                 
                 if os.path.exists(progress_file):
                     os.remove(progress_file)
@@ -1093,14 +1461,14 @@ class APTAChicagoRosterScraper:
                 print(f"⚠️ Warning: Could not clean up temporary files: {e}")
         
         # Save timestamped version
-        output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', f"players_comprehensive_{timestamp}.json")
+        output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', f"players_comprehensive_{timestamp}.json")
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(self.all_players, f, indent=2, ensure_ascii=False)
         
         print(f"💾 Comprehensive results saved to: {output_file}")
         
         # Update main players.json file with intelligent merging
-        main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'APTA_CHICAGO', 'players.json')
+        main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'players.json')
         
         # First, consolidate all temp files to get complete picture
         consolidated_players = self._consolidate_all_temp_files()
@@ -1258,6 +1626,43 @@ class APTAChicagoRosterScraper:
         print(f"   💀 All curl attempts failed for: {url}")
         return ""
 
+    def _test_common_series_patterns(self) -> List[Tuple[str, str]]:
+        """Fallback method to test common series URL patterns"""
+        print("   📋 Testing common series URL patterns...")
+        
+        discovered_series = []
+        
+        # Test series 1-50 with the known URL pattern
+        for series_num in range(1, 51):
+            test_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"
+            
+            print(f"      🔍 Testing Series {series_num}...")
+            
+            # Try to get the series page
+            html_content = self.get_html_content(test_url)
+            if html_content:
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Check if this is a valid series page
+                series_title = soup.find('div', style=lambda x: x and 'font-size: 27px' in x)
+                if series_title:
+                    title_text = series_title.get_text(strip=True)
+                    if f"Series {series_num}" in title_text:
+                        discovered_series.append((f"Series {series_num}", test_url))
+                        print(f"         ✅ Found Series {series_num}")
+                    else:
+                        print(f"         ⚠️  Series {series_num} page exists but title mismatch: {title_text}")
+                else:
+                    print(f"         ❌ Series {series_num}: No series title found")
+            else:
+                print(f"         ❌ Series {series_num}: Page not accessible")
+            
+            # Add delay between requests
+            if series_num < 50:
+                time.sleep(1)
+        
+        return discovered_series
+
 def main():
     """Main function"""
     import sys
@@ -1296,11 +1701,11 @@ def main():
     
     # Validate target_series if specified
     if target_series:
-        valid_series = [str(i) for i in range(1, 18)] + list('ABCDEFGHIJK')
+        valid_series = [str(i) for i in range(1, 23)] + list('ABCDEFGHIJK')  # Updated to include Series 18-22
         invalid_series = [s for s in target_series if s not in valid_series]
         if invalid_series:
             print(f"❌ Error: Invalid series specified: {', '.join(invalid_series)}")
-            print(f"   Valid series are: 1-17 and A-K")
+            print(f"   Valid series are: 1-22 and A-K")
             return
         print(f"✅ Valid series specified: {', '.join(target_series)}")
     
@@ -1338,13 +1743,15 @@ def main():
                 print(f"   Missing series: {', '.join(sorted(missing_series))}")
                 scraper.save_results(is_final=False)
         else:
-            # For comprehensive scraping, check all series
-            expected_series = set([f"Series {i}" for i in range(1, 18)] + [f"Series {letter}" for letter in 'ABCDEFGHIJK'])
+            # For comprehensive scraping, check all series including SW suffix series
+            expected_series = set([f"Series {i}" for i in range(1, 23)] + 
+                                [f"Series {i} SW" for i in [7, 9, 11, 13]] +  # Known SW suffix series
+                                [f"Series {letter}" for letter in 'ABCDEFGHIJK'])  # Letter series
             is_complete = scraper.completed_series == expected_series
             
             if is_complete:
                 print("\n🌟 COMPLETE SCRAPE DETECTED!")
-                print("   All series (1-17 and A-K) successfully processed")
+                print("   All series (1-22 and A-K) successfully processed")
                 scraper.save_results(is_final=True)
             else:
                 missing_series = expected_series - scraper.completed_series
