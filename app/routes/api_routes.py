@@ -635,20 +635,7 @@ def get_last_3_matches():
                         print(f"[DEBUG] Found player by partial ID match: {player_id} -> {player_record['tenniscores_player_id']}")
                         return f"{player_record['first_name']} {player_record['last_name']}"
                 
-                # Strategy 3: Try to find player by external_id if it exists
-                if league_id_int:
-                    external_id_query = """
-                        SELECT first_name, last_name FROM players 
-                        WHERE external_id = %s AND league_id = %s
-                    """
-                    player_record = execute_query_one(
-                        external_id_query, [player_id, league_id_int]
-                    )
-                    
-                    if player_record:
-                        return f"{player_record['first_name']} {player_record['last_name']}"
-                
-                # Strategy 4: Provide a more informative fallback
+                # Strategy 3: Provide a more informative fallback
                 if player_id.startswith('cnswpl_'):
                     # This is a CNSWPL player ID that we couldn't resolve
                     if len(player_id) > 23:  # Hex format like cnswpl_8ae8bf3d03cc912b
@@ -4131,9 +4118,14 @@ def get_user_facing_series_by_league():
             
             # Skip problematic Chicago series that don't follow standard pattern
             # NOTE: league_id is now a database ID (e.g., "4930"), not a string like "APTA_CHICAGO"
-            if league_id and str(league_id).startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
-                print(f"[API] Skipping problematic series: {database_name}")
-                continue
+            # We need to check if this is APTA Chicago by looking up the league string ID
+            if database_name in ["Chicago", "Chicago Chicago"]:
+                # Check if this is APTA Chicago league
+                league_check_query = "SELECT league_id FROM leagues WHERE id = %s"
+                league_check_result = execute_query_one(league_check_query, [league_db_id])
+                if league_check_result and league_check_result.get("league_id", "").startswith("APTA"):
+                    print(f"[API] Skipping problematic APTA Chicago series: {database_name}")
+                    continue
             
             # Determine user-facing display name
             user_facing_name = database_name  # Default
@@ -4152,7 +4144,10 @@ def get_user_facing_series_by_league():
                     user_facing_name = database_name
                     
                     # For APTA league, try to convert "Chicago" to "Series" in the UI
-                    if league_id and league_id.startswith("APTA"):
+                    # We need to check if this is APTA Chicago by looking up the league string ID
+                    league_check_query = "SELECT league_id FROM leagues WHERE id = %s"
+                    league_check_result = execute_query_one(league_check_query, [league_db_id])
+                    if league_check_result and league_check_result.get("league_id", "").startswith("APTA"):
                         converted_name = convert_chicago_to_series_for_ui(user_facing_name)
                         # Use converted name if it actually changed
                         if converted_name != user_facing_name:
@@ -9914,6 +9909,9 @@ def get_partner_matches_team():
         # Get user session data first
         user = session["user"]
         
+        # Always define session_player_name first to prevent UnboundLocalError
+        session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+        
         # Get parameters
         team_id = request.args.get("team_id")
         player_name = request.args.get("player_name") 
@@ -9973,9 +9971,6 @@ def get_partner_matches_team():
         
         # Initialize current_club_id to prevent UnboundLocalError
         current_club_id = None
-        
-        # Always define session_player_name to prevent UnboundLocalError
-        session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
         
         # Get team info to verify access (only if team_id provided)
         team_name = None
