@@ -153,6 +153,42 @@ def load_players_json(league_key):
         sys.exit(1)
 
 
+def normalize_club_name_for_team_matching(club_name):
+    """
+    Normalize club names to match the format expected by team parsing.
+    This handles cases where club names have dashes but team names don't.
+    
+    Examples:
+    - "Midtown - Chicago - 10" -> "Midtown Chicago"
+    - "Midtown - Chicago - 14" -> "Midtown Chicago"
+    - "LifeSport-Lshire" -> "LifeSport"
+    - "Park RIdge CC" -> "Park Ridge CC"
+    """
+    if not club_name:
+        return club_name
+    
+    normalized = club_name
+    
+    # Handle Midtown Chicago special case
+    # "Midtown - Chicago - X" -> "Midtown Chicago"
+    if re.match(r'^Midtown\s*-\s*Chicago\s*-\s*\d+$', normalized):
+        normalized = "Midtown Chicago"
+    
+    # Handle other special cases
+    special_mappings = {
+        'LifeSport-Lshire': 'LifeSport',
+        'Park RIdge CC': 'Park Ridge CC',
+        'Barrington Hills': 'Barrington'
+    }
+    
+    for pattern, replacement in special_mappings.items():
+        if normalized.startswith(pattern) or normalized == pattern:
+            normalized = replacement
+            break
+    
+    return normalized.strip()
+
+
 def extract_unique_entities(players_data):
     """Extract unique clubs, series, teams, and players from JSON data with validation."""
     clubs, series, teams, players = set(), set(), set(), set()
@@ -271,9 +307,27 @@ def upsert_teams_and_players(cur, league_id, clubs, series, teams):
             skipped += 1
             continue
         
-        # Look up club_id
+        # Look up club_id with reverse mapping
+        # First try the exact club name, then try to find clubs that normalize to this name
         cur.execute("SELECT id FROM clubs WHERE name = %s", (club_name,))
         club_result = cur.fetchone()
+        
+        if not club_result:
+            # Try to find clubs that normalize to this team club name
+            # This handles cases like: team "Midtown Chicago 10" needs club "Midtown - Chicago - 10"
+            print(f"    Trying to find club that normalizes to: '{club_name}'")
+            
+            # Get all clubs and check which ones normalize to our target
+            cur.execute("SELECT id, name FROM clubs WHERE name LIKE %s", (f"%{club_name.split()[0]}%",))
+            potential_clubs = cur.fetchall()
+            
+            for potential_club_id, potential_club_name in potential_clubs:
+                normalized_potential = normalize_club_name_for_team_matching(potential_club_name)
+                if normalized_potential == club_name:
+                    print(f"    Found matching club: '{potential_club_name}' -> '{normalized_potential}'")
+                    club_result = (potential_club_id,)
+                    break
+        
         if not club_result:
             print(f"    Skipping team '{team_name}' - club '{club_name}' not found")
             skipped += 1
