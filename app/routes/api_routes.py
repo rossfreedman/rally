@@ -4826,37 +4826,24 @@ def get_pti_analysis_match_history():
 
 
 @api_bp.route("/player-season-tracking", methods=["GET", "POST"])
-@login_required
 def handle_player_season_tracking():
-    """Handle getting and updating player season tracking data"""
+    """Handle getting and updating player season tracking data - NOW PLAYER-CENTRIC!"""
     try:
-        user = session["user"]
-
-        # Get user's league for filtering
-        user_league_id = user.get("league_id", "")
-        league_id_int = None
-        if isinstance(user_league_id, str) and user_league_id != "":
-            try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-            except Exception as e:
-                pass
-        elif isinstance(user_league_id, int):
-            league_id_int = user_league_id
-
         if request.method == "GET":
-            # Return current season tracking data for all players in user's team/league
-
-            # Get user's team ID to fetch team members
-            from app.routes.mobile_routes import get_user_team_id
-
-            team_id = get_user_team_id(user)
-
+            # Get tracking data for all players on a specific team
+            # No user authentication required - just need team_id
+            team_id = request.args.get("team_id")
             if not team_id:
-                return jsonify({"error": "No team found for user"}), 400
+                return jsonify({"error": "team_id parameter required"}), 400
+
+            # Get the league_id for this team
+            team_league_query = "SELECT league_id FROM teams WHERE id = %s"
+            team_league = execute_query_one(team_league_query, [team_id])
+            
+            if not team_league:
+                return jsonify({"error": "Team not found"}), 400
+                
+            league_id_int = team_league["league_id"]
 
             # Get team members
             team_members_query = """
@@ -4913,11 +4900,11 @@ def handle_player_season_tracking():
             data = request.get_json()
 
             if not data or not all(
-                key in data for key in ["player_id", "type", "value"]
+                key in data for key in ["player_id", "type", "value", "team_id"]
             ):
                 return (
                     jsonify(
-                        {"error": "Missing required fields: player_id, type, value"}
+                        {"error": "Missing required fields: player_id, type, value, team_id"}
                     ),
                     400,
                 )
@@ -4925,6 +4912,7 @@ def handle_player_season_tracking():
             player_id = data["player_id"]
             tracking_type = data["type"]  # 'forced_byes', 'not_available', or 'injury'
             value = int(data["value"])
+            team_id = data["team_id"]  # Team ID comes from request data
 
             # Validate tracking type
             if tracking_type not in ["forced_byes", "not_available", "injury"]:
@@ -4934,15 +4922,14 @@ def handle_player_season_tracking():
             if value < 0 or value > 50:  # Reasonable limits
                 return jsonify({"error": "Value must be between 0 and 50"}), 400
 
-            if not league_id_int:
-                return jsonify({"error": "Could not determine user league"}), 400
-
-            # Get user's team ID for the POST method
-            from app.routes.mobile_routes import get_user_team_id
-            team_id = get_user_team_id(user)
+            # Get the league_id for this team
+            team_league_query = "SELECT league_id FROM teams WHERE id = %s"
+            team_league = execute_query_one(team_league_query, [team_id])
             
-            if not team_id:
-                return jsonify({"error": "No team found for user"}), 400
+            if not team_league:
+                return jsonify({"error": "Team not found"}), 400
+                
+            league_id_int = team_league["league_id"]
 
             # Use UPSERT to insert or update the tracking record - NOW INCLUDES TEAM_ID
             upsert_query = f"""
@@ -4960,12 +4947,8 @@ def handle_player_season_tracking():
             )
 
             if result:
-                # Log the activity
-                log_user_activity(
-                    user["email"],
-                    "update_season_tracking",
-                    action=f"Updated {tracking_type} to {value} for player {player_id}",
-                )
+                # Log the activity (no user context needed)
+                print(f"Updated {tracking_type} to {value} for player {player_id} on team {team_id}")
 
                 return jsonify(
                     {
@@ -9946,8 +9929,6 @@ def get_partner_matches_team():
             print(f"[DEBUG] Partner matches API: current_player={current_player}, partner_name={partner_name}")
             
             # Check if current_player matches the logged-in user's name
-            session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
-            
             if current_player == session_player_name:
                 # Analyze-me page: current_player is the logged-in user, use session player ID
                 session_player_id = user.get("tenniscores_player_id")
@@ -9993,6 +9974,9 @@ def get_partner_matches_team():
         # Initialize current_club_id to prevent UnboundLocalError
         current_club_id = None
         
+        # Always define session_player_name to prevent UnboundLocalError
+        session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+        
         # Get team info to verify access (only if team_id provided)
         team_name = None
         if team_id:
@@ -10023,7 +10007,6 @@ def get_partner_matches_team():
             print(f"[DEBUG] API: No team_id provided, using current player approach")
             
             # Check if this is analyze-me page (current_player matches session user) or player detail page
-            session_player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
             
             if current_player == session_player_name:
                 print(f"[DEBUG] API: Analyze-me page detected - using session team context")
@@ -10305,7 +10288,7 @@ def get_partner_matches_team():
                     smart_filtering_applied = True
             else:
                 # Regular team-specific query (for teams-players page)
-                print(f"[DEBUG] API: Using regular team-specific query for teams-players page")
+                print(f"[DEBUG] API: Using regular team-specific query for teams-players page with team_id filtering")
                 base_query = """
                     SELECT 
                         TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
@@ -10320,19 +10303,19 @@ def get_partner_matches_team():
                         ms.scores,
                         ms.id,
                         CASE 
-                            WHEN ms.home_team = %s THEN TRUE
-                            WHEN ms.away_team = %s THEN FALSE
+                            WHEN ms.home_team_id = %s THEN TRUE
+                            WHEN ms.away_team_id = %s THEN FALSE
                             ELSE NULL
                         END as player_was_home,
                         CASE 
-                            WHEN ms.home_team = %s AND ms.winner = 'home' THEN TRUE
-                            WHEN ms.away_team = %s AND ms.winner = 'away' THEN TRUE
+                            WHEN ms.home_team_id = %s AND ms.winner = 'home' THEN TRUE
+                            WHEN ms.away_team_id = %s AND ms.winner = 'away' THEN TRUE
                             ELSE FALSE
                         END as player_won
                     FROM match_scores ms
                     WHERE ms.match_date >= %s 
                         AND ms.match_date <= %s
-                        AND (ms.home_team = %s OR ms.away_team = %s)
+                        AND (ms.home_team_id = %s OR ms.away_team_id = %s)
                         AND (
                             LOWER(ms.home_player_1_id) LIKE LOWER(%s) OR 
                             LOWER(ms.home_player_2_id) LIKE LOWER(%s) OR 
@@ -10341,11 +10324,25 @@ def get_partner_matches_team():
                         )
                     ORDER BY ms.match_date DESC, ms.id DESC
                 """
-                query_params = [
-                    team_name, team_name, team_name, team_name,  # CASE statements
-                    season_start, season_end, team_name, team_name,  # Basic filters
-                    f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
-                ]
+                # Use exact player ID if available, otherwise fall back to name patterns
+                if player_id:
+                    print(f"[DEBUG] API: Teams-players page using exact player ID: {player_id}")
+                    base_query = base_query.replace("LOWER(ms.home_player_1_id) LIKE LOWER(%s)", "ms.home_player_1_id = %s")
+                    base_query = base_query.replace("LOWER(ms.home_player_2_id) LIKE LOWER(%s)", "ms.home_player_2_id = %s")
+                    base_query = base_query.replace("LOWER(ms.away_player_1_id) LIKE LOWER(%s)", "ms.away_player_1_id = %s")
+                    base_query = base_query.replace("LOWER(ms.away_player_2_id) LIKE LOWER(%s)", "ms.away_player_2_id = %s")
+                    query_params = [
+                        team_id, team_id, team_id, team_id,  # CASE statements using team_id
+                        season_start, season_end, team_id, team_id,  # Basic filters using team_id
+                        player_id, player_id, player_id, player_id  # Exact player ID instead of name patterns
+                    ]
+                else:
+                    print(f"[DEBUG] API: Teams-players page using name pattern search: {main_player}")
+                    query_params = [
+                        team_id, team_id, team_id, team_id,  # CASE statements using team_id
+                        season_start, season_end, team_id, team_id,  # Basic filters using team_id
+                        f"%{main_player}%", f"%{main_player}%", f"%{main_player}%", f"%{main_player}%"  # Player filters
+                    ]
                 smart_filtering_applied = True
         else:
             # League-wide query with team context filtering (for analyze-me page)

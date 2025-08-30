@@ -540,7 +540,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to load existing season tracking data
     function loadSeasonTrackingData() {
         console.log('Loading season tracking data...');
-        fetch('/api/player-season-tracking')
+        
+        // Get team_id from the template
+        const teamId = {{ team_id|default('null') }};
+        if (!teamId) {
+            console.error('No team_id available - cannot load tracking data');
+            return;
+        }
+        
+        fetch(`/api/player-season-tracking?team_id=${teamId}`)
             .then(response => {
                 console.log('Load response status:', response.status);
                 return response.json();
@@ -609,7 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const requestData = {
             player_id: playerData.player_id,
             type: type,
-            value: parseInt(value)
+            value: parseInt(value),
+            team_id: {{ team_id|default('null') }}
         };
         
         console.log('Sending request:', requestData);

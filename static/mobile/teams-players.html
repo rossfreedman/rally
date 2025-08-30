@@ -298,6 +298,7 @@
         const playerStatsCard = document.getElementById('playerStatsCard');
         const playerStatsDiv = document.getElementById('playerStats');
         const courtBreakdownDiv = document.getElementById('courtBreakdown');
+        let currentTeamPlayers = []; // Store current team players data for substitute detection
 
         // Load teams on page load
         fetch('/api/teams-with-ids')
@@ -408,12 +409,17 @@
             fetch(`/api/get-team-players/${teamId}`)
                 .then(r => r.json())
                 .then(data => {
+                    // Store team players data for substitute detection
+                    currentTeamPlayers = data.players || [];
+                    
                     playerSelect.innerHTML = '<option value="">Choose a player...</option>';
                     if (data.players && data.players.length > 0) {
                         data.players.forEach(player => {
                             const opt = document.createElement('option');
                             opt.value = player.name;
-                            opt.textContent = player.name;
+                            // Add substitute indicator if player is a substitute
+                            const displayText = player.isSubstitute ? `${player.name} (Sub)` : player.name;
+                            opt.textContent = displayText;
                             playerSelect.appendChild(opt);
                         });
                         playerSelect.disabled = false;
@@ -444,12 +450,30 @@
                     const losses = player.losses ?? 0;
                     const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
                     const pti = player.pti ?? player.rating ?? '<span class="text-muted small">Threshold not met</span>';
+                    // Check if this player is a substitute for the current team
+                    const selectedTeamId = teamSelect.value;
+                    let substituteInfo = '';
+                    if (selectedTeamId && currentTeamPlayers) {
+                        const currentPlayer = currentTeamPlayers.find(p => p.name === playerName);
+                        if (currentPlayer && currentPlayer.isSubstitute) {
+                            substituteInfo = `
+                                <div class="mt-2">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                        <i class="fas fa-exchange-alt mr-1"></i>
+                                        Substitute Player
+                                    </span>
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     playerStatsDiv.innerHTML = `
                         <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
                         <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
                         <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
                         <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
                         <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
+                        ${substituteInfo}
                     `;
                     // Court breakdown
                     if (player.courts && Object.keys(player.courts).length > 0) {

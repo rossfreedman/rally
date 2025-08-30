@@ -3669,7 +3669,8 @@ def get_team_players(team_id):
                     p.id, 
                     p.first_name, 
                     p.last_name, 
-                    p.pti
+                    p.pti,
+                    p.tenniscores_player_id
                 FROM players p
                 WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = true
                 ORDER BY p.first_name, p.last_name
@@ -3681,22 +3682,36 @@ def get_team_players(team_id):
                     p.id, 
                     p.first_name, 
                     p.last_name, 
-                    p.pti
+                    p.pti,
+                    p.tenniscores_player_id
                 FROM players p
                 WHERE p.team_id = %s AND p.is_active = true
                 ORDER BY p.first_name, p.last_name
             """
             players_data = execute_query(players_query, [team_id])
 
-        # Format players data
-        players = [
-            {
+        # Check if players are substitutes for this team
+        from app.services.mobile_service import is_substitute_player
+        
+        # Format players data with substitute information
+        players = []
+        for player in players_data:
+            is_substitute = False
+            if player.get('tenniscores_player_id'):
+                # Check if this player is a substitute for the current team
+                is_substitute = is_substitute_player(
+                    player['tenniscores_player_id'], 
+                    team_id, 
+                    user_league_id=user_league_id,
+                    user_team_id=team_id
+                )
+            
+            players.append({
                 "id": player["id"],
                 "name": f"{player['first_name']} {player['last_name']}",
                 "pti": player.get("pti", 0),
-            }
-            for player in players_data
-        ]
+                "isSubstitute": is_substitute
+            })
 
         print(
             f"[DEBUG] get_team_players: Found {len(players)} players for team_id '{team_id}' ({display_name}) in league '{user_league_id}'"
