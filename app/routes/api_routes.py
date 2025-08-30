@@ -4874,7 +4874,7 @@ def handle_player_season_tracking():
             """
             team_members = execute_query(team_members_query, [team_id])
 
-            # Get existing tracking data for these players
+            # Get existing tracking data for these players - NOW FILTERED BY TEAM
             if team_members and league_id_int:
                 player_ids = [
                     member["tenniscores_player_id"] for member in team_members
@@ -4885,11 +4885,12 @@ def handle_player_season_tracking():
                     SELECT player_id, forced_byes, not_available, injury
                     FROM player_season_tracking
                     WHERE player_id IN ({placeholders})
+                    AND team_id = %s
                     AND league_id = %s
                     AND season_year = %s
                 """
                 tracking_data = execute_query(
-                    tracking_query, player_ids + [league_id_int, season_year]
+                    tracking_query, player_ids + [team_id, league_id_int, season_year]
                 )
 
                 # Build response with player names and tracking data
@@ -4945,11 +4946,11 @@ def handle_player_season_tracking():
             if not league_id_int:
                 return jsonify({"error": "Could not determine user league"}), 400
 
-            # Use UPSERT to insert or update the tracking record
+            # Use UPSERT to insert or update the tracking record - NOW INCLUDES TEAM_ID
             upsert_query = f"""
-                INSERT INTO player_season_tracking (player_id, league_id, season_year, {tracking_type})
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (player_id, league_id, season_year)
+                INSERT INTO player_season_tracking (player_id, team_id, league_id, season_year, {tracking_type})
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (player_id, team_id, league_id, season_year)
                 DO UPDATE SET 
                     {tracking_type} = EXCLUDED.{tracking_type},
                     updated_at = CURRENT_TIMESTAMP
@@ -4957,7 +4958,7 @@ def handle_player_season_tracking():
             """
 
             result = execute_query_one(
-                upsert_query, [player_id, league_id_int, season_year, value]
+                upsert_query, [player_id, team_id, league_id_int, season_year, value]
             )
 
             if result:
