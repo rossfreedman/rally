@@ -1,179 +1,272 @@
 #!/usr/bin/env python3
 """
-Script to apply the lineup escrow database migration to production
-Adds initiator_team_id and recipient_team_id columns to lineup_escrow table
+PRODUCTION MIGRATION SCRIPT - Apply team-specific tracking changes to production.
+
+⚠️  WARNING: This script modifies the PRODUCTION database.
+⚠️  Ensure you have a backup before proceeding.
+⚠️  Test thoroughly on staging first.
+
+This applies the exact same changes as staging:
+1. Add team_id column to player_season_tracking
+2. Populate team_id for existing records
+3. Make team_id NOT NULL
+4. Update unique constraints
+5. Remove season_year complexity
 """
 
-import os
 import sys
-import psycopg2
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def get_production_db_connection():
-    """Get connection to production database using Railway environment variables"""
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def confirm_production_migration():
+    """Get explicit confirmation before proceeding with production changes"""
+    logger.warning("🚨 PRODUCTION MIGRATION CONFIRMATION REQUIRED")
+    logger.warning("⚠️  This script will modify the PRODUCTION database")
+    logger.warning("⚠️  Ensure you have a backup before proceeding")
+    
+    print("\n" + "="*80)
+    print("🚨 PRODUCTION DATABASE MIGRATION CONFIRMATION")
+    print("="*80)
+    print("This script will apply the following changes to PRODUCTION:")
+    print("1. Add team_id column to player_season_tracking")
+    print("2. Populate team_id for existing records")
+    print("3. Make team_id NOT NULL")
+    print("4. Update unique constraints")
+    print("5. Remove season_year complexity")
+    print("="*80)
+    
+    # Check if we're connected to production
+    database_url = os.getenv("DATABASE_URL")
+    if database_url and "ballast.proxy.rlwy.net" in database_url:
+        logger.info("✅ Connected to PRODUCTION database")
+    else:
+        logger.error("❌ NOT connected to production database!")
+        logger.error("Expected: ballast.proxy.rlwy.net")
+        logger.error(f"Found: {database_url}")
+        return False
+    
+    # Get explicit confirmation
+    response = input("\n🚨 Type 'PRODUCTION' to confirm: ")
+    if response != "PRODUCTION":
+        logger.info("❌ Migration cancelled by user")
+        return False
+    
+    # Double confirmation
+    response2 = input("🚨 Type 'YES' to proceed with production changes: ")
+    if response2 != "YES":
+        logger.info("❌ Migration cancelled by user")
+        return False
+    
+    logger.info("✅ Production migration confirmed - proceeding...")
+    return True
+
+def apply_production_migration():
+    """Apply complete migration to production database"""
     try:
-        # Use the public URL from Railway
-        database_url = os.getenv('DATABASE_PUBLIC_URL')
+        logger.info("🚀 Applying complete migration to PRODUCTION database...")
+        
+        # Check if we're in the right environment
+        database_url = os.getenv("DATABASE_URL")
         if not database_url:
-            print("❌ DATABASE_PUBLIC_URL environment variable not found")
-            print("Please ensure you're running this from Railway production environment")
-            return None
+            logger.error("❌ DATABASE_URL environment variable not set")
+            return False
         
-        print(f"🔗 Connecting to production database...")
-        conn = psycopg2.connect(database_url)
-        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        return conn
-    except Exception as e:
-        print(f"❌ Failed to connect to production database: {e}")
-        return None
-
-def check_table_structure(conn):
-    """Check current structure of lineup_escrow table"""
-    try:
-        cursor = conn.cursor()
+        if "ballast.proxy.rlwy.net" not in database_url:
+            logger.error("❌ NOT connected to production database!")
+            logger.error("Expected: ballast.proxy.rlwy.net")
+            logger.error(f"Found: {database_url}")
+            return False
         
-        # Check if columns already exist
-        cursor.execute("""
+        logger.info("📝 Applying database schema changes to PRODUCTION...")
+        
+        # Import database utilities
+        from utils.db import execute_update, execute_query, execute_query_one
+        
+        # Step 1: Add team_id column if it doesn't exist
+        logger.info("📝 Step 1: Adding team_id column...")
+        
+        # Check if team_id column exists
+        column_check = execute_query("""
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name = 'lineup_escrow' 
-            AND column_name IN ('initiator_team_id', 'recipient_team_id')
+            WHERE table_name = 'player_season_tracking' 
+            AND column_name = 'team_id'
         """)
         
-        existing_columns = [row[0] for row in cursor.fetchall()]
-        
-        if existing_columns:
-            print(f"✅ Columns already exist: {existing_columns}")
-            return True
-        else:
-            print("❌ Required columns not found, need to add them")
-            return False
+        if not column_check:
+            logger.info("  Adding team_id column...")
+            add_column_query = """
+                ALTER TABLE player_season_tracking 
+                ADD COLUMN team_id INTEGER
+            """
             
-    except Exception as e:
-        print(f"❌ Error checking table structure: {e}")
-        return False
-
-def apply_migration(conn):
-    """Apply the database migration"""
-    try:
-        cursor = conn.cursor()
+            success = execute_update(add_column_query)
+            if success:
+                logger.info("    ✅ Successfully added team_id column")
+            else:
+                logger.error("    ❌ Failed to add team_id column")
+                return False
+        else:
+            logger.info("  ✅ team_id column already exists")
         
-        print("🔧 Applying migration: Adding team ID columns...")
+        # Step 2: Create index on team_id
+        logger.info("📝 Step 2: Creating index on team_id...")
+        create_index_query = """
+            CREATE INDEX IF NOT EXISTS idx_player_season_tracking_team_id 
+            ON player_season_tracking(team_id)
+        """
         
-        # Add team ID columns
-        cursor.execute("""
-            ALTER TABLE lineup_escrow 
-            ADD COLUMN initiator_team_id INTEGER REFERENCES teams(id),
-            ADD COLUMN recipient_team_id INTEGER REFERENCES teams(id)
+        success = execute_update(create_index_query)
+        if success:
+            logger.info("    ✅ Successfully created team_id index")
+        else:
+            logger.error("    ❌ Failed to create team_id index")
+            return False
+        
+        # Step 3: Populate team_id for existing records
+        logger.info("📝 Step 3: Populating team_id for existing records...")
+        
+        # Get records that need team_id populated
+        records_to_update = execute_query("""
+            SELECT pst.id, pst.player_id, p.team_id
+            FROM player_season_tracking pst
+            JOIN players p ON pst.player_id = p.tenniscores_player_id
+            WHERE pst.team_id IS NULL
+            AND p.team_id IS NOT NULL
         """)
         
-        print("✅ Added team ID columns")
+        if records_to_update:
+            logger.info(f"  Found {len(records_to_update)} records to update")
+            
+            updated_count = 0
+            for record in records_to_update:
+                update_query = """
+                    UPDATE player_season_tracking 
+                    SET team_id = %s 
+                    WHERE id = %s
+                """
+                
+                success = execute_update(update_query, [record['team_id'], record['id']])
+                if success:
+                    updated_count += 1
+                else:
+                    logger.error(f"    ❌ Failed to update record {record['id']}")
+            
+            logger.info(f"    ✅ Successfully updated {updated_count} records")
+        else:
+            logger.info("  ✅ All records already have team_id")
         
-        # Add indexes for better performance
-        print("🔧 Creating indexes...")
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_lineup_escrow_initiator_team 
-            ON lineup_escrow(initiator_team_id)
-        """)
+        # Step 4: Make team_id NOT NULL
+        logger.info("📝 Step 4: Making team_id NOT NULL...")
+        make_not_null_query = """
+            ALTER TABLE player_season_tracking 
+            ALTER COLUMN team_id SET NOT NULL
+        """
         
-        cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_lineup_escrow_recipient_team 
-            ON lineup_escrow(recipient_team_id)
-        """)
+        success = execute_update(make_not_null_query)
+        if success:
+            logger.info("    ✅ Successfully made team_id NOT NULL")
+        else:
+            logger.error("    ❌ Failed to make team_id NOT NULL")
+            return False
         
-        print("✅ Created indexes")
+        # Step 5: Drop existing unique constraint if it exists
+        logger.info("📝 Step 5: Dropping existing unique constraint...")
+        drop_constraint_query = """
+            ALTER TABLE player_season_tracking 
+            DROP CONSTRAINT IF EXISTS unique_player_season_tracking
+        """
         
-        # Add comments for documentation
-        print("🔧 Adding column comments...")
-        cursor.execute("""
-            COMMENT ON COLUMN lineup_escrow.initiator_team_id IS 
-            'Team ID of the initiator (sender) of the lineup escrow'
-        """)
+        success = execute_update(drop_constraint_query)
+        if success:
+            logger.info("    ✅ Successfully dropped existing unique constraint")
+        else:
+            logger.error("    ❌ Failed to drop existing unique constraint")
+            return False
         
-        cursor.execute("""
-            COMMENT ON COLUMN lineup_escrow.recipient_team_id IS 
-            'Team ID of the recipient (receiver) of the lineup escrow'
-        """)
+        # Step 6: Create new unique constraint without season_year
+        logger.info("📝 Step 6: Creating new unique constraint...")
+        create_constraint_query = """
+            ALTER TABLE player_season_tracking 
+            ADD CONSTRAINT unique_player_season_tracking 
+            UNIQUE (player_id, team_id, league_id)
+        """
         
-        print("✅ Added column comments")
+        success = execute_update(create_constraint_query)
+        if success:
+            logger.info("    ✅ Successfully created new unique constraint")
+        else:
+            logger.error("    ❌ Failed to create new unique constraint")
+            return False
         
+        # Step 7: Make season_year nullable
+        logger.info("📝 Step 7: Making season_year nullable...")
+        alter_column_query = """
+            ALTER TABLE player_season_tracking 
+            ALTER COLUMN season_year DROP NOT NULL
+        """
+        
+        success = execute_update(alter_column_query)
+        if success:
+            logger.info("    ✅ Successfully made season_year nullable")
+        else:
+            logger.error("    ❌ Failed to make season_year nullable")
+            return False
+        
+        # Step 8: Add foreign key constraint for team_id
+        logger.info("📝 Step 8: Adding foreign key constraint...")
+        add_fk_query = """
+            ALTER TABLE player_season_tracking 
+            ADD CONSTRAINT fk_player_season_tracking_team_id 
+            FOREIGN KEY (team_id) REFERENCES teams(id)
+        """
+        
+        success = execute_update(add_fk_query)
+        if success:
+            logger.info("    ✅ Successfully added foreign key constraint")
+        else:
+            logger.error("    ❌ Failed to add foreign key constraint")
+            return False
+        
+        logger.info("🎉 Successfully applied complete migration to PRODUCTION!")
+        logger.info("✅ The system now works with team-specific tracking without season complexity")
         return True
         
     except Exception as e:
-        print(f"❌ Error applying migration: {e}")
-        return False
-
-def verify_migration(conn):
-    """Verify the migration was applied successfully"""
-    try:
-        cursor = conn.cursor()
-        
-        # Check if columns exist
-        cursor.execute("""
-            SELECT column_name, data_type, is_nullable
-            FROM information_schema.columns 
-            WHERE table_name = 'lineup_escrow' 
-            AND column_name IN ('initiator_team_id', 'recipient_team_id')
-            ORDER BY column_name
-        """)
-        
-        columns = cursor.fetchall()
-        
-        if len(columns) == 2:
-            print("✅ Migration verification successful:")
-            for col_name, data_type, is_nullable in columns:
-                print(f"   - {col_name}: {data_type} (nullable: {is_nullable})")
-            return True
-        else:
-            print(f"❌ Migration verification failed: found {len(columns)} columns")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Error verifying migration: {e}")
+        logger.error(f"❌ Error applying production migration: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         return False
 
 def main():
-    """Main function to apply production migration"""
-    print("🚀 Lineup Escrow Production Database Migration")
-    print("=" * 50)
-    
-    # Check if we're in production environment
-    if os.getenv('RAILWAY_ENVIRONMENT') != 'production':
-        print("⚠️  Warning: Not in production environment")
-        print("Current environment:", os.getenv('RAILWAY_ENVIRONMENT', 'unknown'))
-        response = input("Continue anyway? (y/N): ")
-        if response.lower() != 'y':
-            print("❌ Migration cancelled")
-            return
-    
-    # Connect to production database
-    conn = get_production_db_connection()
-    if not conn:
-        print("❌ Cannot proceed without database connection")
-        return
-    
+    """Main function"""
     try:
-        # Check current table structure
-        if check_table_structure(conn):
-            print("✅ Migration already applied, no action needed")
-            return
+        # Get explicit confirmation before proceeding
+        if not confirm_production_migration():
+            return False
         
-        # Apply migration
-        if apply_migration(conn):
-            print("✅ Migration applied successfully")
-            
-            # Verify migration
-            if verify_migration(conn):
-                print("🎉 Production migration completed successfully!")
-            else:
-                print("⚠️  Migration applied but verification failed")
+        success = apply_production_migration()
+        
+        if success:
+            logger.info("🎉 Successfully applied complete migration to PRODUCTION!")
+            logger.info("✅ Database schema updated for team-specific tracking")
+            logger.info("✅ Season year complexity removed")
+            logger.info("✅ Next: Deploy code changes and test the functionality")
+            return True
         else:
-            print("❌ Migration failed")
+            logger.error("❌ Failed to apply production migration")
+            return False
             
-    finally:
-        if conn:
-            conn.close()
-            print("🔌 Database connection closed")
+    except Exception as e:
+        logger.error(f"❌ Script execution failed: {e}")
+        return False
 
 if __name__ == "__main__":
-    main()
+    success = main()
+    sys.exit(0 if success else 1)
