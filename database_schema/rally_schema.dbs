@@ -281,7 +281,7 @@
 			<column name="player_id" type="varchar" length="255" mandatory="y" />
 			<column name="team_id" type="integer" length="32" mandatory="y" />
 			<column name="league_id" type="integer" length="32" />
-			<column name="season_year" type="integer" length="32" mandatory="y" />
+			<column name="season_year" type="integer" length="32" mandatory="n" />
 			<column name="forced_byes" type="integer" length="32" >
 				<defo><![CDATA[0]]></defo>
 			</column>
@@ -300,12 +300,11 @@
 			<index name="player_season_tracking_pkey" unique="PRIMARY_KEY" >
 				<column name="id" />
 			</index>
-			<index name="unique_player_season_tracking" unique="UNIQUE_KEY" >
-				<column name="player_id" />
-				<column name="team_id" />
-				<column name="league_id" />
-				<column name="season_year" />
-			</index>
+		<index name="unique_player_season_tracking" unique="UNIQUE_KEY" >
+			<column name="player_id" />
+			<column name="team_id" />
+			<column name="league_id" />
+		</index>
 		</table>
 		<table name="players" row_count="10298" spec="" >
 			<column name="id" type="integer" length="32" mandatory="y" >

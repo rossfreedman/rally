@@ -785,9 +785,8 @@ class PlayerSeasonTracking(Base):
     __table_args__ = (
         UniqueConstraint(
             "player_id",
-            "team_id",  # NEW: Include team_id in unique constraint
+            "team_id",  # Team-specific tracking
             "league_id",
-            "season_year",
             name="unique_player_season_tracking",
         ),
     )
