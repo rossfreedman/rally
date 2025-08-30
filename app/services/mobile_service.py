@@ -4936,6 +4936,15 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
             # OPTIMIZATION: Get PTI from batch lookup (no individual query)
             player_pti = pti_lookup.get(player_id, None)
 
+            # Check if this player is a substitute for the current team
+            is_substitute = False
+            if team_id and player_id:
+                try:
+                    is_substitute = is_substitute_player(player_id, team_id, user_league_id=None, user_team_id=team_id)
+                except Exception as e:
+                    print(f"[DEBUG] Error checking substitute status for {player_name}: {e}")
+                    is_substitute = False
+            
             top_players.append(
                 {
                     "name": player_name,
@@ -4944,6 +4953,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "best_court": best_court or "Threshold not met",
                     "best_partner": best_partner if best_partner else "Threshold not met",
                     "pti": player_pti,  # Add PTI data for template
+                    "isSubstitute": is_substitute,  # Add substitute status
                 }
             )
 
