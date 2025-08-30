@@ -765,6 +765,7 @@ class PlayerSeasonTracking(Base):
 
     id = Column(Integer, primary_key=True)
     player_id = Column(String(255), nullable=False)  # tenniscores_player_id
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)  # Team-specific tracking
     league_id = Column(Integer, ForeignKey("leagues.id"))
     season_year = Column(Integer, nullable=False)  # e.g., 2024, 2025
     forced_byes = Column(Integer, default=0)
@@ -777,13 +778,14 @@ class PlayerSeasonTracking(Base):
 
     # Relationships
     league = relationship("League")
+    team = relationship("Team")  # Team relationship
 
     # Constraints
     __table_args__ = (
         UniqueConstraint(
             "player_id",
+            "team_id",
             "league_id",
-            "season_year",
             name="unique_player_season_tracking",
         ),
     )

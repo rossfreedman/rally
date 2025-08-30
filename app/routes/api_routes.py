@@ -4831,14 +4831,6 @@ def handle_player_season_tracking():
     """Handle getting and updating player season tracking data"""
     try:
         user = session["user"]
-        current_year = datetime.now().year
-
-        # Determine current tennis season year (Aug-July seasons)
-        current_month = datetime.now().month
-        if current_month >= 8:  # Aug-Dec: current season
-            season_year = current_year
-        else:  # Jan-Jul: previous season
-            season_year = current_year - 1
 
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
@@ -4885,11 +4877,11 @@ def handle_player_season_tracking():
                     SELECT player_id, forced_byes, not_available, injury
                     FROM player_season_tracking
                     WHERE player_id IN ({placeholders})
+                    AND team_id = %s
                     AND league_id = %s
-                    AND season_year = %s
                 """
                 tracking_data = execute_query(
-                    tracking_query, player_ids + [league_id_int, season_year]
+                    tracking_query, player_ids + [team_id, league_id_int]
                 )
 
                 # Build response with player names and tracking data
@@ -4912,9 +4904,9 @@ def handle_player_season_tracking():
                         }
                     )
 
-                return jsonify({"season_year": season_year, "players": result})
+                return jsonify({"players": result})
             else:
-                return jsonify({"season_year": season_year, "players": []})
+                return jsonify({"players": []})
 
         elif request.method == "POST":
             # Update tracking data for a specific player
@@ -4945,11 +4937,18 @@ def handle_player_season_tracking():
             if not league_id_int:
                 return jsonify({"error": "Could not determine user league"}), 400
 
+            # Get user's team ID for the POST method
+            from app.routes.mobile_routes import get_user_team_id
+            team_id = get_user_team_id(user)
+            
+            if not team_id:
+                return jsonify({"error": "No team found for user"}), 400
+
             # Use UPSERT to insert or update the tracking record
             upsert_query = f"""
-                INSERT INTO player_season_tracking (player_id, league_id, season_year, {tracking_type})
+                INSERT INTO player_season_tracking (player_id, team_id, league_id, {tracking_type})
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (player_id, league_id, season_year)
+                ON CONFLICT (player_id, team_id, league_id)
                 DO UPDATE SET 
                     {tracking_type} = EXCLUDED.{tracking_type},
                     updated_at = CURRENT_TIMESTAMP
@@ -4957,7 +4956,7 @@ def handle_player_season_tracking():
             """
 
             result = execute_query_one(
-                upsert_query, [player_id, league_id_int, season_year, value]
+                upsert_query, [player_id, team_id, league_id_int, value]
             )
 
             if result:
@@ -4972,7 +4971,6 @@ def handle_player_season_tracking():
                     {
                         "success": True,
                         "player_id": player_id,
-                        "season_year": season_year,
                         "forced_byes": result["forced_byes"],
                         "not_available": result["not_available"],
                         "injury": result["injury"],
