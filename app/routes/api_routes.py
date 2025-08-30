@@ -4946,6 +4946,13 @@ def handle_player_season_tracking():
             if not league_id_int:
                 return jsonify({"error": "Could not determine user league"}), 400
 
+            # Get user's team ID for the POST method
+            from app.routes.mobile_routes import get_user_team_id
+            team_id = get_user_team_id(user)
+            
+            if not team_id:
+                return jsonify({"error": "No team found for user"}), 400
+
             # Use UPSERT to insert or update the tracking record - NOW INCLUDES TEAM_ID
             upsert_query = f"""
                 INSERT INTO player_season_tracking (player_id, team_id, league_id, season_year, {tracking_type})
