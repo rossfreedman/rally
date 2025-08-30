@@ -318,7 +318,7 @@ def upsert_teams_and_players(cur, league_id, clubs, series, teams):
 def parse_team_name(team_name):
     """
     Parse team name to extract club, series, and team number/letter.
-    Handles both numeric and letter-based series.
+    Handles both numeric and letter-based series, including SW (Southwest) teams.
     
     Examples:
     - "Birchwood 12" -> ("Birchwood", "Series 12", "12")
@@ -326,11 +326,22 @@ def parse_team_name(team_name):
     - "Winnetka D" -> ("Winnetka", "Series D", "D")
     - "Tennaqua A" -> ("Tennaqua", "Series A", "A")
     - "Michigan Shores 3b" -> ("Michigan Shores", "Series 3b", "3b")
+    - "Chicago Highlands 11 SW" -> ("Chicago Highlands", "Series 11 SW", "11 SW")
+    - "Medinah 9 SW" -> ("Medinah", "Series 9 SW", "9 SW")
     """
     if not team_name:
         return None, None, None
     
-    # Try to extract numeric series first (e.g., "12", "3b", "14a")
+    # Try to extract SW series first (e.g., "11 SW", "9 SW", "15 SW")
+    # This must come before numeric series to avoid conflicts
+    sw_match = re.search(r'(\d+)\s+SW$', team_name)
+    if sw_match:
+        team_number = sw_match.group(1)
+        club_name = team_name[:sw_match.start()].strip()
+        series_name = f"Series {team_number} SW"
+        return club_name, series_name, f"{team_number} SW"
+    
+    # Try to extract numeric series (e.g., "12", "3b", "14a")
     numeric_match = re.search(r'(\d+[a-z]?)$', team_name)
     if numeric_match:
         team_number = numeric_match.group(1)
