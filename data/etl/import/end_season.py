@@ -44,6 +44,7 @@ def confirm_deletion(league_key, league_id, data_summary):
     print("  - All match scores")
     print("  - All series stats")
     print("  - All player availability")
+    print("  - All player season tracking")
     print("  - All teams")
     print("  - All series")
     print("  - All clubs")
@@ -83,6 +84,7 @@ def get_data_summary(cur, league_id):
         ("match_scores", "SELECT COUNT(*) FROM match_scores WHERE home_team_id IN (SELECT id FROM teams WHERE league_id = %s) OR away_team_id IN (SELECT id FROM teams WHERE league_id = %s)"),
         ("series_stats", "SELECT COUNT(*) FROM series_stats WHERE league_id = %s OR team_id IN (SELECT id FROM teams WHERE league_id = %s)"),
         ("player_availability", "SELECT COUNT(*) FROM player_availability WHERE player_id IN (SELECT id FROM players WHERE league_id = %s)"),
+        ("player_season_tracking", "SELECT COUNT(*) FROM player_season_tracking WHERE team_id IN (SELECT id FROM teams WHERE league_id = %s)"),
         ("teams", "SELECT COUNT(*) FROM teams WHERE league_id = %s"),
         ("series", "SELECT COUNT(*) FROM series WHERE league_id = %s"),
         ("clubs", "SELECT COUNT(*) FROM clubs WHERE id IN (SELECT DISTINCT club_id FROM teams WHERE league_id = %s)"),
@@ -194,6 +196,19 @@ def delete_league_data(cur, league_id):
         total_deleted += deleted_count
     except Exception as e:
         print(f"  player_history: ERROR - {e}")
+        raise
+    
+    try:
+        # Delete player_season_tracking via team references
+        cur.execute("""
+            DELETE FROM player_season_tracking 
+            WHERE team_id IN (SELECT id FROM teams WHERE league_id = %s)
+        """, (league_id,))
+        deleted_count = cur.rowcount
+        print(f"  player_season_tracking: {deleted_count} rows deleted")
+        total_deleted += deleted_count
+    except Exception as e:
+        print(f"  player_season_tracking: ERROR - {e}")
         raise
     
     # Step 2: Clear all foreign key references to teams
