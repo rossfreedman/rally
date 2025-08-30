@@ -1143,6 +1143,16 @@ def init_lineup_routes(app):
             session_data = {"user": session.get("user", {}), "authenticated": True}
             return render_template("mobile/error.html", error="Unable to load saved lineups page", session_data=session_data), 500
 
+    def _create_minimal_session_data():
+        """Create minimal session data for non-authenticated users"""
+        return {
+            "user": {
+                "is_admin": False,
+                "tenniscores_player_id": None
+            }, 
+            "authenticated": False
+        }
+
     @app.route("/mobile/lineup-escrow-view/<escrow_token>")
     def serve_lineup_escrow_view(escrow_token):
         """Serve the lineup escrow view page"""
@@ -1151,40 +1161,94 @@ def init_lineup_routes(app):
             viewer_contact = request.args.get("contact", "")
             
             if not viewer_contact:
+                # Create minimal session data for error template
+                session_data = _create_minimal_session_data()
                 return render_template("mobile/lineup_escrow_error.html", 
-                                     error="Contact information is required to view this lineup escrow.")
+                                     error="Contact information is required to view this lineup escrow.",
+                                     session_data=session_data)
             
-            with SessionLocal() as db_session:
-                escrow_service = LineupEscrowService(db_session)
-                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
-                
-                if not result["success"]:
-                    return render_template("mobile/lineup_escrow_error.html", 
-                                         error=result.get("error", "Escrow session not found."))
-                
-                # Pass escrow data to template
-                # Create minimal session data for non-authenticated users
-                session_data = {
-                    "user": {
-                        "is_admin": False,
-                        "tenniscores_player_id": None
-                    }, 
-                    "authenticated": False
-                }  # No login required
-                # Add cache-busting headers to prevent caching issues
-                response = make_response(render_template("mobile/lineup_escrow_view.html", 
-                                     session_data=session_data,
-                                     escrow_data=result["escrow_data"],
-                                     both_lineups_visible=result["both_lineups_visible"]))
-                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-                response.headers['Pragma'] = 'no-cache'
-                response.headers['Expires'] = '0'
-                return response
+            try:
+                with SessionLocal() as db_session:
+                    escrow_service = LineupEscrowService(db_session)
+                    result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                    
+                    if not result["success"]:
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error=result.get("error", "Escrow session not found."),
+                                             session_data=session_data)
+                    
+                    # Validate that escrow_data exists
+                    if "escrow_data" not in result:
+                        print(f"Missing escrow_data in result: {result}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Invalid escrow data format.",
+                                             session_data=session_data)
+                    
+                    # Validate required fields
+                    required_fields = ["id", "status", "initiator_lineup", "message_body"]
+                    missing_fields = [field for field in required_fields if field not in result["escrow_data"]]
+                    if missing_fields:
+                        print(f"Missing required fields in escrow_data: {missing_fields}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Incomplete escrow data.",
+                                             session_data=session_data)
+                    
+                    # Validate both_lineups_visible field
+                    if "both_lineups_visible" not in result:
+                        print(f"Missing both_lineups_visible in result: {result}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Invalid escrow data format.",
+                                             session_data=session_data)
+                    
+                    # Pass escrow data to template
+                    # Create minimal session data for non-authenticated users
+                    session_data = _create_minimal_session_data()  # No login required
+                    # Add cache-busting headers to prevent caching issues
+                    try:
+                        response = make_response(render_template("mobile/lineup_escrow_view.html", 
+                                         session_data=session_data,
+                                         escrow_data=result["escrow_data"],
+                                         both_lineups_visible=result["both_lineups_visible"]))
+                        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                        response.headers['Pragma'] = 'no-cache'
+                        response.headers['Expires'] = '0'
+                        return response
+                    except Exception as template_error:
+                        print(f"Error rendering template: {str(template_error)}")
+                        import traceback
+                        traceback.print_exc()
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="An error occurred while rendering the lineup escrow view.",
+                                             session_data=session_data)
+            except Exception as db_error:
+                print(f"Database error in lineup escrow view: {str(db_error)}")
+                import traceback
+                traceback.print_exc()
+                # Create minimal session data for error template
+                session_data = _create_minimal_session_data()
+                return render_template("mobile/lineup_escrow_error.html", 
+                                     error="Database error occurred while loading the lineup escrow.",
+                                     session_data=session_data)
                                      
         except Exception as e:
             print(f"Error serving lineup escrow view: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Create minimal session data for error template
+            session_data = _create_minimal_session_data()
             return render_template("mobile/lineup_escrow_error.html", 
-                                 error="An error occurred while loading the lineup escrow.")
+                                 error="An error occurred while loading the lineup escrow.",
+                                 session_data=session_data)
 
     @app.route("/mobile/lineup-escrow-opposing/<escrow_token>", methods=["GET"])
     def serve_mobile_lineup_escrow_opposing(escrow_token):
@@ -1206,17 +1270,11 @@ def init_lineup_routes(app):
                     
                     # If both lineups are already visible, redirect to view page
                     if both_lineups_visible:
-                        return redirect(f"/mobile/lineup-escrow/view/{escrow_token}?contact={viewer_contact}")
+                        return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={viewer_contact}")
                     
                     # Render the opposing captain template
                     # Create minimal session data for non-authenticated users
-                    session_data = {
-                        "user": {
-                            "is_admin": False,
-                            "tenniscores_player_id": None
-                        }, 
-                        "authenticated": False
-                    }
+                    session_data = _create_minimal_session_data()
                     # Add cache-busting headers to prevent caching issues
                     response = make_response(render_template(
                         "mobile/lineup_escrow_opposing_captain.html",
@@ -1233,4 +1291,6 @@ def init_lineup_routes(app):
                     
         except Exception as e:
             print(f"Error serving lineup escrow opposing page: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
