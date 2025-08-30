@@ -12,7 +12,7 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
     
     <!-- Cache Control Meta Tags -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -59,6 +59,10 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="format-detection" content="telephone=no">
+    
+    <!-- iOS Icon Cache Control -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://lovetorally.com{{ request.path }}">
