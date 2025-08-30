@@ -899,8 +899,8 @@ def init_lineup_routes(app):
         try:
             viewer_contact = request.args.get("contact", "")
             
-            if not viewer_contact:
-                return jsonify({"error": "contact parameter is required"}), 400
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
             
             with SessionLocal() as db_session:
                 escrow_service = LineupEscrowService(db_session)
@@ -1157,19 +1157,16 @@ def init_lineup_routes(app):
     def serve_lineup_escrow_view(escrow_token):
         """Serve the lineup escrow view page"""
         try:
-            # Get viewer contact from query parameter
+            # Get viewer contact from query parameter (optional for originating captains)
             viewer_contact = request.args.get("contact", "")
             
-            if not viewer_contact:
-                # Create minimal session data for error template
-                session_data = _create_minimal_session_data()
-                return render_template("mobile/lineup_escrow_error.html", 
-                                     error="Contact information is required to view this lineup escrow.",
-                                     session_data=session_data)
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
             
             try:
                 with SessionLocal() as db_session:
                     escrow_service = LineupEscrowService(db_session)
+                    # Pass viewer_contact (might be empty for originating captains)
                     result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
                     
                     if not result["success"]:
@@ -1256,8 +1253,8 @@ def init_lineup_routes(app):
         try:
             viewer_contact = request.args.get("contact", "")
             
-            if not viewer_contact:
-                return jsonify({"error": "contact parameter is required"}), 400
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
             
             with SessionLocal() as db_session:
                 escrow_service = LineupEscrowService(db_session)
@@ -1270,7 +1267,11 @@ def init_lineup_routes(app):
                     
                     # If both lineups are already visible, redirect to view page
                     if both_lineups_visible:
-                        return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={viewer_contact}")
+                        # Only include contact parameter if it exists
+                        if viewer_contact and viewer_contact.strip():
+                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={viewer_contact}")
+                        else:
+                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}")
                     
                     # Render the opposing captain template
                     # Create minimal session data for non-authenticated users

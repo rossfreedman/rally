@@ -258,27 +258,19 @@ class LineupEscrowService:
         
         return cleaned
 
-    def get_escrow_details(self, escrow_token: str, viewer_contact: str) -> Dict:
+    def get_escrow_details(self, escrow_token: str, viewer_contact: str = None) -> Dict:
         """
         Get escrow details for viewing
         
         Args:
             escrow_token: The escrow token
-            viewer_contact: Contact info of the viewer
+            viewer_contact: Contact info of the viewer (optional for originating captains)
             
         Returns:
             Dict with escrow details and lineup visibility
         """
         try:
-            # Validate viewer contact
-            if not viewer_contact or not viewer_contact.strip():
-                logger.warning(f"Missing or empty viewer contact for escrow token: {escrow_token}")
-                return {
-                    "success": False,
-                    "error": "Contact information is required to view this lineup escrow"
-                }
-            
-            # Validate escrow token
+            # Validate escrow token first
             if not escrow_token or not escrow_token.strip():
                 logger.warning("Empty escrow token provided")
                 return {
@@ -297,20 +289,29 @@ class LineupEscrowService:
                     "error": "Escrow session not found"
                 }
             
-            # Validate that viewer contact matches recipient contact
-            if escrow.recipient_contact != viewer_contact.strip():
-                logger.warning(f"Contact mismatch for escrow {escrow.id}: expected '{escrow.recipient_contact}', got '{viewer_contact.strip()}'")
-                return {
-                    "success": False,
-                    "error": "Contact information does not match this escrow session"
-                }
+            # If no viewer contact provided, this is likely the originating captain
+            # Allow them to view the escrow directly
+            if not viewer_contact or not viewer_contact.strip():
+                logger.info(f"No viewer contact provided for escrow {escrow.id}, treating as originating captain")
+                viewer_contact = "originating_captain"
+            else:
+                # Validate that viewer contact matches recipient contact
+                if escrow.recipient_contact != viewer_contact.strip():
+                    logger.warning(f"Contact mismatch for escrow {escrow.id}: expected '{escrow.recipient_contact}', got '{viewer_contact.strip()}'")
+                    return {
+                        "success": False,
+                        "error": "Contact information does not match this escrow session"
+                    }
             
-            # Record view
-            try:
-                self._record_view(escrow.id, viewer_contact)
-            except Exception as e:
-                logger.warning(f"Failed to record view for escrow {escrow.id}: {str(e)}")
-                # Continue without recording the view
+
+            
+            # Record view (skip for originating captain to avoid confusion)
+            if viewer_contact != "originating_captain":
+                try:
+                    self._record_view(escrow.id, viewer_contact)
+                except Exception as e:
+                    logger.warning(f"Failed to record view for escrow {escrow.id}: {str(e)}")
+                    # Continue without recording the view
             
             # Get team and club information
             initiator_team_name = "Unknown Team"
@@ -358,7 +359,8 @@ class LineupEscrowService:
                         "initiator_club_name": initiator_club_name or "Unknown Club",
                         "recipient_club_name": recipient_club_name or "Unknown Club",
                         "initiator_team_id": escrow.initiator_team_id,
-                        "recipient_team_id": escrow.recipient_team_id
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": True
                 }
@@ -381,7 +383,8 @@ class LineupEscrowService:
                         "initiator_club_name": initiator_club_name or "Unknown Club",
                         "recipient_club_name": recipient_club_name or "Unknown Club",
                         "initiator_team_id": escrow.initiator_team_id,
-                        "recipient_team_id": escrow.recipient_team_id
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": False
                 }
@@ -403,7 +406,8 @@ class LineupEscrowService:
                         "initiator_club_name": initiator_club_name or "Unknown Club",
                         "recipient_club_name": recipient_club_name or "Unknown Club",
                         "initiator_team_id": escrow.initiator_team_id,
-                        "recipient_team_id": escrow.recipient_team_id
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": True
                 }

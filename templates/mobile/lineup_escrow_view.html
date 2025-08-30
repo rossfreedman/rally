@@ -17,10 +17,18 @@
                     Lineup Escrow<span class="align-super text-xs ml-1">™</span> Results
                 </h1>
                 <p class="text-sm text-gray-500">
-                    {% if both_lineups_visible %}
-                        Both lineups are now visible
+                    {% if escrow_data.viewer_type == 'originating_captain' %}
+                        {% if both_lineups_visible %}
+                            Your lineup escrow is complete
+                        {% else %}
+                            Waiting for opponent's lineup
+                        {% endif %}
                     {% else %}
-                        Waiting for both lineups
+                        {% if both_lineups_visible %}
+                            Both lineups are now visible
+                        {% else %}
+                            Waiting for both lineups
+                        {% endif %}
                     {% endif %}
                 </p>
             </div>
@@ -100,7 +108,11 @@
             <div class="p-6">
                 <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-400">
                     <p class="text-sm text-green-800 font-medium">
-                        Below are both lineups. Have a great match!
+                        {% if escrow_data.viewer_type == 'originating_captain' %}
+                            Your lineup escrow is ready! Both lineups are visible below.
+                        {% else %}
+                            Below are both lineups. Have a great match!
+                        {% endif %}
                     </p>
                 </div>
             </div>
