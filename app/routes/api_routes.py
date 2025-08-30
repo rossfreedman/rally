@@ -4866,7 +4866,7 @@ def handle_player_season_tracking():
             """
             team_members = execute_query(team_members_query, [team_id])
 
-            # Get existing tracking data for these players
+            # Get existing tracking data for these players - NOW FILTERED BY TEAM
             if team_members and league_id_int:
                 player_ids = [
                     member["tenniscores_player_id"] for member in team_members
@@ -4944,7 +4944,7 @@ def handle_player_season_tracking():
             if not team_id:
                 return jsonify({"error": "No team found for user"}), 400
 
-            # Use UPSERT to insert or update the tracking record
+            # Use UPSERT to insert or update the tracking record - NOW INCLUDES TEAM_ID
             upsert_query = f"""
                 INSERT INTO player_season_tracking (player_id, team_id, league_id, {tracking_type})
                 VALUES (%s, %s, %s, %s)

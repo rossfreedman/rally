@@ -759,13 +759,14 @@ class PlayerSeasonTracking(Base):
     """
     Season-specific tracking statistics for players
     Tracks forced byes, unavailability, and injury counts per season
+    NOW SUPPORTS TEAM-SPECIFIC TRACKING for players with multiple teams in same league
     """
 
     __tablename__ = "player_season_tracking"
 
     id = Column(Integer, primary_key=True)
     player_id = Column(String(255), nullable=False)  # tenniscores_player_id
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)  # Team-specific tracking
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)  # NEW: Team-specific tracking
     league_id = Column(Integer, ForeignKey("leagues.id"))
     season_year = Column(Integer, nullable=False)  # e.g., 2024, 2025
     forced_byes = Column(Integer, default=0)
@@ -778,13 +779,13 @@ class PlayerSeasonTracking(Base):
 
     # Relationships
     league = relationship("League")
-    team = relationship("Team")  # Team relationship
+    team = relationship("Team")  # NEW: Relationship to teams table
 
     # Constraints
     __table_args__ = (
         UniqueConstraint(
             "player_id",
-            "team_id",
+            "team_id",  # Team-specific tracking
             "league_id",
             name="unique_player_season_tracking",
         ),
