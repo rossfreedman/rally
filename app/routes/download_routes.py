@@ -103,6 +103,8 @@ def calendar_download_page():
         logger.info(f"Calendar download page - Session keys: {list(session.keys())}")
         logger.info(f"Calendar download page - Session data: {dict(session)}")
         logger.info(f"Calendar download page - Request cookies: {dict(request.cookies)}")
+        logger.info(f"Calendar download page - User agent: {request.headers.get('User-Agent', 'Unknown')}")
+        logger.info(f"Calendar download page - Referer: {request.headers.get('Referer', 'No referer')}")
         
         session_data = get_session_data_for_user(user["email"])
         logger.info(f"Calendar download page - Session data retrieved: {session_data.get('email') if session_data else 'None'}")
@@ -276,6 +278,54 @@ def download_season_calendar():
     except Exception as e:
         logger.error(f"Error generating calendar: {str(e)}")
         return jsonify({"error": "Failed to generate calendar"}), 500
+
+
+@download_bp.route("/cal/mobile-session-setup")
+def mobile_session_setup():
+    """
+    Route to help mobile users establish a session before downloading.
+    This should be called from the mobile availability page.
+    """
+    try:
+        from flask import make_response, jsonify, redirect, url_for
+        
+        # Check if user is already authenticated
+        if "user" in session and session["user"]:
+            logger.info(f"Mobile session setup - User already authenticated: {session['user'].get('email', 'Unknown')}")
+            # Redirect to calendar download page
+            return redirect(url_for('download.calendar_download_page'))
+        
+        # Check if this is a mobile request
+        is_mobile = 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', '')
+        
+        if not is_mobile:
+            return jsonify({"error": "This route is for mobile users only"}), 400
+        
+        # Try to establish a mobile session
+        logger.info("Mobile session setup - Attempting to establish session")
+        
+        # Check if we have any authentication tokens or referer info
+        referer = request.headers.get('Referer', '')
+        if 'mobile/availability' in referer:
+            logger.info(f"Mobile session setup - Valid referer: {referer}")
+            # This is a valid mobile flow, try to redirect to login or establish session
+            return redirect(url_for('mobile.serve_mobile_availability'))
+        
+        # If no valid referer, provide instructions
+        return jsonify({
+            "message": "Mobile session setup required",
+            "instructions": [
+                "1. Go to the mobile availability page first",
+                "2. Make sure you're logged in",
+                "3. Then click the download button"
+            ],
+            "mobile_availability_url": url_for('mobile.serve_mobile_availability'),
+            "is_mobile": True
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in mobile session setup: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @download_bp.route("/cal/mobile-auth-test")

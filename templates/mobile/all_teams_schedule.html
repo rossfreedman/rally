@@ -421,7 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = formatDateString(date);
             if (eventInfo.type === 'Practice') {
                 option.textContent += ' - Practice';
+            } else if (eventInfo.type === 'Match' && eventInfo.home_team && eventInfo.away_team) {
+                // Show full matchup: "Valley Lo 22 vs. Tennaqua 22"
+                option.textContent += ' - ' + eventInfo.home_team + ' vs. ' + eventInfo.away_team;
             } else if (eventInfo.type === 'Match' && eventInfo.opponent) {
+                // Fallback to opponent if full matchup not available
                 option.textContent += ' - Match vs ' + eventInfo.opponent;
             } else if (eventInfo.type === 'Match') {
                 option.textContent += ' - Match';
