@@ -222,8 +222,6 @@ app.config.update(
     # Mobile compatibility settings
     SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
     SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
-    # Additional mobile settings
-    SESSION_COOKIE_SAMESITE="None" if not is_development else "Lax",  # Allow cross-site on production
 )
 
 # Register blueprints
