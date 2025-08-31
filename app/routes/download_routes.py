@@ -58,11 +58,11 @@ def login_required(f):
                 
                 # Check if this is a direct access to the calendar download
                 if request.path == '/cal/season-download.ics':
-                    logger.warning("Mobile direct access to calendar download detected - redirecting to mobile flow")
+                    logger.warning("Mobile direct access to calendar download detected - redirecting to calendar download page")
                     from flask import redirect, url_for
                     
-                    # Redirect to mobile session setup instead of showing error
-                    return redirect(url_for('download.mobile_session_setup'))
+                    # Redirect to calendar download page instead of mobile session setup
+                    return redirect(url_for('download.calendar_download_page'))
                 
                 # For other mobile routes, return a mobile-specific error message
                 return jsonify({
