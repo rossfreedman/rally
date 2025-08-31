@@ -245,6 +245,9 @@ app.config.update(
     SESSION_COOKIE_NAME="rally_session",
     SESSION_COOKIE_PATH="/",
     SESSION_REFRESH_EACH_REQUEST=True,
+    # Mobile compatibility settings
+    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
+    SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
 )
 
 # Configure CORS

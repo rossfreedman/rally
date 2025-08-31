@@ -36,6 +36,9 @@ def login_required(f):
         # Check if user exists in session
         if "user" not in session:
             logger.warning(f"Authentication failed: No user in session. Session keys: {list(session.keys())}")
+            logger.warning(f"Authentication failed: Session data: {dict(session)}")
+            logger.warning(f"Authentication failed: Request cookies: {dict(request.cookies)}")
+            logger.warning(f"Authentication failed: Session cookie: {request.cookies.get('rally_session', 'Not found')}")
             return jsonify({"error": "Authentication required"}), 401
         
         user = session["user"]
@@ -100,12 +103,17 @@ def download_season_calendar():
         logger.info(f"Download route - Request cookies: {dict(request.cookies)}")
         logger.info(f"Download route - Session cookie name: {request.cookies.get('rally_session', 'Not found')}")
         logger.info(f"Download route - All session cookies: {[k for k in request.cookies.keys() if 'session' in k.lower()]}")
+        logger.info(f"Download route - All cookies: {list(request.cookies.keys())}")
+        logger.info(f"Download route - Cookie values: {[(k, v[:50] + '...' if len(v) > 50 else v) for k, v in request.cookies.items()]}")
         logger.info(f"Download route - Session object type: {type(session)}")
         logger.info(f"Download route - Session object dir: {dir(session)}")
         logger.info(f"Download route - Session permanent: {getattr(session, '_permanent', 'Not found')}")
         logger.info(f"Download route - Session modified: {getattr(session, '_modified', 'Not found')}")
         logger.info(f"Download route - Session new: {getattr(session, '_new', 'Not found')}")
         logger.info(f"Download route - Session invalid: {getattr(session, '_invalid', 'Not found')}")
+        logger.info(f"Download route - Session cookie domain: {getattr(session, '_domain', 'Not found')}")
+        logger.info(f"Download route - Session cookie path: {getattr(session, '_path', 'Not found')}")
+        logger.info(f"Download route - Session cookie secure: {getattr(session, '_secure', 'Not found')}")
         
         user = session["user"]
         user_id = user.get("id")
@@ -123,6 +131,22 @@ def download_season_calendar():
                 user = session["user"]
                 user_id = user.get("id") if user else None
                 logger.info(f"Fallback 2 - User from session['user']: {user}")
+            
+            # Mobile-specific fallback: check if this is a mobile request
+            if not user_id and 'iPhone' in request.headers.get('User-Agent', ''):
+                logger.warning("Mobile iPhone detected - checking for mobile session issues")
+                # Try to get session from different cookie names
+                for cookie_name in request.cookies.keys():
+                    if 'session' in cookie_name.lower():
+                        logger.info(f"Found potential session cookie: {cookie_name}")
+                        # Try to decode the session cookie
+                        try:
+                            import base64
+                            cookie_value = request.cookies.get(cookie_name)
+                            if cookie_value:
+                                logger.info(f"Session cookie value: {cookie_value[:100]}...")
+                        except Exception as e:
+                            logger.error(f"Error decoding session cookie: {e}")
         
         if not user_id:
             logger.error(f"User ID not found in session after fallbacks. User data: {user}")
