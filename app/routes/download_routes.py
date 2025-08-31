@@ -9,7 +9,7 @@ import re
 from datetime import datetime, date, time, timedelta
 from functools import wraps
 
-from flask import Blueprint, Response, session, request, jsonify
+from flask import Blueprint, Response, session, request, jsonify, redirect
 from icalendar import Calendar, Event
 import pytz
 
