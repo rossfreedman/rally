@@ -25,76 +25,19 @@ logger = logging.getLogger(__name__)
 
 
 def login_required(f):
-    """Decorator to require authentication"""
+    """Decorator to require authentication - same as other Rally pages"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Debug session information
-        logger.info(f"Login required check - Session keys: {list(session.keys())}")
-        logger.info(f"Login required check - Session data: {dict(session)}")
-        logger.info(f"Login required check - Request headers: {dict(request.headers)}")
-        
-        # Check if user exists in session
+        # Check if user exists in session (same logic as other pages)
         if "user" not in session:
-            logger.warning(f"Authentication failed: No user in session. Session keys: {list(session.keys())}")
-            logger.warning(f"Authentication failed: Session data: {dict(session)}")
-            logger.warning(f"Authentication failed: Request cookies: {dict(request.cookies)}")
-            logger.warning(f"Authentication failed: Session cookie: {request.cookies.get('rally_session', 'Not found')}")
-            
-            # Mobile fallback: try to get user from mobile-specific headers or tokens
-            if 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''):
-                logger.warning("Mobile authentication fallback - checking for alternative auth methods")
-                
-                # Check if there's a mobile-specific authentication header
-                mobile_auth = request.headers.get('X-Mobile-Auth', None)
-                if mobile_auth:
-                    logger.info(f"Found mobile auth header: {mobile_auth}")
-                    # TODO: Implement mobile-specific authentication logic
-                
-                # Check if we can get user from referer or other mobile-specific data
-                referer = request.headers.get('Referer', '')
-                if referer and 'mobile' in referer.lower():
-                    logger.info(f"Mobile referer detected: {referer}")
-                    # TODO: Implement referer-based authentication for mobile
-                
-                # Check if this is a direct access to the calendar download
-                if request.path == '/cal/season-download.ics':
-                    logger.warning("Mobile direct access to calendar download detected - redirecting to calendar download page")
-                    from flask import redirect, url_for
-                    
-                    # Redirect to calendar download page instead of mobile session setup
-                    return redirect(url_for('download.calendar_download_page'))
-                
-                # For other mobile routes, return a mobile-specific error message
-                return jsonify({
-                    "error": "Mobile authentication required",
-                    "message": "Please follow the proper mobile flow to download your calendar.",
-                    "mobile_specific": True,
-                    "debug_info": {
-                        "user_agent": request.headers.get('User-Agent', 'Unknown'),
-                        "cookies_sent": len(request.cookies),
-                        "referer": request.headers.get('Referer', 'No referer'),
-                        "suggested_fix": "Go to mobile availability page first, then click Download button"
-                    },
-                    "instructions": [
-                        "1. Go to the mobile availability page: /mobile/availability",
-                        "2. Make sure you're logged in",
-                        "3. Click the 'Download' button in the green banner",
-                        "4. This will establish your mobile session properly"
-                    ],
-                    "correct_url": "/mobile/availability"
-                }), 401
-            
             return jsonify({"error": "Authentication required"}), 401
         
         user = session["user"]
-        logger.info(f"Login required check - User from session: {user}")
         
-        # Check if user has required fields
+        # Check if user has required fields (same validation as other pages)
         if not user or not user.get("id") or not user.get("email"):
-            logger.warning(f"Authentication failed: Invalid user data. User: {user}")
             return jsonify({"error": "Invalid user session"}), 401
             
-        logger.info(f"Authentication successful for user: {user.get('email')}")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -114,15 +57,8 @@ def calendar_download_page():
         
         # Get session data for the user (required by mobile layout)
         user = session["user"]
-        logger.info(f"Calendar download page - User session: {user.get('email') if user else 'None'}")
-        logger.info(f"Calendar download page - Session keys: {list(session.keys())}")
-        logger.info(f"Calendar download page - Session data: {dict(session)}")
-        logger.info(f"Calendar download page - Request cookies: {dict(request.cookies)}")
-        logger.info(f"Calendar download page - User agent: {request.headers.get('User-Agent', 'Unknown')}")
-        logger.info(f"Calendar download page - Referer: {request.headers.get('Referer', 'No referer')}")
         
         session_data = get_session_data_for_user(user["email"])
-        logger.info(f"Calendar download page - Session data retrieved: {session_data.get('email') if session_data else 'None'}")
         
         # Wrap session data in the structure expected by mobile layout template
         template_data = {
@@ -146,91 +82,11 @@ def download_season_calendar():
         Response: .ics file with practices and matches for the current season
     """
     try:
-        # Additional session debugging for mobile
-        logger.info(f"Download route - Session keys: {list(session.keys())}")
-        logger.info(f"Download route - Session user: {session.get('user')}")
-        logger.info(f"Download route - Request user agent: {request.headers.get('User-Agent', 'Unknown')}")
-        logger.info(f"Download route - Request cookies: {dict(request.cookies)}")
-        logger.info(f"Download route - Session cookie name: {request.cookies.get('rally_session', 'Not found')}")
-        logger.info(f"Download route - All session cookies: {[k for k in request.cookies.keys() if 'session' in k.lower()]}")
-        logger.info(f"Download route - All cookies: {list(request.cookies.keys())}")
-        logger.info(f"Download route - Cookie values: {[(k, v[:50] + '...' if len(v) > 50 else v) for k, v in request.cookies.items()]}")
-        logger.info(f"Download route - Session object type: {type(session)}")
-        logger.info(f"Download route - Session object dir: {dir(session)}")
-        logger.info(f"Download route - Session permanent: {getattr(session, '_permanent', 'Not found')}")
-        logger.info(f"Download route - Session modified: {getattr(session, '_modified', 'Not found')}")
-        logger.info(f"Download route - Session new: {getattr(session, '_new', 'Not found')}")
-        logger.info(f"Download route - Session invalid: {getattr(session, '_invalid', 'Not found')}")
-        logger.info(f"Download route - Session cookie domain: {getattr(session, '_domain', 'Not found')}")
-        logger.info(f"Download route - Session cookie path: {getattr(session, '_path', 'Not found')}")
-        logger.info(f"Download route - Session cookie secure: {getattr(session, '_secure', 'Not found')}")
-        
-        # Check if this is a mobile request and log additional info
-        if 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''):
-            logger.warning("MOBILE REQUEST DETECTED - Enhanced mobile debugging")
-            logger.warning(f"Mobile - Referer: {request.headers.get('Referer', 'No referer')}")
-            logger.warning(f"Mobile - Origin: {request.headers.get('Origin', 'No origin')}")
-            logger.warning(f"Mobile - Accept: {request.headers.get('Accept', 'No accept')}")
-            logger.warning(f"Mobile - Sec-Fetch-Site: {request.headers.get('Sec-Fetch-Site', 'No sec-fetch-site')}")
-            logger.warning(f"Mobile - Sec-Fetch-Mode: {request.headers.get('Sec-Fetch-Mode', 'No sec-fetch-mode')}")
-            logger.warning(f"Mobile - Sec-Fetch-Dest: {request.headers.get('Sec-Fetch-Dest', 'No sec-fetch-dest')}")
-            
-            # Check if this is a direct access (no referer from mobile pages)
-            if not request.headers.get('Referer') or 'mobile' not in request.headers.get('Referer', '').lower():
-                logger.error("MOBILE DIRECT ACCESS DETECTED - User bypassed mobile flow!")
-                logger.error("This should not happen - user should go through /cal/mobile-session-setup first")
-                logger.error("Check if the mobile availability page link was updated correctly")
-        
+        # Get user from session (same as other Rally pages)
         user = session["user"]
         user_id = user.get("id")
         
-        # Fallback: try to get user from session in different ways
         if not user_id:
-            logger.warning(f"User ID not found in session, trying fallback methods")
-            # Try alternative session access methods
-            if hasattr(session, 'get'):
-                user = session.get("user")
-                user_id = user.get("id") if user else None
-                logger.info(f"Fallback 1 - User from session.get: {user}")
-            
-            if not user_id and "user" in session:
-                user = session["user"]
-                user_id = user.get("id") if user else None
-                logger.info(f"Fallback 2 - User from session['user']: {user}")
-            
-                    # Mobile-specific fallback: check if this is a mobile request
-        if not user_id and 'iPhone' in request.headers.get('User-Agent', ''):
-            logger.warning("Mobile iPhone detected - checking for mobile session issues")
-            # Try to get session from different cookie names
-            for cookie_name in request.cookies.keys():
-                if 'session' in cookie_name.lower():
-                    logger.info(f"Found potential session cookie: {cookie_name}")
-                    # Try to decode the session cookie
-                    try:
-                        import base64
-                        cookie_value = request.cookies.get(cookie_name)
-                        if cookie_value:
-                            logger.info(f"Session cookie value: {cookie_value[:100]}...")
-                    except Exception as e:
-                        logger.error(f"Error decoding session cookie: {e}")
-            
-            # Check if session was created but not persisted
-            logger.warning("Mobile session debugging - checking session persistence")
-            logger.warning(f"Session permanent: {getattr(session, '_permanent', 'Not found')}")
-            logger.warning(f"Session modified: {getattr(session, '_modified', 'Not found')}")
-            logger.warning(f"Session new: {getattr(session, '_new', 'Not found')}")
-            
-            # Try to manually set a test session value
-            try:
-                session['mobile_test'] = 'test_value'
-                session.modified = True
-                logger.warning("Manually set mobile test session value")
-            except Exception as e:
-                logger.error(f"Error setting mobile test session: {e}")
-        
-        if not user_id:
-            logger.error(f"User ID not found in session after fallbacks. User data: {user}")
-            logger.error(f"Session type: {type(session)}, Session content: {dict(session)}")
             return jsonify({"error": "User ID not found in session"}), 400
         
         # Get date range for upcoming events (next 6 months instead of fixed season)
@@ -301,184 +157,16 @@ def download_season_calendar():
         return jsonify({"error": "Failed to generate calendar"}), 500
 
 
-@download_bp.route("/cal/mobile-session-setup")
-def mobile_session_setup():
-    """
-    Route to help mobile users establish a session before downloading.
-    This should be called from the mobile availability page.
-    """
-    try:
-        from flask import make_response, jsonify, redirect, url_for
-        
-        # Check if user is already authenticated
-        if "user" in session and session["user"]:
-            logger.info(f"Mobile session setup - User already authenticated: {session['user'].get('email', 'Unknown')}")
-            # Redirect to calendar download page
-            return redirect(url_for('download.calendar_download_page'))
-        
-        # Check if this is a mobile request
-        is_mobile = 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', '')
-        
-        logger.info(f"Mobile session setup - Request from: {request.headers.get('User-Agent', 'Unknown')}")
-        logger.info(f"Mobile session setup - Is mobile: {is_mobile}")
-        logger.info(f"Mobile session setup - Referer: {request.headers.get('Referer', 'No referer')}")
-        logger.info(f"Mobile session setup - Session keys: {list(session.keys())}")
-        
-        if not is_mobile:
-            return jsonify({"error": "This route is for mobile users only"}), 400
-        
-        # Try to establish a mobile session
-        logger.info("Mobile session setup - Attempting to establish session")
-        
-        # Check if we have any authentication tokens or referer info
-        referer = request.headers.get('Referer', '')
-        if 'mobile/availability' in referer:
-            logger.info(f"Mobile session setup - Valid referer: {referer}")
-            # This is a valid mobile flow, redirect to calendar download page
-            return redirect(url_for('download.calendar_download_page'))
-        
-        # If no valid referer, provide instructions
-        logger.warning(f"Mobile session setup - Invalid referer: {referer}")
-        logger.warning("User did not follow proper mobile flow - providing instructions")
-        
-        return jsonify({
-            "message": "Mobile session setup required",
-            "instructions": [
-                "1. Go to the mobile availability page first: /mobile/availability",
-                "2. Make sure you're logged in",
-                "3. Then click the download button in the green banner",
-                "4. This will establish your mobile session properly"
-            ],
-            "mobile_availability_url": url_for('mobile.serve_mobile_availability'),
-            "correct_flow": "/mobile/availability → Click Download → Calendar Download",
-            "is_mobile": True,
-            "error": "Invalid mobile flow - please follow the instructions above"
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in mobile session setup: {str(e)}")
-        return jsonify({"error": str(e)}), 500
 
 
-@download_bp.route("/cal/mobile-auth-test")
-def mobile_auth_test():
-    """
-    Test route specifically for mobile authentication debugging.
-    """
-    try:
-        from flask import make_response, jsonify
-        
-        # Log all request information for mobile debugging
-        mobile_info = {
-            "user_agent": request.headers.get('User-Agent', 'Unknown'),
-            "is_mobile": 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''),
-            "cookies": dict(request.cookies),
-            "headers": dict(request.headers),
-            "session_keys": list(session.keys()),
-            "session_data": dict(session),
-            "referer": request.headers.get('Referer', 'No referer'),
-            "origin": request.headers.get('Origin', 'No origin'),
-            "host": request.headers.get('Host', 'No host'),
-            "x_forwarded_proto": request.headers.get('X-Forwarded-Proto', 'No protocol'),
-            "cf_visitor": request.headers.get('Cf-Visitor', 'No cloudflare info')
-        }
-        
-        # Try to set a test session value
-        try:
-            session['mobile_test'] = 'mobile_session_test'
-            session['test_time'] = str(datetime.now())
-            session.modified = True
-            mobile_info["session_set_success"] = True
-            mobile_info["session_test_value"] = session.get('mobile_test', 'Not set')
-        except Exception as e:
-            mobile_info["session_set_success"] = False
-            mobile_info["session_set_error"] = str(e)
-        
-        # Create response with mobile debugging info
-        response = make_response(jsonify(mobile_info))
-        
-        # Try to set multiple types of cookies for testing
-        try:
-            # Test cookie 1: Basic cookie
-            response.set_cookie(
-                'test_mobile_basic',
-                'basic_test_value',
-                max_age=3600,
-                secure=False,  # Try without secure first
-                httponly=False,
-                samesite='Lax'
-            )
-            
-            # Test cookie 2: Secure cookie (like production)
-            response.set_cookie(
-                'test_mobile_secure',
-                'secure_test_value',
-                max_age=3600,
-                secure=True,
-                httponly=False,
-                samesite='Lax'
-            )
-            
-            # Test cookie 3: Session-like cookie
-            response.set_cookie(
-                'test_mobile_session',
-                'session_test_value',
-                max_age=3600,
-                secure=True,
-                httponly=True,
-                samesite='Lax'
-            )
-            
-            mobile_info["cookies_set"] = True
-        except Exception as e:
-            mobile_info["cookies_set"] = False
-            mobile_info["cookies_error"] = str(e)
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error in mobile auth test route: {str(e)}")
-        return jsonify({"error": str(e)}), 500
 
 
-@download_bp.route("/cal/test-session")
-def test_session_setting():
-    """
-    Test route to check if session cookies can be set on mobile.
-    """
-    try:
-        from flask import make_response
-        
-        # Try to set a test session value
-        session['test_mobile'] = 'mobile_session_test'
-        session['test_time'] = str(datetime.now())
-        
-        # Create response with session debugging
-        response_data = {
-            "session_keys": list(session.keys()),
-            "session_data": dict(session),
-            "cookies_sent": dict(request.cookies),
-            "user_agent": request.headers.get('User-Agent', 'Unknown'),
-            "test_value_set": session.get('test_mobile', 'Not set')
-        }
-        
-        response = make_response(jsonify(response_data))
-        
-        # Try to explicitly set a test cookie
-        response.set_cookie(
-            'test_mobile_cookie',
-            'mobile_test_value',
-            max_age=3600,
-            secure=True,
-            httponly=False,  # Allow JavaScript access for testing
-            samesite='Lax'
-        )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error in test session route: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+
+
+
+
+
+
 
 
 @download_bp.route("/cal/debug")
