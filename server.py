@@ -22,6 +22,7 @@ print("🚀 Starting Rally application...")
 
 import json
 import logging
+import secrets
 import sys
 from datetime import datetime, timedelta
 

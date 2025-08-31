@@ -120,9 +120,9 @@ class WeatherService:
             
             # Fallback for Tennaqua location
             if 'tennaqua' in location.lower():
-                logger.info(f"Tennaqua geocoding failed, trying fallback: Deerfield, IL, US")
+                logger.info(f"Tennaqua geocoding failed, trying fallback: Deerfield, Illinois, US")
                 fallback_params = {
-                    'q': 'Deerfield, IL, US',
+                    'q': 'Deerfield, Illinois, US',
                     'limit': 1,
                     'appid': self.api_key
                 }

@@ -9365,14 +9365,14 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             if next_practice:
                 weather_entries.append({
                     'id': f"practice_{next_practice['id']}",
-                    'location': next_practice.get('club_address') or next_practice.get('location') or f"{user_club}, IL",
+                    'location': next_practice.get('club_address') or next_practice.get('location') or f"{user_club}, Illinois, US",
                     'match_date': next_practice['match_date'].strftime('%Y-%m-%d')
                 })
             
             if next_match:
                 weather_entries.append({
                     'id': f"match_{next_match['id']}",
-                    'location': next_match.get('club_address') or next_match.get('location') or f"{user_club}, IL",
+                    'location': next_match.get('club_address') or next_match.get('location') or f"{user_club}, Illinois, US",
                     'match_date': next_match['match_date'].strftime('%Y-%m-%d')
                 })
             
