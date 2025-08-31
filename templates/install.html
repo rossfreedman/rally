@@ -1,0 +1,286 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Install Rally{% endblock %}
+
+
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #166534 !important;">
+                <i class="fas fa-download text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Add Rally to your Home Screen</h1>
+                <p class="text-sm text-gray-500">Three clicks to add Rally to your home screen.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="flex">
+                <button id="iphoneTab" class="flex-1 py-4 px-6 text-center font-medium text-blue-600 bg-blue-50 border-b-2 border-blue-600" onclick="switchTab('iphone')">
+                    <i class="fab fa-apple mr-2"></i>
+                    iPhone
+                </button>
+                <button id="androidTab" class="flex-1 py-4 px-6 text-center font-medium text-gray-500 bg-white border-b-2 border-transparent" onclick="switchTab('android')">
+                    <i class="fab fa-android mr-2"></i>
+                    Android
+                </button>
+            </div>
+        </div>
+
+        <!-- iPhone Content (Default) -->
+        <div id="iphoneContent" class="space-y-6">
+            <!-- How to add Rally card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fab fa-apple text-gray-700 mr-2"></i>
+                        How to add Rally to your home screen:
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-2">This process takes about 20 seconds.</p>
+                </div>
+                
+                <div class="p-6 space-y-8">
+                    <!-- Step 1: Open Safari -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">1</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Open Safari and navigate to <span class="text-green-800 font-semibold">lovetorally.com/app</span></h3>
+                            <div class="flex flex-col items-center justify-center mt-2 space-y-2">
+                                <i class="fab fa-safari text-4xl text-blue-500"></i>
+                                <span class="text-sm text-gray-600">Safari browser</span>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtle separator -->
+                    <div class="flex justify-center">
+                        <div class="w-16 h-px bg-gray-200"></div>
+                    </div>
+
+                    <!-- Step 2: Share button -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">2</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Click the 'Share' button at the bottom of Safari</h3>
+                            <div class="flex justify-center mt-2">
+                                <div class="relative inline-block">
+                                                                    <img src="{{ url_for('static', filename='img/rally-safari-share.png') }}" 
+                                     alt="Safari Share button" 
+                                     class="w-32 h-auto rounded-lg border border-gray-200"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <!-- Red circle overlay -->
+                                    <div class="absolute top-1/2 left-1/2 w-16 h-16 border-4 border-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none animate-pulse"></div>
+                                </div>
+                                <div class="hidden text-gray-400 text-xs text-center">
+                                    <i class="fas fa-share text-2xl mb-1"></i>
+                                    <p>Safari Share button</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtle separator -->
+                    <div class="flex justify-center">
+                        <div class="w-16 h-px bg-gray-200"></div>
+                    </div>
+
+                    <!-- Step 3: Add to home screen -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">3</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Click Add to home screen</h3>
+                            <div class="flex justify-center mt-2">
+                                <img src="{{ url_for('static', filename='img/rally-safari.png') }}" 
+                                     alt="Add to home screen option" 
+                                     class="w-32 h-auto rounded-lg border border-gray-200"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="hidden text-gray-400 text-xs text-center">
+                                    <i class="fas fa-plus-square text-2xl mb-1"></i>
+                                    <p>Add to home screen</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Android Content (Hidden by default) -->
+        <div id="androidContent" class="space-y-6 hidden">
+            <!-- How to add Rally card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fab fa-android text-green-600 mr-2"></i>
+                        How to add Rally to your home screen:
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-2">This process takes about 20 seconds.</p>
+                </div>
+                
+                <div class="p-6 space-y-8">
+                    <!-- Step 1: Open Chrome -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">1</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Open Chrome</h3>
+                            <div class="flex flex-col items-center justify-center mt-2 space-y-2">
+                                <i class="fab fa-chrome text-4xl text-green-500"></i>
+                                <span class="text-sm text-gray-600">Chrome browser</span>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtle separator -->
+                    <div class="flex justify-center">
+                        <div class="w-16 h-px bg-gray-200"></div>
+                    </div>
+
+                    <!-- Step 2: Three-dot menu -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">2</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Tap the three-dot menu (⋮) in the top-right corner</h3>
+                            <div class="flex items-center justify-center mt-2">
+                                <i class="fas fa-ellipsis-v text-4xl text-green-500 mr-3"></i>
+                                <span class="text-sm text-gray-600">Menu button</span>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtle separator -->
+                    <div class="flex justify-center">
+                        <div class="w-16 h-px bg-gray-200"></div>
+                    </div>
+
+                    <!-- Step 3: Add to home screen -->
+                    <div class="flex flex-col items-center space-y-4">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #166534 !important;">
+                            <span class="text-white font-semibold text-sm">3</span>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="font-medium text-gray-900">Click Add to home screen</h3>
+                            <div class="flex justify-center mt-2">
+                                <img src="{{ url_for('static', filename='img/rally-safari.png') }}" 
+                                     alt="Add to home screen option" 
+                                     class="w-32 h-auto rounded-lg border border-gray-200"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="hidden text-gray-400 text-xs text-center">
+                                    <i class="fas fa-plus-square text-2xl mb-1"></i>
+                                    <p>Add to home screen</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Small separator -->
+                            <div class="flex justify-center mt-3">
+                                <div class="w-12 h-px bg-gray-200"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- What it looks like card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-image text-purple-500 mr-2"></i>
+                    What it looks like
+                </h2>
+            </div>
+            
+            <div class="p-6 text-center">
+                <p class="text-gray-600 mb-4">Your Rally icon will appear like this on your home screen</p>
+                
+                <div class="flex justify-center">
+                    <img src="{{ url_for('static', filename='img/rally-install-hero.png') }}" 
+                         alt="Rally icon on iPhone home screen" 
+                         class="w-32 h-auto rounded-xl border border-gray-200 shadow-sm"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-gray-400 text-sm">
+                        <i class="fas fa-mobile-alt text-4xl mb-2"></i>
+                        <p>Example image not found</p>
+                        <p class="text-xs">static/img/rally-install-hero.png</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(platform) {
+        // Hide all content
+        document.getElementById('iphoneContent').classList.add('hidden');
+        document.getElementById('androidContent').classList.add('hidden');
+        
+        // Remove active states from all tabs
+        document.getElementById('iphoneTab').classList.remove('text-blue-600', 'bg-blue-50', 'border-blue-600');
+        document.getElementById('iphoneTab').classList.add('text-gray-500', 'bg-white', 'border-transparent');
+        document.getElementById('androidTab').classList.remove('text-green-600', 'bg-green-50', 'border-green-600');
+        document.getElementById('androidTab').classList.add('text-gray-500', 'bg-white', 'border-transparent');
+        
+        // Show selected content and activate tab
+        if (platform === 'iphone') {
+            document.getElementById('iphoneContent').classList.remove('hidden');
+            document.getElementById('iphoneTab').classList.remove('text-gray-500', 'bg-white', 'border-transparent');
+            document.getElementById('iphoneTab').classList.add('text-blue-600', 'bg-blue-50', 'border-blue-600');
+        } else if (platform === 'android') {
+            document.getElementById('androidContent').classList.remove('hidden');
+            document.getElementById('androidTab').classList.remove('text-gray-500', 'bg-white', 'border-transparent');
+            document.getElementById('androidTab').classList.add('text-green-600', 'bg-green-50', 'border-green-600');
+        }
+    }
+
+    // Initialize with iPhone tab active
+    document.addEventListener('DOMContentLoaded', function() {
+        switchTab('iphone');
+    });
+</script>
+{% endblock %}

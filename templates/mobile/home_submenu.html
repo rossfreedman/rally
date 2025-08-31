@@ -823,6 +823,19 @@ function renderNotifications(notifications) {
             }
         ];
     }
+
+    // Add install notification if not dismissed
+    if (!localStorage.getItem('rally_install_notice_dismissed_v1')) {
+        const installNotification = {
+            id: "install_rally",
+            type: "install",
+            title: "Add Rally to your home screen",
+            message: "Open the guide to add a Rally icon to your phone for one-tap access.",
+            cta: { label: "Open guide", href: "/install" },
+            priority: 2
+        };
+        notifications.unshift(installNotification); // Add to beginning
+    }
     
     // Render each notification as detailed card
     console.log('About to render', notifications.length, 'notifications as detailed cards');
@@ -866,7 +879,12 @@ function createNotificationCard(notification, index) {
                 <!-- Icon -->
                 <div class="flex-shrink-0">
                     <div class="w-10 h-10 flex items-center justify-center">
-                        ${icon}
+                        ${notification.type === 'install' ? `
+                            <div class="flex items-center space-x-2">
+                                ${icon}
+                                <img src="/static/img/rally-app-icon.png" alt="Rally app icon preview" class="w-8 h-8 rounded-xl shadow-sm">
+                            </div>
+                        ` : icon}
                     </div>
                 </div>
                 
@@ -1360,7 +1378,10 @@ function getNotificationIcon(type) {
         'personal': starIcon,          // Personal notifications (win streaks) use star icon
         'team': trophyIcon,            // Team notifications (position) use trophy icon
         'schedule': scheduleIcon,      // Schedule notifications use calendar with clock icon
-        'poll': teamPollIcon           // Team poll notifications use survey icon
+        'poll': teamPollIcon,          // Team poll notifications use survey icon
+        'install': `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2"/>
+        </svg>`  // Install notifications use download/install icon
     };
     
     return icons[type] || captainIcon;

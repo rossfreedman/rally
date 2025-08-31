@@ -5033,6 +5033,14 @@ def serve_mobile_all_teams_schedule():
         )
 
 
+@mobile_bp.route("/install")
+def install():
+    """Serve the install page with iOS/Android instructions"""
+    # Ensure session data is available for template
+    session_data = {"user": session.get("user"), "authenticated": True}
+    return render_template("install.html", session_data=session_data)
+
+
 
 
 
