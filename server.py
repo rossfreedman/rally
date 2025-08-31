@@ -7,12 +7,21 @@ This is the main server file for the Rally platform tennis management applicatio
 Most routes have been moved to blueprints for better organization.
 """
 
+# Load environment variables from .env file FIRST, before any other imports
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# Debug environment variable loading
+print("=== Environment Variables Debug ===")
+print(f"OPENWEATHER_API_KEY: {'SET' if os.getenv('OPENWEATHER_API_KEY') else 'NOT SET'}")
+print(f"TWILIO_ACCOUNT_SID: {'SET' if os.getenv('TWILIO_ACCOUNT_SID') else 'NOT SET'}")
+print(f"SENDGRID_API_KEY: {'SET' if os.getenv('SENDGRID_API_KEY') else 'NOT SET'}")
+
 print("🚀 Starting Rally application...")
 
 import json
 import logging
-import os
-import secrets
 import sys
 from datetime import datetime, timedelta
 

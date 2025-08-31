@@ -59,14 +59,21 @@ def login_required(f):
                 # For now, return a mobile-specific error message
                 return jsonify({
                     "error": "Mobile authentication required",
-                    "message": "Mobile browsers require special authentication. Please try logging in again or contact support.",
+                    "message": "Please follow the proper mobile flow to download your calendar.",
                     "mobile_specific": True,
                     "debug_info": {
                         "user_agent": request.headers.get('User-Agent', 'Unknown'),
                         "cookies_sent": len(request.cookies),
                         "referer": request.headers.get('Referer', 'No referer'),
-                        "suggested_fix": "Try accessing the mobile availability page first, then download the calendar"
-                    }
+                        "suggested_fix": "Go to mobile availability page first, then click Download button"
+                    },
+                    "instructions": [
+                        "1. Go to the mobile availability page: /mobile/availability",
+                        "2. Make sure you're logged in",
+                        "3. Click the 'Download' button in the green banner",
+                        "4. This will establish your mobile session properly"
+                    ],
+                    "correct_url": "/mobile/availability"
                 }), 401
             
             return jsonify({"error": "Authentication required"}), 401
@@ -159,6 +166,12 @@ def download_season_calendar():
             logger.warning(f"Mobile - Sec-Fetch-Site: {request.headers.get('Sec-Fetch-Site', 'No sec-fetch-site')}")
             logger.warning(f"Mobile - Sec-Fetch-Mode: {request.headers.get('Sec-Fetch-Mode', 'No sec-fetch-mode')}")
             logger.warning(f"Mobile - Sec-Fetch-Dest: {request.headers.get('Sec-Fetch-Dest', 'No sec-fetch-dest')}")
+            
+            # Check if this is a direct access (no referer from mobile pages)
+            if not request.headers.get('Referer') or 'mobile' not in request.headers.get('Referer', '').lower():
+                logger.error("MOBILE DIRECT ACCESS DETECTED - User bypassed mobile flow!")
+                logger.error("This should not happen - user should go through /cal/mobile-session-setup first")
+                logger.error("Check if the mobile availability page link was updated correctly")
         
         user = session["user"]
         user_id = user.get("id")
@@ -298,6 +311,11 @@ def mobile_session_setup():
         # Check if this is a mobile request
         is_mobile = 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', '')
         
+        logger.info(f"Mobile session setup - Request from: {request.headers.get('User-Agent', 'Unknown')}")
+        logger.info(f"Mobile session setup - Is mobile: {is_mobile}")
+        logger.info(f"Mobile session setup - Referer: {request.headers.get('Referer', 'No referer')}")
+        logger.info(f"Mobile session setup - Session keys: {list(session.keys())}")
+        
         if not is_mobile:
             return jsonify({"error": "This route is for mobile users only"}), 400
         
@@ -312,15 +330,21 @@ def mobile_session_setup():
             return redirect(url_for('mobile.serve_mobile_availability'))
         
         # If no valid referer, provide instructions
+        logger.warning(f"Mobile session setup - Invalid referer: {referer}")
+        logger.warning("User did not follow proper mobile flow - providing instructions")
+        
         return jsonify({
             "message": "Mobile session setup required",
             "instructions": [
-                "1. Go to the mobile availability page first",
+                "1. Go to the mobile availability page first: /mobile/availability",
                 "2. Make sure you're logged in",
-                "3. Then click the download button"
+                "3. Then click the download button in the green banner",
+                "4. This will establish your mobile session properly"
             ],
             "mobile_availability_url": url_for('mobile.serve_mobile_availability'),
-            "is_mobile": True
+            "correct_flow": "/mobile/availability → Click Download → Calendar Download",
+            "is_mobile": True,
+            "error": "Invalid mobile flow - please follow the instructions above"
         })
         
     except Exception as e:
