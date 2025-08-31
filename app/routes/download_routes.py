@@ -334,8 +334,8 @@ def mobile_session_setup():
         referer = request.headers.get('Referer', '')
         if 'mobile/availability' in referer:
             logger.info(f"Mobile session setup - Valid referer: {referer}")
-            # This is a valid mobile flow, try to redirect to login or establish session
-            return redirect(url_for('mobile.serve_mobile_availability'))
+            # This is a valid mobile flow, redirect to calendar download page
+            return redirect(url_for('download.calendar_download_page'))
         
         # If no valid referer, provide instructions
         logger.warning(f"Mobile session setup - Invalid referer: {referer}")
