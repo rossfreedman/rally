@@ -56,7 +56,15 @@ def login_required(f):
                     logger.info(f"Mobile referer detected: {referer}")
                     # TODO: Implement referer-based authentication for mobile
                 
-                # For now, return a mobile-specific error message
+                # Check if this is a direct access to the calendar download
+                if request.path == '/cal/season-download.ics':
+                    logger.warning("Mobile direct access to calendar download detected - redirecting to mobile flow")
+                    from flask import redirect, url_for
+                    
+                    # Redirect to mobile session setup instead of showing error
+                    return redirect(url_for('download.mobile_session_setup'))
+                
+                # For other mobile routes, return a mobile-specific error message
                 return jsonify({
                     "error": "Mobile authentication required",
                     "message": "Please follow the proper mobile flow to download your calendar.",

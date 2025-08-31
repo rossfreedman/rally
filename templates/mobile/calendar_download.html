@@ -22,6 +22,19 @@
         
         
 
+        <!-- Mobile Flow Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="font-medium text-blue-900 text-sm">Mobile Download Process</h3>
+                    <p class="text-blue-700 text-xs mt-1">
+                        Click the download button below to establish your mobile session and download your calendar file.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- What's Included Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -73,7 +86,7 @@
                     <p class="text-white">Get your complete season schedule into your personal calendar</p>
                 </div>
                 
-                <a href="{{ url_for('download.download_season_calendar') }}" 
+                <a href="{{ url_for('download.mobile_session_setup') }}" 
                    class="inline-flex items-center justify-center bg-white text-green-700 px-12 py-4 rounded-xl font-bold text-base hover:bg-green-50 transition-colors duration-200 shadow-lg"
                    style="width: 250px;">
                     <i class="fas fa-download mr-3"></i>
