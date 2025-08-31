@@ -28,8 +28,25 @@ def login_required(f):
     """Decorator to require authentication"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Debug session information
+        logger.info(f"Login required check - Session keys: {list(session.keys())}")
+        logger.info(f"Login required check - Session data: {dict(session)}")
+        logger.info(f"Login required check - Request headers: {dict(request.headers)}")
+        
+        # Check if user exists in session
         if "user" not in session:
+            logger.warning(f"Authentication failed: No user in session. Session keys: {list(session.keys())}")
             return jsonify({"error": "Authentication required"}), 401
+        
+        user = session["user"]
+        logger.info(f"Login required check - User from session: {user}")
+        
+        # Check if user has required fields
+        if not user or not user.get("id") or not user.get("email"):
+            logger.warning(f"Authentication failed: Invalid user data. User: {user}")
+            return jsonify({"error": "Invalid user session"}), 401
+            
+        logger.info(f"Authentication successful for user: {user.get('email')}")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -49,7 +66,10 @@ def calendar_download_page():
         
         # Get session data for the user (required by mobile layout)
         user = session["user"]
+        logger.info(f"Calendar download page - User session: {user.get('email') if user else 'None'}")
+        
         session_data = get_session_data_for_user(user["email"])
+        logger.info(f"Calendar download page - Session data retrieved: {session_data.get('email') if session_data else 'None'}")
         
         # Wrap session data in the structure expected by mobile layout template
         template_data = {
@@ -73,10 +93,40 @@ def download_season_calendar():
         Response: .ics file with practices and matches for the current season
     """
     try:
+        # Additional session debugging for mobile
+        logger.info(f"Download route - Session keys: {list(session.keys())}")
+        logger.info(f"Download route - Session user: {session.get('user')}")
+        logger.info(f"Download route - Request user agent: {request.headers.get('User-Agent', 'Unknown')}")
+        logger.info(f"Download route - Request cookies: {dict(request.cookies)}")
+        logger.info(f"Download route - Session cookie name: {request.cookies.get('rally_session', 'Not found')}")
+        logger.info(f"Download route - All session cookies: {[k for k in request.cookies.keys() if 'session' in k.lower()]}")
+        logger.info(f"Download route - Session object type: {type(session)}")
+        logger.info(f"Download route - Session object dir: {dir(session)}")
+        logger.info(f"Download route - Session permanent: {getattr(session, '_permanent', 'Not found')}")
+        logger.info(f"Download route - Session modified: {getattr(session, '_modified', 'Not found')}")
+        logger.info(f"Download route - Session new: {getattr(session, '_new', 'Not found')}")
+        logger.info(f"Download route - Session invalid: {getattr(session, '_invalid', 'Not found')}")
+        
         user = session["user"]
         user_id = user.get("id")
         
+        # Fallback: try to get user from session in different ways
         if not user_id:
+            logger.warning(f"User ID not found in session, trying fallback methods")
+            # Try alternative session access methods
+            if hasattr(session, 'get'):
+                user = session.get("user")
+                user_id = user.get("id") if user else None
+                logger.info(f"Fallback 1 - User from session.get: {user}")
+            
+            if not user_id and "user" in session:
+                user = session["user"]
+                user_id = user.get("id") if user else None
+                logger.info(f"Fallback 2 - User from session['user']: {user}")
+        
+        if not user_id:
+            logger.error(f"User ID not found in session after fallbacks. User data: {user}")
+            logger.error(f"Session type: {type(session)}, Session content: {dict(session)}")
             return jsonify({"error": "User ID not found in session"}), 400
         
         # Get date range for upcoming events (next 6 months instead of fixed season)
