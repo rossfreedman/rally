@@ -70,6 +70,9 @@ def calendar_download_page():
         # Get session data for the user (required by mobile layout)
         user = session["user"]
         logger.info(f"Calendar download page - User session: {user.get('email') if user else 'None'}")
+        logger.info(f"Calendar download page - Session keys: {list(session.keys())}")
+        logger.info(f"Calendar download page - Session data: {dict(session)}")
+        logger.info(f"Calendar download page - Request cookies: {dict(request.cookies)}")
         
         session_data = get_session_data_for_user(user["email"])
         logger.info(f"Calendar download page - Session data retrieved: {session_data.get('email') if session_data else 'None'}")
@@ -115,6 +118,16 @@ def download_season_calendar():
         logger.info(f"Download route - Session cookie path: {getattr(session, '_path', 'Not found')}")
         logger.info(f"Download route - Session cookie secure: {getattr(session, '_secure', 'Not found')}")
         
+        # Check if this is a mobile request and log additional info
+        if 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''):
+            logger.warning("MOBILE REQUEST DETECTED - Enhanced mobile debugging")
+            logger.warning(f"Mobile - Referer: {request.headers.get('Referer', 'No referer')}")
+            logger.warning(f"Mobile - Origin: {request.headers.get('Origin', 'No origin')}")
+            logger.warning(f"Mobile - Accept: {request.headers.get('Accept', 'No accept')}")
+            logger.warning(f"Mobile - Sec-Fetch-Site: {request.headers.get('Sec-Fetch-Site', 'No sec-fetch-site')}")
+            logger.warning(f"Mobile - Sec-Fetch-Mode: {request.headers.get('Sec-Fetch-Mode', 'No sec-fetch-mode')}")
+            logger.warning(f"Mobile - Sec-Fetch-Dest: {request.headers.get('Sec-Fetch-Dest', 'No sec-fetch-dest')}")
+        
         user = session["user"]
         user_id = user.get("id")
         
@@ -132,21 +145,35 @@ def download_season_calendar():
                 user_id = user.get("id") if user else None
                 logger.info(f"Fallback 2 - User from session['user']: {user}")
             
-            # Mobile-specific fallback: check if this is a mobile request
-            if not user_id and 'iPhone' in request.headers.get('User-Agent', ''):
-                logger.warning("Mobile iPhone detected - checking for mobile session issues")
-                # Try to get session from different cookie names
-                for cookie_name in request.cookies.keys():
-                    if 'session' in cookie_name.lower():
-                        logger.info(f"Found potential session cookie: {cookie_name}")
-                        # Try to decode the session cookie
-                        try:
-                            import base64
-                            cookie_value = request.cookies.get(cookie_name)
-                            if cookie_value:
-                                logger.info(f"Session cookie value: {cookie_value[:100]}...")
-                        except Exception as e:
-                            logger.error(f"Error decoding session cookie: {e}")
+                    # Mobile-specific fallback: check if this is a mobile request
+        if not user_id and 'iPhone' in request.headers.get('User-Agent', ''):
+            logger.warning("Mobile iPhone detected - checking for mobile session issues")
+            # Try to get session from different cookie names
+            for cookie_name in request.cookies.keys():
+                if 'session' in cookie_name.lower():
+                    logger.info(f"Found potential session cookie: {cookie_name}")
+                    # Try to decode the session cookie
+                    try:
+                        import base64
+                        cookie_value = request.cookies.get(cookie_name)
+                        if cookie_value:
+                            logger.info(f"Session cookie value: {cookie_value[:100]}...")
+                    except Exception as e:
+                        logger.error(f"Error decoding session cookie: {e}")
+            
+            # Check if session was created but not persisted
+            logger.warning("Mobile session debugging - checking session persistence")
+            logger.warning(f"Session permanent: {getattr(session, '_permanent', 'Not found')}")
+            logger.warning(f"Session modified: {getattr(session, '_modified', 'Not found')}")
+            logger.warning(f"Session new: {getattr(session, '_new', 'Not found')}")
+            
+            # Try to manually set a test session value
+            try:
+                session['mobile_test'] = 'test_value'
+                session.modified = True
+                logger.warning("Manually set mobile test session value")
+            except Exception as e:
+                logger.error(f"Error setting mobile test session: {e}")
         
         if not user_id:
             logger.error(f"User ID not found in session after fallbacks. User data: {user}")
@@ -219,6 +246,46 @@ def download_season_calendar():
     except Exception as e:
         logger.error(f"Error generating calendar: {str(e)}")
         return jsonify({"error": "Failed to generate calendar"}), 500
+
+
+@download_bp.route("/cal/test-session")
+def test_session_setting():
+    """
+    Test route to check if session cookies can be set on mobile.
+    """
+    try:
+        from flask import make_response
+        
+        # Try to set a test session value
+        session['test_mobile'] = 'mobile_session_test'
+        session['test_time'] = str(datetime.now())
+        
+        # Create response with session debugging
+        response_data = {
+            "session_keys": list(session.keys()),
+            "session_data": dict(session),
+            "cookies_sent": dict(request.cookies),
+            "user_agent": request.headers.get('User-Agent', 'Unknown'),
+            "test_value_set": session.get('test_mobile', 'Not set')
+        }
+        
+        response = make_response(jsonify(response_data))
+        
+        # Try to explicitly set a test cookie
+        response.set_cookie(
+            'test_mobile_cookie',
+            'mobile_test_value',
+            max_age=3600,
+            secure=True,
+            httponly=False,  # Allow JavaScript access for testing
+            samesite='Lax'
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in test session route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @download_bp.route("/cal/debug")
