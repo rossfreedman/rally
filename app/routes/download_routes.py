@@ -39,6 +39,36 @@ def login_required(f):
             logger.warning(f"Authentication failed: Session data: {dict(session)}")
             logger.warning(f"Authentication failed: Request cookies: {dict(request.cookies)}")
             logger.warning(f"Authentication failed: Session cookie: {request.cookies.get('rally_session', 'Not found')}")
+            
+            # Mobile fallback: try to get user from mobile-specific headers or tokens
+            if 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''):
+                logger.warning("Mobile authentication fallback - checking for alternative auth methods")
+                
+                # Check if there's a mobile-specific authentication header
+                mobile_auth = request.headers.get('X-Mobile-Auth', None)
+                if mobile_auth:
+                    logger.info(f"Found mobile auth header: {mobile_auth}")
+                    # TODO: Implement mobile-specific authentication logic
+                
+                # Check if we can get user from referer or other mobile-specific data
+                referer = request.headers.get('Referer', '')
+                if referer and 'mobile' in referer.lower():
+                    logger.info(f"Mobile referer detected: {referer}")
+                    # TODO: Implement referer-based authentication for mobile
+                
+                # For now, return a mobile-specific error message
+                return jsonify({
+                    "error": "Mobile authentication required",
+                    "message": "Mobile browsers require special authentication. Please try logging in again or contact support.",
+                    "mobile_specific": True,
+                    "debug_info": {
+                        "user_agent": request.headers.get('User-Agent', 'Unknown'),
+                        "cookies_sent": len(request.cookies),
+                        "referer": request.headers.get('Referer', 'No referer'),
+                        "suggested_fix": "Try accessing the mobile availability page first, then download the calendar"
+                    }
+                }), 401
+            
             return jsonify({"error": "Authentication required"}), 401
         
         user = session["user"]
@@ -246,6 +276,87 @@ def download_season_calendar():
     except Exception as e:
         logger.error(f"Error generating calendar: {str(e)}")
         return jsonify({"error": "Failed to generate calendar"}), 500
+
+
+@download_bp.route("/cal/mobile-auth-test")
+def mobile_auth_test():
+    """
+    Test route specifically for mobile authentication debugging.
+    """
+    try:
+        from flask import make_response, jsonify
+        
+        # Log all request information for mobile debugging
+        mobile_info = {
+            "user_agent": request.headers.get('User-Agent', 'Unknown'),
+            "is_mobile": 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''),
+            "cookies": dict(request.cookies),
+            "headers": dict(request.headers),
+            "session_keys": list(session.keys()),
+            "session_data": dict(session),
+            "referer": request.headers.get('Referer', 'No referer'),
+            "origin": request.headers.get('Origin', 'No origin'),
+            "host": request.headers.get('Host', 'No host'),
+            "x_forwarded_proto": request.headers.get('X-Forwarded-Proto', 'No protocol'),
+            "cf_visitor": request.headers.get('Cf-Visitor', 'No cloudflare info')
+        }
+        
+        # Try to set a test session value
+        try:
+            session['mobile_test'] = 'mobile_session_test'
+            session['test_time'] = str(datetime.now())
+            session.modified = True
+            mobile_info["session_set_success"] = True
+            mobile_info["session_test_value"] = session.get('mobile_test', 'Not set')
+        except Exception as e:
+            mobile_info["session_set_success"] = False
+            mobile_info["session_set_error"] = str(e)
+        
+        # Create response with mobile debugging info
+        response = make_response(jsonify(mobile_info))
+        
+        # Try to set multiple types of cookies for testing
+        try:
+            # Test cookie 1: Basic cookie
+            response.set_cookie(
+                'test_mobile_basic',
+                'basic_test_value',
+                max_age=3600,
+                secure=False,  # Try without secure first
+                httponly=False,
+                samesite='Lax'
+            )
+            
+            # Test cookie 2: Secure cookie (like production)
+            response.set_cookie(
+                'test_mobile_secure',
+                'secure_test_value',
+                max_age=3600,
+                secure=True,
+                httponly=False,
+                samesite='Lax'
+            )
+            
+            # Test cookie 3: Session-like cookie
+            response.set_cookie(
+                'test_mobile_session',
+                'session_test_value',
+                max_age=3600,
+                secure=True,
+                httponly=True,
+                samesite='Lax'
+            )
+            
+            mobile_info["cookies_set"] = True
+        except Exception as e:
+            mobile_info["cookies_set"] = False
+            mobile_info["cookies_error"] = str(e)
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error in mobile auth test route: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @download_bp.route("/cal/test-session")

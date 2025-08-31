@@ -367,6 +367,21 @@
     color: #045454 !important;
   }
   
+  /* Captain's Corner button off state - very light gray */
+  .captain-button {
+    background: #f8f9fa !important;
+    border-color: #e9ecef !important;
+    color: #6c757d !important;
+  }
+  
+  .captain-button * {
+    color: #6c757d !important;
+  }
+  
+  .captain-button svg {
+    color: #6c757d !important;
+  }
+  
   /* Submenu item styling when submenu is active */
   body.submenu-active .submenu-item {
     background-color: #797979 !important;
@@ -616,15 +631,7 @@
         </div>
       </a>
       
-      <a href="/mobile/reserve-court" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <!-- Star Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2" stroke="currentColor" stroke-width="2" fill="none"/>
-        </svg>
-        <div class="text-left">
-          <div class="font-semibold text-base">Reserve a Court</div>
-        </div>
-      </a>
+      <!-- Reserve Court button hidden -->
     </div>
   </div>
 
@@ -735,22 +742,7 @@
           <div class="font-semibold text-base">Matchup Simulator</div>
         </div>
       </a>
-      <a href="/pti-calculator" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <!-- Calculator Icon -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
-          <line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
-          <line x1="8" y1="10" x2="10" y2="10" stroke="currentColor" stroke-width="2"/>
-          <line x1="8" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="2"/>
-          <line x1="8" y1="18" x2="10" y2="18" stroke="currentColor" stroke-width="2"/>
-          <line x1="14" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/>
-          <line x1="14" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/>
-          <line x1="14" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <div class="text-left">
-          <div class="font-semibold text-base">PTI Calculator</div>
-        </div>
-      </a>
+      <!-- PTI Calculator button hidden -->
     </div>
   </div>
 
@@ -878,7 +870,22 @@
         </svg>
         <div class="text-left"><div class="font-semibold text-base">Find Subs</div></div>
       </a>
-      <!-- Create Lineup -->
+      
+      <!-- Team Polls -->
+      <a href="/mobile/polls" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <!-- Survey Choices Icon (matching submenu) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-base">Team Polls</div></div>
+      </a>
+      
+      <!-- Create & Send Lineup -->
       <a href="/mobile/create-lineup" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <!-- Clipboard List Icon -->
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -891,19 +898,6 @@
         <div class="text-left">
           <div class="font-semibold text-base">Create & Send Lineup</div>
         </div>
-      </a>
-      <!-- Team Polls (Captain's Corner) -->
-      <a href="/mobile/polls" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <!-- Survey Choices Icon (matching submenu) -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-          <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
-          <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-          <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
-          <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
-          <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <div class="text-left"><div class="font-semibold text-base">Team Polls</div></div>
       </a>
 
       <!-- Practice Times -->
