@@ -207,6 +207,25 @@ def minimal_healthcheck():
 # Determine environment
 is_development = os.environ.get("FLASK_ENV") == "development"
 
+# Set secret key and session config BEFORE registering blueprints
+app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
+
+# Session config
+app.config.update(
+    SESSION_COOKIE_SECURE=not is_development,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=1),
+    SESSION_COOKIE_NAME="rally_session",
+    SESSION_COOKIE_PATH="/",
+    SESSION_REFRESH_EACH_REQUEST=True,
+    # Mobile compatibility settings
+    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
+    SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
+    # Additional mobile settings
+    SESSION_COOKIE_SAMESITE="None" if not is_development else "Lax",  # Allow cross-site on production
+)
+
 # Register blueprints
 app.register_blueprint(player_bp)
 app.register_blueprint(auth_bp)
@@ -243,22 +262,7 @@ if not has_no_conflicts:
 else:
     print("✅ Route validation passed - no conflicts detected")
 
-# Set secret key
-app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
 
-# Session config
-app.config.update(
-    SESSION_COOKIE_SECURE=not is_development,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=timedelta(days=1),
-    SESSION_COOKIE_NAME="rally_session",
-    SESSION_COOKIE_PATH="/",
-    SESSION_REFRESH_EACH_REQUEST=True,
-    # Mobile compatibility settings
-    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
-    SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
-)
 
 # Configure CORS
 CORS(

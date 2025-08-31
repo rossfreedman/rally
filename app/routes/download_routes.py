@@ -28,16 +28,35 @@ def login_required(f):
     """Decorator to require authentication - same as other Rally pages"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Debug session for calendar download
+        logger.info(f"Calendar download - Session keys: {list(session.keys())}")
+        logger.info(f"Calendar download - Session data: {dict(session)}")
+        logger.info(f"Calendar download - Request path: {request.path}")
+        logger.info(f"Calendar download - User agent: {request.headers.get('User-Agent', 'Unknown')}")
+        
+        # Mobile-specific debugging
+        if 'iPhone' in request.headers.get('User-Agent', '') or 'Mobile' in request.headers.get('User-Agent', ''):
+            logger.warning("MOBILE REQUEST - Enhanced mobile session debugging")
+            logger.warning(f"Mobile - Cookies: {dict(request.cookies)}")
+            logger.warning(f"Mobile - Session cookie: {request.cookies.get('rally_session', 'Not found')}")
+            logger.warning(f"Mobile - Referer: {request.headers.get('Referer', 'No referer')}")
+            logger.warning(f"Mobile - Origin: {request.headers.get('Origin', 'No origin')}")
+            logger.warning(f"Mobile - Sec-Fetch-Site: {request.headers.get('Sec-Fetch-Site', 'No sec-fetch-site')}")
+        
         # Check if user exists in session (same logic as other pages)
         if "user" not in session:
+            logger.warning(f"Calendar download - No user in session")
             return jsonify({"error": "Authentication required"}), 401
         
         user = session["user"]
+        logger.info(f"Calendar download - User found: {user.get('email', 'No email')}")
         
         # Check if user has required fields (same validation as other pages)
         if not user or not user.get("id") or not user.get("email"):
+            logger.warning(f"Calendar download - Invalid user data: {user}")
             return jsonify({"error": "Invalid user session"}), 401
             
+        logger.info(f"Calendar download - Authentication successful for: {user.get('email')}")
         return f(*args, **kwargs)
     return decorated_function
 
