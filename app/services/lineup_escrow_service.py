@@ -292,28 +292,21 @@ class LineupEscrowService:
                     "error": "Escrow session not found"
                 }
             
-            # If no viewer contact provided, this is likely the originating captain
-            # Allow them to view the escrow directly
+            # Skip contact validation - allow anyone with the escrow token to view
+            # This provides easier access to lineup escrow sessions
             if not viewer_contact or not viewer_contact.strip():
-                logger.info(f"No viewer contact provided for escrow {escrow.id}, treating as originating captain")
-                viewer_contact = "originating_captain"
+                logger.info(f"No viewer contact provided for escrow {escrow.id}, allowing access")
+                viewer_contact = "public_access"
             else:
-                # Validate that viewer contact matches recipient contact
-                # URL decode the viewer contact in case it was encoded in the URL
+                # Log the contact but don't validate it
                 from urllib.parse import unquote
                 decoded_viewer_contact = unquote(viewer_contact.strip())
-                
-                if escrow.recipient_contact != decoded_viewer_contact:
-                    logger.warning(f"Contact mismatch for escrow {escrow.id}: expected '{escrow.recipient_contact}', got '{decoded_viewer_contact}' (original: '{viewer_contact.strip()}')")
-                    return {
-                        "success": False,
-                        "error": "Contact information does not match this escrow session"
-                    }
+                logger.info(f"Viewer contact provided for escrow {escrow.id}: '{decoded_viewer_contact}' (allowing access)")
             
 
             
-            # Record view (skip for originating captain to avoid confusion)
-            if viewer_contact != "originating_captain":
+            # Record view (skip for originating captain and public access to avoid confusion)
+            if viewer_contact not in ["originating_captain", "public_access"]:
                 try:
                     self._record_view(escrow.id, viewer_contact)
                 except Exception as e:
