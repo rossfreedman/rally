@@ -55,6 +55,7 @@
                         <i class="fas fa-tools text-green-500 mr-2"></i>
                         Lineup Builder
                     </h2>
+                    <p class="text-sm text-gray-600 mt-2">Tap a player name to choose a player. Then, tap a court to choose a court for that player.</p>
                 </div>
                 
                 <div class="p-4">
@@ -62,7 +63,6 @@
                     <!-- Available Players Pool -->
                     <div class="mb-4">
                         <h3 class="font-semibold mb-2 text-gray-900 text-sm">Available Players</h3>
-                        <p class="text-xs text-gray-600 mb-2" id="instruction-text">Drag players from here to the courts below:</p>
                         
                         <!-- Color Legend -->
                         <div class="mb-2 flex gap-4 text-xs">
@@ -544,6 +544,12 @@ function handleTouchEnd(e) {
       };
       
       updateManualLineupSummary();
+      
+      // Auto scroll up 400px when player is added to court via touch drag and drop
+      window.scrollBy({
+        top: -400,
+        behavior: 'smooth'
+      });
     }
   }
   
@@ -629,6 +635,12 @@ function handleDrop(e) {
     };
     
     updateManualLineupSummary();
+    
+    // Auto scroll up 400px when player is added to court via drag and drop
+    window.scrollBy({
+      top: -400,
+      behavior: 'smooth'
+    });
   }
 }
 
@@ -828,11 +840,7 @@ async function saveEditedLineup(lineupText) {
 // Removed toggleInteractionMode - both drag and tap work simultaneously
 
 function updateModeUI() {
-  const instructionText = document.getElementById('instruction-text');
   const selectedIndicator = document.getElementById('selected-player-indicator');
-  
-  // Update instruction text to show both methods work
-  if (instructionText) instructionText.textContent = 'Drag players to courts OR tap a player, then tap a court position:';
   
   // Show/hide selected player indicator based on current selection
   if (selectedPlayerForTap) {
@@ -874,6 +882,12 @@ function handlePlayerTap(e) {
   e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
   
   showSelectedPlayer(playerName);
+  
+  // Auto scroll down 400px when player is selected
+  window.scrollBy({
+    top: 400,
+    behavior: 'smooth'
+  });
 }
 
 function showSelectedPlayer(playerName) {
@@ -960,6 +974,12 @@ function handleCourtPositionTap(e) {
     clearPlayerSelection();
     
     updateManualLineupSummary();
+    
+    // Auto scroll up 400px when player is added to court
+    window.scrollBy({
+      top: -400,
+      behavior: 'smooth'
+    });
   }
 }
 
