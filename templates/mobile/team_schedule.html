@@ -479,11 +479,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventData.event_type === 'Practice') {
             return '<div class="text-sm text-blue-600 mt-1"><i class="fas fa-dumbbell mr-1"></i>Practice</div>';
         } else if (eventData.event_type === 'Match') {
-            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match';
-            if (eventData.opponent) {
-                matchInfo += ' <span class="text-gray-600">vs ' + eventData.opponent + '</span>';
+            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match</div>';
+            
+            // Enhanced: Show full team matchup information on its own line
+            if (eventData.home_team && eventData.away_team) {
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">' + eventData.home_team + ' vs. ' + eventData.away_team + '</div>';
+            } else if (eventData.opponent) {
+                // Fallback to original opponent display if team info not available
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">vs ' + eventData.opponent + '</div>';
             }
-            matchInfo += '</div>';
             return matchInfo;
         }
         return '';
