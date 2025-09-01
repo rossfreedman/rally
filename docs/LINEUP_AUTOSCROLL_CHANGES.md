@@ -1,20 +1,28 @@
 # Lineup Page Autoscroll Enhancement
 
 ## Overview
-Added autoscroll functionality to the mobile lineup page (`/mobile/lineup`) to improve user experience when building lineups.
+Added autoscroll functionality to the mobile lineup pages to improve user experience when building lineups:
+- Main lineup page (`/mobile/lineup`)
+- Lineup escrow opposing captain page (`/mobile/lineup-escrow-opposing/<token>`)
 
 ## Changes Made
 
 ### 1. Updated Instruction Text
-**Location**: Under "Lineup Builder" heading in `templates/mobile/lineup.html`
+**Location**: Under "Lineup Builder" heading in both lineup templates
 **Change**: Replaced old instruction text with clearer, more focused instructions
 - **Removed**: "Drag players to courts OR tap a player, then tap a court position:"
 - **Added**: "Tap a player name to choose a player. Then, tap a court to choose a court for that player."
+- **Applied to**: 
+  - `templates/mobile/lineup.html`
+  - `templates/mobile/lineup_escrow_opposing_captain.html`
 
 ### 2. Player Selection Autoscroll (Down 400px)
-**Location**: `handlePlayerTap()` function in `templates/mobile/lineup.html`
+**Location**: `handlePlayerTap()` function in both lineup templates
 **Trigger**: When user clicks/taps an available player
 **Action**: Smooth scroll down 400px to bring court positions into view
+**Applied to**: 
+  - `templates/mobile/lineup.html`
+  - `templates/mobile/lineup_escrow_opposing_captain.html`
 
 ```javascript
 // Auto scroll down 400px when player is selected
@@ -25,9 +33,12 @@ window.scrollBy({
 ```
 
 ### 3. Court Assignment Autoscroll (Up 400px)
-**Location**: Multiple functions in `templates/mobile/lineup.html`
+**Location**: Multiple functions in both lineup templates
 **Trigger**: When user adds a player to a court position
 **Action**: Smooth scroll up 400px to return focus to available players
+**Applied to**: 
+  - `templates/mobile/lineup.html`
+  - `templates/mobile/lineup_escrow_opposing_captain.html`
 
 #### Functions Updated:
 - `handleCourtPositionTap()` - For tap-to-assign functionality
@@ -66,7 +77,10 @@ The autoscroll functionality has been implemented and tested on:
 ## Files Modified
 
 - `templates/mobile/lineup.html` - Added autoscroll functionality to player interaction functions
+- `templates/mobile/lineup_escrow_opposing_captain.html` - Added autoscroll functionality to opposing captain lineup builder
 
 ## Deployment
 
-These changes are ready for deployment and will enhance the user experience on the mobile lineup builder page.
+These changes are ready for deployment and will enhance the user experience on both mobile lineup builder pages:
+- Main lineup creation page (`/mobile/lineup`)
+- Lineup escrow opposing captain page (`/mobile/lineup-escrow-opposing/<token>`)
