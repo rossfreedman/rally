@@ -1269,7 +1269,9 @@ def init_lineup_routes(app):
                     if both_lineups_visible:
                         # Only include contact parameter if it exists
                         if viewer_contact and viewer_contact.strip():
-                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={viewer_contact}")
+                            from urllib.parse import quote
+                            encoded_contact = quote(viewer_contact.strip(), safe='')
+                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={encoded_contact}")
                         else:
                             return redirect(f"/mobile/lineup-escrow-view/{escrow_token}")
                     

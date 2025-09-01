@@ -299,8 +299,12 @@ class LineupEscrowService:
                 viewer_contact = "originating_captain"
             else:
                 # Validate that viewer contact matches recipient contact
-                if escrow.recipient_contact != viewer_contact.strip():
-                    logger.warning(f"Contact mismatch for escrow {escrow.id}: expected '{escrow.recipient_contact}', got '{viewer_contact.strip()}'")
+                # URL decode the viewer contact in case it was encoded in the URL
+                from urllib.parse import unquote
+                decoded_viewer_contact = unquote(viewer_contact.strip())
+                
+                if escrow.recipient_contact != decoded_viewer_contact:
+                    logger.warning(f"Contact mismatch for escrow {escrow.id}: expected '{escrow.recipient_contact}', got '{decoded_viewer_contact}' (original: '{viewer_contact.strip()}')")
                     return {
                         "success": False,
                         "error": "Contact information does not match this escrow session"
@@ -652,8 +656,11 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
+            # URL encode the contact parameter to handle special characters like parentheses
+            from urllib.parse import quote
+            encoded_contact = quote(contact_param, safe='')
             # Use the new opposing captain page for initial lineup submission
-            view_url = f"{base_url}/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={contact_param}"
+            view_url = f"{base_url}/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={encoded_contact}" if base_url else f"/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={encoded_contact}"
             
             club_name = ""
             # 1. Try team-based lookup
@@ -732,15 +739,20 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
+            # URL encode the contact parameter to handle special characters like parentheses
+            from urllib.parse import quote
+            encoded_contact = quote(contact_param, safe='')
             # For completion notifications, use the view page since both lineups are visible
-            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
+            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_contact}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_contact}"
             
             # Get initiator user
             initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
             if initiator and initiator.phone_number:
                 # Notify initiator (use their own contact info)
+                # URL encode the initiator's phone number
+                encoded_initiator_contact = quote(initiator.phone_number, safe='')
                 # For completion notifications, use the view page since both lineups are visible
-                initiator_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}"
+                initiator_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_initiator_contact}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_initiator_contact}"
                 message = f"🏓 Lineup Escrow™ Complete!\n\nBoth lineups are ready to view.\n\nView results: {initiator_url}"
                 send_sms_notification(
                     to_number=initiator.phone_number,
