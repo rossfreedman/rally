@@ -205,6 +205,9 @@ class LineupEscrowService:
         # Then handle single-encoded HTML entities
         cleaned = cleaned.replace('<br>', '\n').replace('&amp;', '&')
         
+        # Remove non-breaking spaces
+        cleaned = cleaned.replace('&nbsp;', ' ')
+        
         # Remove any trailing <br> tags
         cleaned = cleaned.rstrip('<br>')
         
