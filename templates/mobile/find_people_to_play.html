@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-user-friends text-white text-lg"></i>
             </div>
@@ -143,7 +143,7 @@
             </div>
 
             <!-- Players List -->
-            <div id="playersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+            <div id="playersList" class="grid grid-cols-1 gap-3 p-4">
                 <!-- Players will be populated here -->
             </div>
         </div>
@@ -1743,4 +1743,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 </script>
+    </div>
+</div>
 {% endblock %} 

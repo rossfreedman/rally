@@ -73,6 +73,8 @@
     
     <!-- App CSS and JS -->
     <link href="/static/mobile/css/style.css?v=2025" rel="stylesheet">
+    <!-- Additive responsive layer -->
+    <link href="/static/css/responsive.css?v=2025" rel="stylesheet">
     <script src="/static/js/activity-tracker.js?v=2025" defer></script>
     <script src="/static/mobile/js/main.js?v=2025" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -317,33 +319,69 @@
         .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
         .category-button:hover * { color: #045454 !important; }
         
-        /* Active category button styling when submenu is open */
+        /* Force Home button to match other buttons exactly - nuclear option */
+        .category-section:first-child .category-button {
+            background: #fff !important;
+            color: #045454 !important;
+            border-color: #E0E0E0 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+            padding: 1.5rem !important;
+            width: 100% !important;
+            min-height: 120px !important;
+            height: auto !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 1.5rem !important;
+            border: 1px solid #E0E0E0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            font-size: inherit !important;
+            line-height: inherit !important;
+        }
+        .category-section:first-child .category-button * {
+            color: #045454 !important;
+        }
+        .category-section:first-child .category-button svg {
+            color: #045454 !important;
+        }
+        .category-section:first-child .category-button:hover {
+            background: #f2f2f7 !important;
+            color: #045454 !important;
+            border-color: #E0E0E0 !important;
+        }
+        .category-section:first-child .category-button:hover * {
+            color: #045454 !important;
+        }
+        
+        /* Active category button styling when submenu is open - Reversed colors */
         .category-button.active {
             background: #045454 !important;
-            color: #bff863 !important;
             border-color: #045454 !important;
+            color: #bff863 !important;
             box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+            /* Ensure consistent sizing for active state */
+            padding: 1.5rem !important;
+            width: 100% !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
         }
-        .category-button.active * { 
+        .category-button.active:not([onclick*="'/mobile'"]) * { 
             color: #bff863 !important; 
         }
-        .category-button.active svg { 
+        .category-button.active:not([onclick*="'/mobile'"]) svg { 
             color: #bff863 !important; 
         }
         
-          /* Captain's Corner button off state - darker gray */
+          /* Captain's Corner button off state - very light green background */
   .category-button[onclick*="captain"] {
-    background: #e9ecef !important;
-    border-color: #dee2e6 !important;
-    color: #495057 !important;
-  }
-  
-  .category-button[onclick*="captain"] * {
-    color: #495057 !important;
-  }
-  
-  .category-button[onclick*="captain"] svg {
-    color: #495057 !important;
+    background: #f0f9f0 !important;
+    border-color: #d4edda !important;
   }
         .submenu { display: none; background: transparent; margin-top: 0.5rem; overflow: hidden; }
         .submenu.active { display: block; }
@@ -439,21 +477,58 @@
             }
         }
         
-        /* Desktop responsive constraints for hamburger menu */
+        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 768px) {
             .category-button {
-                max-width: 300px !important;
-                margin: 0 auto !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+            
+            /* Force Home button to match other buttons on desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 300px !important;
-                margin: 0 auto 0.5rem auto !important;
+                max-width: 100% !important;
+                margin: 0 0 0.5rem 0 !important;
             }
             
             .space-y-4 {
-                max-width: 350px !important;
-                margin: 0 auto !important;
+                max-width: 100% !important;
+                margin: 0 !important;
             }
             
             #navDrawer .px-4 {
@@ -462,33 +537,107 @@
             }
         }
         
-        /* Large desktop constraints for hamburger menu */
+        /* Large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1024px) {
             .category-button {
-                max-width: 280px !important;
+                max-width: 100% !important;
+            }
+            
+            /* Force Home button to match other buttons on large desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 280px !important;
+                max-width: 100% !important;
             }
             
             .space-y-4 {
-                max-width: 330px !important;
+                max-width: 100% !important;
             }
         }
         
-        /* Extra large desktop constraints for hamburger menu */
+        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1280px) {
             .category-button {
-                max-width: 260px !important;
+                max-width: 100% !important;
+            }
+            
+            /* Force Home button to match other buttons on extra large desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 260px !important;
+                max-width: 100% !important;
             }
             
             .space-y-4 {
-                max-width: 310px !important;
+                max-width: 100% !important;
             }
         }
     </style>
@@ -570,10 +719,13 @@
                   <div class="space-y-4">
                     <!-- Home Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="window.location.href='/mobile'">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         <div class="font-semibold text-lg">Home</div>
                       </button>
+                      <div id="drawer-home-submenu" class="submenu" style="display: none; visibility: hidden; opacity: 0; height: 0px; max-height: 0px;">
+                        <!-- Empty submenu to match structure of other buttons -->
+                      </div>
                     </div>
                     <!-- Act Category -->
                     <div class="category-section">
@@ -1365,4 +1517,5 @@
     </script>
 
 </body>
+</html> 
 </html> 

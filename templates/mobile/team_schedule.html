@@ -5,9 +5,9 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Loading Screen (shown initially) -->
-    <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
+    <div class="container">
+        <!-- Loading Screen (shown initially) -->
+        <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
         <div class="text-center mb-8">
             <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4" style="background-color: #0284c7 !important;">
                 <i class="fas fa-calendar text-white text-lg"></i>
@@ -698,4 +698,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 }
 </style>
+    </div>
+</div>
 {% endblock %} 

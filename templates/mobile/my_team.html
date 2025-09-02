@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-users text-white text-lg"></i>
             </div>
@@ -124,7 +124,7 @@
             </div>
             
             <div class="p-6">
-                <div class="overflow-x-auto">
+                <div class="table-wrap overflow-x-auto">
                     <table class="min-w-full text-xs">
                         <thead>
                             <tr class="border-b border-gray-100">
@@ -642,8 +642,8 @@ function createMatchesModal() {
     // Create modal HTML
     const modalHTML = `
         <div id="matchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+                <div class="bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col">
                     <!-- Modal Header -->
                     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
                         <h2 class="text-xl font-semibold" style="color: #bff863;">Current Season Matches</h2>
@@ -891,4 +891,6 @@ function showMatchesEmpty() {
 }
 
 </script>
+    </div>
+</div>
 {% endblock %} 

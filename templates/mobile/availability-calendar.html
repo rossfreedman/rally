@@ -3,10 +3,10 @@
 {% block title %}Calendar Availability | Rally{% endblock %}
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-calendar-check text-white text-lg"></i>
             </div>
@@ -728,14 +728,22 @@ function openDateModal(date, dayData) {
                 </button>
             </div>
             <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                <textarea 
-                    id="modal-notes-${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}"
-                    rows="2"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                    placeholder="Add a note (optional):"
-                    data-match-date="${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}"
-                    onblur="autoSaveNotesModal(this)"
-                    style="box-sizing: border-box; font-size: 0.75rem; line-height: 1.2; padding: 0.5rem;">${dayData.notes || ''}</textarea>
+                <div class="flex gap-2">
+                    <textarea 
+                        id="modal-notes-${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}"
+                        rows="2"
+                        class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                        placeholder="Add a note (optional):"
+                        data-match-date="${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}"
+                        onblur="autoSaveNotesModal(this)"
+                        style="box-sizing: border-box; font-size: 0.75rem; line-height: 1.2; padding: 0.5rem;">${dayData.notes || ''}</textarea>
+                    <button 
+                        onclick="commitNoteModal('${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}')"
+                        class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center min-w-[44px]"
+                        title="Save note">
+                        <i class="fas fa-plus text-sm"></i>
+                    </button>
+                </div>
             </div>
         `;
         
@@ -942,10 +950,112 @@ async function autoSaveNotesModal(textarea) {
     }
 }
 
+async function commitNoteModal(date) {
+    try {
+        const user = window.sessionData && window.sessionData.user;
+        if (!user) {
+            throw new Error('No user information available');
+        }
+        
+        const playerName = `${user.first_name} ${user.last_name}`;
+        
+        // Get notes from the modal textarea
+        const notesTextarea = document.querySelector(`textarea[data-match-date="${date}"]`);
+        const notes = notesTextarea ? notesTextarea.value.trim() : '';
+        
+        // Get current availability status from the calendar data
+        const dateKey = formatDateKey(date);
+        const dayData = calendarData[dateKey];
+        
+        let availabilityStatus = 3; // Default to "not sure" if no selection
+        if (dayData && dayData.availability) {
+            availabilityStatus = {
+                'available': 1,
+                'unavailable': 2,
+                'not_sure': 3
+            }[dayData.availability];
+        }
+        
+        // Convert date to standard format
+        let standardizedDate = date;
+        if (date.includes('/')) {
+            const [month, day, year] = date.split('/');
+            const fullYear = year.length === 2 ? `20${year}` : year;
+            standardizedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        
+        const requestData = {
+            'player_name': playerName.trim(),
+            'match_date': standardizedDate.trim(),
+            'availability_status': availabilityStatus,
+            'series': user.series.trim(),
+            'notes': notes
+        };
+        
+        // Show loading state on the button
+        const commitButton = document.querySelector(`button[onclick="commitNoteModal('${date}')"]`);
+        if (commitButton) {
+            const originalContent = commitButton.innerHTML;
+            commitButton.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
+            commitButton.disabled = true;
+            
+            const response = await fetch('/api/availability', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to save note');
+            }
+            
+            // Update local data
+            if (calendarData[dateKey]) {
+                calendarData[dateKey].notes = notes;
+            }
+            
+            // Show success feedback
+            commitButton.innerHTML = '<i class="fas fa-check text-sm"></i>';
+            commitButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+            commitButton.classList.add('bg-green-600');
+            
+            // Show success message
+            showToast('Note saved successfully!', 'success');
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                commitButton.innerHTML = originalContent;
+                commitButton.disabled = false;
+                commitButton.classList.remove('bg-green-600');
+                commitButton.classList.add('bg-green-500', 'hover:bg-green-600');
+            }, 2000);
+            
+        }
+        
+    } catch (error) {
+        console.error('Error saving note:', error);
+        showToast(error.message || 'Error saving note. Please try again.', 'error');
+        
+        // Reset button on error
+        const commitButton = document.querySelector(`button[onclick="commitNoteModal('${date}')"]`);
+        if (commitButton) {
+            commitButton.innerHTML = '<i class="fas fa-plus text-sm"></i>';
+            commitButton.disabled = false;
+        }
+    }
+}
+
 function viewTeamAvailability(date) {
     // Format the date for the URL (MM/DD/YYYY format)
     const formattedDate = date; // Already in the correct format
     window.location.href = `/mobile/all-team-availability?date=${encodeURIComponent(formattedDate)}`;
 }
 </script>
+    </div>
+</div>
 {% endblock %} 

@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-chart-line text-white text-lg"></i>
             </div>
@@ -359,7 +359,7 @@
                 
                 <!-- Season History Table -->
                 <div id="seasonHistoryTable" class="hidden">
-                    <div class="overflow-x-auto">
+                    <div class="table-wrap overflow-x-auto">
                         <table class="min-w-full text-xs">
                             <thead>
                                 <tr class="border-b border-gray-100">
@@ -1437,4 +1437,6 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
 }
 
 </script>
+    </div>
+</div>
 {% endblock %} 

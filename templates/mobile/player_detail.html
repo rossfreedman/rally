@@ -948,8 +948,8 @@ async function loadSeasonHistory() {
 
 <!-- Match Detail Modal -->
 <div id="playerMatchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-    <div class="fixed inset-4 flex items-center justify-center">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl" style="height: 80vh; display: flex; flex-direction: column;">
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col">
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-gray-200" style="background-color: #045454; flex-shrink: 0;">
                 <div class="flex items-center justify-between">
@@ -960,7 +960,7 @@ async function loadSeasonHistory() {
                 </div>
             </div>
             <!-- Modal Content -->
-            <div id="playerMatchesModalContent" class="p-6" style="height: calc(80vh - 80px); overflow-y: scroll; flex: 1;">
+            <div id="playerMatchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
                 <!-- Content will be loaded here -->
             </div>
         </div>

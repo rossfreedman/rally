@@ -1,0 +1,746 @@
+/* =========================================
+   Rally Responsive Layer (additive only)
+   ========================================= */
+
+/* Global typography that scales gently on larger screens */
+:root {
+  --step--1: clamp(12px, 1.2vw, 14px);
+  --step-0:  clamp(14px, 1.4vw, 16px);
+  --step-1:  clamp(16px, 1.6vw, 20px);
+  --step-2:  clamp(20px, 2.0vw, 24px);
+}
+body { font-size: var(--step-0); }
+h1 { font-size: var(--step-2); line-height: 1.2; }
+h2 { font-size: var(--step-1); line-height: 1.25; }
+
+/* iOS Safari viewport bar fix for full-height sections */
+.fullscreen {
+  min-height: 100vh;   /* fallback */
+  min-height: 100svh;  /* small viewport */
+  min-height: 100dvh;  /* dynamic viewport */
+}
+
+/* Tablet ≥768px */
+@media (min-width: 768px) {
+  /* Constrain pages so content doesn't stretch edge-to-edge on iPad */
+  .container, .page, .wrap, main .inner {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-inline: 24px;
+  }
+
+  /* Card grids: 2 columns on tablet */
+  .card-grid,
+  .cards,
+  .grid-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  /* Forms look better narrower on larger screens */
+  .form-narrow, form.long, .filter-bar {
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  /* Buttons shouldn't be full-width on larger screens */
+  .btn, .button, button, input[type="submit"] {
+    width: auto;
+    max-width: 100%;
+  }
+
+  /* Tables: allow natural width on tablet and up */
+  .table-wrap { overflow: visible; }
+}
+
+/* Small desktop ≥1024px */
+@media (min-width: 1024px) {
+  .container, .page, .wrap, main .inner { max-width: 960px; }
+
+  /* 3-column variant for bigger screens */
+  .card-grid--3,
+  .cards.three,
+  .grid-list.three {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  /* Simple two-column layout for pages that benefit from a sidebar */
+  .layout-2col {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* Header nav: keep items on one line when possible */
+  header .brand { flex: 0 0 auto; }
+  header nav ul { display: flex; flex-wrap: wrap; gap: 12px; }
+}
+
+/* Large desktop ≥1280px */
+@media (min-width: 1280px) {
+  .container, .page, .wrap, main .inner { max-width: 1140px; }
+}
+
+/* Utilities you can sprinkle on components as needed */
+@media (min-width: 768px) {
+  .narrow { max-width: 720px; margin-inline: auto; }
+  .wide   { max-width: 1140px; margin-inline: auto; }
+}
+
+/* Images and media should scale nicely everywhere */
+img, video { max-width: 100%; height: auto; }
+
+/* Rally green styling for modal header - applies to ALL screen sizes */
+#dateModal .p-4.border-b,
+#dateModal .p-4.border-b.bg-white,
+#dateModal div.p-4.border-b {
+  background-color: #045454 !important;
+  background: #045454 !important;
+  color: #bff863 !important;
+}
+
+/* Override any conflicting mobile styles */
+#dateModal .bg-white.border-b,
+#dateModal div.bg-white.border-b {
+  background-color: #045454 !important;
+  background: #045454 !important;
+}
+
+/* Style the modal date text */
+#dateModal #modalDate,
+#dateModal h3#modalDate {
+  color: #bff863 !important;
+  font-weight: bold !important;
+}
+
+/* Style the close button in the header */
+#dateModal .p-4.border-b button,
+#dateModal div.p-4.border-b button {
+  color: #bff863 !important;
+}
+
+#dateModal .p-4.border-b button:hover,
+#dateModal div.p-4.border-b button:hover {
+  background-color: rgba(191, 248, 99, 0.1) !important;
+}
+
+/* Style the close button icon */
+#dateModal .p-4.border-b button i,
+#dateModal div.p-4.border-b button i {
+  color: #bff863 !important;
+}
+
+/* Ultra-specific selector for the modal header */
+#dateModal > div.bg-white.rounded-lg.max-w-sm.w-full.shadow-xl > div.p-4.border-b {
+  background-color: #045454 !important;
+  background: #045454 !important;
+  color: #bff863 !important;
+}
+
+/* Ultra-specific selector for the date text */
+#dateModal > div.bg-white.rounded-lg.max-w-sm.w-full.shadow-xl > div.p-4.border-b > div.flex.items-center.justify-between > h3#modalDate {
+  color: #bff863 !important;
+  font-weight: bold !important;
+}
+
+/* Ultra-specific selector for the close button */
+#dateModal > div.bg-white.rounded-lg.max-w-sm.w-full.shadow-xl > div.p-4.border-b > div.flex.items-center.justify-between > button#closeModal {
+  color: #bff863 !important;
+}
+
+#dateModal > div.bg-white.rounded-lg.max-w-sm.w-full.shadow-xl > div.p-4.border-b > div.flex.items-center.justify-between > button#closeModal:hover {
+  background-color: rgba(191, 248, 99, 0.1) !important;
+}
+
+/* Ultra-specific selector for the close button icon */
+#dateModal > div.bg-white.rounded-lg.max-w-sm.w-full.shadow-xl > div.p-4.border-b > div.flex.items-center.justify-between > button#closeModal > i.fas.fa-times {
+  color: #bff863 !important;
+}
+
+/* Style the commit note button */
+#dateModal button[onclick*="commitNoteModal"] {
+  min-width: 44px !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Responsive sizing for commit button */
+@media (min-width: 768px) {
+  #dateModal button[onclick*="commitNoteModal"] {
+    min-width: 48px !important;
+    height: 48px !important;
+  }
+}
+
+/* Tables: mobile scroll, wider screens expand */
+.table-wrap { overflow-x: auto; }
+
+/* Defensive: avoid layout breaks due to long words or IDs */
+.break-words { word-break: break-word; overflow-wrap: anywhere; }
+
+/* Fix iOS viewport issues with 100vh */
+@media (min-width: 768px) {
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+  }
+}
+
+/* Fix fixed widths found in the codebase */
+@media (min-width: 768px) {
+  /* Fix teams-players template max-width */
+  .container[style*="max-width: 480px"] {
+    max-width: 720px !important;
+  }
+  
+  /* Fix home_modern.css max-widths */
+  .max-w-\[420px\], .max-w-\[460px\], .max-w-\[440px\] {
+    max-width: 720px !important;
+  }
+}
+
+/* Fix overflow issues that break sticky headers */
+@media (min-width: 768px) {
+  /* Allow sticky positioning to work properly */
+  .overflow-hidden {
+    overflow: visible;
+  }
+  
+  /* Fix specific overflow issues in mobile CSS */
+  .overflow-hidden\!important {
+    overflow: visible !important;
+  }
+}
+
+/* Enhanced responsive grids for find-people-to-play page */
+@media (min-width: 768px) {
+  /* Player cards grid - force one card per line on desktop for better readability */
+  #playersList {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+    display: grid !important;
+  }
+  
+  /* Force each player card to take full width */
+  #playersList .player-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  #playersList {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+    max-width: 700px;
+    margin: 0 auto;
+    display: grid !important;
+  }
+  
+  #playersList .player-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  #playersList {
+    grid-template-columns: 1fr !important;
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+    display: grid !important;
+  }
+  
+  #playersList .player-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* Form layout improvements for larger screens */
+@media (min-width: 768px) {
+  /* Make the filter form narrower and centered */
+  #filtersCard {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  
+  /* Better spacing for form elements */
+  .grid.grid-cols-2 {
+    gap: 16px;
+  }
+}
+
+/* Enhanced player card styling for single-column layout */
+@media (min-width: 768px) {
+  /* Make player cards wider and more readable in single-column layout */
+  #playersList .player-card {
+    padding: 24px;
+    margin-bottom: 16px;
+    display: block !important;
+    float: none !important;
+    clear: both !important;
+  }
+  
+  /* Make the header section more prominent */
+  #playersList .player-card .bg-gray-500 {
+    padding: 16px 20px;
+    margin: -24px -24px 20px -24px;
+  }
+  
+  /* Better spacing for the body content */
+  #playersList .player-card .p-4 {
+    padding: 0;
+  }
+  
+  /* Make PTI more prominent */
+  #playersList .player-card .text-blue-600 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+  }
+  
+  /* Better button layout */
+  #playersList .player-card .flex.gap-2 {
+    gap: 12px;
+    margin-top: 16px;
+  }
+  
+  /* Make buttons larger and more clickable */
+  #playersList .player-card .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}
+
+/* Nuclear option - force single column layout ONLY for find-people-to-play page */
+@media (min-width: 768px) {
+  /* Only apply to the specific players list on find-people-to-play page */
+  #playersList {
+    display: block !important;
+  }
+  
+  #playersList .player-card {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 20px !important;
+    float: none !important;
+    clear: both !important;
+  }
+}
+
+/* Calendar page responsive fixes */
+@media (min-width: 768px) {
+  /* Ensure calendar maintains proper 7-column grid layout */
+  #calendar-grid {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  
+  /* Calendar header should remain as grid */
+  .grid.grid-cols-7 {
+    display: grid !important;
+    grid-template-columns: repeat(7, 1fr) !important;
+  }
+  
+  /* Calendar day cells should maintain proper sizing */
+  .calendar-day {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+    aspect-ratio: 1 !important;
+  }
+}
+
+/* Captain's Corner Button - Force Light Green Background */
+.captain-button,
+.captain-button.ios-card,
+a.captain-button,
+a.captain-button.ios-card {
+  background: #f0f9f0 !important;
+  background-color: #f0f9f0 !important;
+  border-color: #d4edda !important;
+}
+
+.category-button[onclick*="captain"],
+button.category-button[onclick*="captain"] {
+  background: #f0f9f0 !important;
+  background-color: #f0f9f0 !important;
+  border-color: #d4edda !important;
+}
+
+/* Act Button Active State - Reversed Colors */
+.act-button.active,
+.act-button.ios-card.active,
+a.act-button.active,
+a.act-button.ios-card.active {
+  background: #045454 !important;
+  background-color: #045454 !important;
+  border-color: #045454 !important;
+  color: #bff863 !important;
+}
+
+.act-button.active *,
+.act-button.ios-card.active *,
+a.act-button.active *,
+a.act-button.ios-card.active * {
+  color: #bff863 !important;
+}
+
+.act-button.active svg,
+.act-button.ios-card.active svg,
+a.act-button.active svg,
+a.act-button.ios-card.active svg {
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="act"].active,
+button.category-button[onclick*="act"].active {
+  background: #045454 !important;
+  background-color: #045454 !important;
+  border-color: #045454 !important;
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="act"].active *,
+button.category-button[onclick*="act"].active * {
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="act"].active svg,
+button.category-button[onclick*="act"].active svg {
+  color: #bff863 !important;
+}
+
+/* Captain's Corner Active State - Reversed Colors */
+.captain-button.active,
+.captain-button.ios-card.active,
+a.captain-button.active,
+a.captain-button.ios-card.active {
+  background: #045454 !important;
+  background-color: #045454 !important;
+  border-color: #045454 !important;
+  color: #bff863 !important;
+}
+
+.captain-button.active *,
+.captain-button.ios-card.active *,
+a.captain-button.active *,
+a.captain-button.ios-card.active * {
+  color: #bff863 !important;
+}
+
+.captain-button.active svg,
+.captain-button.ios-card.active svg,
+a.captain-button.active svg,
+a.captain-button.ios-card.active svg {
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="captain"].active,
+button.category-button[onclick*="captain"].active {
+  background: #045454 !important;
+  background-color: #045454 !important;
+  border-color: #045454 !important;
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="captain"].active *,
+button.category-button[onclick*="captain"].active * {
+  color: #bff863 !important;
+}
+
+.category-button[onclick*="captain"].active svg,
+button.category-button[onclick*="captain"].active svg {
+  color: #bff863 !important;
+}
+
+/* Cool Accordion Animation for Navigation Submenus - Override existing styles */
+.submenu {
+  max-height: 0 !important;
+  overflow: hidden !important;
+  transition: max-height 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+              opacity 1.0s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              transform 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  opacity: 0 !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  border-radius: 0 0 20px 20px;
+  background: linear-gradient(135deg, rgba(4, 84, 84, 0.05) 0%, rgba(191, 248, 99, 0.05) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(4, 84, 84, 0.1);
+  border-top: none;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.submenu.active {
+  max-height: 600px !important;
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  box-shadow: 0 15px 35px rgba(4, 84, 84, 0.2);
+}
+
+/* Enhanced accordion effect with dramatic scaling and glow */
+.category-button {
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  z-index: 1;
+}
+
+.category-button.active {
+  transform: scale(1.05) translateY(-2px);
+  z-index: 2;
+  box-shadow: 0 15px 40px rgba(4, 84, 84, 0.5), 
+              0 0 30px rgba(191, 248, 99, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(191, 248, 99, 0.5);
+}
+
+/* Vertical submenu item animations with slower cascade - Override existing styles */
+.submenu-item {
+  transition: all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+  transform: translateY(-20px) scale(0.95) !important;
+  opacity: 0 !important;
+  position: relative;
+}
+
+.submenu.active .submenu-item {
+  transform: translateY(0) scale(1) !important;
+  opacity: 1 !important;
+  transition: all 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+}
+
+.submenu-item:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(4, 84, 84, 0.2);
+}
+
+/* Slower staggered vertical cascade animation for submenu items - Simplified approach */
+.submenu.active .submenu-item:nth-child(1) { 
+  transition-delay: 0.3s !important; 
+}
+.submenu.active .submenu-item:nth-child(2) { 
+  transition-delay: 0.6s !important; 
+}
+.submenu.active .submenu-item:nth-child(3) { 
+  transition-delay: 0.9s !important; 
+}
+.submenu.active .submenu-item:nth-child(4) { 
+  transition-delay: 1.2s !important; 
+}
+.submenu.active .submenu-item:nth-child(5) { 
+  transition-delay: 1.5s !important; 
+}
+.submenu.active .submenu-item:nth-child(6) { 
+  transition-delay: 1.8s !important; 
+}
+
+/* Enhanced visual connection with pulsing effect */
+.category-section {
+  position: relative;
+}
+
+.category-section::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 3px;
+  height: 0;
+  background: linear-gradient(to bottom, #045454, #bff863, transparent);
+  transform: translateX(-50%);
+  transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(4, 84, 84, 0.5);
+}
+
+.category-section:has(.submenu.active)::after {
+  height: 30px;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(4, 84, 84, 0.5);
+    transform: translateX(-50%) scaleY(1);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(191, 248, 99, 0.8);
+    transform: translateX(-50%) scaleY(1.1);
+  }
+}
+
+/* Add a subtle ripple effect on button click */
+.category-button:active {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(4, 84, 84, 0.7);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(4, 84, 84, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(4, 84, 84, 0);
+  }
+}
+
+/* Modal responsive fixes - Force Transform Centering */
+@media (min-width: 768px) {
+  /* Override any conflicting positioning from main CSS */
+  #playerMatchesModal,
+  #matchesModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+  }
+  
+  /* Force transform-based centering */
+  #playerMatchesModal > div,
+  #matchesModal > div {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100% !important;
+    max-width: 32rem !important;
+    padding: 1rem !important;
+    margin: 0 !important;
+  }
+  
+  /* Ensure modal content is properly sized */
+  #playerMatchesModal .bg-white.rounded-xl,
+  #matchesModal .bg-white.rounded-xl {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  /* Constrain calendar date modal width on larger screens */
+  #dateModal .bg-white {
+    max-width: 500px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Fix modal button widths - make them full width of modal */
+  #dateModal .availability-btn-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  
+  /* Better modal spacing */
+  #dateModal .space-y-4 > * + * {
+    margin-top: 1rem !important;
+  }
+  
+  /* Improve button grid layout for desktop */
+  #dateModal .grid.grid-cols-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  
+  /* Constrain modal input fields - make them full width of modal */
+  #dateModal input,
+  #dateModal textarea {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    display: block !important;
+  }
+  
+  /* Style the note section container - full width */
+  #dateModal .border.border-gray-200 {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Ensure the note section div is also full width */
+  #dateModal .border.border-gray-200.rounded-lg.p-3.bg-gray-50 {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Better modal padding for desktop */
+  #dateModal .p-4 {
+    padding: 24px !important;
+  }
+  
+  /* Constrain the event details section - full width */
+  #dateModal .mb-3 {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Style the event info container - full width */
+  #dateModal .flex.items-center.gap-3 {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Constrain the event type and time section - full width */
+  #dateModal .text-sm {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Target the specific event details div - full width */
+  #dateModal .bg-white.rounded-lg.shadow-sm.border.border-gray-200 {
+    max-width: 100% !important;
+    margin: 0 auto !important;
+  }
+  
+  /* Ensure all content within the modal content area is full width */
+  #dateModal .p-4 > * {
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+  
+
+  
+  /* General modal fixes for other modals */
+  .modal-box {
+    max-width: 500px !important;
+    width: 90% !important;
+    margin: 0 auto !important;
+  }
+  
+  .modal-box .btn {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}

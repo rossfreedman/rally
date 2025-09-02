@@ -948,7 +948,11 @@
                     }
                 } else {
                     resetButtonState(loginButton);
-                    authErrorMessage.textContent = data.error || 'Invalid email or password';
+                    if (response.status === 401) {
+                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it.';
+                    } else {
+                        authErrorMessage.textContent = data.error || 'An error occurred. Please try again.';
+                    }
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
                     scrollToTop();
