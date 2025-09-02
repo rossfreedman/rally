@@ -2,8 +2,10 @@
   "completed_series": [
     "Series 12",
     "Series 15",
+    "Series 37",
     "Series 8",
     "Series 23 SW",
+    "Series 39",
     "Series 24",
     "Series 31",
     "Series 5",
@@ -21,12 +23,14 @@
     "Series 17 SW",
     "Series 7 SW",
     "Series 7",
+    "Series 99",
     "Series 33",
     "Series 27",
     "Series 35",
     "Series 3",
     "Series 21 SW",
     "Series 34",
+    "Series 38",
     "Series 16",
     "Series 22",
     "Series 14",
@@ -49,7 +53,7 @@
     "Series 29",
     "Series 27 SW"
   ],
-  "last_update": "2025-09-02T15:12:42.109698",
-  "total_players": 6242,
-  "series_files_created": 48
+  "last_update": "2025-09-02T15:20:30.822759",
+  "total_players": 6791,
+  "series_files_created": 52
 }

@@ -60,7 +60,23 @@
   .category-button.active * { 
     color: #bff863 !important; 
   }
-    .category-button.active svg {
+  .category-button.active svg {
+    color: #bff863 !important;
+  }
+  
+  /* Ensure Act button gets the same active treatment */
+  .category-button[onclick*="act-submenu"].active {
+    background: #045454 !important;
+    border-color: #045454 !important;
+    color: #bff863 !important;
+    box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+    transform: scale(1.05) translateY(-2px) !important;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  }
+  .category-button[onclick*="act-submenu"].active * { 
+    color: #bff863 !important; 
+  }
+  .category-button[onclick*="act-submenu"].active svg {
     color: #bff863 !important;
   }
   
@@ -693,63 +709,86 @@ function toggleSubmenu(submenuId) {
   // Add active class to the current category button if submenu is now active
   if (isActive) {
     const categoryButton = submenu.previousElementSibling;
+    console.log('🔍 BUTTON DEBUG: Found category button:', categoryButton);
+    console.log('🔍 BUTTON DEBUG: Button classes before:', categoryButton ? categoryButton.classList.toString() : 'No button found');
+    
     if (categoryButton && categoryButton.classList.contains('category-button')) {
       categoryButton.classList.add('active');
+      console.log('🔍 BUTTON DEBUG: Added active class to button');
+      console.log('🔍 BUTTON DEBUG: Button classes after:', categoryButton.classList.toString());
+    } else {
+      console.log('⚠️ BUTTON DEBUG: Category button not found or not correct class');
     }
     
     // Add class to body to style submit buttons when submenu is active
     document.body.classList.add('submenu-active');
     
-    // Enhanced scroll functionality for submenu buttons
+    // Enhanced scroll functionality - align section header with top navbar
     setTimeout(() => {
       console.log('🔍 SCROLL DEBUG: Submenu opened for', submenuId);
+      console.log('🔍 SCROLL DEBUG: About to start scroll calculation for', submenuId);
       
-      // Scroll the submenu into view instead of scrolling by fixed amount
-      const submenuContainer = document.querySelector('.submenu.active');
-      if (submenuContainer) {
-        console.log('🔍 SCROLL DEBUG: Attempting to scroll submenu into view...');
+      // Find the category button that was clicked
+      const categoryButton = submenu.previousElementSibling;
+      if (categoryButton && categoryButton.classList.contains('category-button')) {
+        console.log('🔍 SCROLL DEBUG: Found category button to align with navbar');
         
         try {
-          // Get the submenu's position
-          const submenuRect = submenuContainer.getBoundingClientRect();
-          const submenuTop = submenuRect.top + window.pageYOffset;
-          const viewportHeight = window.innerHeight;
+          // Get the navbar height (assuming it's the header with Rally logo)
+          const navbar = document.querySelector('header') || document.querySelector('.header') || document.querySelector('[class*="header"]');
+          const navbarHeight = navbar ? navbar.offsetHeight : 60; // Fallback to 60px if navbar not found
           
-          console.log(`📊 SCROLL DEBUG: Submenu top position: ${submenuTop}`);
-          console.log(`📊 SCROLL DEBUG: Viewport height: ${viewportHeight}`);
+          console.log(`📊 SCROLL DEBUG: Navbar height: ${navbarHeight}px`);
           
-          // Calculate if we need to scroll and by how much
-          const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-          const submenuBottom = submenuTop + submenuRect.height;
-          const visibleBottom = currentScroll + viewportHeight;
+          // Get the category button's position
+          const buttonRect = categoryButton.getBoundingClientRect();
+          const buttonTop = buttonRect.top + window.pageYOffset;
           
-          console.log(`📊 SCROLL DEBUG: Current scroll: ${currentScroll}`);
-          console.log(`📊 SCROLL DEBUG: Submenu bottom: ${submenuBottom}`);
-          console.log(`📊 SCROLL DEBUG: Visible bottom: ${visibleBottom}`);
+          console.log(`📊 SCROLL DEBUG: Button top position: ${buttonTop}px`);
           
-          // If submenu extends below visible area, scroll to show it
-          if (submenuBottom > visibleBottom) {
-            const scrollTo = submenuTop - (viewportHeight * 0.2); // Leave some space at top
-            console.log(`📊 SCROLL DEBUG: Scrolling to position: ${scrollTo}`);
-            
-            window.scrollTo({
-              top: Math.max(0, scrollTo), // Don't scroll above top
-              behavior: 'smooth'
-            });
-            
-            console.log('✅ SCROLL DEBUG: Scroll to submenu initiated');
+          // Calculate scroll position based on which section was clicked
+          let scrollTo;
+          let adjustment = 0;
+          
+          if (submenuId === 'act-submenu') {
+            // Act: scroll 10px less than before (was -30px, now -40px)
+            adjustment = 40;
+            console.log(`📊 SCROLL DEBUG: Act button - using 40px adjustment`);
+          } else if (submenuId === 'analyze-submenu') {
+            // Analyze: scroll to position that matches the attached image (top aligned with navbar)
+            adjustment = 0;
+            console.log(`📊 SCROLL DEBUG: Analyze button - using 0px adjustment (top aligned with navbar)`);
+          } else if (submenuId === 'prepare-submenu' || submenuId === 'play-submenu') {
+            // Prepare and Play: scroll 50px more than other sections
+            adjustment = -50;
+            console.log(`📊 SCROLL DEBUG: ${submenuId} button - using -50px adjustment (50px more)`);
+            console.log(`📊 SCROLL DEBUG: Prepare/Play button detected - submenuId: ${submenuId}`);
           } else {
-            console.log('✅ SCROLL DEBUG: Submenu already fully visible, no scroll needed');
+            // All other sections: scroll to same position as Analyze (top aligned with navbar)
+            adjustment = 0;
+            console.log(`📊 SCROLL DEBUG: ${submenuId} button - using 0px adjustment (same as Analyze)`);
           }
           
-        } catch (error) {
-          console.error('❌ SCROLL DEBUG: Scroll to submenu failed:', error);
+          scrollTo = buttonTop - navbarHeight - adjustment;
           
-          // Fallback: try scrollIntoView
+          console.log(`📊 SCROLL DEBUG: Scrolling to position: ${scrollTo}px (button top - navbar height - ${adjustment}px)`);
+          
+          // Scroll to align the button with the navbar
+          window.scrollTo({
+            top: Math.max(0, scrollTo), // Don't scroll above top
+            behavior: 'smooth'
+          });
+          
+          console.log('✅ SCROLL DEBUG: Scroll to align button with navbar initiated');
+          
+        } catch (error) {
+          console.error('❌ SCROLL DEBUG: Scroll alignment failed:', error);
+          
+          // Fallback: try to scroll the button into view at the top
           try {
-            submenuContainer.scrollIntoView({
+            categoryButton.scrollIntoView({
               behavior: 'smooth',
-              block: 'nearest'
+              block: 'start'
             });
             console.log('✅ SCROLL DEBUG: Fallback scrollIntoView initiated');
           } catch (fallbackError) {
@@ -757,7 +796,7 @@ function toggleSubmenu(submenuId) {
           }
         }
       } else {
-        console.log('⚠️ SCROLL DEBUG: No active submenu found to scroll to');
+        console.log('⚠️ SCROLL DEBUG: Category button not found for alignment');
       }
       
     }, 100); // Small delay to ensure submenu is rendered
