@@ -265,26 +265,22 @@ async function fetchAndRenderSubsMobile() {
                 } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
                     // Current is numeric, comparing to letter: letter series are higher
                     isHigher = true;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
+                    // Both are letter: compare alphabetically (A < B < C)
+                    isHigher = seriesValue.value > currentSeriesValue.value;
                 } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
                     // Current is letter, comparing to numeric: numeric series are lower
                     isHigher = false;
-                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
-                    // Both are letter: compare precedence
-                    isHigher = seriesValue.value > currentSeriesValue.value;
-                } else {
-                    // Handle other cases
-                    isHigher = seriesValue.value > currentSeriesValue.value;
                 }
                 
-                console.log(`Series "${seriesObj.name}" (ID: ${seriesObj.id}) -> ${JSON.stringify(seriesValue)}, higher than ${JSON.stringify(currentSeriesValue)}? ${isHigher}`);
                 return isHigher;
             });
             
             console.log('Higher series objects found:', higherSeriesObjects);
         } else {
             // Fallback to old method
-            const higherSeriesNames = allSeries.filter(s => {
-                const seriesValue = getSeriesComparisonValue(s);
+            const higherSeriesNames = allSeries.filter(series => {
+                const seriesValue = getSeriesComparisonValue(series);
                 if (!seriesValue) return false;
                 
                 let isHigher = false;
@@ -293,15 +289,12 @@ async function fetchAndRenderSubsMobile() {
                     isHigher = seriesValue.value > currentSeriesValue.value;
                 } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
                     isHigher = true;
-                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
-                    isHigher = false;
                 } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
                     isHigher = seriesValue.value > currentSeriesValue.value;
-                } else {
-                    isHigher = seriesValue.value > currentSeriesValue.value;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
+                    isHigher = false;
                 }
                 
-                console.log(`Series "${s}" -> ${JSON.stringify(seriesValue)}, higher than ${JSON.stringify(currentSeriesValue)}? ${isHigher}`);
                 return isHigher;
             });
             
@@ -371,7 +364,8 @@ async function fetchAndRenderSubsMobile() {
         // Use successful results for processing
         const workingResults = successfulResults.length > 0 ? successfulResults : results;
         
-        // 4. Aggregate all players (only from same club - current restrictive logic)
+        // 4. Get ALL players from the same club (not just higher series)
+        // This is the key fix - we need to get all available players, not just higher series
         const allPlayers = workingResults.flatMap(result =>
             result.players.map(player => ({
                 ...player,
@@ -384,10 +378,9 @@ async function fetchAndRenderSubsMobile() {
             player.club && player.club.toLowerCase() === '{{ session_data.user.club }}'.toLowerCase()
         );
         
-        console.log(`Found ${sameClubPlayers.length} players at same club from ${workingResults.length} higher series`);
+        console.log(`Found ${sameClubPlayers.length} players at same club from ${workingResults.length} series`);
         
-        // Fix: Show correct message - "No Subs Available" instead of "No Higher Series Found"
-        // when higher series exist but no players are found at user's club
+        // If no players found, show no results
         if (sameClubPlayers.length === 0) {
             loadingDiv.classList.add('hidden');
             noResultsDiv.classList.remove('hidden');
@@ -414,7 +407,8 @@ async function fetchAndRenderSubsMobile() {
                 }
             }
             
-            return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
+            const compositeScore = (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
+            return compositeScore;
         }
         
         const playersWithScores = sameClubPlayers.map(player => ({

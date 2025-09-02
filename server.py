@@ -5,7 +5,7 @@ Rally Flask Application
 
 This is the main server file for the Rally platform tennis management application.
 Most routes have been moved to blueprints for better organization.
-""" 
+"""
 
 # Load environment variables from .env file FIRST, before any other imports
 import os
@@ -820,8 +820,10 @@ def serve_image(filename):
     return send_from_directory("static/images", filename)
 
 
-# NOTE: Custom /static/<path:filename> route removed - using Flask's built-in static file handler instead
-# Flask automatically creates this route when static_folder="static" and static_url_path="/static" are specified
+@app.route("/static/<path:filename>")
+def serve_static_files(filename):
+    """Serve static files without authentication"""
+    return send_from_directory("static", filename)
 
 
 @app.route("/health/detailed")

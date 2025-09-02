@@ -279,6 +279,7 @@ def get_players_by_series():
         return jsonify({"error": str(e)}), 500
 
 
+
 @player_bp.route("/api/team-players/<team_id>")
 @login_required
 def get_team_players(team_id):

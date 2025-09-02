@@ -16,7 +16,7 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
     color: #045454 !important;
     font-weight: 500 !important;
-    transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding: 1.5rem !important;
     width: 100%;
     text-align: center;
@@ -24,6 +24,8 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
+    position: relative;
+    z-index: 1;
   }
   .category-button * { 
     color: #045454 !important; 
@@ -52,6 +54,8 @@
     border-color: #045454 !important;
     color: #bff863 !important;
     box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+    transform: scale(1.05) translateY(-2px) !important;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
   .category-button.active * { 
     color: #bff863 !important; 
@@ -75,21 +79,31 @@
     color: #495057 !important;
   }
   .submenu { 
-    display: none !important; 
+    display: block !important; 
     background: transparent; 
     margin-top: 0.5rem; 
-    overflow: hidden; 
-    visibility: hidden !important;
+    overflow: hidden !important;
+    visibility: visible !important;
     opacity: 0 !important;
     height: 0 !important;
     max-height: 0 !important;
+    transform: translateY(-20px) scale(0.95) !important;
+    transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+                opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    -webkit-transform: translateY(-20px) scale(0.95) !important;
+    -webkit-transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+                        opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                        -webkit-transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
   .submenu.active { 
     display: block !important; 
     visibility: visible !important;
     opacity: 1 !important;
     height: auto !important;
-    max-height: none !important;
+    max-height: 600px !important;
+    transform: translateY(0) scale(1) !important;
+    -webkit-transform: translateY(0) scale(1) !important;
   }
   .submenu-item { 
     display: flex; 
@@ -103,13 +117,47 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     text-decoration: none; 
     color: white !important; 
-    transition: box-shadow 0.2s, transform 0.1s, background 0.2s; 
+    transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
     text-align: center;
     min-height: 120px;
     background: #797979 !important;
     width: 100%;
+    transform: translateY(-20px) scale(0.95) !important;
+    opacity: 0 !important;
+    position: relative;
+    -webkit-transform: translateY(-20px) scale(0.95) !important;
+    -webkit-transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
   }
   .submenu-item:last-child { margin-bottom: 0; }
+  
+  /* Active state for submenu items */
+  .submenu.active .submenu-item {
+    transform: translateY(0) scale(1) !important;
+    opacity: 1 !important;
+    -webkit-transform: translateY(0) scale(1) !important;
+    transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+    -webkit-transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+  }
+  
+  /* Staggered animation delays for submenu items */
+  .submenu.active .submenu-item:nth-child(1) { 
+    transition-delay: 0.1s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(2) { 
+    transition-delay: 0.2s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(3) { 
+    transition-delay: 0.3s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(4) { 
+    transition-delay: 0.4s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(5) { 
+    transition-delay: 0.5s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(6) { 
+    transition-delay: 0.6s !important; 
+  }
   .submenu-item:hover { 
     background-color: #f2f2f7; 
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
@@ -588,11 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Force close all submenus with multiple approaches
   allSubmenus.forEach(menu => {
     menu.classList.remove('active');
-    menu.style.display = 'none';
-    menu.style.visibility = 'hidden';
-    menu.style.opacity = '0';
-    menu.style.height = '0';
-    menu.style.maxHeight = '0';
+    // Don't set inline styles that override CSS animation
   });
   
   // Remove active class from all category buttons
@@ -612,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('⚠️ SUBMENU DEBUG: Found submenus still open, forcing closure...');
       stillOpen.forEach(menu => {
         menu.classList.remove('active');
-        menu.style.display = 'none';
+        // Don't set inline styles that override CSS animation
       });
     } else {
       console.log('✅ SUBMENU DEBUG: All submenus confirmed closed');
@@ -621,9 +665,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function toggleSubmenu(submenuId) {
+  console.log('🎯 TOGGLE SUBMENU:', submenuId);
   const submenu = document.getElementById(submenuId);
   const allSubmenus = document.querySelectorAll('.submenu');
   const allCategoryButtons = document.querySelectorAll('.category-button');
+  
+  console.log('📋 Found submenu:', submenu);
+  console.log('📋 Submenu classes before:', submenu.classList.toString());
   
   // Close all other submenus and remove active class from their buttons
   allSubmenus.forEach(menu => { 
@@ -639,6 +687,8 @@ function toggleSubmenu(submenuId) {
   
   // Toggle the current submenu
   const isActive = submenu.classList.toggle('active');
+  console.log('📋 Submenu classes after:', submenu.classList.toString());
+  console.log('📋 Is active:', isActive);
   
   // Add active class to the current category button if submenu is now active
   if (isActive) {
@@ -650,67 +700,67 @@ function toggleSubmenu(submenuId) {
     // Add class to body to style submit buttons when submenu is active
     document.body.classList.add('submenu-active');
     
-    // Enhanced scroll debug functionality for submenu buttons
+    // Enhanced scroll functionality for submenu buttons
     setTimeout(() => {
       console.log('🔍 SCROLL DEBUG: Submenu opened for', submenuId);
       
-      // Determine scroll distance based on submenu type
-      let scrollDistance = 300; // Default for most submenus
-      if (submenuId === 'captain-submenu') {
-        scrollDistance = 100; // Reduced scroll for Captain's Corner
-        console.log('🎯 SCROLL DEBUG: Using reduced scroll distance (100px) for Captain\'s Corner');
-      }
-      
-      // Always try window scroll first (most visible)
-      console.log('🔍 SCROLL DEBUG: Attempting window scroll...');
-      
-      try {
-        // Get current scroll position
-        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-        console.log(`📊 SCROLL DEBUG: Current window scroll position: ${currentScroll}`);
-        
-        // Scroll window by determined distance
-        window.scrollBy({
-          top: scrollDistance,
-          behavior: 'smooth'
-        });
-        
-        console.log(`✅ SCROLL DEBUG: Window scroll initiated (${scrollDistance}px)`);
-        
-        // Check scroll position after a delay
-        setTimeout(() => {
-          const newScroll = window.pageYOffset || document.documentElement.scrollTop;
-          console.log(`📊 SCROLL DEBUG: New window scroll position: ${newScroll}`);
-          console.log(`📊 SCROLL DEBUG: Scroll difference: ${newScroll - currentScroll}px`);
-          
-          if (newScroll > currentScroll) {
-            console.log('✅ SCROLL DEBUG: Window scroll successful and visible!');
-          } else {
-            console.log('⚠️ SCROLL DEBUG: Window scroll may not be visible (already at bottom)');
-          }
-        }, 800);
-        
-      } catch (error) {
-        console.error('❌ SCROLL DEBUG: Window scroll failed:', error);
-      }
-      
-      // Also try scrolling the submenu container if it exists
+      // Scroll the submenu into view instead of scrolling by fixed amount
       const submenuContainer = document.querySelector('.submenu.active');
       if (submenuContainer) {
-        console.log('🔍 SCROLL DEBUG: Attempting submenu container scroll...');
+        console.log('🔍 SCROLL DEBUG: Attempting to scroll submenu into view...');
         
         try {
-          submenuContainer.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
-          });
-          console.log('✅ SCROLL DEBUG: Submenu container scroll initiated');
+          // Get the submenu's position
+          const submenuRect = submenuContainer.getBoundingClientRect();
+          const submenuTop = submenuRect.top + window.pageYOffset;
+          const viewportHeight = window.innerHeight;
+          
+          console.log(`📊 SCROLL DEBUG: Submenu top position: ${submenuTop}`);
+          console.log(`📊 SCROLL DEBUG: Viewport height: ${viewportHeight}`);
+          
+          // Calculate if we need to scroll and by how much
+          const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+          const submenuBottom = submenuTop + submenuRect.height;
+          const visibleBottom = currentScroll + viewportHeight;
+          
+          console.log(`📊 SCROLL DEBUG: Current scroll: ${currentScroll}`);
+          console.log(`📊 SCROLL DEBUG: Submenu bottom: ${submenuBottom}`);
+          console.log(`📊 SCROLL DEBUG: Visible bottom: ${visibleBottom}`);
+          
+          // If submenu extends below visible area, scroll to show it
+          if (submenuBottom > visibleBottom) {
+            const scrollTo = submenuTop - (viewportHeight * 0.2); // Leave some space at top
+            console.log(`📊 SCROLL DEBUG: Scrolling to position: ${scrollTo}`);
+            
+            window.scrollTo({
+              top: Math.max(0, scrollTo), // Don't scroll above top
+              behavior: 'smooth'
+            });
+            
+            console.log('✅ SCROLL DEBUG: Scroll to submenu initiated');
+          } else {
+            console.log('✅ SCROLL DEBUG: Submenu already fully visible, no scroll needed');
+          }
+          
         } catch (error) {
-          console.error('❌ SCROLL DEBUG: Submenu container scroll failed:', error);
+          console.error('❌ SCROLL DEBUG: Scroll to submenu failed:', error);
+          
+          // Fallback: try scrollIntoView
+          try {
+            submenuContainer.scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest'
+            });
+            console.log('✅ SCROLL DEBUG: Fallback scrollIntoView initiated');
+          } catch (fallbackError) {
+            console.error('❌ SCROLL DEBUG: Fallback scrollIntoView also failed:', fallbackError);
+          }
         }
+      } else {
+        console.log('⚠️ SCROLL DEBUG: No active submenu found to scroll to');
       }
       
-    }, 100); // Reduced delay for faster response
+    }, 100); // Small delay to ensure submenu is rendered
   } else {
     // Remove class from body when submenu is closed
     document.body.classList.remove('submenu-active');

@@ -21,8 +21,10 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
     color: #045454 !important;
     font-weight: 500 !important;
-    transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding: 1.5rem !important;
+    position: relative;
+    z-index: 1;
   }
   .act-button *, .analyze-button *, .prepare-button *, .play-button *, .improve-button *, .captain-button *, .admin-button * {
     color: #045454 !important;
@@ -237,16 +239,20 @@
     }
   }
   
-  /* Submenu CSS for notifications */
+  /* Submenu CSS for notifications - Animation enabled */
   .submenu { 
-    display: none !important; 
+    display: block !important; 
     background: transparent; 
     margin-top: 0.5rem; 
-    overflow: hidden; 
-    visibility: hidden !important;
+    overflow: hidden !important;
+    visibility: visible !important;
     opacity: 0 !important;
     height: 0 !important;
     max-height: 0 !important;
+    transform: translateY(-20px) scale(0.95) !important;
+    transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+                opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
 
   /* Install notification styles */
@@ -304,7 +310,8 @@
     visibility: visible !important;
     opacity: 1 !important;
     height: auto !important;
-    max-height: none !important;
+    max-height: 600px !important;
+    transform: translateY(0) scale(1) !important;
   }
   .submenu-item { 
     display: flex; 
@@ -318,13 +325,42 @@
     box-shadow: 0 4px 16px rgba(0,0,0,0.08);
     text-decoration: none; 
     color: white !important; 
-    transition: box-shadow 0.2s, transform 0.1s, background 0.2s; 
+    transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
     text-align: center;
     min-height: 120px;
     background: #797979 !important;
     width: 100%;
+    transform: translateY(-20px) scale(0.95) !important;
+    opacity: 0 !important;
+    position: relative;
   }
   .submenu-item:last-child { margin-bottom: 0; }
+  
+  /* Active state for submenu items */
+  .submenu.active .submenu-item {
+    transform: translateY(0) scale(1) !important;
+    opacity: 1 !important;
+  }
+  
+  /* Staggered animation delays for submenu items */
+  .submenu.active .submenu-item:nth-child(1) { 
+    transition-delay: 0.1s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(2) { 
+    transition-delay: 0.2s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(3) { 
+    transition-delay: 0.3s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(4) { 
+    transition-delay: 0.4s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(5) { 
+    transition-delay: 0.5s !important; 
+  }
+  .submenu.active .submenu-item:nth-child(6) { 
+    transition-delay: 0.6s !important; 
+  }
   .submenu-item:hover { 
     background-color: #f2f2f7; 
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
@@ -357,6 +393,8 @@
     background: #045454 !important;
     border-color: #045454 !important;
     color: #bff863 !important;
+    transform: scale(1.05) translateY(-2px) !important;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
   
   .category-button.active * {
