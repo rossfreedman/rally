@@ -64,8 +64,10 @@
     color: #bff863 !important;
   }
   
-  /* Ensure Act button gets the same active treatment */
-  .category-button[onclick*="act-submenu"].active {
+  /* Ensure Act button gets the same active treatment - More specific selectors */
+  .category-button[onclick*="act-submenu"].active,
+  button[onclick*="act-submenu"].active,
+  .category-section:first-child .category-button.active {
     background: #045454 !important;
     border-color: #045454 !important;
     color: #bff863 !important;
@@ -73,10 +75,14 @@
     transform: scale(1.05) translateY(-2px) !important;
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
   }
-  .category-button[onclick*="act-submenu"].active * { 
+  .category-button[onclick*="act-submenu"].active *,
+  button[onclick*="act-submenu"].active *,
+  .category-section:first-child .category-button.active * { 
     color: #bff863 !important; 
   }
-  .category-button[onclick*="act-submenu"].active svg {
+  .category-button[onclick*="act-submenu"].active svg,
+  button[onclick*="act-submenu"].active svg,
+  .category-section:first-child .category-button.active svg {
     color: #bff863 !important;
   }
   
@@ -763,6 +769,10 @@ function toggleSubmenu(submenuId) {
             adjustment = -50;
             console.log(`📊 SCROLL DEBUG: ${submenuId} button - using -50px adjustment (50px more)`);
             console.log(`📊 SCROLL DEBUG: Prepare/Play button detected - submenuId: ${submenuId}`);
+          } else if (submenuId === 'improve-submenu') {
+            // Improve: scroll 100px more than other sections
+            adjustment = -100;
+            console.log(`📊 SCROLL DEBUG: Improve button - using -100px adjustment (100px more)`);
           } else {
             // All other sections: scroll to same position as Analyze (top aligned with navbar)
             adjustment = 0;
