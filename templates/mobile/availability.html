@@ -1476,5 +1476,15 @@ document.addEventListener('DOMContentLoaded', function() {
 .view-team-button:hover {
     background-color: #2563eb;
 }
+
+/* Fixed download button size - prevents growing/shrinking on larger screens */
+.download-btn-fixed {
+    width: 120px !important;
+    height: 40px !important;
+    padding: 8px 16px !important;
+    flex-shrink: 0 !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+}
 </style>
 {% endblock %} 
