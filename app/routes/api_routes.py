@@ -9386,9 +9386,11 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         
         # Get weather data for upcoming events
         weather_data = {}
+        logger.info(f"Weather debug - next_practice: {next_practice}, next_match: {next_match}")
         try:
             from app.services.weather_service import WeatherService
             weather_service = WeatherService()
+            logger.info(f"Weather service initialized, API key available: {bool(weather_service.api_key)}")
             
             # Prepare schedule entries for weather lookup
             weather_entries = []
@@ -9407,10 +9409,14 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 })
             
             # Get weather forecasts
+            logger.info(f"Weather debug - weather_entries: {weather_entries}")
             weather_data = weather_service.get_weather_for_schedule_entries(weather_entries)
+            logger.info(f"Weather debug - weather_data retrieved: {weather_data}")
             
         except Exception as e:
             logger.warning(f"Could not fetch weather data: {str(e)}")
+            import traceback
+            logger.error(f"Weather error traceback: {traceback.format_exc()}")
         
         # Build notification message with weather
         practice_text = "No upcoming practices"
@@ -9457,6 +9463,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
         }
         
         # Add weather data to notification if available
+        logger.info(f"Weather debug - adding weather_data to notification: {bool(weather_data)}")
         if weather_data:
             # Convert WeatherForecast objects to dictionaries for JSON serialization
             weather_dict = {}
@@ -9476,6 +9483,9 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 else:
                     weather_dict[key] = forecast
             notification_data["weather"] = weather_dict
+            logger.info(f"Weather debug - weather_dict added to notification: {weather_dict}")
+        else:
+            logger.info("Weather debug - no weather_data to add to notification")
         
         notifications.append(notification_data)
         

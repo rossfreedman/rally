@@ -1100,6 +1100,8 @@ function renderScheduleWithWeather(notification) {
     console.log('🌦️ renderScheduleWithWeather called with notification:', notification);
     console.log('🌦️ Weather data:', notification.weather);
     console.log('🌦️ Weather type:', typeof notification.weather);
+    console.log('🌦️ Notification type:', notification.type);
+    console.log('🌦️ Message:', notification.message);
     
     // Split the message into lines
     const lines = notification.message.split('\n');
@@ -1163,13 +1165,21 @@ function renderScheduleWithWeather(notification) {
                             day: 'numeric' 
                         });
                         
+                        // Also create zero-padded version for comparison
+                        const weatherDisplayDatePadded = weatherDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: '2-digit' 
+                        });
+                        
                         console.log('🌦️ Weather date string:', weatherEntry.date);
                         console.log('🌦️ Parsed weather date:', weatherDate);
                         console.log('🌦️ Weather display date:', weatherDisplayDate);
+                        console.log('🌦️ Weather display date (padded):', weatherDisplayDatePadded);
                         console.log('🌦️ Event date:', eventDate);
                         console.log('🌦️ Comparing:', weatherDisplayDate, '===', eventDate, 'Result:', weatherDisplayDate === eventDate);
+                        console.log('🌦️ Comparing (padded):', weatherDisplayDatePadded, '===', eventDate, 'Result:', weatherDisplayDatePadded === eventDate);
                         
-                        return weatherDisplayDate === eventDate;
+                        return weatherDisplayDate === eventDate || weatherDisplayDatePadded === eventDate;
                     } catch (error) {
                         console.error('Error parsing weather date:', weatherEntry.date, error);
                         return false;
@@ -1203,6 +1213,7 @@ function renderScheduleWithWeather(notification) {
         html += `<div class="text-sm mb-2">${boldLine}</div>`;
     });
     
+    console.log('🌦️ Final HTML output:', html);
     return html;
 }
 
@@ -1411,6 +1422,11 @@ function generateHorizontalWeatherCard(forecast) {
 
 function generateCompactHorizontalWeatherCard(forecast) {
     console.log('🌦️ generateCompactHorizontalWeatherCard called with:', forecast);
+    console.log('🌦️ Forecast type:', typeof forecast);
+    console.log('🌦️ Forecast keys:', forecast ? Object.keys(forecast) : 'null');
+    console.log('🌦️ Has icon:', forecast && forecast.icon);
+    console.log('🌦️ Icon value:', forecast ? forecast.icon : 'null');
+    
     if (!forecast || !forecast.icon) {
         console.log('🌦️ No forecast or icon, returning empty string');
         return '';
@@ -1460,28 +1476,31 @@ function generateCompactHorizontalWeatherCard(forecast) {
         iconStyle = 'filter: brightness(0) saturate(100%) invert(84%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%);';
     }
 
-    return `
-        <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
-            <!-- Weather Icon -->
-            <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" style="${iconStyle}" onerror="this.style.display='none'">
+                const weatherCardHtml = `
+                <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
+                    <!-- Weather Icon -->
+                    <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" style="${iconStyle}" onerror="this.style.display='none'">
+                    
+                    <!-- Weather Info -->
+                    <div class="flex flex-col gap-0.5 justify-center h-full flex-1">
+                        <!-- Temperature -->
+                        <div class="text-sm font-bold" style="color: white !important;">
+                            ${tempString}
+                        </div>
+                        
+                        <!-- Condition and Rain on same line -->
+                        <div class="text-xs text-white capitalize flex items-center gap-1">
+                            <span>${forecast.condition}</span>
+                            ${precip > 0 ? `
+                                <span>💧 ${precip}%</span>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            <!-- Weather Info -->
-            <div class="flex flex-col gap-0.5 justify-center h-full flex-1">
-                <!-- Temperature -->
-                <div class="text-sm font-bold" style="color: white !important;">
-                    ${tempString}
-                </div>
-                
-                <!-- Condition and Rain on same line -->
-                <div class="text-xs text-white capitalize flex items-center gap-1">
-                    <span>${forecast.condition}</span>
-                    ${precip > 0 ? `
-                        <span>💧 ${precip}%</span>
-                    ` : ''}
-                </div>
-            </div>
-        </div>
-    `;
+            console.log('🌦️ Generated weather card HTML:', weatherCardHtml);
+            return weatherCardHtml;
 }
 
 function getNotificationIcon(type) {
