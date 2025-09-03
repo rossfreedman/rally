@@ -66,14 +66,15 @@ def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
 def normalize_club_name(raw: str) -> str:
     """
     Normalize club names by removing series/division/team markers while preserving 
-    canonical club names and common club-type abbreviations.
+    canonical club names and expanding common club-type abbreviations for better matching.
     
     Examples:
     - "Prairie Club II" -> "Prairie Club"
     - "Wilmette PD I" -> "Wilmette"
     - "Winnetka 99 B" -> "Winnetka"
     - "Midtown - Chicago - 23" -> "Midtown"
-    - "Lake Shore CC" -> "Lake Shore CC" (CC preserved)
+    - "Lake Shore CC" -> "Lake Shore Country Club" (CC expanded)
+    - "Hinsdale GC" -> "Hinsdale Golf Club" (GC expanded)
     """
     if not raw:
         return raw
@@ -99,17 +100,43 @@ def normalize_club_name(raw: str) -> str:
     base = re.sub(r'[^\w\s&]', ' ', base)
     base = re.sub(r'\s+', ' ', base).strip()
 
-    # Title case for display consistency, but preserve club type abbreviations
+    # Title case for display consistency and expand club type abbreviations
     words = base.split()
     title_words = []
     for word in words:
         if word.upper() in _KEEP_SUFFIXES:
-            title_words.append(word.upper())
+            # Expand common club type abbreviations for better matching
+            expanded = _expand_club_abbreviation(word.upper())
+            title_words.append(expanded)
         else:
             title_words.append(word.title())
     base = ' '.join(title_words)
 
     return base
+
+
+def _expand_club_abbreviation(abbrev: str) -> str:
+    """
+    Expand common club type abbreviations to their full forms for better matching.
+    
+    Args:
+        abbrev: The abbreviation to expand (e.g., 'GC', 'CC')
+        
+    Returns:
+        The expanded form (e.g., 'Golf Club', 'Country Club')
+    """
+    expansions = {
+        'CC': 'Country Club',
+        'GC': 'Golf Club', 
+        'RC': 'Racquet Club',
+        'PC': 'Paddle Club',
+        'TC': 'Tennis Club',
+        'AC': 'Athletic Club',
+        'PD': 'Paddle',  # Common in some leagues
+        'S&F': 'Sports & Fitness'  # Handle special cases
+    }
+    
+    return expansions.get(abbrev, abbrev)
 
 
 def load_club_addresses(csv_file: str = "data/club_addresses.csv") -> Dict[str, str]:
@@ -176,7 +203,7 @@ def find_club_address(club_name: str, addresses: Dict[str, str]) -> Optional[str
     # Try fuzzy matching with similarity threshold
     best_match = None
     best_score = 0.0
-    similarity_threshold = 0.8
+    similarity_threshold = 0.6
     
     for csv_name, address in addresses.items():
         # Calculate similarity
@@ -1025,6 +1052,57 @@ def fix_existing_team_assignments(cur, league_id):
     
     return fixed, failed
 
+
+def update_existing_clubs_with_addresses(cur, addresses: Dict[str, str]) -> int:
+    """
+    Update existing clubs in the database with addresses from CSV file.
+    This ensures that clubs that were created without addresses get updated
+    with addresses when the CSV data is available.
+    
+    Args:
+        cur: Database cursor
+        addresses: Dictionary of club names to addresses from CSV
+        
+    Returns:
+        Number of clubs updated with addresses
+    """
+    if not addresses:
+        return 0
+    
+    print("\n🔄 Updating existing clubs with addresses...")
+    
+    # Get all clubs without addresses
+    cur.execute("SELECT id, name FROM clubs WHERE club_address IS NULL OR club_address = ''")
+    clubs_without_addresses = cur.fetchall()
+    
+    if not clubs_without_addresses:
+        print("  ✅ All clubs already have addresses")
+        return 0
+    
+    print(f"  📊 Found {len(clubs_without_addresses)} clubs without addresses")
+    
+    updated_count = 0
+    
+    for club_id, club_name in clubs_without_addresses:
+        # Try to find address using enhanced normalization
+        address = find_club_address(club_name, addresses)
+        
+        if address:
+            # Update the club with the address
+            cur.execute("""
+                UPDATE clubs 
+                SET club_address = %s, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (address, club_id))
+            
+            normalized_name = normalize_club_name(club_name)
+            print(f"    ✅ Updated: {club_name} -> {normalized_name} -> {address[:60]}...")
+            updated_count += 1
+    
+    print(f"  🎉 Updated {updated_count} existing clubs with addresses")
+    return updated_count
+
+
 def main():
     """Main function to start a season for a league."""
     parser = argparse.ArgumentParser(description="Start a season for a league by importing players data")
@@ -1113,6 +1191,11 @@ def main():
         print(f"  Clubs: {len(clubs)} processed")
         if club_addresses:
             print(f"  Clubs with addresses: {clubs_with_addresses}")
+            
+            # Update existing clubs with addresses
+            updated_existing = update_existing_clubs_with_addresses(cur, club_addresses)
+            if updated_existing > 0:
+                print(f"  📈 Total clubs with addresses after update: {clubs_with_addresses + updated_existing}")
         
         print("Upserting series...")
         series_map = {}
