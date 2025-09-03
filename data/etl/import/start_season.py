@@ -4,20 +4,23 @@ Start Season Script for Rally App
 
 Bootstraps league data (clubs, series, teams, players) from a JSON file.
 Uses upserts to prevent duplicates and handles both numeric and letter-based series.
+Automatically updates club addresses from data/club_addresses.csv during club creation.
 
-Usage: python3 data/etl/import/start_season.py <LEAGUE_KEY> [--test-file <JSON_FILE>]
+Usage: python3 data/etl/import/start_season.py <LEAGUE_KEY> [--test-file <JSON_FILE>] [--skip-addresses]
 """
 
 import argparse
+import csv
 import json
 import os
 import re
 import sys
-from typing import List, Tuple, Dict, Any, Set
+from typing import List, Tuple, Dict, Any, Set, Optional
+from difflib import SequenceMatcher
 
 from import_utils import (
     get_conn, get_league_id, check_tenniscores_player_id_column,
-    upsert_club, upsert_series, upsert_player
+    upsert_club, upsert_series, upsert_player, column_exists
 )
 
 # Club normalization tracking
@@ -29,6 +32,9 @@ _ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
 _LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
 _ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
 _KEEP_SUFFIXES: Set[str] = {"CC", "GC", "RC", "PC", "TC", "AC"}  # preserve common club types
+
+# Club address matching
+_club_addresses: Dict[str, str] = {}
 
 
 def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
@@ -104,6 +110,156 @@ def normalize_club_name(raw: str) -> str:
     base = ' '.join(title_words)
 
     return base
+
+
+def load_club_addresses(csv_file: str = "data/club_addresses.csv") -> Dict[str, str]:
+    """
+    Load club addresses from CSV file and return a mapping of club names to addresses.
+    Uses fuzzy matching to handle variations in club names.
+    """
+    global _club_addresses
+    
+    if _club_addresses:
+        return _club_addresses
+    
+    if not os.path.exists(csv_file):
+        print(f"⚠️  Club addresses CSV file not found: {csv_file}")
+        return {}
+    
+    addresses = {}
+    
+    try:
+        with open(csv_file, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                raw_name = row.get('Raw Name', '').strip()
+                full_name = row.get('Full Name', '').strip()
+                address = row.get('Address', '').strip()
+                
+                # Use raw name if available, otherwise use full name
+                club_name = raw_name if raw_name else full_name
+                
+                if club_name and address:
+                    # Normalize the club name for matching
+                    normalized_name = normalize_club_name(club_name)
+                    addresses[normalized_name] = address
+                    
+                    # Also store the original name for exact matches
+                    addresses[club_name] = address
+        
+        _club_addresses = addresses
+        print(f"📊 Loaded {len(addresses)} club addresses from CSV")
+        return addresses
+        
+    except Exception as e:
+        print(f"❌ Error loading club addresses from CSV: {e}")
+        return {}
+
+
+def find_club_address(club_name: str, addresses: Dict[str, str]) -> Optional[str]:
+    """
+    Find the address for a club using fuzzy matching.
+    Returns the address if found, None otherwise.
+    """
+    if not club_name or not addresses:
+        return None
+    
+    # First try exact match
+    if club_name in addresses:
+        return addresses[club_name]
+    
+    # Try normalized name match
+    normalized_name = normalize_club_name(club_name)
+    if normalized_name in addresses:
+        return addresses[normalized_name]
+    
+    # Try fuzzy matching with similarity threshold
+    best_match = None
+    best_score = 0.0
+    similarity_threshold = 0.8
+    
+    for csv_name, address in addresses.items():
+        # Calculate similarity
+        similarity = SequenceMatcher(None, club_name.lower(), csv_name.lower()).ratio()
+        
+        if similarity > best_score and similarity >= similarity_threshold:
+            best_score = similarity
+            best_match = address
+    
+    if best_match:
+        print(f"    📍 Found address for '{club_name}' via fuzzy match (score: {best_score:.2f})")
+    
+    return best_match
+
+
+def upsert_club_with_address(cur, name: str, league_id: int, addresses: Dict[str, str]) -> int:
+    """
+    Upsert club with address from CSV data.
+    Returns the club ID.
+    """
+    if not name:
+        return None
+    
+    # Get the club address if available
+    club_address = find_club_address(name, addresses)
+    
+    # Check if clubs table has league_id column
+    if column_exists(cur, "clubs", "league_id"):
+        # Direct league_id column
+        if club_address:
+            cur.execute("""
+                INSERT INTO clubs (name, league_id, club_address) 
+                VALUES (%s, %s, %s) 
+                ON CONFLICT (name, league_id) DO UPDATE SET 
+                    club_address = EXCLUDED.club_address
+                RETURNING id
+            """, (name, league_id, club_address))
+        else:
+            cur.execute("""
+                INSERT INTO clubs (name, league_id) 
+                VALUES (%s, %s) 
+                ON CONFLICT (name, league_id) DO NOTHING 
+                RETURNING id
+            """, (name, league_id))
+        
+        result = cur.fetchone()
+        if result:
+            return result[0]
+        
+        # Get existing ID
+        cur.execute("SELECT id FROM clubs WHERE name = %s AND league_id = %s", (name, league_id))
+        return cur.fetchone()[0]
+    else:
+        # Use club_leagues junction table
+        # First, try to insert the club
+        if club_address:
+            cur.execute("""
+                INSERT INTO clubs (name, club_address) 
+                VALUES (%s, %s) 
+                ON CONFLICT (name) DO UPDATE SET 
+                    club_address = EXCLUDED.club_address
+                RETURNING id
+            """, (name, club_address))
+        else:
+            cur.execute("INSERT INTO clubs (name) VALUES (%s) ON CONFLICT (name) DO NOTHING RETURNING id", (name,))
+        
+        result = cur.fetchone()
+        
+        if result:
+            # New club was created
+            club_id = result[0]
+        else:
+            # Club already exists, get its ID
+            cur.execute("SELECT id FROM clubs WHERE name = %s", (name,))
+            club_id = cur.fetchone()[0]
+        
+        # Check if club-league relationship already exists
+        cur.execute("SELECT 1 FROM club_leagues WHERE club_id = %s AND league_id = %s", (club_id, league_id))
+        if not cur.fetchone():
+            # Create club-league relationship only if it doesn't exist
+            cur.execute("INSERT INTO club_leagues (club_id, league_id) VALUES (%s, %s)", (club_id, league_id))
+        
+        return club_id
 
 
 def validate_entity_name(name, entity_type):
@@ -874,6 +1030,7 @@ def main():
     parser = argparse.ArgumentParser(description="Start a season for a league by importing players data")
     parser.add_argument("league_key", help="League key (e.g., CNSWPL, APTA_CHICAGO)")
     parser.add_argument("--test-file", help="Test with a specific JSON file instead of the default players.json")
+    parser.add_argument("--skip-addresses", action="store_true", help="Skip loading club addresses from CSV")
     args = parser.parse_args()
     
     league_key = args.league_key.upper()
@@ -932,14 +1089,30 @@ def main():
         has_external_id = check_tenniscores_player_id_column(cur)
         print(f"Players table has tenniscores_player_id column: {has_external_id}")
         
+        # Load club addresses from CSV
+        club_addresses = {}
+        if not args.skip_addresses:
+            print("\nLoading club addresses from CSV...")
+            club_addresses = load_club_addresses()
+        else:
+            print("\nSkipping club address loading (--skip-addresses flag)")
+        
         print("\nUpserting clubs...")
         club_map = {}
+        clubs_with_addresses = 0
         for club_name in clubs:
             print(f"    Processing club: {club_name}")
-            club_id = upsert_club(cur, club_name, league_id)
+            if club_addresses:
+                club_id = upsert_club_with_address(cur, club_name, league_id, club_addresses)
+                if find_club_address(club_name, club_addresses):
+                    clubs_with_addresses += 1
+            else:
+                club_id = upsert_club(cur, club_name, league_id)
             club_map[club_name] = club_id
             print(f"      -> Club ID: {club_id}")
         print(f"  Clubs: {len(clubs)} processed")
+        if club_addresses:
+            print(f"  Clubs with addresses: {clubs_with_addresses}")
         
         print("Upserting series...")
         series_map = {}

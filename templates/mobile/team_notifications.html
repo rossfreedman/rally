@@ -191,17 +191,7 @@
         </div>
         
 
-        
-        <!-- Recent Messages History -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-history text-gray-500 mr-2"></i>
-                Recent Messages
-            </h3>
-            <div id="notificationHistory" class="space-y-3">
-                <p class="text-gray-500 text-sm">Recent messages will appear here...</p>
-            </div>
-        </div>
+
     </div>
 </div>
 
@@ -211,7 +201,6 @@ window.sessionData = {{ session_data | tojson | safe }};
 
 let teamInfo = {};
 let notificationTemplates = {};
-let notificationHistory = [];
 let isSMSMode = true;
 
 // Initialize page
@@ -219,7 +208,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTeamInfo();
     loadNotificationTemplates();
     setupFormHandlers();
-    loadNotificationHistory();
     setupMessageTypeToggle();
 });
 
@@ -576,15 +564,6 @@ async function handleFormSubmit(e) {
         result = await response.json();
         console.log('API Response data:', result);
         
-        // Add to history
-        addToNotificationHistory({
-            timestamp: new Date().toISOString(),
-            message: messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''),
-            success: result.success,
-            result: result,
-            type: isSMSMode ? 'SMS' : 'Player Home Page Notification'
-        });
-        
         console.log('Message sent successfully:', result);
         
         // Clear form on success
@@ -871,15 +850,6 @@ async function removeCaptainMessage() {
             
             // Clear form
             clearForm();
-            
-            // Add to history
-            addToNotificationHistory({
-                timestamp: new Date().toISOString(),
-                message: "Removed player home page notification",
-                success: true,
-                result: result,
-                type: 'Player Home Page Notification'
-            });
         } else {
             alert('Failed to remove player home page notification: ' + (result.error || 'Unknown error'));
         }
@@ -907,48 +877,7 @@ function refreshTeamInfo() {
     loadTeamInfo();
 }
 
-function loadNotificationHistory() {
-    // For now, just show a placeholder
-    // In the future, this could load from a database
-    document.getElementById('notificationHistory').innerHTML = `
-        <p class="text-gray-500 text-sm">No recent messages yet.</p>
-    `;
-}
 
-function addToNotificationHistory(notification) {
-    notificationHistory.unshift(notification);
-    
-    // Keep only last 10 notifications
-    if (notificationHistory.length > 10) {
-        notificationHistory = notificationHistory.slice(0, 10);
-    }
-    
-    // Update display
-    const historyContainer = document.getElementById('notificationHistory');
-    if (notificationHistory.length === 1) {
-        // First notification, replace placeholder
-        historyContainer.innerHTML = '';
-    }
-    
-    const notificationElement = document.createElement('div');
-    notificationElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-    notificationElement.innerHTML = `
-        <div class="flex-1">
-            <div class="text-sm font-medium text-gray-900">${escapeHtml(notification.message)}</div>
-            <div class="text-xs text-gray-500">
-                ${new Date(notification.timestamp).toLocaleString()} • ${notification.type}
-            </div>
-        </div>
-        <div class="ml-3">
-            ${notification.success ? 
-                '<i class="fas fa-check-circle text-green-500"></i>' : 
-                '<i class="fas fa-times-circle text-red-500"></i>'
-            }
-        </div>
-    `;
-    
-    historyContainer.insertBefore(notificationElement, historyContainer.firstChild);
-}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
