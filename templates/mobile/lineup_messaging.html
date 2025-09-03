@@ -150,9 +150,12 @@ function updateMessageBody() {
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"');
+        .replace(/&quot;/g, '"')
+        .replace(/&nbsp;/g, ' ');
     
-    messageBody.value = `Team Lineup:
+    messageBody.value = `Hi team, 
+
+Here is our lineup:
 
 ${formattedLineupText}
 
@@ -167,8 +170,16 @@ function updatePreviewAndCount() {
     const charNumber = document.getElementById('char-number');
     const partsNumber = document.getElementById('parts-number');
     
+    // Clean up any remaining HTML entities in the message body
+    const cleanedMessageBody = messageBody
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"');
+    
     // Update preview
-    preview.textContent = messageBody;
+    preview.textContent = cleanedMessageBody;
     
     // Update character count
     charNumber.textContent = messageBody.length;

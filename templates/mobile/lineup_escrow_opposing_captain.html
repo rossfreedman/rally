@@ -654,10 +654,19 @@ function renderPlayers() {
             ? `<div class="text-xs text-gray-700 mt-1">${playerType}</div>` 
             : `<div class="text-xs text-gray-500 mt-1" style="font-size: 0.625rem;">Ct pref not set</div>`;
         
+        // Extract last name from full name
+        const lastName = player.name.split(' ').pop();
+        
+        // Get PTI value, default to 0 if not available
+        const ptiValue = player.pti || player.rating || 0;
+        
         playerDiv.innerHTML = `
-            <div class="font-medium text-gray-900 text-sm">${player.name}</div>
-            ${typeDisplay}
+            <div class="font-medium text-gray-900 text-sm">${lastName}</div>
+            <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
         `;
+        
+        // Debug: Log the player card HTML to console
+        console.log(`🏴‍☠️ Player card HTML for ${lastName}:`, playerDiv.innerHTML);
         
         // Add both drag and tap event listeners simultaneously
         // Drag events

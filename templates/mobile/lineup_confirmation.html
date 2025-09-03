@@ -113,7 +113,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const lineupPreview = document.getElementById('lineup-preview');
     
     if (createdLineup && lineupPreview) {
-        lineupPreview.innerHTML = createdLineup;
+        // Convert HTML to plain text for proper display in <pre> element
+        let plainTextLineup = createdLineup
+            .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> tags to newlines
+            .replace(/&nbsp;/g, ' ')        // Convert non-breaking spaces to regular spaces
+            .replace(/&amp;/g, '&')         // Convert HTML entities
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"');
+        
+        lineupPreview.textContent = plainTextLineup;
     } else {
         // If no lineup found, redirect back to lineup creation
         window.location.href = '/mobile/lineup';

@@ -55,7 +55,16 @@
                         <i class="fas fa-tools text-green-500 mr-2"></i>
                         Lineup Builder
                     </h2>
-                    <p class="text-sm text-gray-600 mt-2">Tap a player name to choose a player. Then, tap a court to choose a court for that player.</p>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
+                            <div class="text-sm text-blue-800 font-medium">
+                                <strong>How to use:</strong><br>
+                                1. Tap a player name to choose a player.<br>
+                                2. Tap a court to assign that player to the court.
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="p-4">
@@ -112,7 +121,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 1
+                                Court 1 <span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -134,7 +143,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 2
+                                Court 2 <span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -156,7 +165,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 3
+                                Court 3 <span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -178,7 +187,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 4
+                                Court 4 <span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -200,7 +209,7 @@
                     <!-- Lineup Summary -->
                     <div id="manual-lineup-summary" class="mt-6 bg-gray-50 rounded-lg p-4 hidden">
                         <h4 class="font-semibold text-gray-900 mb-3">Lineup Summary</h4>
-                        <div id="manual-lineup-text" class="text-sm text-gray-700 font-mono leading-relaxed" style="line-height: 1.8; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e5e7eb;"></div>
+                        <div id="manual-lineup-text" class="text-sm text-gray-700 font-mono leading-relaxed" style="line-height: 1.8; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e5e7eb; white-space: pre-wrap;"></div>
                     </div>
                 </div>
             </div>
@@ -377,9 +386,12 @@ function renderPlayersForManual() {
       typeColor = playerTypeColors[positionPreference];
     }
     
+    // Get PTI value, default to 0 if not available
+    const ptiValue = player.pti || player.rating || 0;
+    
     playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
     playerDiv.dataset.playerName = player.name;
-    playerDiv.dataset.playerRating = player.rating;
+    playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
     playerDiv.dataset.playerType = playerType;
     
     // Set background color based on player type
@@ -389,15 +401,21 @@ function renderPlayersForManual() {
     playerDiv.draggable = true;
     playerDiv.style.cursor = 'grab';
     
-    // Always show position type - either preference or "Ct pref not set" for uniform height
+    // Show position type if available, otherwise keep blank
     const typeDisplay = playerType 
       ? `<div class="text-xs text-gray-700 mt-1">${playerType}</div>` 
-      : `<div class="text-xs text-gray-500 mt-1" style="font-size: 0.625rem;">Ct pref not set</div>`;
+      : '';
+    
+    // Extract last name from full name
+    const lastName = player.name.split(' ').pop();
     
     playerDiv.innerHTML = `
-      <div class="font-medium text-gray-900 text-sm">${player.name}</div>
-      ${typeDisplay}
+      <div class="font-medium text-gray-900 text-sm">${lastName}</div>
+      <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
     `;
+    
+    // Debug: Log the player card HTML to console
+    console.log(`🏴‍☠️ Player card HTML for ${lastName}:`, playerDiv.innerHTML);
     
     // Add both drag and tap event listeners simultaneously
     // Drag events
@@ -710,15 +728,38 @@ function updateManualLineupSummary() {
     const player1 = courtData['1'];
     const player2 = courtData['2'];
     
-    // Add court header with better formatting
-    lineupText += `Court ${court}:<br>`;
+    // Calculate average PTI for this court using stored PTI values
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    if (player1) {
+      totalPTI += parseFloat(player1.rating || 0);
+      playerCount++;
+    }
+    
+    if (player2) {
+      totalPTI += parseFloat(player2.rating || 0);
+      playerCount++;
+    }
+    
+    const avgPTI = playerCount > 0 ? (totalPTI / playerCount).toFixed(1) : '--';
+    
+    // Add court header with PTI information
+    lineupText += `Court ${court}: (Avg PTI: ${avgPTI})<br>`;
     
     if (player1 && player2) {
-      lineupText += `&nbsp;&nbsp;${player1.name}<br>&nbsp;&nbsp;${player2.name}<br>`;
+      const p1PTI = parseFloat(player1.rating || 0);
+      const p2PTI = parseFloat(player2.rating || 0);
+      
+      lineupText += `  ${player1.name} (${p1PTI})<br>  ${player2.name} (${p2PTI})<br>`;
     } else if (player1) {
-      lineupText += `&nbsp;&nbsp;${player1.name}<br>&nbsp;&nbsp;[Need Partner]<br>`;
+      const p1PTI = parseFloat(player1.rating || 0);
+      
+      lineupText += `  ${player1.name} (${p1PTI})<br>  [Need Partner]<br>`;
     } else if (player2) {
-      lineupText += `&nbsp;&nbsp;[Need Partner]<br>&nbsp;&nbsp;${player2.name}<br>`;
+      const p2PTI = parseFloat(player2.rating || 0);
+      
+      lineupText += `  [Need Partner]<br>  ${player2.name} (${p2PTI})<br>`;
     }
     
     // Add spacing between courts (but not after the last court)
@@ -744,6 +785,58 @@ function updateManualLineupSummary() {
   
   // In edit mode, allow saving if there are any players assigned; in create mode, require at least one complete court
   sendButton.disabled = isEditMode ? !hasAnyPlayer : !hasCompleteCourt;
+  
+  // Update court PTI averages
+  updateCourtPTIAverages();
+}
+
+function updateCourtPTIAverages() {
+  // Calculate PTI for each court
+  for (let courtNum = 1; courtNum <= 4; courtNum++) {
+    const courtElement = document.getElementById(`court-${courtNum}-pti`);
+    if (!courtElement) continue;
+    
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) continue;
+    
+    const adPosition = courtContainer.querySelector('[data-position="1"]');
+    const deucePosition = courtContainer.querySelector('[data-position="2"]');
+    
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    // Check Ad position
+    if (adPosition && adPosition.querySelector('.player-card')) {
+      const playerElement = adPosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Check Deuce position
+    if (deucePosition && deucePosition.querySelector('.player-card')) {
+      const playerElement = deucePosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Update the display
+    if (playerCount > 0) {
+      const avgPTI = (totalPTI / playerCount).toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI})`;
+    } else {
+      courtElement.textContent = `(Avg PTI: --)`;
+    }
+  }
 }
 
 function sendManualLineup() {
@@ -1215,34 +1308,59 @@ function setLineupFromText(lineupText) {
     normalizedText = normalizedText.replace(/&lt;/g, '<'); // Decode &lt; to <
     normalizedText = normalizedText.replace(/&gt;/g, '>'); // Decode &gt; to >
     normalizedText = normalizedText.replace(/&quot;/g, '"'); // Decode &quot; to "
+    normalizedText = normalizedText.replace(/&nbsp;/g, ' '); // Decode &nbsp; to regular spaces
     console.log('🔧 Normalized text:', normalizedText);
     
     const lines = normalizedText.split('\n');
     
+    let currentCourt = null;
+    let currentPlayers = [];
+    
     lines.forEach(line => {
-        // Match pattern: "Court X: Player1 Player2" (new format without & separator)
-        const courtMatch = line.match(/^Court (\d+):\s*(.+)$/);
+        const trimmedLine = line.trim();
+        
+        // Match pattern: "Court X:" or "Court X: (Avg PTI: XX.X)" to start a new court
+        const courtMatch = trimmedLine.match(/^Court (\d+):/);
         if (courtMatch) {
-            const courtNum = parseInt(courtMatch[1], 10);
-            const playersText = courtMatch[2].trim();
-            console.log(`🔧 Found Court ${courtNum}: ${playersText}`);
-            
-            // Split by whitespace to get individual players (new format)
-            const players = playersText.split(/\s+/).filter(p => p.trim() && !p.includes('[Need Partner]'));
-            
-            if (players.length >= 2) {
-                const player1 = players[0];
-                const player2 = players[1];
+            // Save previous court if it exists
+            if (currentCourt && currentPlayers.length > 0) {
+                console.log(`🔧 Processing Court ${currentCourt} with players:`, currentPlayers);
                 
-                // Assign players to positions
-                assignPlayerToCourt(player1, courtNum, 'Ad');
-                assignPlayerToCourt(player2, courtNum, 'Deuce');
-            } else if (players.length === 1) {
-                // Only one player assigned
-                assignPlayerToCourt(players[0], courtNum, 'Ad');
+                if (currentPlayers.length >= 2) {
+                    assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+                    assignPlayerToCourt(currentPlayers[1], currentCourt, 'Deuce');
+                } else if (currentPlayers.length === 1) {
+                    assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+                }
+            }
+            
+            // Start new court
+            currentCourt = parseInt(courtMatch[1], 10);
+            currentPlayers = [];
+        } else if (trimmedLine && currentCourt) {
+            // This is a player name under the current court
+            const playerName = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
+            if (playerName && !playerName.includes('[Need Partner]')) {
+                // Extract just the player name, removing PTI values in parentheses
+                const cleanPlayerName = playerName.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
+                if (cleanPlayerName) {
+                    currentPlayers.push(cleanPlayerName);
+                }
             }
         }
     });
+    
+    // Don't forget the last court
+    if (currentCourt && currentPlayers.length > 0) {
+        console.log(`🔧 Processing final Court ${currentCourt} with players:`, currentPlayers);
+        
+        if (currentPlayers.length >= 2) {
+            assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+            assignPlayerToCourt(currentPlayers[1], currentCourt, 'Deuce');
+        } else if (currentPlayers.length === 1) {
+            assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+        }
+    }
     
     // Update the lineup summary
     updateManualLineupSummary();
@@ -1323,9 +1441,13 @@ function assignPlayerToCourt(playerName, courtNum, position) {
     if (!manualLineup[courtNum]) manualLineup[courtNum] = {};
     // Convert position names to numbers: Ad = 1, Deuce = 2
     const positionKey = position === 'Ad' ? '1' : '2';
+    
+    // Get the PTI value from the player element dataset (now stores PTI value)
+    const ptiValue = parseFloat(playerElement.dataset.playerRating) || 0;
+    
     manualLineup[courtNum][positionKey] = {
         name: cleanPlayerName,
-        rating: playerElement.dataset.playerRating
+        rating: ptiValue
     };
     
     console.log(`✅ Successfully assigned ${cleanPlayerName} to Court ${courtNum} ${position}`);
@@ -1348,6 +1470,10 @@ function assignPlayerToCourt(playerName, courtNum, position) {
     transition: all 0.2s ease;
     touch-action: manipulation;
     user-select: none;
+    /* Constrain size for desktop views */
+    max-width: 120px;
+    min-width: 80px;
+    width: 100px;
 }
 
 .player-card:hover {
@@ -1375,6 +1501,18 @@ function assignPlayerToCourt(playerName, courtNum, position) {
 
 #available-players-pool {
     transition: all 0.2s ease;
+}
+
+/* Desktop view - keep player cards consistent size */
+@media (min-width: 769px) {
+    .player-card {
+        width: 100px !important;
+        max-width: 100px !important;
+        min-width: 100px !important;
+        margin: 0.25rem;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
 }
 
 /* Mobile touch improvements */

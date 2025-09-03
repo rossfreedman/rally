@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-save text-white text-lg"></i>
             </div>
             <div class="ml-4">
@@ -34,7 +34,7 @@
                 <i class="fas fa-clipboard-list text-gray-400 text-4xl mb-4"></i>
                 <h3 class="text-lg font-semibold text-gray-900 mb-2">No Saved Lineups</h3>
                 <p class="text-gray-500 mb-4">You haven't saved any lineups yet. Create a lineup to get started!</p>
-                <a href="/mobile/lineup" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <a href="/mobile/lineup" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors" style="background-color: #10645c !important;" onmouseover="this.style.backgroundColor='#0d5249'" onmouseout="this.style.backgroundColor='#10645c'">
                     <i class="fas fa-plus mr-2"></i>
                     Create New Lineup
                 </a>
@@ -152,6 +152,9 @@ function createLineupCard(lineup) {
         year: 'numeric'
     });
     
+    // Parse lineup data to extract players and courts
+    const courts = parseLineupData(lineup.data);
+    
     card.innerHTML = `
         <div class="px-6 py-4 border-b border-gray-50">
             <div class="flex items-center justify-between">
@@ -161,7 +164,12 @@ function createLineupCard(lineup) {
         </div>
         <div class="p-6">
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <pre class="text-sm text-gray-800 whitespace-pre-wrap font-mono">${lineup.data}</pre>
+                <div id="lineup-display-${lineup.id}" class="text-sm text-gray-800 whitespace-pre-wrap font-mono">
+                    <div class="flex items-center justify-center py-4">
+                        <i class="fas fa-spinner fa-spin text-gray-400 mr-2"></i>
+                        <span class="text-gray-500">Loading PTI data...</span>
+                    </div>
+                </div>
             </div>
             <div class="flex gap-3">
                 <button data-lineup-id="${lineup.id}" class="edit-lineup-btn flex-1 px-4 py-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
@@ -180,7 +188,173 @@ function createLineupCard(lineup) {
         </div>
     `;
     
+    // Load PTI data asynchronously after DOM is ready
+    setTimeout(() => {
+        loadPTIDataForLineup(lineup.id, courts);
+    }, 100);
+    
     return card;
+}
+
+function parseLineupData(lineupData) {
+    const courts = [];
+    
+    // Normalize the text by converting <br> tags to newlines and decoding HTML entities
+    let normalizedText = lineupData.replace(/<br\s*\/?>/gi, '\n');
+    normalizedText = normalizedText.replace(/&amp;/g, '&');
+    normalizedText = normalizedText.replace(/&lt;/g, '<');
+    normalizedText = normalizedText.replace(/&gt;/g, '>');
+    normalizedText = normalizedText.replace(/&quot;/g, '"');
+    normalizedText = normalizedText.replace(/&nbsp;/g, ' '); // Handle non-breaking spaces
+    
+    const lines = normalizedText.split('\n');
+    
+    let currentCourt = null;
+    let currentPlayers = [];
+    
+    lines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // Match pattern: "Court X:" or "Court X: (Avg PTI: XX.X)" to start a new court
+        const courtMatch = trimmedLine.match(/^Court (\d+):/);
+        if (courtMatch) {
+            // Save previous court if it exists
+            if (currentCourt && currentPlayers.length > 0) {
+                courts.push({
+                    court: currentCourt,
+                    players: currentPlayers
+                });
+            }
+            
+            // Start new court
+            currentCourt = parseInt(courtMatch[1], 10);
+            currentPlayers = [];
+        } else if (trimmedLine && currentCourt) {
+            // This is a player name under the current court
+            const playerName = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
+            if (playerName && !playerName.includes('[Need Partner]')) {
+                // Extract just the player name, removing PTI values in parentheses
+                const cleanPlayerName = playerName.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
+                if (cleanPlayerName) {
+                    currentPlayers.push(cleanPlayerName);
+                }
+            }
+        }
+    });
+    
+    // Don't forget the last court
+    if (currentCourt && currentPlayers.length > 0) {
+        courts.push({
+            court: currentCourt,
+            players: currentPlayers
+        });
+    }
+    
+    return courts;
+}
+
+async function loadPTIDataForLineup(lineupId, courts) {
+    try {
+        // Check if the DOM element exists
+        const displayElement = document.getElementById(`lineup-display-${lineupId}`);
+        if (!displayElement) {
+            console.error(`Display element not found for lineup ${lineupId}`);
+            return;
+        }
+        
+        // Get all unique player names from all courts
+        const allPlayers = [];
+        courts.forEach(court => {
+            court.players.forEach(player => {
+                if (!allPlayers.includes(player)) {
+                    allPlayers.push(player);
+                }
+            });
+        });
+        
+        if (allPlayers.length === 0) {
+            displayElement.innerHTML = '<div class="text-gray-500 text-center py-4">No players found in lineup</div>';
+            return;
+        }
+        
+        // Fetch PTI data for all players
+        const ptiData = await fetchPTIDataForPlayers(allPlayers);
+        
+        // Display the lineup with PTI information
+        displayLineupWithPTI(lineupId, courts, ptiData);
+        
+    } catch (error) {
+        console.error('Error loading PTI data:', error);
+        const displayElement = document.getElementById(`lineup-display-${lineupId}`);
+        if (displayElement) {
+            displayElement.innerHTML = '<div class="text-red-500 text-center py-4">Error loading PTI data</div>';
+        }
+    }
+}
+
+async function fetchPTIDataForPlayers(playerNames) {
+    const ptiData = {};
+    
+    // Fetch PTI data for each player
+    for (const playerName of playerNames) {
+        try {
+            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            const data = await response.json();
+            
+            if (data && data.current_pti !== undefined) {
+                ptiData[playerName] = data.current_pti;
+            } else {
+                ptiData[playerName] = null; // No PTI data available
+            }
+        } catch (error) {
+            console.error(`Error fetching PTI for ${playerName}:`, error);
+            ptiData[playerName] = null;
+        }
+    }
+    
+    return ptiData;
+}
+
+function displayLineupWithPTI(lineupId, courts, ptiData) {
+    const displayElement = document.getElementById(`lineup-display-${lineupId}`);
+    
+    if (!displayElement) {
+        console.error(`Display element not found for lineup ${lineupId}`);
+        return;
+    }
+    
+    let html = '';
+    
+    courts.forEach(court => {
+        const courtNum = court.court;
+        const players = court.players;
+        
+        // Calculate combined PTI for this court
+        let combinedPTI = 0;
+        let ptiCount = 0;
+        let playerPTIs = [];
+        
+        players.forEach(player => {
+            const pti = ptiData[player];
+            if (pti !== null && pti !== undefined) {
+                combinedPTI += pti;
+                ptiCount++;
+                playerPTIs.push(`${player} (${pti})`);
+            } else {
+                playerPTIs.push(`${player} (N/A)`);
+            }
+        });
+        
+        const avgPTI = ptiCount > 0 ? (combinedPTI / ptiCount).toFixed(1) : 'N/A';
+        
+        html += `Court ${courtNum}: (Average PTI: ${avgPTI})\n`;
+        playerPTIs.forEach(playerPTI => {
+            html += `  ${playerPTI}\n`;
+        });
+        html += '\n';
+    });
+    
+    displayElement.innerHTML = `<pre class="text-sm text-gray-800 whitespace-pre-wrap font-mono">${html}</pre>`;
 }
 
 function escapeHtml(text) {

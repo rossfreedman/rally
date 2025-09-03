@@ -7,6 +7,21 @@
     display: none !important;
   }
   
+  /* Hide any potential green lines or indicators */
+  *:before, *:after {
+    background: transparent !important;
+  }
+  
+  /* Hide browser scrollbar indicators */
+  ::-webkit-scrollbar {
+    display: none !important;
+  }
+  
+  /* Hide any green progress indicators */
+  progress {
+    display: none !important;
+  }
+  
   body { background-color: #f8f4f4 !important; }
   #main-content { background-color: #f8f4f4 !important; }
   .category-button {
@@ -123,7 +138,7 @@
     visibility: visible !important;
     opacity: 1 !important;
     height: auto !important;
-    max-height: 600px !important;
+    max-height: 800px !important;
     transform: translateY(0) scale(1) !important;
     -webkit-transform: translateY(0) scale(1) !important;
   }
@@ -355,7 +370,7 @@
   }
 </style>
 
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 py-6" style="padding-bottom: 200px;">
   <!-- Welcome Section with Club Logo and Info -->
   <div class="welcome-section mb-8">
     <div class="flex items-center justify-center gap-4 mb-4">
@@ -614,7 +629,7 @@
     </div>
     <!-- Captain's Corner Category -->
     <div class="category-section">
-      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" onclick="toggleSubmenu('captain-submenu')">
+      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" id="captain-corner-button" onclick="event.stopPropagation(); toggleSubmenu('captain-submenu');">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
         <div class="font-semibold text-lg">Captain's Corner</div>
       </button>
@@ -631,8 +646,6 @@
           <span class="text">Team Notifications</span><span class="arrow">→</span>
         </a>
 
-
-
         <a href="/mobile/find-subs" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 18v-2a3 3 0 013-3h6a3 3 0 013 3v2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18 12v6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 15h-6" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Find Subs</span><span class="arrow">→</span></a>
         
         <a href="/mobile/create-lineup" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2"/></svg><span class="text">Create & Send Lineup</span><span class="arrow">→</span></a>
@@ -646,6 +659,8 @@
       </div>
     </div>
   </div>
+
+
 
 </div>
 
@@ -691,6 +706,12 @@ function toggleSubmenu(submenuId) {
   const submenu = document.getElementById(submenuId);
   const allSubmenus = document.querySelectorAll('.submenu');
   const allCategoryButtons = document.querySelectorAll('.category-button');
+  
+  console.log('🔍 Found submenu element:', submenu);
+  console.log('🔍 Submenu exists:', !!submenu);
+  
+  // Set a flag to prevent main.js from interfering
+  window.submenuToggleInProgress = true;
   
   console.log('📋 Found submenu:', submenu);
   console.log('📋 Submenu classes before:', submenu.classList.toString());
@@ -774,9 +795,23 @@ function toggleSubmenu(submenuId) {
             adjustment = -100;
             console.log(`📊 SCROLL DEBUG: Improve button - using -100px adjustment (100px more)`);
           } else if (submenuId === 'captain-submenu') {
-            // Captain's Corner: scroll 200px down from button position
-            adjustment = -200;
-            console.log(`📊 SCROLL DEBUG: Captain's Corner button - using -200px adjustment (200px auto scroll)`);
+            // Captain's Corner: check if we're at the bottom first
+            const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const maxScrollTop = documentHeight - windowHeight;
+            
+            console.log(`📊 SCROLL DEBUG: Captain's Corner - checking bottom condition`);
+            console.log(`📊 SCROLL DEBUG: Current scroll: ${currentScrollTop}px, Max scroll: ${maxScrollTop}px, At bottom: ${currentScrollTop >= maxScrollTop - 10}`);
+            
+            if (currentScrollTop >= maxScrollTop - 10) {
+              console.log(`📊 SCROLL DEBUG: Captain's Corner at bottom - skipping scroll (handled by enhanced click handler)`);
+              return; // Skip the scroll since our enhanced handler already handled it
+            } else {
+              // Captain's Corner: scroll 200px down from button position
+              adjustment = -200;
+              console.log(`📊 SCROLL DEBUG: Captain's Corner button - using -200px adjustment (200px auto scroll)`);
+            }
           } else {
             // All other sections: scroll to same position as Analyze (top aligned with navbar)
             adjustment = 0;
@@ -819,6 +854,11 @@ function toggleSubmenu(submenuId) {
     document.body.classList.remove('submenu-active');
     console.log('🔍 SCROLL DEBUG: Submenu closed for', submenuId);
   }
+  
+  // Clear the flag after a short delay
+  setTimeout(() => {
+    window.submenuToggleInProgress = false;
+  }, 200);
 }
 
 // Notifications functionality

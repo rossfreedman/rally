@@ -87,22 +87,27 @@
         <!-- Calendar Download Banner -->
         <div class="bg-green-700 rounded-xl shadow-sm border border-green-600 overflow-hidden" style="background-color: #10645c !important;">
             <div class="px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <i class="fas fa-calendar-plus text-white text-xl mr-3"></i>
-                        <div>
-                            <h3 class="text-white font-semibold text-lg">Download Your Schedule</h3>
-                            <p class="text-white text-sm">Get your matches and practices into your personal calendar</p>
-                        </div>
-                    </div>
-                    <a href="{{ url_for('download.calendar_download_page') }}" 
-                       class="download-btn-fixed bg-white text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors duration-200 flex items-center"
-                       onclick="console.log('Download button clicked, going to: {{ url_for('download.calendar_download_page') }}')">
-                        <i class="fas fa-download mr-2"></i>
-                        Download
-                    </a>
-
-                </div>
+                <table class="w-full" style="border-collapse: separate; border-spacing: 5px;">
+                    <tr>
+                        <td class="align-middle" style="width: auto; padding: 10px;">
+                            <i class="fas fa-calendar-plus text-white text-xl"></i>
+                        </td>
+                        <td class="align-middle" style="width: auto;">
+                            <div>
+                                <h3 class="text-white font-semibold text-base">Download Your Schedule</h3>
+                                <p class="text-white text-xs">Get your matches and practices into your personal calendar</p>
+                            </div>
+                        </td>
+                        <td class="align-middle" style="width: auto;">
+                            <a href="{{ url_for('download.calendar_download_page') }}" 
+                               class="download-btn-fixed bg-white text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors duration-200 flex items-center"
+                               onclick="console.log('Download button clicked, going to: {{ url_for('download.calendar_download_page') }}')">
+                                <i class="fas fa-download mr-2"></i>
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
 
@@ -1477,14 +1482,20 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #2563eb;
 }
 
-/* Fixed download button size - prevents growing/shrinking on larger screens */
+/* Download button - prevent size increase */
 .download-btn-fixed {
-    width: 120px !important;
-    height: 40px !important;
-    padding: 8px 16px !important;
+    width: 140px !important;
+    height: 44px !important;
+    flex: none !important;
+    flex-grow: 0 !important;
     flex-shrink: 0 !important;
-    min-width: 120px !important;
-    max-width: 120px !important;
+    flex-basis: 140px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
 }
 </style>
 {% endblock %} 

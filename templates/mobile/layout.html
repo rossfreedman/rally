@@ -1038,12 +1038,12 @@
             </script>
             
             <!-- Scroll Indicator -->
-            <div id="scrollIndicator" class="scroll-indicator">
+            <!-- <div id="scrollIndicator" class="scroll-indicator">
                 <div class="scroll-indicator-content">
                     <i class="fas fa-chevron-down"></i>
                     <span>More options below</span>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 
@@ -1064,7 +1064,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <main class="container mx-auto px-2 py-6" id="main-content" style="padding-top: 72px; padding-bottom: 84px;">
+    <main class="container mx-auto px-2 py-6" id="main-content" style="padding-top: 72px; padding-bottom: 250px;">
         <!-- Player ID Missing Alert -->
         {% if session_data and session_data.user and session_data.authenticated and not session_data.user.tenniscores_player_id %}
         <div class="mb-4 p-3 rounded-lg shadow-sm" style="background-color: #F5C842; border: 1px solid #E5B332;">

@@ -476,9 +476,70 @@ function initAutoScroll() {
         console.log('✅ Auto-scroll completed');
     }
     
-    // Target section headers (Act, Analyze, Prepare, etc.)
-    const sectionHeaders = document.querySelectorAll('.section-header');
-    console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+          // Target section headers (Act, Analyze, Prepare, etc.)
+      const sectionHeaders = document.querySelectorAll('.section-header');
+      console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+      
+      // Debug: Let's also check for any elements with "Captain" in the text
+      const allElements = document.querySelectorAll('*');
+      const captainElements = Array.from(allElements).filter(el => 
+        el.textContent && el.textContent.toLowerCase().includes('captain')
+      );
+      console.log(`🔍 Found ${captainElements.length} elements containing "captain":`, captainElements);
+      
+      // Look for Captain's Corner button by ID
+      const captainSectionHeader = document.getElementById('captain-corner-button');
+      
+      if (captainSectionHeader) {
+        console.log(`🏴‍☠️ Found Captain's Corner button by ID:`, captainSectionHeader);
+        console.log(`🏴‍☠️ Captain's Corner classes:`, captainSectionHeader.className);
+        
+        // Add our enhanced click handler
+        captainSectionHeader.addEventListener('click', function(e) {
+          console.log(`🏴‍☠️ Captain's Corner button clicked - enhanced click handler`);
+          
+          // Get current scroll position
+          const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const windowHeight = window.innerHeight;
+          const documentHeight = document.documentElement.scrollHeight;
+          const maxScrollTop = documentHeight - windowHeight;
+          
+          console.log(`🏴‍☠️ Current scroll: ${currentScrollTop}px`);
+          console.log(`🏴‍☠️ Window height: ${windowHeight}px`);
+          console.log(`🏴‍☠️ Document height: ${documentHeight}px`);
+          console.log(`🏴‍☠️ Max scroll: ${maxScrollTop}px`);
+          console.log(`🏴‍☠️ At bottom: ${currentScrollTop >= maxScrollTop - 10}`);
+          
+          // Call the original toggleSubmenu function only if not already in progress
+          if (typeof toggleSubmenu === 'function' && !window.submenuToggleInProgress) {
+            console.log(`🏴‍☠️ Calling toggleSubmenu('captain-submenu')`);
+            toggleSubmenu('captain-submenu');
+          } else if (window.submenuToggleInProgress) {
+            console.log(`🏴‍☠️ Skipping toggleSubmenu call - already in progress`);
+          }
+          
+          // If we're at the bottom, scroll up to show the captains corner section better
+          if (currentScrollTop >= maxScrollTop - 10) {
+            console.log(`🏴‍☠️ At bottom of page, scrolling up to show captains corner better`);
+            const captainsCornerSection = captainSectionHeader.closest('.category-section');
+            if (captainsCornerSection) {
+              const sectionTop = captainsCornerSection.offsetTop;
+              const navbarHeight = 60;
+              const scrollPosition = sectionTop - navbarHeight - 100; // 100px padding from top
+              
+              console.log(`🏴‍☠️ Scrolling to captains corner section at position: ${scrollPosition}px`);
+              window.scrollTo({
+                top: Math.max(0, scrollPosition),
+                behavior: 'smooth'
+              });
+            }
+          }
+        });
+        
+        console.log(`🏴‍☠️ Added enhanced click handler to Captain's Corner button`);
+      } else {
+        console.log(`🏴‍☠️ Captain's Corner button NOT found by ID`);
+      }
     
     if (sectionHeaders.length === 0) {
         console.warn('⚠️ No section headers found! Checking for alternative selectors...');
@@ -505,14 +566,50 @@ function initAutoScroll() {
     
     sectionHeaders.forEach((header, index) => {
         console.log(`🎯 Adding click listener to section header ${index + 1}:`, header.textContent?.trim() || header.className);
+        
+        // Debug each section header individually
+        console.log(`🔍 Section header ${index + 1} details:`);
+        console.log(`  - textContent: "${header.textContent}"`);
+        console.log(`  - innerText: "${header.innerText}"`);
+        console.log(`  - innerHTML: "${header.innerHTML}"`);
+        console.log(`  - className: "${header.className}"`);
+        console.log(`  - element:`, header);
+        
         header.addEventListener('click', function(e) {
             console.log(`🖱️ Section header clicked:`, header.textContent?.trim() || header.className);
-            autoScrollOnNavigation();
+            
+            // Get the text content more reliably
+            const headerText = header.textContent || header.innerText || '';
+            const trimmedText = headerText.trim();
+            
+            console.log(`🔍 Section header clicked - text: "${trimmedText}"`);
+            
+            // Special handling for Captain's Corner section
+            if (trimmedText === "Captain's Corner") {
+                console.log(`🏴‍☠️ Captain's Corner section header clicked - triggering submenu toggle`);
+                
+                // Trigger the same submenu functionality that works in the navigation drawer
+                if (typeof toggleSubmenu === 'function' && !window.submenuToggleInProgress) {
+                    console.log(`🏴‍☠️ Calling toggleSubmenu('captain-submenu')`);
+                    toggleSubmenu('captain-submenu');
+                } else if (window.submenuToggleInProgress) {
+                    console.log(`🏴‍☠️ Skipping toggleSubmenu call - already in progress`);
+                } else {
+                    console.log(`🏴‍☠️ toggleSubmenu function not found, using fallback autoscroll`);
+                    // Fallback to standard autoscroll
+                    autoScrollOnNavigation();
+                }
+            } else {
+                console.log(`📝 Other section header clicked: "${trimmedText}" - using standard autoscroll`);
+                // Standard autoscroll for other sections
+                autoScrollOnNavigation();
+            }
         });
     });
     
     // Add auto-scroll to main menu buttons (Act, Analyze, Prepare, etc.)
-    const mainMenuButtons = document.querySelectorAll('.act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button');
+    // Note: Excluding .captain-button since those are navigation links that should not autoscroll
+    const mainMenuButtons = document.querySelectorAll('.act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .admin-button');
     console.log(`📋 Found ${mainMenuButtons.length} main menu buttons:`, mainMenuButtons);
     
     mainMenuButtons.forEach((button, index) => {

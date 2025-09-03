@@ -58,6 +58,13 @@
   /* Section headers and text styling */
   .section-header {
     color: #045454 !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .section-header:hover {
+    color: #033333 !important;
+    transform: scale(1.05);
   }
   
   /* Welcome message and league info */
@@ -430,11 +437,17 @@
   body.submenu-active .submenu-item .text {
     color: white !important;
   }
+  
+  /* Ensure content doesn't get cut off by bottom navigation */
+  .main-content-container {
+    min-height: calc(100vh - 144px); /* Account for top nav (72px) + bottom nav (72px) */
+    padding-bottom: 300px !important; /* Extra space for floating elements */
+  }
 </style>
 
 <!-- Icon Library - FontAwesome is already loaded in layout.html -->
 
-<div class="container mx-auto px-4 py-6">
+<div class="container mx-auto px-4 py-6 main-content-container" style="padding-bottom: 300px;">
   <!-- Welcome Section with Club Logo and Info -->
   <div class="welcome-section mb-8">
     <!-- Club Logo and Welcome Message - Two Column Layout -->
@@ -941,6 +954,19 @@
 
     </div>
   </div>
+
+  <!-- Spacer for submenu expansion and bottom clearance -->
+  <div class="mb-24"></div>
+  
+  <!-- Additional content to ensure proper spacing -->
+  <div class="flex flex-col items-center justify-center py-8 mb-8">
+    <div class="text-center text-gray-500 text-sm">
+      <!-- This spacer ensures the Practice Times button is fully visible -->
+    </div>
+  </div>
+  
+  <!-- Large spacer to push content up -->
+  <div class="h-32 mb-8"></div>
 
   <!-- Admin Section (if user is admin) -->
   {% if session_data.user.is_admin %}
@@ -2149,11 +2175,28 @@ console.log('🔍 About to add DOMContentLoaded listener...');
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🔍 Setting up auto-scroll for mobile home page...');
+  console.log('🧪 TEST: DOMContentLoaded event is firing in inline JavaScript!');
   
-  try {
-    // Target section headers (Act, Analyze, Prepare, etc.)
-    const sectionHeaders = document.querySelectorAll('.section-header');
-    console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+  // Add a delay to ensure page layout is fully calculated
+  setTimeout(function() {
+    console.log('⏰ Page layout should be fully calculated now, setting up autoscroll...');
+    console.log('🧪 TEST: Inline JavaScript is executing!');
+    
+    try {
+      // Target section headers (Act, Analyze, Prepare, etc.)
+      const sectionHeaders = document.querySelectorAll('.section-header');
+      console.log(`📋 Found ${sectionHeaders.length} section headers:`, sectionHeaders);
+      
+      // Debug each section header individually
+      sectionHeaders.forEach((header, index) => {
+        console.log(`🔍 Section header ${index + 1} details:`, {
+          element: header,
+          textContent: header.textContent,
+          innerText: header.innerText,
+          innerHTML: header.innerHTML,
+          className: header.className
+        });
+      });
   
   if (sectionHeaders.length === 0) {
     console.warn('⚠️ No section headers found! Checking for alternative selectors...');
@@ -2182,7 +2225,31 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`🎯 Adding click listener to section header ${index + 1}:`, header.textContent?.trim() || header.className);
     header.addEventListener('click', function(e) {
       console.log(`🖱️ Section header clicked:`, header.textContent?.trim() || header.className);
-      autoScrollOnNavigation();
+      
+      // Get the text content more reliably
+      const headerText = header.textContent || header.innerText || '';
+      const trimmedText = headerText.trim();
+      
+      console.log(`🔍 Section header clicked - text: "${trimmedText}"`);
+      
+      // Special handling for Captain's Corner section
+      if (trimmedText === "Captain's Corner") {
+        console.log(`🏴‍☠️ Captain's Corner section header clicked - triggering submenu toggle`);
+        
+        // Trigger the same submenu functionality that works in the navigation drawer
+        if (typeof toggleSubmenu === 'function') {
+          console.log(`🏴‍☠️ Calling toggleSubmenu('captain-submenu')`);
+          toggleSubmenu('captain-submenu');
+        } else {
+          console.log(`🏴‍☠️ toggleSubmenu function not found, using fallback autoscroll`);
+          // Fallback to standard autoscroll
+          autoScrollOnNavigation();
+        }
+      } else {
+        console.log(`📝 Other section header clicked: "${trimmedText}" - using standard autoscroll`);
+        // Standard autoscroll for other sections
+        autoScrollOnNavigation();
+      }
     });
   });
   
@@ -2201,10 +2268,11 @@ document.addEventListener('DOMContentLoaded', function() {
   document.body.appendChild(testButton);
   console.log('🧪 Added test scroll button to page');
   
-  } catch (error) {
-    console.error('❌ Error in auto-scroll setup:', error);
-    alert('Error in auto-scroll setup: ' + error.message);
-  }
+    } catch (error) {
+      console.error('❌ Error in auto-scroll setup:', error);
+      alert('Error in auto-scroll setup: ' + error.message);
+    }
+  }, 500); // 500ms delay to ensure page layout is fully calculated
 });
 
 // Add this new function below the main render function
@@ -2398,4 +2466,8 @@ function generateCompactHorizontalWeatherCard(forecast) {
   });
 })();
 </script>
+
+<!-- Final spacer to ensure Practice Times button is fully visible -->
+<div style="height: 250px; width: 100%;"></div>
+
 {% endblock %} 
