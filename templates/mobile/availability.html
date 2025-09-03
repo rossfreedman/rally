@@ -186,7 +186,11 @@
                                         {% if not is_practice %}
                                             <i class="fas fa-map-marker-alt text-red-500 text-sm"></i>
                                             {% set location_text = match.location or match.home_team or session_data.user.club %}
-                                            {% set maps_query = match.club_address or location_text %}
+                                            {% if match.club_address and location_text %}
+                                                {% set maps_query = location_text + ', ' + match.club_address %}
+                                            {% else %}
+                                                {% set maps_query = match.club_address or location_text %}
+                                            {% endif %}
                                             {% if location_text != 'All Clubs' %}
                                                 <span class="text-gray-600 text-sm font-bold">{{ location_text }}</span>
                                             {% endif %}

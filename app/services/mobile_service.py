@@ -1431,16 +1431,19 @@ def get_mobile_availability_data(user):
         # Get simple schedule query for all matches (including completed seasons)
         # ENHANCED: Show all matches for team instead of restricting to 30 days to support completed seasons
         # FIXED: Added DISTINCT and LIMIT to handle corrupted duplicate data
+        # ENHANCED: Added club_address join for Get Directions functionality
         simple_query = """
         SELECT DISTINCT
-            match_date as date, 
-            match_time as time, 
-            home_team, 
-            away_team, 
-            location
-        FROM schedule 
-        WHERE (home_team_id = %s OR away_team_id = %s)
-        ORDER BY match_date ASC, match_time ASC
+            s.match_date as date, 
+            s.match_time as time, 
+            s.home_team, 
+            s.away_team, 
+            s.location,
+            c.club_address
+        FROM schedule s
+        LEFT JOIN clubs c ON s.location = c.name
+        WHERE (s.home_team_id = %s OR s.away_team_id = %s)
+        ORDER BY s.match_date ASC, s.match_time ASC
         LIMIT 100  -- Prevent processing thousands of duplicate records
         """
         
@@ -1567,7 +1570,8 @@ def get_mobile_availability_data(user):
                 "away_team": match.get("away_team", ""),
                 "type": match.get("type", "match"),
                 "is_home_match": is_home_match,
-                "other_home_teams": other_home_teams
+                "other_home_teams": other_home_teams,
+                "club_address": match.get("club_address", "")  # Add club address for Get Directions
             }
             formatted_matches.append(match_data)
             

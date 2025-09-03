@@ -119,7 +119,7 @@ def download_season_calendar():
         logger.info(f"Found {len(team_ids)} teams for user: {team_ids}")
         
         # Generate calendar
-        cal = generate_season_calendar(user_id, team_ids, season_start, season_end, tz)
+        cal = generate_season_calendar(user_id, team_ids, season_start, season_end, tz, user)
         
         # Check if calendar has events
         event_count = len(cal.walk('VEVENT'))
@@ -264,7 +264,7 @@ def get_player_team_ids(user_id):
         return []
 
 
-def generate_season_calendar(user_id, team_ids, season_start, season_end, tz):
+def generate_season_calendar(user_id, team_ids, season_start, season_end, tz, user=None):
     """
     Generate a calendar with practices and matches for the season.
     
@@ -288,7 +288,7 @@ def generate_season_calendar(user_id, team_ids, season_start, season_end, tz):
     add_practices_to_calendar(cal, team_ids, season_start, season_end, tz)
     
     # Add matches
-    add_matches_to_calendar(cal, team_ids, season_start, season_end, tz)
+    add_matches_to_calendar(cal, team_ids, season_start, season_end, tz, user)
     
     return cal
 
@@ -400,7 +400,7 @@ def add_practices_to_calendar(cal, team_ids, season_start, season_end, tz):
         logger.error(f"Exception details: {e}")
 
 
-def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz):
+def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz, user=None):
     """
     Add match events to the calendar.
     
@@ -424,11 +424,22 @@ def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz):
                 s.home_team_id,
                 s.away_team_id,
                 hc.name as home_club_name,
-                hc.club_address as home_club_address
+                hc.club_address as home_club_address,
+                ac.name as away_club_name,
+                ac.club_address as away_club_address
             FROM schedule s
             JOIN teams ht ON s.home_team_id = ht.id
+            JOIN teams at ON s.away_team_id = at.id
             JOIN clubs hc ON ht.club_id = hc.id
+            JOIN clubs ac ON at.club_id = ac.id
             WHERE (s.home_team_id IN ({}) OR s.away_team_id IN ({}))
+            AND s.match_date IS NOT NULL
+            AND s.home_team IS NOT NULL
+            AND s.away_team IS NOT NULL
+            AND s.home_team != ''
+            AND s.away_team != ''
+            AND s.home_team NOT LIKE '%Practice%'
+            AND s.away_team NOT LIKE '%Practice%'
             ORDER BY s.match_date ASC, s.match_time ASC
             LIMIT 100
         """.format(team_ids_str, team_ids_str)
@@ -454,8 +465,27 @@ def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz):
         
         logger.info(f"Found {len(matches)} match records in schedule for teams {team_ids}")
         
-        match_events_added = 0
+        # Deduplicate matches by date, home_team, and away_team to prevent duplicate calendar entries
+        seen_matches = set()
+        unique_matches = []
         for match in matches:
+            # Create a unique key for this match
+            match_key = (
+                match.get('match_date'),
+                match.get('home_team', ''),
+                match.get('away_team', '')
+            )
+            
+            if match_key not in seen_matches:
+                seen_matches.add(match_key)
+                unique_matches.append(match)
+            else:
+                logger.info(f"Skipping duplicate match: {match.get('home_team')} vs {match.get('away_team')} on {match.get('match_date')}")
+        
+        logger.info(f"After deduplication: {len(unique_matches)} unique matches")
+        
+        match_events_added = 0
+        for match in unique_matches:
             logger.info(f"Processing match: {match['home_team']} vs {match['away_team']} on {match['match_date']}")
             
             # Create match event
@@ -477,40 +507,24 @@ def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz):
                 match_location.lower() in stripped_home_team.lower()
             )
             
-            # Determine if user is on home team or away team
-            user_is_home_team = match["home_team_id"] in team_ids
-            user_is_away_team = match["away_team_id"] in team_ids
+            # Get user's club from session data to determine if they're home or away
+            user_club = user.get("club", "").strip() if user else ""
             
-            # Debug logging to see the matching logic
+            # Simple logic: IF match location matches user's club, user is HOME, otherwise AWAY
+            user_is_home = (match_location.lower() == user_club.lower()) if user_club else False
+            user_is_away = not user_is_home
+            
+            # Debug logging
             logger.info(f"Match: {match['home_team']} vs {match['away_team']}")
-            logger.info(f"  Home team: '{home_team}'")
-            logger.info(f"  Stripped home team: '{stripped_home_team}'")
-            logger.info(f"  Location: '{match_location}'")
-            logger.info(f"  Is home match: {is_home_match}")
-            logger.info(f"  User team IDs: {team_ids}")
-            logger.info(f"  Home team ID: {match['home_team_id']}, Away team ID: {match['away_team_id']}")
-            logger.info(f"  User is home team: {user_is_home_team}, User is away team: {user_is_away_team}")
+            logger.info(f"  Match Location: '{match_location}'")
+            logger.info(f"  User Club: '{user_club}'")
+            logger.info(f"  User is HOME: {user_is_home}, User is AWAY: {user_is_away}")
             
-            # Determine if USER is HOME or AWAY based on:
-            # 1. Is the match at the home team's club? (is_home_match)
-            # 2. Is the user on the home team or away team?
-            
-            if user_is_home_team:
-                # User is on the home team
-                if is_home_match:
-                    # Match is at home team's club = USER is HOME
-                    event.add('summary', f"{match['home_team']} vs {match['away_team']} (HOME)")
-                else:
-                    # Match is NOT at home team's club = USER is AWAY
-                    event.add('summary', f"{match['away_team']} vs {match['home_team']} (AWAY)")
+            # Set title format: [Away team] vs [Home team] (AWAY/HOME)
+            if user_is_home:
+                event.add('summary', f"{match['away_team']} vs {match['home_team']} (HOME)")
             else:
-                # User is on the away team
-                if is_home_match:
-                    # Match is at home team's club = USER is AWAY
-                    event.add('summary', f"{match['away_team']} vs {match['home_team']} (AWAY)")
-                else:
-                    # Match is NOT at home team's club = USER is HOME
-                    event.add('summary', f"{match['home_team']} vs {match['away_team']} (HOME)")
+                event.add('summary', f"{match['away_team']} vs {match['home_team']} (AWAY)")
             
             # Set start and end times
             if match["match_time"]:
@@ -530,21 +544,46 @@ def add_matches_to_calendar(cal, team_ids, season_start, season_end, tz):
             event.add('dtend', end_dt)
             event.add('dtstamp', datetime.now(tz))
             
-            # Add location if available
-            if match.get("location"):
-                event.add('location', match["location"])
+            # Use the same logic as mobile availability page: use match.location directly
+            # and get the club address for that location
+            match_location = match.get("location", "").strip() if match.get("location") else ""
+            
+            # Get the club address for the match location (same as mobile availability)
+            if match_location:
+                # Try to find the club address for this location
+                club_address_query = """
+                    SELECT club_address FROM clubs WHERE name = %s AND club_address IS NOT NULL LIMIT 1
+                """
+                club_result = execute_query_one(club_address_query, (match_location,))
+                match_address = club_result["club_address"] if club_result else ""
+            else:
+                match_address = ""
+            
+            # Add location to event
+            if match_location:
+                event.add('location', match_location)
             
             # Create description with Google Maps link
+            # Always show actual home and away teams from database
             description = f"Home: {match['home_team']}\n"
             description += f"Away: {match['away_team']}"
             
-            if match.get("location"):
-                description += f"\nLocation: {match['location']}"
+            # Add location to description
+            if match_location:
+                description += f"\nLocation: {match_location}"
             
-            # Add Google Maps link if club address is available
-            if match.get("home_club_address"):
+            # Add Google Maps link if club address is available (same as mobile availability)
+            if match_address and match_location:
                 import urllib.parse
-                encoded_address = urllib.parse.quote(match["home_club_address"])
+                # Combine club name and address like mobile availability page
+                maps_query = f"{match_location}, {match_address}"
+                encoded_query = urllib.parse.quote(maps_query)
+                direction_url = f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
+                description += f"\nDirections: {direction_url}"
+            elif match_address:
+                # Fallback to just address if no location
+                import urllib.parse
+                encoded_address = urllib.parse.quote(match_address)
                 direction_url = f"https://www.google.com/maps/search/?api=1&query={encoded_address}"
                 description += f"\nDirections: {direction_url}"
             
