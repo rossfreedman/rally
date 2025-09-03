@@ -13,12 +13,97 @@ import json
 import os
 import re
 import sys
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Set
 
 from import_utils import (
     get_conn, get_league_id, check_tenniscores_player_id_column,
     upsert_club, upsert_series, upsert_player
 )
+
+# Club normalization tracking
+_seen_variants: Dict[str, Set[str]] = {}
+
+# Club normalization regex patterns
+_ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
+_ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
+_LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
+_ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
+_KEEP_SUFFIXES: Set[str] = {"CC", "GC", "RC", "PC", "TC", "AC"}  # preserve common club types
+
+
+def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
+    """Strip trailing series/division/team markers without using hard-coded club maps."""
+    while tokens:
+        t = tokens[-1]
+
+        # Preserve common club-type suffixes (e.g., 'Lake Shore CC')
+        if t.upper() in _KEEP_SUFFIXES:
+            break
+
+        if _ROMAN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALNUM_SUFFIX_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _LETTER_PAREN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        # Generic short all-caps trailing marker (e.g., PD, H, B, F)
+        if _ALLCAP_SHORT_RE.fullmatch(t) and len(t) <= 3:
+            tokens.pop()
+            continue
+        break
+    return tokens
+
+
+def normalize_club_name(raw: str) -> str:
+    """
+    Normalize club names by removing series/division/team markers while preserving 
+    canonical club names and common club-type abbreviations.
+    
+    Examples:
+    - "Prairie Club II" -> "Prairie Club"
+    - "Wilmette PD I" -> "Wilmette"
+    - "Winnetka 99 B" -> "Winnetka"
+    - "Midtown - Chicago - 23" -> "Midtown"
+    - "Lake Shore CC" -> "Lake Shore CC" (CC preserved)
+    """
+    if not raw:
+        return raw
+
+    s = raw.strip()
+
+    # Keep only the first segment if the name contains ' - ' separators (e.g., 'Midtown - Chicago - 23')
+    if ' - ' in s:
+        s = s.split(' - ')[0].strip()
+
+    # Drop one trailing parenthetical segment if present
+    s = re.sub(r'\s*\([^)]*\)\s*$', '', s).strip()
+
+    # Normalize whitespace
+    s = re.sub(r'\s+', ' ', s)
+
+    # Tokenize and strip trailing suffix tokens according to our rules
+    tokens = s.split(' ')
+    tokens = _strip_trailing_suffix_tokens(tokens)
+
+    # Remove stray punctuation from the remaining body (keep &)
+    base = ' '.join(tokens)
+    base = re.sub(r'[^\w\s&]', ' ', base)
+    base = re.sub(r'\s+', ' ', base).strip()
+
+    # Title case for display consistency, but preserve club type abbreviations
+    words = base.split()
+    title_words = []
+    for word in words:
+        if word.upper() in _KEEP_SUFFIXES:
+            title_words.append(word.upper())
+        else:
+            title_words.append(word.title())
+    base = ' '.join(title_words)
+
+    return base
 
 
 def validate_entity_name(name, entity_type):
@@ -203,7 +288,7 @@ def extract_unique_entities(players_data):
             skipped_records += 1
             continue
         
-        club = player.get("Club", "").strip()
+        raw_club = player.get("Club", "").strip()
         series_name = player.get("Series", "").strip()
         
         # Handle both "Team" and "Series Mapping ID" fields
@@ -222,6 +307,11 @@ def extract_unique_entities(players_data):
             player_name = last_name
         else:
             player_name = ""
+        
+        # Normalize club name and track variants
+        club = normalize_club_name(raw_club)
+        if club and raw_club:
+            _seen_variants.setdefault(club, set()).add(raw_club)
         
         # Add to sets if valid
         if club: clubs.add(club)
@@ -300,33 +390,24 @@ def upsert_teams_and_players(cur, league_id, clubs, series, teams):
     
     for team_name in teams:
         # Parse team name to extract club and series
-        club_name, series_name, team_number = parse_team_name(team_name)
+        raw_club_name, series_name, team_number = parse_team_name(team_name)
         
-        if not club_name or not series_name:
+        if not raw_club_name or not series_name:
             print(f"    Skipping team '{team_name}' - could not parse club or series")
             skipped += 1
             continue
         
-        # Look up club_id with reverse mapping
-        # First try the exact club name, then try to find clubs that normalize to this name
+        # Normalize the club name extracted from team name
+        club_name = normalize_club_name(raw_club_name)
+        
+        # Look up club_id with normalized name
         cur.execute("SELECT id FROM clubs WHERE name = %s", (club_name,))
         club_result = cur.fetchone()
         
         if not club_result:
-            # Try to find clubs that normalize to this team club name
-            # This handles cases like: team "Midtown Chicago 10" needs club "Midtown - Chicago - 10"
-            print(f"    Trying to find club that normalizes to: '{club_name}'")
-            
-            # Get all clubs and check which ones normalize to our target
-            cur.execute("SELECT id, name FROM clubs WHERE name LIKE %s", (f"%{club_name.split()[0]}%",))
-            potential_clubs = cur.fetchall()
-            
-            for potential_club_id, potential_club_name in potential_clubs:
-                normalized_potential = normalize_club_name_for_team_matching(potential_club_name)
-                if normalized_potential == club_name:
-                    print(f"    Found matching club: '{potential_club_name}' -> '{normalized_potential}'")
-                    club_result = (potential_club_id,)
-                    break
+            # Since we're now using normalized names, this fallback should rarely be needed
+            # But keep it for edge cases where team parsing might extract a different club name
+            print(f"    Club '{club_name}' not found - this may indicate a data inconsistency")
         
         if not club_result:
             print(f"    Skipping team '{team_name}' - club '{club_name}' not found")
@@ -344,6 +425,18 @@ def upsert_teams_and_players(cur, league_id, clubs, series, teams):
         series_id = series_result[0]
         
         try:
+            # Check if a team with this club/series combination already exists
+            cur.execute("""
+                SELECT id, team_name FROM teams 
+                WHERE club_id = %s AND series_id = %s AND league_id = %s
+            """, (club_id, series_id, league_id))
+            
+            existing_team = cur.fetchone()
+            if existing_team:
+                print(f"    Team with club '{club_name}' and series '{series_name}' already exists: {existing_team[1]}")
+                existing += 1
+                continue
+            
             # Upsert team
             cur.execute("""
                 INSERT INTO teams (team_name, display_name, league_id, club_id, series_id) 
@@ -505,6 +598,37 @@ def upsert_players(cur, league_id, players_data, has_external_id):
         
         external_id = player_data.get("Player ID", "").strip()
         
+        # Extract PTI and win/loss data
+        pti_raw = player_data.get("PTI", "")
+        wins_raw = player_data.get("Wins", "0")
+        losses_raw = player_data.get("Losses", "0")
+        
+        # Parse PTI value (handle "N/A" and convert to numeric)
+        pti_value = None
+        if pti_raw and pti_raw != "N/A" and pti_raw != "0":
+            try:
+                pti_value = float(pti_raw)
+            except (ValueError, TypeError):
+                pti_value = None
+        
+        # Parse win/loss values
+        wins_value = None
+        losses_value = None
+        try:
+            wins_value = int(wins_raw) if wins_raw and wins_raw != "N/A" else 0
+            losses_value = int(losses_raw) if losses_raw and losses_raw != "N/A" else 0
+        except (ValueError, TypeError):
+            wins_value = 0
+            losses_value = 0
+        
+        # Calculate win percentage
+        win_percentage_value = None
+        if wins_value > 0 or losses_value > 0:
+            try:
+                win_percentage_value = (wins_value / (wins_value + losses_value)) * 100
+            except (ValueError, TypeError, ZeroDivisionError):
+                win_percentage_value = None
+        
         # Validate player data
         is_valid, errors = validate_player_data(player_data)
         if not is_valid:
@@ -538,17 +662,21 @@ def upsert_players(cur, league_id, players_data, has_external_id):
             team_id = team_id_result[0] if team_id_result else None
             
             if has_external_id and external_id:
-                # Use tenniscores_player_id for upsert
+                # Use tenniscores_player_id for upsert - NOW INCLUDING PTI AND WIN/LOSS DATA
                 cur.execute("""
-                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s) 
+                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id) 
                     DO UPDATE SET 
                         first_name = EXCLUDED.first_name, 
                         last_name = EXCLUDED.last_name,
-                        team_id = EXCLUDED.team_id
+                        team_id = EXCLUDED.team_id,
+                        pti = EXCLUDED.pti,
+                        wins = EXCLUDED.wins,
+                        losses = EXCLUDED.losses,
+                        win_percentage = EXCLUDED.win_percentage
                     RETURNING id
-                """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id))
+                """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value))
                 
                 result = cur.fetchone()
                 if result:
@@ -559,14 +687,19 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                 else:
                     existing += 1
             else:
-                # Fallback to name + league_id + club_id + series_id
+                # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI AND WIN/LOSS DATA
                 cur.execute("""
-                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id) 
-                    VALUES (%s, %s, %s, %s, %s, %s) 
+                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (first_name, league_id, club_id, series_id) 
-                    DO UPDATE SET team_id = EXCLUDED.team_id
+                    DO UPDATE SET 
+                        team_id = EXCLUDED.team_id,
+                        pti = EXCLUDED.pti,
+                        wins = EXCLUDED.wins,
+                        losses = EXCLUDED.losses,
+                        win_percentage = EXCLUDED.win_percentage
                     RETURNING id
-                """, (first_name, last_name, league_id, club_id, series_id, team_id))
+                """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value))
                 
                 result = cur.fetchone()
                 if result:
@@ -844,6 +977,13 @@ def main():
         
         # Run integrity checks
         run_integrity_checks(cur, league_id)
+        
+        # Log club normalization variants
+        if _seen_variants:
+            print("\n[club-normalizer] Variants observed:")
+            for base, raws in sorted(_seen_variants.items()):
+                if len(raws) > 1:
+                    print(f"  {base}: {sorted(raws)}")
         
     except Exception as e:
         print(f"ERROR: {e}")

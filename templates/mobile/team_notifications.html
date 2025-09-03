@@ -23,7 +23,7 @@
     <div class="px-4 py-6 space-y-6">
         
         <!-- Team Info Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hidden">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-users text-blue-500 mr-2"></i>
@@ -101,18 +101,7 @@
                         Select individual members
                     </button>
                     
-                    <!-- Phone number warning -->
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                        <div class="flex items-start">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-2"></i>
-                            <div class="text-xs text-yellow-800">
-                                <p class="font-medium mb-1">📱 SMS Delivery Requirements:</p>
-                                <p>• Phone numbers must be valid US numbers (10 digits)</p>
-                                <p>• Some team members may not have phone numbers</p>
-                                <p>• Invalid numbers will cause delivery failures</p>
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -201,26 +190,7 @@
             </div>
         </div>
         
-        <!-- Results Area -->
-        <div id="resultsArea" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
-                Results
-            </h3>
-            <div id="resultsContent">
-                <p class="text-gray-500 text-sm">Results will appear here after sending messages...</p>
-            </div>
-            
-            <!-- Debug Test Button (remove after testing) -->
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <button onclick="testResultsDisplay()" class="px-3 py-2 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 mr-2">
-                    🧪 Test Results Display
-                </button>
-                <button onclick="testSMS()" class="px-3 py-2 text-xs bg-blue-200 text-blue-700 rounded hover:bg-blue-300">
-                    📱 Test SMS API
-                </button>
-            </div>
-        </div>
+
         
         <!-- Recent Messages History -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -307,16 +277,16 @@ function updateUIForMessageType() {
     
     if (isSMSMode) {
         messageTypeLabel.textContent = 'Text Message';
-        smsTemplatesSection.classList.remove('hidden');
-        smsPartsCounter.classList.remove('hidden');
-        recipientsSection.classList.remove('hidden');
-        notificationDescription.classList.add('hidden');
+        if (smsTemplatesSection) smsTemplatesSection.classList.remove('hidden');
+        if (smsPartsCounter) smsPartsCounter.classList.remove('hidden');
+        if (recipientsSection) recipientsSection.classList.remove('hidden');
+        if (notificationDescription) notificationDescription.classList.add('hidden');
     } else {
         messageTypeLabel.textContent = 'Player Home Page Notification';
-        smsTemplatesSection.classList.add('hidden');
-        smsPartsCounter.classList.add('hidden');
-        recipientsSection.classList.add('hidden');
-        notificationDescription.classList.remove('hidden');
+        if (smsTemplatesSection) smsTemplatesSection.classList.add('hidden');
+        if (smsPartsCounter) smsPartsCounter.classList.add('hidden');
+        if (recipientsSection) recipientsSection.classList.add('hidden');
+        if (notificationDescription) notificationDescription.classList.remove('hidden');
     }
 }
 
@@ -539,19 +509,15 @@ async function handleFormSubmit(e) {
     
     // Validation
     if (!messageContent) {
-        showResults({
-            success: false,
-            error: 'Message content is required'
-        });
+        console.error('Message content is required');
+        alert('Message content is required');
         return;
     }
     
     const maxLength = isSMSMode ? 1600 : 1000;
     if (messageContent.length > maxLength) {
-        showResults({
-            success: false,
-            error: `Message too long (max ${maxLength} characters)`
-        });
+        console.error(`Message too long (max ${maxLength} characters)`);
+        alert(`Message too long (max ${maxLength} characters)`);
         return;
     }
     
@@ -573,10 +539,8 @@ async function handleFormSubmit(e) {
             console.log('Selected recipients:', recipients);
             
             if (recipients.length === 0) {
-                showResults({
-                    success: false,
-                    error: 'No recipients selected or no phone numbers available'
-                });
+                console.error('No recipients selected or no phone numbers available');
+                alert('No recipients selected or no phone numbers available');
                 return;
             }
             
@@ -621,12 +585,18 @@ async function handleFormSubmit(e) {
             type: isSMSMode ? 'SMS' : 'Player Home Page Notification'
         });
         
-        console.log('Showing results...');
-        showResults(result);
+        console.log('Message sent successfully:', result);
         
         // Clear form on success
         if (result.success) {
             clearForm();
+            if (isSMSMode) {
+                alert('Message sent successfully!');
+            } else {
+                alert('Notification posted successfully on team home page');
+            }
+        } else {
+            alert('Failed to send message: ' + (result.error || 'Unknown error'));
         }
         
     } catch (error) {
@@ -655,10 +625,7 @@ async function handleFormSubmit(e) {
             }
         }
         
-        showResults({
-            success: false,
-            error: errorMessage
-        });
+        alert('Error: ' + errorMessage);
     } finally {
         // Re-enable form
         sendButton.disabled = false;
@@ -701,301 +668,6 @@ function getSelectedRecipients() {
     
     console.log('Final recipients array:', recipients);
     return recipients;
-}
-
-function showResults(result) {
-    console.log('showResults called with:', result);
-    
-    const resultsArea = document.getElementById('resultsArea');
-    const resultsContent = document.getElementById('resultsContent');
-    
-    console.log('Results area element:', resultsArea);
-    console.log('Results content element:', resultsContent);
-    
-    if (!resultsArea || !resultsContent) {
-        console.error('Results elements not found!');
-        return;
-    }
-    
-    resultsArea.classList.remove('hidden');
-    console.log('Results area should now be visible');
-    
-    if (result.success) {
-        if (isSMSMode) {
-            console.log('Processing SMS results...');
-            // Show detailed SMS results
-            const successfulCount = result.recipients_sent || 0;
-            const failedCount = result.recipients_failed || 0;
-            const totalCount = result.total_recipients || 0;
-            
-            console.log('SMS counts:', { successfulCount, failedCount, totalCount });
-            
-            let resultsHtml = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center text-green-800 mb-3">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <span class="font-medium">SMS delivery completed</span>
-                    </div>
-                    <div class="text-sm text-green-700 space-y-2">
-                        <div class="flex justify-between">
-                            <span><strong>Successfully sent:</strong></span>
-                            <span class="text-green-600">${successfulCount}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span><strong>Failed to send:</strong></span>
-                            <span class="text-red-600">${failedCount}</span>
-                        </div>
-                        <div class="flex justify-between border-t border-green-200 pt-2">
-                            <span><strong>Total recipients:</strong></span>
-                            <span class="text-green-600">${totalCount}</span>
-                        </div>
-            `;
-            
-            // Add detailed results if available
-            if (result.send_results && result.send_results.length > 0) {
-                console.log('Adding detailed send results:', result.send_results);
-                resultsHtml += `
-                        <div class="mt-3 pt-3 border-t border-green-200">
-                            <p class="font-medium mb-2">Delivery Details:</p>
-                            <div class="space-y-1 max-h-32 overflow-y-auto">
-                `;
-                
-                result.send_results.forEach(recipient => {
-                    if (recipient.status === 'sent') {
-                        resultsHtml += `
-                            <div class="flex items-center text-xs">
-                                <i class="fas fa-check text-green-500 mr-2"></i>
-                                <span class="text-green-700">${escapeHtml(recipient.name)} - Sent</span>
-                            </div>
-                        `;
-                    } else {
-                        resultsHtml += `
-                            <div class="flex items-center text-xs">
-                                <i class="fas fa-times text-red-500 mr-2"></i>
-                                <span class="text-red-700">${escapeHtml(recipient.name)} - Failed: ${escapeHtml(recipient.error || 'Unknown error')}</span>
-                            </div>
-                        `;
-                    }
-                });
-                
-                resultsHtml += `
-                            </div>
-                        </div>
-                `;
-            }
-            
-            resultsHtml += `
-                    </div>
-                </div>
-            `;
-            
-            console.log('Setting SMS results HTML:', resultsHtml);
-            resultsContent.innerHTML = resultsHtml;
-            
-        } else {
-            console.log('Processing notification results...');
-            // Show notification creation success
-            resultsContent.innerHTML = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center text-green-800 mb-3">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <span class="font-medium">Home page notification created successfully!</span>
-                    </div>
-                    <div class="text-sm text-green-700 space-y-1">
-                        <p><strong>Message ID:</strong> ${result.message_id}</p>
-                        <p><strong>Status:</strong> Message will appear in team notifications</p>
-                        <p class="text-xs mt-2">The notification will be visible to all team members on their home page (no SMS sent)</p>
-                    </div>
-                </div>
-            `;
-        }
-    } else {
-        console.log('Processing error results...');
-        // Show error message
-        resultsContent.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-center text-red-800 mb-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <span class="font-medium">Failed to ${isSMSMode ? 'send text message' : 'create home page notification'}</span>
-                </div>
-                <div class="text-sm text-red-700">
-                    <p><strong>Error:</strong> ${escapeHtml(result.error)}</p>
-                </div>
-            </div>
-        `;
-    }
-    
-    console.log('Results display completed');
-}
-
-async function removeCaptainMessage() {
-    // Show confirmation dialog
-    if (!confirm('Are you sure you want to remove the current player home page notification? This action cannot be undone.')) {
-        return;
-    }
-    
-    // Disable button
-    const removeButton = document.getElementById('removeButton');
-    const originalText = removeButton.innerHTML;
-    removeButton.disabled = true;
-    removeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Removing...';
-    
-    try {
-        const response = await fetch('/api/captain-messages', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Show success message
-            showResults({
-                success: true,
-                message: "Player home page notification removed successfully"
-            });
-            
-            // Clear form
-            clearForm();
-            
-            // Add to history
-            addToNotificationHistory({
-                timestamp: new Date().toISOString(),
-                message: "Removed player home page notification",
-                success: true,
-                result: result,
-                type: 'Player Home Page Notification'
-            });
-        } else {
-            showResults({
-                success: false,
-                error: result.error || 'Failed to remove player home page notification'
-            });
-        }
-        
-    } catch (error) {
-        console.error('Error removing player home page notification:', error);
-        showResults({
-            success: false,
-            error: 'Network error: ' + error.message
-        });
-    } finally {
-        // Re-enable button
-        removeButton.disabled = false;
-        removeButton.innerHTML = originalText;
-    }
-}
-
-function clearForm() {
-    document.getElementById('messageContent').value = '';
-    updateCharacterCount();
-    
-    // Clear results but keep the area visible with a message
-    const resultsContent = document.getElementById('resultsContent');
-    if (resultsContent) {
-        resultsContent.innerHTML = '<p class="text-gray-500 text-sm">Results will appear here after sending messages...</p>';
-    }
-}
-
-// Test function for debugging
-function testResultsDisplay() {
-    console.log('Testing results display...');
-    showResults({
-        success: true,
-        recipients_sent: 2,
-        recipients_failed: 1,
-        total_recipients: 3,
-        send_results: [
-            { name: 'John Doe', status: 'sent' },
-            { name: 'Jane Smith', status: 'sent' },
-            { name: 'Bob Johnson', status: 'failed', error: 'Invalid phone number' }
-        ]
-    });
-}
-
-// Test SMS functionality
-async function testSMS() {
-    console.log('Testing SMS functionality...');
-    
-    try {
-        const response = await fetch('/api/team-notifications/send', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: 'Test SMS message from Rally team notifications'
-            })
-        });
-        
-        console.log('Test SMS response status:', response.status);
-        const result = await response.json();
-        console.log('Test SMS response data:', result);
-        
-        showResults(result);
-        
-    } catch (error) {
-        console.error('Test SMS error:', error);
-        showResults({
-            success: false,
-            error: 'Test SMS failed: ' + error.message
-        });
-    }
-}
-
-function refreshTeamInfo() {
-    loadTeamInfo();
-}
-
-function loadNotificationHistory() {
-    // For now, just show a placeholder
-    // In the future, this could load from a database
-    document.getElementById('notificationHistory').innerHTML = `
-        <p class="text-gray-500 text-sm">No recent messages yet.</p>
-    `;
-}
-
-function addToNotificationHistory(notification) {
-    notificationHistory.unshift(notification);
-    
-    // Keep only last 10 notifications
-    if (notificationHistory.length > 10) {
-        notificationHistory = notificationHistory.slice(0, 10);
-    }
-    
-    // Update display
-    const historyContainer = document.getElementById('notificationHistory');
-    if (notificationHistory.length === 1) {
-        // First notification, replace placeholder
-        historyContainer.innerHTML = '';
-    }
-    
-    const notificationElement = document.createElement('div');
-    notificationElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-    notificationElement.innerHTML = `
-        <div class="flex-1">
-            <div class="text-sm font-medium text-gray-900">${escapeHtml(notification.message)}</div>
-            <div class="text-xs text-gray-500">
-                ${new Date(notification.timestamp).toLocaleString()} • ${notification.type}
-            </div>
-        </div>
-        <div class="ml-3">
-            ${notification.success ? 
-                '<i class="fas fa-check-circle text-green-500"></i>' : 
-                '<i class="fas fa-times-circle text-red-500"></i>'
-            }
-        </div>
-    `;
-    
-    historyContainer.insertBefore(notificationElement, historyContainer.firstChild);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 function loadTeamMembers() {
@@ -1161,6 +833,135 @@ function displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox) {
     updateRecipientCount();
 }
 
+function updateRecipientCount() {
+    const checkedBoxes = document.querySelectorAll('.member-checkbox:checked');
+    const recipientCount = document.getElementById('recipient-count');
+    const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+    
+    const count = checkedBoxes.length;
+    recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+    sendBtnSubtitle.textContent = `(${count})`;
+}
+
+async function removeCaptainMessage() {
+    // Show confirmation dialog
+    if (!confirm('Are you sure you want to remove the current player home page notification? This action cannot be undone.')) {
+        return;
+    }
+    
+    // Disable button
+    const removeButton = document.getElementById('removeButton');
+    const originalText = removeButton.innerHTML;
+    removeButton.disabled = true;
+    removeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Removing...';
+    
+    try {
+        const response = await fetch('/api/captain-messages', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success message
+            alert("Player home page notification removed successfully");
+            
+            // Clear form
+            clearForm();
+            
+            // Add to history
+            addToNotificationHistory({
+                timestamp: new Date().toISOString(),
+                message: "Removed player home page notification",
+                success: true,
+                result: result,
+                type: 'Player Home Page Notification'
+            });
+        } else {
+            alert('Failed to remove player home page notification: ' + (result.error || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Error removing player home page notification:', error);
+        alert('Network error: ' + error.message);
+    } finally {
+        // Re-enable button
+        removeButton.disabled = false;
+        removeButton.innerHTML = originalText;
+    }
+}
+
+function clearForm() {
+    document.getElementById('messageContent').value = '';
+    updateCharacterCount();
+    
+    // Results card was removed, so no need to clear it
+}
+
+
+
+function refreshTeamInfo() {
+    loadTeamInfo();
+}
+
+function loadNotificationHistory() {
+    // For now, just show a placeholder
+    // In the future, this could load from a database
+    document.getElementById('notificationHistory').innerHTML = `
+        <p class="text-gray-500 text-sm">No recent messages yet.</p>
+    `;
+}
+
+function addToNotificationHistory(notification) {
+    notificationHistory.unshift(notification);
+    
+    // Keep only last 10 notifications
+    if (notificationHistory.length > 10) {
+        notificationHistory = notificationHistory.slice(0, 10);
+    }
+    
+    // Update display
+    const historyContainer = document.getElementById('notificationHistory');
+    if (notificationHistory.length === 1) {
+        // First notification, replace placeholder
+        historyContainer.innerHTML = '';
+    }
+    
+    const notificationElement = document.createElement('div');
+    notificationElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+    notificationElement.innerHTML = `
+        <div class="flex-1">
+            <div class="text-sm font-medium text-gray-900">${escapeHtml(notification.message)}</div>
+            <div class="text-xs text-gray-500">
+                ${new Date(notification.timestamp).toLocaleString()} • ${notification.type}
+            </div>
+        </div>
+        <div class="ml-3">
+            ${notification.success ? 
+                '<i class="fas fa-check-circle text-green-500"></i>' : 
+                '<i class="fas fa-times-circle text-red-500"></i>'
+            }
+        </div>
+    `;
+    
+    historyContainer.insertBefore(notificationElement, historyContainer.firstChild);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+
+
+
+
+
+
 function isValidPhoneNumber(phone) {
     // Remove all non-digit characters
     const digits = phone.replace(/\D/g, '');
@@ -1189,15 +990,7 @@ function isValidPhoneNumber(phone) {
     return false;
 }
 
-function updateRecipientCount() {
-    const checkedBoxes = document.querySelectorAll('.member-checkbox:checked');
-    const recipientCount = document.getElementById('recipient-count');
-    const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
-    
-    const count = checkedBoxes.length;
-    recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
-    sendBtnSubtitle.textContent = `(${count})`;
-}
+
 </script>
 
 <style>

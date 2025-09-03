@@ -773,6 +773,10 @@ function toggleSubmenu(submenuId) {
             // Improve: scroll 100px more than other sections
             adjustment = -100;
             console.log(`📊 SCROLL DEBUG: Improve button - using -100px adjustment (100px more)`);
+          } else if (submenuId === 'captain-submenu') {
+            // Captain's Corner: scroll 200px down from button position
+            adjustment = -200;
+            console.log(`📊 SCROLL DEBUG: Captain's Corner button - using -200px adjustment (200px auto scroll)`);
           } else {
             // All other sections: scroll to same position as Analyze (top aligned with navbar)
             adjustment = 0;

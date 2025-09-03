@@ -2484,50 +2484,29 @@ def send_team_notification():
             print(f"Sending SMS to {len(selected_recipients)} selected recipients")
             print(f"Selected recipients data: {selected_recipients}")
             
-            # Get user details for selected recipients
-            import re
-            selected_phones = []
+            # Use the selected recipients directly instead of doing a database lookup
+            # This prevents sending to multiple users with the same phone number
+            team_members = []
             for r in selected_recipients:
+                name = r.get('name', '')
                 phone = r.get('phone', '')
-                # Remove all non-digit characters
-                clean_phone = re.sub(r'\D', '', phone)
-                if clean_phone:
-                    selected_phones.append(clean_phone)
+                
+                if not phone:
+                    continue
+                    
+                # Parse name into first and last
+                name_parts = name.split(' ', 1)
+                first_name = name_parts[0] if len(name_parts) > 0 else ''
+                last_name = name_parts[1] if len(name_parts) > 1 else ''
+                
+                team_members.append({
+                    'id': None,  # Not needed for SMS sending
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'phone_number': phone
+                })
             
-            print(f"Cleaned phone numbers: {selected_phones}")
-            
-            if not selected_phones:
-                return jsonify({
-                    "success": False, 
-                    "error": "No valid phone numbers found in selected recipients"
-                }), 400
-            
-            # Get user details for the selected phone numbers
-            recipients_query = """
-                SELECT DISTINCT
-                    u.id,
-                    u.first_name,
-                    u.last_name,
-                    u.phone_number
-                FROM users u
-                WHERE u.phone_number IS NOT NULL 
-                AND u.phone_number != ''
-                AND u.id != %s  -- Don't send to self
-                AND (
-                    u.phone_number = ANY(%s)
-                    OR REPLACE(u.phone_number, '-', '') = ANY(%s)
-                    OR REPLACE(REPLACE(u.phone_number, '-', ''), '+', '') = ANY(%s)
-                )
-            """
-            
-            # Create arrays for phone number matching (with and without formatting)
-            phone_variants = []
-            for phone in selected_phones:
-                phone_variants.append(phone)
-                phone_variants.append(phone.replace('-', ''))
-                phone_variants.append(phone.replace('-', '').replace('+', ''))
-            
-            team_members = execute_query(recipients_query, [user_id, phone_variants, phone_variants, phone_variants])
+            print(f"Using {len(team_members)} selected recipients directly")
             
         else:
             # Send to all team members (when "All Team Members" is selected)
@@ -2582,44 +2561,63 @@ def send_team_notification():
             }
         )
         
-        # Send SMS to each team member
+        # Deduplicate phone numbers to avoid sending multiple SMS to the same number
+        unique_phones = {}
+        for member in team_members:
+            phone = member["phone_number"]
+            if phone not in unique_phones:
+                unique_phones[phone] = {
+                    "phone": phone,
+                    "members": []
+                }
+            unique_phones[phone]["members"].append(f"{member['first_name']} {member['last_name']}")
+        
+        print(f"Sending SMS to {len(unique_phones)} unique phone numbers (covering {len(team_members)} team members)")
+        
+        # Send SMS to each unique phone number
         successful_sends = 0
         failed_sends = 0
         send_results = []
         
-        for member in team_members:
+        for phone, phone_data in unique_phones.items():
             try:
                 result = send_sms_notification(
-                    to_number=member["phone_number"],
+                    to_number=phone,
                     message=message,
                     test_mode=test_mode
                 )
                 
                 if result["success"]:
                     successful_sends += 1
-                    send_results.append({
-                        "name": f"{member['first_name']} {member['last_name']}",
-                        "phone": member["phone_number"],
-                        "status": "sent",
-                        "message_sid": result.get("message_sid")
-                    })
+                    # Create result entry for each member with this phone number
+                    for member_name in phone_data["members"]:
+                        send_results.append({
+                            "name": member_name,
+                            "phone": phone,
+                            "status": "sent",
+                            "message_sid": result.get("message_sid")
+                        })
                 else:
                     failed_sends += 1
-                    send_results.append({
-                        "name": f"{member['first_name']} {member['last_name']}",
-                        "phone": member["phone_number"],
-                        "status": "failed",
-                        "error": result.get("error")
-                    })
+                    # Create result entry for each member with this phone number
+                    for member_name in phone_data["members"]:
+                        send_results.append({
+                            "name": member_name,
+                            "phone": phone,
+                            "status": "failed",
+                            "error": result.get("error")
+                        })
                     
             except Exception as e:
                 failed_sends += 1
-                send_results.append({
-                    "name": f"{member['first_name']} {member['last_name']}",
-                    "phone": member["phone_number"],
-                    "status": "failed",
-                    "error": f"Unexpected error: {str(e)}"
-                })
+                # Create result entry for each member with this phone number
+                for member_name in phone_data["members"]:
+                    send_results.append({
+                        "name": member_name,
+                        "phone": phone,
+                        "status": "failed",
+                        "error": f"Unexpected error: {str(e)}"
+                    })
         
         return jsonify({
             "success": True,
@@ -2682,12 +2680,18 @@ def api_pre_register_user():
                 "error": f"Missing required fields: {', '.join(missing_fields)}"
             }), 400
         
-        # Validate phone number (should be 10 digits)
-        if len(phone_number) != 10 or not phone_number.isdigit():
+        # ✅ PHONE NORMALIZATION: Normalize phone number before registration
+        from utils.phone_utils import validate_and_normalize_phone_input
+        
+        phone_result = validate_and_normalize_phone_input(phone_number, "phone number")
+        if not phone_result['success']:
             return jsonify({
                 "success": False,
-                "error": "Phone number must be exactly 10 digits"
+                "error": phone_result['error']
             }), 400
+        
+        normalized_phone = phone_result['normalized_phone']
+        print(f"Admin pre-registration: Phone number normalized: '{phone_number}' -> '{normalized_phone}'")
         
         # Import the registration function
         from app.services.auth_service_refactored import register_user
@@ -2730,7 +2734,7 @@ def api_pre_register_user():
             league_id=league_id,
             club_name=club_name,
             series_name=series_name,
-            phone_number=phone_number,
+            phone_number=normalized_phone,
             ad_deuce_preference="Ad",  # Default
             dominant_hand="Right"     # Default
         )

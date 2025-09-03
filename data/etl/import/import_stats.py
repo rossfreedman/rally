@@ -16,10 +16,92 @@ import re
 from datetime import datetime
 import os
 import psycopg2
+from typing import Optional
 
 # Add the project root to Python path to import database_config
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 from database_config import get_db_url, get_database_mode, is_local_development
+
+# Club name normalization patterns (shared across all import scripts)
+_ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
+_ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
+_LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
+_ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
+_KEEP_SUFFIXES = {"CC", "GC", "RC", "PC", "TC", "AC"}
+
+def normalize_club_name(raw: str) -> str:
+    """
+    Normalize club names using consistent logic across all import scripts.
+    
+    Rules:
+    1. Trim and normalize internal whitespace
+    2. If name contains " - " segments, keep only the first segment
+    3. Drop trailing parenthetical segments
+    4. Strip trailing team/series suffix tokens
+    5. Remove stray punctuation except & and spaces
+    6. Collapse multiple spaces and strip ends
+    7. Title-case result (preserving club-type abbreviations)
+    """
+    if not raw:
+        return ""
+    
+    # Trim and normalize whitespace
+    name = re.sub(r'\s+', ' ', raw.strip())
+    
+    # Keep only first segment if " - " exists
+    if " - " in name:
+        name = name.split(" - ")[0].strip()
+    
+    # Drop trailing parenthetical segments
+    name = re.sub(r'\s*\([^)]*\)\s*$', '', name)
+    
+    # Strip trailing suffix tokens
+    tokens = name.split()
+    tokens = _strip_trailing_suffix_tokens(tokens)
+    name = ' '.join(tokens)
+    
+    # Remove stray punctuation except & and spaces
+    name = re.sub(r'[^\w\s&]', '', name)
+    
+    # Collapse spaces and strip
+    name = re.sub(r'\s+', ' ', name).strip()
+    
+    # Title-case while preserving club-type abbreviations
+    words = name.split()
+    title_words = []
+    for word in words:
+        if word.upper() in _KEEP_SUFFIXES:
+            title_words.append(word.upper())
+        else:
+            title_words.append(word.title())
+    
+    return ' '.join(title_words)
+
+def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
+    """Strip trailing series/division/team markers without using hard-coded club maps."""
+    while tokens:
+        t = tokens[-1]
+        
+        # Preserve common club-type suffixes
+        if t.upper() in _KEEP_SUFFIXES:
+            break
+            
+        if _ROMAN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALNUM_SUFFIX_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _LETTER_PAREN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALLCAP_SHORT_RE.fullmatch(t):
+            tokens.pop()
+            continue
+            
+        break
+    
+    return tokens
 
 def get_conn():
     """Get database connection using database_config for automatic environment detection."""
@@ -296,73 +378,151 @@ def upsert_series(cur, name, league_id):
         return cur.fetchone()[0]
 
 def upsert_team(cur, league_id, team_name, club_name, series_name):
-    """Upsert team and return ID. Requires club and series names."""
+    """Upsert team and return ID using unified team management logic."""
     if not all([team_name, club_name, series_name]):
         return None
     
-    club_id = upsert_club(cur, club_name, league_id)
+    # Normalize club name for consistency
+    normalized_club_name = normalize_club_name(club_name)
+    
+    # Get or create club with normalized name
+    club_id = upsert_club(cur, normalized_club_name, league_id)
+    if not club_id:
+        return None
+    
+    # Get or create series
     series_id = upsert_series(cur, series_name, league_id)
+    if not series_id:
+        return None
     
-    # Create a unique team identifier that combines club and series
-    # This prevents unique constraint violations
-    unique_team_name = f"{club_name} - {series_name}"
+    # Check if team already exists
+    existing_team_id = find_existing_team_unified(cur, league_id, team_name, club_id, series_id)
+    if existing_team_id:
+        return existing_team_id
     
-    # Check if teams table has display_name column
-    if column_exists(cur, "teams", "display_name"):
+    # Create new team with consistent naming
+    return create_team_unified(cur, team_name, club_id, series_id, league_id)
+
+def lookup_existing_team(cur, league_id, team_name):
+    """Look up existing team by name in the current league using unified logic."""
+    team_id = find_team_by_name_unified(cur, league_id, team_name)
+    
+    if team_id:
+        # Get club_id and series_id for backward compatibility
+        cur.execute("""
+            SELECT club_id, series_id FROM teams 
+            WHERE id = %s
+        """, (team_id,))
+        result = cur.fetchone()
+        if result:
+            return team_id, result[0], result[1]
+    
+    return None, None, None
+
+def find_existing_team_unified(cur, league_id, team_name: str, club_id: int, series_id: int):
+    """Find existing team using multiple strategies."""
+    # Strategy 1: Exact team name match
+    cur.execute("""
+        SELECT id FROM teams 
+        WHERE team_name = %s AND league_id = %s
+    """, (team_name, league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    # Strategy 2: Match by club_id and series_id (for teams with same club/series)
+    cur.execute("""
+        SELECT id, team_name FROM teams 
+        WHERE club_id = %s AND series_id = %s AND league_id = %s
+    """, (club_id, series_id, league_id))
+    results = cur.fetchall()
+    
+    if len(results) == 1:
+        # Only one team for this club/series combination
+        return results[0][0]
+    elif len(results) > 1:
+        # Multiple teams for same club/series - need to match by name pattern
+        for team_id, existing_team_name in results:
+            if team_names_match_unified(team_name, existing_team_name):
+                return team_id
+    
+    return None
+
+def find_team_by_name_unified(cur, league_id, team_name: str):
+    """Find existing team by name using multiple strategies."""
+    if not team_name:
+        return None
+    
+    # Strategy 1: Exact match
+    cur.execute("""
+        SELECT id FROM teams 
+        WHERE team_name = %s AND league_id = %s
+    """, (team_name, league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    # Strategy 2: Parse and match by components
+    raw_club_name, series_name, _ = parse_team_name(team_name)
+    if raw_club_name and series_name:
+        club_name = normalize_club_name(raw_club_name)
+        
+        cur.execute("""
+            SELECT t.id FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            WHERE c.name = %s AND s.name = %s AND t.league_id = %s
+        """, (club_name, series_name, league_id))
+        
+        results = cur.fetchall()
+        if len(results) == 1:
+            return results[0][0]
+        elif len(results) > 1:
+            # Multiple teams for same club/series - try to match by name pattern
+            for (team_id,) in results:
+                cur.execute("SELECT team_name FROM teams WHERE id = %s", (team_id,))
+                existing_name = cur.fetchone()[0]
+                if team_names_match_unified(team_name, existing_name):
+                    return team_id
+    
+    return None
+
+def team_names_match_unified(name1: str, name2: str) -> bool:
+    """Check if two team names refer to the same team."""
+    # Normalize both names for comparison
+    norm1 = normalize_club_name(name1).lower()
+    norm2 = normalize_club_name(name2).lower()
+    
+    # Extract team identifiers
+    _, _, id1 = parse_team_name(name1)
+    _, _, id2 = parse_team_name(name2)
+    
+    # If team identifiers match, they're the same team
+    if id1 and id2 and id1.lower() == id2.lower():
+        return True
+    
+    # If normalized names are identical, they're the same team
+    if norm1 == norm2:
+        return True
+    
+    return False
+
+def create_team_unified(cur, team_name: str, club_id: int, series_id: int, league_id) -> Optional[int]:
+    """Create a new team with consistent naming."""
+    try:
         cur.execute("""
             INSERT INTO teams (team_name, display_name, club_id, series_id, league_id) 
             VALUES (%s, %s, %s, %s, %s) 
-            ON CONFLICT (team_name, league_id) DO NOTHING 
             RETURNING id
-        """, (unique_team_name, team_name, club_id, series_id, league_id))
+        """, (team_name, team_name, club_id, series_id, league_id))
+        
         result = cur.fetchone()
         if result:
             return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE team_name = %s AND league_id = %s", (unique_team_name, league_id))
-        return cur.fetchone()[0]
-    else:
-        cur.execute("""
-            INSERT INTO teams (name, club_id, series_id, league_id) 
-            VALUES (%s, %s, %s, %s) 
-            ON CONFLICT (name, league_id) DO NOTHING 
-            RETURNING id
-        """, (unique_team_name, club_id, series_id, league_id))
-        result = cur.fetchone()
-        if result:
-            return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE name = %s AND league_id = %s", (unique_team_name, league_id))
-        return cur.fetchone()[0]
-
-def lookup_existing_team(cur, league_id, team_name):
-    """Look up existing team by name in the current league."""
-    # Try to find team by exact name match
-    cur.execute("""
-        SELECT id, club_id, series_id FROM teams 
-        WHERE league_id = %s AND team_name = %s
-        LIMIT 1
-    """, (league_id, team_name))
+    except Exception as e:
+        print(f"Failed to create team '{team_name}': {str(e)}")
     
-    result = cur.fetchone()
-    if result:
-        return result[0], result[1], result[2]  # team_id, club_id, series_id
-    
-    # If not found, try to find by similar name patterns
-    # This handles cases where the team name might be slightly different
-    cur.execute("""
-        SELECT id, club_id, series_id FROM teams 
-        WHERE league_id = %s AND team_name LIKE %s
-        LIMIT 1
-    """, (league_id, f"%{team_name.split()[-1]}%"))  # Try to match the last part (e.g., "22")
-    
-    result = cur.fetchone()
-    if result:
-        return result[0], result[1], result[2]
-    
-    return None, None, None
+    return None
 
 def check_existing_stat(cur, league_id, team_id, series_name):
     """Check if a stat record already exists."""

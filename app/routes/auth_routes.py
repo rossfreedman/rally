@@ -122,6 +122,16 @@ def handle_register():
                 400,
             )
 
+        # ✅ PHONE NORMALIZATION: Normalize phone number before registration
+        from utils.phone_utils import validate_and_normalize_phone_input
+        
+        phone_result = validate_and_normalize_phone_input(phone_number, "phone number")
+        if not phone_result['success']:
+            return jsonify({"error": phone_result['error']}), 400
+        
+        normalized_phone = phone_result['normalized_phone']
+        logger.info(f"Phone number normalized: '{phone_number}' -> '{normalized_phone}'")
+        
         # ✅ ID-BASED: Use service to register user with series_id priority
         logger.info(f"Registration request for {email}: series_id={series_id}, series_name='{series_name}', series_display='{series_display}'")
         
@@ -138,7 +148,7 @@ def handle_register():
             series_display=series_display,  # For logging purposes
             ad_deuce_preference=ad_deuce_preference,
             dominant_hand=dominant_hand,
-            phone_number=phone_number
+            phone_number=normalized_phone
         )
 
         if not result["success"]:

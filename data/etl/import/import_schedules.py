@@ -17,11 +17,12 @@ This script:
 
 import json
 import os
+import re
 import sys
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Add the project root to the Python path
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,6 +34,92 @@ project_root = Path(project_root)
 
 from database_config import get_db, get_db_url, get_database_mode, is_local_development
 from utils.league_utils import normalize_league_id
+
+# Club normalization regex patterns
+_ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
+_ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
+_LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
+_ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
+_KEEP_SUFFIXES: Set[str] = {"CC", "GC", "RC", "PC", "TC", "AC"}  # preserve common club types
+
+def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
+    """Strip trailing series/division/team markers without using hard-coded club maps."""
+    while tokens:
+        t = tokens[-1]
+
+        # Preserve common club-type suffixes (e.g., 'Lake Shore CC')
+        if t.upper() in _KEEP_SUFFIXES:
+            break
+
+        if _ROMAN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALNUM_SUFFIX_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _LETTER_PAREN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        # Generic short all-caps trailing marker (PD, H, B, F, etc.)
+        if _ALLCAP_SHORT_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        break
+    return tokens
+
+def normalize_club_name(raw: str) -> str:
+    """
+    Normalize club names during season bootstrap so variants collapse to a single base club.
+    
+    Rules applied in order:
+    1. Trim and normalize internal whitespace
+    2. If name contains " - " segments, keep only the first segment
+    3. Drop any trailing parenthetical segments: (... ) at the end
+    4. Iteratively strip trailing team/series suffix tokens until none remain
+    5. Remove stray punctuation other than & and spaces
+    6. Collapse multiple spaces and strip ends
+    7. Title-case the result (preserving club type abbreviations)
+    """
+    if not raw:
+        return ""
+    
+    # Trim and normalize internal whitespace
+    base = re.sub(r'\s+', ' ', raw.strip())
+    
+    # If the name contains " - " segments, keep only the first segment
+    if " - " in base:
+        base = base.split(" - ")[0].strip()
+    
+    # Drop any trailing parenthetical segments: (... ) at the end
+    base = re.sub(r'\s*\([^)]*\)\s*$', '', base).strip()
+    
+    # Split into tokens for suffix stripping
+    tokens = base.split()
+    if not tokens:
+        return ""
+    
+    # Iteratively strip trailing suffix tokens
+    tokens = _strip_trailing_suffix_tokens(tokens)
+    
+    if not tokens:
+        return ""
+    
+    # Remove stray punctuation from the remaining body (keep &)
+    base = ' '.join(tokens)
+    base = re.sub(r'[^\w\s&]', ' ', base)
+    base = re.sub(r'\s+', ' ', base).strip()
+
+    # Title case for display consistency, but preserve club type abbreviations
+    words = base.split()
+    title_words = []
+    for word in words:
+        if word.upper() in _KEEP_SUFFIXES:
+            title_words.append(word.upper())
+        else:
+            title_words.append(word.title())
+    base = ' '.join(title_words)
+
+    return base
 
 # Set up logging
 logging.basicConfig(
@@ -124,49 +211,164 @@ class SchedulesETL:
             return team_name.split(" - Series ")[0]
         return team_name
     
+    def normalize_club_name(self, raw: str) -> str:
+        """
+        Normalize club names using consistent logic across all import scripts.
+        
+        Rules:
+        1. Trim and normalize internal whitespace
+        2. If name contains " - " segments, keep only the first segment
+        3. Drop trailing parenthetical segments
+        4. Strip trailing team/series suffix tokens
+        5. Remove stray punctuation other than & and spaces
+        6. Collapse multiple spaces and strip ends
+        7. Title-case the result
+        """
+        if not raw:
+            return ""
+        
+        # Step 1: Trim and normalize internal whitespace
+        text = re.sub(r'\s+', ' ', raw.strip())
+        
+        # Step 2: If name contains " - " segments, keep only the first segment
+        if " - " in text:
+            text = text.split(" - ")[0]
+        
+        # Step 3: Drop trailing parenthetical segments
+        text = re.sub(r'\s*\([^)]*\)\s*$', '', text)
+        
+        # Step 4: Strip trailing team/series suffix tokens
+        tokens = text.split()
+        tokens = self._strip_trailing_suffix_tokens(tokens)
+        
+        # Step 5: Remove stray punctuation other than & and spaces
+        text = ' '.join(tokens)
+        text = re.sub(r'[^\w\s&]', '', text)
+        
+        # Step 6: Collapse multiple spaces and strip ends
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Step 7: Title-case the result, preserving club type abbreviations
+        if not text:
+            return ""
+        
+        words = text.split()
+        result_words = []
+        for word in words:
+            if word.upper() in _KEEP_SUFFIXES:
+                result_words.append(word.upper())
+            else:
+                result_words.append(word.title())
+        
+        return ' '.join(result_words)
+    
+    def _strip_trailing_suffix_tokens(self, tokens: list[str]) -> list[str]:
+        """Strip trailing series/division/team markers without using hard-coded club maps."""
+        while tokens:
+            t = tokens[-1]
+            
+            # Preserve common club-type suffixes (e.g., 'Lake Shore CC')
+            if t.upper() in _KEEP_SUFFIXES:
+                break
+            
+            if _ROMAN_RE.fullmatch(t):
+                tokens.pop()
+                continue
+            if _ALNUM_SUFFIX_RE.fullmatch(t):
+                tokens.pop()
+                continue
+            if _LETTER_PAREN_RE.fullmatch(t):
+                tokens.pop()
+                continue
+            if _ALLCAP_SHORT_RE.fullmatch(t):
+                tokens.pop()
+                continue
+            
+            break
+        
+        return tokens
+    
+    def parse_team_name(self, team_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Parse team name to extract club, series, and team identifier."""
+        if not team_name:
+            return None, None, None
+        
+        # Handle special cases with dashes and complex names
+        if " - " in team_name:
+            parts = team_name.split(" - ")
+            if len(parts) == 2:
+                club_name = parts[0].strip()
+                series_part = parts[1].strip()
+                return club_name, series_part, series_part
+        
+        # Try to extract numeric series first (e.g., "12", "3b", "14a")
+        numeric_match = re.search(r'(\d+[a-z]?)$', team_name)
+        if numeric_match:
+            team_number = numeric_match.group(1)
+            club_name = team_name[:numeric_match.start()].strip()
+            series_name = f"Series {team_number}"
+            return club_name, series_name, team_number
+        
+        # Try to extract single letter series (e.g., "A", "B", "C")
+        letter_match = re.search(r'\s([A-Z])\s*$', team_name)
+        if letter_match:
+            team_letter = letter_match.group(1)
+            club_name = team_name[:letter_match.start()].strip()
+            series_name = f"Series {team_letter}"
+            return club_name, series_name, team_letter
+        
+        # Try to extract multi-letter series (e.g., "AA", "BB", "CC")
+        multi_letter_match = re.search(r'\s([A-Z]{2,})\s*$', team_name)
+        if multi_letter_match:
+            team_letters = multi_letter_match.group(1)
+            club_name = team_name[:multi_letter_match.start()].strip()
+            series_name = f"Series {team_letters}"
+            return club_name, series_name, team_letters
+        
+        # Default fallback
+        return team_name.strip(), "Series 1", "1"
+    
     def find_team_in_database(self, team_name: str, league_id: str, team_cache: Dict) -> Optional[int]:
-        """Enhanced team lookup that tries multiple matching strategies"""
-        # Strategy 1: Exact match
+        """Enhanced team lookup using unified team management logic."""
+        # First try the cache for performance
         team_id = team_cache.get((league_id, team_name))
         if team_id:
             return team_id
         
-        # Strategy 2: Remove " - Series X" suffix
-        normalized_name = self.normalize_team_name_for_matching(team_name)
-        team_id = team_cache.get((league_id, normalized_name))
+        # Use unified team management logic for consistent matching
+        team_id = self._find_team_by_name_unified(team_name, league_id, team_cache)
         if team_id:
+            # Update cache for future lookups
+            team_cache[(league_id, team_name)] = team_id
             return team_id
         
-        # Strategy 3: Try to match by removing series number suffix (e.g., "Team Name 1" -> "Team Name")
-        # This handles database format like "Hinsdale PC 1b 1" vs schedule format "Hinsdale PC 1b"
-        if team_name and team_name[-1].isdigit():
-            # Remove trailing number
-            base_name = team_name.rstrip('0123456789').rstrip()
-            team_id = team_cache.get((league_id, base_name))
-            if team_id:
-                return team_id
+        return None
+    
+    def _find_team_by_name_unified(self, team_name: str, league_id: str, team_cache: Dict) -> Optional[int]:
+        """Find team by name using unified team management logic."""
+        if not team_name:
+            return None
         
-        # Strategy 4: Try to match by removing series number suffix from database names
-        # Look for database teams that start with the schedule team name
+        # Strategy 1: Exact match
         for (cache_league, cache_team), cache_team_id in team_cache.items():
-            if cache_league == league_id and cache_team.startswith(team_name + ' '):
+            if cache_league == league_id and cache_team == team_name:
                 return cache_team_id
         
-        # Strategy 5: Handle Series SN naming variations
-        if "SN - Series SN" in team_name:
-            # Convert "Michigan Shores SN - Series SN" to "Michigan Shores - Series SN"
-            base_name = team_name.replace(" SN - Series SN", " - Series SN")
-            team_id = team_cache.get((league_id, base_name))
-            if team_id:
-                return team_id
-        
-        # Strategy 6: Handle Series SN with parentheses variations
-        if "SN (" in team_name and " - Series SN" in team_name:
-            # Convert "Prarie Club SN (1) - Series SN" to "Prarie Club - Series SN"
-            base_name = team_name.split("SN (")[0].rstrip() + " - Series SN"
-            team_id = team_cache.get((league_id, base_name))
-            if team_id:
-                return team_id
+        # Strategy 2: Parse and match by components
+        raw_club_name, series_name, _ = self.parse_team_name(team_name)
+        if raw_club_name and series_name:
+            club_name = self.normalize_club_name(raw_club_name)
+            
+            # Look for teams with matching club and series
+            for (cache_league, cache_team), cache_team_id in team_cache.items():
+                if cache_league == league_id:
+                    # Extract club name from database team name and normalize it
+                    db_parts = cache_team.split()
+                    if len(db_parts) >= 2:
+                        db_potential_club = " ".join(db_parts[:2])  # Take first two parts
+                        db_normalized_club = self.normalize_club_name(db_potential_club)
+                        if db_normalized_club == club_name:
+                            return cache_team_id
         
         return None
     
@@ -229,6 +431,12 @@ class SchedulesETL:
                 away_team_id = self.find_team_in_database(away_team, league_id, team_cache)
                 if not away_team_id:
                     logger.warning(f"Away team not found: {away_team} in {league_id}")
+            
+            # Prevent self-matches (same team playing against itself)
+            if home_team_id and away_team_id and home_team_id == away_team_id:
+                logger.warning(f"Skipping self-match: {home_team} vs {away_team} (both team_id: {home_team_id})")
+                self.stats['skipped'] += 1
+                return None
             
             return (
                 match_date, match_time, home_team, away_team, 

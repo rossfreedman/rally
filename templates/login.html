@@ -975,19 +975,16 @@
             const email = document.getElementById('registerEmail').value;
             let phoneNumber = document.getElementById('phoneNumber').value.trim();
             
-            // Automatically add +1 prefix for database storage (same logic as settings)
+            // ✅ PHONE NORMALIZATION: Use centralized phone validation
             if (phoneNumber) {
-                // Remove any existing formatting
-                phoneNumber = phoneNumber.replace(/[^\d]/g, '');
-                
-                // Add +1 prefix if not already present
-                if (phoneNumber.length === 10) {
-                    phoneNumber = '+1' + phoneNumber;
-                } else if (phoneNumber.length === 11 && phoneNumber.startsWith('1')) {
-                    phoneNumber = '+' + phoneNumber;
-                } else if (!phoneNumber.startsWith('+1')) {
-                    phoneNumber = '+1' + phoneNumber;
+                const phoneResult = normalizePhoneNumber(phoneNumber);
+                if (!phoneResult.success) {
+                    errorMessage.textContent = phoneResult.error;
+                    errorMessage.style.display = 'block';
+                    setButtonLoading(registerButton, false);
+                    return;
                 }
+                phoneNumber = phoneResult.normalized;
             }
             
             const password = document.getElementById('registerPassword').value;
@@ -1195,6 +1192,10 @@
             }
         }
     </script>
+    
+    <!-- Phone Validation Script -->
+    <script src="{{ url_for('static', filename='js/phone-validation.js') }}"></script>
+    
     <!-- Footer for branding -->
     <footer class="rally-footer">
         © 2025 Rally LLC. All rights reserved.

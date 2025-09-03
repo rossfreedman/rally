@@ -36,32 +36,8 @@ def validate_phone_number(phone: str) -> Tuple[bool, str]:
     Returns:
         Tuple[bool, str]: (is_valid, formatted_phone_or_error_message)
     """
-    if not phone:
-        return False, "Phone number is required"
-    
-    # Remove all non-digit characters
-    digits_only = re.sub(r'\D', '', phone)
-    
-    # Check if it's a valid US number
-    if len(digits_only) == 10:
-        # Add US country code
-        formatted = f"+1{digits_only}"
-    elif len(digits_only) == 11 and digits_only.startswith('1'):
-        # Already has US country code
-        formatted = f"+{digits_only}"
-    else:
-        return False, "Invalid phone number format. Please use a valid US phone number (10 or 11 digits)"
-    
-    # Additional validation for US numbers
-    if not formatted.startswith('+1'):
-        return False, "Only US phone numbers are supported"
-    
-    # Check for valid area code (not starting with 0 or 1)
-    area_code = formatted[2:5]
-    if area_code.startswith('0') or area_code.startswith('1'):
-        return False, "Invalid area code"
-    
-    return True, formatted
+    from utils.phone_utils import normalize_phone_number
+    return normalize_phone_number(phone)
 
 
 def send_sms_notification(to_number: str, message: str, test_mode: bool = False, max_retries: int = 3) -> Dict:
@@ -514,7 +490,7 @@ def get_team_notification_templates() -> Dict[str, Dict[str, str]]:
         "match_reminder": {
             "title": "Match Reminder",
             "description": "Remind team about upcoming match",
-            "message": "🏓 Match Reminder: Don't forget about tonight's match! Please arrive 15 minutes early. Let me know if you can't make it."
+            "message": "Match Reminder: Just a quick reminder that we have a match this week. Let's go!"
         },
         "practice_reminder": {
             "title": "Practice Reminder", 
@@ -524,7 +500,7 @@ def get_team_notification_templates() -> Dict[str, Dict[str, str]]:
         "availability_update": {
             "title": "Update Availability",
             "description": "Ask team to update their availability",
-            "message": "📅 Please update your availability for this week's matches. Go to Rally app and mark your availability. Thanks!"
+            "message": "Hi Team! Please update your availability in Rally for this week's practice and match if you haven't done so already. Just go to: http://127.0.0.1:8080/mobile/availability-calendar"
         },
         "team_poll": {
             "title": "Send a Poll",

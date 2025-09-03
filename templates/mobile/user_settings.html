@@ -597,20 +597,15 @@ const form = document.getElementById('user-settings-form');
 form.addEventListener('submit', function(e) {
   e.preventDefault();
   
-  // Ensure phone number has "+1" prefix for database storage
+  // ✅ PHONE NORMALIZATION: Use centralized phone validation
   let phoneNumber = form.phoneNumber.value.trim();
   if (phoneNumber) {
-    // Remove any existing formatting
-    phoneNumber = phoneNumber.replace(/[^\d]/g, '');
-    
-    // Add +1 prefix if not already present
-    if (phoneNumber.length === 10) {
-      phoneNumber = '+1' + phoneNumber;
-    } else if (phoneNumber.length === 11 && phoneNumber.startsWith('1')) {
-      phoneNumber = '+' + phoneNumber;
-    } else if (!phoneNumber.startsWith('+1')) {
-      phoneNumber = '+1' + phoneNumber;
+    const phoneResult = normalizePhoneNumber(phoneNumber);
+    if (!phoneResult.success) {
+      alert(`Phone number error: ${phoneResult.error}`);
+      return;
     }
+    phoneNumber = phoneResult.normalized;
   }
   
   const data = {
@@ -870,4 +865,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .gap-4 { gap: 0.75rem; }
 }
 </style>
+
+<!-- Phone Validation Script -->
+<script src="{{ url_for('static', filename='js/phone-validation.js') }}"></script>
+
 {% endblock %} 

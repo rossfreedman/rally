@@ -15,11 +15,93 @@ import argparse
 import re
 import os
 from datetime import datetime
+from typing import Optional, Tuple, Dict, Set, List
 from import_utils import get_league_id, column_exists, parse_datetime_safe, lookup_team_id
 # Add project root to path
 project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..')
 sys.path.insert(0, project_root)
 from database_config import get_db
+
+# Club name normalization patterns (shared across all import scripts)
+_ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
+_ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
+_LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
+_ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
+_KEEP_SUFFIXES: Set[str] = {"CC", "GC", "RC", "PC", "TC", "AC"}
+
+def normalize_club_name(raw: str) -> str:
+    """
+    Normalize club names using consistent logic across all import scripts.
+    
+    Rules:
+    1. Trim and normalize internal whitespace
+    2. If name contains " - " segments, keep only the first segment
+    3. Drop trailing parenthetical segments
+    4. Strip trailing team/series suffix tokens
+    5. Remove stray punctuation except & and spaces
+    6. Collapse multiple spaces and strip ends
+    7. Title-case result (preserving club-type abbreviations)
+    """
+    if not raw:
+        return ""
+    
+    # Trim and normalize whitespace
+    name = re.sub(r'\s+', ' ', raw.strip())
+    
+    # Keep only first segment if " - " exists
+    if " - " in name:
+        name = name.split(" - ")[0].strip()
+    
+    # Drop trailing parenthetical segments
+    name = re.sub(r'\s*\([^)]*\)\s*$', '', name)
+    
+    # Strip trailing suffix tokens
+    tokens = name.split()
+    tokens = _strip_trailing_suffix_tokens(tokens)
+    name = ' '.join(tokens)
+    
+    # Remove stray punctuation except & and spaces
+    name = re.sub(r'[^\w\s&]', '', name)
+    
+    # Collapse spaces and strip
+    name = re.sub(r'\s+', ' ', name).strip()
+    
+    # Title-case while preserving club-type abbreviations
+    words = name.split()
+    title_words = []
+    for word in words:
+        if word.upper() in _KEEP_SUFFIXES:
+            title_words.append(word.upper())
+        else:
+            title_words.append(word.title())
+    
+    return ' '.join(title_words)
+
+def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
+    """Strip trailing series/division/team markers without using hard-coded club maps."""
+    while tokens:
+        t = tokens[-1]
+        
+        # Preserve common club-type suffixes
+        if t.upper() in _KEEP_SUFFIXES:
+            break
+            
+        if _ROMAN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALNUM_SUFFIX_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _LETTER_PAREN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALLCAP_SHORT_RE.fullmatch(t):
+            tokens.pop()
+            continue
+            
+        break
+    
+    return tokens
 
 def validate_entity_name(name, entity_type):
     """Validate entity names to prevent anomalies like numeric club names."""
@@ -236,42 +318,96 @@ def upsert_series(cur, name, league_id):
         return cur.fetchone()[0]
 
 def upsert_team(cur, league_id, team_name, club_name, series_name):
-    """Upsert team and return ID. Requires club and series names."""
+    """Upsert team and return ID using unified team management logic."""
     if not all([team_name, club_name, series_name]):
         return None
     
-    club_id = upsert_club(cur, club_name, league_id)
-    series_id = upsert_series(cur, series_name, league_id)
+    # Normalize club name for consistency
+    normalized_club_name = normalize_club_name(club_name)
     
-    # Check if teams table has display_name column
-    if column_exists(cur, "teams", "display_name"):
+    # Get or create club with normalized name
+    club_id = upsert_club(cur, normalized_club_name, league_id)
+    if not club_id:
+        return None
+    
+    # Get or create series
+    series_id = upsert_series(cur, series_name, league_id)
+    if not series_id:
+        return None
+    
+    # Check if team already exists
+    existing_team_id = find_existing_team(cur, league_id, team_name, club_id, series_id)
+    if existing_team_id:
+        return existing_team_id
+    
+    # Create new team with consistent naming
+    return create_team(cur, team_name, club_id, series_id, league_id)
+
+def find_existing_team(cur, league_id, team_name: str, club_id: int, series_id: int) -> Optional[int]:
+    """Find existing team using multiple strategies."""
+    # Strategy 1: Exact team name match
+    cur.execute("""
+        SELECT id FROM teams 
+        WHERE team_name = %s AND league_id = %s
+    """, (team_name, league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    # Strategy 2: Match by club_id and series_id (for teams with same club/series)
+    cur.execute("""
+        SELECT id, team_name FROM teams 
+        WHERE club_id = %s AND series_id = %s AND league_id = %s
+    """, (club_id, series_id, league_id))
+    results = cur.fetchall()
+    
+    if len(results) == 1:
+        # Only one team for this club/series combination
+        return results[0][0]
+    elif len(results) > 1:
+        # Multiple teams for same club/series - need to match by name pattern
+        for team_id, existing_team_name in results:
+            if team_names_match(team_name, existing_team_name):
+                return team_id
+    
+    return None
+
+def team_names_match(name1: str, name2: str) -> bool:
+    """Check if two team names refer to the same team."""
+    # Normalize both names for comparison
+    norm1 = normalize_club_name(name1).lower()
+    norm2 = normalize_club_name(name2).lower()
+    
+    # Extract team identifiers
+    _, _, id1 = parse_team_name(name1)
+    _, _, id2 = parse_team_name(name2)
+    
+    # If team identifiers match, they're the same team
+    if id1 and id2 and id1.lower() == id2.lower():
+        return True
+    
+    # If normalized names are identical, they're the same team
+    if norm1 == norm2:
+        return True
+    
+    return False
+
+def create_team(cur, team_name: str, club_id: int, series_id: int, league_id) -> Optional[int]:
+    """Create a new team with consistent naming."""
+    try:
         cur.execute("""
             INSERT INTO teams (team_name, display_name, club_id, series_id, league_id) 
             VALUES (%s, %s, %s, %s, %s) 
-            ON CONFLICT (team_name, league_id) DO NOTHING 
             RETURNING id
         """, (team_name, team_name, club_id, series_id, league_id))
+        
         result = cur.fetchone()
         if result:
             return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE team_name = %s AND league_id = %s", (team_name, league_id))
-        return cur.fetchone()[0]
-    else:
-        cur.execute("""
-            INSERT INTO teams (name, club_id, series_id, league_id) 
-            VALUES (%s, %s, %s, %s) 
-            ON CONFLICT (name, league_id) DO NOTHING 
-            RETURNING id
-        """, (team_name, club_id, series_id, league_id))
-        result = cur.fetchone()
-        if result:
-            return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE name = %s AND league_id = %s", (team_name, league_id))
-        return cur.fetchone()[0]
+    except Exception as e:
+        print(f"Failed to create team '{team_name}': {str(e)}")
+    
+    return None
 
 def upsert_player(cur, league_id, player_data):
     """Upsert a single player with comprehensive validation and team assignment."""
@@ -357,10 +493,12 @@ def upsert_player(cur, league_id, player_data):
             
             result = cur.fetchone()
             if result:
-                if cur.rowcount > 1:  # UPDATE
-                    return result[0], "updated"
-                else:  # INSERT
-                    return result[0], "inserted"
+                # Check if this was an INSERT or UPDATE by examining the RETURNING result
+                # For INSERT: new row is returned
+                # For UPDATE: existing row is returned
+                # We can't easily distinguish between INSERT and UPDATE with ON CONFLICT DO UPDATE
+                # So we'll return "upserted" to indicate the operation succeeded
+                return result[0], "upserted"
         else:
             # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI AND WIN/LOSS DATA
             cur.execute("""
@@ -378,10 +516,12 @@ def upsert_player(cur, league_id, player_data):
             
             result = cur.fetchone()
             if result:
-                if cur.rowcount > 1:  # UPDATE
-                    return result[0], "updated"
-                else:  # INSERT
-                    return result[0], "inserted"
+                # Check if this was an INSERT or UPDATE by examining the RETURNING result
+                # For INSERT: new row is returned
+                # For UPDATE: existing row is returned
+                # We can't easily distinguish between INSERT and UPDATE with ON CONFLICT DO UPDATE
+                # So we'll return "upserted" to indicate the operation succeeded
+                return result[0], "upserted"
         
         # If we get here, the player already exists
         return None, "existing"
@@ -590,6 +730,10 @@ def import_players(league_key, file_path=None, limit=None):
                     if action == "inserted":
                         inserted += 1
                     elif action == "updated":
+                        updated += 1
+                    elif action == "upserted":
+                        # For upserted records, we can't distinguish between insert and update
+                        # so we'll count them as updated since they were processed successfully
                         updated += 1
                     elif action == "existing":
                         existing += 1

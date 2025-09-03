@@ -2562,132 +2562,7 @@ def get_mobile_club_data(user):
             import traceback
             print(f"Full traceback: {traceback.format_exc()}")
 
-        # Calculate head-to-head records (filtered by user's league)
-        head_to_head = {}
 
-        # Load ALL match history from database for comprehensive head-to-head records
-        try:
-            all_match_history = execute_query(
-                """
-                SELECT 
-                    ms.home_team as "Home Team",
-                    ms.away_team as "Away Team",
-                    ms.winner as "Winner",
-                    ms.league_id
-                FROM match_scores ms
-                ORDER BY ms.match_date DESC
-            """
-            )
-
-            # Filter match history by user's current league session context
-            def is_match_in_user_league(match):
-                match_league_id = match.get("league_id")
-
-                # Handle case where user_league_db_id is None or empty
-                if user_league_db_id is None:
-                    # If user has no league specified, include all matches
-                    return True
-
-                # FIXED: Use integer-to-integer comparison for current league only
-                return match_league_id == user_league_db_id
-
-            league_filtered_matches = [
-                match for match in all_match_history if is_match_in_user_league(match)
-            ]
-            print(
-                f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's current league (session league_id: '{user_league_id}' -> db_id: {user_league_db_id}, league_name: '{user_league_name}')"
-            )
-
-            for match in league_filtered_matches:
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                winner = match.get("Winner", "")
-
-                if not all([home_team, away_team, winner]):
-                    continue
-
-                # Check if this match involves our club
-                if club_name in home_team:
-                    opponent = (
-                        away_team.split(" - ")[0] if " - " in away_team else away_team
-                    )
-                    won = winner == "home"
-                elif club_name in away_team:
-                    opponent = (
-                        home_team.split(" - ")[0] if " - " in home_team else home_team
-                    )
-                    won = winner == "away"
-                else:
-                    continue
-
-                if opponent not in head_to_head:
-                    head_to_head[opponent] = {"wins": 0, "losses": 0, "total": 0}
-
-                head_to_head[opponent]["total"] += 1
-                if won:
-                    head_to_head[opponent]["wins"] += 1
-                else:
-                    head_to_head[opponent]["losses"] += 1
-
-            print(
-                f"[DEBUG] Found head-to-head records against {len(head_to_head)} different clubs"
-            )
-
-        except Exception as e:
-            print(f"Error loading all match history for head-to-head: {str(e)}")
-            # Fallback to recent matches if all match history fails
-            for date, matches_data in matches_by_date.items():
-                for match in matches_data:
-                    home_team = match.get("home_team", "")
-                    away_team = match.get("away_team", "")
-                    winner = match.get("winner", "")
-
-                    if not all([home_team, away_team, winner]):
-                        continue
-
-                    if club_name in home_team:
-                        opponent = (
-                            away_team.split(" - ")[0]
-                            if " - " in away_team
-                            else away_team
-                        )
-                        won = winner == "home"
-                    elif club_name in away_team:
-                        opponent = (
-                            home_team.split(" - ")[0]
-                            if " - " in home_team
-                            else home_team
-                        )
-                        won = winner == "away"
-                    else:
-                        continue
-
-                    if opponent not in head_to_head:
-                        head_to_head[opponent] = {"wins": 0, "losses": 0, "total": 0}
-
-                    head_to_head[opponent]["total"] += 1
-                    if won:
-                        head_to_head[opponent]["wins"] += 1
-                    else:
-                        head_to_head[opponent]["losses"] += 1
-
-        # Convert head-to-head to list
-        head_to_head = [
-            {
-                "opponent": opponent,
-                "wins": stats["wins"],
-                "losses": stats["losses"],
-                "total": stats["total"],
-                "matches_scheduled": stats["total"],  # For template compatibility
-            }
-            for opponent, stats in head_to_head.items()
-        ]
-
-        # Sort by win percentage (highest to lowest), then by total matches as tiebreaker
-        head_to_head.sort(
-            key=lambda x: (x["wins"] / x["total"] if x["total"] > 0 else 0, x["total"]),
-            reverse=True,
-        )
 
         # Calculate player streaks (filtered by user's current league)
         print(f"[DEBUG] Calling calculate_player_streaks with club_name='{club_name}', user_league_db_id={user_league_db_id}")
@@ -2697,7 +2572,6 @@ def get_mobile_club_data(user):
             "team_name": club_name,
             "weekly_results": weekly_results,
             "tennaqua_standings": tennaqua_standings,
-            "head_to_head": head_to_head,
             "player_streaks": player_streaks,
         }
 
@@ -2710,7 +2584,6 @@ def get_mobile_club_data(user):
             "team_name": user.get("club", "Unknown"),
             "weekly_results": [],
             "tennaqua_standings": [],
-            "head_to_head": [],
             "player_streaks": [],
             "error": str(e),
         }

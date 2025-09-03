@@ -23,10 +23,219 @@ import re
 from datetime import datetime
 import os
 import psycopg2
+from typing import Optional, Tuple
 
 # Add the project root to Python path to import database_config
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 from database_config import get_db_url, get_database_mode, is_local_development
+
+# Club name normalization patterns (shared across all import scripts)
+_ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
+_ALNUM_SUFFIX_RE = re.compile(r'\b(\d+[A-Za-z]?|[A-Za-z]?\d+)\b')
+_LETTER_PAREN_RE = re.compile(r'\b[A-Za-z]{1,3}\(\d+\)\b')
+_ALLCAP_SHORT_RE = re.compile(r'\b[A-Z]{1,3}\b')
+_KEEP_SUFFIXES = {"CC", "GC", "RC", "PC", "TC", "AC"}
+
+def normalize_club_name(raw: str) -> str:
+    """
+    Normalize club names using consistent logic across all import scripts.
+    
+    Rules:
+    1. Trim and normalize internal whitespace
+    2. If name contains " - " segments, keep only the first segment
+    3. Drop trailing parenthetical segments
+    4. Strip trailing team/series suffix tokens
+    5. Remove stray punctuation other than & and spaces
+    6. Collapse multiple spaces and strip ends
+    7. Title-case the result
+    """
+    if not raw:
+        return ""
+    
+    # Step 1: Trim and normalize whitespace
+    text = re.sub(r'\s+', ' ', raw.strip())
+    
+    # Step 2: Keep only first segment if contains " - "
+    if " - " in text:
+        text = text.split(" - ")[0]
+    
+    # Step 3: Drop trailing parenthetical segments
+    text = re.sub(r'\s*\([^)]*\)\s*$', '', text)
+    
+    # Step 4: Split into tokens and strip trailing suffixes
+    tokens = text.split()
+    tokens = _strip_trailing_suffix_tokens(tokens)
+    
+    # Step 5: Remove stray punctuation (keep & and spaces)
+    result = ' '.join(tokens)
+    result = re.sub(r'[^\w\s&]', '', result)
+    
+    # Step 6: Collapse spaces and strip
+    result = re.sub(r'\s+', ' ', result).strip()
+    
+    # Step 7: Title case
+    return result.title()
+
+def _strip_trailing_suffix_tokens(tokens: list[str]) -> list[str]:
+    """Strip trailing series/division/team markers without using hard-coded club maps."""
+    while tokens:
+        t = tokens[-1]
+        
+        # Preserve common club-type suffixes (e.g., 'Lake Shore CC')
+        if t.upper() in _KEEP_SUFFIXES:
+            break
+            
+        if _ROMAN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALNUM_SUFFIX_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _LETTER_PAREN_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        if _ALLCAP_SHORT_RE.fullmatch(t):
+            tokens.pop()
+            continue
+        break
+    
+    return tokens
+
+def parse_team_name(team_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """Parse team name to extract club, series, and team identifier."""
+    if not team_name:
+        return None, None, None
+    
+    # Handle special cases with dashes and complex names
+    if " - " in team_name:
+        parts = team_name.split(" - ")
+        if len(parts) >= 2:
+            club_part = parts[0].strip()
+            series_part = parts[1].strip()
+            return club_part, series_part, None
+    
+    # Handle simple format: "Club Series" or "Club Series X"
+    parts = team_name.split()
+    if len(parts) >= 2:
+        # Try to identify series part (usually last part or second-to-last)
+        club_parts = []
+        series_part = None
+        team_id = None
+        
+        for i, part in enumerate(parts):
+            # Check if this looks like a series identifier
+            if (re.match(r'^Series\s+\w+$', part) or 
+                re.match(r'^\w+$', part) and part.upper() in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'] or
+                re.match(r'^\d+[a-z]?$', part)):
+                series_part = part
+                team_id = ' '.join(parts[i+1:]) if i+1 < len(parts) else None
+                break
+            else:
+                club_parts.append(part)
+        
+        if series_part:
+            return ' '.join(club_parts), series_part, team_id
+        else:
+            # Fallback: assume last part is series
+            return ' '.join(parts[:-1]), parts[-1], None
+    
+    return team_name, None, None
+
+def find_team_by_name_unified(cur, league_id: int, team_name: str) -> Optional[int]:
+    """Find team by name using unified team management logic."""
+    if not team_name:
+        return None
+    
+    # Strategy 1: Exact match
+    cur.execute("""
+        SELECT id FROM teams 
+        WHERE team_name = %s AND league_id = %s
+    """, (team_name, league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    # Strategy 2: Parse and match by components
+    raw_club_name, series_name, _ = parse_team_name(team_name)
+    if raw_club_name and series_name:
+        club_name = normalize_club_name(raw_club_name)
+        
+        # Look for teams with matching club and series
+        cur.execute("""
+            SELECT t.id FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            WHERE c.name = %s AND s.name = %s AND t.league_id = %s
+        """, (club_name, series_name, league_id))
+        result = cur.fetchone()
+        if result:
+            return result[0]
+    
+    # Strategy 3: Partial matching
+    cur.execute("""
+        SELECT id FROM teams 
+        WHERE team_name ILIKE %s AND league_id = %s
+    """, (f"%{team_name}%", league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    return None
+
+def upsert_team_unified(cur, league_id: int, team_name: str) -> Optional[int]:
+    """Upsert team using unified team management logic."""
+    if not team_name:
+        return None
+    
+    # Parse team name
+    raw_club_name, series_name, _ = parse_team_name(team_name)
+    if not raw_club_name or not series_name:
+        return None
+    
+    # Normalize club name
+    club_name = normalize_club_name(raw_club_name)
+    
+    # Get or create club (clubs are shared across leagues)
+    cur.execute("""
+        INSERT INTO clubs (name)
+        VALUES (%s)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING id
+    """, (club_name,))
+    result = cur.fetchone()
+    if result:
+        club_id = result[0]
+    else:
+        cur.execute("SELECT id FROM clubs WHERE name = %s", (club_name,))
+        club_id = cur.fetchone()[0]
+    
+    # Get or create series
+    cur.execute("""
+        INSERT INTO series (name, display_name, league_id)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (name, league_id) DO NOTHING
+        RETURNING id
+    """, (series_name, series_name, league_id))
+    result = cur.fetchone()
+    if result:
+        series_id = result[0]
+    else:
+        cur.execute("SELECT id FROM series WHERE name = %s AND league_id = %s", (series_name, league_id))
+        series_id = cur.fetchone()[0]
+    
+    # Get or create team
+    cur.execute("""
+        INSERT INTO teams (team_name, display_name, club_id, series_id, league_id)
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (team_name, league_id) DO NOTHING
+        RETURNING id
+    """, (team_name, team_name, club_id, series_id, league_id))
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    else:
+        cur.execute("SELECT id FROM teams WHERE team_name = %s AND league_id = %s", (team_name, league_id))
+        return cur.fetchone()[0]
 
 def get_conn():
     """Get database connection using database_config for automatic environment detection."""
@@ -143,93 +352,22 @@ def validate_match_data(match_data):
     return len(errors) == 0, errors
 
 
-def parse_team_name(team_name):
-    """
-    Parse team name to extract club, series, and team number/letter.
-    Handles both numeric and letter-based series.
-    
-    Examples:
-    - "Birchwood 12" -> ("Birchwood", "Series 12", "12")
-    - "Exmoor I" -> ("Exmoor", "Series I", "I") 
-    - "Winnetka D" -> ("Winnetka", "Series D", "D")
-    - "Tennaqua A" -> ("Tennaqua", "Series A", "A")
-    - "Michigan Shores 3b" -> ("Michigan Shores", "Series 3b", "3b")
-    - "Lake Forest 22" -> ("Lake Forest", "Series 22", "22")
-    - "Glen Ellyn - 7 SW" -> ("Glen Ellyn", "Chicago 7 SW", "7 SW")
-    """
-    if not team_name:
-        return None, None, None
-    
-    # Handle special cases with dashes and complex names
-    if " - " in team_name:
-        parts = team_name.split(" - ")
-        if len(parts) == 2:
-            club_name = parts[0].strip()
-            series_part = parts[1].strip()
-            # For cases like "Glen Ellyn - 7 SW", use the full series part
-            return club_name, series_part, series_part
-    
-    # Try to extract numeric series first (e.g., "12", "3b", "14a")
-    numeric_match = re.search(r'(\d+[a-z]?)$', team_name)
-    if numeric_match:
-        team_number = numeric_match.group(1)
-        club_name = team_name[:numeric_match.start()].strip()
-        series_name = f"Series {team_number}"
-        return club_name, series_name, team_number
-    
-    # Try to extract single letter series (e.g., "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K")
-    letter_match = re.search(r'\s([A-Z])\s*$', team_name)
-    if letter_match:
-        team_letter = letter_match.group(1)
-        club_name = team_name[:letter_match.start()].strip()
-        series_name = f"Series {team_letter}"
-        return club_name, series_name, team_letter
-    
-    # Try to extract multi-letter series (e.g., "AA", "BB", "CC")
-    multi_letter_match = re.search(r'\s([A-Z]{2,})\s*$', team_name)
-    if multi_letter_match:
-        team_letters = multi_letter_match.group(1)
-        club_name = team_name[:multi_letter_match.start()].strip()
-        series_name = f"Series {team_letters}"
-        return club_name, series_name, team_letters
-    
-    # Fallback: try to extract any alphanumeric suffix
-    suffix_match = re.search(r'\s([A-Za-z0-9]+)\s*$', team_name)
-    if suffix_match:
-        team_suffix = suffix_match.group(1)
-        club_name = team_name[:suffix_match.start()].strip()
-        series_name = f"Series {team_suffix}"
-        return club_name, series_name, team_suffix
-    
-    # If no pattern matches, assume the entire string is the club name
-    # and create a generic series
-    return team_name.strip(), "Series 1", "1"
+# parse_team_name function is now defined above with unified logic
 
 
 def lookup_existing_team(cur, league_id, team_name):
-    """Look up existing team by name in the current league."""
-    # Try to find team by exact name match
-    cur.execute("""
-        SELECT id, club_id, series_id FROM teams 
-        WHERE league_id = %s AND team_name = %s
-        LIMIT 1
-    """, (league_id, team_name))
+    """Look up existing team by name in the current league using unified logic."""
+    team_id = find_team_by_name_unified(cur, league_id, team_name)
     
-    result = cur.fetchone()
-    if result:
-        return result[0], result[1], result[2]  # team_id, club_id, series_id
-    
-    # If not found, try to find by similar name patterns
-    # This handles cases where the team name might be slightly different
-    cur.execute("""
-        SELECT id, club_id, series_id FROM teams 
-        WHERE league_id = %s AND team_name LIKE %s
-        LIMIT 1
-    """, (league_id, f"%{team_name.split()[-1]}%"))  # Try to match the last part (e.g., "22")
-    
-    result = cur.fetchone()
-    if result:
-        return result[0], result[1], result[2]
+    if team_id:
+        # Get club_id and series_id for backward compatibility
+        cur.execute("""
+            SELECT club_id, series_id FROM teams 
+            WHERE id = %s
+        """, (team_id,))
+        result = cur.fetchone()
+        if result:
+            return team_id, result[0], result[1]
     
     return None, None, None
 
@@ -307,46 +445,8 @@ def upsert_series(cur, series_name, league_id):
 
 
 def upsert_team(cur, league_id, team_name, club_name, series_name):
-    """Upsert team and return ID. Requires club and series names."""
-    if not all([team_name, club_name, series_name]):
-        return None
-    
-    club_id = upsert_club(cur, club_name, league_id)
-    series_id = upsert_series(cur, series_name, league_id)
-    
-    # Create a unique team identifier that combines club and series
-    # This prevents unique constraint violations
-    unique_team_name = f"{club_name} - {series_name}"
-    
-    # Check if teams table has display_name column
-    if column_exists(cur, "teams", "display_name"):
-        cur.execute("""
-            INSERT INTO teams (team_name, display_name, club_id, series_id, league_id) 
-            VALUES (%s, %s, %s, %s, %s) 
-            ON CONFLICT (team_name, league_id) DO NOTHING 
-            RETURNING id
-        """, (unique_team_name, team_name, club_id, series_id, league_id))
-        result = cur.fetchone()
-        if result:
-            return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE team_name = %s AND league_id = %s", (unique_team_name, league_id))
-        return cur.fetchone()[0]
-    else:
-        cur.execute("""
-            INSERT INTO teams (name, club_id, series_id, league_id) 
-            VALUES (%s, %s, %s, %s) 
-            ON CONFLICT (name, league_id) DO NOTHING 
-            RETURNING id
-        """, (unique_team_name, club_id, series_id, league_id))
-        result = cur.fetchone()
-        if result:
-            return result[0]
-        
-        # Get existing ID
-        cur.execute("SELECT id FROM teams WHERE name = %s AND league_id = %s", (unique_team_name, league_id))
-        return cur.fetchone()[0]
+    """Upsert team and return ID using unified team management logic."""
+    return upsert_team_unified(cur, league_id, team_name)
 
 
 def check_existing_match(cur, league_id, tenniscores_match_id):

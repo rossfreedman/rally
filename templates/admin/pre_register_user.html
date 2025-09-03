@@ -300,7 +300,7 @@ function submitRegistration() {
         firstName: formData.get('firstName'),
         lastName: formData.get('lastName'),
         email: formData.get('email'),
-        phoneNumber: formData.get('phoneNumber').replace(/\D/g, ''), // Remove formatting
+        phoneNumber: formData.get('phoneNumber'), // Will be normalized by backend
         league: formData.get('league'),
         club: formData.get('club'),
         series: formData.get('series'),

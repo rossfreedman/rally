@@ -337,7 +337,8 @@ def send_lineup_message():
         send_results = []
         
         if message_type == "sms":
-            # Send SMS to each recipient
+            # Deduplicate phone numbers to avoid sending multiple SMS to the same number
+            unique_phones = {}
             for recipient in recipients:
                 name = recipient.get("name", "")
                 phone = recipient.get("phone", "")
@@ -351,6 +352,17 @@ def send_lineup_message():
                     })
                     continue
                 
+                if phone not in unique_phones:
+                    unique_phones[phone] = {
+                        "phone": phone,
+                        "members": []
+                    }
+                unique_phones[phone]["members"].append(name)
+            
+            print(f"Sending lineup SMS to {len(unique_phones)} unique phone numbers (covering {len(recipients)} recipients)")
+            
+            # Send SMS to each unique phone number
+            for phone, phone_data in unique_phones.items():
                 try:
                     result = send_sms_notification(
                         to_number=phone,
@@ -360,29 +372,35 @@ def send_lineup_message():
                     
                     if result["success"]:
                         successful_sends += 1
-                        send_results.append({
-                            "name": name,
-                            "phone": phone,
-                            "status": "sent",
-                            "message_sid": result.get("message_sid")
-                        })
+                        # Create result entry for each member with this phone number
+                        for member_name in phone_data["members"]:
+                            send_results.append({
+                                "name": member_name,
+                                "phone": phone,
+                                "status": "sent",
+                                "message_sid": result.get("message_sid")
+                            })
                     else:
                         failed_sends += 1
-                        send_results.append({
-                            "name": name,
-                            "phone": phone,
-                            "status": "failed",
-                            "error": result.get("error")
-                        })
-                        
+                        # Create result entry for each member with this phone number
+                        for member_name in phone_data["members"]:
+                            send_results.append({
+                                "name": member_name,
+                                "phone": phone,
+                                "status": "failed",
+                                "error": result.get("error")
+                            })
+                            
                 except Exception as e:
                     failed_sends += 1
-                    send_results.append({
-                        "name": name,
-                        "phone": phone,
-                        "status": "failed",
-                        "error": str(e)
-                    })
+                    # Create result entry for each member with this phone number
+                    for member_name in phone_data["members"]:
+                        send_results.append({
+                            "name": member_name,
+                            "phone": phone,
+                            "status": "failed",
+                            "error": str(e)
+                        })
             
             # Return results
             return jsonify({
@@ -3079,12 +3097,25 @@ def update_settings():
         
         print(f"[DEBUG] League comparison: current={current_league_id} ({normalized_current}) vs new={new_league_id} ({normalized_new}) => switched={league_switched}")
         
+        # *** PHONE NORMALIZATION: Normalize phone number before updating ***
+        from utils.phone_utils import validate_and_normalize_phone_input
+        
+        phone_number_raw = data.get("phoneNumber", "")
+        normalized_phone = phone_number_raw  # Default to raw value
+        
+        if phone_number_raw and phone_number_raw.strip():
+            phone_result = validate_and_normalize_phone_input(phone_number_raw, "phone number")
+            if not phone_result['success']:
+                return jsonify({"error": phone_result['error']}), 400
+            normalized_phone = phone_result['normalized_phone']
+            logger.info(f"Settings update: Phone number normalized: '{phone_number_raw}' -> '{normalized_phone}'")
+        
         # *** CRITICAL FIX: UPDATE USER DATA FIRST (before any league switching) ***
         # This ensures phone number and personal data always gets saved
         logger.info(f"*** UPDATING USER PERSONAL DATA FIRST for {user_email} ***")
         
         update_fields = ["first_name = %s", "last_name = %s", "email = %s", "ad_deuce_preference = %s", "dominant_hand = %s", "phone_number = %s"]
-        update_values = [data.get("firstName"), data.get("lastName"), data.get("email"), data.get("adDeuce", ""), data.get("dominantHand", ""), data.get("phoneNumber", "")]
+        update_values = [data.get("firstName"), data.get("lastName"), data.get("email"), data.get("adDeuce", ""), data.get("dominantHand", ""), normalized_phone]
         
         # Handle password update if provided
         current_password = data.get("currentPassword", "").strip()
@@ -3102,8 +3133,7 @@ def update_settings():
         update_query = f"UPDATE users SET {', '.join(update_fields)} WHERE email = %s"
         update_values.append(user_email)
         
-        phone_number = data.get("phoneNumber", "")
-        logger.info(f"Updating user data: phone_number='{phone_number}' for user {user_email}")
+        logger.info(f"Updating user data: phone_number='{normalized_phone}' for user {user_email}")
         logger.info(f"Final update query: {update_query}")
         logger.info(f"Update fields being set: {update_fields}")
         logger.info(f"Password included in update: {'password_hash = %s' in update_fields}")
@@ -3139,7 +3169,7 @@ def update_settings():
                     if fresh_session_data:
                         # CRITICAL FIX: Ensure fresh session includes updated phone number from database
                         # The session refresh might not include the phone number we just updated
-                        fresh_session_data["phone_number"] = data.get("phoneNumber", "")
+                        fresh_session_data["phone_number"] = normalized_phone
                         fresh_session_data["first_name"] = data.get("firstName", "")
                         fresh_session_data["last_name"] = data.get("lastName", "")
                         fresh_session_data["ad_deuce_preference"] = data.get("adDeuce", "")
@@ -3154,8 +3184,8 @@ def update_settings():
                         try:
                             from app.services.notifications_service import send_sms_notification
                             
-                            # Use the NEW phone number from the form data, not the old session data
-                            user_phone = data.get("phoneNumber", "")
+                            # Use the NEW normalized phone number from the form data, not the old session data
+                            user_phone = normalized_phone
                             logger.info(f"User phone number for league switch SMS (NEW number): '{user_phone}'")
                             
                             if user_phone:
@@ -3448,7 +3478,7 @@ def update_settings():
         if fresh_session_data:
             # CRITICAL FIX: Ensure fresh session includes updated personal data
             # The session refresh might not include the personal data we just updated
-            fresh_session_data["phone_number"] = data.get("phoneNumber", "")
+            fresh_session_data["phone_number"] = normalized_phone
             fresh_session_data["first_name"] = data.get("firstName", "")
             fresh_session_data["last_name"] = data.get("lastName", "")
             fresh_session_data["ad_deuce_preference"] = data.get("adDeuce", "")
@@ -3535,8 +3565,8 @@ def update_settings():
             try:
                 from app.services.notifications_service import send_sms_notification
                 
-                # Use the NEW phone number from the form data, not the old session data
-                user_phone = data.get("phoneNumber", "")
+                # Use the NEW normalized phone number from the form data, not the old session data
+                user_phone = normalized_phone
                 logger.info(f"User phone number for SMS (NEW number): '{user_phone}'")
                 
                 if user_phone:
@@ -3546,7 +3576,7 @@ def update_settings():
                     
                     # Check for phone number change by comparing old vs new
                     current_phone = current_user_data.get('phone_number', '')
-                    new_phone = data.get('phoneNumber', '')
+                    new_phone = normalized_phone
                     if new_phone != current_phone:
                         user_changes.append(f"Phone number changed from {current_phone} to {new_phone}")
                         logger.info(f"Phone number change detected: '{current_phone}' -> '{new_phone}'")

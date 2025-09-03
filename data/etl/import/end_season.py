@@ -140,7 +140,27 @@ def delete_league_data(cur, league_id):
         raise
     
     try:
-        # Delete schedule by league_id (more reliable than team references)
+        # First, clear team references in schedule table to avoid foreign key constraints
+        print("  Clearing team references in schedule table...")
+        cur.execute("""
+            UPDATE schedule 
+            SET home_team_id = NULL 
+            WHERE home_team_id IN (SELECT id FROM teams WHERE league_id = %s)
+        """, (league_id,))
+        home_cleared = cur.rowcount
+        if home_cleared > 0:
+            print(f"    Cleared {home_cleared} home_team_id references")
+        
+        cur.execute("""
+            UPDATE schedule 
+            SET away_team_id = NULL 
+            WHERE away_team_id IN (SELECT id FROM teams WHERE league_id = %s)
+        """, (league_id,))
+        away_cleared = cur.rowcount
+        if away_cleared > 0:
+            print(f"    Cleared {away_cleared} away_team_id references")
+        
+        # Now delete schedule records by league_id
         cur.execute("DELETE FROM schedule WHERE league_id = %s", (league_id,))
         deleted_count = cur.rowcount
         print(f"  schedule: {deleted_count} rows deleted")

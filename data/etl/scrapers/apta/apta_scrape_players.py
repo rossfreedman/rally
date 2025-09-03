@@ -2,15 +2,18 @@
 """
 Comprehensive APTA Chicago Roster Scraper
 
-This script systematically scrapes ALL APTA Chicago series (1-22) directly from 
+This script systematically scrapes APTA Chicago series directly from 
 team roster pages to capture every registered player, including those in missing 
 series.
 
 Unlike the match-based scraper, this goes directly to team/roster pages to find
 ALL registered players, not just those who have played matches.
 
+The scraper uses dynamic discovery to find all available series (1-99+ and SW variants)
+and can target specific series or scrape all available series.
+
 Usage:
-    python3 apta_scrape_players.py [--series 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22] [--force-restart]
+    python3 apta_scrape_players.py [--series 1,2,3,23,99] [--force-restart]
 """
 
 import sys
@@ -1183,31 +1186,40 @@ class APTAChicagoRosterScraper:
         # Load existing progress if available
         self.load_existing_progress()
         
-        # For targeted scraping, use hardcoded URLs to ensure accuracy
+        # For targeted scraping, use dynamic discovery to find specific series
         if self.target_series:
-            print("🎯 Using hardcoded URLs for targeted series scraping...")
+            print("🎯 Using dynamic discovery for targeted series scraping...")
             series_urls = []
             
-            # Hardcoded URLs for specific series to ensure accuracy
-            if '1' in self.target_series:
-                series_urls.append(("Series 1", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"))
-                print("   ✅ Added Series 1 with correct URL")
+            # First, discover all available series dynamically
+            print("   🔍 Discovering all available series...")
+            discovered_urls = self.discover_series_dynamically()
             
-            if '22' in self.target_series:
-                series_urls.append(("Series 22", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D"))
-                print("   ✅ Added Series 22 with correct URL")
-            
-            # Add other series as needed
+            # Filter to only include the requested series
             for series_id in self.target_series:
-                if series_id not in ['1', '22']:
-                    # Use dynamic discovery for other series
-                    print(f"   🔍 Discovering URL for Series {series_id}...")
-                    discovered_urls = self.discover_series_dynamically()
+                target_series_name = f"Series {series_id}"
+                found_series = False
+                
+                # Look for exact match first
+                for series_name, series_url in discovered_urls:
+                    if series_name == target_series_name:
+                        series_urls.append((series_name, series_url))
+                        print(f"   ✅ Added {series_name}")
+                        found_series = True
+                        break
+                
+                # If not found, look for SW variant
+                if not found_series:
+                    sw_series_name = f"Series {series_id} SW"
                     for series_name, series_url in discovered_urls:
-                        if series_name == f"Series {series_id}":
+                        if series_name == sw_series_name:
                             series_urls.append((series_name, series_url))
                             print(f"   ✅ Added {series_name}")
+                            found_series = True
                             break
+                
+                if not found_series:
+                    print(f"   ⚠️ Series {series_id} not found in discovered series")
             
             print(f"   📋 Total target series: {len(series_urls)}")
         else:
@@ -1670,7 +1682,7 @@ def main():
     # Show help if requested
     if "--help" in sys.argv or "-h" in sys.argv:
         print("APTA Chicago Roster Scraper - Usage:")
-        print("  python apta_scrape_players.py                    # Scrape all series (1-22)")
+        print("  python apta_scrape_players.py                    # Scrape all available series")
         print("  python apta_scrape_players.py --series 1,2,3     # Scrape specific series (1, 2, 3)")
         print("  python apta_scrape_players.py --series=1,2,3     # Scrape specific series (1, 2, 3)")
         print("  python apta_scrape_players.py --force-restart    # Force restart ignoring progress")
@@ -1678,8 +1690,9 @@ def main():
         print("  python apta_scrape_players.py --help             # Show this help message")
         
         print("\nExamples:")
-        print("  python apta_scrape_players.py --series 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22  # Scrape all series")
-        print("  python apta_scrape_players.py --series 1,2,3                   # Scrape series 1, 2, 3")
+        print("  python apta_scrape_players.py --series 23        # Scrape only Series 23")
+        print("  python apta_scrape_players.py --series 1,2,3     # Scrape series 1, 2, 3")
+        print("  python apta_scrape_players.py --series 99        # Scrape only Series 99")
         return
     
     # Parse command line arguments
@@ -1699,13 +1712,15 @@ def main():
             sys.argv.remove(arg)
             break
     
-    # Validate target_series if specified
+    # Validate target_series if specified (allow any numeric series since dynamic discovery can find them)
     if target_series:
-        valid_series = [str(i) for i in range(1, 23)] + list('ABCDEFGHIJK')  # Updated to include Series 18-22
+        # Allow any numeric series (1-99) and letter series (A-K)
+        # Dynamic discovery will determine what actually exists
+        valid_series = [str(i) for i in range(1, 100)] + list('ABCDEFGHIJK')
         invalid_series = [s for s in target_series if s not in valid_series]
         if invalid_series:
             print(f"❌ Error: Invalid series specified: {', '.join(invalid_series)}")
-            print(f"   Valid series are: 1-22 and A-K")
+            print(f"   Valid series are: 1-99 and A-K")
             return
         print(f"✅ Valid series specified: {', '.join(target_series)}")
     
