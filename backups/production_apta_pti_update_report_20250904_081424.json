@@ -1,0 +1,12 @@
+{
+  "timestamp": "2025-09-04T08:14:24.065883",
+  "mode": "DRY RUN",
+  "database": "PRODUCTION",
+  "total_processed": 6837,
+  "successful_updates": 6400,
+  "failed_updates": 0,
+  "not_found": 142,
+  "skipped_no_pti": 287,
+  "skipped_same_pti": 8,
+  "success_rate": 93.60830773731169
+}

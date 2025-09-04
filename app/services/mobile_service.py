@@ -59,8 +59,8 @@ def _load_players_data():
 
 def get_career_stats_from_db(player_id):
     """
-    Get career stats from player_history table by player_id.
-    Returns None if no historical data is found or if data is insufficient.
+    Get career stats by calculating from actual match results in match_scores table.
+    Returns None if no match data is found.
     """
     try:
         # Helper function to convert Decimal to float for template compatibility
@@ -73,9 +73,9 @@ def get_career_stats_from_db(player_id):
                 return float(value)
             return value
 
-        # First get the player's database ID
+        # First get the player's database ID and current PTI
         player_query = """
-            SELECT id FROM players WHERE tenniscores_player_id = %s
+            SELECT id, pti as current_pti FROM players WHERE tenniscores_player_id = %s
         """
         player_record = execute_query_one(player_query, [player_id])
 
@@ -86,78 +86,74 @@ def get_career_stats_from_db(player_id):
             return None
 
         player_db_id = player_record["id"]
+        current_pti = decimal_to_float(player_record["current_pti"]) or "N/A"
 
-        # Query player_history table to get all historical PTI data
-        career_query = """
+        # Calculate career stats from ALL match results (no date filtering for true career stats)
+        matches_query = """
             SELECT 
-                date,
-                end_pti,
-                series
-            FROM player_history
-            WHERE player_id = %s
-            ORDER BY date ASC
+                winner,
+                home_player_1_id,
+                home_player_2_id,
+                away_player_1_id,
+                away_player_2_id,
+                match_date
+            FROM match_scores
+            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+            ORDER BY match_date ASC
         """
 
-        career_records = execute_query(career_query, [player_db_id])
+        matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
 
-        if not career_records or len(career_records) < 5:
+        if not matches:
             print(
-                f"[DEBUG] get_career_stats_from_db: Insufficient career data for player {player_id} (found {len(career_records) if career_records else 0} records, need at least 5)"
+                f"[DEBUG] get_career_stats_from_db: No match data found for player {player_id}"
             )
-            # Try to get career stats anyway from players table even if not enough history
+            # Return empty stats instead of None to show the section
+            return {
+                "winRate": 0.0,
+                "matches": 0,
+                "wins": 0,
+                "losses": 0,
+                "pti": current_pti,
+            }
 
-        # Get career stats directly from players table (imported from player_history.json)
-        career_stats_query = """
-            SELECT 
-                career_wins,
-                career_losses,
-                career_matches,
-                career_win_percentage,
-                pti as current_pti
-            FROM players
-            WHERE id = %s
-        """
+        # Calculate wins and losses
+        total_matches = len(matches)
+        wins = 0
+        losses = 0
 
-        career_data = execute_query_one(career_stats_query, [player_db_id])
+        # Debug: Show date range of career matches
+        if matches:
+            first_match_date = matches[0]["match_date"]
+            last_match_date = matches[-1]["match_date"]
+            print(f"[DEBUG] Career stats date range: {first_match_date} to {last_match_date} ({total_matches} total matches)")
 
-        if not career_data:
-            print(
-                f"[DEBUG] get_career_stats_from_db: No career data found for player {player_id}"
-            )
-            return None
+        for match in matches:
+            # Determine if this player was on the home team
+            is_home = (match["home_player_1_id"] == player_id or match["home_player_2_id"] == player_id)
+            
+            # Determine if home team won
+            home_won = (match["winner"] == "home")
+            
+            # If player was on home team and home won, or player was on away team and away won
+            if (is_home and home_won) or (not is_home and not home_won):
+                wins += 1
+            else:
+                losses += 1
 
-        print(f"[DEBUG] Raw career data from DB: {career_data}")
-
-        # Check if player has meaningful career data
-        career_matches = career_data["career_matches"] or 0
-        career_wins = career_data["career_wins"] or 0
-        career_losses = career_data["career_losses"] or 0
-
-        # Always show career stats even if 0 - remove the minimum requirement
-        # This allows the UI to display the current state and shows that the feature is working
-        # if career_matches < 1:  # Reduced from 5 to 1 to be less strict
-        #     print(f"[DEBUG] get_career_stats_from_db: Insufficient career matches for player {player_id} (found {career_matches})")
-        #     return None
-
-        # Use the actual career data from JSON import
-        total_matches = career_matches
-        wins = career_wins
-        losses = career_losses
-        win_rate = decimal_to_float(career_data["career_win_percentage"]) or 0.0
-
-        # Get current PTI as career PTI
-        latest_pti = decimal_to_float(career_data["current_pti"]) or "N/A"
+        # Calculate win rate
+        win_rate = (wins / total_matches * 100) if total_matches > 0 else 0.0
 
         career_stats = {
-            "winRate": round(win_rate, 1),  # Convert to float and round
+            "winRate": round(win_rate, 1),
             "matches": total_matches,
             "wins": wins,
             "losses": losses,
-            "pti": latest_pti,
+            "pti": current_pti,
         }
 
         print(
-            f"[DEBUG] get_career_stats_from_db: Found career stats for player {player_id}: {total_matches} matches, {wins} wins, {losses} losses, {win_rate}% win rate"
+            f"[DEBUG] get_career_stats_from_db: Calculated career stats for player {player_id}: {total_matches} matches, {wins} wins, {losses} losses, {win_rate:.1f}% win rate"
         )
         return career_stats
 
@@ -623,11 +619,14 @@ def get_player_analysis(user):
         current_month = current_date.month
         current_year = current_date.year
         
-        # Dynamic season logic: Use the most recent season with data
-        # For now, include both 2024-2025 and 2025-2026 seasons to catch all recent matches
-        # This ensures we don't miss matches from the current/upcoming season
-        season_start = datetime(2024, 8, 1)  # August 1st, 2024
-        season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
+        # Dynamic season logic: Use the current tennis season (Aug 2025 - Jul 2026)
+        # Since we're in September 2025, the current season is 2025-2026
+        if current_month >= 8:  # Aug-Dec: current season
+            season_start = datetime(current_year, 8, 1)
+            season_end = datetime(current_year + 1, 7, 31)
+        else:  # Jan-Jul: previous season
+            season_start = datetime(current_year - 1, 8, 1)
+            season_end = datetime(current_year, 7, 31)
         
         print(f"[DEBUG] Extended season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
         
@@ -930,8 +929,33 @@ def get_player_analysis(user):
         # Build career stats from player_history table
         career_stats = get_career_stats_from_db(player_id)
 
-        # Calculate court analysis for individual player
-        court_analysis = calculate_individual_court_analysis(player_matches, player_id, user, current_series_id, current_club_id, team_context)
+        # Calculate court analysis for individual player using ALL historical matches (not just current season)
+        # Get all matches for court analysis (career performance) - don't filter by league like career stats
+        all_matches_query = """
+            SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                id,
+                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                home_team as "Home Team",
+                away_team as "Away Team",
+                home_team_id,
+                away_team_id,
+                winner as "Winner",
+                scores as "Scores",
+                home_player_1_id as "Home Player 1",
+                home_player_2_id as "Home Player 2",
+                away_player_1_id as "Away Player 1",
+                away_player_2_id as "Away Player 2",
+                tenniscores_match_id
+            FROM match_scores
+            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+            ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+        """
+        all_matches_params = [player_id, player_id, player_id, player_id]
+            
+        all_player_matches = execute_query(all_matches_query, all_matches_params)
+        print(f"[DEBUG] Court analysis using ALL historical matches: {len(all_player_matches) if all_player_matches else 0} matches")
+        
+        court_analysis = calculate_individual_court_analysis(all_player_matches, player_id, user, current_series_id, current_club_id, team_context)
 
         # Initialize empty player history
         player_history = {"progression": "", "seasons": []}

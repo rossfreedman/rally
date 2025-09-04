@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-09-04T08:06:22.007510",
+  "mode": "EXECUTE",
+  "total_processed": 6837,
+  "successful_updates": 4498,
+  "failed_updates": 0,
+  "not_found": 346,
+  "skipped_no_pti": 287,
+  "success_rate": 65.78908878162937
+}
