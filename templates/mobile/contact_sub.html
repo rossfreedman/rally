@@ -6,7 +6,7 @@
     
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+        <div class="flex items-center px-4 py-3">
             <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454;">
                 <i class="fas fa-envelope text-white text-lg"></i>
             </div>
@@ -310,47 +310,47 @@ function loadContactInfo() {
                 </div>
                 
                 <!-- Contact Information -->
-                <div class="p-6 space-y-4">
+                <div class="px-6 pt-3 pb-6 space-y-4">
                     <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-col items-center gap-2 mb-3">
                             <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                                 <i class="fas fa-phone text-green-600"></i>
                             </div>
-                            <div class="flex-1">
+                            <div class="text-center">
                                 <div class="text-sm font-medium text-gray-500">Phone Number</div>
                                 <a href="tel:${data.phone}" class="text-green-600 hover:text-green-800 font-medium">${formatPhoneNumber(data.phone)}</a>
                             </div>
-                            <div class="flex gap-2">
-                                <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
-                                        class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
-                                    <i class="fas fa-sms"></i>
-                                    <span>Copy</span>
-                                </button>
-                                <a href="tel:${data.phone}" 
-                                   class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
-                                    <i class="fas fa-phone"></i>
-                                    <span>Call</span>
-                                </a>
-                            </div>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
+                                    class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-sms"></i>
+                                <span>Copy</span>
+                            </button>
+                            <a href="tel:${data.phone}" 
+                               class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-phone"></i>
+                                <span>Call</span>
+                            </a>
                         </div>
                     </div>
                     
                     <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-col items-center gap-2 mb-3">
                             <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                                 <i class="fas fa-envelope text-blue-600"></i>
                             </div>
-                            <div class="flex-1">
+                            <div class="text-center">
                                 <div class="text-sm font-medium text-gray-500">Email Address</div>
                                 <a href="mailto:${data.email}" class="text-blue-600 hover:text-blue-800 font-medium">${data.email}</a>
                             </div>
-                            <div class="flex gap-2">
-                                <a href="mailto:${data.email}" 
-                                   class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>Email</span>
-                                </a>
-                            </div>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <a href="mailto:${data.email}" 
+                               class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email</span>
+                            </a>
                         </div>
                     </div>
                 </div>
