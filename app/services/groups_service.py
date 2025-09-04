@@ -31,25 +31,11 @@ class GroupsService:
             Phone number if found, None otherwise
         """
         try:
-            # Use dynamic path based on league (similar to /api/player-contact)
-            if user_league_string_id and not user_league_string_id.startswith("APTA"):
-                # For non-APTA leagues, use league-specific path
-                csv_path = os.path.join(
-                    "data",
-                    "leagues",
-                    user_league_string_id,
-                    "club_directories",
-                    "directory_tennaqua.csv",
-                )
-            else:
-                # For APTA leagues, use the main directory
-                csv_path = os.path.join(
-                    "data",
-                    "leagues",
-                    "all",
-                    "club_directories",
-                    "directory_tennaqua.csv",
-                )
+            # Use the new centralized tennaqua directory
+            csv_path = os.path.join(
+                "data",
+                "tennaqua_directory.csv",
+            )
 
             print(f"Looking for phone number in CSV file at: {csv_path}")
             
@@ -63,7 +49,7 @@ class GroupsService:
                     # Match by first and last name (case insensitive)
                     if (
                         row["First"].strip().lower() == first_name.lower()
-                        and row["Last Name"].strip().lower() == last_name.lower()
+                        and row["Last"].strip().lower() == last_name.lower()
                     ):
                         phone = row["Phone"].strip()
                         if phone:

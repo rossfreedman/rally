@@ -504,8 +504,8 @@ def get_team_notification_templates() -> Dict[str, Dict[str, str]]:
         },
         "team_poll": {
             "title": "Send a Poll",
-            "description": "Create a quick team poll",
-            "message": "📊 Quick Poll: What time works best for practice this week? Reply with your preference: 6pm, 7pm, or 8pm."
+            "description": "Go to polls page to create a team poll",
+            "message": ""
         },
         "court_assignments": {
             "title": "Court Assignments",

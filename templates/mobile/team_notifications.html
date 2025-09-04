@@ -444,6 +444,12 @@ function displayNotificationTemplates() {
 function useTemplate(templateKey) {
     const template = notificationTemplates[templateKey];
     if (template) {
+        // Special handling for poll template - navigate to polls page
+        if (templateKey === 'team_poll') {
+            window.location.href = '/mobile/polls';
+            return;
+        }
+        
         document.getElementById('messageContent').value = template.message;
         updateCharacterCount();
         

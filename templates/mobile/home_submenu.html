@@ -371,7 +371,7 @@
   }
 </style>
 
-<div class="container mx-auto px-4 py-6" style="padding-bottom: 200px;">
+<div class="container mx-auto px-4 py-6" style="padding-bottom: 300px;">
   <!-- Welcome Section with Club Logo and Info -->
   <div class="welcome-section mb-8">
     <div class="flex items-center justify-center gap-4 mb-4">
@@ -994,7 +994,10 @@ function renderNotifications(notifications) {
         ];
     }
 
-    // Add install notification if not dismissed
+    // Sort notifications by priority to ensure captain messages appear first
+    notifications.sort((a, b) => a.priority - b.priority);
+    
+    // Add install notification at the very end (always last)
     if (!localStorage.getItem('rally_install_notice_dismissed_v1')) {
         const installNotification = {
             id: "install_rally",
@@ -1002,9 +1005,9 @@ function renderNotifications(notifications) {
             title: "Add Rally to your home screen",
             message: "Open the guide to add a Rally icon to your phone for one-tap access.",
             cta: { label: "See how", href: "/install" },
-            priority: 2
+            priority: 999 // Very high priority number, but we add it last so it appears last
         };
-        notifications.unshift(installNotification); // Add to beginning
+        notifications.push(installNotification);
     }
     
     // Render each notification as detailed card
@@ -1023,10 +1026,11 @@ function renderNotifications(notifications) {
 function createNotificationCard(notification, index) {
     const element = document.createElement('div');
     
-    // Add special background color for captain messages
+    // Add special background color for captain messages (matching captain's corner button)
     let bgClass = 'bg-white';
     if (notification.type === 'captain') {
-        bgClass = 'bg-blue-50 border-blue-200';
+        bgClass = 'border-green-200';
+        element.style.backgroundColor = '#f0f9f0'; // Same as captain's corner button
     }
     
     element.className = `notification-card ${bgClass} rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;

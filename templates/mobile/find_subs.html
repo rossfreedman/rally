@@ -466,7 +466,7 @@ async function fetchAndRenderSubsMobile() {
                         
                         <!-- Club and Series -->
                         <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
-                        <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                        <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</p>
                         
                         <!-- Stats -->
                         <div class="text-sm space-y-1">

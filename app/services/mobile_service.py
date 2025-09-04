@@ -3108,25 +3108,11 @@ def get_club_players_data(
             # FIXED: Use league_string_id instead of league_id (which is now an integer)
             user_league_string_id = user.get("league_string_id", "")
 
-            # Use dynamic path based on league
-            if user_league_string_id and not user_league_string_id.startswith("APTA"):
-                # For non-APTA leagues, use league-specific path
-                csv_path = os.path.join(
-                    "data",
-                    "leagues",
-                    user_league_string_id,
-                    "club_directories",
-                    "directory_tennaqua.csv",
-                )
-            else:
-                # For APTA leagues, use the main directory
-                csv_path = os.path.join(
-                    "data",
-                    "leagues",
-                    "all",
-                    "club_directories",
-                    "directory_tennaqua.csv",
-                )
+            # Use the new centralized tennaqua directory
+            csv_path = os.path.join(
+                "data",
+                "tennaqua_directory.csv",
+            )
 
             print(f"Looking for contact info CSV at: {csv_path}")
 
@@ -3136,9 +3122,9 @@ def get_club_players_data(
                 with open(csv_path, "r") as file:
                     reader = csv.DictReader(file)
                     for row in reader:
-                        # Create full name from CSV columns (First and Last Name)
+                        # Create full name from CSV columns (First and Last)
                         first_name = row.get("First", "").strip()
-                        last_name = row.get("Last Name", "").strip()
+                        last_name = row.get("Last", "").strip()
 
                         if first_name and last_name:
                             full_name = f"{first_name} {last_name}"

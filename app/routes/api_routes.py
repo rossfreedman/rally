@@ -95,22 +95,8 @@ def _load_directory_contact_from_csv(user_ctx: dict, first: str, last: str) -> d
         csv_path = os.path.join(
             _get_project_root_path(),
             "data",
-            "leagues",
-            sub_dir,
-            "club_directories",
-            "directory_tennaqua.csv",
+            "tennaqua_directory.csv",
         )
-
-        if not os.path.exists(csv_path):
-            # Fallback hard to shared path
-            csv_path = os.path.join(
-                _get_project_root_path(),
-                "data",
-                "leagues",
-                "all",
-                "club_directories",
-                "directory_tennaqua.csv",
-            )
 
         if not os.path.exists(csv_path):
             return {}
@@ -122,12 +108,12 @@ def _load_directory_contact_from_csv(user_ctx: dict, first: str, last: str) -> d
             reader = csv.DictReader(f)
             for row in reader:
                 row_first = _normalize_name_for_match(row.get("First"))
-                row_last = _normalize_name_for_match(row.get("Last Name"))
+                row_last = _normalize_name_for_match(row.get("Last"))
                 if row_first == norm_first and row_last == norm_last:
                     return {
                         "phone": (row.get("Phone") or "").strip(),
                         "email": (row.get("Email") or "").strip(),
-                        "series": (row.get("Series") or "").strip(),
+                        "series": "",  # CSV doesn't have series column
                     }
         return {}
     except Exception as e:
@@ -286,8 +272,25 @@ def api_contact_sub_send():
         if not phone:
             return jsonify({"success": False, "error": "No phone number available for this player"}), 404
 
+        # Get user information for message prefix
+        user_ctx = session.get("user", {})
+        user_first_name = user_ctx.get("first_name", "").strip()
+        user_last_name = user_ctx.get("last_name", "").strip()
+        club_name = user_ctx.get("club", "").strip()
+        
+        # Create user display name
+        user_display_name = f"{user_first_name} {user_last_name}".strip()
+        if not user_display_name:
+            user_display_name = "Rally User"
+        
+        # Create club display name
+        club_display_name = club_name if club_name else "Rally"
+        
+        # Add prefix to message
+        prefixed_message = f"Message from {user_first_name} {user_last_name} at {club_name} via Rally: \n\n{message}"
+
         # Use existing Twilio notifications service (handles validation + retry)
-        sms_result = send_sms_notification(to_number=phone, message=message, test_mode=False)
+        sms_result = send_sms_notification(to_number=phone, message=prefixed_message, test_mode=False)
 
         if sms_result.get("success"):
             return jsonify({
@@ -9269,7 +9272,7 @@ def get_captain_messages(user_id, player_id, league_id, team_id):
                 "title": "Captain's Message",
                 "message": f"{captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''}",
                 "detail_link": {"label": "View Message", "href": "/mobile/polls"},
-                "priority": 1
+                "priority": 0
             })
             
     except Exception as e:

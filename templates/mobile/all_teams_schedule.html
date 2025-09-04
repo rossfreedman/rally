@@ -679,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
     seriesElements.forEach(element => {
         const seriesText = element.textContent;
         if (seriesText && seriesText !== 'Not set') {
-            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+            element.textContent = seriesText.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1');
         }
     });
 

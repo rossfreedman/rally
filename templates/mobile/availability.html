@@ -522,7 +522,7 @@ async function updateAvailability(button, playerName, date, status) {
         
         // Show success toast that fades out
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = 'Availability updated!';
         document.body.appendChild(toast);
         
@@ -550,7 +550,7 @@ async function updateAvailability(button, playerName, date, status) {
         
         // Show error toast with fade effect
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = error.message || 'Error saving availability. Please try again.';
         document.body.appendChild(toast);
         
@@ -686,7 +686,7 @@ async function saveNoteFromModal() {
         
         // Show success toast
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = notes ? 'Note saved!' : 'Note removed!';
         document.body.appendChild(toast);
         
@@ -710,7 +710,7 @@ async function saveNoteFromModal() {
         
         // Show error toast
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = error.message || 'Error saving note. Please try again.';
         document.body.appendChild(toast);
         
@@ -1000,23 +1000,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Filter button styling */
 .schedule-filter-btn {
-    background-color: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    background-color: #10645c;
+    color: #bff863;
+    border: 1px solid #10645c;
 }
 
 .schedule-filter-btn.active {
-    background-color: #3b82f6;
-    color: #ffffff;
-    border-color: #3b82f6;
+    background-color: #bff863;
+    color: #10645c;
+    border-color: #bff863;
 }
 
 .schedule-filter-btn:hover {
-    background-color: #e5e7eb;
+    background-color: #045454;
+    color: #bff863;
 }
 
 .schedule-filter-btn.active:hover {
-    background-color: #2563eb;
+    background-color: #045454;
+    color: #bff863;
 }
 
 /* Header styling for practices and matches */
