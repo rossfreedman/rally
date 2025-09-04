@@ -59,10 +59,13 @@ def _load_players_data():
 
 def get_career_stats_from_db(player_id):
     """
-    Get career stats by calculating from actual match results in match_scores table.
-    Returns None if no match data is found.
+    Get career stats from player_history.json file.
+    This contains the true career statistics across all seasons.
     """
     try:
+        import json
+        import os
+        
         # Helper function to convert Decimal to float for template compatibility
         def decimal_to_float(value):
             """Convert Decimal to float, handle None values"""
@@ -73,87 +76,46 @@ def get_career_stats_from_db(player_id):
                 return float(value)
             return value
 
-        # First get the player's database ID and current PTI
-        player_query = """
-            SELECT id, pti as current_pti FROM players WHERE tenniscores_player_id = %s
-        """
-        player_record = execute_query_one(player_query, [player_id])
-
-        if not player_record:
-            print(
-                f"[DEBUG] get_career_stats_from_db: No player found for tenniscores_player_id {player_id}"
-            )
+        # Load player history data from JSON file
+        player_history_path = "data/leagues/APTA_CHICAGO/player_history.json"
+        
+        if not os.path.exists(player_history_path):
+            print(f"[ERROR] Player history file not found: {player_history_path}")
             return None
-
-        player_db_id = player_record["id"]
-        current_pti = decimal_to_float(player_record["current_pti"]) or "N/A"
-
-        # Calculate career stats from ALL match results (no date filtering for true career stats)
-        matches_query = """
-            SELECT 
-                winner,
-                home_player_1_id,
-                home_player_2_id,
-                away_player_1_id,
-                away_player_2_id,
-                match_date
-            FROM match_scores
-            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-            ORDER BY match_date ASC
-        """
-
-        matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
-
-        if not matches:
-            print(
-                f"[DEBUG] get_career_stats_from_db: No match data found for player {player_id}"
-            )
-            # Return empty stats instead of None to show the section
-            return {
-                "winRate": 0.0,
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "pti": current_pti,
-            }
-
-        # Calculate wins and losses
-        total_matches = len(matches)
-        wins = 0
-        losses = 0
-
-        # Debug: Show date range of career matches
-        if matches:
-            first_match_date = matches[0]["match_date"]
-            last_match_date = matches[-1]["match_date"]
-            print(f"[DEBUG] Career stats date range: {first_match_date} to {last_match_date} ({total_matches} total matches)")
-
-        for match in matches:
-            # Determine if this player was on the home team
-            is_home = (match["home_player_1_id"] == player_id or match["home_player_2_id"] == player_id)
             
-            # Determine if home team won
-            home_won = (match["winner"] == "home")
-            
-            # If player was on home team and home won, or player was on away team and away won
-            if (is_home and home_won) or (not is_home and not home_won):
-                wins += 1
-            else:
-                losses += 1
-
+        with open(player_history_path, 'r') as f:
+            player_history_data = json.load(f)
+        
+        # Find the player in the history data
+        player_data = None
+        for player in player_history_data:
+            if player.get("player_id") == player_id:
+                player_data = player
+                break
+        
+        if not player_data:
+            print(f"[DEBUG] get_career_stats_from_db: No player found in history for tenniscores_player_id {player_id}")
+            return None
+        
+        # Extract career stats from the JSON data
+        career_wins = player_data.get("wins", 0)
+        career_losses = player_data.get("losses", 0)
+        career_matches = career_wins + career_losses
+        current_pti = player_data.get("rating", "N/A")
+        
         # Calculate win rate
-        win_rate = (wins / total_matches * 100) if total_matches > 0 else 0.0
+        win_rate = (career_wins / career_matches * 100) if career_matches > 0 else 0.0
 
         career_stats = {
             "winRate": round(win_rate, 1),
-            "matches": total_matches,
-            "wins": wins,
-            "losses": losses,
-            "pti": current_pti,
+            "matches": career_matches,
+            "wins": career_wins,
+            "losses": career_losses,
+            "pti": decimal_to_float(current_pti) if current_pti != "N/A" else "N/A",
         }
 
         print(
-            f"[DEBUG] get_career_stats_from_db: Calculated career stats for player {player_id}: {total_matches} matches, {wins} wins, {losses} losses, {win_rate:.1f}% win rate"
+            f"[DEBUG] get_career_stats_from_db: Found career stats in player_history.json for player {player_id}: {career_matches} matches, {career_wins} wins, {career_losses} losses, {win_rate:.1f}% win rate"
         )
         return career_stats
 
@@ -613,20 +575,10 @@ def get_player_analysis(user):
             except Exception as e:
                 pass
 
-        # Calculate current season boundaries for filtering
+        # Calculate current season boundaries (same as API)
         from datetime import datetime
-        current_date = datetime.now()
-        current_month = current_date.month
-        current_year = current_date.year
-        
-        # Dynamic season logic: Use the current tennis season (Aug 2025 - Jul 2026)
-        # Since we're in September 2025, the current season is 2025-2026
-        if current_month >= 8:  # Aug-Dec: current season
-            season_start = datetime(current_year, 8, 1)
-            season_end = datetime(current_year + 1, 7, 31)
-        else:  # Jan-Jul: previous season
-            season_start = datetime(current_year - 1, 8, 1)
-            season_end = datetime(current_year, 7, 31)
+        season_start = datetime(2024, 8, 1)  # August 1st, 2024
+        season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
         
         print(f"[DEBUG] Extended season period: {season_start.strftime('%Y-%m-%d')} to {season_end.strftime('%Y-%m-%d')}")
         

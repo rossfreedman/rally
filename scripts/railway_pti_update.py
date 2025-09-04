@@ -106,26 +106,43 @@ class RailwayPTIUpdater:
         try:
             if not self.dry_run:
                 # Use execute_values for efficient batch updates
-                update_query = """
-                    UPDATE players 
-                    SET pti = data.new_pti, updated_at = CURRENT_TIMESTAMP
-                    FROM (VALUES %s) AS data(player_id, new_pti)
-                    WHERE players.tenniscores_player_id = data.player_id 
-                    AND players.league_id = %s
+                # First, create a temporary table with the updates
+                temp_table_query = """
+                    CREATE TEMP TABLE temp_pti_updates (
+                        player_id VARCHAR(255),
+                        new_pti NUMERIC(10,2)
+                    )
                 """
+                self.cursor.execute(temp_table_query)
                 
-                # Prepare batch data
+                # Insert batch data into temp table
+                insert_query = """
+                    INSERT INTO temp_pti_updates (player_id, new_pti) VALUES %s
+                """
                 batch_data = []
                 for update in updates:
                     batch_data.append((update['tenniscores_player_id'], update['new_pti']))
                 
                 execute_values(
                     self.cursor,
-                    update_query,
+                    insert_query,
                     batch_data,
                     template=None,
                     page_size=1000
                 )
+                
+                # Update players table using the temp table
+                update_query = """
+                    UPDATE players 
+                    SET pti = temp_pti_updates.new_pti, updated_at = CURRENT_TIMESTAMP
+                    FROM temp_pti_updates
+                    WHERE players.tenniscores_player_id = temp_pti_updates.player_id 
+                    AND players.league_id = %s
+                """
+                self.cursor.execute(update_query, [self.apta_league_id])
+                
+                # Clean up temp table
+                self.cursor.execute("DROP TABLE temp_pti_updates")
                 self.connection.commit()
             
             self.successful_updates += len(updates)
