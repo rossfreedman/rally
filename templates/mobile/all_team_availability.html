@@ -6,6 +6,26 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     
+    <!-- DEBUG OUTPUT -->
+    <div style="background: yellow; padding: 10px; margin: 10px; border: 2px solid red;">
+        <h3>🚨 DEBUG INFO</h3>
+        <p><strong>Selected Date:</strong> {{ selected_date }}</p>
+        <p><strong>Players Schedule Type:</strong> {{ players_schedule.__class__.__name__ if players_schedule else 'None' }}</p>
+        <p><strong>Players Schedule Length:</strong> {{ players_schedule|length if players_schedule else 0 }}</p>
+        <p><strong>Error:</strong> {{ error if error else 'None' }}</p>
+        {% if players_schedule %}
+            <p><strong>First 3 Players:</strong></p>
+            {% for player, dates in players_schedule.items() %}
+                {% if loop.index <= 3 %}
+                    <p>{{ loop.index }}. {{ player }}: {{ dates|length }} dates</p>
+                    {% if dates %}
+                        <p>&nbsp;&nbsp;Sample: date={{ dates[0].date }}, status={{ dates[0].availability_status }}</p>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+    
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
