@@ -3006,6 +3006,18 @@ def serve_all_team_availability():
         selected_date = request.args.get("date")
         print(f"🚨 Selected date from URL: {selected_date}")
 
+        # Check if user session needs refresh due to database updates
+        user_email = session["user"]["email"]
+        current_series_id = session["user"].get("series_id")
+        
+        # Force session refresh for debugging
+        from app.services.session_service import get_session_data_for_user
+        fresh_session = get_session_data_for_user(user_email)
+        if fresh_session:
+            session["user"] = fresh_session
+            session.modified = True
+            print(f"🚨 Refreshed session: {fresh_session.get('series')} (ID: {fresh_session.get('series_id')})")
+        
         # Call the service function with the selected date
         print(f"🚨 About to call get_all_team_availability_data...")
         availability_data = get_all_team_availability_data(
