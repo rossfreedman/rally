@@ -125,8 +125,7 @@ def normalize_series_name(series_name: str, league_id: str = None) -> str:
             mapping_query = """
                 SELECT s.name as database_name
                 FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
+                JOIN leagues l ON s.league_id = l.id
                 WHERE l.league_id = %s AND (s.display_name = %s OR s.name = %s)
                 LIMIT 1
             """
@@ -170,10 +169,10 @@ def get_name_variations(first_name: str) -> List[str]:
 
 def get_last_name_variations(last_name: str) -> List[str]:
     """
-    Get all possible variations of a last name, including suffix removal.
+    Get all possible variations of a last name, including suffix removal and apostrophe handling.
     
     This handles common name suffixes like (S), (Jr), (Sr), (II), etc.
-    that can cause registration failures when users don't include them.
+    and apostrophe variations like O'Brien/OBrien that can cause registration failures.
     
     Args:
         last_name: The last name to generate variations for
@@ -186,6 +185,33 @@ def get_last_name_variations(last_name: str) -> List[str]:
     
     norm_name = normalize_name(last_name)
     variations = [norm_name]
+    
+    # APOSTROPHE VARIATIONS: Handle O'Brien/OBrien, D'Angelo/DAngelo, etc.
+    # Add version with apostrophe if it doesn't have one
+    if "'" not in norm_name and len(norm_name) > 1:
+        # Common patterns where apostrophe might be missing
+        apostrophe_patterns = [
+            # O'Brien, O'Connor, O'Malley, etc.
+            (r'^o([a-z])', r"o'\1"),
+            # D'Angelo, D'Antonio, etc.
+            (r'^d([a-z])', r"d'\1"),
+            # L'Abbe, L'Heureux, etc.
+            (r'^l([a-z])', r"l'\1"),
+            # M'Carthy, M'Donald, etc.
+            (r'^m([a-z])', r"m'\1"),
+        ]
+        
+        import re
+        for pattern, replacement in apostrophe_patterns:
+            if re.match(pattern, norm_name):
+                apostrophe_version = re.sub(pattern, replacement, norm_name)
+                variations.append(apostrophe_version)
+                break
+    
+    # Add version without apostrophe if it has one
+    if "'" in norm_name:
+        no_apostrophe = norm_name.replace("'", "")
+        variations.append(no_apostrophe)
     
     # Common suffixes that should be stripped for matching
     suffixes_to_remove = [
@@ -1468,8 +1494,7 @@ def get_series_name_variations(series_name: str, league_id: str = None) -> List[
             mappings_query = """
                 SELECT s.name as database_name, s.display_name
                 FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
+                JOIN leagues l ON s.league_id = l.id
                 WHERE l.league_id = %s 
                 AND (s.display_name = %s OR s.name = %s)
             """
