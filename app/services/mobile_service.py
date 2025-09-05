@@ -2617,6 +2617,8 @@ def get_all_team_availability_data(user, selected_date=None):
     instead of relying on JSON files. This ensures proper handling of users with multiple
     player records sharing the same Player ID.
     """
+    print(f"🚨 FUNCTION CALLED: get_all_team_availability_data")
+    print(f"🚨 Parameters: user={user.get('email') if user else None}, selected_date={selected_date}")
     try:
         # Handle missing parameters
         if not selected_date:
@@ -2835,10 +2837,10 @@ def get_all_team_availability_data(user, selected_date=None):
         return {"players_schedule": players_schedule, "selected_date": selected_date}
 
     except Exception as e:
-        print(f"Error getting all team availability data: {str(e)}")
+        print(f"🚨 ERROR in get_all_team_availability_data: {str(e)}")
         import traceback
 
-        print(f"Full traceback: {traceback.format_exc()}")
+        print(f"🚨 Full traceback: {traceback.format_exc()}")
         return {
             "players_schedule": {},
             "selected_date": selected_date or "today",
