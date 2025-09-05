@@ -2754,18 +2754,17 @@ def get_all_team_availability_data(user, selected_date=None):
             internal_player_ids = list(player_id_lookup.values())
 
             # Create a single query to get all availability data using internal player IDs
+            # FIXED: Remove series_id filter to handle series_id mismatches in data
             placeholders = ",".join(["%s"] * len(internal_player_ids))
             bulk_query = f"""
                 SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes
                 FROM player_availability pa
                 WHERE pa.player_id IN ({placeholders})
-                AND pa.series_id = %s 
                 AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
             """
 
-            # Parameters: all internal player IDs + series_id + date
+            # Parameters: all internal player IDs + date (removed series_id filter)
             bulk_params = tuple(internal_player_ids) + (
-                series_record["id"],
                 selected_date_utc,
             )
 
@@ -2774,8 +2773,8 @@ def get_all_team_availability_data(user, selected_date=None):
             )
             print(f"🔍 DEBUG: Query parameters:")
             print(f"  Player IDs: {internal_player_ids[:5]}...")  # Show first 5
-            print(f"  Series ID: {series_record['id']}")
             print(f"  Date: {selected_date_utc}")
+            print(f"  Series ID filter: REMOVED (to handle series_id mismatches)")
             print(f"🔍 DEBUG: Full query: {bulk_query}")
             availability_results = execute_query(bulk_query, bulk_params)
 
