@@ -3969,16 +3969,26 @@ def get_series_by_league():
             """
             series_data = execute_query(query)
         else:
-            # Get series for specific league
+            # Get series for specific league - FIXED: Use direct league_id lookup instead of non-existent series_leagues table
             query = """
-                SELECT s.name as series_name
+                SELECT DISTINCT s.name as series_name
                 FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
-                WHERE l.league_id = %s
+                WHERE s.id IN (
+                    -- Get series that have active players in this league
+                    SELECT DISTINCT p.series_id 
+                    FROM players p 
+                    WHERE p.league_id = (SELECT id FROM leagues WHERE league_id = %s) 
+                    AND p.is_active = true AND p.series_id IS NOT NULL
+                    UNION
+                    -- Get series that have active teams in this league  
+                    SELECT DISTINCT t.series_id
+                    FROM teams t
+                    WHERE t.league_id = (SELECT id FROM leagues WHERE league_id = %s) 
+                    AND t.is_active = true AND t.series_id IS NOT NULL
+                )
                 ORDER BY s.name
             """
-            series_data = execute_query(query, (league_id,))
+            series_data = execute_query(query, (league_id, league_id))
 
         # Process the series data to extract numbers and sort properly
         def get_series_sort_key(series_name):
