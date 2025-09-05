@@ -2996,14 +2996,19 @@ def serve_mobile_availability():
 @login_required
 def serve_all_team_availability():
     """Serve the mobile all team availability page"""
+    print(f"🚨 ROUTE CALLED: /mobile/all-team-availability")
+    print(f"🚨 User: {session.get('user', {}).get('email', 'Unknown')}")
     try:
         # Get the selected date from query parameter
         selected_date = request.args.get("date")
+        print(f"🚨 Selected date from URL: {selected_date}")
 
         # Call the service function with the selected date
+        print(f"🚨 About to call get_all_team_availability_data...")
         availability_data = get_all_team_availability_data(
             session["user"], selected_date
         )
+        print(f"🚨 Function returned: {type(availability_data)} with keys: {list(availability_data.keys()) if isinstance(availability_data, dict) else 'Not a dict'}")
 
         session_data = {"user": session["user"], "authenticated": True}
 
