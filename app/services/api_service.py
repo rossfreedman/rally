@@ -1450,12 +1450,9 @@ def get_team_schedule_data_data():
                     # Get event details for this date
                     event_info = event_details.get(event_date, {})
 
-                    # Convert date back to MM/DD/YYYY format for frontend compatibility
-                    try:
-                        date_obj = datetime.strptime(event_date, "%Y-%m-%d")
-                        frontend_date = date_obj.strftime("%m/%d/%Y")
-                    except:
-                        frontend_date = event_date  # Fallback to original format
+                    # Keep date in YYYY-MM-DD format for frontend JavaScript compatibility
+                    # The formatDateString function in team_schedule.html expects YYYY-MM-DD format
+                    frontend_date = event_date  # Already in YYYY-MM-DD format
 
                     availability.append(
                         {
@@ -1932,12 +1929,9 @@ def get_all_teams_schedule_data_data():
                     # Get event details for this date
                     event_info = event_details.get(event_date, {})
 
-                    # Convert date back to MM/DD/YYYY format for frontend compatibility
-                    try:
-                        date_obj = datetime.strptime(event_date, "%Y-%m-%d")
-                        frontend_date = date_obj.strftime("%m/%d/%Y")
-                    except:
-                        frontend_date = event_date  # Fallback to original format
+                    # Keep date in YYYY-MM-DD format for frontend JavaScript compatibility
+                    # The formatDateString function in team_schedule.html expects YYYY-MM-DD format
+                    frontend_date = event_date  # Already in YYYY-MM-DD format
 
                     availability.append(
                         {
