@@ -1,10 +1,201 @@
 [
   {
     "League": "CNSWPL",
+    "Club": "Barrington Hills",
     "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkNHNHlMcjZqUT09",
+    "First Name": "Erin",
+    "Last Name": "Vondra",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHhidjZoQT09",
+    "First Name": "Lauren",
+    "Last Name": "Klauer",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZjhoQT09",
+    "First Name": "Anne",
+    "Last Name": "Baumfeld",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZitnUT09",
+    "First Name": "Carla",
+    "Last Name": "Janess",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZnhnQT09",
+    "First Name": "Ali",
+    "Last Name": "Laumann",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZjhnQT09",
+    "First Name": "Kristin",
+    "Last Name": "Routhieaux",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkNDOHlML3hoZz09",
+    "First Name": "Kelley",
+    "Last Name": "Schauenberg",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3Zjhndz09",
+    "First Name": "Rachel",
+    "Last Name": "Schiewe",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZjhnZz09",
+    "First Name": "Christie",
+    "Last Name": "Shoemacher",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3ZjhqUT09",
+    "First Name": "Michelle",
+    "Last Name": "Solberg",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkM2eHg3Zi9oUT09",
+    "First Name": "Jenny",
+    "Last Name": "Welsh",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Barrington Hills",
+    "Series": "Series 9",
+    "Team": "Barrington Hills 9",
+    "Player ID": "cnswpl_WkNHNHlMcjZqQT09",
+    "First Name": "Katie",
+    "Last Name": "Wilson - BHCC",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3hicjU%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkM2eHg3cndnQT09",
     "First Name": "Jennifer",
     "Last Name": "Markman",
@@ -14,20 +205,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkNDL3diMzlndz09",
     "First Name": "Marissa",
     "Last Name": "Been",
@@ -37,20 +221,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkNDL3diMzZoUT09",
     "First Name": "Sara",
     "Last Name": "Block",
@@ -60,20 +237,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkNDL3diMzZnUT09",
     "First Name": "Jennifer",
     "Last Name": "Engelman",
@@ -83,20 +253,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkNHNXdyejRnQT09",
     "First Name": "Tracy",
     "Last Name": "Feldman",
@@ -106,20 +269,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkNDOHlMM3doQT09",
     "First Name": "Marilyn",
     "Last Name": "Johnson",
@@ -129,20 +285,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Birchwood 9",
     "Club": "Birchwood",
-    "Location ID": "BIRCHWOOD",
+    "Series": "Series 9",
+    "Team": "Birchwood 9",
     "Player ID": "cnswpl_WkM2eHg3ejZndz09",
     "First Name": "Karen",
     "Last Name": "Ury",
@@ -152,20 +301,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzU%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Birchwood 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Birchwood 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkNDL3diMzZoQT09",
     "First Name": "Kim",
     "Last Name": "Simon",
@@ -175,20 +317,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkNDOHlMZjdnQT09",
     "First Name": "Laura",
     "Last Name": "Durkin",
@@ -198,20 +333,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkNDL3diMzhoQT09",
     "First Name": "Martha",
     "Last Name": "Idler",
@@ -221,20 +349,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkNDL3didjVoUT09",
     "First Name": "Colleen",
     "Last Name": "MacKimm",
@@ -244,20 +365,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkM2eHhyNzlqUT09",
     "First Name": "Jamie",
     "Last Name": "Mauceri",
@@ -267,20 +381,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkNDL3diLytndz09",
     "First Name": "Nancy",
     "Last Name": "McLaughlin",
@@ -290,20 +397,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Evanston 9",
     "Club": "Evanston",
-    "Location ID": "EVANSTON",
+    "Series": "Series 9",
+    "Team": "Evanston 9",
     "Player ID": "cnswpl_WkM2eHhyNzlnQT09",
     "First Name": "Kim",
     "Last Name": "Peters",
@@ -313,296 +413,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMM3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Evanston 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Evanston 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDL3diejZnZz09",
-    "First Name": "Peggy",
-    "Last Name": "Tarkington",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WlNhOXhiZjhndz09",
-    "First Name": "Danielle",
-    "Last Name": "Cupps",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDOHlMYitoZz09",
-    "First Name": "Kara",
-    "Last Name": "Brittingham",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDOHlMYitqUT09",
-    "First Name": "Laura",
-    "Last Name": "Carriglio",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkM2eHg3ajZnUT09",
-    "First Name": "Maren",
-    "Last Name": "Deaver",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDL3diMzVoUT09",
-    "First Name": "Kim",
-    "Last Name": "Hack",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDOHlMajdnUT09",
-    "First Name": "Kathleen",
-    "Last Name": "Klaeser",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WlNhNnliMzRoZz09",
-    "First Name": "Christy",
-    "Last Name": "Kyhl",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDL3diejloQT09",
-    "First Name": "Laurie",
-    "Last Name": "Landman",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkM2eHg3ajZndz09",
-    "First Name": "Susie",
-    "Last Name": "Mackenzie",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNDOHlMYitqQT09",
-    "First Name": "Cindy",
-    "Last Name": "Polayes",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Glen View 9",
-    "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
-    "Player ID": "cnswpl_WkNHNXhiZitoZz09",
-    "First Name": "Bridget",
-    "Last Name": "Rahr",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiYis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series 9",
+    "Team": "Michigan Shores 9",
     "Player ID": "cnswpl_WkM2eHg3ejdqUT09",
     "First Name": "Julie",
     "Last Name": "Fleetwood",
@@ -612,89 +429,29 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkNDOHlMZitndz09",
-    "First Name": "Ginny",
-    "Last Name": "George",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
-    "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkM2eHg3ajlodz09",
-    "First Name": "Courtney",
-    "Last Name": "Cook",
+    "Team": "Michigan Shores 9",
+    "Player ID": "cnswpl_WkNHN3dMbjdoUT09",
+    "First Name": "Wendy",
+    "Last Name": "Baker",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkM2eHg3ajloZz09",
-    "First Name": "Erica",
-    "Last Name": "Cordier",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
-    "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Team": "Michigan Shores 9",
     "Player ID": "cnswpl_WkNDL3diejhndz09",
     "First Name": "Kim",
     "Last Name": "Donohoe",
@@ -704,89 +461,29 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkM2eHlicjloQT09",
-    "First Name": "Liz",
-    "Last Name": "Licata",
+    "Series": "Series 9",
+    "Team": "Michigan Shores 9",
+    "Player ID": "cnswpl_WkM2eHliNzRnQT09",
+    "First Name": "Jenny",
+    "Last Name": "Sloan",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkNDOHlMZjloUT09",
-    "First Name": "Anne",
-    "Last Name": "Malone",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
-    "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkM2eHg3ajlnQT09",
-    "First Name": "Jocelyn",
-    "Last Name": "Shook",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
-    "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Team": "Michigan Shores 9",
     "Player ID": "cnswpl_WkM2d3g3bi9nZz09",
     "First Name": "Kellen",
     "Last Name": "Spadafore",
@@ -796,43 +493,29 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Michigan Shores 9",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkM2eHhycjRoZz09",
-    "First Name": "Betsy",
-    "Last Name": "Vankula",
+    "Series": "Series 9",
+    "Team": "Michigan Shores 9",
+    "Player ID": "cnswpl_WkM2eHhyM3doZz09",
+    "First Name": "Mary Ann",
+    "Last Name": "Spencer",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDOHlMZndnUT09",
     "First Name": "Meredith",
     "Last Name": "Sullivan",
@@ -842,20 +525,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDL3diNzVodz09",
     "First Name": "Lindsay",
     "Last Name": "Bloom",
@@ -865,20 +541,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDOHlMMzVqUT09",
     "First Name": "Katie",
     "Last Name": "Brickman",
@@ -888,20 +557,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDOHlMZndqUT09",
     "First Name": "Marion",
     "Last Name": "Christoph",
@@ -911,20 +573,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkM2eHg3Nzdodz09",
     "First Name": "Ali",
     "Last Name": "Gerchen",
@@ -934,20 +589,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WlNlN3lidjZoQT09",
     "First Name": "Grace",
     "Last Name": "Gescheidle",
@@ -957,20 +605,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDOHlMaitodz09",
     "First Name": "Wendy",
     "Last Name": "Hubbard",
@@ -980,20 +621,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WlNlN3lidjZodz09",
     "First Name": "Sara",
     "Last Name": "Hunter",
@@ -1003,20 +637,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkM2eHg3NzdnUT09",
     "First Name": "Elizabeth",
     "Last Name": "Pruett",
@@ -1026,20 +653,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNDOHlMZndnZz09",
     "First Name": "Kim",
     "Last Name": "Robb",
@@ -1049,20 +669,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkNHNXhMejhnQT09",
     "First Name": "Stacy",
     "Last Name": "Sanderson",
@@ -1072,20 +685,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Onwentsia 9",
     "Club": "Onwentsia",
-    "Location ID": "ONWENTSIA",
+    "Series": "Series 9",
+    "Team": "Onwentsia 9",
     "Player ID": "cnswpl_WkMrL3lMbjRoUT09",
     "First Name": "Catherine",
     "Last Name": "Yehle",
@@ -1095,43 +701,45 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdiZis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Onwentsia 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Onwentsia 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhydjZnQT09",
-    "First Name": "Janet",
-    "Last Name": "Maxwell-Wickett",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
+    "Player ID": "cnswpl_WkM2d3g3djdoUT09",
+    "First Name": "Tammy",
+    "Last Name": "Stachorek",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
+    "Player ID": "cnswpl_WkM2eHhydjVodz09",
+    "First Name": "Courtney",
+    "Last Name": "Veit",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Park Ridge",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
     "Player ID": "cnswpl_WkNHNXdyZjRnZz09",
     "First Name": "Tiffany",
     "Last Name": "Kraft",
@@ -1139,22 +747,31 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
+    "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
+    "Player ID": "cnswpl_WkM2eHhydjZnQT09",
+    "First Name": "Janet",
+    "Last Name": "Maxwell-Wickett",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Park Ridge",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
     "Player ID": "cnswpl_WkNHNXdyZjRndz09",
     "First Name": "Aileen",
     "Last Name": "O'Malley",
@@ -1164,43 +781,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhydjVodz09",
-    "First Name": "Courtney",
-    "Last Name": "Veit",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
-    "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
+    "Team": "Park Ridge 9",
     "Player ID": "cnswpl_WkNDL3diejRoUT09",
     "First Name": "Kim",
     "Last Name": "Williams",
@@ -1210,20 +797,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
     "Player ID": "cnswpl_WkNDL3diNzdqQT09",
     "First Name": "Nageen",
     "Last Name": "Wilson",
@@ -1233,20 +813,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Park Ridge 9",
     "Club": "Park Ridge",
-    "Location ID": "PARK_RIDGE",
+    "Series": "Series 9",
+    "Team": "Park Ridge 9",
     "Player ID": "cnswpl_WkNDL3diMzRoZz09",
     "First Name": "Holly",
     "Last Name": "Zimmermann",
@@ -1256,20 +829,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMMzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Park Ridge 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Park Ridge 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3dicjdndz09",
     "First Name": "Tracy",
     "Last Name": "Winslow",
@@ -1279,20 +845,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkM2eHg3ejhnUT09",
     "First Name": "Jennifer",
     "Last Name": "Tarr",
@@ -1302,20 +861,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3diejlqQT09",
     "First Name": "Jennifer",
     "Last Name": "Balestrery",
@@ -1325,20 +877,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDOHlMcjVnQT09",
     "First Name": "Andrea",
     "Last Name": "Bechtel",
@@ -1348,20 +893,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3didjhoQT09",
     "First Name": "Melissa",
     "Last Name": "Corley",
@@ -1371,20 +909,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3diNytndz09",
     "First Name": "Julie",
     "Last Name": "Hallinan",
@@ -1394,20 +925,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDOHlMbitodz09",
     "First Name": "Catherine",
     "Last Name": "Hurtgen",
@@ -1417,20 +941,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3diN3hndz09",
     "First Name": "Kim",
     "Last Name": "Melancon",
@@ -1440,20 +957,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3dicnhndz09",
     "First Name": "Holly",
     "Last Name": "Newcomb",
@@ -1463,20 +973,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkM2eHhyajdnQT09",
     "First Name": "Kate",
     "Last Name": "Osmond",
@@ -1486,20 +989,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNHNXdMdjVqUT09",
     "First Name": "Priya",
     "Last Name": "Roop",
@@ -1509,20 +1005,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Skokie 9",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series 9",
+    "Team": "Skokie 9",
     "Player ID": "cnswpl_WkNDL3diNytnZz09",
     "First Name": "Cynthia",
     "Last Name": "Werts",
@@ -1532,434 +1021,269 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMejc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkNDL3diejdoQT09",
-    "First Name": "Liz",
-    "Last Name": "Kosky",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkM2eHliNzVqQT09",
+    "First Name": "Angie",
+    "Last Name": "Taggart",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkNDL3diNzhnUT09",
-    "First Name": "Mary Lynn",
-    "Last Name": "Sims",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHg3N3doZz09",
-    "First Name": "Tara",
-    "Last Name": "Baker",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHg3N3dndz09",
-    "First Name": "Dani",
-    "Last Name": "Berman",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkNDOHlMZjRnUT09",
-    "First Name": "Cindy",
-    "Last Name": "Brady",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkNDL3diNzhqQT09",
-    "First Name": "Michelle",
-    "Last Name": "Culver",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkNDOHlMcnhoUT09",
-    "First Name": "Carol",
-    "Last Name": "Deitch",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHg3N3dqQT09",
-    "First Name": "Susie",
-    "Last Name": "Lees",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHlMejVoUT09",
-    "First Name": "Lori",
-    "Last Name": "Moros",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHg3LzVoUT09",
-    "First Name": "Stef",
-    "Last Name": "Pinsky",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Tennaqua 9",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHlML3dnZz09",
-    "First Name": "Jo Ann",
-    "Last Name": "Seager",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTNXdMLzk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkMrL3lMbjRoZz09",
-    "First Name": "Kate",
-    "Last Name": "Reed",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkNDL3diditoZz09",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkNDL3didndoZz09",
     "First Name": "Anne",
-    "Last Name": "Hart",
+    "Last Name": "Kelly",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkM2eHhyZjhoQT09",
-    "First Name": "Stephanie",
-    "Last Name": "Adam",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkM2eHg3LzlnZz09",
+    "First Name": "Diane",
+    "Last Name": "Graf",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkNDL3diejZqUT09",
-    "First Name": "Betsie",
-    "Last Name": "Ball",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkMrK3g3Yjlodz09",
+    "First Name": "Kelly",
+    "Last Name": "Gruner",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkNDL3diLzdqUT09",
-    "First Name": "Tricia",
-    "Last Name": "Chookaszian",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkMrK3hiaitoQT09",
+    "First Name": "Amy",
+    "Last Name": "Hodgman",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkNDL3diLzRnQT09",
-    "First Name": "Karen",
-    "Last Name": "Fata",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkM2eHliNzRodz09",
+    "First Name": "Sacha",
+    "Last Name": "Krasney",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Wilmette",
     "Series": "Series 9",
-    "Series Mapping ID": "Westmoreland 9",
-    "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
-    "Player ID": "cnswpl_WkNHNXc3cjhqQT09",
-    "First Name": "Kate",
-    "Last Name": "Schuppan",
+    "Team": "Wilmette 9",
+    "Player ID": "cnswpl_WkMrN3g3ajZnZz09",
+    "First Name": "Liz",
+    "Last Name": "Wesemann",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkM2OHg3My8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland 9",
-    "scrape_series": "Series 9"
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3liMzY%3D",
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9a",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNHN3dMbjZndz09",
+    "First Name": "Candice",
+    "Last Name": "Stepan",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkMrN3g3ajRqQT09",
+    "First Name": "Ellen",
+    "Last Name": "Castellini",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDOHlMM3doZz09",
+    "First Name": "Kim",
+    "Last Name": "Knaus",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDOHlMYjlnQT09",
+    "First Name": "Michel",
+    "Last Name": "Mahaffey",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNHNXdyLzhnQT09",
+    "First Name": "Kerri",
+    "Last Name": "Melzl",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDK3lMZjlnUT09",
+    "First Name": "Diane",
+    "Last Name": "Noth",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDL3diN3dnZz09",
+    "First Name": "Kathy",
+    "Last Name": "Pagano",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDOHlMYjhndz09",
+    "First Name": "Judy",
+    "Last Name": "Piccione",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9a",
+    "Series": "Series 9",
+    "Team": "Winnetka 9a 9",
+    "Player ID": "cnswpl_WkNDOHlMYjhoZz09",
+    "First Name": "Betsy",
+    "Last Name": "Weitzman",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3hyai8%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Winnetka 9b",
+    "Series": "Series 9",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkM2eHhidjlnQT09",
     "First Name": "Sarah",
     "Last Name": "Fuller",
@@ -1969,20 +1293,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkM2eHhidjloZz09",
     "First Name": "Julie",
     "Last Name": "Doell",
@@ -1992,20 +1309,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkM2eHdycjRnUT09",
     "First Name": "Diane",
     "Last Name": "Goodwin",
@@ -2015,20 +1325,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkNDOHlMZi9qQT09",
     "First Name": "Tiffany",
     "Last Name": "Laczkowski",
@@ -2038,20 +1341,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkNDL3diMzRqQT09",
     "First Name": "Debi",
     "Last Name": "Loarie",
@@ -2061,20 +1357,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkMrK3diM3hndz09",
     "First Name": "Hannah",
     "Last Name": "Plumpton",
@@ -2084,20 +1373,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkNDOHlMbi9nZz09",
     "First Name": "Eileen",
     "Last Name": "Rosenfeld",
@@ -2107,20 +1389,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkNDL3diLzhnQT09",
     "First Name": "Abby",
     "Last Name": "Sarnoff",
@@ -2130,20 +1405,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkNDOHlMajlndz09",
     "First Name": "Cheryl",
     "Last Name": "Schwartz",
@@ -2153,20 +1421,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Winnetka 9b",
     "Series": "Series 9",
-    "Series Mapping ID": "Winnetka 9",
-    "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Team": "Winnetka 9b 9",
     "Player ID": "cnswpl_WkM2d3c3ZjZqUT09",
     "First Name": "Stacey",
     "Last Name": "Wilson",
@@ -2176,12 +1437,6 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lieis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka 9 team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka 9",
-    "scrape_series": "Series 9"
+    "source_league": "CNSWPL"
   }
 ]

@@ -1,10 +1,9 @@
 [
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3ci9ndz09",
     "First Name": "Christine",
     "Last Name": "ONeil",
@@ -14,20 +13,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMreHdiL3hndz09",
     "First Name": "Laura",
     "Last Name": "Curry",
@@ -37,20 +29,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3dnhndz09",
     "First Name": "Ericka",
     "Last Name": "Foster",
@@ -60,20 +45,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3djRnQT09",
     "First Name": "Jenny",
     "Last Name": "Jordan",
@@ -83,20 +61,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3djhndz09",
     "First Name": "Alison",
     "Last Name": "Kehrer",
@@ -106,20 +77,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WlNlOHlMejhnUT09",
     "First Name": "Blair",
     "Last Name": "Kerr",
@@ -129,20 +93,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMreHdiMzhqQT09",
     "First Name": "Paige",
     "Last Name": "Kerr",
@@ -152,20 +109,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3ajloUT09",
     "First Name": "Caitlin",
     "Last Name": "Macleod",
@@ -175,20 +125,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3liYjRnZz09",
     "First Name": "Mekhala",
     "Last Name": "Middleton",
@@ -198,20 +141,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3bndoUT09",
     "First Name": "Jennifer",
     "Last Name": "Sheedy",
@@ -221,20 +157,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Glenbrook H",
     "Club": "Glenbrook",
-    "Location ID": "GLENBROOK",
+    "Series": "Series H",
+    "Team": "Glenbrook H",
     "Player ID": "cnswpl_WkMrK3g3djdndz09",
     "First Name": "Margaret",
     "Last Name": "Sullivan",
@@ -244,43 +173,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLzQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glenbrook H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glenbrook H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyandqUT09",
-    "First Name": "Shannon",
-    "Last Name": "Bernard",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
+    "Team": "Sunset Ridge H",
     "Player ID": "cnswpl_WkM2eHhyandnZz09",
     "First Name": "Allison",
     "Last Name": "Bauman",
@@ -290,43 +189,29 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVqUT09",
-    "First Name": "Katie",
-    "Last Name": "Cassman",
+    "Series": "Series H",
+    "Team": "Sunset Ridge H",
+    "Player ID": "cnswpl_WkM2eHhyandqUT09",
+    "First Name": "Shannon",
+    "Last Name": "Bernard",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
+    "Series": "Series H",
+    "Team": "Sunset Ridge H",
     "Player ID": "cnswpl_WlNhNnhicjhnZz09",
     "First Name": "Cricket",
     "Last Name": "King",
@@ -336,20 +221,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
+    "Series": "Series H",
+    "Team": "Sunset Ridge H",
     "Player ID": "cnswpl_WkM2eHhybjVoQT09",
     "First Name": "Jennifer",
     "Last Name": "Mcginn",
@@ -359,43 +237,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVnUT09",
-    "First Name": "Abigail",
-    "Last Name": "Murphy",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
+    "Team": "Sunset Ridge H",
     "Player ID": "cnswpl_WlNlN3g3djZndz09",
     "First Name": "Cheryl",
     "Last Name": "Myhre",
@@ -405,66 +253,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
     "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkMrK3diM3hoQT09",
-    "First Name": "Rachel",
-    "Last Name": "Schmitt",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVndz09",
-    "First Name": "Sally",
-    "Last Name": "Toland",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Sunset Ridge H",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
+    "Team": "Sunset Ridge H",
     "Player ID": "cnswpl_WkMrK3dianhndz09",
     "First Name": "Britt",
     "Last Name": "Vranek",
@@ -474,20 +269,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkM2eHhybndoZz09",
     "First Name": "Audrey",
     "Last Name": "Love",
@@ -497,66 +285,29 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkMrK3hiNzZoZz09",
-    "First Name": "Katherine",
-    "Last Name": "Sharp",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
+    "Player ID": "cnswpl_WkMrL3lMYnhnZz09",
+    "First Name": "Kelly",
+    "Last Name": "Lyden",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhyYjVoQT09",
-    "First Name": "Megan",
-    "Last Name": "Boley",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkMrK3dyNzZnQT09",
     "First Name": "Germaine",
     "Last Name": "Condren",
@@ -566,66 +317,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybndoUT09",
-    "First Name": "Linda",
-    "Last Name": "Davis",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybitoQT09",
-    "First Name": "Renee",
-    "Last Name": "Devedjian",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkM2eHhyYjVoZz09",
     "First Name": "Grace",
     "Last Name": "Hanover",
@@ -635,43 +333,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhyYjdoUT09",
-    "First Name": "Christine",
-    "Last Name": "Omalley",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkM2eHhybndnQT09",
     "First Name": "Raquel",
     "Last Name": "Powers",
@@ -681,43 +349,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkMrL3lMYndndz09",
-    "First Name": "Marian",
-    "Last Name": "Rice",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkMrL3lMZjZoQT09",
     "First Name": "Christie",
     "Last Name": "Savery",
@@ -727,20 +365,61 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
+    "Player ID": "cnswpl_WkMrK3g3My9oUT09",
+    "First Name": "Kristin",
+    "Last Name": "Schmitz",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Tennaqua",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
+    "Player ID": "cnswpl_WkMrK3hiNzZoZz09",
+    "First Name": "Katherine",
+    "Last Name": "Sharp",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Tennaqua",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
+    "Player ID": "cnswpl_WlNlN3dMbjlqQT09",
+    "First Name": "Erica",
+    "Last Name": "Sis",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Tennaqua",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkM2eHhybnhndz09",
     "First Name": "Tracy",
     "Last Name": "Smith",
@@ -750,20 +429,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Tennaqua H",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Series": "Series H",
+    "Team": "Tennaqua H",
     "Player ID": "cnswpl_WkM2eHhybndqQT09",
     "First Name": "Jennifer",
     "Last Name": "Strang",
@@ -773,20 +445,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiL3c%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkM2eHhyZnhnQT09",
     "First Name": "Betsy",
     "Last Name": "Nelson",
@@ -796,20 +461,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkM2eHhyZndqQT09",
     "First Name": "Amanda",
     "Last Name": "Stephen",
@@ -819,20 +477,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkM2eHhyZjdnZz09",
     "First Name": "Megan",
     "Last Name": "Beutel",
@@ -842,20 +493,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkMreHg3NzdnUT09",
     "First Name": "Jennifer",
     "Last Name": "Braatz",
@@ -865,20 +509,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkM2eHhyajRnUT09",
     "First Name": "Jessica",
     "Last Name": "Coleman",
@@ -888,20 +525,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkM2eHhyZndoZz09",
     "First Name": "Holly",
     "Last Name": "Francis",
@@ -911,20 +541,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkMrL3lMMzhoQT09",
     "First Name": "Melissa",
     "Last Name": "Frick",
@@ -934,20 +557,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlNnhiajdqQT09",
     "First Name": "Maureen",
     "Last Name": "Huhs",
@@ -957,20 +573,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlN3g3cnhoQT09",
     "First Name": "Nora",
     "Last Name": "Jackson",
@@ -980,20 +589,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkMrL3lMejRndz09",
     "First Name": "Laura",
     "Last Name": "Lester",
@@ -1003,20 +605,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlN3c3di9nQT09",
     "First Name": "Molly",
     "Last Name": "McDermott",
@@ -1026,20 +621,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlN3dMdi9ndz09",
     "First Name": "Caroline",
     "Last Name": "Mitchell",
@@ -1049,20 +637,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WkNHNXc3ci9nQT09",
     "First Name": "Meghan",
     "Last Name": "Murphy",
@@ -1072,20 +653,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlN3dyajVnQT09",
     "First Name": "Ann",
     "Last Name": "Webb",
@@ -1095,20 +669,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Westmoreland H",
     "Club": "Westmoreland",
-    "Location ID": "WESTMORELAND",
+    "Series": "Series H",
+    "Team": "Westmoreland H",
     "Player ID": "cnswpl_WlNlNnhiei9nUT09",
     "First Name": "Claire",
     "Last Name": "Winnard",
@@ -1118,20 +685,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiMy8%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Westmoreland H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Westmoreland H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVqUT09",
     "First Name": "Margaret",
     "Last Name": "Pezza",
@@ -1141,20 +701,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVodz09",
     "First Name": "Cathleen",
     "Last Name": "Dettling",
@@ -1164,20 +717,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVoUT09",
     "First Name": "Katie",
     "Last Name": "Byrne",
@@ -1187,20 +733,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVoQT09",
     "First Name": "Ann-marie",
     "Last Name": "Cagney",
@@ -1210,20 +749,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVoZz09",
     "First Name": "Molly",
     "Last Name": "Harris",
@@ -1233,20 +765,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVnUT09",
     "First Name": "Molly",
     "Last Name": "Inzitari",
@@ -1256,20 +781,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkNHNXdMcnhnUT09",
     "First Name": "Michele",
     "Last Name": "Johnston",
@@ -1279,20 +797,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVndz09",
     "First Name": "Cora",
     "Last Name": "Kelliher",
@@ -1302,20 +813,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVnZz09",
     "First Name": "Gretchen",
     "Last Name": "Lyons",
@@ -1325,20 +829,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkNHNHlMenhnUT09",
     "First Name": "Amy",
     "Last Name": "O'Donovan",
@@ -1348,20 +845,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzVqQT09",
     "First Name": "Megan",
     "Last Name": "Roche",
@@ -1371,20 +861,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzRoUT09",
     "First Name": "Patti",
     "Last Name": "Sheahan",
@@ -1394,20 +877,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Wilmette H (1) H",
     "Club": "Wilmette H (1)",
-    "Location ID": "WILMETTE_H_(1)",
+    "Series": "Series H",
+    "Team": "Wilmette H (1) H",
     "Player ID": "cnswpl_WkM2eHliLzRoQT09",
     "First Name": "Elizabeth",
     "Last Name": "Sheedy",
@@ -1417,20 +893,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Wilmette H (1) team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Wilmette H (1)",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkM2d3hidnhoUT09",
     "First Name": "Susana",
     "Last Name": "Castella",
@@ -1440,20 +909,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMMzdndz09",
     "First Name": "Krista",
     "Last Name": "McGrath Polan",
@@ -1463,20 +925,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkM2d3hidnhoZz09",
     "First Name": "Cristina",
     "Last Name": "Aliagas",
@@ -1486,20 +941,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMdnhnQT09",
     "First Name": "Grace",
     "Last Name": "Brennan",
@@ -1509,20 +957,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMMzRqUT09",
     "First Name": "Katie",
     "Last Name": "Dunnigan",
@@ -1532,20 +973,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMbitqQT09",
     "First Name": "Kendall",
     "Last Name": "Fox",
@@ -1555,20 +989,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMZnhoQT09",
     "First Name": "Megan",
     "Last Name": "Lively",
@@ -1578,20 +1005,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMdndoQT09",
     "First Name": "Elizabeth",
     "Last Name": "Miller",
@@ -1601,20 +1021,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrK3dibjRqUT09",
     "First Name": "Diana",
     "Last Name": "Moustoukas",
@@ -1624,20 +1037,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMYndoQT09",
     "First Name": "Elizabeth",
     "Last Name": "Muzik",
@@ -1647,20 +1053,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMdi9nZz09",
     "First Name": "Christy",
     "Last Name": "Ross",
@@ -1670,20 +1069,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series H",
-    "Series Mapping ID": "Winnetka H",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series H",
+    "Team": "Winnetka H",
     "Player ID": "cnswpl_WkMrL3lMdi9nQT09",
     "First Name": "Brigid",
     "Last Name": "Sexton",
@@ -1693,12 +1085,6 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNDOXhMLys%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka H team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka H",
-    "scrape_series": "Series H"
+    "source_league": "CNSWPL"
   }
 ]

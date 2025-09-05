@@ -303,7 +303,7 @@ class PlayersETL:
             tenniscores_player_id = (record.get("Player ID") or "").strip()
             first_name = (record.get("First Name") or "").strip()
             last_name = (record.get("Last Name") or "").strip()
-            team_name = (record.get("Series Mapping ID") or "").strip()
+            team_name = (record.get("Team") or record.get("Series Mapping ID") or "").strip()
             club_name = (record.get("Club") or "").strip()
             raw_league_id = (record.get("League") or "").strip()
             series_name = (record.get("Series") or "").strip()
@@ -327,8 +327,8 @@ class PlayersETL:
             
             # Look up team ID
             team_id = None
-            if team_name and league_db_id:
-                team_id = team_cache.get((league_db_id, team_name))
+            if team_name and league_id:
+                team_id = team_cache.get((league_id, team_name))
                 if not team_id:
                     logger.warning(f"Team not found: {team_name} in {league_id}")
             
@@ -367,8 +367,8 @@ class PlayersETL:
             
             # Look up series ID
             series_id = None
-            if series_name and league_db_id:
-                series_id = series_cache.get((league_db_id, series_name))
+            if series_name and league_id:
+                series_id = series_cache.get((league_id, series_name))
                 if not series_id:
                     logger.warning(f"Series not found: {series_name} in {league_id}")
             

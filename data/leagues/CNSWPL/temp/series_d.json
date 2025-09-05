@@ -1,10 +1,361 @@
 [
   {
     "League": "CNSWPL",
+    "Club": "Evanston",
     "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNytoZz09",
+    "First Name": "Nancy",
+    "Last Name": "Hammond",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkNDeHdiNzVoZz09",
+    "First Name": "Cheryl",
+    "Last Name": "Miller",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNzhoQT09",
+    "First Name": "Sonja",
+    "Last Name": "Baichwal",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNy9qQT09",
+    "First Name": "Heather",
+    "Last Name": "Bristol",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkNDOHlMZjdqUT09",
+    "First Name": "Lorri",
+    "Last Name": "Gerdeman",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNytnQT09",
+    "First Name": "Barb",
+    "Last Name": "Kucera",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNytndz09",
+    "First Name": "Kandace",
+    "Last Name": "Lenti",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNytqUT09",
+    "First Name": "Nancy",
+    "Last Name": "Paridy",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkNHNXc3dndnUT09",
+    "First Name": "Kristina",
+    "Last Name": "Pierce",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkNDOHlMYjhoUT09",
+    "First Name": "Kathy",
+    "Last Name": "Shaw",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkM2eHhyNzhnZz09",
+    "First Name": "Melinda",
+    "Last Name": "Skiles",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Evanston",
+    "Series": "Series D",
+    "Team": "Evanston D",
+    "Player ID": "cnswpl_WkNHNHlMcjloQT09",
+    "First Name": "Marie",
+    "Last Name": "Stensland",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzlndz09",
+    "First Name": "Katie",
+    "Last Name": "Hegener",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhnQT09",
+    "First Name": "Lisa",
+    "Last Name": "Nyhan",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzlnUT09",
+    "First Name": "Anne",
+    "Last Name": "Forman",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhnUT09",
+    "First Name": "Maureen",
+    "Last Name": "Kinzer",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhoUT09",
+    "First Name": "Lauren",
+    "Last Name": "Macklis",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhoQT09",
+    "First Name": "Karen",
+    "Last Name": "Mady",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhoZz09",
+    "First Name": "Emily",
+    "Last Name": "Mason",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WlNhNnlMLzlnZz09",
+    "First Name": "Hannah",
+    "Last Name": "Reid",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkMrK3liajhoZz09",
+    "First Name": "Leah",
+    "Last Name": "Rosenfeld",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Exmoor",
+    "Series": "Series D",
+    "Team": "Exmoor D",
+    "Player ID": "cnswpl_WkM2eHhyLzhqQT09",
+    "First Name": "Nikki",
+    "Last Name": "Smith",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkM2eHhyLytndz09",
     "First Name": "Hannah",
     "Last Name": "Mannino",
@@ -14,20 +365,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkNDL3diei9nZz09",
     "First Name": "Jen",
     "Last Name": "Farr",
@@ -37,20 +381,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WlNlN3liZnhoZz09",
     "First Name": "MT",
     "Last Name": "Barkhausen",
@@ -60,20 +397,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WlNhNnliLy9oUT09",
     "First Name": "Collier",
     "Last Name": "Brown",
@@ -83,20 +413,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkNDeHdiLzVoQT09",
     "First Name": "Anne",
     "Last Name": "Edwards",
@@ -106,20 +429,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkM2eHhyLytoZz09",
     "First Name": "Laura",
     "Last Name": "Hayes",
@@ -129,20 +445,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkNDOHlMYitnQT09",
     "First Name": "Shelley",
     "Last Name": "Keller",
@@ -152,20 +461,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkM2eHlMbjloUT09",
     "First Name": "Christi",
     "Last Name": "Rose",
@@ -175,20 +477,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkNDOHlMendqQT09",
     "First Name": "Jackie",
     "Last Name": "Thompson",
@@ -198,20 +493,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Glen View D",
     "Club": "Glen View",
-    "Location ID": "GLEN_VIEW",
+    "Series": "Series D",
+    "Team": "Glen View D",
     "Player ID": "cnswpl_WkM2eHhyL3hodz09",
     "First Name": "Chelsea",
     "Last Name": "Zur",
@@ -221,20 +509,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiLzY%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Glen View D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Glen View D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkM2eHhyenhnQT09",
     "First Name": "Amanda",
     "Last Name": "Marijanovic",
@@ -244,20 +525,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkM2eHhyenhoZz09",
     "First Name": "Lauren",
     "Last Name": "Kuetemeyer",
@@ -267,20 +541,29 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
+    "Player ID": "cnswpl_WlNTN3c3ZjZodz09",
+    "First Name": "Cindy",
+    "Last Name": "Corrigan",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Lake Bluff",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkM2eHhyeitqQT09",
     "First Name": "Julie",
     "Last Name": "Eglite",
@@ -290,20 +573,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkNDL3didjdodz09",
     "First Name": "Jenn",
     "Last Name": "Elsen",
@@ -313,20 +589,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Series": "Series D",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkMrK3hiNzhoZz09",
     "First Name": "Charlene",
     "Last Name": "Fritz-Brennan",
@@ -336,112 +605,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
     "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkMrK3diZitoQT09",
-    "First Name": "Jaime",
-    "Last Name": "Goberville",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkMreHdidjVqQT09",
-    "First Name": "Julie",
-    "Last Name": "Gottshall",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkM2eHhyenhoQT09",
-    "First Name": "Sarah",
-    "Last Name": "Gundlach",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkM2eHhyenhodz09",
-    "First Name": "Trina",
-    "Last Name": "Henney",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
+    "Team": "Lake Bluff D",
     "Player ID": "cnswpl_WkM2eHhyenhnUT09",
     "First Name": "Kate",
     "Last Name": "Lohmueller",
@@ -451,66 +621,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkMrK3c3Ly9nZz09",
-    "First Name": "Sarah",
-    "Last Name": "Long",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Lake Bluff D",
-    "Club": "Lake Bluff",
-    "Location ID": "LAKE_BLUFF",
-    "Player ID": "cnswpl_WkM2eHhyenhndz09",
-    "First Name": "Victoria",
-    "Last Name": "Phillips",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbis%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Lake Bluff D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Lake Bluff D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkNDOHlMeitqUT09",
     "First Name": "Margie",
     "Last Name": "Bennett",
@@ -518,22 +635,31 @@
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "",
+    "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
+    "Player ID": "cnswpl_WkNDOHlMZjlnQT09",
+    "First Name": "Rebecca",
+    "Last Name": "Walsh",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Michigan Shores",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkNDOHlMZjlqUT09",
     "First Name": "Christel",
     "Last Name": "Fairchild",
@@ -543,20 +669,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkM2eHhycjZoQT09",
     "First Name": "Kristine",
     "Last Name": "Fischer",
@@ -566,20 +685,29 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
+    "Player ID": "cnswpl_WkM2eHhycjVqUT09",
+    "First Name": "Denise",
+    "Last Name": "Kenny",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Michigan Shores",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkM2eHg3ejlnZz09",
     "First Name": "Amy",
     "Last Name": "Pawasarat",
@@ -589,20 +717,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkM2eHhycjdnUT09",
     "First Name": "Natasha",
     "Last Name": "Poylin",
@@ -612,20 +733,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkNDOHlMYjdoZz09",
     "First Name": "Jean",
     "Last Name": "Scott",
@@ -635,20 +749,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
     "Player ID": "cnswpl_WkM2eHhycjVoQT09",
     "First Name": "Susan",
     "Last Name": "Spoeri",
@@ -658,43 +765,29 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Michigan Shores D",
     "Club": "Michigan Shores",
-    "Location ID": "MICHIGAN_SHORES",
-    "Player ID": "cnswpl_WkNDOHlMZjlnQT09",
-    "First Name": "Rebecca",
-    "Last Name": "Walsh",
+    "Series": "Series D",
+    "Team": "Michigan Shores D",
+    "Player ID": "cnswpl_WkM2eHhycjRoZz09",
+    "First Name": "Betsy",
+    "Last Name": "Vankula",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbnc%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Michigan Shores D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Michigan Shores D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkNDL3diejVnZz09",
     "First Name": "Carol",
     "Last Name": "Dawley",
@@ -704,20 +797,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkNDL3diejVqUT09",
     "First Name": "Donna",
     "Last Name": "Craven",
@@ -727,20 +813,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyajhoZz09",
     "First Name": "Jess",
     "Last Name": "Barker",
@@ -750,20 +829,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkNDL3dicjZoUT09",
     "First Name": "Catie",
     "Last Name": "Jacobsen",
@@ -773,20 +845,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyajlodz09",
     "First Name": "Paula",
     "Last Name": "Kelly",
@@ -796,20 +861,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyajlnUT09",
     "First Name": "Melissa",
     "Last Name": "Molitor",
@@ -819,20 +877,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyajlnQT09",
     "First Name": "Alison",
     "Last Name": "Murphy",
@@ -842,20 +893,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyai9ndz09",
     "First Name": "Taylor",
     "Last Name": "Oliver Schoder",
@@ -865,20 +909,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHg3ejZnUT09",
     "First Name": "Carolyn",
     "Last Name": "Rammel",
@@ -888,20 +925,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyajZoQT09",
     "First Name": "Katie",
     "Last Name": "Rooney",
@@ -911,20 +941,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkNDL3diNytqQT09",
     "First Name": "Susan",
     "Last Name": "Schmitt",
@@ -934,20 +957,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkM2eHhyai9qUT09",
     "First Name": "Mary",
     "Last Name": "Schoder",
@@ -957,20 +973,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WkMrK3dMNzVodz09",
     "First Name": "Sarah",
     "Last Name": "Sims",
@@ -980,20 +989,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Skokie D",
     "Club": "Skokie",
-    "Location ID": "SKOKIE",
+    "Series": "Series D",
+    "Team": "Skokie D",
     "Player ID": "cnswpl_WlNlN3dyajZqQT09",
     "First Name": "Carla",
     "Last Name": "Young",
@@ -1003,342 +1005,61 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiNzg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Skokie D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Skokie D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Tennaqua",
     "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyandoUT09",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhyYjVqUT09",
+    "First Name": "Katie",
+    "Last Name": "Maher",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Tennaqua",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhyYjVndz09",
     "First Name": "Jen",
-    "Last Name": "Leslie",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2d3c3andodz09",
-    "First Name": "Emily",
-    "Last Name": "Christman",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "Yes",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyaitndz09",
-    "First Name": "Kimberly",
-    "Last Name": "Boyd",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyandoQT09",
-    "First Name": "Idoia",
-    "Last Name": "Hidalgo",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVoUT09",
-    "First Name": "Chanen",
-    "Last Name": "Lively",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjRodz09",
-    "First Name": "Kendall",
-    "Last Name": "Mancillas",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVodz09",
-    "First Name": "Carreen",
-    "Last Name": "Morrison",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVoZz09",
-    "First Name": "Lindsay",
-    "Last Name": "Mullen",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhybjVnQT09",
-    "First Name": "Sammi",
-    "Last Name": "Newmark",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyandoZz09",
-    "First Name": "Krista",
-    "Last Name": "Robinson",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkMrNnc3anhnQT09",
-    "First Name": "Frosty",
-    "Last Name": "Smigiel",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Sunset Ridge D",
-    "Club": "Sunset Ridge",
-    "Location ID": "SUNSET_RIDGE",
-    "Player ID": "cnswpl_WkM2eHhyandnQT09",
-    "First Name": "Sona",
-    "Last Name": "Young",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjk%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Sunset Ridge D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Sunset Ridge D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybjlnUT09",
-    "First Name": "Nisha",
-    "Last Name": "Nawal",
+    "Last Name": "Kleckner",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybi9nZz09",
-    "First Name": "Katherine",
-    "Last Name": "Stahl",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhyYjRoZz09",
+    "First Name": "Katie",
+    "Last Name": "Bongiorno",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
-    "Captain": "Yes",
+    "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
     "Player ID": "cnswpl_WkM2eHhybitoUT09",
     "First Name": "Crissy",
     "Last Name": "Crane",
@@ -1348,43 +1069,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybi9oZz09",
-    "First Name": "Joey",
-    "Last Name": "Gault",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua D",
     "Player ID": "cnswpl_WkM2eHhybjloQT09",
     "First Name": "Sylvia",
     "Last Name": "Gomez",
@@ -1394,135 +1085,45 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybnhoQT09",
-    "First Name": "Alison",
-    "Last Name": "Kaye",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhybjlodz09",
+    "First Name": "Maggie",
+    "Last Name": "Hach",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkMrK3dMZjRoUT09",
-    "First Name": "Mallory",
-    "Last Name": "Kistner",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhyYjRqQT09",
+    "First Name": "Rachel",
+    "Last Name": "Komornik",
     "PTI": "N/A",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
     "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhyYjVndz09",
-    "First Name": "Jen",
-    "Last Name": "Kleckner",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
     "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhyYjVqUT09",
-    "First Name": "Katie",
-    "Last Name": "Maher",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
-    "Player ID": "cnswpl_WkM2eHhybjlnQT09",
-    "First Name": "Lisa",
-    "Last Name": "Peiser",
-    "PTI": "N/A",
-    "Wins": "0",
-    "Losses": "0",
-    "Win %": "0.0%",
-    "Captain": "",
-    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
-  },
-  {
-    "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Tennaqua D",
-    "Club": "Tennaqua",
-    "Location ID": "TENNAQUA",
+    "Team": "Tennaqua D",
     "Player ID": "cnswpl_WkM2eHhybi9nQT09",
     "First Name": "Colleen",
     "Last Name": "Siau",
@@ -1532,20 +1133,45 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Tennaqua D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Tennaqua D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Tennaqua",
     "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhybitqUT09",
+    "First Name": "Shannon",
+    "Last Name": "Stoneberg",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Tennaqua",
+    "Series": "Series D",
+    "Team": "Tennaqua D",
+    "Player ID": "cnswpl_WkM2eHhyYjRodz09",
+    "First Name": "Kristin",
+    "Last Name": "Ware",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMYjg%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkNDL3diMzdodz09",
     "First Name": "Elyce",
     "Last Name": "Ventura",
@@ -1555,20 +1181,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYnhnQT09",
     "First Name": "Robyn",
     "Last Name": "Clark",
@@ -1578,20 +1197,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYi9nQT09",
     "First Name": "Erin",
     "Last Name": "Cook",
@@ -1601,20 +1213,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYi9ndz09",
     "First Name": "Diane",
     "Last Name": "Dimberg",
@@ -1624,20 +1229,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYjhnQT09",
     "First Name": "Ellen",
     "Last Name": "Garrison",
@@ -1647,20 +1245,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyZjRoZz09",
     "First Name": "Lindsay",
     "Last Name": "Gilbertson",
@@ -1670,20 +1261,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYnhqUT09",
     "First Name": "Amanda",
     "Last Name": "Hamner",
@@ -1693,20 +1277,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WlNhNndiLzdodz09",
     "First Name": "Elyse",
     "Last Name": "Martinsen",
@@ -1716,20 +1293,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYjhqUT09",
     "First Name": "Anne",
     "Last Name": "Moss",
@@ -1739,20 +1309,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkNDL3diejZodz09",
     "First Name": "Dana",
     "Last Name": "Ward",
@@ -1762,20 +1325,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Valley Lo D",
     "Club": "Valley Lo",
-    "Location ID": "VALLEY_LO",
+    "Series": "Series D",
+    "Team": "Valley Lo D",
     "Player ID": "cnswpl_WkM2eHhyYjhoQT09",
     "First Name": "Mimi",
     "Last Name": "Wotring",
@@ -1785,20 +1341,205 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjQ%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Valley Lo D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Valley Lo D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
+    "Club": "Westmoreland",
     "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZitoUT09",
+    "First Name": "Claire",
+    "Last Name": "Parker",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkNDL3diejlnUT09",
+    "First Name": "Laura",
+    "Last Name": "Probst",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Yes",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkNDL3didjRoQT09",
+    "First Name": "Katherine",
+    "Last Name": "Banich",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZjhodz09",
+    "First Name": "Sally",
+    "Last Name": "Christ",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZi9nQT09",
+    "First Name": "Haley",
+    "Last Name": "Dorsey",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZjhnUT09",
+    "First Name": "Jennifer",
+    "Last Name": "Fritzsche",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZi9nZz09",
+    "First Name": "Shelby",
+    "Last Name": "Hasten",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkNDL3diLzRodz09",
+    "First Name": "Kate",
+    "Last Name": "McBreen",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZjdndz09",
+    "First Name": "Jennifer",
+    "Last Name": "Serafini",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZitoQT09",
+    "First Name": "Lauren",
+    "Last Name": "Sheehan",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZitodz09",
+    "First Name": "Jerilyn",
+    "Last Name": "Smith",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
+    "Club": "Westmoreland",
+    "Series": "Series D",
+    "Team": "Westmoreland D",
+    "Player ID": "cnswpl_WkM2eHhyZi9oQT09",
+    "First Name": "Kate",
+    "Last Name": "Smith",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "",
+    "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPK3lMbjc%3D",
+    "source_league": "CNSWPL"
+  },
+  {
+    "League": "CNSWPL",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLytnUT09",
     "First Name": "Emily",
     "Last Name": "Marks",
@@ -1808,20 +1549,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliL3hoUT09",
     "First Name": "Kate",
     "Last Name": "Tess",
@@ -1831,20 +1565,13 @@
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLzZqQT09",
     "First Name": "Sally",
     "Last Name": "Anderson",
@@ -1854,20 +1581,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLy9odz09",
     "First Name": "Carolyn",
     "Last Name": "Brougham",
@@ -1877,20 +1597,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLytodz09",
     "First Name": "Julie",
     "Last Name": "Budzynski",
@@ -1900,20 +1613,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliL3hndz09",
     "First Name": "Courtney",
     "Last Name": "Doyle",
@@ -1923,20 +1629,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLy9ndz09",
     "First Name": "Yesha",
     "Last Name": "Hoeppner",
@@ -1946,20 +1645,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WlNhOXhMejRoQT09",
     "First Name": "Alice",
     "Last Name": "Morgan",
@@ -1969,20 +1661,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliLy9qQT09",
     "First Name": "Kate",
     "Last Name": "Schmidt",
@@ -1992,20 +1677,13 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   },
   {
     "League": "CNSWPL",
-    "Series": "Series D",
-    "Series Mapping ID": "Winnetka D",
     "Club": "Winnetka",
-    "Location ID": "WINNETKA",
+    "Series": "Series D",
+    "Team": "Winnetka D",
     "Player ID": "cnswpl_WkM2eHliL3hoQT09",
     "First Name": "Leah",
     "Last Name": "Wolff",
@@ -2015,12 +1693,6 @@
     "Win %": "0.0%",
     "Captain": "",
     "Source URL": "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNPeHdiejg%3D",
-    "source_league": "CNSWPL",
-    "validation_issues": [
-      "Scraped from Winnetka D team roster"
-    ],
-    "scrape_source": "team_roster_page",
-    "scrape_team": "Winnetka D",
-    "scrape_series": "Series D"
+    "source_league": "CNSWPL"
   }
 ]
