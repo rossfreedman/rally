@@ -3019,6 +3019,9 @@ def serve_all_team_availability():
             session["user"]["email"], "page_visit", page="mobile_all_team_availability"
         )
 
+        print(f"🚨 About to render template with data: {list(availability_data.keys()) if isinstance(availability_data, dict) else 'Not a dict'}")
+        current_app.logger.error(f"🚨 Rendering template with availability_data keys: {list(availability_data.keys()) if isinstance(availability_data, dict) else 'Not a dict'}")
+        
         return render_template(
             "mobile/all_team_availability.html",
             session_data=session_data,
