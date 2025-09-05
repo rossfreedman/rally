@@ -2753,43 +2753,19 @@ def get_all_team_availability_data(user, selected_date=None):
             # Get all internal player IDs for the bulk query
             internal_player_ids = list(player_id_lookup.values())
 
-            # Create a user-based query to get availability data (most reliable approach)
-            # Get user_ids for all players in this team to ensure proper filtering
-            user_ids_query = """
-                SELECT DISTINCT upa.user_id
-                FROM user_player_associations upa
-                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-                WHERE p.id = ANY(%s) AND p.is_active = true
+            # ROBUST: Use player_id query with dynamic series validation
+            # Get the actual series_id from the players being queried (not session)
+            placeholders = ",".join(["%s"] * len(internal_player_ids))
+            bulk_query = f"""
+                SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes
+                FROM player_availability pa
+                JOIN players p ON pa.player_id = p.id
+                WHERE pa.player_id IN ({placeholders})
+                AND pa.series_id = p.series_id
+                AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
             """
-            
-            user_ids_result = execute_query(user_ids_query, (internal_player_ids,))
-            team_user_ids = [row["user_id"] for row in user_ids_result if row["user_id"]]
-            
-            if team_user_ids:
-                # Use user_id based query with series_id filter for proper team context
-                user_placeholders = ",".join(["%s"] * len(team_user_ids))
-                bulk_query = f"""
-                    SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
-                    FROM player_availability pa
-                    JOIN players p ON pa.player_id = p.id
-                    WHERE pa.user_id IN ({user_placeholders})
-                    AND p.series_id = %s
-                    AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
-                """
-                bulk_params = tuple(team_user_ids) + (series_record["id"], selected_date_utc)
-                print(f"Using user-based query with series filter: {len(team_user_ids)} user_ids, series {series_record['id']}")
-            else:
-                # Fallback to player_id query with series filter
-                placeholders = ",".join(["%s"] * len(internal_player_ids))
-                bulk_query = f"""
-                    SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
-                    FROM player_availability pa
-                    WHERE pa.player_id IN ({placeholders})
-                    AND pa.series_id = %s
-                    AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
-                """
-                bulk_params = tuple(internal_player_ids) + (series_record["id"], selected_date_utc)
-                print(f"Using player_id query with series filter: {len(internal_player_ids)} player_ids, series {series_record['id']}")
+            bulk_params = tuple(internal_player_ids) + (selected_date_utc,)
+            print(f"Using robust query: {len(internal_player_ids)} player_ids with dynamic series validation")
 
             print(
                 f"Executing clean availability query for {len(internal_player_ids)} players using player IDs..."
@@ -2874,7 +2850,9 @@ def get_all_team_availability_data(user, selected_date=None):
             "query_player_count": len(internal_player_ids) if 'internal_player_ids' in locals() else 0,
             "series_id_used": series_record["id"] if 'series_record' in locals() and series_record else "None",
             "availability_found": len(availability_lookup) if 'availability_lookup' in locals() else 0,
-            "date_converted": str(selected_date_utc) if 'selected_date_utc' in locals() else "None"
+            "date_converted": str(selected_date_utc) if 'selected_date_utc' in locals() else "None",
+            "session_series": series,
+            "session_club": club_name
         }
         
         return {
