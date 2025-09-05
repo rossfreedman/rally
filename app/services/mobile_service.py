@@ -2645,6 +2645,7 @@ def get_all_team_availability_data(user, selected_date=None):
         print(f"Club: {club_name}")
         print(f"Series: {series}")
         print(f"Selected Date: {selected_date}")
+        print(f"🔍 DEBUG: Session data keys: {list(user.keys()) if user else 'None'}")
 
         if not club_name or not series:
             return {
@@ -2772,6 +2773,10 @@ def get_all_team_availability_data(user, selected_date=None):
                 }
 
             print(f"Found availability data for {len(availability_lookup)} players")
+            print(f"🔍 DEBUG: Availability lookup details:")
+            for player_id, avail_data in availability_lookup.items():
+                print(f"  Player ID {player_id}: status={avail_data['availability_status']}, notes='{avail_data['notes']}'")
+            print(f"🔍 DEBUG: Selected date for comparison: '{selected_date}'")
 
         except Exception as e:
             print(f"❌ Error in availability query: {e}")
@@ -2805,6 +2810,15 @@ def get_all_team_availability_data(user, selected_date=None):
             # Store with display name
             display_name = team_players_display[player_name]
             players_schedule[display_name] = availability
+            
+            # Debug specific players
+            if 'kristin ware' in player_name.lower() or 'katie maher' in player_name.lower():
+                print(f"🔍 DEBUG: {player_name} final data:")
+                print(f"  Display name: '{display_name}'")
+                print(f"  Availability record: {availability[0]}")
+                print(f"  Date field: '{availability[0]['date']}'")
+                print(f"  Status: {availability[0]['availability_status']}")
+                print(f"  Date comparison: '{availability[0]['date']}' == '{selected_date}' = {availability[0]['date'] == selected_date}")
 
         if not players_schedule:
             print("❌ No player schedules created")
