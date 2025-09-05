@@ -2766,27 +2766,30 @@ def get_all_team_availability_data(user, selected_date=None):
             team_user_ids = [row["user_id"] for row in user_ids_result if row["user_id"]]
             
             if team_user_ids:
-                # Use user_id based query (immune to series_id mismatches)
+                # Use user_id based query with series_id filter for proper team context
                 user_placeholders = ",".join(["%s"] * len(team_user_ids))
                 bulk_query = f"""
                     SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
                     FROM player_availability pa
+                    JOIN players p ON pa.player_id = p.id
                     WHERE pa.user_id IN ({user_placeholders})
+                    AND p.series_id = %s
                     AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
                 """
-                bulk_params = tuple(team_user_ids) + (selected_date_utc,)
-                print(f"Using user-based query with {len(team_user_ids)} user_ids")
+                bulk_params = tuple(team_user_ids) + (series_record["id"], selected_date_utc)
+                print(f"Using user-based query with series filter: {len(team_user_ids)} user_ids, series {series_record['id']}")
             else:
-                # Fallback to player_id query if no user_ids found
+                # Fallback to player_id query with series filter
                 placeholders = ",".join(["%s"] * len(internal_player_ids))
                 bulk_query = f"""
                     SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
                     FROM player_availability pa
                     WHERE pa.player_id IN ({placeholders})
+                    AND pa.series_id = %s
                     AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
                 """
-                bulk_params = tuple(internal_player_ids) + (selected_date_utc,)
-                print(f"Using fallback player_id query with {len(internal_player_ids)} player_ids")
+                bulk_params = tuple(internal_player_ids) + (series_record["id"], selected_date_utc)
+                print(f"Using player_id query with series filter: {len(internal_player_ids)} player_ids, series {series_record['id']}")
 
             print(
                 f"Executing clean availability query for {len(internal_player_ids)} players using player IDs..."

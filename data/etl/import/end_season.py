@@ -193,14 +193,38 @@ def delete_league_data(cur, league_id):
         raise
     
     try:
-        # Delete player_availability via player references
+        # Delete player_availability via player references (active records)
         cur.execute("""
             DELETE FROM player_availability 
             WHERE player_id IN (SELECT id FROM players WHERE league_id = %s)
         """, (league_id,))
-        deleted_count = cur.rowcount
-        print(f"  player_availability: {deleted_count} rows deleted")
-        total_deleted += deleted_count
+        deleted_active = cur.rowcount
+        
+        # ENHANCED: Also delete orphaned availability records via series_id
+        # This catches records where player_id no longer exists but series_id does
+        cur.execute("""
+            DELETE FROM player_availability 
+            WHERE series_id IN (SELECT id FROM series WHERE league_id = %s)
+        """, (league_id,))
+        deleted_by_series = cur.rowcount
+        
+        # ENHANCED: Clean up any remaining orphaned records for this league
+        # Find and delete records that reference non-existent players
+        cur.execute("""
+            DELETE FROM player_availability pa
+            USING series s
+            WHERE pa.series_id = s.id 
+            AND s.league_id = %s
+            AND pa.player_id NOT IN (SELECT id FROM players WHERE id IS NOT NULL)
+        """, (league_id,))
+        deleted_orphaned = cur.rowcount
+        
+        total_availability_deleted = deleted_active + deleted_by_series + deleted_orphaned
+        print(f"  player_availability: {total_availability_deleted} rows deleted")
+        print(f"    - Active records (via player_id): {deleted_active}")
+        print(f"    - Via series_id: {deleted_by_series}")  
+        print(f"    - Orphaned records: {deleted_orphaned}")
+        total_deleted += total_availability_deleted
     except Exception as e:
         print(f"  player_availability: ERROR - {e}")
         raise
@@ -324,9 +348,72 @@ def delete_league_data(cur, league_id):
     return total_deleted
 
 
+def validate_data_integrity_post_cleanup(cur, league_id, league_key):
+    """Validate data integrity after cleanup to ensure no orphaned records remain"""
+    print(f"\n🔍 VALIDATING DATA INTEGRITY POST-CLEANUP")
+    print("=" * 50)
+    
+    issues_found = 0
+    
+    # Check for orphaned availability records
+    cur.execute("""
+        SELECT COUNT(*) FROM player_availability pa
+        LEFT JOIN players p ON pa.player_id = p.id
+        WHERE p.id IS NULL
+    """)
+    orphaned_availability = cur.fetchone()[0]
+    
+    if orphaned_availability > 0:
+        print(f"❌ Found {orphaned_availability} orphaned availability records")
+        issues_found += 1
+    else:
+        print(f"✅ No orphaned availability records")
+    
+    # Check for series_id mismatches in availability
+    cur.execute("""
+        SELECT COUNT(*) FROM player_availability pa
+        JOIN players p ON pa.player_id = p.id
+        WHERE pa.series_id != p.series_id
+    """)
+    series_mismatches = cur.fetchone()[0]
+    
+    if series_mismatches > 0:
+        print(f"❌ Found {series_mismatches} availability records with series_id mismatches")
+        issues_found += 1
+    else:
+        print(f"✅ No series_id mismatches in availability records")
+    
+    # Check for duplicate series names within the same league
+    cur.execute("""
+        SELECT name, COUNT(*) as count
+        FROM series 
+        WHERE league_id = %s
+        GROUP BY name
+        HAVING COUNT(*) > 1
+    """, (league_id,))
+    duplicate_series = cur.fetchall()
+    
+    if duplicate_series:
+        print(f"❌ Found duplicate series names in league {league_key}:")
+        for name, count in duplicate_series:
+            print(f"   - '{name}': {count} instances")
+        issues_found += len(duplicate_series)
+    else:
+        print(f"✅ No duplicate series names in league {league_key}")
+    
+    print(f"\n📊 DATA INTEGRITY SUMMARY:")
+    print(f"   Issues found: {issues_found}")
+    if issues_found == 0:
+        print(f"   ✅ ALL DATA INTEGRITY CHECKS PASSED")
+    else:
+        print(f"   ⚠️ {issues_found} data integrity issues need attention")
+    
+    return issues_found == 0
+
 def main():
     parser = argparse.ArgumentParser(description="End season for a league")
     parser.add_argument("league_key", help="League key (e.g., CNSWPL, APTA_CHICAGO)")
+    parser.add_argument("--validate-integrity", action="store_true", help="Run data integrity validation after cleanup")
     args = parser.parse_args()
     
     league_key = args.league_key.strip()
@@ -378,6 +465,13 @@ def main():
         conn.commit()
         print(f"\nSeason ended successfully!")
         print(f"Total rows deleted: {total_deleted}")
+        
+        # ENHANCED: Run data integrity validation if requested
+        if args.validate_integrity:
+            integrity_passed = validate_data_integrity_post_cleanup(cur, league_id, league_key)
+            if not integrity_passed:
+                print(f"\n⚠️ Data integrity issues found after cleanup")
+                print(f"Consider running cleanup scripts to resolve remaining issues")
         
     except Exception as e:
         conn.rollback()
