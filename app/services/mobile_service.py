@@ -2847,7 +2847,19 @@ def get_all_team_availability_data(user, selected_date=None):
             f"✅ Successfully created availability schedule for {len(players_schedule)} players using user-player associations"
         )
 
-        return {"players_schedule": players_schedule, "selected_date": selected_date}
+        # Add debug info to template data
+        debug_info = {
+            "query_player_count": len(internal_player_ids) if 'internal_player_ids' in locals() else 0,
+            "series_id_used": series_record["id"] if 'series_record' in locals() and series_record else "None",
+            "availability_found": len(availability_lookup) if 'availability_lookup' in locals() else 0,
+            "date_converted": str(selected_date_utc) if 'selected_date_utc' in locals() else "None"
+        }
+        
+        return {
+            "players_schedule": players_schedule, 
+            "selected_date": selected_date,
+            "debug_info": debug_info
+        }
 
     except Exception as e:
         print(f"🚨 ERROR in get_all_team_availability_data: {str(e)}")

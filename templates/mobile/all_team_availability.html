@@ -14,6 +14,12 @@
         <p><strong>Players Schedule Type:</strong> {{ players_schedule.__class__.__name__ if players_schedule else 'None' }}</p>
         <p><strong>Players Schedule Length:</strong> {{ players_schedule|length if players_schedule else 0 }}</p>
         <p><strong>Error:</strong> {{ error if error else 'None' }}</p>
+        {% if debug_info %}
+            <p><strong>Query Player Count:</strong> {{ debug_info.query_player_count }}</p>
+            <p><strong>Series ID Used:</strong> {{ debug_info.series_id_used }}</p>
+            <p><strong>Availability Found:</strong> {{ debug_info.availability_found }}</p>
+            <p><strong>Date Converted:</strong> {{ debug_info.date_converted }}</p>
+        {% endif %}
         {% if players_schedule %}
             <p><strong>First 3 Players:</strong></p>
             {% for player, dates in players_schedule.items() %}
