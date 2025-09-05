@@ -1374,17 +1374,17 @@ def get_team_schedule_data_data():
                             DATE(match_date AT TIME ZONE 'UTC') as match_date,
                             availability_status,
                             notes
-                        FROM player_availability 
-                        WHERE series_id = %(series_id)s 
+                        FROM player_availability pa
+                        JOIN players p ON pa.player_id = p.id
+                        WHERE pa.series_id = p.series_id 
                         AND (
-                            player_id = ANY(%(player_ids)s) 
-                            OR player_name = ANY(%(player_names)s)
+                            pa.player_id = ANY(%(player_ids)s) 
+                            OR pa.player_name = ANY(%(player_names)s)
                         )
-                        AND DATE(match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
+                        AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
                     """
                     
                     batch_params = {
-                        "series_id": series_record["id"],
                         "player_ids": player_ids,
                         "player_names": player_names,
                         "dates": date_objects,
@@ -1856,17 +1856,17 @@ def get_all_teams_schedule_data_data():
                             DATE(match_date AT TIME ZONE 'UTC') as match_date,
                             availability_status,
                             notes
-                        FROM player_availability 
-                        WHERE series_id = %(series_id)s 
+                        FROM player_availability pa
+                        JOIN players p ON pa.player_id = p.id
+                        WHERE pa.series_id = p.series_id 
                         AND (
-                            player_id = ANY(%(player_ids)s) 
-                            OR player_name = ANY(%(player_names)s)
+                            pa.player_id = ANY(%(player_ids)s) 
+                            OR pa.player_name = ANY(%(player_names)s)
                         )
-                        AND DATE(match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
+                        AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
                     """
                     
                     batch_params = {
-                        "series_id": series_record["id"],
                         "player_ids": player_ids,
                         "player_names": player_names,
                         "dates": date_objects,
