@@ -2753,20 +2753,40 @@ def get_all_team_availability_data(user, selected_date=None):
             # Get all internal player IDs for the bulk query
             internal_player_ids = list(player_id_lookup.values())
 
-            # Create a single query to get all availability data using internal player IDs
-            # FIXED: Remove series_id filter to handle series_id mismatches in data
-            placeholders = ",".join(["%s"] * len(internal_player_ids))
-            bulk_query = f"""
-                SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes
-                FROM player_availability pa
-                WHERE pa.player_id IN ({placeholders})
-                AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+            # Create a user-based query to get availability data (most reliable approach)
+            # Get user_ids for all players in this team to ensure proper filtering
+            user_ids_query = """
+                SELECT DISTINCT upa.user_id
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                WHERE p.id = ANY(%s) AND p.is_active = true
             """
-
-            # Parameters: all internal player IDs + date (removed series_id filter)
-            bulk_params = tuple(internal_player_ids) + (
-                selected_date_utc,
-            )
+            
+            user_ids_result = execute_query(user_ids_query, (internal_player_ids,))
+            team_user_ids = [row["user_id"] for row in user_ids_result if row["user_id"]]
+            
+            if team_user_ids:
+                # Use user_id based query (immune to series_id mismatches)
+                user_placeholders = ",".join(["%s"] * len(team_user_ids))
+                bulk_query = f"""
+                    SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
+                    FROM player_availability pa
+                    WHERE pa.user_id IN ({user_placeholders})
+                    AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+                """
+                bulk_params = tuple(team_user_ids) + (selected_date_utc,)
+                print(f"Using user-based query with {len(team_user_ids)} user_ids")
+            else:
+                # Fallback to player_id query if no user_ids found
+                placeholders = ",".join(["%s"] * len(internal_player_ids))
+                bulk_query = f"""
+                    SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes, pa.user_id
+                    FROM player_availability pa
+                    WHERE pa.player_id IN ({placeholders})
+                    AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+                """
+                bulk_params = tuple(internal_player_ids) + (selected_date_utc,)
+                print(f"Using fallback player_id query with {len(internal_player_ids)} player_ids")
 
             print(
                 f"Executing clean availability query for {len(internal_player_ids)} players using player IDs..."
