@@ -821,28 +821,38 @@ def upsert_players(cur, league_id, players_data, has_external_id):
         player_name = f"{first_name} {last_name}".strip()
         
         try:
-            # Get club_id and series_id from the team
-            cur.execute("""
-                SELECT club_id, series_id FROM teams 
-                WHERE team_name = %s AND league_id = %s
-            """, (team_name, league_id))
+            # FIXED: Extract club and series from team name instead of looking up team
+            # This avoids the team lookup failure and defers team assignment to assign_players_to_teams()
+            raw_club_name, series_name, team_number = parse_team_name(team_name)
             
-            team_result = cur.fetchone()
-            if not team_result:
-                print(f"    Skipping player '{player_name}' - team '{team_name}' not found")
+            if not raw_club_name or not series_name:
+                print(f"    Skipping player '{player_name}' - could not parse team '{team_name}'")
                 skipped += 1
                 continue
             
-            club_id, series_id = team_result
+            # Normalize club name to match what was created
+            club_name = normalize_club_name(raw_club_name)
             
-            # Also get the team_id for immediate assignment
-            cur.execute("""
-                SELECT id FROM teams 
-                WHERE team_name = %s AND league_id = %s
-            """, (team_name, league_id))
+            # Look up club_id
+            cur.execute("SELECT id FROM clubs WHERE name = %s", (club_name,))
+            club_result = cur.fetchone()
+            if not club_result:
+                print(f"    Skipping player '{player_name}' - club '{club_name}' not found")
+                skipped += 1
+                continue
+            club_id = club_result[0]
             
-            team_id_result = cur.fetchone()
-            team_id = team_id_result[0] if team_id_result else None
+            # Look up series_id
+            cur.execute("SELECT id FROM series WHERE name = %s AND league_id = %s", (series_name, league_id))
+            series_result = cur.fetchone()
+            if not series_result:
+                print(f"    Skipping player '{player_name}' - series '{series_name}' not found")
+                skipped += 1
+                continue
+            series_id = series_result[0]
+            
+            # Don't assign team_id here - let assign_players_to_teams() handle it
+            team_id = None
             
             if has_external_id and external_id:
                 # Use tenniscores_player_id for upsert - NOW INCLUDING PTI AND WIN/LOSS DATA
