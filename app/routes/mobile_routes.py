@@ -2996,6 +2996,9 @@ def serve_mobile_availability():
 @login_required
 def serve_all_team_availability():
     """Serve the mobile all team availability page"""
+    from flask import current_app
+    current_app.logger.error(f"🚨 ROUTE HIT: /mobile/all-team-availability")
+    current_app.logger.error(f"🚨 User: {session.get('user', {}).get('email', 'Unknown')}")
     print(f"🚨 ROUTE CALLED: /mobile/all-team-availability")
     print(f"🚨 User: {session.get('user', {}).get('email', 'Unknown')}")
     try:

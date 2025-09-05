@@ -2619,6 +2619,14 @@ def get_all_team_availability_data(user, selected_date=None):
     """
     print(f"🚨 FUNCTION CALLED: get_all_team_availability_data")
     print(f"🚨 Parameters: user={user.get('email') if user else None}, selected_date={selected_date}")
+    
+    # Also use Flask logger to ensure visibility in production
+    try:
+        from flask import current_app
+        current_app.logger.error(f"🚨 FUNCTION CALLED: get_all_team_availability_data")
+        current_app.logger.error(f"🚨 Parameters: user={user.get('email') if user else None}, selected_date={selected_date}")
+    except:
+        pass  # Ignore if Flask context not available
     try:
         # Handle missing parameters
         if not selected_date:
