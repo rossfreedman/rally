@@ -2772,6 +2772,11 @@ def get_all_team_availability_data(user, selected_date=None):
             print(
                 f"Executing clean availability query for {len(internal_player_ids)} players using player IDs..."
             )
+            print(f"🔍 DEBUG: Query parameters:")
+            print(f"  Player IDs: {internal_player_ids[:5]}...")  # Show first 5
+            print(f"  Series ID: {series_record['id']}")
+            print(f"  Date: {selected_date_utc}")
+            print(f"🔍 DEBUG: Full query: {bulk_query}")
             availability_results = execute_query(bulk_query, bulk_params)
 
             # Convert results to dictionary for fast lookup by internal player ID
