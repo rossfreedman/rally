@@ -841,7 +841,7 @@ def log_page_visit(
             page_display_name = format_page_name(page)
             log_activity(
                 action_type="page_visit",
-                action_description=f"Visited {page_display_name} page",
+                action_description=f"{page_display_name} page",
                 user_id=user_id,
                 player_id=player_id,
                 team_id=team_id,
@@ -930,8 +930,8 @@ def create_activity_description(
         # Use the page name to create a descriptive message
         if page:
             page_name = format_page_name(page)
-            return f"Visited {page_name}"
-        return "Visited Unknown Page"
+            return f"{page_name}"
+        return "Unknown Page"
 
     # Handle authentication
     elif activity_type == "auth":

@@ -947,7 +947,7 @@
             // Add more context based on action type
             switch (activity.action_type) {
                 case 'page_visit':
-                    return `Visited ${formatPageName(activity.page) || 'Unknown Page'}`;
+                    return `${formatPageName(activity.page) || 'Unknown Page'}`;
                 case 'login':
                     return `Logged in successfully`;
                 case 'logout':

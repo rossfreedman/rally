@@ -2417,7 +2417,7 @@ def mobile_teams_players():
             session["user"]["email"],
             "page_visit",
             page="mobile_teams_players",
-            details=f"Visited Competitive Teams Page: {team_name}"
+            details=f"Competitive Teams Page: {team_name}"
         )
 
         return render_template("mobile/teams_players.html", **template_data)

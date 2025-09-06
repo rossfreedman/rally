@@ -3454,13 +3454,13 @@ def get_detailed_action_description(activity):
     base_description = activity.get("action_description", action_type)
     page = activity.get("page", "")
     
-    # If we already have a proper description (starts with "Visited"), use it
-    if action_type == 'page_visit' and base_description and base_description.startswith('Visited '):
+    # If we already have a proper description, use it
+    if action_type == 'page_visit' and base_description and not base_description.startswith('page_visit'):
         return base_description
     
     # Add more context based on action type
     descriptions = {
-        'page_visit': f"Visited {format_page_name(page) if page else 'Unknown Page'}",
+        'page_visit': f"{format_page_name(page) if page else 'Unknown Page'}",
         'login': "Logged in successfully",
         'logout': "Logged out",
         'registration_successful': "New user registration completed",
