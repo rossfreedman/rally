@@ -1925,6 +1925,8 @@ def get_dashboard_filters():
 # ==========================================
 
 @admin_bp.route("/api/admin/cockpit/real-time-stats")
+@login_required
+@admin_required
 def get_cockpit_real_time_stats():
     """Get real-time statistics for cockpit dashboard"""
     try:
@@ -1992,6 +1994,8 @@ def get_cockpit_real_time_stats():
 
 
 @admin_bp.route("/api/admin/cockpit/detailed-activities")
+@login_required
+@admin_required
 def get_cockpit_detailed_activities():
     """Get detailed activities for cockpit with enhanced information"""
     try:
@@ -2075,6 +2079,8 @@ def session_check():
 
 
 @admin_bp.route("/api/admin/cockpit/activity-trends")
+@login_required
+@admin_required
 def get_cockpit_activity_trends():
     """Get activity trends data for charts"""
     try:
@@ -2234,6 +2240,8 @@ def test_cockpit_activity_trends():
 
 
 @admin_bp.route("/api/admin/cockpit/system-metrics")
+@login_required
+@admin_required
 def get_cockpit_system_metrics():
     """Get system performance metrics"""
     try:
