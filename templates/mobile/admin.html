@@ -44,13 +44,20 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     
-    <!-- Cockpit Dashboard Link -->
+    <!-- Cockpit Dashboard Links -->
     <div class="text-center mb-6">
-      <a href="/admin/cockpit" class="inline-flex items-center px-6 py-3 bg-rally-primary text-white rounded-lg hover:bg-rally-secondary transition-colors shadow-lg">
-        <i class="fas fa-tachometer-alt mr-2"></i>
-        <span class="font-semibold">Open Rally Cockpit</span>
-        <span class="ml-2 text-sm bg-white bg-opacity-20 px-2 py-1 rounded">Desktop Only</span>
-      </a>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <a href="/admin/cockpit" class="inline-flex items-center px-6 py-3 bg-rally-primary text-white rounded-lg hover:bg-rally-secondary transition-colors shadow-lg">
+          <i class="fas fa-tachometer-alt mr-2"></i>
+          <span class="font-semibold">Desktop Cockpit</span>
+          <span class="ml-2 text-sm bg-white bg-opacity-20 px-2 py-1 rounded">Desktop Only</span>
+        </a>
+        <a href="/mobile/mcockpit" class="inline-flex items-center px-6 py-3 bg-rally-accent text-white rounded-lg hover:bg-rally-secondary transition-colors shadow-lg">
+          <i class="fas fa-mobile-alt mr-2"></i>
+          <span class="font-semibold">Mobile Cockpit</span>
+          <span class="ml-2 text-sm bg-white bg-opacity-20 px-2 py-1 rounded">Mobile Optimized</span>
+        </a>
+      </div>
       <p class="text-sm text-gray-600 mt-2">Real-time monitoring dashboard with comprehensive activity tracking</p>
     </div>
     

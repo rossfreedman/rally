@@ -425,7 +425,12 @@
         async function loadMetrics() {
             try {
                 const excludeAdmin = !dashboardState.includeAdmin;
-                const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=${excludeAdmin}&exclude_impersonated=false`);
+                const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=${excludeAdmin}&exclude_impersonated=false`, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -451,7 +456,12 @@
                 if (dateFrom) params.append('date_from', dateFrom);
                 if (dateTo) params.append('date_to', dateTo);
 
-                const response = await fetch(`/api/admin/cockpit/detailed-activities?${params}`);
+                const response = await fetch(`/api/admin/cockpit/detailed-activities?${params}`, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -474,7 +484,12 @@
                 if (dateFrom) url += `&date_from=${dateFrom}`;
                 if (dateTo) url += `&date_to=${dateTo}`;
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -487,7 +502,12 @@
 
         async function loadSystemStatus() {
             try {
-                const response = await fetch('/api/admin/cockpit/system-metrics');
+                const response = await fetch('/api/admin/cockpit/system-metrics', {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -500,7 +520,12 @@
 
         async function loadActivityTrends() {
             try {
-                const response = await fetch('/api/admin/cockpit/activity-trends?hours=24');
+                const response = await fetch('/api/admin/cockpit/activity-trends?hours=24', {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'success') {
