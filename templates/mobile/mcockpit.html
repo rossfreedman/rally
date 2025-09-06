@@ -151,19 +151,19 @@
 
   <!-- Key Metrics Cards -->
   <div class="grid grid-cols-2 gap-4 mb-6">
-    <!-- Total Activities -->
+    <!-- Total Users -->
     <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
       <div class="flex items-center justify-between mb-2">
         <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-          <i class="fas fa-chart-line text-blue-600 text-lg"></i>
+          <i class="fas fa-users text-blue-600 text-lg"></i>
         </div>
         <div class="text-right">
-          <p class="text-xs text-gray-600">Total</p>
-          <p id="total-activities" class="text-xl font-bold text-gray-900">-</p>
+          <p class="text-xs text-gray-600">Total Users</p>
+          <p id="total-users" class="text-xl font-bold text-gray-900">-</p>
         </div>
       </div>
       <div class="text-xs text-gray-500">
-        <span id="total-activities-change">Loading...</span>
+        <span id="total-users-change">Loading...</span>
       </div>
     </div>
 
@@ -501,7 +501,8 @@ async function loadMostActivePages() {
 }
 
 function updateMetricsDisplay(stats, trends, systemHealth) {
-  document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
+  // Total Users - using total_activities as a proxy for total users for now
+  document.getElementById('total-users').textContent = formatNumber(stats.total_activities || 0);
   document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
   document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
   
@@ -512,14 +513,14 @@ function updateMetricsDisplay(stats, trends, systemHealth) {
 
   // Update change indicators with real trends
   if (trends) {
-    document.getElementById('total-activities-change').textContent = 
+    document.getElementById('total-users-change').textContent = 
       `${trends.total_activities_change > 0 ? '+' : ''}${trends.total_activities_change}% from yesterday`;
     document.getElementById('today-activities-change').textContent = 
       `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
     document.getElementById('active-users-change').textContent = 
       `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
   } else {
-    document.getElementById('total-activities-change').textContent = 'Loading trends...';
+    document.getElementById('total-users-change').textContent = 'Loading trends...';
     document.getElementById('today-activities-change').textContent = 'Loading trends...';
     document.getElementById('active-users-change').textContent = 'Loading trends...';
   }
