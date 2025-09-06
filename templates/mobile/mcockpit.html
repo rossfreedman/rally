@@ -26,14 +26,10 @@
       <span id="last-updated" class="text-xs text-gray-500 font-mono">--:--:--</span>
     </div>
     
-    <!-- Admin Filter Toggle -->
-    <div class="flex items-center justify-center space-x-4">
-      <label class="flex items-center text-sm text-gray-600">
-        <input type="checkbox" id="include-admin-toggle" class="mr-2 rounded" onchange="toggleAdminFilter()">
-        Include Admin Activity
-      </label>
-      <button onclick="refreshAllData()" class="bg-rally-primary hover:bg-rally-secondary text-white px-4 py-2 rounded-lg text-sm transition-colors">
-        <i class="fas fa-sync-alt mr-1"></i>Refresh
+    <!-- Refresh Button -->
+    <div class="flex items-center justify-center">
+      <button onclick="refreshAllData()" class="bg-rally-primary hover:bg-rally-secondary text-white px-6 py-3 rounded-lg text-sm transition-colors shadow-lg">
+        <i class="fas fa-sync-alt mr-2"></i>Refresh All Data
       </button>
     </div>
   </div>
@@ -105,58 +101,6 @@
     </div>
   </div>
 
-  <!-- Page Visit Analytics Section -->
-  <div class="bg-white rounded-xl shadow-lg mb-6">
-    <div class="p-4 border-b border-gray-200">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <div class="w-10 h-10 bg-rally-primary rounded-lg flex items-center justify-center mr-3">
-            <i class="fas fa-eye text-white text-lg"></i>
-          </div>
-          <div>
-            <h2 class="text-lg font-semibold text-gray-900">Page Visit Analytics</h2>
-            <p class="text-sm text-gray-600">Most visited pages and user engagement</p>
-          </div>
-        </div>
-        <button onclick="refreshPageAnalytics()" class="text-gray-500 hover:text-rally-primary transition-colors">
-          <i class="fas fa-sync-alt"></i>
-        </button>
-      </div>
-    </div>
-    
-    <div class="p-4">
-      <!-- Page Visit Stats -->
-      <div class="grid grid-cols-1 gap-4 mb-4">
-        <div class="flex justify-between items-center py-2 border-b border-gray-100">
-          <span class="text-sm text-gray-600">Total Page Views</span>
-          <span id="total-page-views" class="text-sm font-semibold text-gray-900">-</span>
-        </div>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100">
-          <span class="text-sm text-gray-600">Unique Visitors</span>
-          <span id="unique-visitors" class="text-sm font-semibold text-gray-900">-</span>
-        </div>
-        <div class="flex justify-between items-center py-2 border-b border-gray-100">
-          <span class="text-sm text-gray-600">Avg. Session Duration</span>
-          <span id="avg-session-duration" class="text-sm font-semibold text-gray-900">-</span>
-        </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="text-sm text-gray-600">Bounce Rate</span>
-          <span id="bounce-rate" class="text-sm font-semibold text-gray-900">-</span>
-        </div>
-      </div>
-      
-      <!-- Top Pages -->
-      <div class="mt-4">
-        <h3 class="text-sm font-semibold text-gray-800 mb-3">Top Pages Today</h3>
-        <div id="top-pages-list" class="space-y-2">
-          <!-- Loading skeleton -->
-          <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-          <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-          <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Activity Timeline Section -->
   <div class="bg-white rounded-xl shadow-lg mb-6">
@@ -203,6 +147,37 @@
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rally-primary"></div>
           <span class="ml-2 text-gray-600">Loading activities...</span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Most Active Pages Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-chart-bar text-blue-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Most Active Pages</h2>
+            <p class="text-sm text-gray-600">Top visited pages today</p>
+          </div>
+        </div>
+        <button onclick="refreshPageAnalytics()" class="text-gray-500 hover:text-rally-primary transition-colors">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div id="most-active-pages-list" class="space-y-3">
+        <!-- Loading skeleton -->
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
       </div>
     </div>
   </div>
@@ -383,7 +358,6 @@ let dashboardState = {
   currentFilter: 'realtime',
   lastUpdate: null,
   refreshInterval: null,
-  includeAdmin: false,  // Default to excluding admin activity
   topUsersFilter: 'today'  // Default to today's most active users
 };
 
@@ -391,8 +365,6 @@ let dashboardState = {
 document.addEventListener('DOMContentLoaded', function() {
   initializeDashboard();
   startRealTimeUpdates();
-  // Set initial checkbox state
-  document.getElementById('include-admin-toggle').checked = dashboardState.includeAdmin;
 });
 
 function initializeDashboard() {
@@ -407,7 +379,7 @@ async function loadAllData() {
       loadActivityData(),
       loadTopUsers(),
       loadSystemStatus(),
-      loadPageAnalytics()
+      loadMostActivePages()
     ]);
     updateLastUpdated();
   } catch (error) {
@@ -417,8 +389,7 @@ async function loadAllData() {
 
 async function loadMetrics() {
   try {
-    const excludeAdmin = !dashboardState.includeAdmin;
-    const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=${excludeAdmin}&exclude_impersonated=false`);
+    const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=true&exclude_impersonated=false`);
     const data = await response.json();
     
     if (data.status === 'success') {
@@ -432,10 +403,9 @@ async function loadMetrics() {
 async function loadActivityData() {
   try {
     const filter = dashboardState.currentFilter;
-    const excludeAdmin = !dashboardState.includeAdmin;
     const params = new URLSearchParams({
       limit: '50',
-      exclude_admin: excludeAdmin.toString(),
+      exclude_admin: 'true',
       exclude_impersonated: 'false'
     });
 
@@ -467,13 +437,12 @@ async function loadActivityData() {
 
 async function loadTopUsers() {
   try {
-    const excludeAdmin = !dashboardState.includeAdmin;
     const filter = dashboardState.topUsersFilter;
     
     // Build date range for the filter
     const { dateFrom, dateTo } = getDateRangeForTopUsersFilter(filter);
     
-    let url = `/api/admin/dashboard/top-players?limit=5&exclude_admin=${excludeAdmin}&exclude_impersonated=false`;
+    let url = `/api/admin/dashboard/top-players?limit=5&exclude_admin=true&exclude_impersonated=false`;
     if (dateFrom) url += `&date_from=${dateFrom}`;
     if (dateTo) url += `&date_to=${dateTo}`;
     
@@ -501,36 +470,20 @@ async function loadSystemStatus() {
   }
 }
 
-async function loadPageAnalytics() {
+async function loadMostActivePages() {
   try {
     const response = await fetch('/api/admin/cockpit/page-analytics');
     const data = await response.json();
     
     if (data.status === 'success') {
-      updatePageAnalytics(data.analytics);
+      renderMostActivePages(data.analytics.top_pages);
     } else {
       console.error('Error loading page analytics:', data.error);
-      // Fallback to mock data if API fails
-      const mockData = {
-        total_page_views: 0,
-        unique_visitors: 0,
-        avg_session_duration: '0m 0s',
-        bounce_rate: '0%',
-        top_pages: []
-      };
-      updatePageAnalytics(mockData);
+      renderMostActivePages([]);
     }
   } catch (error) {
     console.error('Error loading page analytics:', error);
-    // Fallback to mock data if API fails
-    const mockData = {
-      total_page_views: 0,
-      unique_visitors: 0,
-      avg_session_duration: '0m 0s',
-      bounce_rate: '0%',
-      top_pages: []
-    };
-    updatePageAnalytics(mockData);
+    renderMostActivePages([]);
   }
 }
 
@@ -559,18 +512,18 @@ function updateMetricsDisplay(stats, trends, systemHealth) {
   }
 }
 
-function updatePageAnalytics(data) {
-  document.getElementById('total-page-views').textContent = formatNumber(data.total_page_views);
-  document.getElementById('unique-visitors').textContent = formatNumber(data.unique_visitors);
-  document.getElementById('avg-session-duration').textContent = data.avg_session_duration;
-  document.getElementById('bounce-rate').textContent = data.bounce_rate;
+function renderMostActivePages(pages) {
+  const container = document.getElementById('most-active-pages-list');
   
-  // Render top pages
-  const container = document.getElementById('top-pages-list');
-  const html = data.top_pages.map((page, index) => `
-    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+  if (pages.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No page data available</p>';
+    return;
+  }
+  
+  const html = pages.map((page, index) => `
+    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
       <div class="flex items-center space-x-3">
-        <span class="text-sm font-bold text-gray-600" style="min-width: 20px;">${index + 1}.</span>
+        <span class="text-sm font-bold text-gray-600" style="min-width: 30px;">${index + 1}.</span>
         <div>
           <p class="text-sm font-medium text-gray-900">${page.name}</p>
           <p class="text-xs text-gray-500">${page.page}</p>
@@ -688,6 +641,7 @@ function startRealTimeUpdates() {
 }
 
 function refreshAllData() {
+  console.log('Refreshing all data...');
   loadAllData();
 }
 
@@ -696,19 +650,7 @@ function refreshActivityData() {
 }
 
 function refreshPageAnalytics() {
-  loadPageAnalytics();
-}
-
-function toggleAdminFilter() {
-  const checkbox = document.getElementById('include-admin-toggle');
-  dashboardState.includeAdmin = checkbox.checked;
-  
-  // Reload all data with new filter
-  loadAllData();
-  
-  // Show feedback
-  const status = dashboardState.includeAdmin ? 'including' : 'excluding';
-  console.log(`Admin activity filter updated: ${status} admin activities`);
+  loadMostActivePages();
 }
 
 function setActivityFilter(filter) {

@@ -1071,6 +1071,7 @@ def format_page_name(page: str) -> str:
     page_names = {
         # Mobile App Pages
         "mobile_home": "Home Page",
+        "mobile_home_submenu": "Home Page",
         "mobile_matches": "Matches",
         "mobile_rankings": "Rankings",
         "mobile_profile": "Profile",

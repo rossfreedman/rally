@@ -85,6 +85,17 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+        
+        /* Pulse animation for live indicator */
+        .pulse-green {
+            animation: pulse-green 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body class="h-full bg-gray-50">
@@ -102,32 +113,42 @@
     <div class="desktop-only h-full flex flex-col">
         <!-- Header -->
         <header class="rally-bg-primary text-white shadow-lg">
-            <div class="px-6 py-4">
+            <div class="px-8 py-6">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-tachometer-alt text-2xl"></i>
+                    <!-- Left Section: Logo and Title -->
+                    <div class="flex items-center space-x-6">
+                        <!-- Rally Logo -->
+                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
+                            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="w-12 h-12" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="w-10 h-10 bg-white bg-opacity-30 rounded-lg flex items-center justify-center" style="display: none;">
+                                <i class="fas fa-tachometer-alt text-xl"></i>
+                            </div>
                         </div>
                         <div>
-                            <h1 class="text-2xl font-bold">Rally Cockpit</h1>
-                            <p class="text-sm text-green-200">Real-Time Activity Dashboard</p>
+                            <h1 class="text-3xl font-bold">Rally Cockpit</h1>
+                            <p class="text-sm text-green-200 mt-1">Real-Time Activity Dashboard</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-4">
+                    
+                    <!-- Right Section: Status and Controls -->
+                    <div class="flex items-center space-x-8">
+                        <!-- Last Updated -->
                         <div class="text-right">
                             <div class="text-sm text-green-200">Last Updated</div>
-                            <div id="last-updated" class="text-lg font-mono">--:--:--</div>
+                            <div id="last-updated" class="text-lg font-mono font-semibold">--:--:--</div>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <label class="flex items-center text-sm text-green-200">
-                                <input type="checkbox" id="include-admin-toggle" class="mr-2 rounded" onchange="toggleAdminFilter()">
-                                Include Admin Activity
-                            </label>
-                        </div>
-                        <button onclick="refreshAllData()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all">
-                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        
+                        <!-- Refresh Button -->
+                        <button onclick="refreshAllData()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-6 py-3 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                            <i class="fas fa-sync-alt"></i>
+                            <span class="font-medium">Refresh</span>
                         </button>
-                        <div class="w-3 h-3 bg-green-400 rounded-full pulse-green" title="Live Updates Active"></div>
+                        
+                        <!-- Live Indicator -->
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-green-400 rounded-full pulse-green" title="Live Updates Active"></div>
+                            <span class="text-sm text-green-200 font-medium">Live</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -211,32 +232,22 @@
                         </div>
                     </div>
 
-                    <!-- Quick Stats -->
+                    <!-- Most Active Pages -->
                     <div class="p-6 border-t border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-tachometer-alt text-rally-primary mr-2"></i>
-                            Quick Stats
+                            <i class="fas fa-globe text-rally-primary mr-2"></i>
+                            Most Active Pages
                         </h3>
-                        
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Online Users</span>
-                                <span id="online-users" class="text-sm font-semibold text-green-600">-</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Peak Today</span>
-                                <span id="peak-users" class="text-sm font-semibold text-blue-600">-</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Avg Response Time</span>
-                                <span id="avg-response-time" class="text-sm font-semibold text-gray-600">-</span>
-                            </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Error Rate</span>
-                                <span id="error-rate" class="text-sm font-semibold text-red-600">-</span>
-                            </div>
+                        <div id="most-active-pages" class="space-y-3">
+                            <!-- Loading skeleton -->
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- Main Content Area -->
@@ -413,14 +424,32 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeDashboard();
             startRealTimeUpdates();
-            // Set initial checkbox state
-            document.getElementById('include-admin-toggle').checked = dashboardState.includeAdmin;
         });
 
         function initializeDashboard() {
             console.log('Initializing Rally Cockpit Dashboard...');
+            initializeFilterButtons();
             loadAllData();
             setupCharts();
+        }
+
+        function initializeFilterButtons() {
+            // Set the initial active button based on currentFilter
+            const currentFilter = dashboardState.currentFilter;
+            console.log(`Initializing filter buttons with current filter: ${currentFilter}`);
+            
+            // Update button states
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+                btn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300';
+            });
+            
+            const activeBtn = document.getElementById(`filter-${currentFilter}`);
+            if (activeBtn) {
+                activeBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white';
+                console.log(`Set active button: filter-${currentFilter}`);
+            } else {
+                console.error(`Button with id 'filter-${currentFilter}' not found`);
+            }
         }
 
         async function loadAllData() {
@@ -428,6 +457,21 @@
                 await Promise.all([
                     loadMetrics(),
                     loadActivityData(),
+                    loadTopUsers(),
+                    loadSystemStatus(),
+                    loadActivityTrends(),
+                    loadMostActivePages()
+                ]);
+                updateLastUpdated();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        async function loadAllDataExceptActivity() {
+            try {
+                await Promise.all([
+                    loadMetrics(),
                     loadTopUsers(),
                     loadSystemStatus(),
                     loadActivityTrends(),
@@ -781,9 +825,9 @@
         }
 
         function startRealTimeUpdates() {
-            // Refresh data every 30 seconds
+            // Refresh data every 30 seconds (except activity data to preserve filter state)
             dashboardState.refreshInterval = setInterval(() => {
-                loadAllData();
+                loadAllDataExceptActivity();
             }, 30000);
         }
 
@@ -795,19 +839,9 @@
             loadActivityData();
         }
 
-        function toggleAdminFilter() {
-            const checkbox = document.getElementById('include-admin-toggle');
-            dashboardState.includeAdmin = checkbox.checked;
-            
-            // Reload all data with new filter
-            loadAllData();
-            
-            // Show feedback
-            const status = dashboardState.includeAdmin ? 'including' : 'excluding';
-            console.log(`Admin activity filter updated: ${status} admin activities`);
-        }
 
         function setActivityFilter(filter) {
+            console.log(`Setting activity filter to: ${filter}`);
             dashboardState.currentFilter = filter;
             
             // Update button states
@@ -816,7 +850,11 @@
             });
             
             const activeBtn = document.getElementById(`filter-${filter}`);
-            activeBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white';
+            if (activeBtn) {
+                activeBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white';
+            } else {
+                console.error(`Button with id 'filter-${filter}' not found`);
+            }
             
             // Load activities with new filter
             loadActivityData();
