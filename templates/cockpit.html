@@ -492,10 +492,18 @@
                         'Content-Type': 'application/json',
                     }
                 });
+                
+                if (!response.ok) {
+                    console.error(`Metrics API error: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
                 const data = await response.json();
                 
                 if (data.status === 'success') {
                     updateMetricsDisplay(data.stats, data.trends, data.system_health);
+                } else {
+                    console.error('Metrics API returned error:', data.error);
                 }
             } catch (error) {
                 console.error('Error loading metrics:', error);
@@ -589,10 +597,27 @@
                         'Content-Type': 'application/json',
                     }
                 });
-                const data = await response.json();
+                
+                if (!response.ok) {
+                    console.error(`Activity trends API error: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
+                const text = await response.text();
+                let data;
+                
+                try {
+                    data = JSON.parse(text);
+                } catch (parseError) {
+                    console.error('Failed to parse activity trends response as JSON:', parseError);
+                    console.error('Response text:', text.substring(0, 200));
+                    return;
+                }
                 
                 if (data.status === 'success') {
                     updateActivityChart(data.chart_data);
+                } else {
+                    console.error('Activity trends API returned error:', data.error);
                 }
             } catch (error) {
                 console.error('Error loading activity trends:', error);
@@ -621,35 +646,80 @@
         }
 
         function updateMetricsDisplay(stats, trends, systemHealth) {
-            document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
-            document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
+            // Safely update metrics with null checks
+            const todayActivitiesEl = document.getElementById('today-activities');
+            const activeUsersEl = document.getElementById('active-users');
+            const activityRateEl = document.getElementById('activity-rate');
+            const todayActivitiesChangeEl = document.getElementById('today-activities-change');
+            const activeUsersChangeEl = document.getElementById('active-users-change');
+            const activityRateChangeEl = document.getElementById('activity-rate-change');
+            
+            if (todayActivitiesEl) {
+                todayActivitiesEl.textContent = formatNumber(stats.today_activities || 0);
+            }
+            
+            if (activeUsersEl) {
+                activeUsersEl.textContent = formatNumber(stats.active_users_today || 0);
+            }
             
             // Calculate activity rate
             const currentHour = new Date().getHours();
             const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
-            document.getElementById('activity-rate').textContent = `${rate}/hr`;
+            
+            if (activityRateEl) {
+                activityRateEl.textContent = `${rate}/hr`;
+            }
 
             // Update change indicators with real trends
             if (trends) {
-                document.getElementById('today-activities-change').textContent = 
-                    `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
-                document.getElementById('active-users-change').textContent = 
-                    `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
+                if (todayActivitiesChangeEl) {
+                    todayActivitiesChangeEl.textContent = 
+                        `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
+                }
+                if (activeUsersChangeEl) {
+                    activeUsersChangeEl.textContent = 
+                        `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
+                }
             } else {
-                document.getElementById('today-activities-change').textContent = 'Loading trends...';
-                document.getElementById('active-users-change').textContent = 'Loading trends...';
+                if (todayActivitiesChangeEl) {
+                    todayActivitiesChangeEl.textContent = 'Loading trends...';
+                }
+                if (activeUsersChangeEl) {
+                    activeUsersChangeEl.textContent = 'Loading trends...';
+                }
             }
             
-            document.getElementById('activity-rate-change').textContent = 'Peak at 2:00 PM';
+            if (activityRateChangeEl) {
+                activityRateChangeEl.textContent = 'Peak at 2:00 PM';
+            }
 
             // Update system health
+            const systemHealthEl = document.getElementById('system-health');
+            const systemHealthDetailsEl = document.getElementById('system-health-details');
+            const onlineUsersEl = document.getElementById('online-users');
+            const peakUsersEl = document.getElementById('peak-users');
+            const avgResponseTimeEl = document.getElementById('avg-response-time');
+            const errorRateEl = document.getElementById('error-rate');
+            
             if (systemHealth) {
-                document.getElementById('system-health').textContent = 'Healthy';
-                document.getElementById('system-health-details').textContent = 'All systems operational';
-                document.getElementById('online-users').textContent = stats.active_users_today || 0;
-                document.getElementById('peak-users').textContent = Math.round((stats.active_users_today || 0) * 1.5);
-                document.getElementById('avg-response-time').textContent = systemHealth.response_time_avg || '120ms';
-                document.getElementById('error-rate').textContent = systemHealth.error_rate || '0.1%';
+                if (systemHealthEl) {
+                    systemHealthEl.textContent = 'Healthy';
+                }
+                if (systemHealthDetailsEl) {
+                    systemHealthDetailsEl.textContent = 'All systems operational';
+                }
+                if (onlineUsersEl) {
+                    onlineUsersEl.textContent = stats.active_users_today || 0;
+                }
+                if (peakUsersEl) {
+                    peakUsersEl.textContent = Math.round((stats.active_users_today || 0) * 1.5);
+                }
+                if (avgResponseTimeEl) {
+                    avgResponseTimeEl.textContent = systemHealth.response_time_avg || '120ms';
+                }
+                if (errorRateEl) {
+                    errorRateEl.textContent = systemHealth.error_rate || '0.1%';
+                }
             }
         }
 
