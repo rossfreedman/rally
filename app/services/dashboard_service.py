@@ -269,6 +269,8 @@ def get_recent_activities(
                 "action_type": activity["action_type"],
                 "action_description": description,
                 "timestamp": activity["timestamp"].isoformat() if activity["timestamp"] else None,
+                "page": activity["page"],  # Add raw page field
+                "user_email": activity["user_email"],  # Add raw user_email field
                 "user": {
                     "first_name": activity["user_first_name"],
                     "last_name": activity["user_last_name"],
