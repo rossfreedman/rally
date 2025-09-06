@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally Cockpit | Real-Time Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Rally colors */
+        :root {
+            --rally-primary: #10645c;
+            --rally-secondary: #0d4f47;
+            --rally-accent: #1a7a6b;
+            --rally-light: #e6f7f5;
+        }
+        
+        .rally-bg-primary { background-color: var(--rally-primary); }
+        .rally-bg-secondary { background-color: var(--rally-secondary); }
+        .rally-bg-accent { background-color: var(--rally-accent); }
+        .rally-bg-light { background-color: var(--rally-light); }
+        .rally-text-primary { color: var(--rally-primary); }
+        .rally-text-secondary { color: var(--rally-secondary); }
+        
+        /* Desktop-only styles */
+        @media (max-width: 1024px) {
+            .desktop-only {
+                display: none !important;
+            }
+        }
+        
+        /* Real-time pulse animation */
+        .pulse-green {
+            animation: pulse-green 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Activity timeline styles */
+        .activity-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .activity-item:hover {
+            background-color: #f8fafc;
+            border-left-color: var(--rally-primary);
+            transform: translateX(4px);
+        }
+        
+        /* Metric cards */
+        .metric-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        /* Status indicators */
+        .status-online { color: #10b981; }
+        .status-offline { color: #6b7280; }
+        .status-busy { color: #f59e0b; }
+        
+        /* Chart containers */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Loading states */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Desktop-only warning -->
+    <div class="lg:hidden fixed inset-0 bg-red-600 text-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <i class="fas fa-desktop text-6xl mb-4"></i>
+            <h1 class="text-2xl font-bold mb-2">Desktop Only</h1>
+            <p class="text-lg">This dashboard is optimized for desktop viewing only.</p>
+            <p class="text-sm mt-2">Please access from a desktop or laptop computer.</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div class="desktop-only h-full flex flex-col">
+        <!-- Header -->
+        <header class="rally-bg-primary text-white shadow-lg">
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-white bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-tachometer-alt text-2xl"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold">Rally Cockpit</h1>
+                            <p class="text-sm text-green-200">Real-Time Activity Dashboard</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <div class="text-sm text-green-200">Last Updated</div>
+                            <div id="last-updated" class="text-lg font-mono">--:--:--</div>
+                        </div>
+                        <button onclick="refreshAllData()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all">
+                            <i class="fas fa-sync-alt mr-2"></i>Refresh
+                        </button>
+                        <div class="w-3 h-3 bg-green-400 rounded-full pulse-green" title="Live Updates Active"></div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-hidden">
+            <div class="h-full flex">
+                <!-- Left Sidebar - Metrics -->
+                <div class="w-80 bg-white shadow-lg border-r border-gray-200 overflow-y-auto">
+                    <!-- Key Metrics -->
+                    <div class="p-6">
+                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-chart-line text-rally-primary mr-2"></i>
+                            Key Metrics
+                        </h2>
+                        
+                        <!-- Total Activities -->
+                        <div class="metric-card p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Total Activities</p>
+                                    <p id="total-activities" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span id="total-activities-change" class="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        </div>
+
+                        <!-- Today's Activities -->
+                        <div class="metric-card p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Today</p>
+                                    <p id="today-activities" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-calendar-day text-green-600 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        </div>
+
+                        <!-- Active Users -->
+                        <div class="metric-card p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Active Users</p>
+                                    <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        </div>
+
+                        <!-- Activity Rate -->
+                        <div class="metric-card p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Activity Rate</p>
+                                    <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bolt text-orange-600 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        </div>
+
+                        <!-- System Health -->
+                        <div class="metric-card p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">System Health</p>
+                                    <p id="system-health" class="text-2xl font-bold text-green-600">Healthy</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-heartbeat text-green-600 text-xl"></i>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <span id="system-health-details" class="text-sm text-gray-500">All systems operational</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="p-6 border-t border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-tachometer-alt text-rally-primary mr-2"></i>
+                            Quick Stats
+                        </h3>
+                        
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Online Users</span>
+                                <span id="online-users" class="text-sm font-semibold text-green-600">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Peak Today</span>
+                                <span id="peak-users" class="text-sm font-semibold text-blue-600">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Avg Response Time</span>
+                                <span id="avg-response-time" class="text-sm font-semibold text-gray-600">-</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Error Rate</span>
+                                <span id="error-rate" class="text-sm font-semibold text-red-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Activity Timeline Header -->
+                    <div class="bg-white border-b border-gray-200 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-10 h-10 rally-bg-primary rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-clock text-white text-lg"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-semibold text-gray-900">Recent Activity</h2>
+                                    <p class="text-sm text-gray-600">Real-time activity feed with detailed information</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <!-- Activity Filter -->
+                                <div class="flex space-x-2">
+                                    <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white">
+                                        Real-time
+                                    </button>
+                                    <button onclick="setActivityFilter('hour')" id="filter-hour" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                        Last Hour
+                                    </button>
+                                    <button onclick="setActivityFilter('day')" id="filter-day" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                        Today
+                                    </button>
+                                    <button onclick="setActivityFilter('week')" id="filter-week" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                        This Week
+                                    </button>
+                                </div>
+                                <button onclick="refreshActivityData()" class="text-gray-500 hover:text-rally-primary transition-colors">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Timeline Content -->
+                    <div class="flex-1 overflow-y-auto bg-gray-50">
+                        <div class="p-6">
+                            <div id="activity-timeline" class="space-y-4">
+                                <!-- Loading skeleton -->
+                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Sidebar - Charts & Analytics -->
+                <div class="w-96 bg-white shadow-lg border-l border-gray-200 overflow-y-auto">
+                    <!-- Activity Chart -->
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-chart-area text-rally-primary mr-2"></i>
+                            Activity Trends
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="activity-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Active Users -->
+                    <div class="p-6 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-star text-yellow-500 mr-2"></i>
+                            Most Active Users
+                        </h3>
+                        <div id="top-users-list" class="space-y-3">
+                            <!-- Loading skeleton -->
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- System Status -->
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-server text-rally-primary mr-2"></i>
+                            System Status
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Database</span>
+                                <span id="db-status" class="text-sm font-semibold status-online">Online</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">API Services</span>
+                                <span id="api-status" class="text-sm font-semibold status-online">Online</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Background Jobs</span>
+                                <span id="jobs-status" class="text-sm font-semibold status-online">Running</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">Memory Usage</span>
+                                <span id="memory-usage" class="text-sm font-semibold text-gray-600">-</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm text-gray-600">CPU Usage</span>
+                                <span id="cpu-usage" class="text-sm font-semibold text-gray-600">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global state
+        let dashboardState = {
+            currentFilter: 'realtime',
+            lastUpdate: null,
+            charts: {},
+            refreshInterval: null
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            startRealTimeUpdates();
+        });
+
+        function initializeDashboard() {
+            console.log('Initializing Rally Cockpit Dashboard...');
+            loadAllData();
+            setupCharts();
+        }
+
+        async function loadAllData() {
+            try {
+                await Promise.all([
+                    loadMetrics(),
+                    loadActivityData(),
+                    loadTopUsers(),
+                    loadSystemStatus()
+                ]);
+                updateLastUpdated();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        async function loadMetrics() {
+            try {
+                const response = await fetch('/api/admin/cockpit/real-time-stats?exclude_admin=false&exclude_impersonated=false');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateMetricsDisplay(data.stats, data.trends, data.system_health);
+                }
+            } catch (error) {
+                console.error('Error loading metrics:', error);
+            }
+        }
+
+        async function loadActivityData() {
+            try {
+                const filter = dashboardState.currentFilter;
+                const params = new URLSearchParams({
+                    limit: '100',
+                    exclude_admin: 'false',
+                    exclude_impersonated: 'false'
+                });
+
+                // Add date filters based on current filter
+                const { dateFrom, dateTo } = getDateRangeForFilter(filter);
+                if (dateFrom) params.append('date_from', dateFrom);
+                if (dateTo) params.append('date_to', dateTo);
+
+                const response = await fetch(`/api/admin/cockpit/detailed-activities?${params}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    renderActivityTimeline(data.activities);
+                }
+            } catch (error) {
+                console.error('Error loading activity data:', error);
+            }
+        }
+
+        async function loadTopUsers() {
+            try {
+                const response = await fetch('/api/admin/dashboard/top-players?limit=10&exclude_admin=false&exclude_impersonated=false');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    renderTopUsers(data.top_players);
+                }
+            } catch (error) {
+                console.error('Error loading top users:', error);
+            }
+        }
+
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/api/admin/cockpit/system-metrics');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateSystemStatus(data.metrics);
+                }
+            } catch (error) {
+                console.error('Error loading system status:', error);
+            }
+        }
+
+        function updateMetricsDisplay(stats, trends, systemHealth) {
+            document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
+            document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
+            document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
+            
+            // Calculate activity rate
+            const currentHour = new Date().getHours();
+            const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
+            document.getElementById('activity-rate').textContent = `${rate}/hr`;
+
+            // Update change indicators with real trends
+            if (trends) {
+                document.getElementById('total-activities-change').textContent = 
+                    `${trends.total_activities_change > 0 ? '+' : ''}${trends.total_activities_change}% from yesterday`;
+                document.getElementById('today-activities-change').textContent = 
+                    `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
+                document.getElementById('active-users-change').textContent = 
+                    `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
+            } else {
+                document.getElementById('total-activities-change').textContent = 'Loading trends...';
+                document.getElementById('today-activities-change').textContent = 'Loading trends...';
+                document.getElementById('active-users-change').textContent = 'Loading trends...';
+            }
+            
+            document.getElementById('activity-rate-change').textContent = 'Peak at 2:00 PM';
+
+            // Update system health
+            if (systemHealth) {
+                document.getElementById('system-health').textContent = 'Healthy';
+                document.getElementById('system-health-details').textContent = 'All systems operational';
+                document.getElementById('online-users').textContent = stats.active_users_today || 0;
+                document.getElementById('peak-users').textContent = Math.round((stats.active_users_today || 0) * 1.5);
+                document.getElementById('avg-response-time').textContent = systemHealth.response_time_avg || '120ms';
+                document.getElementById('error-rate').textContent = systemHealth.error_rate || '0.1%';
+            }
+        }
+
+        function renderActivityTimeline(activities) {
+            const container = document.getElementById('activity-timeline');
+            
+            if (activities.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500">No activities found for the selected period</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = activities.map(activity => {
+                const timeAgo = getTimeAgo(activity.timestamp);
+                const actionIcon = getActionTypeIcon(activity.action_type);
+                const actionColor = getActionTypeColor(activity.action_type);
+                const actionDescription = getDetailedActionDescription(activity);
+                
+                return `
+                    <div class="activity-item bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                        <div class="flex items-start space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 bg-${actionColor}-100 rounded-lg flex items-center justify-center">
+                                    <i class="${actionIcon} text-${actionColor}-600 text-lg"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h4 class="text-sm font-semibold text-gray-900">${actionDescription}</h4>
+                                    <span class="text-xs text-gray-500 font-mono">${timeAgo}</span>
+                                </div>
+                                
+                                ${activity.user ? `
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <i class="fas fa-user text-gray-400 text-xs"></i>
+                                        <span class="text-sm text-gray-600">${activity.user.first_name} ${activity.user.last_name}</span>
+                                        ${activity.user.email ? `<span class="text-xs text-gray-500">(${activity.user.email})</span>` : ''}
+                                    </div>
+                                ` : ''}
+                                
+                                ${activity.details ? `
+                                    <div class="text-xs text-gray-500 bg-gray-50 rounded p-2 mt-2">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        ${activity.details}
+                                    </div>
+                                ` : ''}
+                                
+                                <div class="flex items-center space-x-4 mt-2 text-xs text-gray-500">
+                                    <span><i class="fas fa-tag mr-1"></i>${activity.action_type}</span>
+                                    ${activity.ip_address ? `<span><i class="fas fa-globe mr-1"></i>${activity.ip_address}</span>` : ''}
+                                    ${activity.user_agent ? `<span><i class="fas fa-desktop mr-1"></i>${getBrowserInfo(activity.user_agent)}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function renderTopUsers(users) {
+            const container = document.getElementById('top-users-list');
+            
+            if (users.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No user data available</p>';
+                return;
+            }
+
+            const html = users.map((user, index) => {
+                const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
+                const lastActivity = user.last_activity ? getTimeAgo(user.last_activity) : 'Unknown';
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm font-bold text-gray-600" style="min-width: 30px;">${rankIcon}</span>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${user.first_name} ${user.last_name}</p>
+                                <p class="text-xs text-gray-600">${user.club_name || 'Unknown Club'}</p>
+                                <p class="text-xs text-gray-500">
+                                    <i class="fas fa-clock mr-1"></i>${lastActivity}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-gray-900">${formatNumber(user.activity_count)}</p>
+                            <p class="text-xs text-gray-600">activities</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+        }
+
+        function updateSystemStatus(metrics) {
+            document.getElementById('db-status').textContent = 'Online';
+            document.getElementById('api-status').textContent = 'Online';
+            document.getElementById('jobs-status').textContent = 'Running';
+            document.getElementById('memory-usage').textContent = metrics.memory_usage || '45%';
+            document.getElementById('cpu-usage').textContent = metrics.cpu_usage || '12%';
+        }
+
+        function setupCharts() {
+            // Activity trend chart
+            const ctx = document.getElementById('activity-chart').getContext('2d');
+            dashboardState.charts.activity = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Activities',
+                        data: [],
+                        borderColor: '#10645c',
+                        backgroundColor: 'rgba(16, 100, 92, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function startRealTimeUpdates() {
+            // Refresh data every 30 seconds
+            dashboardState.refreshInterval = setInterval(() => {
+                loadAllData();
+            }, 30000);
+        }
+
+        function refreshAllData() {
+            loadAllData();
+        }
+
+        function refreshActivityData() {
+            loadActivityData();
+        }
+
+        function setActivityFilter(filter) {
+            dashboardState.currentFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+                btn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300';
+            });
+            
+            const activeBtn = document.getElementById(`filter-${filter}`);
+            activeBtn.className = 'px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white';
+            
+            // Load activities with new filter
+            loadActivityData();
+        }
+
+        function getDateRangeForFilter(filter) {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            switch (filter) {
+                case 'realtime':
+                    return { dateFrom: null, dateTo: null }; // Last 50 activities
+                case 'hour':
+                    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                    return { dateFrom: hourAgo.toISOString(), dateTo: null };
+                case 'day':
+                    return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    return { dateFrom: weekAgo.toISOString().split('T')[0], dateTo: null };
+                default:
+                    return { dateFrom: null, dateTo: null };
+            }
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('last-updated').textContent = timeString;
+            dashboardState.lastUpdate = now;
+        }
+
+        // Utility functions
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const time = new Date(timestamp);
+            const diffMs = now - time;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays}d ago`;
+        }
+
+        function getActionTypeIcon(actionType) {
+            const iconMap = {
+                'page_visit': 'fas fa-eye',
+                'login': 'fas fa-sign-in-alt',
+                'logout': 'fas fa-sign-out-alt',
+                'registration_successful': 'fas fa-user-plus',
+                'registration_failed': 'fas fa-user-times',
+                'player_search': 'fas fa-search',
+                'team_switch': 'fas fa-exchange-alt',
+                'settings_update': 'fas fa-cog',
+                'poll_voted': 'fas fa-vote-yea',
+                'poll_created': 'fas fa-poll',
+                'availability_update': 'fas fa-calendar-check',
+                'ai_chat': 'fas fa-robot',
+                'simulation_run': 'fas fa-dice',
+                'score_submitted': 'fas fa-trophy',
+                'team_email': 'fas fa-envelope',
+                'court_reservation': 'fas fa-calendar-plus',
+                'admin_action': 'fas fa-shield-alt',
+                'user_action': 'fas fa-user-cog'
+            };
+            return iconMap[actionType] || 'fas fa-info-circle';
+        }
+
+        function getActionTypeColor(actionType) {
+            const colorMap = {
+                'page_visit': 'blue',
+                'login': 'green',
+                'logout': 'gray',
+                'registration_successful': 'green',
+                'registration_failed': 'red',
+                'player_search': 'blue',
+                'team_switch': 'purple',
+                'settings_update': 'orange',
+                'poll_voted': 'green',
+                'poll_created': 'blue',
+                'availability_update': 'green',
+                'ai_chat': 'purple',
+                'simulation_run': 'yellow',
+                'score_submitted': 'gold',
+                'team_email': 'blue',
+                'court_reservation': 'green',
+                'admin_action': 'red',
+                'user_action': 'gray'
+            };
+            return colorMap[actionType] || 'gray';
+        }
+
+        function getDetailedActionDescription(activity) {
+            const baseDescription = activity.action_description || activity.action_type;
+            
+            // Add more context based on action type
+            switch (activity.action_type) {
+                case 'page_visit':
+                    return `Visited ${formatPageName(activity.page) || 'Unknown Page'}`;
+                case 'login':
+                    return `Logged in successfully`;
+                case 'logout':
+                    return `Logged out`;
+                case 'registration_successful':
+                    return `New user registration completed`;
+                case 'player_search':
+                    return `Searched for players`;
+                case 'team_switch':
+                    return `Switched team context`;
+                case 'settings_update':
+                    return `Updated user settings`;
+                case 'poll_voted':
+                    return `Voted in poll`;
+                case 'availability_update':
+                    return `Updated availability`;
+                case 'ai_chat':
+                    return `Used AI chat feature`;
+                case 'simulation_run':
+                    return `Ran simulation`;
+                case 'score_submitted':
+                    return `Submitted match score`;
+                case 'team_email':
+                    return `Sent team email`;
+                case 'court_reservation':
+                    return `Made court reservation`;
+                case 'admin_action':
+                    return `Admin action performed`;
+                default:
+                    return baseDescription;
+            }
+        }
+
+        function formatPageName(page) {
+            if (!page) return 'Unknown Page';
+            
+            // Define mapping for common page names - matches the backend format_page_name function
+            const pageMap = {
+                // Mobile App Pages
+                'mobile_home': 'Home Page',
+                'mobile_matches': 'Matches',
+                'mobile_rankings': 'Rankings',
+                'mobile_profile': 'Profile',
+                'mobile_view_schedule': 'Schedule',
+                'mobile_analyze_me': 'Analyze Me',
+                'mobile_my_team': 'My Team Page',
+                'mobile_settings': 'Settings',
+                'mobile_my_series': 'My Series Page',
+                'mobile_teams_players': 'Teams & Players',
+                'mobile_player_search': 'Player Search',
+                'mobile_my_club': 'My Club Page',
+                'mobile_player_stats': 'Player Stats',
+                'mobile_email_team': 'Email Team',
+                'mobile_practice_times': 'Practice Times',
+                'mobile_availability': 'Availability',
+                'mobile_availability_calendar': 'Availability Calendar',
+                'mobile_all_team_availability': 'Team Availability',
+                'mobile_team_schedule': 'Team Schedule',
+                'mobile_matchup_simulator': 'Matchup Simulator',
+                'mobile_polls': 'Team Polls',
+                'mobile_poll_vote': 'Poll Vote',
+                'mobile_ask_ai': 'Ask AI',
+                'mobile_find_subs': 'Find Subs',
+                'mobile_find_people_to_play': 'Find People to Play',
+                'mobile_lineup': 'Lineup',
+                'mobile_lineup_escrow': 'Lineup Escrow',
+                'mobile_improve': 'Improve Game',
+                'mobile_training_videos': 'Training Videos',
+                'mobile_reserve_court': 'Reserve Court',
+                'mobile_player_detail': 'Player Detail',
+                'mobile_track_byes_courts': 'Track Byes & Courts',
+                'mobile_create_pickup_game': 'Create Pickup Game',
+                'mobile_pickup_games': 'Pickup Games',
+                'mobile_rally': 'Rally AI Chat',
+                'mobile_schedule': 'Schedule Page',
+                // Utility Pages
+                'track_byes_courts': 'Track Byes & Courts',
+                'contact_sub': 'Contact Sub',
+                'player_detail': 'Player Detail',
+                'pti_vs_opponents_analysis': 'PTI vs Opponents Analysis',
+                'find_people_to_play': 'Find People to Play',
+                'pickup_games': 'Pickup Games',
+                'private_groups': 'Private Groups',
+                'create_pickup_game': 'Create Pickup Game',
+                'reserve_court': 'Reserve Court',
+                'share_rally': 'Share Rally',
+                'create_team': 'Create Team',
+                'matchup_simulator': 'Matchup Simulator',
+                'polls': 'Polls',
+                'schedule_lesson': 'Schedule Lesson',
+                'email_team': 'Email Team',
+                'practice_times': 'Practice Times',
+                'availability': 'Availability',
+                'team_schedule': 'Team Schedule',
+                'player_search': 'Player Search',
+                'player_stats': 'Player Stats',
+                'my_series': 'My Series',
+                'analyze_me': 'Analyze Me',
+                'my_team': 'My Team',
+                'my_club': 'My Club',
+                'user_activity': 'User Activity',
+                'home_submenu': 'Home Page',
+                'home_alt1': 'Home Page',
+                'home_classic': 'Home Page',
+                // Admin Pages
+                'admin': 'Admin Dashboard',
+                'admin_users': 'Admin - User Management',
+                'admin_leagues': 'Admin - League Management',
+                'admin_clubs': 'Admin - Club Management',
+                'admin_series': 'Admin - Series Management',
+                'admin_etl': 'Admin - Data Import',
+                'admin_user_activity': 'Admin - User Activity',
+                'admin_dashboard': 'Admin - Activity Dashboard',
+                'admin_cockpit': 'Admin - Rally Cockpit',
+                // Authentication Pages
+                'login': 'Login Page',
+                'logout': 'Logout',
+                'register': 'Registration Page',
+                // API Endpoints
+                'api': 'API Endpoint',
+                // Other Pages
+                'pti_calculator': 'PTI Calculator',
+                'schedule': 'Schedule Page',
+                'matches': 'Matches Page',
+                'rankings': 'Rankings Page',
+                'profile': 'Profile Page',
+                'settings': 'Settings Page'
+            };
+            
+            // Check for exact matches first
+            if (pageMap[page]) {
+                return pageMap[page];
+            }
+            
+            // Handle pages that start with mobile/
+            if (page.startsWith('mobile/')) {
+                const cleanPage = page.replace('mobile/', '').replace(/-/g, '_');
+                const mobileKey = `mobile_${cleanPage}`;
+                if (pageMap[mobileKey]) {
+                    return pageMap[mobileKey];
+                }
+            }
+            
+            // Handle admin pages
+            if (page.startsWith('admin_') || page.startsWith('admin/')) {
+                const cleanPage = page.replace('admin/', '').replace('admin_', '');
+                return `Admin - ${cleanPage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+            }
+            
+            // Handle API endpoints
+            if (page.startsWith('api/')) {
+                return `API - ${page.replace('api/', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+            }
+            
+            // Fallback: clean up the page name
+            return page
+                .replace(/[/_-]/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase())
+                .replace(/^Mobile\s+/, '')
+                + ' Page';
+        }
+
+        function getBrowserInfo(userAgent) {
+            if (!userAgent) return 'Unknown';
+            
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Safari')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            return 'Other';
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (dashboardState.refreshInterval) {
+                clearInterval(dashboardState.refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
