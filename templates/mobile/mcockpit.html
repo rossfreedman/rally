@@ -26,12 +26,6 @@
       <span id="last-updated" class="text-xs text-gray-500 font-mono">--:--:--</span>
     </div>
     
-    <!-- Refresh Button -->
-    <div class="flex items-center justify-center">
-      <button onclick="refreshAllData()" class="text-white px-6 py-3 rounded-lg text-sm transition-colors shadow-lg" style="background-color: #0a3d36; hover:background-color: #10645c;">
-        <i class="fas fa-sync-alt mr-2"></i>Refresh All Data
-      </button>
-    </div>
   </div>
 
 
@@ -59,7 +53,7 @@
       
       <!-- Activity Filter Buttons -->
       <div class="flex space-x-2 overflow-x-auto pb-2">
-        <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="activity-filter-btn active px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-rally-primary text-white whitespace-nowrap shadow-sm">
+        <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="activity-filter-btn active px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white whitespace-nowrap shadow-sm" style="background-color: #10645c; border-color: rgba(16, 100, 92, 0.3); box-shadow: 0 2px 8px rgba(16, 100, 92, 0.2);">
           Real-time
         </button>
         <button onclick="setActivityFilter('hour')" id="filter-hour" class="activity-filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap shadow-sm">
@@ -370,7 +364,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeDashboard() {
   console.log('Initializing Rally Mobile Cockpit Dashboard...');
+  initializeFilterButtons();
   loadAllData();
+}
+
+function initializeFilterButtons() {
+  // Set initial active state for filter buttons
+  const currentFilter = dashboardState.currentFilter || 'realtime';
+  setActivityFilter(currentFilter);
 }
 
 async function loadAllData() {
@@ -566,34 +567,48 @@ function renderActivityTimeline(activities) {
 
   const html = activities.map(activity => {
     const timeAgo = getTimeAgo(activity.timestamp);
-    const actionIcon = getActionTypeIcon(activity.action_type);
-    const actionColor = getActionTypeColor(activity.action_type);
+    const actionIcon = getActionTypeIcon(activity.action_type, activity.page);
+    const actionColor = getActionTypeColor(activity.action_type, activity.page);
     const actionDescription = getDetailedActionDescription(activity);
     
     return `
-      <div class="timeline-item bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-3 hover:shadow-md transition-shadow">
-        <div class="flex items-start space-x-3">
+      <div class="timeline-item bg-white rounded-lg p-5 shadow-sm border border-gray-200 mb-4 hover:shadow-md transition-shadow">
+        <div class="flex items-start space-x-4">
           <div class="flex-shrink-0">
-            <div class="w-10 h-10 bg-${actionColor}-100 rounded-lg flex items-center justify-center">
-              <i class="${actionIcon} text-${actionColor}-600 text-base"></i>
+            <div class="w-12 h-12 bg-${actionColor}-100 rounded-lg flex items-center justify-center p-2">
+              <i class="${actionIcon} text-${actionColor}-600 text-lg"></i>
             </div>
           </div>
           <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between mb-2">
+            <div class="flex items-start justify-between mb-3">
               <h4 class="text-sm font-semibold text-gray-900 leading-tight">${actionDescription}</h4>
-              <span class="text-xs text-gray-500 font-mono ml-2 flex-shrink-0">${timeAgo}</span>
+              <span class="text-xs text-gray-500 font-mono ml-3 flex-shrink-0">${timeAgo}</span>
             </div>
             
             ${activity.user ? `
-              <div class="flex items-center space-x-2 mb-2">
-                <i class="fas fa-user text-gray-400 text-xs"></i>
+              <div class="flex items-center mb-3">
+                <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center mr-4">
+                  <i class="fas fa-user text-gray-500 text-xs"></i>
+                </div>
                 <span class="text-xs text-gray-600 font-medium">${activity.user.first_name} ${activity.user.last_name}</span>
               </div>
             ` : ''}
             
-            <div class="flex items-center space-x-4 text-xs text-gray-500">
-              <span class="flex items-center"><i class="fas fa-tag mr-1"></i>${activity.action_type}</span>
-              ${activity.ip_address ? `<span class="flex items-center"><i class="fas fa-globe mr-1"></i>${activity.ip_address}</span>` : ''}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-500">
+              <div class="flex items-center">
+                <div class="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                  <i class="fas fa-tag text-gray-500 text-xs"></i>
+                </div>
+                <span>${activity.action_type}</span>
+              </div>
+              ${activity.ip_address ? `
+                <div class="flex items-center">
+                  <div class="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-globe text-gray-500 text-xs"></i>
+                  </div>
+                  <span>${activity.ip_address}</span>
+                </div>
+              ` : ''}
             </div>
           </div>
         </div>
@@ -652,10 +667,6 @@ function startRealTimeUpdates() {
   }, 30000);
 }
 
-function refreshAllData() {
-  console.log('Refreshing all data...');
-  loadAllData();
-}
 
 function refreshActivityData() {
   loadActivityData();
@@ -666,18 +677,30 @@ function refreshPageAnalytics() {
 }
 
 function setActivityFilter(filter) {
+  console.log('Setting activity filter to:', filter);
   dashboardState.currentFilter = filter;
   
-  // Update button states
-  document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+  // Update button states - remove active styling from all buttons
+  document.querySelectorAll('.activity-filter-btn').forEach(btn => {
     btn.classList.remove('active', 'bg-rally-primary', 'text-white');
     btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+    // Reset inline styles
+    btn.style.backgroundColor = '';
+    btn.style.borderColor = '';
+    btn.style.boxShadow = '';
   });
   
+  // Apply active styling to selected button
   const activeBtn = document.getElementById(`filter-${filter}`);
   if (activeBtn) {
     activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-    activeBtn.classList.add('active', 'bg-rally-primary', 'text-white');
+    activeBtn.classList.add('active', 'text-white');
+    activeBtn.style.backgroundColor = '#10645c'; // Rally primary green
+    activeBtn.style.borderColor = 'rgba(16, 100, 92, 0.3)';
+    activeBtn.style.boxShadow = '0 2px 8px rgba(16, 100, 92, 0.2)';
+    console.log('Applied active styling to filter button:', filter);
+  } else {
+    console.error('Filter button not found:', `filter-${filter}`);
   }
   
   // Load activities with new filter
@@ -775,7 +798,56 @@ function getTimeAgo(timestamp) {
   return `${diffDays}d ago`;
 }
 
-function getActionTypeIcon(actionType) {
+function getActionTypeIcon(actionType, page = null) {
+  // Page-specific icons for page_visit
+  if (actionType === 'page_visit' && page) {
+    const pageIconMap = {
+      'mobile_home': 'fas fa-home',
+      'mobile_matches': 'fas fa-table-tennis',
+      'mobile_rankings': 'fas fa-trophy',
+      'mobile_profile': 'fas fa-user',
+      'mobile_view_schedule': 'fas fa-calendar-alt',
+      'mobile_analyze_me': 'fas fa-chart-line',
+      'mobile_my_team': 'fas fa-users',
+      'mobile_settings': 'fas fa-cog',
+      'mobile_my_series': 'fas fa-list-ol',
+      'mobile_teams_players': 'fas fa-users-cog',
+      'mobile_player_search': 'fas fa-search',
+      'mobile_my_club': 'fas fa-building',
+      'mobile_player_stats': 'fas fa-chart-bar',
+      'mobile_email_team': 'fas fa-envelope',
+      'mobile_pickup_games': 'fas fa-gamepad',
+      'mobile_find_people_to_play': 'fas fa-handshake',
+      'mobile_availability': 'fas fa-calendar-check',
+      'mobile_availability_calendar': 'fas fa-calendar-week',
+      'mobile_track_byes_courts': 'fas fa-clipboard-list',
+      'mobile_team_schedule': 'fas fa-calendar',
+      'mobile_team_notifications': 'fas fa-bell',
+      'mobile_find_subs': 'fas fa-user-plus',
+      'mobile_create_lineup': 'fas fa-list',
+      'mobile_practice_times': 'fas fa-clock',
+      'mobile_improve': 'fas fa-graduation-cap',
+      'mobile_schedule_lesson': 'fas fa-chalkboard-teacher',
+      'mobile_matchup_simulator': 'fas fa-dice',
+      'mobile_admin': 'fas fa-shield-alt',
+      'mobile_share_rally': 'fas fa-share-alt',
+      'mobile_home_submenu': 'fas fa-bars'
+    };
+    
+    // Check for exact match first
+    if (pageIconMap[page]) {
+      return pageIconMap[page];
+    }
+    
+    // Check for partial matches
+    for (const [key, icon] of Object.entries(pageIconMap)) {
+      if (page.includes(key.replace('mobile_', ''))) {
+        return icon;
+      }
+    }
+  }
+  
+  // General action type icons
   const iconMap = {
     'page_visit': 'fas fa-eye',
     'login': 'fas fa-sign-in-alt',
@@ -799,7 +871,56 @@ function getActionTypeIcon(actionType) {
   return iconMap[actionType] || 'fas fa-info-circle';
 }
 
-function getActionTypeColor(actionType) {
+function getActionTypeColor(actionType, page = null) {
+  // Page-specific colors for page_visit
+  if (actionType === 'page_visit' && page) {
+    const pageColorMap = {
+      'mobile_home': 'blue',
+      'mobile_matches': 'red',
+      'mobile_rankings': 'yellow',
+      'mobile_profile': 'purple',
+      'mobile_view_schedule': 'green',
+      'mobile_analyze_me': 'indigo',
+      'mobile_my_team': 'teal',
+      'mobile_settings': 'orange',
+      'mobile_my_series': 'pink',
+      'mobile_teams_players': 'cyan',
+      'mobile_player_search': 'blue',
+      'mobile_my_club': 'emerald',
+      'mobile_player_stats': 'violet',
+      'mobile_email_team': 'sky',
+      'mobile_pickup_games': 'lime',
+      'mobile_find_people_to_play': 'amber',
+      'mobile_availability': 'green',
+      'mobile_availability_calendar': 'emerald',
+      'mobile_track_byes_courts': 'slate',
+      'mobile_team_schedule': 'green',
+      'mobile_team_notifications': 'red',
+      'mobile_find_subs': 'purple',
+      'mobile_create_lineup': 'indigo',
+      'mobile_practice_times': 'orange',
+      'mobile_improve': 'yellow',
+      'mobile_schedule_lesson': 'blue',
+      'mobile_matchup_simulator': 'purple',
+      'mobile_admin': 'red',
+      'mobile_share_rally': 'green',
+      'mobile_home_submenu': 'gray'
+    };
+    
+    // Check for exact match first
+    if (pageColorMap[page]) {
+      return pageColorMap[page];
+    }
+    
+    // Check for partial matches
+    for (const [key, color] of Object.entries(pageColorMap)) {
+      if (page.includes(key.replace('mobile_', ''))) {
+        return color;
+      }
+    }
+  }
+  
+  // General action type colors
   const colorMap = {
     'page_visit': 'blue',
     'login': 'green',
@@ -814,7 +935,7 @@ function getActionTypeColor(actionType) {
     'availability_update': 'green',
     'ai_chat': 'purple',
     'simulation_run': 'yellow',
-    'score_submitted': 'gold',
+    'score_submitted': 'yellow',
     'team_email': 'blue',
     'court_reservation': 'green',
     'admin_action': 'red',

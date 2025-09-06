@@ -127,12 +127,26 @@ def get_recent_activities(
 
         # Date range filters
         if filters.get("date_from"):
-            where_clauses.append("DATE(ual.timestamp) >= %(date_from)s")
-            params["date_from"] = filters["date_from"]
+            # Handle both date strings (YYYY-MM-DD) and datetime strings (ISO format)
+            date_from = filters["date_from"]
+            if "T" in date_from:
+                # Full datetime string - use timestamp comparison
+                where_clauses.append("ual.timestamp >= %(date_from)s")
+            else:
+                # Date string only - use DATE comparison
+                where_clauses.append("DATE(ual.timestamp) >= %(date_from)s")
+            params["date_from"] = date_from
 
         if filters.get("date_to"):
-            where_clauses.append("DATE(ual.timestamp) <= %(date_to)s")
-            params["date_to"] = filters["date_to"]
+            # Handle both date strings (YYYY-MM-DD) and datetime strings (ISO format)
+            date_to = filters["date_to"]
+            if "T" in date_to:
+                # Full datetime string - use timestamp comparison
+                where_clauses.append("ual.timestamp <= %(date_to)s")
+            else:
+                # Date string only - use DATE comparison
+                where_clauses.append("DATE(ual.timestamp) <= %(date_to)s")
+            params["date_to"] = date_to
 
         # Action type filter
         if filters.get("action_type"):
