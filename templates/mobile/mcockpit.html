@@ -28,78 +28,12 @@
     
     <!-- Refresh Button -->
     <div class="flex items-center justify-center">
-      <button onclick="refreshAllData()" class="bg-rally-secondary hover:bg-rally-primary text-white px-6 py-3 rounded-lg text-sm transition-colors shadow-lg">
+      <button onclick="refreshAllData()" class="text-white px-6 py-3 rounded-lg text-sm transition-colors shadow-lg" style="background-color: #0a3d36; hover:background-color: #10645c;">
         <i class="fas fa-sync-alt mr-2"></i>Refresh All Data
       </button>
     </div>
   </div>
 
-  <!-- Key Metrics Cards -->
-  <div class="grid grid-cols-2 gap-4 mb-6">
-    <!-- Total Activities -->
-    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
-      <div class="flex items-center justify-between mb-2">
-        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-          <i class="fas fa-chart-line text-blue-600 text-lg"></i>
-        </div>
-        <div class="text-right">
-          <p class="text-xs text-gray-600">Total</p>
-          <p id="total-activities" class="text-xl font-bold text-gray-900">-</p>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500">
-        <span id="total-activities-change">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Today's Activities -->
-    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
-      <div class="flex items-center justify-between mb-2">
-        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-          <i class="fas fa-calendar-day text-green-600 text-lg"></i>
-        </div>
-        <div class="text-right">
-          <p class="text-xs text-gray-600">Today</p>
-          <p id="today-activities" class="text-xl font-bold text-gray-900">-</p>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500">
-        <span id="today-activities-change">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Active Users -->
-    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
-      <div class="flex items-center justify-between mb-2">
-        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-          <i class="fas fa-users text-purple-600 text-lg"></i>
-        </div>
-        <div class="text-right">
-          <p class="text-xs text-gray-600">Active Users</p>
-          <p id="active-users" class="text-xl font-bold text-gray-900">-</p>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500">
-        <span id="active-users-change">Loading...</span>
-      </div>
-    </div>
-
-    <!-- Activity Rate -->
-    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
-      <div class="flex items-center justify-between mb-2">
-        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-          <i class="fas fa-bolt text-orange-600 text-lg"></i>
-        </div>
-        <div class="text-right">
-          <p class="text-xs text-gray-600">Rate/Hour</p>
-          <p id="activity-rate" class="text-xl font-bold text-gray-900">-</p>
-        </div>
-      </div>
-      <div class="text-xs text-gray-500">
-        <span id="activity-rate-change">Peak at 2:00 PM</span>
-      </div>
-    </div>
-  </div>
 
 
   <!-- Activity Timeline Section -->
@@ -217,6 +151,73 @@
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics Cards -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <!-- Total Activities -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-chart-line text-blue-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Total</p>
+          <p id="total-activities" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="total-activities-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Today's Activities -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-calendar-day text-green-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Today</p>
+          <p id="today-activities" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="today-activities-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Active Users -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-users text-purple-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Active Users</p>
+          <p id="active-users" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="active-users-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Activity Rate -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-bolt text-orange-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Rate/Hour</p>
+          <p id="activity-rate" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="activity-rate-change">Peak at 2:00 PM</span>
       </div>
     </div>
   </div>
@@ -472,17 +473,28 @@ async function loadSystemStatus() {
 
 async function loadMostActivePages() {
   try {
-    const response = await fetch('/api/admin/cockpit/page-analytics');
+    const response = await fetch('/api/admin/cockpit/most-active-pages?exclude_admin=true&exclude_impersonated=false&limit=10', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Most active pages API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
     const data = await response.json();
     
     if (data.status === 'success') {
-      renderMostActivePages(data.analytics.top_pages);
+      renderMostActivePages(data.pages);
     } else {
-      console.error('Error loading page analytics:', data.error);
+      console.error('Most active pages API returned error:', data.error);
       renderMostActivePages([]);
     }
   } catch (error) {
-    console.error('Error loading page analytics:', error);
+    console.error('Error loading most active pages:', error);
     renderMostActivePages([]);
   }
 }
@@ -515,28 +527,28 @@ function updateMetricsDisplay(stats, trends, systemHealth) {
 function renderMostActivePages(pages) {
   const container = document.getElementById('most-active-pages-list');
   
-  if (pages.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No page data available</p>';
+  if (!pages || pages.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500">No page data available</p>';
     return;
   }
-  
-  const html = pages.map((page, index) => `
+
+  container.innerHTML = pages.map((page, index) => `
     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <div class="flex items-center space-x-3">
-        <span class="text-sm font-bold text-gray-600" style="min-width: 30px;">${index + 1}.</span>
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-rally-primary text-white rounded-lg flex items-center justify-center text-sm font-semibold mr-3">
+          ${index + 1}
+        </div>
         <div>
-          <p class="text-sm font-medium text-gray-900">${page.name}</p>
-          <p class="text-xs text-gray-500">${page.page}</p>
+          <div class="font-medium text-gray-900">${page.page_name}</div>
+          <div class="text-sm text-gray-500">${page.page_id}</div>
         </div>
       </div>
       <div class="text-right">
-        <p class="text-sm font-bold text-gray-900">${formatNumber(page.views)}</p>
-        <p class="text-xs text-gray-600">views</p>
+        <div class="font-semibold text-gray-900">${formatNumber(page.visit_count)}</div>
+        <div class="text-sm text-gray-500">visits</div>
       </div>
     </div>
   `).join('');
-  
-  container.innerHTML = html;
 }
 
 function renderActivityTimeline(activities) {
