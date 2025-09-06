@@ -47,7 +47,12 @@ def get_matches_for_user_club(user):
             """
             
             # Practice pattern for ILIKE search (fallback for practices not using team_id)
-            practice_pattern = f"{user_club} Practice%"
+            # FIXED: Use specific series pattern instead of broad club pattern
+            if "Division" in user_series:
+                division_num = user_series.replace("Division ", "")
+                practice_pattern = f"{user_club} Practice - Series {division_num}"
+            else:
+                practice_pattern = f"{user_club} Practice - {user_series}"
             practice_search = f"%{practice_pattern}%"
             
             matches = execute_query(
