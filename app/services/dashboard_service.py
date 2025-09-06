@@ -189,8 +189,13 @@ def get_recent_activities(
         # Format activities for frontend
         formatted_activities = []
         for activity in activities:
-            # Create enhanced description for registration activities
-            description = activity["details"] or f"{activity['action_type'].replace('_', ' ').title()} activity"
+            # Create enhanced description using the proper function
+            description = create_activity_description(
+                activity["action_type"], 
+                activity["page"], 
+                activity["details"], 
+                activity["action"]
+            )
             
             # Handle registration activities with enhanced descriptions
             if activity["action_type"] == "registration_successful":
@@ -920,29 +925,11 @@ def create_activity_description(
 
     # Handle page visits
     if activity_type == "page_visit":
-        # If details is a dict, try to extract a summary or join key fields
-        import json
-        try:
-            details_obj = json.loads(details) if details and details.strip().startswith('{') else details
-        except Exception:
-            details_obj = details
-        if details_obj:
-            if isinstance(details_obj, dict):
-                # Try to use a 'summary' or join key fields
-                summary = details_obj.get('summary')
-                if summary:
-                    return summary
-                # Join key fields for display
-                key_fields = [str(v) for k, v in details_obj.items() if v and k not in ('is_impersonating', 'page', 'page_category')]
-                if key_fields:
-                    return ", ".join(key_fields)
-            elif isinstance(details_obj, str) and details_obj.strip() and not details_obj.lower().startswith('visited'):
-                return details_obj
-        # Fallback to page name
+        # Use the page name to create a descriptive message
         if page:
             page_name = format_page_name(page)
             return f"Visited {page_name}"
-        return "Visited a page"
+        return "Visited Unknown Page"
 
     # Handle authentication
     elif activity_type == "auth":

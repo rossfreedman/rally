@@ -3305,7 +3305,24 @@ def format_page_name(page: str) -> str:
         "matches": "Matches Page",
         "rankings": "Rankings Page",
         "profile": "Profile Page",
-        "settings": "Settings Page"
+        "settings": "Settings Page",
+        # Common patterns that might appear
+        "home": "Home Page",
+        "index": "Home Page",
+        "main": "Main Page",
+        "dashboard": "Dashboard",
+        "welcome": "Welcome Page",
+        "interstitial": "Welcome Page",
+        "interstitial_welcome": "Welcome Page",
+        "contact_sub": "Contact Substitute",
+        "contact-sub": "Contact Substitute",
+        "user_activity": "User Activity Page",
+        "user-activity": "User Activity Page",
+        "api": "API Endpoint",
+        "static": "Static Resource",
+        "favicon.ico": "Favicon",
+        "robots.txt": "Robots File",
+        "sitemap.xml": "Sitemap"
     }
 
     # Check for exact matches first

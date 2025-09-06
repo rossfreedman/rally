@@ -118,6 +118,12 @@
                             <div class="text-sm text-green-200">Last Updated</div>
                             <div id="last-updated" class="text-lg font-mono">--:--:--</div>
                         </div>
+                        <div class="flex items-center space-x-2">
+                            <label class="flex items-center text-sm text-green-200">
+                                <input type="checkbox" id="include-admin-toggle" class="mr-2 rounded" onchange="toggleAdminFilter()">
+                                Include Admin Activity
+                            </label>
+                        </div>
                         <button onclick="refreshAllData()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all">
                             <i class="fas fa-sync-alt mr-2"></i>Refresh
                         </button>
@@ -315,10 +321,23 @@
 
                     <!-- Top Active Users -->
                     <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-star text-yellow-500 mr-2"></i>
-                            Most Active Users
-                        </h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                Most Active Users
+                            </h3>
+                            <div class="flex space-x-1">
+                                <button onclick="setTopUsersFilter('today')" id="top-users-filter-today" class="px-3 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white">
+                                    Today
+                                </button>
+                                <button onclick="setTopUsersFilter('week')" id="top-users-filter-week" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                    Week
+                                </button>
+                                <button onclick="setTopUsersFilter('month')" id="top-users-filter-month" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                    Month
+                                </button>
+                            </div>
+                        </div>
                         <div id="top-users-list" class="space-y-3">
                             <!-- Loading skeleton -->
                             <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
@@ -369,13 +388,17 @@
             currentFilter: 'realtime',
             lastUpdate: null,
             charts: {},
-            refreshInterval: null
+            refreshInterval: null,
+            includeAdmin: false,  // Default to excluding admin activity
+            topUsersFilter: 'today'  // Default to today's most active users
         };
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             initializeDashboard();
             startRealTimeUpdates();
+            // Set initial checkbox state
+            document.getElementById('include-admin-toggle').checked = dashboardState.includeAdmin;
         });
 
         function initializeDashboard() {
@@ -390,7 +413,8 @@
                     loadMetrics(),
                     loadActivityData(),
                     loadTopUsers(),
-                    loadSystemStatus()
+                    loadSystemStatus(),
+                    loadActivityTrends()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -400,7 +424,8 @@
 
         async function loadMetrics() {
             try {
-                const response = await fetch('/api/admin/cockpit/real-time-stats?exclude_admin=false&exclude_impersonated=false');
+                const excludeAdmin = !dashboardState.includeAdmin;
+                const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=${excludeAdmin}&exclude_impersonated=false`);
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -414,9 +439,10 @@
         async function loadActivityData() {
             try {
                 const filter = dashboardState.currentFilter;
+                const excludeAdmin = !dashboardState.includeAdmin;
                 const params = new URLSearchParams({
                     limit: '100',
-                    exclude_admin: 'false',
+                    exclude_admin: excludeAdmin.toString(),
                     exclude_impersonated: 'false'
                 });
 
@@ -438,7 +464,17 @@
 
         async function loadTopUsers() {
             try {
-                const response = await fetch('/api/admin/dashboard/top-players?limit=10&exclude_admin=false&exclude_impersonated=false');
+                const excludeAdmin = !dashboardState.includeAdmin;
+                const filter = dashboardState.topUsersFilter;
+                
+                // Build date range for the filter
+                const { dateFrom, dateTo } = getDateRangeForTopUsersFilter(filter);
+                
+                let url = `/api/admin/dashboard/top-players?limit=10&exclude_admin=${excludeAdmin}&exclude_impersonated=false`;
+                if (dateFrom) url += `&date_from=${dateFrom}`;
+                if (dateTo) url += `&date_to=${dateTo}`;
+                
+                const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.status === 'success') {
@@ -459,6 +495,19 @@
                 }
             } catch (error) {
                 console.error('Error loading system status:', error);
+            }
+        }
+
+        async function loadActivityTrends() {
+            try {
+                const response = await fetch('/api/admin/cockpit/activity-trends?hours=24');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateActivityChart(data.chart_data);
+                }
+            } catch (error) {
+                console.error('Error loading activity trends:', error);
             }
         }
 
@@ -604,6 +653,31 @@
             document.getElementById('cpu-usage').textContent = metrics.cpu_usage || '12%';
         }
 
+        function updateActivityChart(chartData) {
+            if (!dashboardState.charts.activity) return;
+            
+            const chart = dashboardState.charts.activity;
+            
+            // Clear existing datasets
+            chart.data.labels = chartData.labels || [];
+            chart.data.datasets = [];
+            
+            // Add datasets for each action type
+            Object.keys(chartData.datasets || {}).forEach(actionType => {
+                const dataset = chartData.datasets[actionType];
+                chart.data.datasets.push({
+                    label: dataset.label,
+                    data: dataset.data,
+                    borderColor: dataset.borderColor || getActionTypeColor(actionType),
+                    backgroundColor: dataset.backgroundColor || `${getActionTypeColor(actionType)}20`,
+                    tension: 0.4,
+                    fill: true
+                });
+            });
+            
+            chart.update();
+        }
+
         function setupCharts() {
             // Activity trend chart
             const ctx = document.getElementById('activity-chart').getContext('2d');
@@ -660,6 +734,18 @@
             loadActivityData();
         }
 
+        function toggleAdminFilter() {
+            const checkbox = document.getElementById('include-admin-toggle');
+            dashboardState.includeAdmin = checkbox.checked;
+            
+            // Reload all data with new filter
+            loadAllData();
+            
+            // Show feedback
+            const status = dashboardState.includeAdmin ? 'including' : 'excluding';
+            console.log(`Admin activity filter updated: ${status} admin activities`);
+        }
+
         function setActivityFilter(filter) {
             dashboardState.currentFilter = filter;
             
@@ -694,6 +780,41 @@
                 default:
                     return { dateFrom: null, dateTo: null };
             }
+        }
+
+        function getDateRangeForTopUsersFilter(filter) {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            switch (filter) {
+                case 'today':
+                    return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+                case 'week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    return { dateFrom: weekAgo.toISOString().split('T')[0], dateTo: null };
+                case 'month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setDate(today.getDate() - 30);
+                    return { dateFrom: monthAgo.toISOString().split('T')[0], dateTo: null };
+                default:
+                    return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+            }
+        }
+
+        function setTopUsersFilter(filter) {
+            dashboardState.topUsersFilter = filter;
+            
+            // Update button states
+            document.querySelectorAll('[id^="top-users-filter-"]').forEach(btn => {
+                btn.className = 'px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300';
+            });
+            
+            const activeBtn = document.getElementById(`top-users-filter-${filter}`);
+            activeBtn.className = 'px-3 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white';
+            
+            // Reload top users with new filter
+            loadTopUsers();
         }
 
         function updateLastUpdated() {
@@ -910,7 +1031,24 @@
                 'matches': 'Matches Page',
                 'rankings': 'Rankings Page',
                 'profile': 'Profile Page',
-                'settings': 'Settings Page'
+                'settings': 'Settings Page',
+                // Common patterns that might appear
+                'home': 'Home Page',
+                'index': 'Home Page',
+                'main': 'Main Page',
+                'dashboard': 'Dashboard',
+                'welcome': 'Welcome Page',
+                'interstitial': 'Welcome Page',
+                'interstitial_welcome': 'Welcome Page',
+                'contact_sub': 'Contact Substitute',
+                'contact-sub': 'Contact Substitute',
+                'user_activity': 'User Activity Page',
+                'user-activity': 'User Activity Page',
+                'api': 'API Endpoint',
+                'static': 'Static Resource',
+                'favicon.ico': 'Favicon',
+                'robots.txt': 'Robots File',
+                'sitemap.xml': 'Sitemap'
             };
             
             // Check for exact matches first
