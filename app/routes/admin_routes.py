@@ -2406,6 +2406,88 @@ def get_cockpit_page_analytics():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/cockpit/user-count-trends")
+@login_required
+@admin_required
+def get_cockpit_user_count_trends():
+    """Get user count trends over time for cockpit dashboard"""
+    try:
+        from datetime import datetime, timedelta
+        from core.database import execute_query
+        
+        # Get date range (default to last 30 days)
+        days = int(request.args.get("days", 30))
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=days)
+        
+        # Query user count trends by day
+        query = """
+        SELECT 
+            DATE(created_at) as date,
+            COUNT(*) as user_count
+        FROM users 
+        WHERE created_at >= %s AND created_at <= %s
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at) ASC
+        """
+        
+        results = execute_query(query, (start_date, end_date))
+        
+        # Format data for chart
+        chart_data = {
+            "labels": [],
+            "datasets": [{
+                "label": "New Users",
+                "data": [],
+                "borderColor": "#10645c",
+                "backgroundColor": "rgba(16, 100, 92, 0.1)",
+                "fill": True,
+                "tension": 0.4
+            }]
+        }
+        
+        # Create a complete date range
+        current_date = start_date
+        while current_date <= end_date:
+            date_str = current_date.strftime("%Y-%m-%d")
+            chart_data["labels"].append(date_str)
+            
+            # Find user count for this date
+            user_count = 0
+            for row in results:
+                if str(row['date']) == date_str:
+                    user_count = row['user_count']
+                    break
+            
+            chart_data["datasets"][0]["data"].append(user_count)
+            current_date += timedelta(days=1)
+        
+        # Calculate total users and growth
+        total_users = execute_query("SELECT COUNT(*) as total FROM users")[0]['total']
+        previous_period_users = execute_query("""
+            SELECT COUNT(*) as total FROM users 
+            WHERE created_at < %s
+        """, (start_date,))[0]['total']
+        
+        growth_rate = 0
+        if previous_period_users > 0:
+            growth_rate = ((total_users - previous_period_users) / previous_period_users) * 100
+        
+        return jsonify({
+            "status": "success",
+            "chart_data": chart_data,
+            "total_users": total_users,
+            "growth_rate": round(growth_rate, 1),
+            "period_days": days,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error getting user count trends: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/dashboard/player/<int:player_id>/activities")
 @login_required
 @admin_required

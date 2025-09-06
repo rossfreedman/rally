@@ -114,6 +114,11 @@
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
       </div>
     </div>
   </div>
@@ -251,6 +256,31 @@
       </div>
     </div>
   </div>
+
+  <!-- User Count Trends Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-users text-blue-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">User Growth</h2>
+          <p class="text-sm text-gray-600">New user registrations over time</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div class="chart-container" style="height: 200px;">
+        <canvas id="user-count-chart"></canvas>
+      </div>
+      <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
+        <span id="user-count-total">Total: -</span>
+        <span id="user-count-growth">Growth: -</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -347,6 +377,7 @@
 }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Global state
 let dashboardState = {
@@ -381,7 +412,8 @@ async function loadAllData() {
       loadActivityData(),
       loadTopUsers(),
       loadSystemStatus(),
-      loadMostActivePages()
+      loadMostActivePages(),
+      loadUserCountTrends()
     ]);
     updateLastUpdated();
   } catch (error) {
@@ -444,7 +476,7 @@ async function loadTopUsers() {
     // Build date range for the filter
     const { dateFrom, dateTo } = getDateRangeForTopUsersFilter(filter);
     
-    let url = `/api/admin/dashboard/top-players?limit=5&exclude_admin=true&exclude_impersonated=false`;
+    let url = `/api/admin/dashboard/top-players?limit=20&exclude_admin=true&exclude_impersonated=false`;
     if (dateFrom) url += `&date_from=${dateFrom}`;
     if (dateTo) url += `&date_to=${dateTo}`;
     
@@ -500,6 +532,32 @@ async function loadMostActivePages() {
   }
 }
 
+async function loadUserCountTrends() {
+  try {
+    const response = await fetch('/api/admin/cockpit/user-count-trends?days=30', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`User count trends API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateUserCountChart(data);
+    } else {
+      console.error('User count trends API returned error:', data.error);
+    }
+  } catch (error) {
+    console.error('Error loading user count trends:', error);
+  }
+}
+
 function updateMetricsDisplay(stats, trends, systemHealth) {
   // Total Users - using total_activities as a proxy for total users for now
   document.getElementById('total-users').textContent = formatNumber(stats.total_activities || 0);
@@ -551,6 +609,67 @@ function renderMostActivePages(pages) {
       </div>
     </div>
   `).join('');
+}
+
+function updateUserCountChart(data) {
+  // Initialize chart if it doesn't exist
+  if (!window.userCountChart) {
+    const ctx = document.getElementById('user-count-chart').getContext('2d');
+    window.userCountChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'New Users',
+          data: [],
+          borderColor: '#10645c',
+          backgroundColor: 'rgba(16, 100, 92, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Update the chart data
+  window.userCountChart.data.labels = data.chart_data.labels;
+  window.userCountChart.data.datasets[0].data = data.chart_data.datasets[0].data;
+  window.userCountChart.update();
+
+  // Update the summary text
+  const totalEl = document.getElementById('user-count-total');
+  const growthEl = document.getElementById('user-count-growth');
+  
+  if (totalEl) {
+    totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
+  }
+  
+  if (growthEl) {
+    const growthText = data.growth_rate >= 0 ? `+${data.growth_rate}%` : `${data.growth_rate}%`;
+    growthEl.textContent = `Growth: ${growthText}`;
+  }
 }
 
 function renderActivityTimeline(activities) {

@@ -225,6 +225,21 @@
                         </div>
                     </div>
 
+                    <!-- User Count Trends -->
+                    <div class="p-6 border-t border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-users text-rally-primary mr-2"></i>
+                            User Growth
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="user-count-chart"></canvas>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
+                            <span id="user-count-total">Total: -</span>
+                            <span id="user-count-growth">Growth: -</span>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- Main Content Area -->
@@ -333,6 +348,11 @@
                             <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
                             <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
                             <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
                         </div>
                     </div>
 
@@ -392,7 +412,8 @@
                     loadActivityData(),
                     loadTopUsers(),
                     loadActivityTrends(),
-                    loadMostActivePages()
+                    loadMostActivePages(),
+                    loadUserCountTrends()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -482,7 +503,7 @@
                 // Build date range for the filter
                 const { dateFrom, dateTo } = getDateRangeForTopUsersFilter(filter);
                 
-                let url = `/api/admin/dashboard/top-players?limit=10&exclude_admin=${excludeAdmin}&exclude_impersonated=false`;
+                let url = `/api/admin/dashboard/top-players?limit=20&exclude_admin=${excludeAdmin}&exclude_impersonated=false`;
                 if (dateFrom) url += `&date_from=${dateFrom}`;
                 if (dateTo) url += `&date_to=${dateTo}`;
                 
@@ -562,6 +583,32 @@
                 }
             } catch (error) {
                 console.error('Error loading most active pages:', error);
+            }
+        }
+
+        async function loadUserCountTrends() {
+            try {
+                const response = await fetch('/api/admin/cockpit/user-count-trends?days=30', {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error(`User count trends API error: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateUserCountChart(data);
+                } else {
+                    console.error('User count trends API returned error:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading user count trends:', error);
             }
         }
 
@@ -785,6 +832,45 @@
                     }
                 }
             });
+
+            // User count trend chart
+            const userCtx = document.getElementById('user-count-chart').getContext('2d');
+            dashboardState.charts.userCount = new Chart(userCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'New Users',
+                        data: [],
+                        borderColor: '#10645c',
+                        backgroundColor: 'rgba(16, 100, 92, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function startRealTimeUpdates() {
@@ -920,6 +1006,27 @@
             `).join('');
         }
 
+        function updateUserCountChart(data) {
+            // Update the chart data
+            if (dashboardState.charts.userCount) {
+                dashboardState.charts.userCount.data.labels = data.chart_data.labels;
+                dashboardState.charts.userCount.data.datasets[0].data = data.chart_data.datasets[0].data;
+                dashboardState.charts.userCount.update();
+            }
+
+            // Update the summary text
+            const totalEl = document.getElementById('user-count-total');
+            const growthEl = document.getElementById('user-count-growth');
+            
+            if (totalEl) {
+                totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
+            }
+            
+            if (growthEl) {
+                const growthText = data.growth_rate >= 0 ? `+${data.growth_rate}%` : `${data.growth_rate}%`;
+                growthEl.textContent = `Growth: ${growthText}`;
+            }
+        }
 
         // Utility functions
         function formatNumber(num) {
