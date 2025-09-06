@@ -2286,6 +2286,61 @@ def get_cockpit_system_metrics():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/cockpit/most-active-pages")
+@login_required
+@admin_required
+def get_cockpit_most_active_pages():
+    """Get most active pages for cockpit dashboard"""
+    try:
+        limit = int(request.args.get("limit", 10))
+        exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
+        exclude_admin = request.args.get("exclude_admin", "false").lower() == "true"
+        
+        # Build filters
+        filters = {
+            "exclude_impersonated": exclude_impersonated,
+            "exclude_admin": exclude_admin
+        }
+        
+        # Query for most active pages
+        query = """
+        SELECT 
+            page,
+            COUNT(*) as visit_count
+        FROM user_activity_logs 
+        WHERE activity_type = 'page_visit'
+        AND page IS NOT NULL
+        AND page != ''
+        GROUP BY page
+        ORDER BY visit_count DESC
+        LIMIT %s
+        """
+        
+        results = execute_query(query, (limit,))
+        
+        # Format the results with page names
+        pages = []
+        for row in results:
+            page_id = row.get('page', '')
+            visit_count = row.get('visit_count', 0)
+            page_name = format_page_name(page_id)
+            
+            pages.append({
+                'page_id': page_id,
+                'page_name': page_name,
+                'visit_count': visit_count
+            })
+        
+        return jsonify({
+            "status": "success",
+            "pages": pages
+        })
+        
+    except Exception as e:
+        print(f"Error getting most active pages: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/cockpit/page-analytics")
 @login_required
 @admin_required

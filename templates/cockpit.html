@@ -145,21 +145,6 @@
                             Key Metrics
                         </h2>
                         
-                        <!-- Total Activities -->
-                        <div class="metric-card p-4 rounded-lg mb-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Total Activities</p>
-                                    <p id="total-activities" class="text-2xl font-bold text-gray-900">-</p>
-                                </div>
-                                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-chart-line text-blue-600 text-xl"></i>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <span id="total-activities-change" class="text-sm text-gray-500">Loading...</span>
-                            </div>
-                        </div>
 
                         <!-- Today's Activities -->
                         <div class="metric-card p-4 rounded-lg mb-4">
@@ -364,7 +349,7 @@
                     </div>
 
                     <!-- System Status -->
-                    <div class="p-6">
+                    <div class="p-6 border-b border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                             <i class="fas fa-server text-rally-primary mr-2"></i>
                             System Status
@@ -390,6 +375,22 @@
                                 <span class="text-sm text-gray-600">CPU Usage</span>
                                 <span id="cpu-usage" class="text-sm font-semibold text-gray-600">-</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Most Active Pages -->
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                            <i class="fas fa-globe text-rally-primary mr-2"></i>
+                            Most Active Pages
+                        </h3>
+                        <div id="most-active-pages" class="space-y-3">
+                            <!-- Loading skeleton -->
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
                         </div>
                     </div>
                 </div>
@@ -429,7 +430,8 @@
                     loadActivityData(),
                     loadTopUsers(),
                     loadSystemStatus(),
-                    loadActivityTrends()
+                    loadActivityTrends(),
+                    loadMostActivePages()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -470,6 +472,8 @@
                 const { dateFrom, dateTo } = getDateRangeForFilter(filter);
                 if (dateFrom) params.append('date_from', dateFrom);
                 if (dateTo) params.append('date_to', dateTo);
+                
+                console.log(`Loading activities with filter: ${filter}, dateFrom: ${dateFrom}, dateTo: ${dateTo}`);
 
                 const response = await fetch(`/api/admin/cockpit/detailed-activities?${params}`, {
                     credentials: 'same-origin',
@@ -551,8 +555,28 @@
             }
         }
 
+        async function loadMostActivePages() {
+            try {
+                const excludeAdmin = !dashboardState.includeAdmin;
+                const response = await fetch(`/api/admin/cockpit/most-active-pages?exclude_admin=${excludeAdmin}&exclude_impersonated=false&limit=10`, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateMostActivePagesDisplay(data.pages);
+                } else {
+                    console.error('Error loading most active pages:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading most active pages:', error);
+            }
+        }
+
         function updateMetricsDisplay(stats, trends, systemHealth) {
-            document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
             document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
             document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
             
@@ -563,14 +587,11 @@
 
             // Update change indicators with real trends
             if (trends) {
-                document.getElementById('total-activities-change').textContent = 
-                    `${trends.total_activities_change > 0 ? '+' : ''}${trends.total_activities_change}% from yesterday`;
                 document.getElementById('today-activities-change').textContent = 
                     `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
                 document.getElementById('active-users-change').textContent = 
                     `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
             } else {
-                document.getElementById('total-activities-change').textContent = 'Loading trends...';
                 document.getElementById('today-activities-change').textContent = 'Loading trends...';
                 document.getElementById('active-users-change').textContent = 'Loading trends...';
             }
@@ -810,13 +831,16 @@
                     return { dateFrom: null, dateTo: null }; // Last 50 activities
                 case 'hour':
                     const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-                    return { dateFrom: hourAgo.toISOString(), dateTo: null };
+                    return { dateFrom: hourAgo.toISOString(), dateTo: now.toISOString() };
                 case 'day':
-                    return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+                    // Get today's date in YYYY-MM-DD format
+                    const todayStr = today.toISOString().split('T')[0];
+                    return { dateFrom: todayStr, dateTo: null };
                 case 'week':
                     const weekAgo = new Date(today);
                     weekAgo.setDate(today.getDate() - 7);
-                    return { dateFrom: weekAgo.toISOString().split('T')[0], dateTo: null };
+                    const weekAgoStr = weekAgo.toISOString().split('T')[0];
+                    return { dateFrom: weekAgoStr, dateTo: null };
                 default:
                     return { dateFrom: null, dateTo: null };
             }
@@ -862,6 +886,32 @@
             const timeString = now.toLocaleTimeString();
             document.getElementById('last-updated').textContent = timeString;
             dashboardState.lastUpdate = now;
+        }
+
+        function updateMostActivePagesDisplay(pages) {
+            const container = document.getElementById('most-active-pages');
+            if (!pages || pages.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">No page data available</p>';
+                return;
+            }
+
+            container.innerHTML = pages.map((page, index) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-rally-primary text-white rounded-lg flex items-center justify-center text-sm font-semibold mr-3">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">${page.page_name}</div>
+                            <div class="text-sm text-gray-500">${page.page_id}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-semibold text-gray-900">${formatNumber(page.visit_count)}</div>
+                        <div class="text-sm text-gray-500">visits</div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // Utility functions
