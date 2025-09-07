@@ -70,6 +70,7 @@ from app.services.dashboard_service import (
     log_activity,
     log_page_visit,
     log_user_action,
+    format_page_name,
 )
 from database_utils import execute_query, execute_query_one, execute_update
 from utils.auth import login_required
@@ -2400,19 +2401,17 @@ def get_cockpit_most_active_pages():
         """
         params.append(limit)
         
-        cursor = get_db_connection().cursor()
-        cursor.execute(query, params)
-        page_stats = cursor.fetchall()
+        page_stats = execute_query(query, params)
         
         # Format pages
         pages = []
         for row in page_stats:
-            page_id = row[0]
+            page_id = row['page_id']
             page_name = format_page_name(page_id)
             pages.append({
                 'page_id': page_id,
                 'page_name': page_name,
-                'visit_count': row[1]
+                'visit_count': row['visit_count']
             })
         
         return jsonify({

@@ -290,32 +290,21 @@ def create_poll():
                 
                 print(f"🔥 SMS Message: {message}")
                 
-                # Send SMS to each team member (with testing mode override)
-                try:
-                    from config.sms_testing import SMS_TESTING_MODE, ADMIN_PHONE_NUMBER
-                    testing_mode = SMS_TESTING_MODE
-                    admin_phone = ADMIN_PHONE_NUMBER
-                except ImportError:
-                    testing_mode = True  # Default to testing mode if config not found
-                    admin_phone = "7732138911"
-                
+                # Send SMS to each team member
                 successful_sends = 0
                 processed_phones = set()  # Track processed phone numbers to prevent duplicates
                 for member in team_members:
                     try:
-                        # Use admin phone for testing, otherwise use member's phone
-                        phone_to_use = admin_phone if testing_mode else member["phone_number"]
-                        
                         # Check if we've already processed this phone number
-                        if phone_to_use in processed_phones:
-                            print(f"🔥 ⚠️ Skipping duplicate phone number: {phone_to_use}")
+                        if member["phone_number"] in processed_phones:
+                            print(f"🔥 ⚠️ Skipping duplicate phone number: {member['phone_number']}")
                             continue
-                        processed_phones.add(phone_to_use)
+                        processed_phones.add(member["phone_number"])
                         
-                        print(f"🔥 Processing SMS for {member['first_name']} {member['last_name']} ({phone_to_use})")
+                        print(f"🔥 Processing SMS for {member['first_name']} {member['last_name']} ({member['phone_number']})")
                         
                         result = send_sms_notification(
-                            to_number=phone_to_use,
+                            to_number=member["phone_number"],
                             message=message,
                             test_mode=False
                         )
@@ -900,23 +889,12 @@ def respond_to_poll(poll_id):
                     
                     print(f"🗳️  SMS Message: {message}")
                     
-                    # Send SMS to each team member (with testing mode override)
-                    try:
-                        from config.sms_testing import SMS_TESTING_MODE, ADMIN_PHONE_NUMBER
-                        testing_mode = SMS_TESTING_MODE
-                        admin_phone = ADMIN_PHONE_NUMBER
-                    except ImportError:
-                        testing_mode = True  # Default to testing mode if config not found
-                        admin_phone = "7732138911"
-                    
+                    # Send SMS to each team member
                     successful_sends = 0
                     for member in team_members:
                         try:
-                            # Use admin phone for testing, otherwise use member's phone
-                            phone_to_use = admin_phone if testing_mode else member["phone_number"]
-                            
                             result = send_sms_notification(
-                                to_number=phone_to_use,
+                                to_number=member["phone_number"],
                                 message=message,
                                 test_mode=False
                             )
