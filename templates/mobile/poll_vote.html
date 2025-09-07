@@ -2,9 +2,9 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-gray-50" style="padding-top: 56px;">
     
-    <!-- Header -->
+    <!-- Page Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
@@ -98,6 +98,7 @@ function scrollToResults() {
 async function loadPoll() {
     try {
         console.log('📡 Loading poll data for poll ID:', pollId);
+        console.log('📡 Making GET request to:', `/api/polls/${pollId}?t=${Date.now()}`);
         const response = await fetch(`/api/polls/${pollId}?t=${Date.now()}`, {
             cache: 'no-cache',
             headers: {
@@ -212,7 +213,10 @@ function renderPoll() {
                 <button 
                     type="submit" 
                     id="submitVoteBtn"
-                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors font-medium"
+                    class="w-full py-3 px-4 rounded-lg shadow transition-colors font-medium"
+                    style="background-color: #045454; color: #bff863;"
+                    onmouseover="this.style.backgroundColor='#034444'"
+                    onmouseout="this.style.backgroundColor='#045454'"
                 >
                     <span id="submitBtnText">
                         <i class="fas fa-vote-yea mr-2"></i>
@@ -310,6 +314,7 @@ function renderPoll() {
 async function handleVoteSubmission(e) {
     e.preventDefault();
     
+    console.log('🚨 VOTE SUBMISSION TRIGGERED - This should only happen when form is submitted!');
     console.log('Vote submission started');
     
     const formData = new FormData(e.target);
@@ -380,8 +385,8 @@ async function handleVoteSubmission(e) {
                 submitBtnText.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${wasUpdate ? 'Vote Updated!' : 'Vote Recorded!'}`;
                 submitBtnText.classList.remove('hidden');
                 submitBtnLoading.classList.add('hidden');
-                submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                submitBtn.classList.add('bg-green-600');
+                submitBtn.style.backgroundColor = '#059669';
+                submitBtn.style.color = '#bff863';
             }
             
             // Update the voting status message immediately

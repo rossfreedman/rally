@@ -730,6 +730,20 @@ function renderActivityTimeline(activities) {
                 </div>
               ` : ''}
             </div>
+            
+            ${activity.action_type === 'registration_failed' && activity.details ? `
+              <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-start">
+                  <div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xs"></i>
+                  </div>
+                  <div class="flex-1">
+                    <h5 class="text-sm font-semibold text-red-800 mb-2">Registration Details</h5>
+                    ${formatRegistrationFailedDetails(activity.details)}
+                  </div>
+                </div>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1077,6 +1091,8 @@ function getDetailedActionDescription(activity) {
       return `Logged out`;
     case 'registration_successful':
       return `New user registration completed`;
+    case 'registration_failed':
+      return `Registration failed`;
     case 'player_search':
       return `Searched for players`;
     case 'team_switch':
@@ -1101,6 +1117,61 @@ function getDetailedActionDescription(activity) {
       return `Admin action performed`;
     default:
       return baseDescription;
+  }
+}
+
+function formatRegistrationFailedDetails(details) {
+  try {
+    const detailsObj = typeof details === 'string' ? JSON.parse(details) : details;
+    
+    let html = '';
+    
+    // Show reason
+    if (detailsObj.reason) {
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Reason:</span>
+        <span class="text-red-600 ml-1">${detailsObj.reason}</span>
+      </div>`;
+    }
+    
+    // Show lookup method if available
+    if (detailsObj.lookup_method) {
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Method:</span>
+        <span class="text-red-600 ml-1 font-mono text-xs">${detailsObj.lookup_method}</span>
+      </div>`;
+    }
+    
+    // Show lookup attempt details
+    if (detailsObj.lookup_attempt) {
+      const attempt = detailsObj.lookup_attempt;
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Attempt:</span>
+        <div class="ml-2 mt-1 text-xs text-red-600">
+          <div><strong>Name:</strong> ${attempt.first_name} ${attempt.last_name}</div>
+          <div><strong>League:</strong> ${attempt.league_id}</div>
+          <div><strong>Club:</strong> ${attempt.club_name}</div>
+          <div><strong>Series:</strong> ${attempt.series_display || attempt.series_name || 'N/A'}</div>
+        </div>
+      </div>`;
+    }
+    
+    // Show player lookup result
+    if (detailsObj.player_lookup_result) {
+      const result = detailsObj.player_lookup_result;
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Result:</span>
+        <div class="ml-2 mt-1 text-xs text-red-600">
+          <div><strong>Match Type:</strong> ${result.match_type}</div>
+          <div><strong>Message:</strong> ${result.message}</div>
+        </div>
+      </div>`;
+    }
+    
+    return html || '<span class="text-red-600 text-xs">No additional details available</span>';
+  } catch (error) {
+    console.error('Error parsing registration failed details:', error);
+    return '<span class="text-red-600 text-xs">Error parsing details</span>';
   }
 }
 
