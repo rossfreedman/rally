@@ -221,6 +221,31 @@
     </div>
   </div>
 
+  <!-- User Count Trends Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-users text-blue-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">User Growth</h2>
+          <p class="text-sm text-gray-600">New user registrations over time</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div class="chart-container" style="height: 200px;">
+        <canvas id="user-count-chart"></canvas>
+      </div>
+      <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
+        <span id="user-count-total">Total: -</span>
+        <span id="user-count-growth">Growth: -</span>
+      </div>
+    </div>
+  </div>
+
   <!-- System Status Section -->
   <div class="bg-white rounded-xl shadow-lg mb-6">
     <div class="p-4 border-b border-gray-200">
@@ -253,31 +278,6 @@
           <div id="cpu-usage" class="text-lg font-bold text-gray-600 mb-1">-</div>
           <div class="text-xs text-gray-500">CPU Usage</div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- User Count Trends Section -->
-  <div class="bg-white rounded-xl shadow-lg mb-6">
-    <div class="p-4 border-b border-gray-200">
-      <div class="flex items-center">
-        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-          <i class="fas fa-users text-blue-600 text-lg"></i>
-        </div>
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900">User Growth</h2>
-          <p class="text-sm text-gray-600">New user registrations over time</p>
-        </div>
-      </div>
-    </div>
-    
-    <div class="p-4">
-      <div class="chart-container" style="height: 200px;">
-        <canvas id="user-count-chart"></canvas>
-      </div>
-      <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
-        <span id="user-count-total">Total: -</span>
-        <span id="user-count-growth">Growth: -</span>
       </div>
     </div>
   </div>

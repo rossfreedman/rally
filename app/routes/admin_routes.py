@@ -2406,6 +2406,79 @@ def get_cockpit_page_analytics():
         return jsonify({"error": str(e)}), 500
 
 
+
+
+@admin_bp.route("/api/admin/cockpit/most-active-pages")
+@login_required
+@admin_required
+def get_cockpit_most_active_pages():
+    """Get most active pages for mobile cockpit"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Get parameters
+        limit = int(request.args.get("limit", 10))
+        exclude_admin = request.args.get("exclude_admin", "true").lower() == "true"
+        exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
+        
+        # Get date range for today
+        today = datetime.now().date()
+        today_start = datetime.combine(today, datetime.min.time())
+        today_end = datetime.combine(today, datetime.max.time())
+        
+        # Build query
+        query = """
+        SELECT 
+            page as page_id,
+            COUNT(*) as visit_count
+        FROM user_activity_logs 
+        WHERE action_type = 'page_visit' 
+        AND timestamp >= %s AND timestamp <= %s
+        """
+        
+        params = [today_start, today_end]
+        
+        # Add admin filtering if needed
+        if exclude_admin:
+            query += " AND user_email NOT IN (SELECT email FROM users WHERE is_admin = true)"
+        
+        # Add impersonation filtering if needed
+        if exclude_impersonated:
+            query += " AND impersonation_active = false"
+        
+        query += """
+        GROUP BY page
+        ORDER BY visit_count DESC
+        LIMIT %s
+        """
+        params.append(limit)
+        
+        cursor = get_db_connection().cursor()
+        cursor.execute(query, params)
+        page_stats = cursor.fetchall()
+        
+        # Format pages
+        pages = []
+        for row in page_stats:
+            page_id = row[0]
+            page_name = format_page_name(page_id)
+            pages.append({
+                'page_id': page_id,
+                'page_name': page_name,
+                'visit_count': row[1]
+            })
+        
+        return jsonify({
+            "status": "success",
+            "pages": pages,
+            "timestamp": datetime.now().isoformat()
+        })
+
+    except Exception as e:
+        print(f"Error getting most active pages: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/cockpit/user-count-trends")
 @login_required
 @admin_required
