@@ -157,51 +157,53 @@
                         Key Metrics
                     </h2>
                     
-                    <!-- Today's Activities -->
-                    <div class="metric-card p-4 rounded-lg mb-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Today</p>
-                                <p id="today-activities" class="text-2xl font-bold text-gray-900">-</p>
+                    <div class="grid grid-cols-3 gap-4">
+                        <!-- Today's Activities -->
+                        <div class="metric-card p-4 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Today</p>
+                                    <p id="today-activities" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-calendar-day text-green-600 text-xl"></i>
+                                </div>
                             </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-calendar-day text-green-600 text-xl"></i>
+                            <div class="mt-2">
+                                <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
                             </div>
                         </div>
-                        <div class="mt-2">
-                            <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
-                        </div>
-                    </div>
 
-                    <!-- Active Users -->
-                    <div class="metric-card p-4 rounded-lg mb-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Active Users</p>
-                                <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
+                        <!-- Active Users -->
+                        <div class="metric-card p-4 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Active Users</p>
+                                    <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                                </div>
                             </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-users text-purple-600 text-xl"></i>
+                            <div class="mt-2">
+                                <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
                             </div>
                         </div>
-                        <div class="mt-2">
-                            <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
-                        </div>
-                    </div>
 
-                    <!-- Activity Rate -->
-                    <div class="metric-card p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Activity Rate</p>
-                                <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
+                        <!-- Activity Rate -->
+                        <div class="metric-card p-4 rounded-lg">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-gray-600">Activity Rate</p>
+                                    <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
+                                </div>
+                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bolt text-orange-600 text-xl"></i>
+                                </div>
                             </div>
-                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-bolt text-orange-600 text-xl"></i>
+                            <div class="mt-2">
+                                <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
                             </div>
-                        </div>
-                        <div class="mt-2">
-                            <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
                 </div>
