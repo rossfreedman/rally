@@ -149,10 +149,10 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-6">
             <!-- Dashboard Table Grid System -->
-            <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); max-height: calc(100vh - 140px);">
+            <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 0.5fr 0.5fr 2fr; max-height: calc(100vh - 140px);">
                 
                 <!-- Column 1, Row 1: Today's Activities -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 1;">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 1; max-height: calc((100vh - 140px) * 0.5 / 3);">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-calendar-day text-green-600 mr-2"></i>
                         Today's Activities
@@ -174,7 +174,7 @@
                 </div>
 
                 <!-- Column 1, Row 2: Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 1;">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 1; max-height: calc((100vh - 140px) * 0.5 / 3);">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-users text-purple-600 mr-2"></i>
                         Active Users
@@ -236,19 +236,19 @@
                     </div>
                 </div>
 
-                <!-- Column 3, Row 1: Most Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
+                <!-- Column 1, Row 3: Most Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 3; grid-column: 1; max-height: calc((100vh - 140px) * 2 / 3);">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center flex-shrink-0">
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
                     </h3>
-                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto min-h-0" style="max-height: calc((100vh - 140px) / 3 - 80px);">
+                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto min-h-0" style="max-height: calc((100vh - 140px) * 2 / 3 - 80px);">
                         <!-- Most Active Users content will be loaded here -->
                     </div>
                 </div>
 
-                <!-- Column 3, Row 2: Recent Activity -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 2; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
+                <!-- Column 3, Row 2-3: Recent Activity (spans 2 rows) -->
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 2 / 4; grid-column: 3; max-height: calc((100vh - 140px) * 2.5 / 3);">
                     <!-- Activity Timeline Header -->
                     <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center justify-between">
@@ -285,7 +285,7 @@
                     </div>
 
                     <!-- Activity Timeline Content -->
-                    <div class="flex-1 overflow-y-auto p-6 min-h-0" style="max-height: calc((100vh - 140px) / 3 - 120px);">
+                    <div class="flex-1 overflow-y-auto p-6 min-h-0" style="max-height: calc((100vh - 140px) * 2.5 / 3 - 120px);">
                         <div id="activity-timeline" class="space-y-4">
                             <!-- Loading skeleton -->
                             <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
