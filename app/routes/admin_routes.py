@@ -2309,7 +2309,7 @@ def get_cockpit_page_analytics():
             COUNT(*) as page_views,
             COUNT(DISTINCT user_email) as unique_visitors
         FROM user_activity_logs 
-        WHERE action_type = 'page_visit' 
+        WHERE activity_type = 'page_visit' 
         AND timestamp >= %s AND timestamp <= %s
         GROUP BY page
         ORDER BY page_views DESC
@@ -2380,7 +2380,7 @@ def get_cockpit_most_active_pages():
             page as page_id,
             COUNT(*) as visit_count
         FROM user_activity_logs 
-        WHERE action_type = 'page_visit' 
+        WHERE activity_type = 'page_visit' 
         AND timestamp >= %s AND timestamp <= %s
         """
         
@@ -2392,7 +2392,7 @@ def get_cockpit_most_active_pages():
         
         # Add impersonation filtering if needed
         if exclude_impersonated:
-            query += " AND impersonation_active = false"
+            query += " AND details NOT LIKE '%[IMPERSONATION]%'"
         
         query += """
         GROUP BY page
