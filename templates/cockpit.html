@@ -148,11 +148,21 @@
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-6">
+            <!-- DEBUG INFO -->
+            <div style="background: #f0f0f0; padding: 10px; margin-bottom: 20px; border: 2px solid #ff0000;">
+                <h3 style="color: #ff0000; margin: 0;">🐛 DEBUG INFO</h3>
+                <p style="margin: 5px 0;"><strong>Viewport Height:</strong> <span id="viewport-height">-</span>px</p>
+                <p style="margin: 5px 0;"><strong>Grid Container Height:</strong> <span id="grid-height">-</span>px</p>
+                <p style="margin: 5px 0;"><strong>Grid Template Rows:</strong> <span id="grid-rows">-</span></p>
+                <p style="margin: 5px 0;"><strong>Grid Items Count:</strong> <span id="grid-items-count">-</span></p>
+                <p style="margin: 5px 0;"><strong>CSS Grid Support:</strong> <span id="css-grid-support">-</span></p>
+            </div>
+            
             <!-- Dashboard Table Grid System -->
-            <div class="grid grid-cols-3 gap-6" style="height: calc(100vh - 140px); grid-template-rows: 1fr 1fr 1fr;">
+            <div id="main-grid" class="grid grid-cols-3 gap-6" style="height: calc(100vh - 140px); grid-template-rows: 1fr 1fr 1fr; border: 3px solid #00ff00;">
                 
                 <!-- Row 1, Col 1: Today's Activities -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #ff0000;" data-grid-item="1">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-calendar-day text-green-600 mr-2"></i>
                         Today's Activities
@@ -174,7 +184,7 @@
                 </div>
 
                 <!-- Row 1, Col 2: Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #00ff00;" data-grid-item="2">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-users text-purple-600 mr-2"></i>
                         Active Users
@@ -196,7 +206,7 @@
                 </div>
 
                 <!-- Row 1, Col 3: Activity Rate -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #0000ff;" data-grid-item="3">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-bolt text-orange-600 mr-2"></i>
                         Activity Rate
@@ -218,7 +228,7 @@
                 </div>
 
                 <!-- Row 2, Col 1: Daily New Users Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #ffff00;" data-grid-item="4">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-user-plus text-rally-primary mr-2"></i>
                         Daily New Users
@@ -230,7 +240,7 @@
                 </div>
 
                 <!-- Row 2, Col 2: Total Users Cumulative Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #ff00ff;" data-grid-item="5">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-users text-rally-primary mr-2"></i>
                         Total Users (Cumulative)
@@ -246,7 +256,7 @@
                 </div>
 
                 <!-- Row 2, Col 3: Activity Trends Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #00ffff;" data-grid-item="6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-chart-line text-rally-primary mr-2"></i>
                         Activity Trends
@@ -258,7 +268,7 @@
                 </div>
 
                 <!-- Row 3, Col 1: Most Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #ff8000;" data-grid-item="7">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
@@ -269,7 +279,7 @@
                 </div>
 
                 <!-- Row 3, Col 2: Most Active Pages -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="border: 2px solid #8000ff;" data-grid-item="8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-globe text-blue-500 mr-2"></i>
                         Most Active Pages
@@ -280,7 +290,7 @@
                 </div>
 
                 <!-- Row 3, Col 3: Recent Activity -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full">
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="border: 2px solid #0080ff;" data-grid-item="9">
                     <!-- Activity Timeline Header -->
                     <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center justify-between">
@@ -354,6 +364,64 @@
             initializeFilterButtons();
             loadAllData();
             setupCharts();
+            debugGridInfo();
+        }
+
+        function debugGridInfo() {
+            console.log('🐛 DEBUG: Starting grid diagnostics...');
+            
+            // Get viewport height
+            const viewportHeight = window.innerHeight;
+            document.getElementById('viewport-height').textContent = viewportHeight;
+            
+            // Get grid container
+            const gridContainer = document.getElementById('main-grid');
+            if (gridContainer) {
+                const computedStyle = window.getComputedStyle(gridContainer);
+                const gridHeight = gridContainer.offsetHeight;
+                const gridTemplateRows = computedStyle.gridTemplateRows;
+                
+                document.getElementById('grid-height').textContent = gridHeight;
+                document.getElementById('grid-rows').textContent = gridTemplateRows;
+                
+                // Count grid items
+                const gridItems = gridContainer.children;
+                document.getElementById('grid-items-count').textContent = gridItems.length;
+                
+                // Check CSS Grid support
+                const cssGridSupport = CSS.supports('display', 'grid');
+                document.getElementById('css-grid-support').textContent = cssGridSupport ? 'Yes' : 'No';
+                
+                console.log('🐛 Grid Container Info:', {
+                    element: gridContainer,
+                    height: gridHeight,
+                    templateRows: gridTemplateRows,
+                    itemCount: gridItems.length,
+                    cssGridSupport: cssGridSupport,
+                    computedStyle: {
+                        display: computedStyle.display,
+                        gridTemplateColumns: computedStyle.gridTemplateColumns,
+                        gridTemplateRows: computedStyle.gridTemplateRows,
+                        height: computedStyle.height
+                    }
+                });
+                
+                // Log each grid item
+                Array.from(gridItems).forEach((item, index) => {
+                    const itemStyle = window.getComputedStyle(item);
+                    console.log(`🐛 Grid Item ${index + 1}:`, {
+                        element: item,
+                        height: item.offsetHeight,
+                        gridColumn: itemStyle.gridColumn,
+                        gridRow: itemStyle.gridRow,
+                        display: itemStyle.display,
+                        flexDirection: itemStyle.flexDirection
+                    });
+                });
+            } else {
+                console.error('🐛 ERROR: Grid container not found!');
+                document.getElementById('grid-height').textContent = 'ERROR: Container not found';
+            }
         }
 
         function initializeFilterButtons() {
