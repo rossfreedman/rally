@@ -2447,17 +2447,36 @@ def get_cockpit_user_count_trends():
             has_created_at = False
         
         if has_created_at:
-            # Query user count trends by day using created_at
+            # Query cumulative user count trends by day using created_at
             query = """
             SELECT 
                 DATE(created_at) as date,
-                COUNT(*) as user_count
+                COUNT(*) as daily_new_users
             FROM users 
             WHERE created_at >= %s AND created_at <= %s
             GROUP BY DATE(created_at)
             ORDER BY DATE(created_at) ASC
             """
-            results = execute_query(query, (start_date, end_date))
+            daily_results = execute_query(query, (start_date, end_date))
+            
+            # Get the baseline count (users created before our date range)
+            baseline_query = """
+            SELECT COUNT(*) as baseline_count
+            FROM users 
+            WHERE created_at < %s
+            """
+            baseline_result = execute_query(baseline_query, (start_date,))
+            baseline_count = baseline_result[0]['baseline_count'] if baseline_result else 0
+            
+            # Convert to cumulative counts
+            results = []
+            cumulative_count = baseline_count
+            for row in daily_results:
+                cumulative_count += row['daily_new_users']
+                results.append({
+                    'date': row['date'],
+                    'user_count': cumulative_count
+                })
         else:
             # Fallback: use id-based approximation (assuming sequential IDs)
             # This is not perfect but provides some data when created_at is missing
@@ -2468,7 +2487,7 @@ def get_cockpit_user_count_trends():
         chart_data = {
             "labels": [],
             "datasets": [{
-                "label": "New Users",
+                "label": "Total Users",
                 "data": [],
                 "borderColor": "#10645c",
                 "backgroundColor": "rgba(16, 100, 92, 0.1)",
@@ -2477,20 +2496,22 @@ def get_cockpit_user_count_trends():
             }]
         }
         
-        # Create a complete date range
+        # Create a complete date range with cumulative user counts
         current_date = start_date
+        last_cumulative_count = 0
+        
+        # Create a lookup dictionary for faster access
+        results_lookup = {str(row['date']): row['user_count'] for row in results}
+        
         while current_date <= end_date:
             date_str = current_date.strftime("%Y-%m-%d")
             chart_data["labels"].append(date_str)
             
-            # Find user count for this date
-            user_count = 0
-            for row in results:
-                if str(row['date']) == date_str:
-                    user_count = row['user_count']
-                    break
+            # Get cumulative user count for this date
+            if date_str in results_lookup:
+                last_cumulative_count = results_lookup[date_str]
             
-            chart_data["datasets"][0]["data"].append(user_count)
+            chart_data["datasets"][0]["data"].append(last_cumulative_count)
             current_date += timedelta(days=1)
         
         # Calculate total users and growth
