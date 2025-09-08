@@ -147,9 +147,9 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-hidden p-6">
-            <!-- Row 1: Today's Activities, Active Users, Activity Rate, User Growth, Activity Trends -->
-            <div class="grid grid-cols-5 gap-6 mb-6 h-96">
+        <main class="flex-1 overflow-y-auto p-6">
+            <!-- Row 1: Today's Activities (left) and Graphs (right) -->
+            <div class="grid grid-cols-4 gap-6 mb-6 h-96">
                 <!-- Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -172,6 +172,78 @@
                     </div>
                 </div>
 
+                <!-- User Growth -->
+                <div class="bg-white rounded-xl shadow-lg p-6 col-span-2">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-rally-primary mr-2"></i>
+                        User Growth
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">New user registrations and total users over time</p>
+                    
+                    <!-- Daily New Users Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h4>
+                        <div class="chart-container" style="height: 120px;">
+                            <canvas id="daily-users-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Cumulative Total Users Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h4>
+                        <div class="chart-container" style="height: 120px;">
+                            <canvas id="cumulative-users-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-sm text-gray-600">
+                        <span id="user-count-total">Total: -</span>
+                        <span id="user-count-growth">Growth: -</span>
+                    </div>
+                </div>
+
+                <!-- Activity Trends -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-rally-primary mr-2"></i>
+                        Activity Trends
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Activity patterns over time</p>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                </div>
+
+
+                <!-- Activity Trends -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-area text-rally-primary mr-2"></i>
+                        Activity Trends
+                    </h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                    <!-- Chart Legend -->
+                    <div class="mt-4 flex flex-wrap gap-4 justify-center">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Page Visits</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Logins</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Other Activities</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Active Users, Activity Rate, Recent Activity, Most Active Users, Most Active Pages -->
+            <div class="grid grid-cols-5 gap-6 h-96">
                 <!-- Active Users -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -215,66 +287,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- User Growth -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-users text-rally-primary mr-2"></i>
-                        User Growth
-                    </h3>
-                    <p class="text-sm text-gray-600 mb-4">New user registrations and total users over time</p>
-                    
-                    <!-- Daily New Users Chart -->
-                    <div class="mb-4">
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h4>
-                        <div class="chart-container" style="height: 120px;">
-                            <canvas id="daily-users-chart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Cumulative Total Users Chart -->
-                    <div class="mb-4">
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h4>
-                        <div class="chart-container" style="height: 120px;">
-                            <canvas id="cumulative-users-chart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center text-sm text-gray-600">
-                        <span id="user-count-total">Total: -</span>
-                        <span id="user-count-growth">Growth: -</span>
-                    </div>
-                </div>
-
-                <!-- Activity Trends -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-chart-area text-rally-primary mr-2"></i>
-                        Activity Trends
-                    </h3>
-                    <div class="chart-container" style="height: 200px;">
-                        <canvas id="activity-chart"></canvas>
-                    </div>
-                    <!-- Chart Legend -->
-                    <div class="mt-4 flex flex-wrap gap-4 justify-center">
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                            <span class="text-sm text-gray-600">Page Visits</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                            <span class="text-sm text-gray-600">Logins</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                            <span class="text-sm text-gray-600">Other Activities</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Row 2: Recent Activity, Most Active Users, Most Active Pages -->
-            <div class="grid grid-cols-3 gap-6 h-96">
                 <!-- Recent Activity -->
                 <div class="bg-white rounded-xl shadow-lg flex flex-col">
                     <!-- Activity Timeline Header -->
