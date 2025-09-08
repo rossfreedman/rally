@@ -2356,6 +2356,98 @@ def get_cockpit_page_analytics():
 
 
 
+@admin_bp.route("/api/admin/cockpit/practice-schedule")
+@login_required
+@admin_required
+def get_cockpit_practice_schedule():
+    """Get practice schedule data for cockpit dashboard - PRACTICES ONLY"""
+    try:
+        from datetime import datetime, timedelta
+        
+        # Get parameters
+        limit = int(request.args.get("limit", 20))
+        days_ahead = int(request.args.get("days_ahead", 30))
+        
+        # Get date range for upcoming practices
+        today = datetime.now().date()
+        end_date = today + timedelta(days=days_ahead)
+        
+        # Query for PRACTICES ONLY (not matches)
+        query = """
+            SELECT 
+                s.match_date,
+                s.match_time,
+                s.home_team,
+                s.away_team,
+                s.location,
+                c.club_address,
+                l.league_name,
+                l.league_string_id
+            FROM schedule s
+            LEFT JOIN leagues l ON s.league_id = l.id
+            LEFT JOIN clubs c ON s.location = c.name
+            WHERE s.match_date >= %s 
+            AND s.match_date <= %s
+            AND (s.home_team ILIKE '%Practice%' OR s.away_team ILIKE '%Practice%')
+            ORDER BY s.match_date, s.match_time
+            LIMIT %s
+        """
+        
+        practices = execute_query(query, [today, end_date, limit])
+        
+        # Format practice data
+        formatted_practices = []
+        for practice in practices:
+            try:
+                # Format date and time
+                practice_date = (
+                    practice["match_date"].strftime("%m/%d/%Y")
+                    if practice["match_date"]
+                    else ""
+                )
+                practice_time = (
+                    practice["match_time"].strftime("%I:%M %p").lstrip("0")
+                    if practice["match_time"]
+                    else ""
+                )
+                
+                # Determine practice team and location
+                practice_team = practice["home_team"] if "Practice" in (practice["home_team"] or "") else practice["away_team"]
+                location = practice["location"] or ""
+                club_address = practice["club_address"] or ""
+                league_name = practice["league_name"] or ""
+                
+                formatted_practice = {
+                    "date": practice_date,
+                    "time": practice_time,
+                    "team": practice_team,
+                    "location": location,
+                    "club_address": club_address,
+                    "league": league_name,
+                    "type": "practice"
+                }
+                
+                formatted_practices.append(formatted_practice)
+                
+            except Exception as e:
+                print(f"Warning: Skipping invalid practice record: {e}")
+                continue
+        
+        return jsonify({
+            "status": "success",
+            "practices": formatted_practices,
+            "total_count": len(formatted_practices),
+            "date_range": {
+                "from": today.isoformat(),
+                "to": end_date.isoformat()
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting cockpit practice schedule: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/cockpit/most-active-pages")
 @login_required
 @admin_required

@@ -149,7 +149,7 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-6">
             <!-- Dashboard Table Grid System -->
-            <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);">
+            <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); max-height: calc(100vh - 140px);">
                 
                 <!-- Column 1, Row 1: Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 1;">
@@ -237,31 +237,31 @@
                 </div>
 
                 <!-- Column 3, Row 1: Most Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 3;">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center flex-shrink-0">
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
                     </h3>
-                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto min-h-0">
+                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto min-h-0" style="max-height: calc((100vh - 140px) / 3 - 80px);">
                         <!-- Most Active Users content will be loaded here -->
                     </div>
                 </div>
 
-                <!-- Column 3, Row 2: Most Active Pages -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 3;">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-globe text-blue-500 mr-2"></i>
-                        Most Active Pages
+                <!-- Column 3, Row 2: Upcoming Practices -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center flex-shrink-0">
+                        <i class="fas fa-calendar-check text-green-500 mr-2"></i>
+                        Upcoming Practices
                     </h3>
-                    <div id="most-active-pages" class="flex-1 space-y-3 overflow-y-auto min-h-0">
-                        <!-- Most Active Pages content will be loaded here -->
+                    <div id="upcoming-practices" class="flex-1 space-y-3 overflow-y-auto min-h-0" style="max-height: calc((100vh - 140px) / 3 - 80px);">
+                        <!-- Practice schedule content will be loaded here -->
                     </div>
                 </div>
 
                 <!-- Column 1, Row 3: Recent Activity -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 3; grid-column: 1;">
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 3; grid-column: 1; max-height: calc((100vh - 140px) / 3);">
                     <!-- Activity Timeline Header -->
-                    <div class="p-6 border-b border-gray-200">
+                    <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 rally-bg-primary rounded-lg flex items-center justify-center">
@@ -296,7 +296,7 @@
                     </div>
 
                     <!-- Activity Timeline Content -->
-                    <div class="flex-1 overflow-y-auto p-6 min-h-0">
+                    <div class="flex-1 overflow-y-auto p-6 min-h-0" style="max-height: calc((100vh - 140px) / 3 - 120px);">
                         <div id="activity-timeline" class="space-y-4">
                             <!-- Loading skeleton -->
                             <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
@@ -361,7 +361,7 @@
                     loadActivityData(),
                     loadTopUsers(),
                     loadActivityTrends(),
-                    loadMostActivePages(),
+                    loadPracticeSchedule(),
                     loadUserCountTrends()
                 ]);
                 updateLastUpdated();
@@ -376,7 +376,7 @@
                     loadMetrics(),
                     loadTopUsers(),
                     loadActivityTrends(),
-                    loadMostActivePages()
+                    loadPracticeSchedule()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -508,10 +508,9 @@
             }
         }
 
-        async function loadMostActivePages() {
+        async function loadPracticeSchedule() {
             try {
-                const excludeAdmin = !dashboardState.includeAdmin;
-                const response = await fetch(`/api/admin/cockpit/most-active-pages?exclude_admin=false&exclude_impersonated=false&limit=10`, {
+                const response = await fetch(`/api/admin/cockpit/practice-schedule?limit=10&days_ahead=30`, {
                     credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
@@ -519,19 +518,19 @@
                 });
                 
                 if (!response.ok) {
-                    console.error(`Most active pages API error: ${response.status} ${response.statusText}`);
+                    console.error(`Practice schedule API error: ${response.status} ${response.statusText}`);
                     return;
                 }
                 
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    updateMostActivePagesDisplay(data.pages);
+                    updatePracticeScheduleDisplay(data.practices);
                 } else {
-                    console.error('Most active pages API returned error:', data.error);
+                    console.error('Practice schedule API returned error:', data.error);
                 }
             } catch (error) {
-                console.error('Error loading most active pages:', error);
+                console.error('Error loading practice schedule:', error);
             }
         }
 
@@ -977,32 +976,32 @@
             dashboardState.lastUpdate = now;
         }
 
-        function updateMostActivePagesDisplay(pages) {
-            const container = document.getElementById('most-active-pages');
+        function updatePracticeScheduleDisplay(practices) {
+            const container = document.getElementById('upcoming-practices');
             if (!container) {
-                console.error('Most active pages container not found');
+                console.error('Upcoming practices container not found');
                 return;
             }
             
-            if (!pages || pages.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500">No page data available</p>';
+            if (!practices || practices.length === 0) {
+                container.innerHTML = '<p class="text-sm text-gray-500">No upcoming practices scheduled</p>';
                 return;
             }
 
-            container.innerHTML = pages.map((page, index) => `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 bg-rally-primary text-white rounded-lg flex items-center justify-center text-sm font-semibold mr-3">
-                            ${index + 1}
+            container.innerHTML = practices.map((practice, index) => `
+                <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm font-semibold flex-shrink-0">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
-                        <div>
-                            <div class="font-medium text-gray-900">${page.page_name}</div>
-                            <div class="text-sm text-gray-500">${page.page_id}</div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-gray-900 text-sm truncate">${practice.team}</div>
+                            <div class="text-xs text-gray-500">${practice.date} at ${practice.time}</div>
+                            <div class="text-xs text-gray-500 truncate">${practice.location}</div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-semibold text-gray-900">${formatNumber(page.visit_count)}</div>
-                        <div class="text-sm text-gray-500">visits</div>
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-xs text-gray-500">${practice.league}</div>
                     </div>
                 </div>
             `).join('');
