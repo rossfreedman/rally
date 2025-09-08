@@ -616,6 +616,7 @@
                 }
                 
                 const data = await response.json();
+                console.log('User count trends API response:', data);
                 
                 if (data.status === 'success') {
                     updateUserCountChart(data);
@@ -1075,18 +1076,32 @@
         }
 
         function updateUserCountChart(data) {
+            console.log('updateUserCountChart called with data:', data);
+            
             // Update the daily chart data
             if (dashboardState.charts.dailyUsers && data.daily_chart_data) {
+                console.log('Updating daily chart with data:', data.daily_chart_data);
                 dashboardState.charts.dailyUsers.data.labels = data.daily_chart_data.labels;
                 dashboardState.charts.dailyUsers.data.datasets[0].data = data.daily_chart_data.datasets[0].data;
                 dashboardState.charts.dailyUsers.update();
+            } else {
+                console.warn('Daily chart not available or data missing:', {
+                    chart: !!dashboardState.charts.dailyUsers,
+                    data: !!data.daily_chart_data
+                });
             }
 
             // Update the cumulative chart data
             if (dashboardState.charts.cumulativeUsers && data.cumulative_chart_data) {
+                console.log('Updating cumulative chart with data:', data.cumulative_chart_data);
                 dashboardState.charts.cumulativeUsers.data.labels = data.cumulative_chart_data.labels;
                 dashboardState.charts.cumulativeUsers.data.datasets[0].data = data.cumulative_chart_data.datasets[0].data;
                 dashboardState.charts.cumulativeUsers.update();
+            } else {
+                console.warn('Cumulative chart not available or data missing:', {
+                    chart: !!dashboardState.charts.cumulativeUsers,
+                    data: !!data.cumulative_chart_data
+                });
             }
 
             // Update the summary text
