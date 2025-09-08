@@ -532,7 +532,7 @@
         async function loadMostActivePages() {
             try {
                 const excludeAdmin = !dashboardState.includeAdmin;
-                const response = await fetch(`/api/admin/cockpit/most-active-pages?exclude_admin=${excludeAdmin}&exclude_impersonated=false&limit=10`, {
+                const response = await fetch(`/api/admin/cockpit/most-active-pages?exclude_admin=false&exclude_impersonated=false&limit=10`, {
                     credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
