@@ -147,144 +147,152 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-1 overflow-hidden">
-            <div class="h-full flex">
-                <!-- Left Sidebar - Metrics -->
-                <div class="w-80 bg-white shadow-lg border-r border-gray-200 overflow-y-auto">
-                    <!-- Key Metrics -->
-                    <div class="p-6">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-chart-line text-rally-primary mr-2"></i>
-                            Key Metrics
-                        </h2>
-                        
-
-                        <!-- Today's Activities -->
-                        <div class="metric-card p-4 rounded-lg mb-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Today</p>
-                                    <p id="today-activities" class="text-2xl font-bold text-gray-900">-</p>
-                                </div>
-                                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-calendar-day text-green-600 text-xl"></i>
-                                </div>
+        <main class="flex-1 overflow-hidden p-6">
+            <!-- Row 1: Key Metrics, User Growth, Activity Trends -->
+            <div class="grid grid-cols-3 gap-6 mb-6 h-96">
+                <!-- Key Metrics -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-rally-primary mr-2"></i>
+                        Key Metrics
+                    </h2>
+                    
+                    <!-- Today's Activities -->
+                    <div class="metric-card p-4 rounded-lg mb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Today</p>
+                                <p id="today-activities" class="text-2xl font-bold text-gray-900">-</p>
                             </div>
-                            <div class="mt-2">
-                                <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-calendar-day text-green-600 text-xl"></i>
                             </div>
                         </div>
-
-                        <!-- Active Users -->
-                        <div class="metric-card p-4 rounded-lg mb-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Active Users</p>
-                                    <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
-                                </div>
-                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-users text-purple-600 text-xl"></i>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
-                            </div>
-                        </div>
-
-                        <!-- Activity Rate -->
-                        <div class="metric-card p-4 rounded-lg mb-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm text-gray-600">Activity Rate</p>
-                                    <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
-                                </div>
-                                <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-bolt text-orange-600 text-xl"></i>
-                                </div>
-                            </div>
-                            <div class="mt-2">
-                                <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- Most Active Pages -->
-                    <div class="p-6 border-t border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-globe text-rally-primary mr-2"></i>
-                            Most Active Pages
-                        </h3>
-                        <div id="most-active-pages" class="space-y-3">
-                            <!-- Loading skeleton -->
-                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="mt-2">
+                            <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
 
-                    <!-- User Count Trends -->
-                    <div class="p-6 border-t border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-users text-rally-primary mr-2"></i>
-                            User Growth
-                        </h3>
-                        <p class="text-sm text-gray-600 mb-4">New user registrations and total users over time</p>
-                        
-                        <!-- Daily New Users Chart -->
-                        <div class="mb-6">
-                            <h4 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h4>
-                            <div class="chart-container" style="height: 200px;">
-                                <canvas id="daily-users-chart"></canvas>
+                    <!-- Active Users -->
+                    <div class="metric-card p-4 rounded-lg mb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Active Users</p>
+                                <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-purple-600 text-xl"></i>
                             </div>
                         </div>
-                        
-                        <!-- Cumulative Total Users Chart -->
-                        <div class="mb-4">
-                            <h4 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h4>
-                            <div class="chart-container" style="height: 200px;">
-                                <canvas id="cumulative-users-chart"></canvas>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
-                            <span id="user-count-total">Total: -</span>
-                            <span id="user-count-growth">Growth: -</span>
+                        <div class="mt-2">
+                            <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
 
+                    <!-- Activity Rate -->
+                    <div class="metric-card p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Activity Rate</p>
+                                <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-bolt text-orange-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Main Content Area -->
-                <div class="flex-1 flex flex-col overflow-hidden">
+                <!-- User Growth -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-rally-primary mr-2"></i>
+                        User Growth
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">New user registrations and total users over time</p>
+                    
+                    <!-- Daily New Users Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h4>
+                        <div class="chart-container" style="height: 120px;">
+                            <canvas id="daily-users-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Cumulative Total Users Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h4>
+                        <div class="chart-container" style="height: 120px;">
+                            <canvas id="cumulative-users-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-sm text-gray-600">
+                        <span id="user-count-total">Total: -</span>
+                        <span id="user-count-growth">Growth: -</span>
+                    </div>
+                </div>
+
+                <!-- Activity Trends -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-area text-rally-primary mr-2"></i>
+                        Activity Trends
+                    </h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="activity-chart"></canvas>
+                    </div>
+                    <!-- Chart Legend -->
+                    <div class="mt-4 flex flex-wrap gap-4 justify-center">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Page Visits</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Logins</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                            <span class="text-sm text-gray-600">Other Activities</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Recent Activity, Most Active Users, Most Active Pages -->
+            <div class="grid grid-cols-3 gap-6 h-96">
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-xl shadow-lg flex flex-col">
                     <!-- Activity Timeline Header -->
-                    <div class="bg-white border-b border-gray-200 px-6 py-4">
+                    <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 rally-bg-primary rounded-lg flex items-center justify-center">
                                     <i class="fas fa-clock text-white text-lg"></i>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-semibold text-gray-900">Recent Activity</h2>
-                                    <p class="text-sm text-gray-600">Real-time activity feed with detailed information</p>
+                                    <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+                                    <p class="text-sm text-gray-600">Real-time activity feed</p>
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-2">
                                 <!-- Activity Filter -->
-                                <div class="flex space-x-2">
-                                    <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="px-4 py-2 text-sm font-medium rounded-lg bg-rally-primary text-white">
+                                <div class="flex space-x-1">
+                                    <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="px-3 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white">
                                         Real-time
                                     </button>
-                                    <button onclick="setActivityFilter('hour')" id="filter-hour" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
-                                        Last Hour
+                                    <button onclick="setActivityFilter('hour')" id="filter-hour" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                        Hour
                                     </button>
-                                    <button onclick="setActivityFilter('day')" id="filter-day" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                    <button onclick="setActivityFilter('day')" id="filter-day" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
                                         Today
                                     </button>
-                                    <button onclick="setActivityFilter('week')" id="filter-week" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
-                                        This Week
+                                    <button onclick="setActivityFilter('week')" id="filter-week" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                        Week
                                     </button>
                                 </div>
                                 <button onclick="refreshActivityData()" class="text-gray-500 hover:text-rally-primary transition-colors">
@@ -295,83 +303,71 @@
                     </div>
 
                     <!-- Activity Timeline Content -->
-                    <div class="flex-1 overflow-y-auto bg-gray-50">
-                        <div class="p-6">
-                            <div id="activity-timeline" class="space-y-4">
-                                <!-- Loading skeleton -->
-                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
-                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
-                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
-                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
-                                <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
-                            </div>
+                    <div class="flex-1 overflow-y-auto p-6">
+                        <div id="activity-timeline" class="space-y-4">
+                            <!-- Loading skeleton -->
+                            <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                            <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                            <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                            <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
+                            <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Sidebar - Charts & Analytics -->
-                <div class="w-96 bg-white shadow-lg border-l border-gray-200 overflow-y-auto">
-                    <!-- Activity Chart -->
-                    <div class="p-6 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                            <i class="fas fa-chart-area text-rally-primary mr-2"></i>
-                            Activity Trends
+                <!-- Most Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-star text-yellow-500 mr-2"></i>
+                            Most Active Users
                         </h3>
-                        <div class="chart-container">
-                            <canvas id="activity-chart"></canvas>
-                        </div>
-                        <!-- Chart Legend -->
-                        <div class="mt-4 flex flex-wrap gap-4 justify-center">
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                                <span class="text-sm text-gray-600">Page Visits</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                                <span class="text-sm text-gray-600">Logins</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                                <span class="text-sm text-gray-600">Other Activities</span>
-                            </div>
+                        <div class="flex space-x-1">
+                            <button onclick="setTopUsersFilter('today')" id="top-users-filter-today" class="px-3 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white">
+                                Today
+                            </button>
+                            <button onclick="setTopUsersFilter('week')" id="top-users-filter-week" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                Week
+                            </button>
+                            <button onclick="setTopUsersFilter('month')" id="top-users-filter-month" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+                                Month
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Top Active Users -->
-                    <div class="p-6 border-b border-gray-200">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                                <i class="fas fa-star text-yellow-500 mr-2"></i>
-                                Most Active Users
-                            </h3>
-                            <div class="flex space-x-1">
-                                <button onclick="setTopUsersFilter('today')" id="top-users-filter-today" class="px-3 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white">
-                                    Today
-                                </button>
-                                <button onclick="setTopUsersFilter('week')" id="top-users-filter-week" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
-                                    Week
-                                </button>
-                                <button onclick="setTopUsersFilter('month')" id="top-users-filter-month" class="px-3 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
-                                    Month
-                                </button>
-                            </div>
-                        </div>
-                        <div id="top-users-list" class="space-y-3">
-                            <!-- Loading skeleton -->
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                            <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
-                        </div>
+                    <div id="top-users-list" class="space-y-3 overflow-y-auto" style="max-height: 280px;">
+                        <!-- Loading skeleton -->
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
                     </div>
+                </div>
 
-
+                <!-- Most Active Pages -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-globe text-rally-primary mr-2"></i>
+                        Most Active Pages
+                    </h3>
+                    <div id="most-active-pages" class="space-y-3 overflow-y-auto" style="max-height: 320px;">
+                        <!-- Loading skeleton -->
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                        <div class="loading-skeleton h-8 rounded-lg mb-2"></div>
+                    </div>
                 </div>
             </div>
         </main>
