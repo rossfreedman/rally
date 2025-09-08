@@ -148,17 +148,15 @@
 
         <!-- Main Content -->
         <main class="flex-1 overflow-hidden p-6">
-            <!-- Row 1: Key Metrics, User Growth, Activity Trends -->
-            <div class="grid grid-cols-3 gap-6 mb-6 h-96">
-                <!-- Key Metrics -->
+            <!-- Row 1: Today's Activities, Active Users, Activity Rate, User Growth, Activity Trends -->
+            <div class="grid grid-cols-5 gap-6 mb-6 h-96">
+                <!-- Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-chart-line text-rally-primary mr-2"></i>
-                        Key Metrics
-                    </h2>
-                    
-                    <!-- Today's Activities -->
-                    <div class="metric-card p-4 rounded-lg mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-calendar-day text-green-600 mr-2"></i>
+                        Today's Activities
+                    </h3>
+                    <div class="metric-card p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600">Today</p>
@@ -172,9 +170,15 @@
                             <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Active Users -->
-                    <div class="metric-card p-4 rounded-lg mb-4">
+                <!-- Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        Active Users
+                    </h3>
+                    <div class="metric-card p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600">Active Users</p>
@@ -188,8 +192,14 @@
                             <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Activity Rate -->
+                <!-- Activity Rate -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-bolt text-orange-600 mr-2"></i>
+                        Activity Rate
+                    </h3>
                     <div class="metric-card p-4 rounded-lg">
                         <div class="flex items-center justify-between">
                             <div>
