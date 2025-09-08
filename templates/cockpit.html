@@ -149,7 +149,7 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-6">
             <!-- Dashboard Table Grid System -->
-            <div class="grid grid-cols-3 grid-rows-3 gap-6" style="height: calc(100vh - 140px);">
+            <div class="grid grid-cols-3 gap-6" style="height: calc(100vh - 140px); grid-template-rows: 1fr 1fr 1fr;">
                 
                 <!-- Row 1, Col 1: Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full">
@@ -157,7 +157,7 @@
                         <i class="fas fa-calendar-day text-green-600 mr-2"></i>
                         Today's Activities
                     </h3>
-                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-center">
+                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600">Today</p>
@@ -179,7 +179,7 @@
                         <i class="fas fa-users text-purple-600 mr-2"></i>
                         Active Users
                     </h3>
-                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-center">
+                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600">Active Users</p>
@@ -201,7 +201,7 @@
                         <i class="fas fa-bolt text-orange-600 mr-2"></i>
                         Activity Rate
                     </h3>
-                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-center">
+                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-between">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm text-gray-600">Activity Rate</p>
@@ -224,7 +224,7 @@
                         Daily New Users
                     </h3>
                     <p class="text-sm text-gray-600 mb-4">New user registrations per day</p>
-                    <div class="chart-container flex-1" style="min-height: 250px;">
+                    <div class="chart-container flex-1" style="min-height: 200px;">
                         <canvas id="daily-users-chart"></canvas>
                     </div>
                 </div>
@@ -236,7 +236,7 @@
                         Total Users (Cumulative)
                     </h3>
                     <p class="text-sm text-gray-600 mb-4">Cumulative user count over time</p>
-                    <div class="chart-container flex-1" style="min-height: 250px;">
+                    <div class="chart-container flex-1" style="min-height: 200px;">
                         <canvas id="cumulative-users-chart"></canvas>
                     </div>
                     <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
@@ -252,7 +252,7 @@
                         Activity Trends
                     </h3>
                     <p class="text-sm text-gray-600 mb-4">Activity patterns over time</p>
-                    <div class="chart-container flex-1" style="min-height: 250px;">
+                    <div class="chart-container flex-1" style="min-height: 200px;">
                         <canvas id="activity-chart"></canvas>
                     </div>
                 </div>
@@ -263,7 +263,7 @@
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
                     </h3>
-                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto">
+                    <div id="top-users-list" class="flex-1 space-y-3 overflow-y-auto min-h-0">
                         <!-- Most Active Users content will be loaded here -->
                     </div>
                 </div>
@@ -274,7 +274,7 @@
                         <i class="fas fa-globe text-blue-500 mr-2"></i>
                         Most Active Pages
                     </h3>
-                    <div id="most-active-pages" class="flex-1 space-y-3 overflow-y-auto">
+                    <div id="most-active-pages" class="flex-1 space-y-3 overflow-y-auto min-h-0">
                         <!-- Most Active Pages content will be loaded here -->
                     </div>
                 </div>
@@ -317,7 +317,7 @@
                     </div>
 
                     <!-- Activity Timeline Content -->
-                    <div class="flex-1 overflow-y-auto p-6">
+                    <div class="flex-1 overflow-y-auto p-6 min-h-0">
                         <div id="activity-timeline" class="space-y-4">
                             <!-- Loading skeleton -->
                             <div class="loading-skeleton h-16 rounded-lg mb-4"></div>
