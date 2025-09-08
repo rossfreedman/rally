@@ -148,8 +148,8 @@
 
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto p-6">
-            <!-- Row 1: Today's Activities, Daily New Users, Total Users Cumulative, Activity Trends -->
-            <div class="grid grid-cols-4 gap-6 mb-6 h-96">
+            <!-- Dashboard Grid Layout -->
+            <div class="grid grid-cols-6 gap-6 h-auto">
                 <!-- Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
@@ -168,6 +168,50 @@
                         </div>
                         <div class="mt-2">
                             <span id="today-activities-change" class="text-sm text-gray-500">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-purple-600 mr-2"></i>
+                        Active Users
+                    </h3>
+                    <div class="metric-card p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Active Users</p>
+                                <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Rate -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-bolt text-orange-600 mr-2"></i>
+                        Activity Rate
+                    </h3>
+                    <div class="metric-card p-4 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-gray-600">Activity Rate</p>
+                                <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-bolt text-orange-600 text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
                         </div>
                     </div>
                 </div>
@@ -212,54 +256,28 @@
                     </div>
                 </div>
 
-
-            </div>
-
-            <!-- Row 2: Active Users, Activity Rate, Recent Activity, Most Active Users, Most Active Pages -->
-            <div class="grid grid-cols-5 gap-6 h-96">
-                <!-- Active Users -->
+                <!-- Most Active Users -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-users text-purple-600 mr-2"></i>
-                        Active Users
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Most Active Users
                     </h3>
-                    <div class="metric-card p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Active Users</p>
-                                <p id="active-users" class="text-2xl font-bold text-gray-900">-</p>
-                            </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-users text-purple-600 text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <span id="active-users-change" class="text-sm text-gray-500">Loading...</span>
-                        </div>
+                    <div id="most-active-users" class="space-y-3">
+                        <!-- Most Active Users content will be loaded here -->
                     </div>
                 </div>
 
-                <!-- Activity Rate -->
+                <!-- Most Active Pages -->
                 <div class="bg-white rounded-xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-bolt text-orange-600 mr-2"></i>
-                        Activity Rate
+                        <i class="fas fa-globe text-blue-500 mr-2"></i>
+                        Most Active Pages
                     </h3>
-                    <div class="metric-card p-4 rounded-lg">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Activity Rate</p>
-                                <p id="activity-rate" class="text-2xl font-bold text-gray-900">-</p>
-                            </div>
-                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-bolt text-orange-600 text-xl"></i>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
-                        </div>
+                    <div id="most-active-pages" class="space-y-3">
+                        <!-- Most Active Pages content will be loaded here -->
                     </div>
                 </div>
+
                 <!-- Recent Activity -->
                 <div class="bg-white rounded-xl shadow-lg flex flex-col">
                     <!-- Activity Timeline Header -->
