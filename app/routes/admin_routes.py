@@ -2447,7 +2447,7 @@ def get_cockpit_user_count_trends():
             has_created_at = False
         
         if has_created_at:
-            # Query cumulative user count trends by day using created_at
+            # Query daily user registrations
             query = """
             SELECT 
                 DATE(created_at) as date,
@@ -2468,12 +2468,19 @@ def get_cockpit_user_count_trends():
             baseline_result = execute_query(baseline_query, (start_date,))
             baseline_count = baseline_result[0]['baseline_count'] if baseline_result else 0
             
-            # Convert to cumulative counts
-            results = []
+            # Prepare both daily and cumulative data
+            daily_data = []
+            cumulative_data = []
             cumulative_count = baseline_count
+            
             for row in daily_results:
+                daily_data.append({
+                    'date': row['date'],
+                    'user_count': row['daily_new_users']
+                })
+                
                 cumulative_count += row['daily_new_users']
-                results.append({
+                cumulative_data.append({
                     'date': row['date'],
                     'user_count': cumulative_count
                 })
@@ -2481,38 +2488,57 @@ def get_cockpit_user_count_trends():
             # Fallback: use id-based approximation (assuming sequential IDs)
             # This is not perfect but provides some data when created_at is missing
             print("created_at column not available, using fallback method")
-            results = []
+            daily_data = []
+            cumulative_data = []
         
-        # Format data for chart
-        chart_data = {
-            "labels": [],
-            "datasets": [{
-                "label": "Total Users",
-                "data": [],
-                "borderColor": "#10645c",
-                "backgroundColor": "rgba(16, 100, 92, 0.1)",
-                "fill": True,
-                "tension": 0.4
-            }]
-        }
-        
-        # Create a complete date range with cumulative user counts
-        current_date = start_date
-        last_cumulative_count = 0
-        
-        # Create a lookup dictionary for faster access
-        results_lookup = {str(row['date']): row['user_count'] for row in results}
-        
-        while current_date <= end_date:
-            date_str = current_date.strftime("%Y-%m-%d")
-            chart_data["labels"].append(date_str)
+        # Helper function to create chart data for a given dataset
+        def create_chart_data(data_list, label, color, fill=True):
+            chart_data = {
+                "labels": [],
+                "datasets": [{
+                    "label": label,
+                    "data": [],
+                    "borderColor": color,
+                    "backgroundColor": color.replace("rgb", "rgba").replace(")", ", 0.1)"),
+                    "fill": fill,
+                    "tension": 0.4
+                }]
+            }
             
-            # Get cumulative user count for this date
-            if date_str in results_lookup:
-                last_cumulative_count = results_lookup[date_str]
+            # Create a complete date range
+            current_date = start_date
+            last_count = 0
             
-            chart_data["datasets"][0]["data"].append(last_cumulative_count)
-            current_date += timedelta(days=1)
+            # Create a lookup dictionary for faster access
+            data_lookup = {str(row['date']): row['user_count'] for row in data_list}
+            
+            while current_date <= end_date:
+                date_str = current_date.strftime("%Y-%m-%d")
+                chart_data["labels"].append(date_str)
+                
+                # Get count for this date
+                if date_str in data_lookup:
+                    last_count = data_lookup[date_str]
+                
+                chart_data["datasets"][0]["data"].append(last_count)
+                current_date += timedelta(days=1)
+            
+            return chart_data
+        
+        # Create both chart datasets
+        daily_chart_data = create_chart_data(
+            daily_data, 
+            "New Users (Daily)", 
+            "#10645c", 
+            fill=False
+        )
+        
+        cumulative_chart_data = create_chart_data(
+            cumulative_data, 
+            "Total Users (Cumulative)", 
+            "#059669", 
+            fill=True
+        )
         
         # Calculate total users and growth
         total_users = execute_query("SELECT COUNT(*) as total FROM users")[0]['total']
@@ -2533,7 +2559,8 @@ def get_cockpit_user_count_trends():
         
         return jsonify({
             "status": "success",
-            "chart_data": chart_data,
+            "daily_chart_data": daily_chart_data,
+            "cumulative_chart_data": cumulative_chart_data,
             "total_users": total_users,
             "growth_rate": round(growth_rate, 1),
             "period_days": days,

@@ -230,15 +230,28 @@
         </div>
         <div>
           <h2 class="text-lg font-semibold text-gray-900">User Growth</h2>
-          <p class="text-sm text-gray-600">New user registrations over time</p>
+          <p class="text-sm text-gray-600">New user registrations and total users over time</p>
         </div>
       </div>
     </div>
     
     <div class="p-4">
-      <div class="chart-container" style="height: 200px;">
-        <canvas id="user-count-chart"></canvas>
+      <!-- Daily New Users Chart -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h3>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="daily-users-chart"></canvas>
+        </div>
       </div>
+      
+      <!-- Cumulative Total Users Chart -->
+      <div class="mb-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h3>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="cumulative-users-chart"></canvas>
+        </div>
+      </div>
+      
       <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
         <span id="user-count-total">Total: -</span>
         <span id="user-count-growth">Growth: -</span>
@@ -612,18 +625,59 @@ function renderMostActivePages(pages) {
 }
 
 function updateUserCountChart(data) {
-  // Initialize chart if it doesn't exist
-  if (!window.userCountChart) {
-    const ctx = document.getElementById('user-count-chart').getContext('2d');
-    window.userCountChart = new Chart(ctx, {
+  // Initialize daily users chart if it doesn't exist
+  if (!window.dailyUsersChart) {
+    const ctx = document.getElementById('daily-users-chart').getContext('2d');
+    window.dailyUsersChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels: [],
         datasets: [{
-          label: 'New Users',
+          label: 'New Users (Daily)',
           data: [],
           borderColor: '#10645c',
           backgroundColor: 'rgba(16, 100, 92, 0.1)',
+          tension: 0.4,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Initialize cumulative users chart if it doesn't exist
+  if (!window.cumulativeUsersChart) {
+    const ctx = document.getElementById('cumulative-users-chart').getContext('2d');
+    window.cumulativeUsersChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Total Users (Cumulative)',
+          data: [],
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5, 150, 105, 0.1)',
           tension: 0.4,
           fill: true
         }]
@@ -653,10 +707,19 @@ function updateUserCountChart(data) {
     });
   }
 
-  // Update the chart data
-  window.userCountChart.data.labels = data.chart_data.labels;
-  window.userCountChart.data.datasets[0].data = data.chart_data.datasets[0].data;
-  window.userCountChart.update();
+  // Update the daily chart data
+  if (data.daily_chart_data) {
+    window.dailyUsersChart.data.labels = data.daily_chart_data.labels;
+    window.dailyUsersChart.data.datasets[0].data = data.daily_chart_data.datasets[0].data;
+    window.dailyUsersChart.update();
+  }
+
+  // Update the cumulative chart data
+  if (data.cumulative_chart_data) {
+    window.cumulativeUsersChart.data.labels = data.cumulative_chart_data.labels;
+    window.cumulativeUsersChart.data.datasets[0].data = data.cumulative_chart_data.datasets[0].data;
+    window.cumulativeUsersChart.update();
+  }
 
   // Update the summary text
   const totalEl = document.getElementById('user-count-total');
