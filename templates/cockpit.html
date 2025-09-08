@@ -231,9 +231,24 @@
                             <i class="fas fa-users text-rally-primary mr-2"></i>
                             User Growth
                         </h3>
-                        <div class="chart-container">
-                            <canvas id="user-count-chart"></canvas>
+                        <p class="text-sm text-gray-600 mb-4">New user registrations and total users over time</p>
+                        
+                        <!-- Daily New Users Chart -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h4>
+                            <div class="chart-container" style="height: 200px;">
+                                <canvas id="daily-users-chart"></canvas>
+                            </div>
                         </div>
+                        
+                        <!-- Cumulative Total Users Chart -->
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h4>
+                            <div class="chart-container" style="height: 200px;">
+                                <canvas id="cumulative-users-chart"></canvas>
+                            </div>
+                        </div>
+                        
                         <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
                             <span id="user-count-total">Total: -</span>
                             <span id="user-count-growth">Growth: -</span>
@@ -847,17 +862,56 @@
                 }
             });
 
-            // User count trend chart
-            const userCtx = document.getElementById('user-count-chart').getContext('2d');
-            dashboardState.charts.userCount = new Chart(userCtx, {
+            // Daily users chart
+            const dailyCtx = document.getElementById('daily-users-chart').getContext('2d');
+            dashboardState.charts.dailyUsers = new Chart(dailyCtx, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'New Users',
+                        label: 'New Users (Daily)',
                         data: [],
                         borderColor: '#10645c',
                         backgroundColor: 'rgba(16, 100, 92, 0.1)',
+                        tension: 0.4,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Cumulative users chart
+            const cumulativeCtx = document.getElementById('cumulative-users-chart').getContext('2d');
+            dashboardState.charts.cumulativeUsers = new Chart(cumulativeCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Users (Cumulative)',
+                        data: [],
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
                         tension: 0.4,
                         fill: true
                     }]
@@ -1021,11 +1075,18 @@
         }
 
         function updateUserCountChart(data) {
-            // Update the chart data
-            if (dashboardState.charts.userCount) {
-                dashboardState.charts.userCount.data.labels = data.chart_data.labels;
-                dashboardState.charts.userCount.data.datasets[0].data = data.chart_data.datasets[0].data;
-                dashboardState.charts.userCount.update();
+            // Update the daily chart data
+            if (dashboardState.charts.dailyUsers && data.daily_chart_data) {
+                dashboardState.charts.dailyUsers.data.labels = data.daily_chart_data.labels;
+                dashboardState.charts.dailyUsers.data.datasets[0].data = data.daily_chart_data.datasets[0].data;
+                dashboardState.charts.dailyUsers.update();
+            }
+
+            // Update the cumulative chart data
+            if (dashboardState.charts.cumulativeUsers && data.cumulative_chart_data) {
+                dashboardState.charts.cumulativeUsers.data.labels = data.cumulative_chart_data.labels;
+                dashboardState.charts.cumulativeUsers.data.datasets[0].data = data.cumulative_chart_data.datasets[0].data;
+                dashboardState.charts.cumulativeUsers.update();
             }
 
             // Update the summary text
