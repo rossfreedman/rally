@@ -247,19 +247,8 @@
                     </div>
                 </div>
 
-                <!-- Column 3, Row 2: Upcoming Practices -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center flex-shrink-0">
-                        <i class="fas fa-calendar-check text-green-500 mr-2"></i>
-                        Upcoming Practices
-                    </h3>
-                    <div id="upcoming-practices" class="flex-1 space-y-3 overflow-y-auto min-h-0" style="max-height: calc((100vh - 140px) / 3 - 80px);">
-                        <!-- Practice schedule content will be loaded here -->
-                    </div>
-                </div>
-
-                <!-- Column 1, Row 3: Recent Activity -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 3; grid-column: 1; max-height: calc((100vh - 140px) / 3);">
+                <!-- Column 3, Row 2: Recent Activity -->
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 2; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
                     <!-- Activity Timeline Header -->
                     <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center justify-between">
@@ -307,6 +296,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
         </main>
     </div>
@@ -361,7 +351,6 @@
                     loadActivityData(),
                     loadTopUsers(),
                     loadActivityTrends(),
-                    loadPracticeSchedule(),
                     loadUserCountTrends()
                 ]);
                 updateLastUpdated();
@@ -375,8 +364,7 @@
                 await Promise.all([
                     loadMetrics(),
                     loadTopUsers(),
-                    loadActivityTrends(),
-                    loadPracticeSchedule()
+                    loadActivityTrends()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -508,31 +496,6 @@
             }
         }
 
-        async function loadPracticeSchedule() {
-            try {
-                const response = await fetch(`/api/admin/cockpit/practice-schedule?limit=10&days_ahead=30`, {
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                if (!response.ok) {
-                    console.error(`Practice schedule API error: ${response.status} ${response.statusText}`);
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    updatePracticeScheduleDisplay(data.practices);
-                } else {
-                    console.error('Practice schedule API returned error:', data.error);
-                }
-            } catch (error) {
-                console.error('Error loading practice schedule:', error);
-            }
-        }
 
         async function loadUserCountTrends() {
             try {
@@ -976,36 +939,6 @@
             dashboardState.lastUpdate = now;
         }
 
-        function updatePracticeScheduleDisplay(practices) {
-            const container = document.getElementById('upcoming-practices');
-            if (!container) {
-                console.error('Upcoming practices container not found');
-                return;
-            }
-            
-            if (!practices || practices.length === 0) {
-                container.innerHTML = '<p class="text-sm text-gray-500">No upcoming practices scheduled</p>';
-                return;
-            }
-
-            container.innerHTML = practices.map((practice, index) => `
-                <div class="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm font-semibold flex-shrink-0">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="font-medium text-gray-900 text-sm truncate">${practice.team}</div>
-                            <div class="text-xs text-gray-500">${practice.date} at ${practice.time}</div>
-                            <div class="text-xs text-gray-500 truncate">${practice.location}</div>
-                        </div>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                        <div class="text-xs text-gray-500">${practice.league}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
 
         function updateUserCountChart(data) {
             // Update the daily chart data
