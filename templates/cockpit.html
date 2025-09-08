@@ -151,7 +151,7 @@
             <!-- Dashboard Table Grid System -->
             <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);">
                 
-                <!-- Row 1, Col 1: Today's Activities -->
+                <!-- Column 1, Row 1: Today's Activities -->
                 <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 1;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-calendar-day text-green-600 mr-2"></i>
@@ -173,8 +173,8 @@
                     </div>
                 </div>
 
-                <!-- Row 1, Col 2: Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 2;">
+                <!-- Column 1, Row 2: Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 1;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-users text-purple-600 mr-2"></i>
                         Active Users
@@ -195,30 +195,9 @@
                     </div>
                 </div>
 
-                <!-- Row 1, Col 3: Activity Rate -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 3;">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                        <i class="fas fa-bolt text-orange-600 mr-2"></i>
-                        Activity Rate
-                    </h3>
-                    <div class="metric-card p-4 rounded-lg flex-1 flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-sm text-gray-600">Activity Rate</p>
-                                <p id="activity-rate" class="text-3xl font-bold text-gray-900">-</p>
-                            </div>
-                            <div class="w-16 h-16 bg-orange-100 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-bolt text-orange-600 text-2xl"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <span id="activity-rate-change" class="text-sm text-gray-500">Loading...</span>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Row 2, Col 1: Daily New Users Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 1;">
+                <!-- Column 2, Row 2: Daily New Users Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 2;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-user-plus text-rally-primary mr-2"></i>
                         Daily New Users
@@ -229,8 +208,8 @@
                     </div>
                 </div>
 
-                <!-- Row 2, Col 2: Total Users Cumulative Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 2;">
+                <!-- Column 2, Row 1: Total Users Cumulative Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 2;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-users text-rally-primary mr-2"></i>
                         Total Users (Cumulative)
@@ -245,8 +224,8 @@
                     </div>
                 </div>
 
-                <!-- Row 2, Col 3: Activity Trends Chart -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 3;">
+                <!-- Column 2, Row 3: Activity Trends Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 3; grid-column: 2;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-chart-line text-rally-primary mr-2"></i>
                         Activity Trends
@@ -257,8 +236,8 @@
                     </div>
                 </div>
 
-                <!-- Row 3, Col 1: Most Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 3; grid-column: 1;">
+                <!-- Column 3, Row 1: Most Active Users -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 3;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
@@ -268,8 +247,8 @@
                     </div>
                 </div>
 
-                <!-- Row 3, Col 2: Most Active Pages -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 3; grid-column: 2;">
+                <!-- Column 3, Row 2: Most Active Pages -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2; grid-column: 3;">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-globe text-blue-500 mr-2"></i>
                         Most Active Pages
@@ -279,8 +258,8 @@
                     </div>
                 </div>
 
-                <!-- Row 3, Col 3: Recent Activity -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 3; grid-column: 3;">
+                <!-- Column 1, Row 3: Recent Activity -->
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 3; grid-column: 1;">
                     <!-- Activity Timeline Header -->
                     <div class="p-6 border-b border-gray-200">
                         <div class="flex items-center justify-between">
