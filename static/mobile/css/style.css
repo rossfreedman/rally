@@ -12,7 +12,19 @@
   --rally-yellow: #FFD600;
   --rally-black: #000000;
   --rally-gray: #f6faf7;
+  --rally-teal: #0d4f4c;
+  --rally-teal-dark: #0a3d3a;
 }
+
+/* Rally color utility classes */
+.bg-rally-yellow { background-color: var(--rally-yellow); }
+.bg-rally-teal { background-color: var(--rally-teal); }
+.bg-rally-teal-dark { background-color: var(--rally-teal-dark); }
+.text-rally-yellow { color: var(--rally-yellow); }
+.text-rally-teal { color: var(--rally-teal); }
+.text-rally-black { color: var(--rally-black); }
+.border-rally-yellow { border-color: var(--rally-yellow); }
+.border-rally-teal { border-color: var(--rally-teal); }
 
 /* Card shadow enhancement */
 .card {

@@ -3406,9 +3406,11 @@ def get_mobile_improve_data(user):
             tips_path = os.path.join(
                 "data", "leagues", "all", "improve_data", "paddle_tips.json"
             )
+            print(f"Loading paddle tips from: {tips_path}")
             with open(tips_path, "r", encoding="utf-8") as f:
                 tips_data = json.load(f)
                 paddle_tips = tips_data.get("paddle_tips", [])
+                print(f"Loaded {len(paddle_tips)} paddle tips")
         except Exception as tips_error:
             print(f"Error loading paddle tips: {str(tips_error)}")
             # Continue without tips if file can't be loaded
@@ -3430,6 +3432,7 @@ def get_mobile_improve_data(user):
             print(f"Error loading training guide: {str(guide_error)}")
             # Continue without training guide if file can't be loaded
 
+        print(f"Returning {len(paddle_tips)} paddle tips to template")
         return {"paddle_tips": paddle_tips, "training_guide": training_guide}
 
     except Exception as e:

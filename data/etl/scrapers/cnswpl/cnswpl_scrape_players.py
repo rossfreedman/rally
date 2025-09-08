@@ -19,6 +19,7 @@ import time
 import json
 import hashlib
 import logging
+import re
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 from bs4 import BeautifulSoup
@@ -35,6 +36,7 @@ sys.path.append(parent_path)
 
 from stealth_browser import EnhancedStealthBrowser, StealthConfig
 from user_agent_manager import UserAgentManager
+from proxy_manager import fetch_with_retry
 
 class CNSWPLRosterScraper:
     """Comprehensive CNSWPL roster scraper that hits all series pages"""
@@ -88,7 +90,7 @@ class CNSWPLRosterScraper:
             
             # Initialize user agent manager (will auto-detect config path)
             user_agent_manager = UserAgentManager()
-            current_user_agent = user_agent_manager.get_user_agent_for_site("https://cnswpl.tennisscores.com")
+            current_user_agent = user_agent_manager.get_user_agent_for_site("https://cnswpl.tenniscores.com")
             print(f"   🎭 Using User-Agent: {current_user_agent[:50]}...")
             
             # Enhanced stealth configuration with better error handling
@@ -101,17 +103,27 @@ class CNSWPLRosterScraper:
             # Initialize stealth browser with enhanced config
             stealth_browser = EnhancedStealthBrowser(stealth_config)
             
-            # Test the browser with a simple request
+            # Test the browser with a working deep link instead of blocked root URL
             print("   🧪 Testing stealth browser...")
-            test_url = "https://cnswpl.tennisscores.com"
-            test_response = stealth_browser.get_html(test_url)
+            test_url = "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI"  # Use series page instead of root
             
-            if test_response and len(test_response) > 100:
-                print("   ✅ Stealth browser test successful")
-                return stealth_browser
-            else:
-                print("   ❌ Stealth browser test failed - response too short")
-                return None
+            try:
+                test_response = stealth_browser.get_html(test_url)
+                
+                if test_response and len(test_response) > 100:
+                    print("   ✅ Stealth browser test successful")
+                    return stealth_browser
+                else:
+                    print("   ❌ Stealth browser test failed - response too short")
+                    return None
+            except Exception as e:
+                if "522" in str(e) or "Cloudflare" in str(e):
+                    print("   ⚠️ CNSWPL site returned 522/Cloudflare error - this may be temporary")
+                    print("   🔄 Will retry with different proxy on actual requests")
+                    return stealth_browser  # Return browser anyway, let it handle retries
+                else:
+                    print(f"   ❌ Stealth browser test failed: {e}")
+                    return None
                 
         except Exception as e:
             print(f"   ❌ Failed to initialize stealth browser: {e}")
@@ -712,6 +724,10 @@ class CNSWPLRosterScraper:
                     # Convert player ID to cnswpl_ format for ETL compatibility
                     cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
                     
+                    # Get player stats from individual player page
+                    print(f"           📊 Getting stats for {player_name}...")
+                    stats = self.get_player_stats_from_individual_page(href)
+                    
                     # Create player record
                     player_data = {
                         'League': 'CNSWPL',
@@ -722,9 +738,9 @@ class CNSWPLRosterScraper:
                         'First Name': first_name,
                         'Last Name': last_name,
                         'PTI': 'N/A',
-                        'Wins': '0',
-                        'Losses': '0',
-                        'Win %': '0.0%',
+                        'Wins': str(stats['Wins']),
+                        'Losses': str(stats['Losses']),
+                        'Win %': stats['Win %'],
                         'Captain': 'Yes' if is_captain else '',
                         'Source URL': team_url,
                         'source_league': 'CNSWPL'
@@ -791,6 +807,10 @@ class CNSWPLRosterScraper:
                 # Convert player ID to cnswpl_ format for ETL compatibility
                 cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
                 
+                # Get player stats from individual player page
+                print(f"           📊 Getting stats for {player_name}...")
+                stats = self.get_player_stats_from_individual_page(href)
+                
                 # Create player record
                 player_data = {
                     'League': 'CNSWPL',
@@ -801,9 +821,9 @@ class CNSWPLRosterScraper:
                     'First Name': first_name,
                     'Last Name': last_name,
                     'PTI': 'N/A',
-                    'Wins': '0',
-                    'Losses': '0',
-                    'Win %': '0.0%',
+                    'Wins': str(stats['Wins']),
+                    'Losses': str(stats['Losses']),
+                    'Win %': stats['Win %'],
                     'Captain': 'Yes' if is_captain else '',
                     'Source URL': team_url,
                     'source_league': 'CNSWPL'
@@ -1342,6 +1362,81 @@ class CNSWPLRosterScraper:
         except Exception as e:
             print(f"   ❌ Curl error: {e}")
             return ""
+
+    def get_player_stats_from_individual_page(self, player_url: str, max_retries: int = 2) -> Dict[str, any]:
+        """
+        Get player stats (wins/losses) from individual player page using the same logic as scraper_player_history.py
+        
+        Args:
+            player_url: URL to the individual player page
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            Dictionary with wins, losses, and win percentage
+        """
+        for attempt in range(max_retries):
+            try:
+                # Construct full URL if needed
+                if not player_url.startswith("http"):
+                    full_url = f"{self.base_url}{player_url}"
+                else:
+                    full_url = player_url
+                
+                # Use proxy-first approach with intelligent fallback for CNSWPL
+                try:
+                    response = fetch_with_retry(full_url, timeout=15)
+                    if response and response.status_code == 200:
+                        html_content = response.text
+                        print(f"   ✅ Proxy request successful - got {len(html_content)} characters")
+                    else:
+                        print(f"   ⚠️ Proxy request failed for {full_url}, trying fallback")
+                        html_content = self.get_html_with_fallback(full_url)
+                except Exception as e:
+                    if "522" in str(e) or "Cloudflare" in str(e):
+                        print(f"   ⚠️ CNSWPL 522/Cloudflare error (may be temporary): {e}")
+                        print(f"   🔄 Trying fallback method...")
+                        html_content = self.get_html_with_fallback(full_url)
+                    else:
+                        print(f"   ⚠️ Proxy request error: {e}, trying fallback")
+                        html_content = self.get_html_with_fallback(full_url)
+                
+                if not html_content:
+                    if attempt < max_retries - 1:
+                        time.sleep(0.5)
+                        continue
+                    else:
+                        return {"Wins": 0, "Losses": 0, "Win %": "0.0%"}
+                
+                wins = 0
+                losses = 0
+                
+                # Count wins and losses from HTML content using the same logic as scraper_player_history.py
+                if "W" in html_content or "L" in html_content:
+                    # Simple pattern matching for wins/losses
+                    w_matches = re.findall(r'\bW\b', html_content)
+                    l_matches = re.findall(r'\bL\b', html_content)
+                    wins = len(w_matches)
+                    losses = len(l_matches)
+                
+                stats = {
+                    "Wins": wins,
+                    "Losses": losses,
+                    "Win %": (
+                        f"{(wins/(wins+losses)*100):.1f}%" if wins + losses > 0 else "0.0%"
+                    ),
+                }
+                
+                return stats
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"   ⚠️ Error getting stats for {player_url}, retrying: {e}")
+                    time.sleep(0.5)
+                else:
+                    print(f"   ❌ Failed to get stats for {player_url} after {max_retries} attempts: {e}")
+        
+        # Return default stats if all retries failed
+        return {"Wins": 0, "Losses": 0, "Win %": "0.0%"}
 
 def main():
     """Main function"""

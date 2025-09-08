@@ -512,183 +512,212 @@ class EnhancedStealthBrowser:
     
     def _inject_stealth_scripts(self, driver, user_agent: str = None):
         """Inject JavaScript to hide automation indicators and override OS signals."""
-        # Enhanced stealth scripts for APTA Chicago
+        # Enhanced stealth scripts for APTA Chicago - grouped by functionality to avoid scope issues
         stealth_scripts = [
-            # Core webdriver removal - most important
-            "Object.defineProperty(navigator, 'webdriver', {get: function() { return undefined; }, configurable: true});",
-            "delete window.navigator.webdriver;",
+            # Core webdriver removal and automation detection removal
+            """
+            // Core webdriver removal - most important
+            Object.defineProperty(navigator, 'webdriver', {get: function() { return undefined; }, configurable: true});
+            delete window.navigator.webdriver;
             
-            # Remove automation flags
-            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;",
-            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;",
-            "delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;",
+            // Remove automation flags
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
             
-            # Override chrome runtime
-            "if (!window.chrome) { window.chrome = {runtime: {}}; }",
+            // Override chrome runtime
+            if (!window.chrome) { window.chrome = {runtime: {}}; }
             
-            # Override permissions
-            "Object.defineProperty(navigator, 'permissions', {get: function() { return {query: function() { return Promise.resolve({state: 'granted'}); }}; }});",
+            // Remove automation detection
+            if (window.navigator && window.navigator.__proto__) { delete window.navigator.__proto__.webdriver; }
+            delete window.navigator.webdriver;
+            """,
             
-            # Override plugins
-            "Object.defineProperty(navigator, 'plugins', {get: function() { return []; }});",
+            # Navigator overrides
+            """
+            // Override permissions
+            Object.defineProperty(navigator, 'permissions', {get: function() { return {query: function() { return Promise.resolve({state: 'granted'}); }}; }});
             
-            # Override languages
-            "Object.defineProperty(navigator, 'languages', {get: function() { return ['en-US', 'en']; }});",
+            // Override plugins
+            Object.defineProperty(navigator, 'plugins', {get: function() { return []; }});
             
-            # Override connection
-            "Object.defineProperty(navigator, 'connection', {get: function() { return {effectiveType: '4g', rtt: 50, downlink: 10}; }});",
+            // Override languages
+            Object.defineProperty(navigator, 'languages', {get: function() { return ['en-US', 'en']; }});
             
-            # Override deviceMemory (only if not already defined)
-            "if (!navigator.deviceMemory) { Object.defineProperty(navigator, 'deviceMemory', {get: function() { return 8; }, configurable: true}); }",
+            // Override connection
+            Object.defineProperty(navigator, 'connection', {get: function() { return {effectiveType: '4g', rtt: 50, downlink: 10}; }});
             
-            # Override hardwareConcurrency (only if not already defined)
-            "if (!navigator.hardwareConcurrency) { Object.defineProperty(navigator, 'hardwareConcurrency', {get: function() { return 8; }, configurable: true}); }",
+            // Override language
+            Object.defineProperty(navigator, 'language', {get: function() { return 'en-US'; }});
             
-            # Override maxTouchPoints (only if not already defined)
-            "if (!navigator.maxTouchPoints) { Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true}); }",
+            // Override cookieEnabled
+            Object.defineProperty(navigator, 'cookieEnabled', {get: function() { return true; }});
             
-            # Override platform (only if not already defined)
-            "if (!navigator.platform) { Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true}); }",
+            // Override onLine
+            Object.defineProperty(navigator, 'onLine', {get: function() { return true; }});
             
-            # Override vendor (only if not already defined)
-            "if (!navigator.vendor) { Object.defineProperty(navigator, 'vendor', {get: function() { return 'Google Inc.'; }, configurable: true}); }",
+            // Override doNotTrack
+            Object.defineProperty(navigator, 'doNotTrack', {get: function() { return null; }});
+            """,
             
-            # Override product (only if not already defined)
-            "if (!navigator.product) { Object.defineProperty(navigator, 'product', {get: function() { return 'Gecko'; }, configurable: true}); }",
+            # Hardware and device overrides
+            """
+            // Override deviceMemory (only if not already defined)
+            if (!navigator.deviceMemory) { Object.defineProperty(navigator, 'deviceMemory', {get: function() { return 8; }, configurable: true}); }
             
-            # Override appName (only if not already defined)
-            "if (!navigator.appName) { Object.defineProperty(navigator, 'appName', {get: function() { return 'Netscape'; }, configurable: true}); }",
+            // Override hardwareConcurrency (only if not already defined)
+            if (!navigator.hardwareConcurrency) { Object.defineProperty(navigator, 'hardwareConcurrency', {get: function() { return 8; }, configurable: true}); }
             
-            # Override appVersion (only if not already defined)
-            "if (!navigator.appVersion) { Object.defineProperty(navigator, 'appVersion', {get: function() { return '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }",
+            // Override maxTouchPoints (only if not already defined)
+            if (!navigator.maxTouchPoints) { Object.defineProperty(navigator, 'maxTouchPoints', {get: function() { return 0; }, configurable: true}); }
             
-            # Override userAgent (only if not already defined)
-            "if (!navigator.userAgent) { Object.defineProperty(navigator, 'userAgent', {get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }",
+            // Override platform (only if not already defined)
+            if (!navigator.platform) { Object.defineProperty(navigator, 'platform', {get: function() { return 'Win32'; }, configurable: true}); }
             
-            # Override screen properties (only if not already defined)
-            "if (!screen.width) { Object.defineProperty(screen, 'width', {get: function() { return 1920; }, configurable: true}); }",
-            "if (!screen.height) { Object.defineProperty(screen, 'height', {get: function() { return 1080; }, configurable: true}); }",
-            "if (!screen.availWidth) { Object.defineProperty(screen, 'availWidth', {get: function() { return 1920; }, configurable: true}); }",
-            "if (!screen.availHeight) { Object.defineProperty(screen, 'availHeight', {get: function() { return 1040; }, configurable: true}); }",
-            "if (!screen.colorDepth) { Object.defineProperty(screen, 'colorDepth', {get: function() { return 24; }, configurable: true}); }",
-            "if (!screen.pixelDepth) { Object.defineProperty(screen, 'pixelDepth', {get: function() { return 24; }, configurable: true}); }",
+            // Override vendor (only if not already defined)
+            if (!navigator.vendor) { Object.defineProperty(navigator, 'vendor', {get: function() { return 'Google Inc.'; }, configurable: true}); }
             
-            # Override window properties (only if not already defined)
-            "if (!window.outerWidth) { Object.defineProperty(window, 'outerWidth', {get: function() { return 1920; }, configurable: true}); }",
-            "if (!window.outerHeight) { Object.defineProperty(window, 'outerHeight', {get: function() { return 1040; }, configurable: true}); }",
-            "if (!window.innerWidth) { Object.defineProperty(window, 'innerWidth', {get: function() { return 1920; }, configurable: true}); }",
-            "if (!window.innerHeight) { Object.defineProperty(window, 'innerHeight', {get: function() { return 1040; }, configurable: true}); }",
+            // Override product (only if not already defined)
+            if (!navigator.product) { Object.defineProperty(navigator, 'product', {get: function() { return 'Gecko'; }, configurable: true}); }
             
-            # Override timezone - Fixed syntax
-            "if (typeof Intl !== 'undefined') { Object.defineProperty(Intl, 'DateTimeFormat', {get: function() { return function() { return {resolvedOptions: function() { return {timeZone: 'America/Chicago'}; } }; }; }}); }",
+            // Override appName (only if not already defined)
+            if (!navigator.appName) { Object.defineProperty(navigator, 'appName', {get: function() { return 'Netscape'; }, configurable: true}); }
             
-            # Override language - Fixed syntax
-            "Object.defineProperty(navigator, 'language', {get: function() { return 'en-US'; }});",
+            // Override appVersion (only if not already defined)
+            if (!navigator.appVersion) { Object.defineProperty(navigator, 'appVersion', {get: function() { return '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }
             
-            # Override cookieEnabled - Fixed syntax
-            "Object.defineProperty(navigator, 'cookieEnabled', {get: function() { return true; }});",
+            // Override userAgent (only if not already defined)
+            if (!navigator.userAgent) { Object.defineProperty(navigator, 'userAgent', {get: function() { return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'; }, configurable: true}); }
             
-            # Override onLine - Fixed syntax
-            "Object.defineProperty(navigator, 'onLine', {get: function() { return true; }});",
+            // Override taintEnabled (legacy)
+            Object.defineProperty(navigator, 'taintEnabled', {get: function() { return false; }});
+            """,
             
-            # Override doNotTrack - Fixed syntax
-            "Object.defineProperty(navigator, 'doNotTrack', {get: function() { return null; }});",
+            # Screen and window overrides
+            """
+            // Override screen properties (only if not already defined)
+            if (!screen.width) { Object.defineProperty(screen, 'width', {get: function() { return 1920; }, configurable: true}); }
+            if (!screen.height) { Object.defineProperty(screen, 'height', {get: function() { return 1080; }, configurable: true}); }
+            if (!screen.availWidth) { Object.defineProperty(screen, 'availWidth', {get: function() { return 1920; }, configurable: true}); }
+            if (!screen.availHeight) { Object.defineProperty(screen, 'availHeight', {get: function() { return 1040; }, configurable: true}); }
+            if (!screen.colorDepth) { Object.defineProperty(screen, 'colorDepth', {get: function() { return 24; }, configurable: true}); }
+            if (!screen.pixelDepth) { Object.defineProperty(screen, 'pixelDepth', {get: function() { return 24; }, configurable: true}); }
             
-            # Override mediaDevices - Fixed syntax
-            "Object.defineProperty(navigator, 'mediaDevices', {get: function() { return {enumerateDevices: function() { return Promise.resolve([]); } }; }});",
+            // Override window properties (only if not already defined)
+            if (!window.outerWidth) { Object.defineProperty(window, 'outerWidth', {get: function() { return 1920; }, configurable: true}); }
+            if (!window.outerHeight) { Object.defineProperty(window, 'outerHeight', {get: function() { return 1040; }, configurable: true}); }
+            if (!window.innerWidth) { Object.defineProperty(window, 'innerWidth', {get: function() { return 1920; }, configurable: true}); }
+            if (!window.innerHeight) { Object.defineProperty(window, 'innerHeight', {get: function() { return 1040; }, configurable: true}); }
+            """,
             
-            # Override geolocation - Fixed syntax
-            "Object.defineProperty(navigator, 'geolocation', {get: function() { return {getCurrentPosition: function() {}, watchPosition: function() {} }; }});",
+            # Timezone and internationalization
+            """
+            // Override timezone
+            if (typeof Intl !== 'undefined') { 
+                Object.defineProperty(Intl, 'DateTimeFormat', {
+                    get: function() { 
+                        return function() { 
+                            return {resolvedOptions: function() { return {timeZone: 'America/Chicago'}; } }; 
+                        }; 
+                    }
+                }); 
+            }
+            """,
             
-            # Override service worker - Fixed syntax
-            "Object.defineProperty(navigator, 'serviceWorker', {get: function() { return {register: function() { return Promise.resolve(); }, getRegistrations: function() { return Promise.resolve([]); } }; }});",
+            # Media and device APIs
+            """
+            // Override mediaDevices
+            Object.defineProperty(navigator, 'mediaDevices', {get: function() { return {enumerateDevices: function() { return Promise.resolve([]); } }; }});
             
-            # Override storage - Fixed syntax
-            "Object.defineProperty(navigator, 'storage', {get: function() { return {estimate: function() { return Promise.resolve({usage: 0, quota: 0}); } }; }});",
+            // Override geolocation
+            Object.defineProperty(navigator, 'geolocation', {get: function() { return {getCurrentPosition: function() {}, watchPosition: function() {} }; }});
             
-            # Override wake lock - Fixed syntax
-            "Object.defineProperty(navigator, 'wakeLock', {get: function() { return {request: function() { return Promise.resolve(); } }; }});",
+            // Override service worker
+            Object.defineProperty(navigator, 'serviceWorker', {get: function() { return {register: function() { return Promise.resolve(); }, getRegistrations: function() { return Promise.resolve([]); } }; }});
             
-            # Override clipboard - Fixed syntax
-            "Object.defineProperty(navigator, 'clipboard', {get: function() { return {readText: function() { return Promise.resolve(''); }, writeText: function() { return Promise.resolve(); } }; }});",
+            // Override storage
+            Object.defineProperty(navigator, 'storage', {get: function() { return {estimate: function() { return Promise.resolve({usage: 0, quota: 0}); } }; }});
             
-            # Override presentation - Fixed syntax
-            "Object.defineProperty(navigator, 'presentation', {get: function() { return {defaultRequest: null, receiver: null}; }});",
+            // Override wake lock
+            Object.defineProperty(navigator, 'wakeLock', {get: function() { return {request: function() { return Promise.resolve(); } }; }});
             
-            # Override credentials - Fixed syntax
-            "Object.defineProperty(navigator, 'credentials', {get: function() { return {create: function() { return Promise.resolve(); }, get: function() { return Promise.resolve(); }, preventSilentAccess: function() {} }; }});",
+            // Override clipboard
+            Object.defineProperty(navigator, 'clipboard', {get: function() { return {readText: function() { return Promise.resolve(''); }, writeText: function() { return Promise.resolve(); } }; }});
             
-            # Override locks - Fixed syntax
-            "Object.defineProperty(navigator, 'locks', {get: function() { return {request: function() { return Promise.resolve(); }, query: function() { return Promise.resolve([]); } }; }});",
+            // Override presentation
+            Object.defineProperty(navigator, 'presentation', {get: function() { return {defaultRequest: null, receiver: null}; }});
             
-            # Override contacts - Fixed syntax
-            "Object.defineProperty(navigator, 'contacts', {get: function() { return {select: function() { return Promise.resolve([]); } }; }});",
+            // Override credentials
+            Object.defineProperty(navigator, 'credentials', {get: function() { return {create: function() { return Promise.resolve(); }, get: function() { return Promise.resolve(); }, preventSilentAccess: function() {} }; }});
             
-            # Override keyboard - Fixed syntax
-            "Object.defineProperty(navigator, 'keyboard', {get: function() { return {lock: function() { return Promise.resolve(); }, unlock: function() {} }; }});",
+            // Override locks
+            Object.defineProperty(navigator, 'locks', {get: function() { return {request: function() { return Promise.resolve(); }, query: function() { return Promise.resolve([]); } }; }});
             
-            # Override virtual keyboard - Fixed syntax
-            "Object.defineProperty(navigator, 'virtualKeyboard', {get: function() { return {show: function() {}, hide: function() {} }; }});",
+            // Override contacts
+            Object.defineProperty(navigator, 'contacts', {get: function() { return {select: function() { return Promise.resolve([]); } }; }});
             
-            # Override xr - Fixed syntax
-            "Object.defineProperty(navigator, 'xr', {get: function() { return {isSessionSupported: function() { return Promise.resolve(false); } }; }});",
+            // Override keyboard
+            Object.defineProperty(navigator, 'keyboard', {get: function() { return {lock: function() { return Promise.resolve(); }, unlock: function() {} }; }});
             
-            # Override bluetooth - Fixed syntax
-            "Object.defineProperty(navigator, 'bluetooth', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
+            // Override virtual keyboard
+            Object.defineProperty(navigator, 'virtualKeyboard', {get: function() { return {show: function() {}, hide: function() {} }; }});
             
-            # Override usb - Fixed syntax
-            "Object.defineProperty(navigator, 'usb', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
+            // Override xr
+            Object.defineProperty(navigator, 'xr', {get: function() { return {isSessionSupported: function() { return Promise.resolve(false); } }; }});
             
-            # Override serial - Fixed syntax
-            "Object.defineProperty(navigator, 'serial', {get: function() { return {requestPort: function() { return Promise.resolve(); } }; }});",
+            // Override bluetooth
+            Object.defineProperty(navigator, 'bluetooth', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});
             
-            # Override hid - Fixed syntax
-            "Object.defineProperty(navigator, 'hid', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});",
+            // Override usb
+            Object.defineProperty(navigator, 'usb', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});
             
-            # Override gamepad - Fixed syntax
-            "Object.defineProperty(navigator, 'gamepad', {get: function() { return {getGamepads: function() { return []; } }; }});",
+            // Override serial
+            Object.defineProperty(navigator, 'serial', {get: function() { return {requestPort: function() { return Promise.resolve(); } }; }});
             
-            # Override taintEnabled (legacy) - Fixed syntax
-            "Object.defineProperty(navigator, 'taintEnabled', {get: function() { return false; }});",
+            // Override hid
+            Object.defineProperty(navigator, 'hid', {get: function() { return {requestDevice: function() { return Promise.resolve(); } }; }});
             
-            # Remove automation detection
-            "if (window.navigator && window.navigator.__proto__) { delete window.navigator.__proto__.webdriver; }",
-            "delete window.navigator.webdriver;",
+            // Override gamepad
+            Object.defineProperty(navigator, 'gamepad', {get: function() { return {getGamepads: function() { return []; } }; }});
+            """,
             
-            # Override toString behavior
-            "var originalFunction = Function.prototype.toString;",
-            "Function.prototype.toString = function() {",
-            "  if (this === Function.prototype.toString) return originalFunction.call(this);",
-            "  if (this === window.navigator.toString) return '[object Navigator]';",
-            "  if (window.navigator.webdriver && this === window.navigator.webdriver.toString) return '[object Navigator]';",
-            "  return originalFunction.call(this);",
-            "};",
+            # Function overrides and toString behavior
+            """
+            // Override toString behavior and hasOwnProperty
+            var originalFunction = Function.prototype.toString;
+            var originalHasOwnProperty = Object.prototype.hasOwnProperty;
             
-            # Override hasOwnProperty
-            "var originalHasOwnProperty = Object.prototype.hasOwnProperty;",
-            "Object.prototype.hasOwnProperty = function(prop) {",
-            "  if (prop === 'webdriver') return false;",
-            "  return originalHasOwnProperty.call(this, prop);",
-            "};",
+            Function.prototype.toString = function() {
+                if (this === Function.prototype.toString) return originalFunction.call(this);
+                if (this === window.navigator.toString) return '[object Navigator]';
+                if (window.navigator.webdriver && this === window.navigator.webdriver.toString) return '[object Navigator]';
+                return originalFunction.call(this);
+            };
             
-            # Override property descriptors (complete version)
-            "Object.defineProperty(navigator, 'webdriver', {",
-            "  get: function() { return undefined; },",
-            "  set: function() {},",
-            "  configurable: true",
-            "});",
+            Object.prototype.hasOwnProperty = function(prop) {
+                if (prop === 'webdriver') return false;
+                return originalHasOwnProperty.call(this, prop);
+            };
             
-            # Override toString for navigator
-            "navigator.toString = function() { return '[object Navigator]'; };",
+            // Override property descriptors (complete version)
+            Object.defineProperty(navigator, 'webdriver', {
+                get: function() { return undefined; },
+                set: function() {},
+                configurable: true
+            });
             
-            # Override constructor (simplified)
-            "navigator.constructor = function Navigator() {};",
+            // Override toString for navigator
+            navigator.toString = function() { return '[object Navigator]'; };
             
-            # Override propertyIsEnumerable
-            "navigator.propertyIsEnumerable = function(prop) {",
-            "  if (prop === 'webdriver') return false;",
-            "  return Object.prototype.propertyIsEnumerable.call(this, prop);",
-            "};"
+            // Override constructor (simplified)
+            navigator.constructor = function Navigator() {};
+            
+            // Override propertyIsEnumerable
+            navigator.propertyIsEnumerable = function(prop) {
+                if (prop === 'webdriver') return false;
+                return Object.prototype.propertyIsEnumerable.call(this, prop);
+            };
+            """
         ]
         
         # Add OS-specific overrides for APTA

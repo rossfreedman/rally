@@ -161,11 +161,14 @@ def validate_match_response(response: requests.Response) -> bool:
             logger.warning(f"❌ Response too short: {len(content)} chars")
             return False
         
-        # Must contain key Tenniscores elements
+        # Must contain key Tenniscores elements - be more flexible for player pages
         required_patterns = [
             "court",  # Court assignments
             "match",  # Match data
-            "series"  # Series information
+            "series",  # Series information
+            "player",  # Player information
+            "wins",    # Win/loss data
+            "losses"   # Win/loss data
         ]
         
         found_patterns = []
@@ -173,24 +176,34 @@ def validate_match_response(response: requests.Response) -> bool:
             if pattern in content:
                 found_patterns.append(pattern)
         
-        # Need at least 2 of 3 patterns for valid content
-        if len(found_patterns) >= 2:
+        # For player pages, we need at least 1 pattern (more flexible)
+        # For team pages, we need at least 2 patterns
+        min_patterns = 1 if "player.php" in response.url else 2
+        
+        if len(found_patterns) >= min_patterns:
             logger.debug(f"✅ Valid content detected: {found_patterns}")
             return True
         
-        # Additional validation for specific Tenniscores pages
+        # Additional validation for specific Tenniscores pages - be more flexible for player pages
         tenniscores_indicators = [
             "tenniscores",
             "match results",
             "league standings", 
             "playoff",
             "schedule",
-            "team roster"
+            "team roster",
+            "player",  # Player pages
+            "wins",    # Win/loss data
+            "losses"   # Win/loss data
         ]
         
         tenniscores_found = sum(1 for indicator in tenniscores_indicators if indicator in content)
         
-        if tenniscores_found >= 2:
+        # For player pages, we need at least 1 indicator (more flexible)
+        # For team pages, we need at least 2 indicators
+        min_indicators = 1 if "player.php" in response.url else 2
+        
+        if tenniscores_found >= min_indicators:
             logger.debug(f"✅ Tenniscores content validated: {tenniscores_found} indicators")
             return True
         
@@ -309,17 +322,21 @@ def is_blocked(response: requests.Response) -> bool:
         bool: True if response indicates blocking/detection
     """
     try:
-        # Check status codes
+        # Check status codes - 522 is Cloudflare timeout, not necessarily a block
         if response.status_code in [403, 429, 503]:
             logger.warning(f"🚫 Blocked status code: {response.status_code}")
             return True
+        elif response.status_code == 522:
+            logger.warning(f"⚠️ Cloudflare timeout (522) - may be temporary, not marking as blocked")
+            return False  # Don't mark 522 as blocked, it's often temporary
         
         # Check response body length (suspiciously short responses)
         content = response.text.lower() if response.text else ""
         if len(content) < 100:
-            # But allow short responses if they contain expected tennis content
+            # Allow short responses if they contain expected content
             tennis_indicators = ["tennis", "match", "player", "score", "league", "series", "club"]
-            if not any(indicator in content for indicator in tennis_indicators):
+            api_indicators = ["ip", "json", "api", "status", "ok", "success"]
+            if not any(indicator in content for indicator in tennis_indicators + api_indicators):
                 logger.warning(f"🚫 Suspiciously short response: {len(content)} chars")
                 return True
         
@@ -531,8 +548,8 @@ class EnhancedProxyRotator:
                 self.proxies[port].success_count = 1
         else:
             logger.info("🧪 Testing all proxies...")
-            # Only test first 10 proxies to avoid overwhelming the service
-            test_ports = list(self.ports)[:10]
+            # Only test first 5 proxies to avoid overwhelming the service
+            test_ports = list(self.ports)[:5]
             logger.info(f"🧪 Testing first {len(test_ports)} proxies (to avoid rate limiting)")
             self._test_proxy_subset(test_ports)
     
@@ -589,13 +606,9 @@ class EnhancedProxyRotator:
                 "https": proxy_url
             }
             
-            # Multiple test URLs to try if one fails
+            # Use a single, reliable test URL to avoid rate limiting
             test_urls = [
-                "http://httpbin.org/ip",  # Use HTTP instead of HTTPS for faster connection
-                "https://httpbin.org/ip",
-                "https://api.ipify.org?format=json",
-                "https://ipinfo.io/json",
-                "https://httpbin.org/user-agent"
+                "https://api.ipify.org?format=json"  # More reliable than httpbin.org
             ]
             
             headers = {
@@ -627,6 +640,12 @@ class EnhancedProxyRotator:
                         if response.status_code == 503:
                             logger.info(f"🔄 Proxy {proxy_info.port} got 503 from {test_url}, trying next URL...")
                             proxy_info.last_failure_type = '503'
+                            continue
+                        
+                        # If it's a 522 (Cloudflare timeout), try the next URL but don't mark as failed
+                        if response.status_code == 522:
+                            logger.info(f"🔄 Proxy {proxy_info.port} got 522 from {test_url} (Cloudflare timeout), trying next URL...")
+                            proxy_info.last_failure_type = '522'
                             continue
                         
                         # For other status codes, mark as failed

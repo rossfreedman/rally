@@ -21,6 +21,7 @@ import os
 import time
 import json
 import hashlib
+import re
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 from bs4 import BeautifulSoup
@@ -36,6 +37,7 @@ print(f"🔍 Debug: sys.path now contains: {sys.path[-3:]}")
 
 from stealth_browser import EnhancedStealthBrowser, StealthConfig
 from user_agent_manager import UserAgentManager
+from proxy_manager import fetch_with_retry
 
 class APTAChicagoRosterScraper:
     """Comprehensive APTA Chicago roster scraper that hits all series pages"""
@@ -787,7 +789,7 @@ class APTAChicagoRosterScraper:
                             else:
                                 pti_value = 'N/A'
                         
-                        # Extract wins from third cell - should be integer wins
+                        # Extract current season wins from third cell - should be integer wins
                         wins_cell = cells[2] if len(cells) > 2 else None
                         wins_raw = wins_cell.get_text(strip=True) if wins_cell else '0'
                         
@@ -799,11 +801,11 @@ class APTAChicagoRosterScraper:
                                 pti_value = wins_value  # Use this as PTI instead
                                 wins_value = '0'  # Reset wins to 0
                         
-                        # Extract losses from fourth cell
+                        # Extract current season losses from fourth cell
                         losses_cell = cells[3] if len(cells) > 3 else None
                         losses_value = losses_cell.get_text(strip=True) if losses_cell else '0'
                         
-                        # Calculate win percentage
+                        # Calculate current season win percentage
                         try:
                             wins_int = int(wins_value) if wins_value.isdigit() else 0
                             losses_int = int(losses_value) if losses_value.isdigit() else 0
@@ -814,6 +816,20 @@ class APTAChicagoRosterScraper:
                                 win_percentage = "0.0%"
                         except (ValueError, ZeroDivisionError):
                             win_percentage = "0.0%"
+                        
+                        # Get career wins and losses from individual player page
+                        career_stats = {"career_wins": "0", "career_losses": "0", "career_win_percentage": "0.0%"}
+                        
+                        if player_link and player_link.get('href'):
+                            href = player_link.get('href')
+                            # Get career stats from individual player page
+                            career_stats = self.get_career_stats_from_individual_page(href)
+                            # Rename keys to indicate career stats
+                            career_stats = {
+                                "career_wins": career_stats["wins"],
+                                "career_losses": career_stats["losses"], 
+                                "career_win_percentage": career_stats["win_percentage"]
+                            }
                         
                         # Check if player is captain (has checkmark or (C) in name or PTI)
                         is_captain = 'No'
@@ -842,7 +858,7 @@ class APTAChicagoRosterScraper:
                         # Mark this player as processed
                         processed_players.add(player_key)
                         
-                        # Create player record
+                        # Create player record with current season and career stats
                         player_data = {
                             'League': 'APTA_CHICAGO',
                             'Club': club_name,
@@ -852,9 +868,12 @@ class APTAChicagoRosterScraper:
                             'First Name': first_name,
                             'Last Name': last_name,
                             'PTI': pti_value,
-                            'Wins': wins_value,
-                            'Losses': losses_value,
-                            'Win %': win_percentage,
+                            'Wins': wins_value,  # Current season wins
+                            'Losses': losses_value,  # Current season losses
+                            'Win %': win_percentage,  # Current season win percentage
+                            'Career Wins': career_stats["career_wins"],  # Career wins from player page
+                            'Career Losses': career_stats["career_losses"],  # Career losses from player page
+                            'Career Win %': career_stats["career_win_percentage"],  # Career win percentage
                             'Captain': is_captain,
                             'Source URL': f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3lMYng%3D",  # Full team roster URL
                             'source_league': 'APTA_CHICAGO',
@@ -862,11 +881,159 @@ class APTAChicagoRosterScraper:
                             'team_context': clean_team_name.replace(' - ', ' ')  # Remove dash from team context
                         }
                         players.append(player_data)
-                        print(f"      ✅ Extracted player: {first_name} {last_name} (PTI: {pti_value}, W: {wins_value}, L: {losses_value})")
+                        print(f"      ✅ Extracted player: {first_name} {last_name} (PTI: {pti_value}, Season W: {wins_value}, Season L: {losses_value}, Career W: {career_stats['career_wins']}, Career L: {career_stats['career_losses']})")
         
         print(f"      📊 Extracted {len(players)} players from {team_name}")
         return players
     
+    def get_career_stats_from_individual_page(self, player_url: str, max_retries: int = 2) -> Dict[str, any]:
+        """
+        Get career wins and losses from individual player page using browser automation for JavaScript rendering
+        
+        Args:
+            player_url: URL to the individual player page
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            Dictionary with career wins, losses, and win_percentage
+        """
+        for attempt in range(max_retries):
+            try:
+                print(f"   📊 Getting career stats from individual player page (attempt {attempt + 1})...")
+                
+                # Construct full URL if needed
+                if not player_url.startswith("http"):
+                    full_url = f"{self.base_url}{player_url}"
+                else:
+                    full_url = player_url
+                
+                # Use stealth browser to execute JavaScript and get rendered content
+                try:
+                    print(f"   🌐 Using stealth browser to render JavaScript...")
+                    
+                    # Create a new stealth browser instance with force_browser=True for JavaScript execution
+                    from stealth_browser import create_stealth_browser
+                    browser = create_stealth_browser(force_browser=True, verbose=True)
+                    
+                    # Ensure driver is created by making a request first
+                    print(f"   🌐 Making initial request to initialize driver...")
+                    html_content = browser.get_html(full_url)
+                    print(f"   ✅ Initial request successful - got {len(html_content)} characters")
+                    
+                    # Get the browser driver to interact with elements
+                    driver = browser.current_driver
+                    if not driver:
+                        raise Exception("Failed to get browser driver after initialization")
+                    
+                    # Click the "Chronological" checkbox to load match history data
+                    try:
+                        chron_checkbox = driver.find_element("id", "chron")
+                        if chron_checkbox and not chron_checkbox.is_selected():
+                            print(f"   📅 Clicking chronological checkbox to load match history...")
+                            chron_checkbox.click()
+                            # Wait for data to load after clicking
+                            time.sleep(3)
+                            print(f"   ✅ Chronological view enabled")
+                        else:
+                            print(f"   ℹ️ Chronological checkbox already selected or not found")
+                    except Exception as e:
+                        print(f"   ⚠️ Could not click chronological checkbox: {e}")
+                    
+                    # Get the rendered HTML content after enabling chronological view
+                    html_content = driver.page_source
+                    print(f"   ✅ Browser rendered content after chronological click - got {len(html_content)} characters")
+                    
+                    # Save rendered content for debugging
+                    with open('/tmp/apta_rendered_debug.html', 'w') as f:
+                        f.write(html_content)
+                    print(f"   💾 Saved rendered content to /tmp/apta_rendered_debug.html")
+                    
+                    # Try to extract wins and losses from the rendered content
+                    wins = 0
+                    losses = 0
+                    
+                    # Look for the specific elements that JavaScript populates
+                    soup = BeautifulSoup(html_content, 'html.parser')
+                    
+                    # Look for elements with IDs that contain wins/losses
+                    wins_element = soup.find(id='playercard_value_wins')
+                    losses_element = soup.find(id='playercard_value_losses')
+                    
+                    if wins_element:
+                        wins_text = wins_element.get_text().strip()
+                        try:
+                            wins = int(wins_text) if wins_text.isdigit() else 0
+                        except ValueError:
+                            wins = 0
+                    
+                    if losses_element:
+                        losses_text = losses_element.get_text().strip()
+                        try:
+                            losses = int(losses_text) if losses_text.isdigit() else 0
+                        except ValueError:
+                            losses = 0
+                    
+                    # If we didn't find the specific elements, fall back to W/L pattern matching
+                    if wins == 0 and losses == 0:
+                        print(f"   🔍 Fallback: Looking for W/L patterns in rendered content...")
+                        if "W" in html_content or "L" in html_content:
+                            w_matches = re.findall(r'\bW\b', html_content)
+                            l_matches = re.findall(r'\bL\b', html_content)
+                            wins = len(w_matches)
+                            losses = len(l_matches)
+                            print(f"   🎯 Found {wins} career wins and {losses} career losses via pattern matching")
+                        else:
+                            print(f"   ⚠️ No W/L content found in rendered player page")
+                    else:
+                        print(f"   🎯 Found {wins} career wins and {losses} career losses from JavaScript elements")
+                    
+                except Exception as e:
+                    print(f"   ⚠️ Browser automation failed: {e}")
+                    print(f"   🔄 Trying fallback HTTP method...")
+                    
+                    # Fallback to HTTP request (though this won't get JavaScript-rendered content)
+                    response = fetch_with_retry(full_url, timeout=15)
+                    if response and response.status_code == 200:
+                        html_content = response.text
+                        print(f"   ✅ Fallback HTTP request successful - got {len(html_content)} characters")
+                        
+                        # This won't work for APTA due to JavaScript, but we'll try anyway
+                        wins = 0
+                        losses = 0
+                        if "W" in html_content or "L" in html_content:
+                            w_matches = re.findall(r'\bW\b', html_content)
+                            l_matches = re.findall(r'\bL\b', html_content)
+                            wins = len(w_matches)
+                            losses = len(l_matches)
+                    else:
+                        print(f"   ❌ Fallback HTTP request also failed")
+                        return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+                
+                # Calculate win percentage
+                try:
+                    wins_int = int(wins)
+                    losses_int = int(losses)
+                    total_matches = wins_int + losses_int
+                    if total_matches > 0:
+                        win_percentage = f"{(wins_int / total_matches * 100):.1f}%"
+                    else:
+                        win_percentage = "0.0%"
+                except (ValueError, ZeroDivisionError):
+                    win_percentage = "0.0%"
+                
+                return {
+                    "wins": str(wins),
+                    "losses": str(losses), 
+                    "win_percentage": win_percentage
+                }
+                
+            except Exception as e:
+                print(f"   ❌ Error getting player stats (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(0.5)
+                    continue
+                else:
+                    return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
 
     
     def _consolidate_all_temp_files(self) -> List[Dict]:
@@ -907,19 +1074,19 @@ class APTAChicagoRosterScraper:
         return all_players
     
     def _merge_player_data(self, existing_players: List[Dict], new_players: List[Dict]) -> List[Dict]:
-        """Merge existing and new player data, avoiding duplicates"""
+        """Merge existing and new player data, updating existing players with career stats"""
         print("🔄 Merging existing and new player data...")
         
-        # Create a lookup set for existing players to avoid duplicates
+        # Create a lookup dictionary for existing players to enable updates
         # Use combination of name + team + series as unique identifier
-        existing_lookup = set()
-        for player in existing_players:
+        existing_lookup = {}
+        for i, player in enumerate(existing_players):
             if isinstance(player, dict):
                 name = player.get('First Name', '') + ' ' + player.get('Last Name', '')
                 team = player.get('Team', '')
                 series = player.get('Series', '')
                 key = f"{name}|{team}|{series}"
-                existing_lookup.add(key)
+                existing_lookup[key] = i  # Store index for updates
         
         print(f"   📊 Existing players: {len(existing_players):,}")
         print(f"   📊 New players: {len(new_players):,}")
@@ -927,8 +1094,9 @@ class APTAChicagoRosterScraper:
         # Start with existing players
         merged_players = existing_players.copy()
         added_count = 0
+        updated_count = 0
         
-        # Add new players that don't already exist
+        # Process new players - either add new ones or update existing ones with career stats
         for player in new_players:
             if isinstance(player, dict):
                 name = player.get('First Name', '') + ' ' + player.get('Last Name', '')
@@ -936,12 +1104,36 @@ class APTAChicagoRosterScraper:
                 series = player.get('Series', '')
                 key = f"{name}|{team}|{series}"
                 
-                if key not in existing_lookup:
+                if key in existing_lookup:
+                    # Update existing player with career stats
+                    existing_index = existing_lookup[key]
+                    existing_player = merged_players[existing_index]
+                    
+                    # Update career statistics if they exist in new data
+                    if 'Career Wins' in player:
+                        existing_player['Career Wins'] = player['Career Wins']
+                    if 'Career Losses' in player:
+                        existing_player['Career Losses'] = player['Career Losses']
+                    if 'Career Win %' in player:
+                        existing_player['Career Win %'] = player['Career Win %']
+                    
+                    # Also update current season stats if they're different
+                    if 'Wins' in player:
+                        existing_player['Wins'] = player['Wins']
+                    if 'Losses' in player:
+                        existing_player['Losses'] = player['Losses']
+                    if 'Win %' in player:
+                        existing_player['Win %'] = player['Win %']
+                    
+                    updated_count += 1
+                else:
+                    # Add new player
                     merged_players.append(player)
                     added_count += 1
-                    existing_lookup.add(key)  # Add to lookup to avoid duplicates within new data
+                    existing_lookup[key] = len(merged_players) - 1  # Add to lookup for future updates
         
         print(f"   ✅ Added {added_count} new unique players")
+        print(f"   🔄 Updated {updated_count} existing players with career stats")
         print(f"   📊 Final merged total: {len(merged_players):,} players")
         
         return merged_players
