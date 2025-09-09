@@ -217,6 +217,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let availableTeams = [];
     let currentTeamId = null;
     
+    // Cache for team data to avoid repeated API calls
+    let teamDataCache = new Map();
+    
     // UI Elements
     const loadingScreen = document.getElementById('loadingScreen');
     const mainContent = document.getElementById('mainContent');
@@ -348,39 +351,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
-    // Load data via AJAX
+    // Load data via AJAX - optimized for lazy loading
     async function loadProDashboardData() {
         try {
-            updateProgress(1, 10, 'Loading available teams...');
+            updateProgress(1, 20, 'Loading available teams...');
             
-            // First load available teams
+            // Only load teams and lesson requests on initial load
             await loadAvailableTeams();
             
-            updateProgress(2, 30, 'Loading team practice data...');
-            
-            // Load schedule data for the first team (or default team)
-            await loadTeamScheduleData();
-            
-            updateProgress(3, 60, 'Loading lesson requests...');
-            
-            // Load lesson requests
+            updateProgress(2, 40, 'Loading lesson requests...');
             await loadLessonRequests();
             
-            updateProgress(4, 80, 'Building interface...');
+            updateProgress(3, 60, 'Building interface...');
             
-            // Populate the UI
+            // Populate the UI (without team data yet)
             populateFilters();
-            populatePlayerCards();
             populateLessonRequests();
             
-            updateProgress(4, 100, 'Complete!');
+            updateProgress(4, 100, 'Ready! Select a team to view practices.');
             
-            // Show main content after a brief delay
+            // Show main content immediately - no team data loaded yet
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
                 mainContent.style.display = 'block';
                 updateVisibility();
-            }, 500);
+            }, 300);
             
         } catch (error) {
             console.error('Error loading pro dashboard data:', error);
@@ -438,6 +433,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Populate team filter
                 teamFilter.innerHTML = '';
                 if (availableTeams.length > 0) {
+                    // Add placeholder option
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = 'Select a team to view practices...';
+                    placeholderOption.disabled = true;
+                    placeholderOption.selected = true;
+                    teamFilter.appendChild(placeholderOption);
+                    
+                    // Add team options
                     availableTeams.forEach(team => {
                         const option = document.createElement('option');
                         option.value = team.id;
@@ -445,9 +449,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         teamFilter.appendChild(option);
                     });
                     
-                    // Select the first team (which is now prioritized by user association)
-                    currentTeamId = availableTeams[0].id;
-                    teamFilter.value = currentTeamId;
+                    // Don't select any team initially - let user choose
+                    currentTeamId = null;
+                    teamFilter.value = '';
                 } else {
                     const option = document.createElement('option');
                     option.value = '';
@@ -502,14 +506,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Load schedule data for the selected team
+    // Load schedule data for the selected team with caching
     async function loadTeamScheduleData() {
         if (!currentTeamId) {
             console.warn('No team selected');
             return;
         }
         
+        // Check cache first
+        if (teamDataCache.has(currentTeamId)) {
+            console.log(`Using cached data for team ${currentTeamId}`);
+            const cachedData = teamDataCache.get(currentTeamId);
+            playersData = cachedData.playersData;
+            matchDates = cachedData.matchDates;
+            eventDetails = cachedData.eventDetails;
+            return;
+        }
+        
         try {
+            console.log(`Loading fresh data for team ${currentTeamId}`);
             const response = await fetch(`/api/pros-team-schedule?team_id=${currentTeamId}`, {
                 method: 'GET',
                 headers: {
@@ -548,6 +563,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update the data to only include practices
                 matchDates = practiceDates;
                 eventDetails = practiceEventDetails;
+                
+                // Cache the processed data
+                teamDataCache.set(currentTeamId, {
+                    playersData: playersData,
+                    matchDates: matchDates,
+                    eventDetails: eventDetails
+                });
                 
                 // If no practices found for this team, try to find a team with practices
                 // Only do this on initial load, not when user manually changes teams
