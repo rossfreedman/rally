@@ -151,8 +151,8 @@
             <!-- Dashboard Table Grid System -->
             <div id="main-grid" class="grid gap-6" style="height: calc(100vh - 140px); display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr 1fr; max-height: calc(100vh - 140px);">
                 
-                <!-- Column 1, Row 1-2: Combined Today's Activities & Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1 / 3; grid-column: 1; max-height: calc((100vh - 140px) * 2 / 3);">
+                <!-- Column 1, Row 1: Key Metrics (reduced height) -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 1; grid-column: 1; max-height: calc((100vh - 140px) / 3);">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                         <i class="fas fa-chart-line text-blue-600 mr-2"></i>
                         Key Metrics
@@ -233,8 +233,8 @@
                     </div>
                 </div>
 
-                <!-- Column 1, Row 3: Most Active Users -->
-                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 3; grid-column: 1; max-height: calc((100vh - 140px) * 2 / 3);">
+                <!-- Column 1, Row 2-3: Most Active Users (expanded to fill remaining space) -->
+                <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col h-full" style="grid-row: 2 / 4; grid-column: 1; max-height: calc((100vh - 140px) * 2 / 3);">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center flex-shrink-0">
                         <i class="fas fa-star text-yellow-500 mr-2"></i>
                         Most Active Users
@@ -244,15 +244,12 @@
                     </div>
                 </div>
 
-                <!-- Column 3, Row 1: Recent Activity (moved to top right) -->
-                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 1; grid-column: 3; max-height: calc((100vh - 140px) / 3);">
+                <!-- Column 3, Row 1-3: Recent Activity (full height) -->
+                <div class="bg-white rounded-xl shadow-lg flex flex-col h-full" style="grid-row: 1 / 4; grid-column: 3; max-height: calc(100vh - 140px);">
                     <!-- Activity Timeline Header -->
                     <div class="p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center space-x-3">
-                                <div class="w-10 h-10 rally-bg-primary rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-clock text-white text-lg"></i>
-                                </div>
                                 <div>
                                     <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
                                     <p class="text-sm text-gray-600">Real-time activity feed</p>
@@ -282,7 +279,7 @@
                     </div>
 
                     <!-- Activity Timeline Content -->
-                    <div class="flex-1 overflow-y-auto p-6 min-h-0" style="max-height: calc((100vh - 140px) / 3 - 120px);">
+                    <div class="flex-1 overflow-y-auto p-6 min-h-0" style="max-height: calc(100vh - 140px - 120px);">
                         <div id="activity-timeline" class="space-y-4">
                             <!-- Loading skeleton -->
                             <div class="loading-skeleton h-16 rounded-lg mb-4"></div>

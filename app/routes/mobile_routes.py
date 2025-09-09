@@ -2837,7 +2837,7 @@ def schedule_lesson_api():
             "lesson_time": data["lesson_time"],
             "focus_areas": data["focus_areas"],
             "notes": data.get("notes", ""),
-            "status": "requested"
+            "status": "pending"
         }
         
         print(f"[LESSON REQUEST] {lesson_data}")
@@ -2850,7 +2850,7 @@ def schedule_lesson_api():
             """
             execute_update(insert_query, [
                 user_email, data["pro_id"], data["lesson_date"], data["lesson_time"], 
-                data["focus_areas"], data.get("notes", ""), "requested"
+                data["focus_areas"], data.get("notes", ""), "pending"
             ])
             print("✅ Lesson request saved to database")
         except Exception as db_error:
@@ -2874,6 +2874,410 @@ def schedule_lesson_api():
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to submit lesson request"}), 500
+
+
+@mobile_bp.route("/api/lesson-requests", methods=["GET"])
+@login_required
+def get_lesson_requests():
+    """API endpoint to get all lesson requests for pros to manage"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Get all lesson requests from the database
+        query = """
+            SELECT 
+                pl.id,
+                pl.user_email,
+                pl.lesson_date,
+                pl.lesson_time,
+                pl.focus_areas,
+                pl.notes,
+                pl.status,
+                pl.created_at,
+                CONCAT(u.first_name, ' ', u.last_name) as player_name,
+                p.name as pro_name
+            FROM pro_lessons pl
+            LEFT JOIN users u ON pl.user_email = u.email
+            LEFT JOIN pros p ON pl.pro_id = p.id
+            ORDER BY pl.created_at DESC
+        """
+        
+        try:
+            lesson_requests = execute_query(query)
+            
+            # Format the response
+            formatted_requests = []
+            for request in lesson_requests:
+                formatted_requests.append({
+                    "id": request["id"],
+                    "player_name": request["player_name"] or "Unknown Player",
+                    "user_email": request["user_email"],
+                    "lesson_date": request["lesson_date"],
+                    "lesson_time": request["lesson_time"],
+                    "focus_areas": request["focus_areas"],
+                    "notes": request["notes"],
+                    "status": request["status"],
+                    "created_at": request["created_at"],
+                    "pro_name": request["pro_name"]
+                })
+            
+            return jsonify({
+                "success": True,
+                "lesson_requests": formatted_requests
+            })
+            
+        except Exception as db_error:
+            print(f"Database error getting lesson requests: {db_error}")
+            # Return empty list if database error
+            return jsonify({
+                "success": True,
+                "lesson_requests": []
+            })
+
+    except Exception as e:
+        print(f"Error getting lesson requests: {str(e)}")
+        return jsonify({"error": "Failed to get lesson requests"}), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/confirm", methods=["POST"])
+@login_required
+def confirm_lesson_request(request_id):
+    """API endpoint to confirm a lesson request"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Update the lesson request status to confirmed
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'confirmed', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the lesson request details for logging
+            get_request_query = """
+                SELECT user_email, lesson_date, lesson_time, focus_areas
+                FROM pro_lessons 
+                WHERE id = %s
+            """
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    session["user"]["email"], 
+                    "lesson_confirmed", 
+                    page="mobile_pros",
+                    details=f"Confirmed lesson request for {request_details['user_email']} on {request_details['lesson_date']} at {request_details['lesson_time']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request confirmed successfully!"
+            })
+            
+        except Exception as db_error:
+            print(f"Database error confirming lesson request: {db_error}")
+            return jsonify({"error": "Failed to confirm lesson request"}), 500
+
+    except Exception as e:
+        print(f"Error confirming lesson request: {str(e)}")
+        return jsonify({"error": "Failed to confirm lesson request"}), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/decline", methods=["POST"])
+@login_required
+def decline_lesson_request(request_id):
+    """API endpoint to decline a lesson request"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Update the lesson request status to declined
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'declined', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the lesson request details for logging
+            get_request_query = """
+                SELECT user_email, lesson_date, lesson_time, focus_areas
+                FROM pro_lessons 
+                WHERE id = %s
+            """
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    session["user"]["email"], 
+                    "lesson_declined", 
+                    page="mobile_pros",
+                    details=f"Declined lesson request for {request_details['user_email']} on {request_details['lesson_date']} at {request_details['lesson_time']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request declined successfully!"
+            })
+            
+        except Exception as db_error:
+            print(f"Database error declining lesson request: {db_error}")
+            return jsonify({"error": "Failed to decline lesson request"}), 500
+
+    except Exception as e:
+        print(f"Error declining lesson request: {str(e)}")
+        return jsonify({"error": "Failed to decline lesson request"}), 500
+
+
+@mobile_bp.route("/api/pros-teams", methods=["GET"])
+@login_required
+def get_pros_teams():
+    """API endpoint to get all teams in the current league for the pros page team picklist"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        user = session["user"]
+        club_name = user.get("club")
+        league_id = user.get("league_id")
+        
+        if not club_name or not league_id:
+            return jsonify({"error": "Club or league information not available"}), 400
+
+        # Get all teams in the current league for the user's club
+        teams_query = """
+            SELECT DISTINCT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, s.display_name as series_display_name, c.name as club_name
+            FROM teams t
+            LEFT JOIN series s ON t.series_id = s.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            WHERE t.league_id = %s AND c.name = %s
+            ORDER BY t.display_name
+        """
+        
+        teams = execute_query(teams_query, [league_id, club_name])
+        
+        # Format the teams for the frontend
+        formatted_teams = []
+        for team in teams:
+            # Use series display_name if available, otherwise fall back to series name
+            series_display = team["series_display_name"] or team["series_name"]
+            formatted_teams.append({
+                "id": team["id"],
+                "name": team["team_name"],
+                "series_name": series_display,
+                "display_name": team["display_name"] or f"{team['club_name']} - {series_display}" if series_display else team["team_name"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "teams": formatted_teams
+        })
+        
+    except Exception as e:
+        print(f"Error getting pros teams: {str(e)}")
+        return jsonify({"error": "Failed to get teams"}), 500
+
+
+@mobile_bp.route("/api/pros-team-schedule", methods=["GET"])
+@login_required
+def get_pros_team_schedule():
+    """API endpoint to get schedule data for a specific team (for pros page)"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        team_id = request.args.get('team_id')
+        if not team_id:
+            return jsonify({"error": "Team ID is required"}), 400
+
+        # Get team information
+        team_query = """
+            SELECT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, s.display_name as series_display_name, l.league_id, c.name as club_name
+            FROM teams t
+            LEFT JOIN series s ON t.series_id = s.id
+            LEFT JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            WHERE t.id = %s
+        """
+        
+        team_info = execute_query_one(team_query, [team_id])
+        if not team_info:
+            return jsonify({"error": "Team not found"}), 404
+
+        # Create a mock user object for the team
+        series_display = team_info["series_display_name"] or team_info["series_name"]
+        mock_user = {
+            "club": team_info["club_name"],
+            "series": series_display,
+            "team_id": team_info["id"],
+            "league_id": team_info["league_id"]
+        }
+
+        # Use the existing get_matches_for_user_club function but with the selected team
+        from routes.act.schedule import get_matches_for_user_club
+        matches = get_matches_for_user_club(mock_user)
+        
+        # Process the matches data (similar to team-schedule-data endpoint)
+        match_dates = []
+        event_details = {}
+        players_schedule = {}
+        
+        print(f"Processing {len(matches)} matches for team {team_id}")
+        
+        for match in matches:
+            # The get_matches_for_user_club function returns data with 'date' and 'time' fields
+            # not 'match_date' and 'match_time'
+            date_str = match.get("date", "")
+            if not date_str:
+                print(f"Warning: date not found in match: {match}")
+                continue
+                
+            if date_str not in match_dates:
+                match_dates.append(date_str)
+            
+            event_details[date_str] = {
+                "type": match.get("type", "unknown"),
+                "home_team": match.get("home_team", ""),
+                "away_team": match.get("away_team", ""),
+                "location": match.get("location", ""),
+                "club_address": match.get("club_address", ""),
+                "match_time": match.get("time", "")
+            }
+        
+        # Get player availability data for this team
+        # First get players with their user_id for stable availability lookup
+        players_query = """
+            SELECT DISTINCT 
+                CONCAT(p.first_name, ' ', p.last_name) as name, 
+                p.tenniscores_player_id,
+                upa.user_id
+            FROM players p
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE p.team_id = %s
+            ORDER BY CONCAT(p.first_name, ' ', p.last_name)
+        """
+        
+        players = execute_query(players_query, [team_id])
+        
+        for player in players:
+            player_name = player["name"]
+            players_schedule[player_name] = []
+            
+            # Get availability for each match date
+            for date_str in match_dates:
+                # Convert date from MM/DD/YYYY format to YYYY-MM-DD format for database query
+                try:
+                    date_obj = datetime.strptime(date_str, "%m/%d/%Y")
+                    db_date_str = date_obj.strftime("%Y-%m-%d")
+                except ValueError:
+                    print(f"Warning: Could not parse date {date_str}")
+                    db_date_str = date_str
+                
+                # Use user_id for stable availability lookup (primary method)
+                availability = None
+                if player["user_id"]:
+                    availability_query = """
+                        SELECT pa.availability_status, pa.notes
+                        FROM player_availability pa
+                        WHERE pa.user_id = %s AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+                    """
+                    availability = execute_query_one(availability_query, [player["user_id"], db_date_str])
+                
+                # Fallback to player_id if user_id lookup failed
+                if not availability and player["tenniscores_player_id"]:
+                    # Get the internal player_id from tenniscores_player_id
+                    player_id_query = """
+                        SELECT id FROM players WHERE tenniscores_player_id = %s AND team_id = %s
+                    """
+                    player_record = execute_query_one(player_id_query, [player["tenniscores_player_id"], team_id])
+                    if player_record:
+                        availability_query = """
+                            SELECT pa.availability_status, pa.notes
+                            FROM player_availability pa
+                            WHERE pa.player_id = %s AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+                        """
+                        availability = execute_query_one(availability_query, [player_record["id"], db_date_str])
+                
+                if availability:
+                    players_schedule[player_name].append({
+                        "date": date_str,
+                        "availability_status": availability["availability_status"],
+                        "notes": availability["notes"]
+                    })
+                else:
+                    players_schedule[player_name].append({
+                        "date": date_str,
+                        "availability_status": 0,
+                        "notes": ""
+                    })
+        
+        return jsonify({
+            "success": True,
+            "team_info": {
+                "id": team_info["id"],
+                "name": team_info["team_name"],
+                "club": team_info["club_name"],
+                "series_name": series_display,
+                "display_name": team_info["display_name"] or f"{team_info['club_name']} - {series_display}"
+            },
+            "match_dates": match_dates,
+            "event_details": event_details,
+            "players_schedule": players_schedule
+        })
+        
+    except Exception as e:
+        print(f"Error getting pros team schedule: {str(e)}")
+        return jsonify({"error": "Failed to get team schedule"}), 500
+
+
+@mobile_bp.route("/api/debug-pros-data")
+@login_required
+def debug_pros_data():
+    """Debug endpoint to see what data is being loaded for pros page"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Get the team schedule data
+        from app.services.api_service import get_team_schedule_data_data
+        response = get_team_schedule_data_data()
+        
+        # Parse the response to get the actual data
+        if hasattr(response, 'get_json'):
+            data = response.get_json()
+        else:
+            data = response[0].get_json() if isinstance(response, tuple) else response
+        
+        # Add debug information
+        debug_info = {
+            "user_session": {
+                "email": user.get("email"),
+                "club": user.get("club"),
+                "series": user.get("series"),
+                "team_id": user.get("team_id"),
+                "league_id": user.get("league_id")
+            },
+            "api_response": data,
+            "practice_dates_count": len([d for d in (data.get("match_dates", []) or []) if data.get("event_details", {}).get(d, {}).get("type") == "Practice"]),
+            "total_dates_count": len(data.get("match_dates", []) or []),
+            "event_details": data.get("event_details", {})
+        }
+        
+        return jsonify(debug_info)
+
+    except Exception as e:
+        print(f"Error in debug endpoint: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": f"Debug failed: {str(e)}"}), 500
 
 
 @mobile_bp.route("/mobile/email-team")
@@ -3097,6 +3501,51 @@ def serve_mobile_team_schedule():
             "mobile/team_schedule.html",
             session_data=session_data,
             error="An error occurred while loading the team schedule",
+        )
+
+
+@mobile_bp.route("/mobile/pros")
+@login_required
+def serve_mobile_pros():
+    """Serve the pros page for viewing team practices and managing lesson requests"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        club_name = user.get("club")
+        series = user.get("series")
+
+        if not club_name or not series:
+            return render_template(
+                "mobile/pros.html",
+                session_data={"user": user},
+                error="Please set your club and series in your profile settings",
+            )
+
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_pros"
+        )
+
+        return render_template(
+            "mobile/pros.html", team=team_name, session_data={"user": user}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_pros: {str(e)}")
+        import traceback
+
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/pros.html",
+            session_data=session_data,
+            error="An error occurred while loading the pros page",
         )
 
 

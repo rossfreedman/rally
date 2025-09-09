@@ -1,0 +1,1212 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Pros - {{ team }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Loading Screen (shown initially) -->
+        <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
+        <div class="text-center mb-8">
+            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4" style="background-color: #10645c !important;">
+                <i class="fas fa-user-tie text-white text-lg"></i>
+            </div>
+            <div class="text-xl font-bold text-gray-900 mb-2">Loading Pro Dashboard</div>
+            <div class="text-sm text-gray-500">{{ team }}</div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="w-80 max-w-full mb-6">
+            <div class="bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="bg-emerald-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <div id="progressText" class="text-sm text-gray-600 mt-2 text-center">Initializing...</div>
+        </div>
+        
+        <!-- Loading Steps -->
+        <div class="space-y-2 text-sm text-gray-600">
+            <div id="step1" class="flex items-center">
+                <i id="step1-icon" class="fas fa-circle-notch fa-spin text-emerald-500 mr-2"></i>
+                <span>Loading team practices...</span>
+            </div>
+            <div id="step2" class="flex items-center opacity-50">
+                <i id="step2-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Loading lesson requests...</span>
+            </div>
+            <div id="step3" class="flex items-center opacity-50">
+                <i id="step3-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Processing data...</span>
+            </div>
+            <div id="step4" class="flex items-center opacity-50">
+                <i id="step4-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                <span>Building interface...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden initially) -->
+    <div id="mainContent" style="display: none;">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                    <i class="fas fa-user-tie text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">Pro Dashboard</h1>
+                    <p class="text-sm text-gray-500">{{ current_team_info.display_name if current_team_info else 'Team Practices and Lesson Requests' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white border-b border-gray-200">
+            <div class="flex">
+                <button id="teamPracticesTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50">
+                    <i class="fas fa-calendar-alt mr-2"></i>
+                    Team Practices
+                </button>
+                <button id="lessonRequestsTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    <i class="fas fa-chalkboard-teacher mr-2"></i>
+                    Lesson Requests
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+
+            <!-- Team Practices Section -->
+            <div id="teamPracticesContent" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-calendar-alt text-emerald-500 mr-2"></i>
+                        Team Practices
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Filter Section -->
+                    <div class="mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <!-- Team Filter -->
+                            <div>
+                                <label for="teamFilter" class="block text-sm font-medium text-gray-700 mb-2">Select Team</label>
+                                <select id="teamFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <option value="">Loading teams...</option>
+                                </select>
+                            </div>
+                            <!-- Date Filter -->
+                            <div>
+                                <label for="dateFilter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Date</label>
+                                <select id="dateFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <option value="all">All Dates</option>
+                                </select>
+                            </div>
+                            <!-- Player Filter -->
+                            <div>
+                                <label for="playerFilter" class="block text-sm font-medium text-gray-700 mb-2">Filter by Player</label>
+                                <select id="playerFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                                    <option value="all">All Players</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Reset Button -->
+                        <div class="flex justify-end pt-4">
+                            <button id="resetFilters" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium flex items-center">
+                                <i class="fas fa-undo-alt mr-2"></i>
+                                Reset Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selected Date Display (center-justified, only shown when a date is selected) -->
+                    <div id="selectedDateDisplay" class="text-lg font-semibold mb-4 text-center text-gray-900"></div>
+
+                    <!-- Single Table View: Only show when a specific date is selected -->
+                    <div id="singleTableView" style="display:none;">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-50">
+                                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-calendar-check text-emerald-500 mr-2"></i>
+                                    Player Availability
+                                </h2>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full table-auto">
+                                        <thead>
+                                            <tr class="bg-gray-50">
+                                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Player</th>
+                                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Availability</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="singleTableBody">
+                                            {# Rows will be dynamically inserted by JS #}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Per-Player Card View: Show for 'All Dates' -->
+                    <div id="perPlayerView" class="space-y-6">
+                        <!-- Player cards will be dynamically inserted here -->
+                    </div>
+
+                    <!-- Error Message -->
+                    <div id="errorMessage" class="bg-yellow-50 border border-yellow-100 rounded-xl p-4" style="display: none;">
+                        <div class="flex items-center mb-3">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                            <p class="text-yellow-700 font-medium">No practice data found for this team.</p>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600">Please verify:</p>
+                            <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                                <li>Your club ({{ session_data.user.club if session_data.user.club else 'Not set' }}) is correct</li>
+                                <li>Your series (<span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span>) is correct</li>
+                            </ul>
+                            <p class="text-sm text-gray-600 mt-2">
+                                You can update these settings in your <a href="/mobile/settings" class="text-emerald-600 underline">profile settings</a>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lesson Requests Section -->
+            <div id="lessonRequestsContent" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="display: none;">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-chalkboard-teacher text-violet-500 mr-2"></i>
+                        Lesson Requests
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Lesson Requests List -->
+                    <div id="lessonRequestsList" class="space-y-4">
+                        <!-- Lesson request cards will be dynamically inserted here -->
+                    </div>
+
+                    <!-- No Lesson Requests Message -->
+                    <div id="noLessonRequests" class="text-center py-12" style="display: none;">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-chalkboard-teacher text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-600 mb-2">No lesson requests</h3>
+                        <p class="text-gray-500">Players can schedule lessons through the mobile app.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let playersData = [];
+    let matchDates = [];
+    let eventDetails = {};
+    let lessonRequests = [];
+    let availableTeams = [];
+    let currentTeamId = null;
+    
+    // UI Elements
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const teamFilter = document.getElementById('teamFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const playerFilter = document.getElementById('playerFilter');
+    const resetButton = document.getElementById('resetFilters');
+    const singleTableView = document.getElementById('singleTableView');
+    const perPlayerView = document.getElementById('perPlayerView');
+    const singleTableBody = document.getElementById('singleTableBody');
+    const errorMessage = document.getElementById('errorMessage');
+    const lessonRequestsList = document.getElementById('lessonRequestsList');
+    const noLessonRequests = document.getElementById('noLessonRequests');
+    
+    // Tab Elements
+    const teamPracticesTab = document.getElementById('teamPracticesTab');
+    const lessonRequestsTab = document.getElementById('lessonRequestsTab');
+    const teamPracticesContent = document.getElementById('teamPracticesContent');
+    const lessonRequestsContent = document.getElementById('lessonRequestsContent');
+
+    // Progress tracking
+    function updateProgress(step, percentage, text) {
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = text;
+        
+        // Update step icons
+        for (let i = 1; i <= 4; i++) {
+            const stepElement = document.getElementById(`step${i}`);
+            const stepIcon = document.getElementById(`step${i}-icon`);
+            
+            if (i < step) {
+                // Completed step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-check-circle text-emerald-500 mr-2';
+            } else if (i === step) {
+                // Current step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-circle-notch fa-spin text-emerald-500 mr-2';
+            } else {
+                // Future step
+                stepElement.classList.add('opacity-50');
+                stepIcon.className = 'fas fa-circle text-gray-400 mr-2';
+            }
+        }
+    }
+
+    // Tab switching functionality
+    function switchToTeamPractices() {
+        // Update tab appearance
+        teamPracticesTab.classList.add('border-emerald-600', 'text-emerald-600', 'bg-emerald-50');
+        teamPracticesTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        
+        lessonRequestsTab.classList.remove('border-emerald-600', 'text-emerald-600', 'bg-emerald-50');
+        lessonRequestsTab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        
+        // Show/hide content
+        teamPracticesContent.style.display = 'block';
+        lessonRequestsContent.style.display = 'none';
+    }
+
+    function switchToLessonRequests() {
+        // Update tab appearance
+        lessonRequestsTab.classList.add('border-emerald-600', 'text-emerald-600', 'bg-emerald-50');
+        lessonRequestsTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        
+        teamPracticesTab.classList.remove('border-emerald-600', 'text-emerald-600', 'bg-emerald-50');
+        teamPracticesTab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+        
+        // Show/hide content
+        lessonRequestsContent.style.display = 'block';
+        teamPracticesContent.style.display = 'none';
+    }
+
+    // Show improved error message with context
+    function showImprovedErrorMessage(message, teamStatus) {
+        updateProgress(4, 100, 'No practice data available');
+        
+        // Update the error message content
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Determine icon and styling based on team status
+        let iconClass = 'fas fa-exclamation-triangle text-yellow-500';
+        let headerText = 'No upcoming practices scheduled';
+        let bgClass = 'bg-yellow-50 border-yellow-100';
+        let textClass = 'text-yellow-700';
+        
+        if (teamStatus === 'active_no_schedule') {
+            iconClass = 'fas fa-calendar-check text-emerald-500';
+            headerText = 'No upcoming practices scheduled';
+            bgClass = 'bg-emerald-50 border-emerald-100';
+            textClass = 'text-emerald-700';
+        } else if (teamStatus === 'inactive') {
+            iconClass = 'fas fa-pause-circle text-gray-500';
+            headerText = 'Team appears inactive';
+            bgClass = 'bg-gray-50 border-gray-100';
+            textClass = 'text-gray-700';
+        }
+        
+        errorMessage.className = `${bgClass} border rounded-xl p-4`;
+        errorMessage.innerHTML = `
+            <div class="flex items-center mb-3">
+                <i class="${iconClass} mr-3"></i>
+                <p class="${textClass} font-medium">${headerText}</p>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm ${textClass.replace('-700', '-600')}">${message}</p>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Your current settings:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                        <li>Club: {{ session_data.user.club if session_data.user.club else 'Not set' }}</li>
+                        <li>Series: <span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span></li>
+                    </ul>
+                    <p class="text-sm text-gray-600 mt-2">
+                        You can update these settings in your <a href="/mobile/settings" class="text-emerald-600 underline">profile settings</a>.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        // Show error after loading screen
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            errorMessage.style.display = 'block';
+        }, 1000);
+    }
+
+    // Load data via AJAX
+    async function loadProDashboardData() {
+        try {
+            updateProgress(1, 10, 'Loading available teams...');
+            
+            // First load available teams
+            await loadAvailableTeams();
+            
+            updateProgress(2, 30, 'Loading team practice data...');
+            
+            // Load schedule data for the first team (or default team)
+            await loadTeamScheduleData();
+            
+            updateProgress(3, 60, 'Loading lesson requests...');
+            
+            // Load lesson requests
+            await loadLessonRequests();
+            
+            updateProgress(4, 80, 'Building interface...');
+            
+            // Populate the UI
+            populateFilters();
+            populatePlayerCards();
+            populateLessonRequests();
+            
+            updateProgress(4, 100, 'Complete!');
+            
+            // Show main content after a brief delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                updateVisibility();
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error loading pro dashboard data:', error);
+            progressText.textContent = 'Error loading data: ' + error.message;
+            progressBar.style.width = '100%';
+            progressBar.classList.add('bg-red-500');
+            
+            // Show error after a delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                errorMessage.style.display = 'block';
+            }, 2000);
+        }
+    }
+
+    // Load available teams for the current league
+    async function loadAvailableTeams() {
+        try {
+            const response = await fetch('/api/pros-teams', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                availableTeams = data.teams || [];
+                
+                // Sort teams by series identifier (number or letter)
+                availableTeams.sort((a, b) => {
+                    // Extract series identifier from team name (e.g., "Tennaqua 22" -> "22", "Tennaqua A" -> "A")
+                    const getSeriesId = (teamName) => {
+                        const match = teamName.match(/\s+(\d+|[A-Z])$/);
+                        return match ? match[1] : teamName;
+                    };
+                    
+                    const seriesA = getSeriesId(a.display_name);
+                    const seriesB = getSeriesId(b.display_name);
+                    
+                    // If both are numbers, sort numerically
+                    if (!isNaN(seriesA) && !isNaN(seriesB)) {
+                        return parseInt(seriesA) - parseInt(seriesB);
+                    }
+                    
+                    // If one is number and one is letter, numbers come first
+                    if (!isNaN(seriesA) && isNaN(seriesB)) return -1;
+                    if (isNaN(seriesA) && !isNaN(seriesB)) return 1;
+                    
+                    // If both are letters, sort alphabetically
+                    return seriesA.localeCompare(seriesB);
+                });
+                
+                // Populate team filter
+                teamFilter.innerHTML = '';
+                if (availableTeams.length > 0) {
+                    availableTeams.forEach(team => {
+                        const option = document.createElement('option');
+                        option.value = team.id;
+                        option.textContent = team.display_name;
+                        teamFilter.appendChild(option);
+                    });
+                    
+                    // Select the first team by default
+                    currentTeamId = availableTeams[0].id;
+                    teamFilter.value = currentTeamId;
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No teams available';
+                    teamFilter.appendChild(option);
+                }
+            } else {
+                console.warn('Failed to load teams');
+                availableTeams = [];
+            }
+        } catch (error) {
+            console.error('Error loading teams:', error);
+            availableTeams = [];
+        }
+    }
+
+    // Load schedule data for the selected team
+    async function loadTeamScheduleData() {
+        if (!currentTeamId) {
+            console.warn('No team selected');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/pros-team-schedule?team_id=${currentTeamId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Store the practice data
+                playersData = Object.entries(data.players_schedule || {}).map(([player, dates]) => ({
+                    player: player,
+                    dates: dates
+                }));
+                
+                // FILTER OUT MATCHES - Only keep practices
+                const allMatchDates = data.match_dates || [];
+                const allEventDetails = data.event_details || {};
+                
+                const practiceDates = [];
+                const practiceEventDetails = {};
+                
+                for (const date of allMatchDates) {
+                    const eventDetail = allEventDetails[date];
+                    if (eventDetail && eventDetail.type === 'practice') {
+                        practiceDates.push(date);
+                        practiceEventDetails[date] = eventDetail;
+                    }
+                }
+                
+                // Update the data to only include practices
+                matchDates = practiceDates;
+                eventDetails = practiceEventDetails;
+                
+                console.log('Filtered data (practices only):', {
+                    originalDates: allMatchDates.length,
+                    practiceDates: practiceDates.length,
+                    eventDetails: Object.keys(practiceEventDetails).length
+                });
+                
+                // Debug: Log the actual event details to see what types we're getting
+                console.log('Event details sample:', Object.entries(allEventDetails).slice(0, 5));
+                console.log('Practice dates found:', practiceDates);
+                
+                // Show message if no practices found
+                if (practiceDates.length === 0) {
+                    showMessage('No practices scheduled for this team. Try selecting a different team that has practices.', 'info');
+                }
+                
+                // Update page header with team display name
+                const teamNameElement = document.querySelector('.text-sm.text-gray-500');
+                if (teamNameElement && data.team_info && data.team_info.display_name) {
+                    teamNameElement.textContent = data.team_info.display_name;
+                }
+                
+            } else {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Error loading team schedule data:', error);
+            throw error;
+        }
+    }
+
+    // Load lesson requests
+    async function loadLessonRequests() {
+        try {
+            const response = await fetch('/api/lesson-requests', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                lessonRequests = data.lesson_requests || [];
+            } else {
+                console.warn('Failed to load lesson requests');
+                lessonRequests = [];
+            }
+        } catch (error) {
+            console.error('Error loading lesson requests:', error);
+            lessonRequests = [];
+        }
+        
+        // Add mock lesson request data for demonstration
+        if (lessonRequests.length === 0) {
+            lessonRequests = [
+                {
+                    id: 1,
+                    player_name: 'Sarah Johnson',
+                    player_email: 'sarah.johnson@email.com',
+                    player_phone: '(555) 123-4567',
+                    preferred_date: '2025-01-15',
+                    preferred_time: '10:00 AM',
+                    duration: '1 hour',
+                    lesson_type: 'Private',
+                    skill_level: 'Intermediate',
+                    special_requests: 'Focus on backhand technique and serve placement',
+                    status: 'pending',
+                    created_at: '2025-01-08T14:30:00Z'
+                },
+                {
+                    id: 2,
+                    player_name: 'Mike Chen',
+                    player_email: 'mike.chen@email.com',
+                    player_phone: '(555) 234-5678',
+                    preferred_date: '2025-01-16',
+                    preferred_time: '2:00 PM',
+                    duration: '1.5 hours',
+                    lesson_type: 'Semi-Private',
+                    skill_level: 'Advanced',
+                    special_requests: 'Doubles strategy and court positioning',
+                    status: 'pending',
+                    created_at: '2025-01-08T16:45:00Z'
+                },
+                {
+                    id: 3,
+                    player_name: 'Emily Rodriguez',
+                    player_email: 'emily.rodriguez@email.com',
+                    player_phone: '(555) 345-6789',
+                    preferred_date: '2025-01-17',
+                    preferred_time: '9:00 AM',
+                    duration: '1 hour',
+                    lesson_type: 'Private',
+                    skill_level: 'Beginner',
+                    special_requests: 'Basic strokes and footwork fundamentals',
+                    status: 'confirmed',
+                    created_at: '2025-01-07T11:20:00Z'
+                },
+                {
+                    id: 4,
+                    player_name: 'David Thompson',
+                    player_email: 'david.thompson@email.com',
+                    player_phone: '(555) 456-7890',
+                    preferred_date: '2025-01-18',
+                    preferred_time: '4:00 PM',
+                    duration: '1 hour',
+                    lesson_type: 'Private',
+                    skill_level: 'Intermediate',
+                    special_requests: 'Volley technique and net play',
+                    status: 'pending',
+                    created_at: '2025-01-08T09:15:00Z'
+                },
+                {
+                    id: 5,
+                    player_name: 'Lisa Wang',
+                    player_email: 'lisa.wang@email.com',
+                    player_phone: '(555) 567-8901',
+                    preferred_date: '2025-01-19',
+                    preferred_time: '11:00 AM',
+                    duration: '1.5 hours',
+                    lesson_type: 'Group',
+                    skill_level: 'Advanced',
+                    special_requests: 'Match preparation and mental game',
+                    status: 'declined',
+                    created_at: '2025-01-06T13:30:00Z'
+                }
+            ];
+        }
+    }
+
+    // Populate filter dropdowns
+    function populateFilters() {
+        // Populate date filter
+        dateFilter.innerHTML = '<option value="all">All Dates</option>';
+        if (matchDates.length === 0) {
+            const option = document.createElement('option');
+            option.value = 'none';
+            option.textContent = 'No practices scheduled';
+            option.disabled = true;
+            dateFilter.appendChild(option);
+        } else {
+            matchDates.forEach(date => {
+                const eventInfo = eventDetails[date] || {};
+                const option = document.createElement('option');
+                option.value = date;
+            option.textContent = formatDateString(date);
+            if (eventInfo.type === 'practice') {
+                option.textContent += ' - Practice';
+            }
+                dateFilter.appendChild(option);
+            });
+        }
+        
+        // Populate player filter
+        playerFilter.innerHTML = '<option value="all">All Players</option>';
+        playersData.forEach(playerObj => {
+            const option = document.createElement('option');
+            option.value = playerObj.player;
+            option.textContent = playerObj.player;
+            playerFilter.appendChild(option);
+        });
+    }
+
+    // Populate player cards
+    function populatePlayerCards() {
+        perPlayerView.innerHTML = '';
+        
+        playersData.forEach(playerObj => {
+            const playerCard = createPlayerCard(playerObj.player, playerObj.dates);
+            perPlayerView.appendChild(playerCard);
+        });
+    }
+
+    // Create a player card element
+    function createPlayerCard(playerName, dates) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden player-schedule';
+        card.dataset.player = playerName;
+        card.dataset.dates = JSON.stringify(dates);
+        
+        card.innerHTML = `
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-user text-emerald-500 mr-2"></i>
+                    ${playerName}
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Date</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700 w-1/2">Availability</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${dates.map(date => `
+                                <tr class="border-t border-gray-50 date-row" data-date="${date.date}">
+                                    <td class="px-4 py-3 w-1/2">
+                                        <div class="font-medium text-gray-900">${formatDateString(date.date)}</div>
+                                        ${formatEventInfo(date)}
+                                    </td>
+                                    <td class="px-4 py-3 w-1/2">
+                                        ${formatAvailabilityStatus(date)}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        return card;
+    }
+
+    // Populate lesson requests
+    function populateLessonRequests() {
+        lessonRequestsList.innerHTML = '';
+        
+        if (lessonRequests.length === 0) {
+            noLessonRequests.style.display = 'block';
+            return;
+        }
+        
+        noLessonRequests.style.display = 'none';
+        
+        lessonRequests.forEach(request => {
+            const requestCard = createLessonRequestCard(request);
+            lessonRequestsList.appendChild(requestCard);
+        });
+    }
+
+    // Create a lesson request card element
+    function createLessonRequestCard(request) {
+        const card = document.createElement('div');
+        card.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow duration-200';
+        card.dataset.requestId = request.id;
+        
+        const statusClass = request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                           request.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                           request.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                           'bg-gray-100 text-gray-800';
+        
+        card.innerHTML = `
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-violet-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">${request.player_name}</h3>
+                            <p class="text-sm text-gray-600">${formatDateString(request.lesson_date)} at ${request.lesson_time}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-13">
+                        <p class="text-sm text-gray-700 mb-1">
+                            <strong>Focus Areas:</strong> ${request.focus_areas || 'Not specified'}
+                        </p>
+                        ${request.notes ? `<p class="text-sm text-gray-600 mb-2"><strong>Notes:</strong> ${request.notes}</p>` : ''}
+                        <p class="text-sm text-gray-600">
+                            <strong>Requested:</strong> ${formatDateTime(request.created_at)}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex-shrink-0">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                        ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                    </span>
+                </div>
+            </div>
+            
+            ${request.status === 'pending' ? `
+                <div class="flex space-x-2 pt-3 border-t border-gray-200">
+                    <button onclick="confirmLessonRequest(${request.id})" class="flex-1 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm" style="background-color: #059669 !important;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                        <i class="fas fa-check mr-1"></i>
+                        Confirm
+                    </button>
+                    <button onclick="messageLessonRequest(${request.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm">
+                        <i class="fas fa-comment mr-1"></i>
+                        Message
+                    </button>
+                </div>
+            ` : ''}
+        `;
+        
+        return card;
+    }
+
+    // Helper to format MM/DD/YYYY as [Day of week], MM/DD/YY
+    function formatDateString(dateStr) {
+        try {
+            if (!dateStr) return '';
+            
+            // Handle MM/DD/YYYY format from the API
+            const [month, day, year] = dateStr.split('/').map(Number);
+            
+            if (!year || !month || !day) {
+                console.warn('Invalid date parts:', {year, month, day});
+                return dateStr;
+            }
+            
+            const jsDate = new Date(year, month - 1, day);
+            
+            if (isNaN(jsDate.getTime())) {
+                console.warn('Invalid date created:', jsDate);
+                return dateStr;
+            }
+            
+            if (jsDate.getFullYear() !== year || 
+                jsDate.getMonth() !== (month - 1) || 
+                jsDate.getDate() !== day) {
+                console.warn('Date validation failed');
+                return dateStr;
+            }
+            
+            const weekday = jsDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const displayMonth = jsDate.getMonth() + 1;
+            const displayDay = jsDate.getDate();
+            const displayYear = jsDate.getFullYear().toString().slice(-2);
+            
+            return `${weekday}, ${displayMonth}/${displayDay}/${displayYear}`;
+            
+        } catch (error) {
+            console.error('Error in formatDateString:', error);
+            return dateStr;
+        }
+    }
+
+    // Helper to format event type and opponent info
+    function formatEventInfo(eventData) {
+        if (!eventData) return '';
+        
+        if (eventData.event_type === 'Practice') {
+            return '<div class="text-sm text-emerald-600 mt-1"><i class="fas fa-dumbbell mr-1"></i>Practice</div>';
+        } else if (eventData.event_type === 'Match') {
+            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match</div>';
+            
+            // Enhanced: Show full team matchup information on its own line
+            if (eventData.home_team && eventData.away_team) {
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">' + eventData.home_team + ' vs. ' + eventData.away_team + '</div>';
+            } else if (eventData.opponent) {
+                // Fallback to original opponent display if team info not available
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">vs ' + eventData.opponent + '</div>';
+            }
+            return matchInfo;
+        }
+        return '';
+    }
+
+    // Helper to format availability status with notes
+    function formatAvailabilityStatus(date) {
+        const status = date.availability_status;
+        const notes = date.notes || '';
+        
+        let statusHtml = '';
+        if (status === 1) {
+            statusHtml = '<span class="text-green-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-check-circle mr-1 text-xs"></i>Available</span>';
+        } else if (status === 2) {
+            statusHtml = '<span class="text-red-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-times-circle mr-1 text-xs"></i>Not Available</span>';
+        } else if (status === 3) {
+            statusHtml = '<span class="text-yellow-500 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-question-circle mr-1 text-xs"></i>Not Sure</span>';
+        } else {
+            statusHtml = '<span class="text-gray-400 text-sm whitespace-nowrap flex items-center"><i class="fas fa-minus-circle mr-1 text-xs"></i>Not Set</span>';
+        }
+        
+        // Add notes if they exist
+        if (notes && notes.trim()) {
+            statusHtml = `<div>${statusHtml}<div class="text-xs text-gray-600 mt-1 italic">${notes}</div></div>`;
+        }
+        
+        return statusHtml;
+    }
+
+    // Helper to format datetime
+    function formatDateTime(dateTimeStr) {
+        try {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return dateTimeStr;
+        }
+    }
+
+    function renderSingleTable(selectedDate, selectedPlayer) {
+        singleTableBody.innerHTML = '';
+        const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        let formattedDate = '';
+        
+        if (selectedDate && selectedDate !== 'all') {
+            formattedDate = formatDateString(selectedDate);
+            
+            let eventInfo = '';
+            playersData.forEach(playerObj => {
+                playerObj.dates.forEach(d => {
+                    if (d.date === selectedDate) {
+                        eventInfo = formatEventInfo(d);
+                        return;
+                    }
+                });
+                if (eventInfo) return;
+            });
+            
+            selectedDateDisplay.innerHTML = formattedDate + eventInfo;
+            selectedDateDisplay.style.display = '';
+        } else {
+            selectedDateDisplay.style.display = 'none';
+        }
+        
+        const selectedDateStr = selectedDate;
+        
+        playersData.forEach(playerObj => {
+            if (selectedPlayer !== 'all' && playerObj.player !== selectedPlayer) return;
+            let foundEntry = null;
+            playerObj.dates.forEach(d => {
+                if (d.date === selectedDateStr) {
+                    foundEntry = d;
+                }
+            });
+            if (foundEntry) {
+                const statusHtml = formatAvailabilityStatus(foundEntry);
+                const row = `<tr class="border-t border-gray-50">
+                    <td class="px-4 py-3 w-1/2 font-medium text-gray-900">${playerObj.player}</td>
+                    <td class="px-4 py-3 w-1/2">${statusHtml}</td>
+                </tr>`;
+                singleTableBody.insertAdjacentHTML('beforeend', row);
+            }
+        });
+    }
+
+    function updateVisibility() {
+        const selectedDate = dateFilter.value;
+        const selectedPlayer = playerFilter.value;
+        
+        const playerSchedules = document.querySelectorAll('.player-schedule');
+        const dateRows = document.querySelectorAll('.date-row');
+        
+        if (selectedDate !== 'all') {
+            singleTableView.style.display = '';
+            perPlayerView.style.display = 'none';
+            renderSingleTable(selectedDate, selectedPlayer);
+        } else {
+            singleTableView.style.display = 'none';
+            perPlayerView.style.display = '';
+            
+            playerSchedules.forEach(schedule => {
+                const playerName = schedule.dataset.player;
+                if (selectedPlayer === 'all' || playerName === selectedPlayer) {
+                    schedule.style.display = '';
+                } else {
+                    schedule.style.display = 'none';
+                }
+            });
+            
+            dateRows.forEach(row => {
+                row.style.display = '';
+            });
+        }
+    }
+
+    function resetFilters() {
+        teamFilter.value = currentTeamId || '';
+        dateFilter.value = 'all';
+        playerFilter.value = 'all';
+        updateVisibility();
+    }
+
+    // Handle team selection change
+    async function handleTeamChange() {
+        const selectedTeamId = teamFilter.value;
+        if (selectedTeamId && selectedTeamId !== currentTeamId) {
+            currentTeamId = selectedTeamId;
+            
+            // Show loading state
+            updateProgress(2, 30, 'Loading team practice data...');
+            
+            try {
+                // Load schedule data for the selected team
+                await loadTeamScheduleData();
+                
+                // Update the UI
+                populateFilters();
+                populatePlayerCards();
+                updateVisibility();
+                
+                updateProgress(4, 100, 'Complete!');
+            } catch (error) {
+                console.error('Error loading team schedule:', error);
+                showMessage('Failed to load team schedule', 'error');
+            }
+        }
+    }
+
+    // Event listeners
+    teamFilter.addEventListener('change', handleTeamChange);
+    dateFilter.addEventListener('change', updateVisibility);
+    playerFilter.addEventListener('change', updateVisibility);
+    resetButton.addEventListener('click', resetFilters);
+    
+    // Tab event listeners
+    teamPracticesTab.addEventListener('click', switchToTeamPractices);
+    lessonRequestsTab.addEventListener('click', switchToLessonRequests);
+
+    // Transform series display from "Chicago XX" to "Series XX"
+    const seriesElements = document.querySelectorAll('.user-series');
+    seriesElements.forEach(element => {
+        const seriesText = element.textContent;
+        if (seriesText && seriesText !== 'Not set') {
+            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+        }
+    });
+
+    // Start loading data
+    loadProDashboardData();
+});
+
+// Global functions for lesson request actions
+async function confirmLessonRequest(requestId) {
+    try {
+        const response = await fetch(`/api/lesson-requests/${requestId}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showMessage(result.message, 'success');
+            // Reload the lesson requests
+            location.reload();
+        } else {
+            showMessage(result.error || 'Failed to confirm lesson request', 'error');
+        }
+    } catch (error) {
+        console.error('Error confirming lesson request:', error);
+        showMessage('Failed to confirm lesson request. Please try again.', 'error');
+    }
+}
+
+async function messageLessonRequest(requestId) {
+    try {
+        // For now, show a message that this feature is coming soon
+        showMessage('Message feature coming soon! This will allow you to communicate with the player about their lesson request.', 'info');
+        
+        // TODO: Implement actual messaging functionality
+        // const response = await fetch(`/api/lesson-requests/${requestId}/message`, {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/json',
+        //     },
+        //     body: JSON.stringify({ message: 'Your message here' })
+        // });
+        
+        // const result = await response.json();
+        
+        // if (response.ok && result.success) {
+        //     showMessage(result.message, 'success');
+        // } else {
+        //     showMessage(result.error || 'Failed to send message', 'error');
+        // }
+    } catch (error) {
+        console.error('Error messaging lesson request:', error);
+        showMessage('Failed to send message. Please try again.', 'error');
+    }
+}
+
+function showMessage(message, type) {
+    const container = document.getElementById('messageContainer') || createMessageContainer();
+    const messageDiv = document.createElement('div');
+    
+    const bgColor = type === 'success' ? 'bg-green-500' : 
+                   type === 'info' ? 'bg-blue-500' : 'bg-red-500';
+    messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full`;
+    messageDiv.textContent = message;
+    
+    container.appendChild(messageDiv);
+    
+    // Animate in
+    setTimeout(() => {
+        messageDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        messageDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            if (container.contains(messageDiv)) {
+                container.removeChild(messageDiv);
+            }
+        }, 300);
+    }, 5000);
+}
+
+function createMessageContainer() {
+    const container = document.createElement('div');
+    container.id = 'messageContainer';
+    container.className = 'fixed top-4 right-4 z-50';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-yellow-100 { border-color: #fef3c7; }
+.border-emerald-100 { border-color: #d1fae5; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-yellow-50 { background-color: #fffbeb; }
+.bg-emerald-50 { background-color: #ecfdf5; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-emerald-500 { color: #10b981; }
+.text-emerald-600 { color: #059669; }
+.text-violet-500 { color: #8b5cf6; }
+.text-violet-600 { color: #7c3aed; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-emerald-500 {
+    --tw-gradient-from: #10b981;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(16, 185, 129, 0));
+}
+.to-emerald-600 {
+    --tw-gradient-to: #059669;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+
+<!-- Success/Error Messages -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+    </div>
+</div>
+{% endblock %}
