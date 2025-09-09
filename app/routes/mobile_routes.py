@@ -3549,8 +3549,8 @@ def get_pros_team_details():
             WHERE (s.home_team_id = %s OR s.away_team_id = %s)
             AND s.match_date >= CURRENT_DATE
             AND (
-                'Practice' IN s.home_team OR 
-                'Practice' IN s.away_team OR
+                s.home_team LIKE '%%Practice%%' OR 
+                s.away_team LIKE '%%Practice%%' OR
                 (s.away_team IS NULL OR s.away_team = '')
             )
             ORDER BY s.match_date, s.match_time
