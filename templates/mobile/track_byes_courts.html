@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Team Selector (Very Discreet) -->
-    {% if user_teams and user_teams|length > 1 %}
-    <div class="px-4 py-1">
+    <div class="container">
+        <!-- Team Selector (Very Discreet) -->
+        {% if user_teams and user_teams|length > 1 %}
+        <div class="px-4 py-1">
         <div class="text-right">
             <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors">
                 {% if current_team_info %}
@@ -146,7 +146,7 @@
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto" id="tableContainer">
+                <div class="table-wrap overflow-x-auto" id="tableContainer">
                     <table class="min-w-full table-auto">
                         <thead>
                             <tr class="bg-gray-50">
@@ -540,7 +540,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to load existing season tracking data
     function loadSeasonTrackingData() {
         console.log('Loading season tracking data...');
-        fetch('/api/player-season-tracking')
+        
+        // Get team_id from the template
+        const teamId = {{ team_id|default('null') }};
+        if (!teamId) {
+            console.error('No team_id available - cannot load tracking data');
+            return;
+        }
+        
+        fetch(`/api/player-season-tracking?team_id=${teamId}`)
             .then(response => {
                 console.log('Load response status:', response.status);
                 return response.json();
@@ -609,7 +617,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const requestData = {
             player_id: playerData.player_id,
             type: type,
-            value: parseInt(value)
+            value: parseInt(value),
+            team_id: {{ team_id|default('null') }}
         };
         
         console.log('Sending request:', requestData);
@@ -770,4 +779,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
+    </div>
+</div>
 {% endblock %} 

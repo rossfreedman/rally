@@ -48,7 +48,7 @@ import time
 import logging
 import requests
 import uuid
-from typing import Dict, Optional, List, Set, Tuple
+from typing import Dict, Optional, List, Set, Tuple, Any
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -64,29 +64,79 @@ def get_random_headers(url: str = "") -> Dict[str, str]:
     """Get random headers for stealth requests with site-specific User-Agent selection."""
     try:
         # Import here to avoid circular imports
-        from data.etl.scrapers.user_agent_manager import get_user_agent_for_site
+        try:
+            from .user_agent_manager import get_user_agent_for_site
+        except ImportError:
+            import sys
+            import os
+            # Get the absolute path to the scrapers directory
+            current_file = os.path.abspath(__file__)
+            scrapers_dir = os.path.dirname(current_file)
+            if scrapers_dir not in sys.path:
+                sys.path.insert(0, scrapers_dir)
+            from user_agent_manager import get_user_agent_for_site
         
         # Get site-specific User-Agent
         user_agent = get_user_agent_for_site(url)
         
-        return {
+        # Enhanced realistic headers for better stealth
+        headers = {
             "User-Agent": user_agent,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",  # Do Not Track
             "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1"
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
+            "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Ch-Ua-Platform-Version": '"10.0.0"',
+            "Sec-Ch-Ua-Model": '""',
+            "Sec-Ch-Ua-Full-Version": '"120.0.6099.109"',
+            "Sec-Ch-Ua-Arch": '"x86"',
+            "Sec-Ch-Ua-Bitness": '"64"',
+            "Sec-Ch-Ua-WoW64": "?0"
         }
+        
+        # Add referer if we have a previous URL context
+        if hasattr(get_random_headers, 'last_url') and get_random_headers.last_url:
+            headers["Referer"] = get_random_headers.last_url
+        
+        # Update last URL for next request
+        get_random_headers.last_url = url
+        
+        return headers
     except Exception as e:
         # Fallback to hardcoded Windows UA if UA manager fails
         logger.warning(f"⚠️ UA manager failed, using fallback: {e}")
         return {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
             "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1"
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Cache-Control": "max-age=0",
+            "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Sec-Ch-Ua-Platform-Version": '"10.0.0"',
+            "Sec-Ch-Ua-Model": '""',
+            "Sec-Ch-Ua-Full-Version": '"120.0.6099.109"',
+            "Sec-Ch-Ua-Arch": '"x86"',
+            "Sec-Ch-Ua-Bitness": '"64"',
+            "Sec-Ch-Ua-WoW64": "?0"
         }
 
 def validate_match_response(response: requests.Response) -> bool:
@@ -111,11 +161,14 @@ def validate_match_response(response: requests.Response) -> bool:
             logger.warning(f"❌ Response too short: {len(content)} chars")
             return False
         
-        # Must contain key Tenniscores elements
+        # Must contain key Tenniscores elements - be more flexible for player pages
         required_patterns = [
             "court",  # Court assignments
             "match",  # Match data
-            "series"  # Series information
+            "series",  # Series information
+            "player",  # Player information
+            "wins",    # Win/loss data
+            "losses"   # Win/loss data
         ]
         
         found_patterns = []
@@ -123,24 +176,34 @@ def validate_match_response(response: requests.Response) -> bool:
             if pattern in content:
                 found_patterns.append(pattern)
         
-        # Need at least 2 of 3 patterns for valid content
-        if len(found_patterns) >= 2:
+        # For player pages, we need at least 1 pattern (more flexible)
+        # For team pages, we need at least 2 patterns
+        min_patterns = 1 if "player.php" in response.url else 2
+        
+        if len(found_patterns) >= min_patterns:
             logger.debug(f"✅ Valid content detected: {found_patterns}")
             return True
         
-        # Additional validation for specific Tenniscores pages
+        # Additional validation for specific Tenniscores pages - be more flexible for player pages
         tenniscores_indicators = [
             "tenniscores",
             "match results",
             "league standings", 
             "playoff",
             "schedule",
-            "team roster"
+            "team roster",
+            "player",  # Player pages
+            "wins",    # Win/loss data
+            "losses"   # Win/loss data
         ]
         
         tenniscores_found = sum(1 for indicator in tenniscores_indicators if indicator in content)
         
-        if tenniscores_found >= 2:
+        # For player pages, we need at least 1 indicator (more flexible)
+        # For team pages, we need at least 2 indicators
+        min_indicators = 1 if "player.php" in response.url else 2
+        
+        if tenniscores_found >= min_indicators:
             logger.debug(f"✅ Tenniscores content validated: {tenniscores_found} indicators")
             return True
         
@@ -259,33 +322,52 @@ def is_blocked(response: requests.Response) -> bool:
         bool: True if response indicates blocking/detection
     """
     try:
-        # Check status codes
+        # Check status codes - 522 is Cloudflare timeout, not necessarily a block
         if response.status_code in [403, 429, 503]:
             logger.warning(f"🚫 Blocked status code: {response.status_code}")
             return True
+        elif response.status_code == 522:
+            logger.warning(f"⚠️ Cloudflare timeout (522) - may be temporary, not marking as blocked")
+            return False  # Don't mark 522 as blocked, it's often temporary
         
         # Check response body length (suspiciously short responses)
         content = response.text.lower() if response.text else ""
         if len(content) < 100:
-            logger.warning(f"🚫 Suspiciously short response: {len(content)} chars")
-            return True
+            # Allow short responses if they contain expected content
+            tennis_indicators = ["tennis", "match", "player", "score", "league", "series", "club"]
+            api_indicators = ["ip", "json", "api", "status", "ok", "success"]
+            if not any(indicator in content for indicator in tennis_indicators + api_indicators):
+                logger.warning(f"🚫 Suspiciously short response: {len(content)} chars")
+                return True
         
-        # Check for known blocking text patterns
+        # Check for known blocking text patterns (refined to avoid CDN false positives)
         blocking_patterns = [
             "access denied",
             "verify you are human", 
             "bot detected",
             "please complete the security check",
-            "cloudflare",
+            "cloudflare ray id",         # More specific than just "cloudflare"
+            "ddos protection by cloudflare", # More specific than just "cloudflare"
             "attention required",
             "checking your browser",
             "ddos protection",
-            "security challenge",
+            "security challenge", 
             "suspicious activity",
             "blocked for security",
             "captcha",
             "recaptcha"
         ]
+        
+        # ALLOW legitimate CDN references (these are NOT blocking)
+        if any(cdn in content for cdn in [
+            "cdnjs.cloudflare.com",
+            "cdn.cloudflare.com", 
+            "ajax.cloudflare.com"
+        ]):
+            # If we see CDN references, only flag as blocked if we also see protection patterns
+            protection_keywords = ["ray id", "challenge", "checking your browser", "ddos protection"]
+            if not any(keyword in content for keyword in protection_keywords):
+                return False  # CDN reference without protection = legitimate
         
         for pattern in blocking_patterns:
             if pattern in content:
@@ -466,8 +548,8 @@ class EnhancedProxyRotator:
                 self.proxies[port].success_count = 1
         else:
             logger.info("🧪 Testing all proxies...")
-            # Only test first 10 proxies to avoid overwhelming the service
-            test_ports = list(self.ports)[:10]
+            # Only test first 5 proxies to avoid overwhelming the service
+            test_ports = list(self.ports)[:5]
             logger.info(f"🧪 Testing first {len(test_ports)} proxies (to avoid rate limiting)")
             self._test_proxy_subset(test_ports)
     
@@ -524,13 +606,9 @@ class EnhancedProxyRotator:
                 "https": proxy_url
             }
             
-            # Multiple test URLs to try if one fails
+            # Use a single, reliable test URL to avoid rate limiting
             test_urls = [
-                "http://httpbin.org/ip",  # Use HTTP instead of HTTPS for faster connection
-                "https://httpbin.org/ip",
-                "https://api.ipify.org?format=json",
-                "https://ipinfo.io/json",
-                "https://httpbin.org/user-agent"
+                "https://api.ipify.org?format=json"  # More reliable than httpbin.org
             ]
             
             headers = {
@@ -562,6 +640,12 @@ class EnhancedProxyRotator:
                         if response.status_code == 503:
                             logger.info(f"🔄 Proxy {proxy_info.port} got 503 from {test_url}, trying next URL...")
                             proxy_info.last_failure_type = '503'
+                            continue
+                        
+                        # If it's a 522 (Cloudflare timeout), try the next URL but don't mark as failed
+                        if response.status_code == 522:
+                            logger.info(f"🔄 Proxy {proxy_info.port} got 522 from {test_url} (Cloudflare timeout), trying next URL...")
+                            proxy_info.last_failure_type = '522'
                             continue
                         
                         # For other status codes, mark as failed
@@ -1183,8 +1267,8 @@ class EnhancedProxyRotator:
                 self.proxies[port].status = ProxyStatus.BANNED
                 logger.warning(f"🚫 Retiring proxy {port} - blocked {self.proxy_health[port]['blocked']} times")
             
-            # Check if we need to send SMS alert
-            self._check_sms_alert()
+            # Remove SMS alert - only send summary at end of session
+            # self._check_sms_alert()
             
             logger.warning(f"🚫 Proxy {port} blocked (consecutive blocks: {self.consecutive_blocks})")
     
@@ -1302,46 +1386,41 @@ class EnhancedProxyRotator:
                   (proxy_info.success_rate < 80 or proxy_info.consecutive_failures >= 2)):
                 self._demote_from_trusted(port)
     
-    def get_status(self) -> Dict:
-        """Get comprehensive status information."""
-        healthy_proxies = self._get_healthy_proxies()
+    def get_status(self) -> Dict[str, Any]:
+        """Get comprehensive status of the proxy rotator."""
+        healthy_proxies = len(self._get_healthy_proxies())
+        total_proxies = len(self.proxies)
         
         return {
-            "total_proxies": len(self.proxies),
-            "healthy_proxies": len(healthy_proxies),
-            "dead_proxies": len(self.dead_proxies),
+            "total_proxies": total_proxies,
+            "healthy_proxies": healthy_proxies,
             "bad_proxies": len(self.bad_proxies),
-            "current_proxy": self.current_port,
-            "request_count": self.request_count,
-            "total_rotations": self.total_rotations,
-            "session_duration": time.time() - self.session_start_time,
+            "dead_proxies": len(self.dead_proxies),
+            "capped_proxies": len(self.capped_proxies),
             "consecutive_blocks": self.consecutive_blocks,
             "session_blocked_proxies": self.session_blocked_proxies,
-            "last_sms_alert": self.last_sms_alert.isoformat() if self.last_sms_alert else None,
-            "session_metrics": self.session_metrics,
-            "pool_stats": {
-                "trusted_pool_size": len(self.trusted_pool),
-                "rotating_pool_size": len(self.rotating_pool),
-                "pool_promotions": self.pool_promotions,
-                "pool_demotions": self.pool_demotions
-            },
-            "sticky_session": {
-                "enabled": self.sticky,
-                "current_session_id": self.sticky_session_id,
-                "sticky_proxy": self.sticky_proxy_port
-            },
-            "proxy_health": {
-                port: {
-                    "status": info.status.value,
-                    "success_rate": info.success_rate,
-                    "total_requests": info.total_requests,
-                    "consecutive_failures": info.consecutive_failures,
-                    "avg_latency": info.avg_latency,
-                    "pool": info.pool,
-                    "health_stats": self.proxy_health.get(port, {"success": 0, "blocked": 0, "failures": 0})
-                }
-                for port, info in self.proxies.items()
-            }
+            "pool_promotions": self.pool_promotions,
+            "pool_demotions": self.pool_demotions,
+            "sticky_sessions": self.session_metrics.get("sticky_sessions", 0),
+            "current_port": self.current_port,
+            "sticky_proxy_port": self.sticky_proxy_port,
+            "session_metrics": self.session_metrics
+        }
+    
+    def get_session_stats(self) -> Dict[str, Any]:
+        """Get session statistics for summary reporting."""
+        healthy_proxies = len(self._get_healthy_proxies())
+        total_proxies = len(self.proxies)
+        blocked_proxies = len(self.bad_proxies) + len(self.dead_proxies)
+        
+        return {
+            "healthy_proxies": f"{healthy_proxies}/{total_proxies}",
+            "blocked_proxies": f"{blocked_proxies}/{total_proxies}",
+            "success_rate": f"{healthy_proxies/total_proxies*100:.1f}%" if total_proxies > 0 else "0%",
+            "consecutive_blocks": self.consecutive_blocks,
+            "total_requests": self.session_metrics.get("total_requests", 0),
+            "successful_requests": self.session_metrics.get("successful_requests", 0),
+            "failed_requests": self.session_metrics.get("failed_requests", 0)
         }
     
     def get_proxies_dict(self) -> Dict[str, str]:
@@ -1370,7 +1449,17 @@ def make_proxy_request(url: str, timeout: int = 30, max_retries: int = 3) -> Opt
     rotator = get_proxy_rotator()
     
     # Import UA manager functions
-    from data.etl.scrapers.user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+    try:
+        from .user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
+    except ImportError:
+        import sys
+        import os
+        # Get the absolute path to the scrapers directory
+        current_file = os.path.abspath(__file__)
+        scrapers_dir = os.path.dirname(current_file)
+        if scrapers_dir not in sys.path:
+            sys.path.insert(0, scrapers_dir)
+        from user_agent_manager import report_ua_success, report_ua_failure, get_user_agent_for_site
     
     for attempt in range(max_retries):
         try:

@@ -38,8 +38,9 @@ The following scrapers have been updated to use `StealthBrowserManager`:
 - ✅ Updated context manager usage with fallback support
 - ✅ Updated performance metrics to reflect "Stealth Chrome WebDriver"
 
-#### `scraper_player_history.py`
-- ✅ Replaced `ChromeManager` with `StealthBrowserManager` import
+#### `scraper_player_history_optimized.py`
+- ✅ Replaced `ChromeManager` with `StealthBrowserManager` import  
+- ✅ Uses concurrent processing with OptimizedChromeManager for better performance
 - ✅ Updated context manager usage: `with StealthBrowserManager(headless=True) as driver:`
 - ✅ Removed old `ChromeManager` class definition
 

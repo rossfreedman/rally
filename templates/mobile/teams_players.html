@@ -330,6 +330,14 @@
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
                                     </div>
+                                    {% if player.isSubstitute %}
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                            <i class="fas fa-exchange-alt mr-1"></i>
+                                            Sub
+                                        </span>
+                                    </div>
+                                    {% endif %}
                                 </td>
                                 <td class="py-2 px-2 text-center">
                                     <button type="button" class="partner-matches-btn inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none" 

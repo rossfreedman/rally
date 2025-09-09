@@ -19,7 +19,6 @@ from app.models.database_models import (
     League,
     Player,
     Series,
-    SeriesLeague,
     Team,
     User,
     UserPlayerAssociation,
@@ -939,9 +938,10 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
                 FROM users u
                 JOIN user_player_associations upa ON u.id = upa.user_id
                 LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = TRUE
+                LEFT JOIN teams t ON p.team_id = t.id
                 LEFT JOIN clubs c ON p.club_id = c.id
                 LEFT JOIN series s ON p.series_id = s.id
-                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN leagues l ON t.league_id = l.id
                 WHERE u.email = %s
                 LIMIT 1
             """
@@ -1111,8 +1111,7 @@ def get_series_list(league_id: str = None) -> List[str]:
 
         if league_id:
             query = (
-                query.join(SeriesLeague)
-                .join(League)
+                query.join(League)
                 .filter(League.league_id == league_id)
             )
 
@@ -1395,6 +1394,7 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
             password_hash=hashed_password,
             first_name=first_name,
             last_name=last_name,
+            phone_number=phone_number,
             ad_deuce_preference=ad_deuce_preference,
             dominant_hand=dominant_hand,
             is_admin=False
@@ -1440,8 +1440,48 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
             logger.info(f"ID-BASED Registration: Player lookup result for {email} using {lookup_method}: {player_lookup_result}")
             
             # Check if player was found
-            if not player_lookup_result or not player_lookup_result.get("player"):
-                logger.warning(f"ID-BASED Registration FAILED: No player found for {email} with provided details")
+            if not player_lookup_result:
+                logger.warning(f"ID-BASED Registration FAILED: No player lookup result for {email}")
+                db_session.rollback()
+                return {
+                    "success": False, 
+                    "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                }
+            
+            # Handle different match types
+            match_type = player_lookup_result.get("match_type")
+            
+            if match_type == "multiple_high_confidence":
+                # Multiple high-confidence matches found - auto-select the best one
+                matches = player_lookup_result.get("matches", [])
+                if not matches:
+                    logger.warning(f"ID-BASED Registration FAILED: multiple_high_confidence but no matches array for {email}")
+                    db_session.rollback()
+                    return {
+                        "success": False, 
+                        "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                    }
+                
+                # Auto-select the first match (they're all high-confidence, so any is good)
+                # In the future, we could add logic to pick the best match based on series/club similarity
+                player_data = matches[0]
+                logger.info(f"ID-BASED Registration: Auto-selected best match from {len(matches)} high-confidence options for {email}: {player_data.get('first_name')} {player_data.get('last_name')} ({player_data.get('club_name')}, {player_data.get('series_name')})")
+                
+            elif match_type in ["exact", "high_confidence", "medium_confidence"]:
+                # Single player match found
+                player_data = player_lookup_result.get("player")
+                if not player_data:
+                    logger.warning(f"ID-BASED Registration FAILED: {match_type} match but no player data for {email}")
+                    db_session.rollback()
+                    return {
+                        "success": False, 
+                        "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                    }
+                logger.info(f"ID-BASED Registration: Found {match_type} match for {email}: {player_data.get('first_name')} {player_data.get('last_name')} ({player_data.get('club_name')}, {player_data.get('series_name')})")
+                
+            else:
+                # No match or error
+                logger.warning(f"ID-BASED Registration FAILED: No player found for {email} with provided details (match_type: {match_type})")
                 
                 # Enhanced logging for debugging
                 log_user_activity(
@@ -1451,7 +1491,7 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
                     first_name=first_name,
                     last_name=last_name,
                     details={
-                        "reason": "No player found with provided details",
+                        "reason": f"No player found with provided details (match_type: {match_type})",
                         "lookup_method": lookup_method,
                         "lookup_attempt": {
                             "first_name": first_name,
@@ -1472,7 +1512,6 @@ def register_user_id_based(email: str, password: str, first_name: str, last_name
                     "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
                 }
             
-            player_data = player_lookup_result["player"]
             player_id = player_data["tenniscores_player_id"]
             
             # Get the full player record from database

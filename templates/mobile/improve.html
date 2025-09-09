@@ -20,50 +20,6 @@
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
 
-        <!-- Coach Rally Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-400 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <div class="flex items-center gap-3">
-                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-10 w-10">
-                        <i class="fas fa-user-graduate text-white text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Coach Rally</h3>
-                        <p class="text-sm text-gray-500">Your AI-powered coach</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6">
-                <!-- Chat Preview -->
-                <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto cursor-pointer hover:bg-gray-100 transition-colors duration-200">
-                    <div class="text-sm text-gray-500 italic">Ask me anything about paddle tennis to improve your game...</div>
-                </div>
-                
-                <!-- Chat Input Form -->
-                <form id="paddle-coach-form" class="flex gap-2 mb-4">
-                    <input type="text" 
-                           id="paddle-coach-input" 
-                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           placeholder="Ask Coach Rally a question..."
-                           autocomplete="off" 
-                           required>
-                    <button type="submit" 
-                            class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
-                
-                <div class="text-xs text-gray-500">
-                    <i class="fas fa-lightbulb mr-1"></i>
-                    Try:<br>
-                    - "How do I improve my serve?"<br>
-                    - "Transitioning from Defense to Offense"<br>
-                    - "Blitzing strategies"
-                </div>
-            </div>
-        </div>
-
         <!-- Modal Backdrop -->
         <div id="coach-rally-modal" class="fixed inset-0 z-[9999] hidden transition-all duration-300 ease-out">
             <!-- Dark overlay -->
@@ -98,8 +54,9 @@
                         <form id="modal-coach-form" class="flex gap-2">
                             <input type="text" 
                                    id="modal-coach-input" 
-                                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" 
-                                   placeholder="Ask Coach Rally a question..."
+                                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-900" 
+                                   placeholder=""
+                                   value="How do I improve my serve?"
                                    autocomplete="off" 
                                    required>
                             <button type="submit" 
@@ -121,8 +78,8 @@
                         <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
                         <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
                     </div>
-                    <button id="refreshTip" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-full p-2 transition-all duration-200 shadow-md">
-                        <i class="fas fa-refresh"></i>
+                    <button id="refreshTip" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-lg px-3 py-2 transition-all duration-200 shadow-md text-sm font-medium">
+                        View Next Tip
                     </button>
                 </div>
                 
@@ -156,31 +113,78 @@
         </div>
         {% endif %}
 
+        <!-- Coach Rally Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-400 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-10 w-10">
+                        <i class="fas fa-user-graduate text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Coach Rally</h3>
+                        <p class="text-sm text-gray-500">Your AI-powered coach</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <!-- Chat Preview -->
+                <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                    <div class="text-sm text-gray-500 italic">Ask me anything about paddle tennis to improve your game...</div>
+                </div>
+                
+                <!-- Chat Input Form -->
+                <form id="paddle-coach-form" class="flex gap-2 mb-4">
+                    <input type="text" 
+                           id="paddle-coach-input" 
+                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" 
+                           placeholder=""
+                           value="How do I improve my serve?"
+                           autocomplete="off" 
+                           required>
+                    <button type="button" 
+                            id="paddle-coach-send-btn"
+                            class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+                
+                <div class="text-xs text-gray-500">
+                    <i class="fas fa-lightbulb mr-1"></i>
+                    Try:<br>
+                    - "How do I improve my volley"<br>
+                    - "What are effective blitzing strategies"
+                </div>
+            </div>
+        </div>
+
         <!-- Training Resources Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-1">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+            <div class="px-6 py-4 border-b border-rally-yellow bg-rally-gray">
+                <h2 class="text-lg font-semibold text-rally-teal flex items-center">
+                    <i class="fas fa-graduation-cap text-rally-teal mr-2"></i>
                     Training Resources
                 </h2>
             </div>
             
             <div class="p-6 space-y-4">
                 <!-- Video Library Card -->
-                <a href="/mobile/training-videos" class="block bg-white rounded-lg border border-gray-200 p-4 relative hover:shadow-md hover:border-red-300 transition-all duration-200">
+                <a href="/mobile/training-videos" class="block bg-white rounded-lg border-2 border-rally-yellow p-4 relative hover:shadow-lg hover:border-rally-teal transition-all duration-300 transform hover:scale-105">
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center">
-                            <i class="fas fa-video text-red-500 text-xl mr-2"></i>
+                            <i class="fas fa-video text-rally-teal text-xl mr-2"></i>
                             <span class="text-lg font-semibold text-gray-900">Training Video Library</span>
                         </div>
-                        <div class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full font-medium flex items-center">
+                        <div class="bg-rally-yellow text-rally-black text-xs px-3 py-1 rounded-full font-bold flex items-center shadow-sm">
                             <i class="fas fa-check mr-1"></i>
                             Available
                         </div>
                     </div>
                     <p class="text-gray-700 mb-4">Access our curated collection of training videos and tutorials to master your platform tennis game.</p>
-                    <div class="text-red-600 font-semibold flex items-center">
-                        Browse Videos <i class="fas fa-arrow-right ml-2"></i>
+                    <div class="bg-rally-teal text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center shadow-md hover:bg-rally-teal-dark transition-colors duration-200">
+                        <i class="fas fa-play mr-2"></i>
+                        Browse Videos
+                        <i class="fas fa-arrow-right ml-2"></i>
                     </div>
                 </a>
                 
@@ -349,9 +353,8 @@
     </div>
 </div>
 
-{% if paddle_tips %}
 <!-- Paddle Tips Data -->
-<script id="paddle-tips-data" type="application/json">{{ paddle_tips | tojson | safe }}</script>
+<script id="paddle-tips-data" type="application/json">{{ paddle_tips | tojson | safe if paddle_tips else '[]' }}</script>
 
 <script>
 let coachThreadId = null;
@@ -361,8 +364,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const paddleTips = paddleTipsScript ? JSON.parse(paddleTipsScript.textContent) : [];
     let currentTipIndex = -1;
     
+    // Debug logging
+    console.log('Paddle tips script element:', paddleTipsScript);
+    console.log('Paddle tips data:', paddleTips);
+    console.log('Number of tips:', paddleTips.length);
+    console.log('Raw script content:', paddleTipsScript ? paddleTipsScript.textContent : 'No script element');
+    
+    // Check if we have valid paddle tips data
+    if (paddleTips && paddleTips.length > 0) {
+        console.log('✅ Paddle tips loaded successfully:', paddleTips[0]);
+    } else {
+        console.log('❌ No paddle tips data available');
+    }
+    
+    // Set up input field behavior
+    const paddleCoachInput = document.getElementById('paddle-coach-input');
+    const modalCoachInput = document.getElementById('modal-coach-input');
+    if (paddleCoachInput) {
+        // Select all text when user focuses on input so they can easily replace it
+        paddleCoachInput.addEventListener('focus', function() {
+            this.select();
+        });
+    }
+    if (modalCoachInput) {
+        // Select all text when user focuses on input so they can easily replace it
+        modalCoachInput.addEventListener('focus', function() {
+            this.select();
+        });
+    }
+    
     function getRandomTip() {
-        if (paddleTips.length === 0) return null;
+        console.log('getRandomTip called, paddleTips.length:', paddleTips.length);
+        if (paddleTips.length === 0) {
+            console.log('No paddle tips available');
+            // Show a fallback message
+            displayFallbackTip();
+            return null;
+        }
         
         let newIndex;
         do {
@@ -370,11 +408,41 @@ document.addEventListener('DOMContentLoaded', function() {
         } while (newIndex === currentTipIndex && paddleTips.length > 1);
         
         currentTipIndex = newIndex;
+        console.log('Selected tip index:', newIndex, 'Tip:', paddleTips[newIndex]);
         return paddleTips[newIndex];
     }
     
+    function displayFallbackTip() {
+        console.log('Displaying fallback tip message');
+        const tipContainer = document.getElementById('tipContainer');
+        const tipHeader = document.getElementById('tipHeader');
+        const tipTitle = document.getElementById('tipTitle');
+        const tipMeta = document.getElementById('tipMeta');
+        const tipDescription = document.getElementById('tipDescription');
+        const tipDate = document.getElementById('tipDate');
+        const tipVideoLink = document.getElementById('tipVideoLink');
+        const tipImage = document.getElementById('tipImage');
+        const viewMoreTip = document.getElementById('viewMoreTip');
+        
+        if (tipHeader) tipHeader.textContent = 'Paddle Tips Coming Soon';
+        if (tipTitle) tipTitle.textContent = 'Training content is being prepared';
+        if (tipMeta) {
+            tipMeta.textContent = '';
+            tipMeta.style.display = 'none';
+        }
+        if (tipDescription) tipDescription.textContent = 'We\'re working on bringing you the best paddle tennis tips and techniques. Check back soon for expert advice to improve your game!';
+        if (tipDate) tipDate.textContent = '';
+        if (tipVideoLink) tipVideoLink.classList.add('hidden');
+        if (tipImage) tipImage.classList.add('hidden');
+        if (viewMoreTip) viewMoreTip.classList.add('hidden');
+    }
+
     function displayTip(tip) {
-        if (!tip) return;
+        console.log('displayTip called with tip:', tip);
+        if (!tip) {
+            console.log('No tip provided to displayTip');
+            return;
+        }
         
         const tipContainer = document.getElementById('tipContainer');
         const tipHeader = document.getElementById('tipHeader');
@@ -386,7 +454,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const tipImage = document.getElementById('tipImage');
         const viewMoreTip = document.getElementById('viewMoreTip');
         
+        console.log('Tip elements found:', {
+            tipContainer: !!tipContainer,
+            tipHeader: !!tipHeader,
+            tipTitle: !!tipTitle,
+            tipMeta: !!tipMeta,
+            tipDescription: !!tipDescription,
+            tipDate: !!tipDate,
+            tipVideoLink: !!tipVideoLink,
+            tipImage: !!tipImage,
+            viewMoreTip: !!viewMoreTip
+        });
+        
         if (!tipContainer || !tipTitle || !tipMeta || !tipDescription || !tipDate || !tipVideoLink) {
+            console.log('Missing required tip elements');
             return;
         }
         
@@ -620,20 +701,27 @@ document.addEventListener('DOMContentLoaded', function() {
         return formatted;
     }
     
-    // Initialize with first tip
-    rotateToNextTip();
+    // Initialize with first tip only if paddle tips are available
+    // Add a small delay to ensure all DOM elements are ready
+    setTimeout(() => {
+        if (paddleTips.length > 0) {
+            console.log('Initializing with paddle tips...');
+            rotateToNextTip();
+        } else {
+            console.log('No paddle tips available, showing fallback...');
+            displayFallbackTip();
+        }
+    }, 100);
     
     // Set up refresh button
     const refreshButton = document.getElementById('refreshTip');
     if (refreshButton) {
         refreshButton.addEventListener('click', function() {
-            // Add rotation animation
-            refreshButton.style.transform = 'rotate(360deg)';
-            setTimeout(function() {
-                refreshButton.style.transform = 'rotate(0deg)';
-            }, 300);
-            
-            rotateToNextTip();
+            if (paddleTips.length > 0) {
+                rotateToNextTip();
+            } else {
+                displayFallbackTip();
+            }
         });
     }
     
@@ -641,11 +729,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const viewMoreButton = document.getElementById('viewMoreTip');
     if (viewMoreButton) {
         viewMoreButton.addEventListener('click', function() {
-            const tipNumber = this.getAttribute('data-tip-number');
-            const tipName = this.getAttribute('data-tip-name');
-            
-            // Create modal or expanded view
-            showTipModal(paddleTips.find(tip => tip.number == tipNumber));
+            if (paddleTips.length > 0) {
+                const tipNumber = this.getAttribute('data-tip-number');
+                const tipName = this.getAttribute('data-tip-name');
+                
+                // Create modal or expanded view
+                showTipModal(paddleTips.find(tip => tip.number == tipNumber));
+            }
         });
     }
     
@@ -655,8 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatPreview = document.getElementById('chat-preview');
     const paddleCoachForm = document.getElementById('paddle-coach-form');
     const modalCoachForm = document.getElementById('modal-coach-form');
-    const paddleCoachInput = document.getElementById('paddle-coach-input');
-    const modalCoachInput = document.getElementById('modal-coach-input');
+    // paddleCoachInput and modalCoachInput already declared above
     const paddleCoachMessages = document.getElementById('paddle-coach-messages');
 
     // Show modal when clicking the chat preview or submitting the main form
@@ -668,21 +757,37 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.height = '100%';
     });
 
-    paddleCoachForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const message = paddleCoachInput.value.trim();
-        if (message) {
-            coachRallyModal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            document.body.style.position = 'fixed';
-            document.body.style.width = '100%';
-            document.body.style.height = '100%';
-            modalCoachInput.value = message;
-            handleCoachMessage(message);
-            paddleCoachInput.value = '';
-            modalCoachInput.value = '';
-        }
-    });
+    // Handle main form button click
+    const paddleCoachSendBtn = document.getElementById('paddle-coach-send-btn');
+    if (paddleCoachSendBtn) {
+        paddleCoachSendBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const message = paddleCoachInput.value.trim();
+            if (message) {
+                coachRallyModal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+                document.body.style.height = '100%';
+                modalCoachInput.value = message;
+                handleCoachMessage(message);
+                
+                // Always clear input fields after sending
+                paddleCoachInput.value = '';
+                modalCoachInput.value = '';
+            }
+        });
+    }
+    
+    // Also handle Enter key in the input field
+    if (paddleCoachInput) {
+        paddleCoachInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                paddleCoachSendBtn.click();
+            }
+        });
+    }
 
     // Close modal
     closeModalBtn.addEventListener('click', () => {
@@ -722,10 +827,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const message = modalCoachInput.value.trim();
         if (message) {
             handleCoachMessage(message);
+            
+            // Always clear input fields after sending
             modalCoachInput.value = '';
             paddleCoachInput.value = '';
         }
     });
+    
+    // Also handle Enter key in modal input
+    if (modalCoachInput) {
+        modalCoachInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                modalCoachForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    }
 
     // Update chat preview with latest message
     function updateChatPreview(message) {
@@ -748,8 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         paddleCoachMessages.appendChild(userMessageDiv);
         
-        // Scroll to bottom to show the new user message
-        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollHeight;
+        // Don't scroll here - wait for final response scroll
         
         // Update preview
         updateChatPreview(message);
@@ -771,12 +887,12 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         paddleCoachMessages.appendChild(loadingDiv);
         
-        // Scroll to show the "Coach Rally is thinking..." message
+        // First scroll: Show the "Coach Rally is thinking..." message
         setTimeout(() => {
             const loadingBubble = loadingDiv.querySelector('.imessage-loading-bubble');
             if (loadingBubble) {
                 loadingBubble.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // Adjust scroll position by 15px less to show some space above
+                // Adjust scroll position to show some space above
                 setTimeout(() => {
                     paddleCoachMessages.scrollTop = paddleCoachMessages.scrollTop - 15;
                 }, 300);
@@ -796,24 +912,32 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
-            // Remove loading state
-            paddleCoachMessages.removeChild(loadingDiv);
+            // Handle thinking delay if present
+            const thinkingDelay = data.thinking_delay || 0;
             
-            if (data.error) {
-                // Show error in chat
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'flex justify-start mb-3';
-                errorDiv.innerHTML = `
-                    <div class="bg-red-100 text-red-700 rounded-2xl py-3 px-4 max-w-[80%] shadow-sm">
-                        <div class="text-sm">${escapeHtml(data.error)}</div>
-                    </div>
-                `;
-                paddleCoachMessages.appendChild(errorDiv);
-                return;
-            }
+            setTimeout(() => {
+                // Remove loading state
+                paddleCoachMessages.removeChild(loadingDiv);
+                
+                if (data.error) {
+                    // Show error in chat
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'flex justify-start mb-3';
+                    errorDiv.innerHTML = `
+                        <div class="bg-red-100 text-red-700 rounded-2xl py-3 px-4 max-w-[80%] shadow-sm">
+                            <div class="text-sm">${escapeHtml(data.error)}</div>
+                        </div>
+                    `;
+                    paddleCoachMessages.appendChild(errorDiv);
+                    return;
+                }
             // Format the response and extract follow-up question
             const formattedResponse = formatCoachResponse(data.response);
             const followupQuestion = extractFollowupQuestion(data.response);
+            
+            // Debug logging
+            console.log('Original response:', data.response);
+            console.log('Extracted followup question:', followupQuestion);
             
             // Add main coach response (without follow-up question)
             const coachMessageDiv = document.createElement('div');
@@ -826,17 +950,39 @@ document.addEventListener('DOMContentLoaded', function() {
             
             paddleCoachMessages.appendChild(coachMessageDiv);
             
-            // Scroll to show the top of the newly added coach response
+            // Always add follow-up question if it exists, regardless of video search
+            if (followupQuestion) {
+                setTimeout(() => {
+                    const followupDiv = document.createElement('div');
+                    followupDiv.className = 'flex justify-start mb-3';
+                    followupDiv.innerHTML = `
+                        <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-followup-bubble">
+                            <div class="flex items-start space-x-2">
+                                <div class="text-sm leading-relaxed">
+                                    <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                    <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    paddleCoachMessages.appendChild(followupDiv);
+                    
+                    // Don't scroll here - final scroll will handle positioning
+                }, 500); // Small delay to separate from main response
+            }
+            
+            // Second scroll: Show the top of the coach response
+            // Wait for all content (including follow-up questions) to load
             setTimeout(() => {
                 const coachBubble = coachMessageDiv.querySelector('.imessage-coach-bubble');
                 if (coachBubble) {
                     coachBubble.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    // Adjust scroll position by 20px less
+                    // Adjust scroll position to show more space above the response
                     setTimeout(() => {
-                        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollTop - 20;
+                        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollTop - 30;
                     }, 300);
                 }
-            }, 100);
+            }, 1200); // Wait for all content including follow-up questions to load
             
             // Check if response already contains training data/videos to avoid duplication
             const responseText = data.response || '';
@@ -870,8 +1016,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                         paddleCoachMessages.appendChild(followupDiv);
                         
-                        // Smart scroll: show the top of the coach response with 25px buffer from user message
-                        paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                        // Don't override the main response scroll - let it handle positioning
                     }, 800);
                 }
             }
@@ -880,6 +1025,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.thread_id) {
                 coachThreadId = data.thread_id;
             }
+            }, thinkingDelay * 1000); // Convert seconds to milliseconds
         })
         .catch(error => {
             console.error('Error:', error);
@@ -909,6 +1055,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper: Format coach response with sections and inline video
     function formatCoachResponse(response) {
         if (!response) return '';
+        
+        // Remove the "working on detailed response" text and variations
+        response = response.replace(/Hey there! I'm working on a detailed response for you, but I want to get back to you quickly!\s*/g, '');
+        response = response.replace(/I'm working on a detailed response for you, but I want to get back to you quickly!\s*/g, '');
+        response = response.replace(/Hey there! I'm working on.*?quickly!\s*/g, '');
         
         // Remove follow-up question from the response since it will be displayed separately
         const followupQuestion = extractFollowupQuestion(response);
@@ -1086,15 +1237,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Helper: Extract follow-up question from response
     function extractFollowupQuestion(response) {
         if (!response) return null;
-        // Split response into lines
+        
+        // First try to find questions in multi-line responses
         const lines = response.split('\n');
-        // Find the last line that ends with a question mark
         for (let i = lines.length - 1; i >= 0; i--) {
             const line = lines[i].trim();
             if (line.endsWith('?')) {
                 return line;
             }
         }
+        
+        // If no line breaks, look for the last sentence ending with a question mark
+        const sentences = response.split(/[.!]/);
+        for (let i = sentences.length - 1; i >= 0; i--) {
+            const sentence = sentences[i].trim();
+            if (sentence.endsWith('?')) {
+                return sentence;
+            }
+        }
+        
+        // If still no question found, look for any question mark in the response
+        const questionMatch = response.match(/[^.!]*\?/g);
+        if (questionMatch && questionMatch.length > 0) {
+            return questionMatch[questionMatch.length - 1].trim();
+        }
+        
         return null;
     }
 
@@ -1152,8 +1319,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     paddleCoachMessages.appendChild(videoBubble);
                     
-                    // Smart scroll: show the top of the coach response with 25px buffer from user message
-                    paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                    // Don't override the main response scroll - let it handle positioning
                     
                     // Add follow-up question after video if it exists
                     if (followupQuestion) {
@@ -1175,8 +1341,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                             paddleCoachMessages.appendChild(followupDiv);
                             
-                            // Smart scroll: show the top of the coach response with 25px buffer from user message
-                            paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                            // Don't scroll here - final scroll will handle positioning
                         }, 600);
                     }
                 }, 400);
@@ -1201,8 +1366,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                         paddleCoachMessages.appendChild(followupDiv);
                         
-                        // Smart scroll: show the top of the coach response with 25px buffer from user message
-                        paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                        // Don't override the main response scroll - let it handle positioning
                     }, 800);
                 }
             }
@@ -1229,8 +1393,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     paddleCoachMessages.appendChild(followupDiv);
                     
-                    // Smart scroll: show the top of the coach response with 25px buffer from user message
-                    paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                    // Don't override the main response scroll - let it handle positioning
                 }, 800);
             }
         });
@@ -1711,6 +1874,5 @@ document.addEventListener('DOMContentLoaded', function() {
     font-weight: 500;
 }
 </style>
-{% endif %}
 
 {% endblock %} 

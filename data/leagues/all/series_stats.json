@@ -8341,61 +8341,61 @@
   },
   {
     "series": "Series 1",
-    "team": "Wilmette S1 T1",
+    "team": "Wilmette S1 T2",
     "league_id": "NSTF",
-    "points": 71,
+    "points": 97,
     "matches": {
-      "won": 4,
-      "lost": 3,
+      "won": 8,
+      "lost": 1,
       "tied": 0,
-      "percentage": "57.1%"
+      "percentage": "88.9%"
     },
     "lines": {
-      "won": 23,
+      "won": 31,
       "lost": 11,
       "for": 0,
       "ret": 0,
-      "percentage": "67.6%"
+      "percentage": "73.8%"
     },
     "sets": {
-      "won": 48,
-      "lost": 23,
-      "percentage": "67.6%"
+      "won": 61,
+      "lost": 27,
+      "percentage": "69.3%"
     },
     "games": {
-      "won": 378,
-      "lost": 265,
-      "percentage": "58.8%"
+      "won": 434,
+      "lost": 327,
+      "percentage": "57.0%"
     },
     "source_league": "NSTF"
   },
   {
     "series": "Series 1",
-    "team": "Wilmette S1 T2",
+    "team": "Wilmette S1 T1",
     "league_id": "NSTF",
-    "points": 70,
+    "points": 88,
     "matches": {
-      "won": 6,
-      "lost": 1,
+      "won": 5,
+      "lost": 4,
       "tied": 0,
-      "percentage": "85.7%"
+      "percentage": "55.6%"
     },
     "lines": {
-      "won": 22,
-      "lost": 10,
+      "won": 28,
+      "lost": 16,
       "for": 0,
       "ret": 0,
-      "percentage": "68.8%"
+      "percentage": "63.6%"
     },
     "sets": {
-      "won": 43,
-      "lost": 22,
-      "percentage": "66.2%"
+      "won": 60,
+      "lost": 33,
+      "percentage": "64.5%"
     },
     "games": {
-      "won": 310,
-      "lost": 238,
-      "percentage": "56.6%"
+      "won": 497,
+      "lost": 375,
+      "percentage": "57.0%"
     },
     "source_league": "NSTF"
   },
@@ -8403,29 +8403,29 @@
     "series": "Series 1",
     "team": "Birchwood S1",
     "league_id": "NSTF",
-    "points": 57,
+    "points": 72,
     "matches": {
-      "won": 4,
-      "lost": 3,
+      "won": 5,
+      "lost": 4,
       "tied": 0,
-      "percentage": "57.1%"
+      "percentage": "55.6%"
     },
     "lines": {
-      "won": 18,
-      "lost": 16,
+      "won": 23,
+      "lost": 21,
       "for": 0,
       "ret": 0,
-      "percentage": "52.9%"
+      "percentage": "52.3%"
     },
     "sets": {
-      "won": 37,
-      "lost": 41,
-      "percentage": "47.4%"
+      "won": 47,
+      "lost": 53,
+      "percentage": "47.0%"
     },
     "games": {
-      "won": 334,
-      "lost": 377,
-      "percentage": "47.0%"
+      "won": 444,
+      "lost": 496,
+      "percentage": "47.2%"
     },
     "source_league": "NSTF"
   },
@@ -8433,29 +8433,29 @@
     "series": "Series 1",
     "team": "Tennaqua S1",
     "league_id": "NSTF",
-    "points": 52,
+    "points": 53,
     "matches": {
       "won": 3,
-      "lost": 4,
+      "lost": 5,
       "tied": 1,
-      "percentage": "37.5%"
+      "percentage": "33.3%"
     },
     "lines": {
       "won": 11,
-      "lost": 20,
+      "lost": 25,
       "for": 0,
       "ret": 0,
-      "percentage": "35.5%"
+      "percentage": "30.6%"
     },
     "sets": {
-      "won": 30,
-      "lost": 44,
-      "percentage": "40.5%"
+      "won": 31,
+      "lost": 54,
+      "percentage": "36.5%"
     },
     "games": {
-      "won": 314,
-      "lost": 364,
-      "percentage": "46.3%"
+      "won": 339,
+      "lost": 426,
+      "percentage": "44.3%"
     },
     "source_league": "NSTF"
   },
@@ -8463,29 +8463,29 @@
     "series": "Series 1",
     "team": "Lake Forest  S1",
     "league_id": "NSTF",
-    "points": 34,
+    "points": 39,
     "matches": {
       "won": 0,
-      "lost": 6,
+      "lost": 7,
       "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
-      "won": 6,
-      "lost": 23,
+      "won": 7,
+      "lost": 27,
       "for": 0,
       "ret": 0,
-      "percentage": "20.7%"
+      "percentage": "20.6%"
     },
     "sets": {
-      "won": 17,
-      "lost": 45,
-      "percentage": "27.4%"
+      "won": 21,
+      "lost": 53,
+      "percentage": "28.4%"
     },
     "games": {
-      "won": 217,
-      "lost": 309,
-      "percentage": "41.3%"
+      "won": 281,
+      "lost": 371,
+      "percentage": "43.1%"
     },
     "source_league": "NSTF"
   },
@@ -8523,29 +8523,29 @@
     "series": "Series 3",
     "team": "Valley Lo S3",
     "league_id": "NSTF",
-    "points": 123,
+    "points": 135,
     "matches": {
-      "won": 9,
+      "won": 10,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 41,
-      "lost": 3,
+      "won": 45,
+      "lost": 4,
       "for": 0,
       "ret": 0,
-      "percentage": "93.2%"
+      "percentage": "91.8%"
     },
     "sets": {
-      "won": 78,
+      "won": 84,
       "lost": 11,
-      "percentage": "87.6%"
+      "percentage": "88.4%"
     },
     "games": {
-      "won": 528,
-      "lost": 220,
-      "percentage": "70.6%"
+      "won": 564,
+      "lost": 231,
+      "percentage": "70.9%"
     },
     "source_league": "NSTF"
   },
@@ -8553,29 +8553,59 @@
     "series": "Series 3",
     "team": "Lake Forest S3",
     "league_id": "NSTF",
-    "points": 78,
+    "points": 81,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
-      "won": 26,
-      "lost": 19,
+      "won": 27,
+      "lost": 23,
       "for": 0,
       "ret": 0,
-      "percentage": "57.8%"
+      "percentage": "54.0%"
     },
     "sets": {
       "won": 49,
-      "lost": 34,
-      "percentage": "59.0%"
+      "lost": 40,
+      "percentage": "55.1%"
     },
     "games": {
-      "won": 404,
-      "lost": 320,
-      "percentage": "55.8%"
+      "won": 415,
+      "lost": 356,
+      "percentage": "53.8%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 3",
+    "team": "Birchwood S3",
+    "league_id": "NSTF",
+    "points": 70,
+    "matches": {
+      "won": 4,
+      "lost": 6,
+      "tied": 0,
+      "percentage": "40.0%"
+    },
+    "lines": {
+      "won": 22,
+      "lost": 28,
+      "for": 0,
+      "ret": 0,
+      "percentage": "44.0%"
+    },
+    "sets": {
+      "won": 35,
+      "lost": 50,
+      "percentage": "41.2%"
+    },
+    "games": {
+      "won": 328,
+      "lost": 397,
+      "percentage": "45.2%"
     },
     "source_league": "NSTF"
   },
@@ -8586,56 +8616,26 @@
     "points": 67,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
       "won": 20,
-      "lost": 21,
+      "lost": 26,
       "for": 0,
       "ret": 0,
-      "percentage": "48.8%"
+      "percentage": "43.5%"
     },
     "sets": {
       "won": 40,
-      "lost": 33,
-      "percentage": "54.8%"
+      "lost": 43,
+      "percentage": "48.2%"
     },
     "games": {
       "won": 355,
-      "lost": 325,
-      "percentage": "52.2%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 3",
-    "team": "Birchwood S3",
-    "league_id": "NSTF",
-    "points": 55,
-    "matches": {
-      "won": 3,
-      "lost": 5,
-      "tied": 0,
-      "percentage": "37.5%"
-    },
-    "lines": {
-      "won": 17,
-      "lost": 23,
-      "for": 0,
-      "ret": 0,
-      "percentage": "42.5%"
-    },
-    "sets": {
-      "won": 25,
-      "lost": 43,
-      "percentage": "36.8%"
-    },
-    "games": {
-      "won": 260,
-      "lost": 341,
-      "percentage": "43.3%"
+      "lost": 385,
+      "percentage": "48.0%"
     },
     "source_league": "NSTF"
   },
@@ -8643,29 +8643,29 @@
     "series": "Series 3",
     "team": "Skokie S3",
     "league_id": "NSTF",
-    "points": 40,
+    "points": 56,
     "matches": {
-      "won": 2,
-      "lost": 6,
+      "won": 3,
+      "lost": 7,
       "tied": 0,
-      "percentage": "25.0%"
+      "percentage": "30.0%"
     },
     "lines": {
-      "won": 12,
-      "lost": 26,
+      "won": 17,
+      "lost": 31,
       "for": 0,
       "ret": 0,
-      "percentage": "31.6%"
+      "percentage": "35.4%"
     },
     "sets": {
-      "won": 31,
-      "lost": 57,
-      "percentage": "35.2%"
+      "won": 38,
+      "lost": 67,
+      "percentage": "36.2%"
     },
     "games": {
-      "won": 347,
-      "lost": 468,
-      "percentage": "42.6%"
+      "won": 403,
+      "lost": 536,
+      "percentage": "42.9%"
     },
     "source_league": "NSTF"
   },
@@ -8673,29 +8673,29 @@
     "series": "Series 3",
     "team": "Tennaqua S3",
     "league_id": "NSTF",
-    "points": 35,
+    "points": 50,
     "matches": {
-      "won": 0,
+      "won": 1,
       "lost": 9,
       "tied": 0,
-      "percentage": "0.0%"
+      "percentage": "10.0%"
     },
     "lines": {
-      "won": 10,
+      "won": 15,
       "lost": 34,
       "for": 0,
       "ret": 0,
-      "percentage": "22.7%"
+      "percentage": "30.6%"
     },
     "sets": {
-      "won": 22,
+      "won": 32,
       "lost": 67,
-      "percentage": "24.7%"
+      "percentage": "32.3%"
     },
     "games": {
-      "won": 271,
+      "won": 331,
       "lost": 491,
-      "percentage": "35.6%"
+      "percentage": "40.3%"
     },
     "source_league": "NSTF"
   },
@@ -8823,29 +8823,29 @@
     "series": "Series 2A",
     "team": "Midtown S2A",
     "league_id": "NSTF",
-    "points": 109,
+    "points": 124,
     "matches": {
-      "won": 9,
+      "won": 10,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 35,
+      "won": 40,
       "lost": 10,
       "for": 0,
       "ret": 0,
-      "percentage": "77.8%"
+      "percentage": "80.0%"
     },
     "sets": {
-      "won": 73,
+      "won": 83,
       "lost": 28,
-      "percentage": "72.3%"
+      "percentage": "74.8%"
     },
     "games": {
-      "won": 550,
+      "won": 610,
       "lost": 339,
-      "percentage": "61.9%"
+      "percentage": "64.3%"
     },
     "source_league": "NSTF"
   },
@@ -8853,29 +8853,29 @@
     "series": "Series 2A",
     "team": "Tennaqua S2A",
     "league_id": "NSTF",
-    "points": 107,
+    "points": 122,
     "matches": {
-      "won": 7,
+      "won": 8,
       "lost": 2,
       "tied": 0,
-      "percentage": "77.8%"
+      "percentage": "80.0%"
     },
     "lines": {
-      "won": 34,
+      "won": 39,
       "lost": 11,
       "for": 0,
       "ret": 0,
-      "percentage": "75.6%"
+      "percentage": "78.0%"
     },
     "sets": {
-      "won": 73,
+      "won": 83,
       "lost": 27,
-      "percentage": "73.0%"
+      "percentage": "75.5%"
     },
     "games": {
-      "won": 485,
-      "lost": 340,
-      "percentage": "58.8%"
+      "won": 545,
+      "lost": 360,
+      "percentage": "60.2%"
     },
     "source_league": "NSTF"
   },
@@ -8886,26 +8886,26 @@
     "points": 79,
     "matches": {
       "won": 6,
-      "lost": 3,
+      "lost": 4,
       "tied": 0,
-      "percentage": "66.7%"
+      "percentage": "60.0%"
     },
     "lines": {
       "won": 24,
-      "lost": 21,
+      "lost": 26,
       "for": 0,
       "ret": 0,
-      "percentage": "53.3%"
+      "percentage": "48.0%"
     },
     "sets": {
       "won": 49,
-      "lost": 43,
-      "percentage": "53.3%"
+      "lost": 53,
+      "percentage": "48.0%"
     },
     "games": {
-      "won": 446,
-      "lost": 378,
-      "percentage": "54.1%"
+      "won": 466,
+      "lost": 438,
+      "percentage": "51.5%"
     },
     "source_league": "NSTF"
   },
@@ -8913,29 +8913,29 @@
     "series": "Series 2A",
     "team": "Skokie S2A",
     "league_id": "NSTF",
-    "points": 34,
+    "points": 51,
     "matches": {
-      "won": 1,
-      "lost": 6,
-      "tied": 0,
-      "percentage": "14.3%"
+      "won": 2,
+      "lost": 7,
+      "tied": 1,
+      "percentage": "20.0%"
     },
     "lines": {
-      "won": 10,
-      "lost": 25,
+      "won": 17,
+      "lost": 31,
       "for": 0,
       "ret": 0,
-      "percentage": "28.6%"
+      "percentage": "35.4%"
     },
     "sets": {
-      "won": 24,
-      "lost": 51,
-      "percentage": "32.0%"
+      "won": 34,
+      "lost": 57,
+      "percentage": "37.4%"
     },
     "games": {
-      "won": 240,
-      "lost": 382,
-      "percentage": "38.6%"
+      "won": 325,
+      "lost": 443,
+      "percentage": "42.3%"
     },
     "source_league": "NSTF"
   },
@@ -8943,29 +8943,29 @@
     "series": "Series 2A",
     "team": "Northmoor S2A",
     "league_id": "NSTF",
-    "points": 27,
+    "points": 39,
     "matches": {
-      "won": 0,
+      "won": 2,
       "lost": 7,
-      "tied": 0,
-      "percentage": "0.0%"
+      "tied": 1,
+      "percentage": "20.0%"
     },
     "lines": {
-      "won": 8,
-      "lost": 26,
+      "won": 14,
+      "lost": 30,
       "for": 0,
       "ret": 0,
-      "percentage": "23.5%"
+      "percentage": "31.8%"
     },
     "sets": {
-      "won": 18,
-      "lost": 56,
-      "percentage": "24.3%"
+      "won": 24,
+      "lost": 60,
+      "percentage": "28.6%"
     },
     "games": {
-      "won": 256,
-      "lost": 418,
-      "percentage": "38.0%"
+      "won": 309,
+      "lost": 456,
+      "percentage": "40.4%"
     },
     "source_league": "NSTF"
   },
@@ -8973,29 +8973,29 @@
     "series": "Series 2A",
     "team": "Exmoor S2A",
     "league_id": "NSTF",
-    "points": 26,
+    "points": 32,
     "matches": {
       "won": 1,
-      "lost": 6,
+      "lost": 9,
       "tied": 0,
-      "percentage": "14.3%"
+      "percentage": "10.0%"
     },
     "lines": {
-      "won": 8,
-      "lost": 26,
+      "won": 10,
+      "lost": 36,
       "for": 0,
       "ret": 0,
-      "percentage": "23.5%"
+      "percentage": "21.7%"
     },
     "sets": {
-      "won": 17,
-      "lost": 49,
-      "percentage": "25.8%"
+      "won": 21,
+      "lost": 69,
+      "percentage": "23.3%"
     },
     "games": {
-      "won": 185,
-      "lost": 305,
-      "percentage": "37.8%"
+      "won": 224,
+      "lost": 443,
+      "percentage": "33.6%"
     },
     "source_league": "NSTF"
   },
@@ -9003,89 +9003,29 @@
     "series": "Series 2B",
     "team": "Wilmette S2B",
     "league_id": "NSTF",
-    "points": 93,
+    "points": 108,
     "matches": {
-      "won": 7,
+      "won": 8,
       "lost": 0,
       "tied": 0,
       "percentage": "100.0%"
     },
     "lines": {
-      "won": 31,
+      "won": 36,
       "lost": 4,
       "for": 0,
       "ret": 0,
-      "percentage": "88.6%"
+      "percentage": "90.0%"
     },
     "sets": {
-      "won": 61,
+      "won": 71,
       "lost": 11,
-      "percentage": "84.7%"
+      "percentage": "86.6%"
     },
     "games": {
-      "won": 408,
-      "lost": 187,
-      "percentage": "68.6%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 2B",
-    "team": "Lake Forest S2B",
-    "league_id": "NSTF",
-    "points": 70,
-    "matches": {
-      "won": 5,
-      "lost": 3,
-      "tied": 0,
-      "percentage": "62.5%"
-    },
-    "lines": {
-      "won": 22,
-      "lost": 18,
-      "for": 0,
-      "ret": 0,
-      "percentage": "55.0%"
-    },
-    "sets": {
-      "won": 45,
-      "lost": 40,
-      "percentage": "52.9%"
-    },
-    "games": {
-      "won": 361,
-      "lost": 342,
-      "percentage": "51.4%"
-    },
-    "source_league": "NSTF"
-  },
-  {
-    "series": "Series 2B",
-    "team": "Ravinia Green S2B",
-    "league_id": "NSTF",
-    "points": 65,
-    "matches": {
-      "won": 5,
-      "lost": 3,
-      "tied": 0,
-      "percentage": "62.5%"
-    },
-    "lines": {
-      "won": 21,
-      "lost": 19,
-      "for": 0,
-      "ret": 0,
-      "percentage": "52.5%"
-    },
-    "sets": {
-      "won": 40,
-      "lost": 42,
-      "percentage": "48.8%"
-    },
-    "games": {
-      "won": 379,
-      "lost": 390,
-      "percentage": "49.3%"
+      "won": 469,
+      "lost": 207,
+      "percentage": "69.4%"
     },
     "source_league": "NSTF"
   },
@@ -9093,29 +9033,89 @@
     "series": "Series 2B",
     "team": "Birchwood S2B",
     "league_id": "NSTF",
-    "points": 60,
+    "points": 83,
     "matches": {
-      "won": 4,
+      "won": 6,
       "lost": 4,
+      "tied": 0,
+      "percentage": "60.0%"
+    },
+    "lines": {
+      "won": 26,
+      "lost": 22,
+      "for": 0,
+      "ret": 0,
+      "percentage": "54.2%"
+    },
+    "sets": {
+      "won": 57,
+      "lost": 46,
+      "percentage": "55.3%"
+    },
+    "games": {
+      "won": 484,
+      "lost": 445,
+      "percentage": "52.1%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 2B",
+    "team": "Ravinia Green S2B",
+    "league_id": "NSTF",
+    "points": 80,
+    "matches": {
+      "won": 6,
+      "lost": 3,
+      "tied": 0,
+      "percentage": "66.7%"
+    },
+    "lines": {
+      "won": 26,
+      "lost": 19,
+      "for": 0,
+      "ret": 0,
+      "percentage": "57.8%"
+    },
+    "sets": {
+      "won": 50,
+      "lost": 42,
+      "percentage": "54.3%"
+    },
+    "games": {
+      "won": 439,
+      "lost": 404,
+      "percentage": "52.1%"
+    },
+    "source_league": "NSTF"
+  },
+  {
+    "series": "Series 2B",
+    "team": "Lake Forest S2B",
+    "league_id": "NSTF",
+    "points": 78,
+    "matches": {
+      "won": 5,
+      "lost": 5,
       "tied": 0,
       "percentage": "50.0%"
     },
     "lines": {
-      "won": 19,
-      "lost": 20,
+      "won": 24,
+      "lost": 25,
       "for": 0,
       "ret": 0,
-      "percentage": "48.7%"
+      "percentage": "49.0%"
     },
     "sets": {
-      "won": 41,
-      "lost": 40,
-      "percentage": "50.6%"
+      "won": 51,
+      "lost": 56,
+      "percentage": "47.7%"
     },
     "games": {
-      "won": 369,
-      "lost": 366,
-      "percentage": "50.2%"
+      "won": 440,
+      "lost": 457,
+      "percentage": "49.1%"
     },
     "source_league": "NSTF"
   },
@@ -9126,26 +9126,26 @@
     "points": 58,
     "matches": {
       "won": 3,
-      "lost": 5,
+      "lost": 6,
       "tied": 0,
-      "percentage": "37.5%"
+      "percentage": "33.3%"
     },
     "lines": {
       "won": 18,
-      "lost": 22,
+      "lost": 27,
       "for": 0,
       "ret": 0,
-      "percentage": "45.0%"
+      "percentage": "40.0%"
     },
     "sets": {
       "won": 39,
-      "lost": 46,
-      "percentage": "45.9%"
+      "lost": 56,
+      "percentage": "41.1%"
     },
     "games": {
-      "won": 382,
-      "lost": 409,
-      "percentage": "48.3%"
+      "won": 402,
+      "lost": 470,
+      "percentage": "46.1%"
     },
     "source_league": "NSTF"
   },
@@ -9156,32 +9156,32 @@
     "points": 35,
     "matches": {
       "won": 0,
-      "lost": 9,
+      "lost": 10,
       "tied": 0,
       "percentage": "0.0%"
     },
     "lines": {
       "won": 8,
-      "lost": 36,
+      "lost": 41,
       "for": 0,
       "ret": 0,
-      "percentage": "18.2%"
+      "percentage": "16.3%"
     },
     "sets": {
       "won": 26,
-      "lost": 73,
-      "percentage": "26.3%"
+      "lost": 83,
+      "percentage": "23.9%"
     },
     "games": {
-      "won": 304,
-      "lost": 509,
-      "percentage": "37.4%"
+      "won": 318,
+      "lost": 569,
+      "percentage": "35.9%"
     },
     "source_league": "NSTF"
   },
   {
-    "series": "Chicago 1",
-    "team": "Glenbrook RC - 1",
+    "series": "Series 1",
+    "team": "Glenbrook RC 1",
     "league_id": "APTA_CHICAGO",
     "points": 147,
     "matches": {
@@ -9210,8 +9210,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 1",
-    "team": "Winnetka - 1",
+    "series": "Series 1",
+    "team": "Winnetka 1",
     "league_id": "APTA_CHICAGO",
     "points": 131,
     "matches": {
@@ -9240,8 +9240,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 1",
-    "team": "Glen Ellyn - 1",
+    "series": "Series 1",
+    "team": "Glen Ellyn 1",
     "league_id": "APTA_CHICAGO",
     "points": 125,
     "matches": {
@@ -9270,8 +9270,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 1",
-    "team": "Glen View - 1",
+    "series": "Series 1",
+    "team": "Glen View 1",
     "league_id": "APTA_CHICAGO",
     "points": 111,
     "matches": {
@@ -9300,8 +9300,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 1",
-    "team": "Lifesport-Lshire - 1",
+    "series": "Series 1",
+    "team": "Lifesport-Lshire 1",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -9330,8 +9330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 1",
-    "team": "Wilmette PD - 1",
+    "series": "Series 1",
+    "team": "Wilmette PD 1",
     "league_id": "APTA_CHICAGO",
     "points": 99,
     "matches": {
@@ -9360,8 +9360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Sunset Ridge - 2",
+    "series": "Series 2",
+    "team": "Sunset Ridge 2",
     "league_id": "APTA_CHICAGO",
     "points": 150,
     "matches": {
@@ -9390,8 +9390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Winnetka - 2",
+    "series": "Series 2",
+    "team": "Winnetka 2",
     "league_id": "APTA_CHICAGO",
     "points": 135,
     "matches": {
@@ -9420,8 +9420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Lakeshore S&F - 2",
+    "series": "Series 2",
+    "team": "Lakeshore S&F 2",
     "league_id": "APTA_CHICAGO",
     "points": 129,
     "matches": {
@@ -9450,8 +9450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Hinsdale PC - 2",
+    "series": "Series 2",
+    "team": "Hinsdale PC 2",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -9480,8 +9480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Westmoreland - 2",
+    "series": "Series 2",
+    "team": "Westmoreland 2",
     "league_id": "APTA_CHICAGO",
     "points": 122,
     "matches": {
@@ -9510,8 +9510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Wilmette PD I - 2",
+    "series": "Series 2",
+    "team": "Wilmette PD I 2",
     "league_id": "APTA_CHICAGO",
     "points": 121,
     "matches": {
@@ -9540,8 +9540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Michigan Shores - 2",
+    "series": "Series 2",
+    "team": "Michigan Shores 2",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -9570,8 +9570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Valley Lo - 2",
+    "series": "Series 2",
+    "team": "Valley Lo 2",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -9600,8 +9600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Birchwood - 2",
+    "series": "Series 2",
+    "team": "Birchwood 2",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -9630,8 +9630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Salt Creek - 2",
+    "series": "Series 2",
+    "team": "Salt Creek 2",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -9660,8 +9660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Knollwood - 2",
+    "series": "Series 2",
+    "team": "Knollwood 2",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -9690,8 +9690,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 2",
-    "team": "Wilmette PD II - 2",
+    "series": "Series 2",
+    "team": "Wilmette PD II 2",
     "league_id": "APTA_CHICAGO",
     "points": 66,
     "matches": {
@@ -9720,8 +9720,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Saddle & Cycle - 3",
+    "series": "Series 3",
+    "team": "Saddle & Cycle 3",
     "league_id": "APTA_CHICAGO",
     "points": 156,
     "matches": {
@@ -9750,8 +9750,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Evanston - 3",
+    "series": "Series 3",
+    "team": "Evanston 3",
     "league_id": "APTA_CHICAGO",
     "points": 147,
     "matches": {
@@ -9780,8 +9780,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Skokie - 3",
+    "series": "Series 3",
+    "team": "Skokie 3",
     "league_id": "APTA_CHICAGO",
     "points": 143,
     "matches": {
@@ -9810,8 +9810,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Hinsdale GC - 3",
+    "series": "Series 3",
+    "team": "Hinsdale GC 3",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -9840,8 +9840,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Ruth Lake - 3",
+    "series": "Series 3",
+    "team": "Ruth Lake 3",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -9870,8 +9870,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Winnetka - 3",
+    "series": "Series 3",
+    "team": "Winnetka 3",
     "league_id": "APTA_CHICAGO",
     "points": 137,
     "matches": {
@@ -9900,8 +9900,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Glen Ellyn - 3",
+    "series": "Series 3",
+    "team": "Glen Ellyn 3",
     "league_id": "APTA_CHICAGO",
     "points": 135,
     "matches": {
@@ -9930,8 +9930,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Winter Club - 3",
+    "series": "Series 3",
+    "team": "Winter Club 3",
     "league_id": "APTA_CHICAGO",
     "points": 133,
     "matches": {
@@ -9960,8 +9960,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "North Shore - 3",
+    "series": "Series 3",
+    "team": "North Shore 3",
     "league_id": "APTA_CHICAGO",
     "points": 123,
     "matches": {
@@ -9990,8 +9990,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Lakeshore S&F - 3",
+    "series": "Series 3",
+    "team": "Lakeshore S&F 3",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -10020,8 +10020,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Northmoor - 3",
+    "series": "Series 3",
+    "team": "Northmoor 3",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -10050,8 +10050,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Lake Forest - 3",
+    "series": "Series 3",
+    "team": "Lake Forest 3",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -10080,8 +10080,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Hawthorn Woods - 3",
+    "series": "Series 3",
+    "team": "Hawthorn Woods 3",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -10110,8 +10110,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Indian Hill - 3",
+    "series": "Series 3",
+    "team": "Indian Hill 3",
     "league_id": "APTA_CHICAGO",
     "points": 95,
     "matches": {
@@ -10140,8 +10140,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Lake Shore CC - 3",
+    "series": "Series 3",
+    "team": "Lake Shore CC 3",
     "league_id": "APTA_CHICAGO",
     "points": 71,
     "matches": {
@@ -10170,8 +10170,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 3",
-    "team": "Glen View - 3",
+    "series": "Series 3",
+    "team": "Glen View 3",
     "league_id": "APTA_CHICAGO",
     "points": 59,
     "matches": {
@@ -10200,8 +10200,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "River Forest PD - 4",
+    "series": "Series 4",
+    "team": "River Forest PD 4",
     "league_id": "APTA_CHICAGO",
     "points": 164,
     "matches": {
@@ -10230,8 +10230,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "South Barrington - 4",
+    "series": "Series 4",
+    "team": "South Barrington 4",
     "league_id": "APTA_CHICAGO",
     "points": 159,
     "matches": {
@@ -10260,8 +10260,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Hinsdale PC - 4",
+    "series": "Series 4",
+    "team": "Hinsdale PC 4",
     "league_id": "APTA_CHICAGO",
     "points": 154,
     "matches": {
@@ -10290,8 +10290,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Westmoreland - 4",
+    "series": "Series 4",
+    "team": "Westmoreland 4",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -10320,8 +10320,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Wilmette PD II - 4",
+    "series": "Series 4",
+    "team": "Wilmette PD II 4",
     "league_id": "APTA_CHICAGO",
     "points": 136,
     "matches": {
@@ -10350,8 +10350,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Lake Bluff - 4",
+    "series": "Series 4",
+    "team": "Lake Bluff 4",
     "league_id": "APTA_CHICAGO",
     "points": 135,
     "matches": {
@@ -10380,8 +10380,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Midtown - Chicago - 4",
+    "series": "Series 4",
+    "team": "Midtown - Chicago 4",
     "league_id": "APTA_CHICAGO",
     "points": 132,
     "matches": {
@@ -10410,8 +10410,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Winnetka - 4",
+    "series": "Series 4",
+    "team": "Winnetka 4",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -10440,8 +10440,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Salt Creek - 4",
+    "series": "Series 4",
+    "team": "Salt Creek 4",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -10470,8 +10470,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Birchwood - 4",
+    "series": "Series 4",
+    "team": "Birchwood 4",
     "league_id": "APTA_CHICAGO",
     "points": 77,
     "matches": {
@@ -10500,8 +10500,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Wilmette PD I - 4",
+    "series": "Series 4",
+    "team": "Wilmette PD I 4",
     "league_id": "APTA_CHICAGO",
     "points": 68,
     "matches": {
@@ -10530,8 +10530,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 4",
-    "team": "Glenbrook RC - 4",
+    "series": "Series 4",
+    "team": "Glenbrook RC 4",
     "league_id": "APTA_CHICAGO",
     "points": 42,
     "matches": {
@@ -10560,8 +10560,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Wilmette PD - 5",
+    "series": "Series 5",
+    "team": "Wilmette PD 5",
     "league_id": "APTA_CHICAGO",
     "points": 143,
     "matches": {
@@ -10590,8 +10590,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Bryn Mawr - 5",
+    "series": "Series 5",
+    "team": "Bryn Mawr 5",
     "league_id": "APTA_CHICAGO",
     "points": 141,
     "matches": {
@@ -10620,8 +10620,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Hinsdale PC - 5",
+    "series": "Series 5",
+    "team": "Hinsdale PC 5",
     "league_id": "APTA_CHICAGO",
     "points": 137,
     "matches": {
@@ -10650,8 +10650,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Lifesport-Lshire - 5",
+    "series": "Series 5",
+    "team": "Lifesport-Lshire 5",
     "league_id": "APTA_CHICAGO",
     "points": 136,
     "matches": {
@@ -10680,8 +10680,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Winnetka I - 5",
+    "series": "Series 5",
+    "team": "Winnetka I 5",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -10710,8 +10710,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Glen Ellyn - 5",
+    "series": "Series 5",
+    "team": "Glen Ellyn 5",
     "league_id": "APTA_CHICAGO",
     "points": 112,
     "matches": {
@@ -10740,8 +10740,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Onwentsia - 5",
+    "series": "Series 5",
+    "team": "Onwentsia 5",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -10770,8 +10770,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Winnetka II - 5",
+    "series": "Series 5",
+    "team": "Winnetka II 5",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -10800,8 +10800,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Lakeshore S&F - 5",
+    "series": "Series 5",
+    "team": "Lakeshore S&F 5",
     "league_id": "APTA_CHICAGO",
     "points": 91,
     "matches": {
@@ -10830,8 +10830,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 5",
-    "team": "Lake Bluff - 5",
+    "series": "Series 5",
+    "team": "Lake Bluff 5",
     "league_id": "APTA_CHICAGO",
     "points": 82,
     "matches": {
@@ -10860,8 +10860,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Birchwood - 6",
+    "series": "Series 6",
+    "team": "Birchwood 6",
     "league_id": "APTA_CHICAGO",
     "points": 152,
     "matches": {
@@ -10890,8 +10890,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Michigan Shores - 6",
+    "series": "Series 6",
+    "team": "Michigan Shores 6",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -10920,8 +10920,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Valley Lo - 6",
+    "series": "Series 6",
+    "team": "Valley Lo 6",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -10950,8 +10950,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Sunset Ridge - 6",
+    "series": "Series 6",
+    "team": "Sunset Ridge 6",
     "league_id": "APTA_CHICAGO",
     "points": 127,
     "matches": {
@@ -10980,8 +10980,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Midtown - Chicago - 6",
+    "series": "Series 6",
+    "team": "Midtown - Chicago 6",
     "league_id": "APTA_CHICAGO",
     "points": 121,
     "matches": {
@@ -11010,8 +11010,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Tennaqua - 6",
+    "series": "Series 6",
+    "team": "Tennaqua 6",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -11040,8 +11040,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "South Barrington - 6",
+    "series": "Series 6",
+    "team": "South Barrington 6",
     "league_id": "APTA_CHICAGO",
     "points": 101,
     "matches": {
@@ -11070,8 +11070,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 6",
-    "team": "Briarwood - 6",
+    "series": "Series 6",
+    "team": "Briarwood 6",
     "league_id": "APTA_CHICAGO",
     "points": 85,
     "matches": {
@@ -11100,8 +11100,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Winnetka - 7",
+    "series": "Series 7",
+    "team": "Winnetka 7",
     "league_id": "APTA_CHICAGO",
     "points": 154,
     "matches": {
@@ -11130,8 +11130,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "LifeSport-Lshire - 7",
+    "series": "Series 7",
+    "team": "LifeSport-Lshire 7",
     "league_id": "APTA_CHICAGO",
     "points": 152,
     "matches": {
@@ -11160,8 +11160,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Tennaqua - 7",
+    "series": "Series 7",
+    "team": "Tennaqua 7",
     "league_id": "APTA_CHICAGO",
     "points": 146,
     "matches": {
@@ -11190,8 +11190,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Lakeshore S&F - 7",
+    "series": "Series 7",
+    "team": "Lakeshore S&F 7",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -11220,8 +11220,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Westmoreland - 7",
+    "series": "Series 7",
+    "team": "Westmoreland 7",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -11250,8 +11250,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Evanston - 7",
+    "series": "Series 7",
+    "team": "Evanston 7",
     "league_id": "APTA_CHICAGO",
     "points": 97,
     "matches": {
@@ -11280,8 +11280,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Skokie - 7",
+    "series": "Series 7",
+    "team": "Skokie 7",
     "league_id": "APTA_CHICAGO",
     "points": 78,
     "matches": {
@@ -11310,8 +11310,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 7",
-    "team": "Glen View - 7",
+    "series": "Series 7",
+    "team": "Glen View 7",
     "league_id": "APTA_CHICAGO",
     "points": 65,
     "matches": {
@@ -11580,8 +11580,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Valley Lo - 8",
+    "series": "Series 8",
+    "team": "Valley Lo 8",
     "league_id": "APTA_CHICAGO",
     "points": 155,
     "matches": {
@@ -11610,8 +11610,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Glenbrook RC - 8",
+    "series": "Series 8",
+    "team": "Glenbrook RC 8",
     "league_id": "APTA_CHICAGO",
     "points": 146,
     "matches": {
@@ -11640,8 +11640,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Park Ridge CC - 8",
+    "series": "Series 8",
+    "team": "Park Ridge CC 8",
     "league_id": "APTA_CHICAGO",
     "points": 142,
     "matches": {
@@ -11670,8 +11670,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Westmoreland - 8",
+    "series": "Series 8",
+    "team": "Westmoreland 8",
     "league_id": "APTA_CHICAGO",
     "points": 130,
     "matches": {
@@ -11700,8 +11700,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Lake Forest - 8",
+    "series": "Series 8",
+    "team": "Lake Forest 8",
     "league_id": "APTA_CHICAGO",
     "points": 124,
     "matches": {
@@ -11730,8 +11730,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Exmoor - 8",
+    "series": "Series 8",
+    "team": "Exmoor 8",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -11760,8 +11760,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Winnetka - 8",
+    "series": "Series 8",
+    "team": "Winnetka 8",
     "league_id": "APTA_CHICAGO",
     "points": 116,
     "matches": {
@@ -11790,8 +11790,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Saddle & Cycle - 8",
+    "series": "Series 8",
+    "team": "Saddle & Cycle 8",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -11820,8 +11820,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Knollwood - 8",
+    "series": "Series 8",
+    "team": "Knollwood 8",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -11850,8 +11850,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Sunset Ridge - 8",
+    "series": "Series 8",
+    "team": "Sunset Ridge 8",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -11880,8 +11880,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Wilmette PD - 8",
+    "series": "Series 8",
+    "team": "Wilmette PD 8",
     "league_id": "APTA_CHICAGO",
     "points": 101,
     "matches": {
@@ -11910,8 +11910,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 8",
-    "team": "Indian Hill - 8",
+    "series": "Series 8",
+    "team": "Indian Hill 8",
     "league_id": "APTA_CHICAGO",
     "points": 89,
     "matches": {
@@ -11940,8 +11940,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Evanston - 9",
+    "series": "Series 9",
+    "team": "Evanston 9",
     "league_id": "APTA_CHICAGO",
     "points": 132,
     "matches": {
@@ -11970,8 +11970,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Tennaqua - 9",
+    "series": "Series 9",
+    "team": "Tennaqua 9",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -12000,8 +12000,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Winnetka - 9",
+    "series": "Series 9",
+    "team": "Winnetka 9",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -12030,8 +12030,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Lake Bluff - 9",
+    "series": "Series 9",
+    "team": "Lake Bluff 9",
     "league_id": "APTA_CHICAGO",
     "points": 98,
     "matches": {
@@ -12060,8 +12060,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Prairie Club - 9",
+    "series": "Series 9",
+    "team": "Prairie Club 9",
     "league_id": "APTA_CHICAGO",
     "points": 96,
     "matches": {
@@ -12090,8 +12090,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Hawthorn Woods - 9",
+    "series": "Series 9",
+    "team": "Hawthorn Woods 9",
     "league_id": "APTA_CHICAGO",
     "points": 89,
     "matches": {
@@ -12120,8 +12120,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "Glenbrook RC - 9",
+    "series": "Series 9",
+    "team": "Glenbrook RC 9",
     "league_id": "APTA_CHICAGO",
     "points": 86,
     "matches": {
@@ -12330,8 +12330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Winnetka - 10",
+    "series": "Series 10",
+    "team": "Winnetka 10",
     "league_id": "APTA_CHICAGO",
     "points": 175,
     "matches": {
@@ -12360,8 +12360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Winter Club - 10",
+    "series": "Series 10",
+    "team": "Winter Club 10",
     "league_id": "APTA_CHICAGO",
     "points": 137,
     "matches": {
@@ -12390,8 +12390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Midtown - Chicago - 10",
+    "series": "Series 10",
+    "team": "Midtown - Chicago 10",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -12420,8 +12420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Wilmette PD - 10",
+    "series": "Series 10",
+    "team": "Wilmette PD 10",
     "league_id": "APTA_CHICAGO",
     "points": 131,
     "matches": {
@@ -12450,8 +12450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Westmoreland - 10",
+    "series": "Series 10",
+    "team": "Westmoreland 10",
     "league_id": "APTA_CHICAGO",
     "points": 123,
     "matches": {
@@ -12480,8 +12480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "South Barrington - 10",
+    "series": "Series 10",
+    "team": "South Barrington 10",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -12510,8 +12510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Valley Lo - 10",
+    "series": "Series 10",
+    "team": "Valley Lo 10",
     "league_id": "APTA_CHICAGO",
     "points": 83,
     "matches": {
@@ -12540,8 +12540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 10",
-    "team": "Lifesport-Lshire - 10",
+    "series": "Series 10",
+    "team": "Lifesport-Lshire 10",
     "league_id": "APTA_CHICAGO",
     "points": 49,
     "matches": {
@@ -12570,8 +12570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Birchwood - 11",
+    "series": "Series 11",
+    "team": "Birchwood 11",
     "league_id": "APTA_CHICAGO",
     "points": 160,
     "matches": {
@@ -12600,8 +12600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Wilmette PD II - 11",
+    "series": "Series 11",
+    "team": "Wilmette PD II 11",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -12630,8 +12630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Skokie - 11",
+    "series": "Series 11",
+    "team": "Skokie 11",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -12660,8 +12660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Wilmette PD I - 11",
+    "series": "Series 11",
+    "team": "Wilmette PD I 11",
     "league_id": "APTA_CHICAGO",
     "points": 119,
     "matches": {
@@ -12690,8 +12690,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Prairie Club - 11",
+    "series": "Series 11",
+    "team": "Prairie Club 11",
     "league_id": "APTA_CHICAGO",
     "points": 119,
     "matches": {
@@ -12720,8 +12720,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Sunset Ridge - 11",
+    "series": "Series 11",
+    "team": "Sunset Ridge 11",
     "league_id": "APTA_CHICAGO",
     "points": 108,
     "matches": {
@@ -12750,8 +12750,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Barrington Hills CC - 11",
+    "series": "Series 11",
+    "team": "Barrington Hills CC 11",
     "league_id": "APTA_CHICAGO",
     "points": 108,
     "matches": {
@@ -12780,8 +12780,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "North Shore - 11",
+    "series": "Series 11",
+    "team": "North Shore 11",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -12810,8 +12810,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Tennaqua - 11",
+    "series": "Series 11",
+    "team": "Tennaqua 11",
     "league_id": "APTA_CHICAGO",
     "points": 99,
     "matches": {
@@ -12840,8 +12840,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Winnetka - 11",
+    "series": "Series 11",
+    "team": "Winnetka 11",
     "league_id": "APTA_CHICAGO",
     "points": 97,
     "matches": {
@@ -12870,8 +12870,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "Lake Bluff - 11",
+    "series": "Series 11",
+    "team": "Lake Bluff 11",
     "league_id": "APTA_CHICAGO",
     "points": 39,
     "matches": {
@@ -13140,8 +13140,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Winnetka - 12",
+    "series": "Series 12",
+    "team": "Winnetka 12",
     "league_id": "APTA_CHICAGO",
     "points": 158,
     "matches": {
@@ -13170,8 +13170,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Exmoor - 12",
+    "series": "Series 12",
+    "team": "Exmoor 12",
     "league_id": "APTA_CHICAGO",
     "points": 146,
     "matches": {
@@ -13200,8 +13200,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Park Ridge CC - 12",
+    "series": "Series 12",
+    "team": "Park Ridge CC 12",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -13230,8 +13230,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Michigan Shores - 12",
+    "series": "Series 12",
+    "team": "Michigan Shores 12",
     "league_id": "APTA_CHICAGO",
     "points": 133,
     "matches": {
@@ -13260,8 +13260,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Wilmette PD - 12",
+    "series": "Series 12",
+    "team": "Wilmette PD 12",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -13290,8 +13290,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Lakeshore S&F - 12",
+    "series": "Series 12",
+    "team": "Lakeshore S&F 12",
     "league_id": "APTA_CHICAGO",
     "points": 121,
     "matches": {
@@ -13320,8 +13320,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Winter Club - 12",
+    "series": "Series 12",
+    "team": "Winter Club 12",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -13350,8 +13350,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Knollwood - 12",
+    "series": "Series 12",
+    "team": "Knollwood 12",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -13380,8 +13380,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Lake Bluff - 12",
+    "series": "Series 12",
+    "team": "Lake Bluff 12",
     "league_id": "APTA_CHICAGO",
     "points": 112,
     "matches": {
@@ -13410,8 +13410,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Valley Lo - 12",
+    "series": "Series 12",
+    "team": "Valley Lo 12",
     "league_id": "APTA_CHICAGO",
     "points": 103,
     "matches": {
@@ -13440,8 +13440,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Westmoreland - 12",
+    "series": "Series 12",
+    "team": "Westmoreland 12",
     "league_id": "APTA_CHICAGO",
     "points": 101,
     "matches": {
@@ -13470,8 +13470,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 12",
-    "team": "Lake Forest - 12",
+    "series": "Series 12",
+    "team": "Lake Forest 12",
     "league_id": "APTA_CHICAGO",
     "points": 75,
     "matches": {
@@ -13500,8 +13500,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Bryn Mawr - 13",
+    "series": "Series 13",
+    "team": "Bryn Mawr 13",
     "league_id": "APTA_CHICAGO",
     "points": 175,
     "matches": {
@@ -13530,8 +13530,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Tennaqua - 13",
+    "series": "Series 13",
+    "team": "Tennaqua 13",
     "league_id": "APTA_CHICAGO",
     "points": 166,
     "matches": {
@@ -13560,8 +13560,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Birchwood - 13",
+    "series": "Series 13",
+    "team": "Birchwood 13",
     "league_id": "APTA_CHICAGO",
     "points": 155,
     "matches": {
@@ -13590,8 +13590,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Indian Hill - 13",
+    "series": "Series 13",
+    "team": "Indian Hill 13",
     "league_id": "APTA_CHICAGO",
     "points": 153,
     "matches": {
@@ -13620,8 +13620,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Wilmette PD I - 13",
+    "series": "Series 13",
+    "team": "Wilmette PD I 13",
     "league_id": "APTA_CHICAGO",
     "points": 149,
     "matches": {
@@ -13650,8 +13650,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Briarwood - 13",
+    "series": "Series 13",
+    "team": "Briarwood 13",
     "league_id": "APTA_CHICAGO",
     "points": 124,
     "matches": {
@@ -13680,8 +13680,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Winnetka - 13",
+    "series": "Series 13",
+    "team": "Winnetka 13",
     "league_id": "APTA_CHICAGO",
     "points": 117,
     "matches": {
@@ -13710,8 +13710,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Prairie Club - 13",
+    "series": "Series 13",
+    "team": "Prairie Club 13",
     "league_id": "APTA_CHICAGO",
     "points": 116,
     "matches": {
@@ -13740,8 +13740,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Evanston - 13",
+    "series": "Series 13",
+    "team": "Evanston 13",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -13770,8 +13770,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Winter Club - 13",
+    "series": "Series 13",
+    "team": "Winter Club 13",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -13800,8 +13800,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Northmoor - 13",
+    "series": "Series 13",
+    "team": "Northmoor 13",
     "league_id": "APTA_CHICAGO",
     "points": 94,
     "matches": {
@@ -13830,8 +13830,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Sunset Ridge - 13",
+    "series": "Series 13",
+    "team": "Sunset Ridge 13",
     "league_id": "APTA_CHICAGO",
     "points": 86,
     "matches": {
@@ -13860,8 +13860,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Wilmette PD II - 13",
+    "series": "Series 13",
+    "team": "Wilmette PD II 13",
     "league_id": "APTA_CHICAGO",
     "points": 67,
     "matches": {
@@ -13890,8 +13890,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 13",
-    "team": "Lake Bluff - 13",
+    "series": "Series 13",
+    "team": "Lake Bluff 13",
     "league_id": "APTA_CHICAGO",
     "points": 64,
     "matches": {
@@ -14280,8 +14280,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Midtown - Chicago - 14",
+    "series": "Series 14",
+    "team": "Midtown - Chicago 14",
     "league_id": "APTA_CHICAGO",
     "points": 138,
     "matches": {
@@ -14310,8 +14310,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Skokie - 14",
+    "series": "Series 14",
+    "team": "Skokie 14",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -14340,8 +14340,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "South Barrington - 14",
+    "series": "Series 14",
+    "team": "South Barrington 14",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -14370,8 +14370,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Winnetka - 14",
+    "series": "Series 14",
+    "team": "Winnetka 14",
     "league_id": "APTA_CHICAGO",
     "points": 107,
     "matches": {
@@ -14400,8 +14400,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Lakeshore S&F - 14",
+    "series": "Series 14",
+    "team": "Lakeshore S&F 14",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -14430,8 +14430,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Briarwood - 14",
+    "series": "Series 14",
+    "team": "Briarwood 14",
     "league_id": "APTA_CHICAGO",
     "points": 98,
     "matches": {
@@ -14460,8 +14460,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Westmoreland - 14",
+    "series": "Series 14",
+    "team": "Westmoreland 14",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -14490,8 +14490,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Michigan Shores - 14",
+    "series": "Series 14",
+    "team": "Michigan Shores 14",
     "league_id": "APTA_CHICAGO",
     "points": 88,
     "matches": {
@@ -14520,8 +14520,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "Birchwood - 14",
+    "series": "Series 14",
+    "team": "Birchwood 14",
     "league_id": "APTA_CHICAGO",
     "points": 88,
     "matches": {
@@ -14550,8 +14550,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Prairie Club - 15",
+    "series": "Series 15",
+    "team": "Prairie Club 15",
     "league_id": "APTA_CHICAGO",
     "points": 177,
     "matches": {
@@ -14580,8 +14580,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Inverness - 15",
+    "series": "Series 15",
+    "team": "Inverness 15",
     "league_id": "APTA_CHICAGO",
     "points": 129,
     "matches": {
@@ -14610,8 +14610,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Exmoor - 15",
+    "series": "Series 15",
+    "team": "Exmoor 15",
     "league_id": "APTA_CHICAGO",
     "points": 112,
     "matches": {
@@ -14640,8 +14640,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Valley Lo - 15",
+    "series": "Series 15",
+    "team": "Valley Lo 15",
     "league_id": "APTA_CHICAGO",
     "points": 105,
     "matches": {
@@ -14670,8 +14670,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Tennaqua - 15",
+    "series": "Series 15",
+    "team": "Tennaqua 15",
     "league_id": "APTA_CHICAGO",
     "points": 98,
     "matches": {
@@ -14700,8 +14700,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Glen View - 15",
+    "series": "Series 15",
+    "team": "Glen View 15",
     "league_id": "APTA_CHICAGO",
     "points": 92,
     "matches": {
@@ -14730,8 +14730,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "North Shore - 15",
+    "series": "Series 15",
+    "team": "North Shore 15",
     "league_id": "APTA_CHICAGO",
     "points": 82,
     "matches": {
@@ -14760,8 +14760,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Glenbrook RC - 15",
+    "series": "Series 15",
+    "team": "Glenbrook RC 15",
     "league_id": "APTA_CHICAGO",
     "points": 81,
     "matches": {
@@ -14790,8 +14790,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "Onwentsia - 15",
+    "series": "Series 15",
+    "team": "Onwentsia 15",
     "league_id": "APTA_CHICAGO",
     "points": 57,
     "matches": {
@@ -15150,8 +15150,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Glenbrook RC - 16",
+    "series": "Series 16",
+    "team": "Glenbrook RC 16",
     "league_id": "APTA_CHICAGO",
     "points": 148,
     "matches": {
@@ -15180,8 +15180,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Saddle & Cycle - 16",
+    "series": "Series 16",
+    "team": "Saddle & Cycle 16",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -15210,8 +15210,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Prairie Club I - 16",
+    "series": "Series 16",
+    "team": "Prairie Club I 16",
     "league_id": "APTA_CHICAGO",
     "points": 127,
     "matches": {
@@ -15240,8 +15240,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Winnetka - 16",
+    "series": "Series 16",
+    "team": "Winnetka 16",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -15270,8 +15270,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Prairie Club II - 16",
+    "series": "Series 16",
+    "team": "Prairie Club II 16",
     "league_id": "APTA_CHICAGO",
     "points": 117,
     "matches": {
@@ -15300,8 +15300,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Lake Forest - 16",
+    "series": "Series 16",
+    "team": "Lake Forest 16",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -15330,8 +15330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "North Shore - 16",
+    "series": "Series 16",
+    "team": "North Shore 16",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -15360,8 +15360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 16",
-    "team": "Michigan Shores - 16",
+    "series": "Series 16",
+    "team": "Michigan Shores 16",
     "league_id": "APTA_CHICAGO",
     "points": 91,
     "matches": {
@@ -15390,8 +15390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Prairie Club - 17",
+    "series": "Series 17",
+    "team": "Prairie Club 17",
     "league_id": "APTA_CHICAGO",
     "points": 171,
     "matches": {
@@ -15420,8 +15420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Lakeshore S&F - 17",
+    "series": "Series 17",
+    "team": "Lakeshore S&F 17",
     "league_id": "APTA_CHICAGO",
     "points": 153,
     "matches": {
@@ -15450,8 +15450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Valley Lo - 17",
+    "series": "Series 17",
+    "team": "Valley Lo 17",
     "league_id": "APTA_CHICAGO",
     "points": 152,
     "matches": {
@@ -15480,8 +15480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Glenbrook RC - 17",
+    "series": "Series 17",
+    "team": "Glenbrook RC 17",
     "league_id": "APTA_CHICAGO",
     "points": 150,
     "matches": {
@@ -15510,8 +15510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Winter Club - 17",
+    "series": "Series 17",
+    "team": "Winter Club 17",
     "league_id": "APTA_CHICAGO",
     "points": 145,
     "matches": {
@@ -15540,8 +15540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Evanston - 17",
+    "series": "Series 17",
+    "team": "Evanston 17",
     "league_id": "APTA_CHICAGO",
     "points": 122,
     "matches": {
@@ -15570,8 +15570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Knollwood - 17",
+    "series": "Series 17",
+    "team": "Knollwood 17",
     "league_id": "APTA_CHICAGO",
     "points": 106,
     "matches": {
@@ -15600,8 +15600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Hawthorn Woods - 17",
+    "series": "Series 17",
+    "team": "Hawthorn Woods 17",
     "league_id": "APTA_CHICAGO",
     "points": 90,
     "matches": {
@@ -15630,8 +15630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Lake Shore CC - 17",
+    "series": "Series 17",
+    "team": "Lake Shore CC 17",
     "league_id": "APTA_CHICAGO",
     "points": 88,
     "matches": {
@@ -15660,8 +15660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Wilmette PD - 17",
+    "series": "Series 17",
+    "team": "Wilmette PD 17",
     "league_id": "APTA_CHICAGO",
     "points": 82,
     "matches": {
@@ -15690,8 +15690,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Tennaqua - 17",
+    "series": "Series 17",
+    "team": "Tennaqua 17",
     "league_id": "APTA_CHICAGO",
     "points": 79,
     "matches": {
@@ -15720,8 +15720,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 17",
-    "team": "Sunset Ridge - 17",
+    "series": "Series 17",
+    "team": "Sunset Ridge 17",
     "league_id": "APTA_CHICAGO",
     "points": 78,
     "matches": {
@@ -16110,8 +16110,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Winnetka - 18",
+    "series": "Series 18",
+    "team": "Winnetka 18",
     "league_id": "APTA_CHICAGO",
     "points": 189,
     "matches": {
@@ -16140,8 +16140,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Skokie - 18",
+    "series": "Series 18",
+    "team": "Skokie 18",
     "league_id": "APTA_CHICAGO",
     "points": 153,
     "matches": {
@@ -16170,8 +16170,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Birchwood - 18",
+    "series": "Series 18",
+    "team": "Birchwood 18",
     "league_id": "APTA_CHICAGO",
     "points": 148,
     "matches": {
@@ -16200,8 +16200,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Indian Hill - 18",
+    "series": "Series 18",
+    "team": "Indian Hill 18",
     "league_id": "APTA_CHICAGO",
     "points": 146,
     "matches": {
@@ -16230,8 +16230,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Prairie Club - 18",
+    "series": "Series 18",
+    "team": "Prairie Club 18",
     "league_id": "APTA_CHICAGO",
     "points": 133,
     "matches": {
@@ -16260,8 +16260,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Valley Lo - 18",
+    "series": "Series 18",
+    "team": "Valley Lo 18",
     "league_id": "APTA_CHICAGO",
     "points": 127,
     "matches": {
@@ -16290,8 +16290,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Wilmette PD I - 18",
+    "series": "Series 18",
+    "team": "Wilmette PD I 18",
     "league_id": "APTA_CHICAGO",
     "points": 106,
     "matches": {
@@ -16320,8 +16320,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Michigan Shores - 18",
+    "series": "Series 18",
+    "team": "Michigan Shores 18",
     "league_id": "APTA_CHICAGO",
     "points": 102,
     "matches": {
@@ -16350,8 +16350,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Westmoreland - 18",
+    "series": "Series 18",
+    "team": "Westmoreland 18",
     "league_id": "APTA_CHICAGO",
     "points": 90,
     "matches": {
@@ -16380,8 +16380,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Glenbrook RC - 18",
+    "series": "Series 18",
+    "team": "Glenbrook RC 18",
     "league_id": "APTA_CHICAGO",
     "points": 90,
     "matches": {
@@ -16410,8 +16410,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Midt-Bannockburn - 18",
+    "series": "Series 18",
+    "team": "Midt-Bannockburn 18",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -16440,8 +16440,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 18",
-    "team": "Wilmette PD II - 18",
+    "series": "Series 18",
+    "team": "Wilmette PD II 18",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -16470,8 +16470,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Winnetka II - 19",
+    "series": "Series 19",
+    "team": "Winnetka II 19",
     "league_id": "APTA_CHICAGO",
     "points": 180,
     "matches": {
@@ -16500,8 +16500,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Wilmette PD I - 19",
+    "series": "Series 19",
+    "team": "Wilmette PD I 19",
     "league_id": "APTA_CHICAGO",
     "points": 178,
     "matches": {
@@ -16530,8 +16530,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Midtown - Chicago - 19",
+    "series": "Series 19",
+    "team": "Midtown - Chicago 19",
     "league_id": "APTA_CHICAGO",
     "points": 163,
     "matches": {
@@ -16560,8 +16560,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Wilmette PD II - 19",
+    "series": "Series 19",
+    "team": "Wilmette PD II 19",
     "league_id": "APTA_CHICAGO",
     "points": 124,
     "matches": {
@@ -16590,8 +16590,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Winnetka I - 19",
+    "series": "Series 19",
+    "team": "Winnetka I 19",
     "league_id": "APTA_CHICAGO",
     "points": 119,
     "matches": {
@@ -16620,8 +16620,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Sunset Ridge - 19",
+    "series": "Series 19",
+    "team": "Sunset Ridge 19",
     "league_id": "APTA_CHICAGO",
     "points": 97,
     "matches": {
@@ -16650,8 +16650,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Knollwood - 19",
+    "series": "Series 19",
+    "team": "Knollwood 19",
     "league_id": "APTA_CHICAGO",
     "points": 89,
     "matches": {
@@ -16680,8 +16680,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Evanston - 19",
+    "series": "Series 19",
+    "team": "Evanston 19",
     "league_id": "APTA_CHICAGO",
     "points": 84,
     "matches": {
@@ -16710,8 +16710,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Biltmore CC - 19",
+    "series": "Series 19",
+    "team": "Biltmore CC 19",
     "league_id": "APTA_CHICAGO",
     "points": 76,
     "matches": {
@@ -16740,8 +16740,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 19",
-    "team": "Tennaqua - 19",
+    "series": "Series 19",
+    "team": "Tennaqua 19",
     "league_id": "APTA_CHICAGO",
     "points": 59,
     "matches": {
@@ -17040,8 +17040,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Valley Lo - 20",
+    "series": "Series 20",
+    "team": "Valley Lo 20",
     "league_id": "APTA_CHICAGO",
     "points": 161,
     "matches": {
@@ -17070,8 +17070,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Glenbrook RC - 20",
+    "series": "Series 20",
+    "team": "Glenbrook RC 20",
     "league_id": "APTA_CHICAGO",
     "points": 163,
     "matches": {
@@ -17100,8 +17100,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Wilmette PD - 20",
+    "series": "Series 20",
+    "team": "Wilmette PD 20",
     "league_id": "APTA_CHICAGO",
     "points": 146,
     "matches": {
@@ -17130,8 +17130,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Lake Bluff - 20",
+    "series": "Series 20",
+    "team": "Lake Bluff 20",
     "league_id": "APTA_CHICAGO",
     "points": 145,
     "matches": {
@@ -17160,8 +17160,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Lake Forest - 20",
+    "series": "Series 20",
+    "team": "Lake Forest 20",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -17190,8 +17190,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "South Barrington - 20",
+    "series": "Series 20",
+    "team": "South Barrington 20",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -17220,8 +17220,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Skokie - 20",
+    "series": "Series 20",
+    "team": "Skokie 20",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -17250,8 +17250,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "North Shore - 20",
+    "series": "Series 20",
+    "team": "North Shore 20",
     "league_id": "APTA_CHICAGO",
     "points": 130,
     "matches": {
@@ -17280,8 +17280,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Exmoor - 20",
+    "series": "Series 20",
+    "team": "Exmoor 20",
     "league_id": "APTA_CHICAGO",
     "points": 111,
     "matches": {
@@ -17310,8 +17310,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Westmoreland - 20",
+    "series": "Series 20",
+    "team": "Westmoreland 20",
     "league_id": "APTA_CHICAGO",
     "points": 84,
     "matches": {
@@ -17340,8 +17340,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Briarwood - 20",
+    "series": "Series 20",
+    "team": "Briarwood 20",
     "league_id": "APTA_CHICAGO",
     "points": 77,
     "matches": {
@@ -17370,8 +17370,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Onwentsia - 20",
+    "series": "Series 20",
+    "team": "Onwentsia 20",
     "league_id": "APTA_CHICAGO",
     "points": 73,
     "matches": {
@@ -17400,8 +17400,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Prairie Club - 20",
+    "series": "Series 20",
+    "team": "Prairie Club 20",
     "league_id": "APTA_CHICAGO",
     "points": 73,
     "matches": {
@@ -17430,8 +17430,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 20",
-    "team": "Winter Club - 20",
+    "series": "Series 20",
+    "team": "Winter Club 20",
     "league_id": "APTA_CHICAGO",
     "points": 69,
     "matches": {
@@ -17460,8 +17460,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Winnetka - 21",
+    "series": "Series 21",
+    "team": "Winnetka 21",
     "league_id": "APTA_CHICAGO",
     "points": 184,
     "matches": {
@@ -17490,8 +17490,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Knollwood - 21",
+    "series": "Series 21",
+    "team": "Knollwood 21",
     "league_id": "APTA_CHICAGO",
     "points": 158,
     "matches": {
@@ -17520,8 +17520,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Sunset Ridge - 21",
+    "series": "Series 21",
+    "team": "Sunset Ridge 21",
     "league_id": "APTA_CHICAGO",
     "points": 151,
     "matches": {
@@ -17550,8 +17550,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Tennaqua - 21",
+    "series": "Series 21",
+    "team": "Tennaqua 21",
     "league_id": "APTA_CHICAGO",
     "points": 150,
     "matches": {
@@ -17580,8 +17580,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Barrington Hills CC - 21",
+    "series": "Series 21",
+    "team": "Barrington Hills CC 21",
     "league_id": "APTA_CHICAGO",
     "points": 137,
     "matches": {
@@ -17610,8 +17610,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Wilmette PD II - 21",
+    "series": "Series 21",
+    "team": "Wilmette PD II 21",
     "league_id": "APTA_CHICAGO",
     "points": 94,
     "matches": {
@@ -17640,8 +17640,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Biltmore CC - 21",
+    "series": "Series 21",
+    "team": "Biltmore CC 21",
     "league_id": "APTA_CHICAGO",
     "points": 94,
     "matches": {
@@ -17670,8 +17670,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Wilmette PD I - 21",
+    "series": "Series 21",
+    "team": "Wilmette PD I 21",
     "league_id": "APTA_CHICAGO",
     "points": 91,
     "matches": {
@@ -17700,8 +17700,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Northmoor - 21",
+    "series": "Series 21",
+    "team": "Northmoor 21",
     "league_id": "APTA_CHICAGO",
     "points": 64,
     "matches": {
@@ -17730,8 +17730,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 21",
-    "team": "Lake Bluff - 21",
+    "series": "Series 21",
+    "team": "Lake Bluff 21",
     "league_id": "APTA_CHICAGO",
     "points": 55,
     "matches": {
@@ -18060,8 +18060,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Lake Forest - 22",
+    "series": "Series 22",
+    "team": "Lake Forest 22",
     "league_id": "APTA_CHICAGO",
     "points": 148,
     "matches": {
@@ -18090,8 +18090,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Valley Lo - 22",
+    "series": "Series 22",
+    "team": "Valley Lo 22",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -18120,8 +18120,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Tennaqua - 22",
+    "series": "Series 22",
+    "team": "Tennaqua 22",
     "league_id": "APTA_CHICAGO",
     "points": 131,
     "matches": {
@@ -18150,8 +18150,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Skokie - 22",
+    "series": "Series 22",
+    "team": "Skokie 22",
     "league_id": "APTA_CHICAGO",
     "points": 123,
     "matches": {
@@ -18180,8 +18180,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Birchwood - 22",
+    "series": "Series 22",
+    "team": "Birchwood 22",
     "league_id": "APTA_CHICAGO",
     "points": 120,
     "matches": {
@@ -18210,8 +18210,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Lakeshore S&F - 22",
+    "series": "Series 22",
+    "team": "Lakeshore S&F 22",
     "league_id": "APTA_CHICAGO",
     "points": 107,
     "matches": {
@@ -18240,8 +18240,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Michigan Shores - 22",
+    "series": "Series 22",
+    "team": "Michigan Shores 22",
     "league_id": "APTA_CHICAGO",
     "points": 106,
     "matches": {
@@ -18270,8 +18270,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Lake Shore CC - 22",
+    "series": "Series 22",
+    "team": "Lake Shore CC 22",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -18300,8 +18300,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Exmoor - 22",
+    "series": "Series 22",
+    "team": "Exmoor 22",
     "league_id": "APTA_CHICAGO",
     "points": 102,
     "matches": {
@@ -18330,8 +18330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Lake Bluff - 22",
+    "series": "Series 22",
+    "team": "Lake Bluff 22",
     "league_id": "APTA_CHICAGO",
     "points": 65,
     "matches": {
@@ -18360,8 +18360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "Saddle & Cycle - 22",
+    "series": "Series 22",
+    "team": "Saddle & Cycle 22",
     "league_id": "APTA_CHICAGO",
     "points": 43,
     "matches": {
@@ -18390,8 +18390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Inverness - 23",
+    "series": "Series 23",
+    "team": "Inverness 23",
     "league_id": "APTA_CHICAGO",
     "points": 158,
     "matches": {
@@ -18420,8 +18420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Midtown - Chicago - 23",
+    "series": "Series 23",
+    "team": "Midtown - Chicago 23",
     "league_id": "APTA_CHICAGO",
     "points": 157,
     "matches": {
@@ -18450,8 +18450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Evanston - 23",
+    "series": "Series 23",
+    "team": "Evanston 23",
     "league_id": "APTA_CHICAGO",
     "points": 147,
     "matches": {
@@ -18480,8 +18480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Valley Lo - 23",
+    "series": "Series 23",
+    "team": "Valley Lo 23",
     "league_id": "APTA_CHICAGO",
     "points": 141,
     "matches": {
@@ -18510,8 +18510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Park Ridge CC - 23",
+    "series": "Series 23",
+    "team": "Park Ridge CC 23",
     "league_id": "APTA_CHICAGO",
     "points": 131,
     "matches": {
@@ -18540,8 +18540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Tennaqua - 23",
+    "series": "Series 23",
+    "team": "Tennaqua 23",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -18570,8 +18570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Indian Hill - 23",
+    "series": "Series 23",
+    "team": "Indian Hill 23",
     "league_id": "APTA_CHICAGO",
     "points": 108,
     "matches": {
@@ -18600,8 +18600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Winnetka - 23",
+    "series": "Series 23",
+    "team": "Winnetka 23",
     "league_id": "APTA_CHICAGO",
     "points": 108,
     "matches": {
@@ -18630,8 +18630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Lake Forest - 23",
+    "series": "Series 23",
+    "team": "Lake Forest 23",
     "league_id": "APTA_CHICAGO",
     "points": 77,
     "matches": {
@@ -18660,8 +18660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 23",
-    "team": "Prairie Club - 23",
+    "series": "Series 23",
+    "team": "Prairie Club 23",
     "league_id": "APTA_CHICAGO",
     "points": 71,
     "matches": {
@@ -19050,8 +19050,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Winnetka - 24",
+    "series": "Series 24",
+    "team": "Winnetka 24",
     "league_id": "APTA_CHICAGO",
     "points": 161,
     "matches": {
@@ -19080,8 +19080,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Skokie - 24",
+    "series": "Series 24",
+    "team": "Skokie 24",
     "league_id": "APTA_CHICAGO",
     "points": 152,
     "matches": {
@@ -19110,8 +19110,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Birchwood - 24",
+    "series": "Series 24",
+    "team": "Birchwood 24",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -19140,8 +19140,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Winter Club - 24",
+    "series": "Series 24",
+    "team": "Winter Club 24",
     "league_id": "APTA_CHICAGO",
     "points": 139,
     "matches": {
@@ -19170,8 +19170,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Sunset Ridge - 24",
+    "series": "Series 24",
+    "team": "Sunset Ridge 24",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -19200,8 +19200,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Westmoreland - 24",
+    "series": "Series 24",
+    "team": "Westmoreland 24",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -19230,8 +19230,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Wilmette PD - 24",
+    "series": "Series 24",
+    "team": "Wilmette PD 24",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -19260,8 +19260,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Evanston - 24",
+    "series": "Series 24",
+    "team": "Evanston 24",
     "league_id": "APTA_CHICAGO",
     "points": 109,
     "matches": {
@@ -19290,8 +19290,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Glen View - 24",
+    "series": "Series 24",
+    "team": "Glen View 24",
     "league_id": "APTA_CHICAGO",
     "points": 58,
     "matches": {
@@ -19320,8 +19320,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 24",
-    "team": "Valley Lo - 24",
+    "series": "Series 24",
+    "team": "Valley Lo 24",
     "league_id": "APTA_CHICAGO",
     "points": 56,
     "matches": {
@@ -19350,8 +19350,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Prairie Club II - 25",
+    "series": "Series 25",
+    "team": "Prairie Club II 25",
     "league_id": "APTA_CHICAGO",
     "points": 164,
     "matches": {
@@ -19380,8 +19380,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Winnetka - 25",
+    "series": "Series 25",
+    "team": "Winnetka 25",
     "league_id": "APTA_CHICAGO",
     "points": 159,
     "matches": {
@@ -19410,8 +19410,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Skokie - 25",
+    "series": "Series 25",
+    "team": "Skokie 25",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -19440,8 +19440,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Park Ridge CC - 25",
+    "series": "Series 25",
+    "team": "Park Ridge CC 25",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -19470,8 +19470,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Prairie Club I - 25",
+    "series": "Series 25",
+    "team": "Prairie Club I 25",
     "league_id": "APTA_CHICAGO",
     "points": 111,
     "matches": {
@@ -19500,8 +19500,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Knollwood - 25",
+    "series": "Series 25",
+    "team": "Knollwood 25",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -19530,8 +19530,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Indian Hill - 25",
+    "series": "Series 25",
+    "team": "Indian Hill 25",
     "league_id": "APTA_CHICAGO",
     "points": 103,
     "matches": {
@@ -19560,8 +19560,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "North Shore - 25",
+    "series": "Series 25",
+    "team": "North Shore 25",
     "league_id": "APTA_CHICAGO",
     "points": 92,
     "matches": {
@@ -19590,8 +19590,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Midt-Bannockburn - 25",
+    "series": "Series 25",
+    "team": "Midt-Bannockburn 25",
     "league_id": "APTA_CHICAGO",
     "points": 84,
     "matches": {
@@ -19620,8 +19620,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 25",
-    "team": "Valley Lo - 25",
+    "series": "Series 25",
+    "team": "Valley Lo 25",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -19950,8 +19950,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Park Ridge CC - 26",
+    "series": "Series 26",
+    "team": "Park Ridge CC 26",
     "league_id": "APTA_CHICAGO",
     "points": 173,
     "matches": {
@@ -19980,8 +19980,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Winnetka - 26",
+    "series": "Series 26",
+    "team": "Winnetka 26",
     "league_id": "APTA_CHICAGO",
     "points": 168,
     "matches": {
@@ -20010,8 +20010,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Glen View - 26",
+    "series": "Series 26",
+    "team": "Glen View 26",
     "league_id": "APTA_CHICAGO",
     "points": 168,
     "matches": {
@@ -20040,8 +20040,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Valley Lo - 26",
+    "series": "Series 26",
+    "team": "Valley Lo 26",
     "league_id": "APTA_CHICAGO",
     "points": 141,
     "matches": {
@@ -20070,8 +20070,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Skokie - 26",
+    "series": "Series 26",
+    "team": "Skokie 26",
     "league_id": "APTA_CHICAGO",
     "points": 139,
     "matches": {
@@ -20100,8 +20100,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Sunset Ridge - 26",
+    "series": "Series 26",
+    "team": "Sunset Ridge 26",
     "league_id": "APTA_CHICAGO",
     "points": 117,
     "matches": {
@@ -20130,8 +20130,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Westmoreland - 26",
+    "series": "Series 26",
+    "team": "Westmoreland 26",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -20160,8 +20160,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Hawthorn Woods - 26",
+    "series": "Series 26",
+    "team": "Hawthorn Woods 26",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -20190,8 +20190,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Northmoor - 26",
+    "series": "Series 26",
+    "team": "Northmoor 26",
     "league_id": "APTA_CHICAGO",
     "points": 109,
     "matches": {
@@ -20220,8 +20220,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Winter Club - 26",
+    "series": "Series 26",
+    "team": "Winter Club 26",
     "league_id": "APTA_CHICAGO",
     "points": 101,
     "matches": {
@@ -20250,8 +20250,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Exmoor - 26",
+    "series": "Series 26",
+    "team": "Exmoor 26",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -20280,8 +20280,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Michigan Shores - 26",
+    "series": "Series 26",
+    "team": "Michigan Shores 26",
     "league_id": "APTA_CHICAGO",
     "points": 84,
     "matches": {
@@ -20310,8 +20310,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Birchwood - 26",
+    "series": "Series 26",
+    "team": "Birchwood 26",
     "league_id": "APTA_CHICAGO",
     "points": 72,
     "matches": {
@@ -20340,8 +20340,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 26",
-    "team": "Glenbrook RC - 26",
+    "series": "Series 26",
+    "team": "Glenbrook RC 26",
     "league_id": "APTA_CHICAGO",
     "points": 57,
     "matches": {
@@ -20370,8 +20370,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Midtown - Chicago - 27",
+    "series": "Series 27",
+    "team": "Midtown - Chicago 27",
     "league_id": "APTA_CHICAGO",
     "points": 162,
     "matches": {
@@ -20400,8 +20400,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Wilmette PD - 27",
+    "series": "Series 27",
+    "team": "Wilmette PD 27",
     "league_id": "APTA_CHICAGO",
     "points": 154,
     "matches": {
@@ -20430,8 +20430,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Bryn Mawr - 27",
+    "series": "Series 27",
+    "team": "Bryn Mawr 27",
     "league_id": "APTA_CHICAGO",
     "points": 137,
     "matches": {
@@ -20460,8 +20460,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Barrington Hills CC - 27",
+    "series": "Series 27",
+    "team": "Barrington Hills CC 27",
     "league_id": "APTA_CHICAGO",
     "points": 130,
     "matches": {
@@ -20490,8 +20490,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Skokie - 27",
+    "series": "Series 27",
+    "team": "Skokie 27",
     "league_id": "APTA_CHICAGO",
     "points": 127,
     "matches": {
@@ -20520,8 +20520,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Inverness - 27",
+    "series": "Series 27",
+    "team": "Inverness 27",
     "league_id": "APTA_CHICAGO",
     "points": 111,
     "matches": {
@@ -20550,8 +20550,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Tennaqua - 27",
+    "series": "Series 27",
+    "team": "Tennaqua 27",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -20580,8 +20580,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Lake Bluff - 27",
+    "series": "Series 27",
+    "team": "Lake Bluff 27",
     "league_id": "APTA_CHICAGO",
     "points": 99,
     "matches": {
@@ -20610,8 +20610,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "South Barrington - 27",
+    "series": "Series 27",
+    "team": "South Barrington 27",
     "league_id": "APTA_CHICAGO",
     "points": 79,
     "matches": {
@@ -20640,8 +20640,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 27",
-    "team": "Park Ridge CC - 27",
+    "series": "Series 27",
+    "team": "Park Ridge CC 27",
     "league_id": "APTA_CHICAGO",
     "points": 78,
     "matches": {
@@ -21150,8 +21150,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Prairie Club - 28",
+    "series": "Series 28",
+    "team": "Prairie Club 28",
     "league_id": "APTA_CHICAGO",
     "points": 167,
     "matches": {
@@ -21180,8 +21180,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Wilmette PD II - 28",
+    "series": "Series 28",
+    "team": "Wilmette PD II 28",
     "league_id": "APTA_CHICAGO",
     "points": 135,
     "matches": {
@@ -21210,8 +21210,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Indian Hill - 28",
+    "series": "Series 28",
+    "team": "Indian Hill 28",
     "league_id": "APTA_CHICAGO",
     "points": 134,
     "matches": {
@@ -21240,8 +21240,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Briarwood - 28",
+    "series": "Series 28",
+    "team": "Briarwood 28",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -21270,8 +21270,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Lake Forest - 28",
+    "series": "Series 28",
+    "team": "Lake Forest 28",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -21300,8 +21300,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Wilmette PD I - 28",
+    "series": "Series 28",
+    "team": "Wilmette PD I 28",
     "league_id": "APTA_CHICAGO",
     "points": 106,
     "matches": {
@@ -21330,8 +21330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Valley Lo - 28",
+    "series": "Series 28",
+    "team": "Valley Lo 28",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -21360,8 +21360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 28",
-    "team": "Sunset Ridge - 28",
+    "series": "Series 28",
+    "team": "Sunset Ridge 28",
     "league_id": "APTA_CHICAGO",
     "points": 90,
     "matches": {
@@ -21390,8 +21390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Winnetka - 29",
+    "series": "Series 29",
+    "team": "Winnetka 29",
     "league_id": "APTA_CHICAGO",
     "points": 208,
     "matches": {
@@ -21420,8 +21420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Evanston - 29",
+    "series": "Series 29",
+    "team": "Evanston 29",
     "league_id": "APTA_CHICAGO",
     "points": 158,
     "matches": {
@@ -21450,8 +21450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Skokie - 29",
+    "series": "Series 29",
+    "team": "Skokie 29",
     "league_id": "APTA_CHICAGO",
     "points": 148,
     "matches": {
@@ -21480,8 +21480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Park Ridge CC - 29",
+    "series": "Series 29",
+    "team": "Park Ridge CC 29",
     "league_id": "APTA_CHICAGO",
     "points": 140,
     "matches": {
@@ -21510,8 +21510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Tennaqua - 29",
+    "series": "Series 29",
+    "team": "Tennaqua 29",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -21540,8 +21540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Wilmette PD - 29",
+    "series": "Series 29",
+    "team": "Wilmette PD 29",
     "league_id": "APTA_CHICAGO",
     "points": 104,
     "matches": {
@@ -21570,8 +21570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Westmoreland - 29",
+    "series": "Series 29",
+    "team": "Westmoreland 29",
     "league_id": "APTA_CHICAGO",
     "points": 101,
     "matches": {
@@ -21600,8 +21600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Biltmore CC - 29",
+    "series": "Series 29",
+    "team": "Biltmore CC 29",
     "league_id": "APTA_CHICAGO",
     "points": 73,
     "matches": {
@@ -21630,8 +21630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Midt-Bannockburn - 29",
+    "series": "Series 29",
+    "team": "Midt-Bannockburn 29",
     "league_id": "APTA_CHICAGO",
     "points": 55,
     "matches": {
@@ -21660,8 +21660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 29",
-    "team": "Northmoor - 29",
+    "series": "Series 29",
+    "team": "Northmoor 29",
     "league_id": "APTA_CHICAGO",
     "points": 29,
     "matches": {
@@ -22080,8 +22080,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Prairie Club II - 30",
+    "series": "Series 30",
+    "team": "Prairie Club II 30",
     "league_id": "APTA_CHICAGO",
     "points": 182,
     "matches": {
@@ -22110,8 +22110,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Winnetka - 30",
+    "series": "Series 30",
+    "team": "Winnetka 30",
     "league_id": "APTA_CHICAGO",
     "points": 168,
     "matches": {
@@ -22140,8 +22140,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Park Ridge CC - 30",
+    "series": "Series 30",
+    "team": "Park Ridge CC 30",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -22170,8 +22170,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "North Shore - 30",
+    "series": "Series 30",
+    "team": "North Shore 30",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -22200,8 +22200,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Wilmette PD II - 30",
+    "series": "Series 30",
+    "team": "Wilmette PD II 30",
     "league_id": "APTA_CHICAGO",
     "points": 133,
     "matches": {
@@ -22230,8 +22230,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Lakeshore S&F - 30",
+    "series": "Series 30",
+    "team": "Lakeshore S&F 30",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -22260,8 +22260,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Evanston - 30",
+    "series": "Series 30",
+    "team": "Evanston 30",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -22290,8 +22290,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Prairie Club I - 30",
+    "series": "Series 30",
+    "team": "Prairie Club I 30",
     "league_id": "APTA_CHICAGO",
     "points": 110,
     "matches": {
@@ -22320,8 +22320,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Michigan Shores - 30",
+    "series": "Series 30",
+    "team": "Michigan Shores 30",
     "league_id": "APTA_CHICAGO",
     "points": 109,
     "matches": {
@@ -22350,8 +22350,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Lake Forest - 30",
+    "series": "Series 30",
+    "team": "Lake Forest 30",
     "league_id": "APTA_CHICAGO",
     "points": 62,
     "matches": {
@@ -22380,8 +22380,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Wilmette PD I - 30",
+    "series": "Series 30",
+    "team": "Wilmette PD I 30",
     "league_id": "APTA_CHICAGO",
     "points": 61,
     "matches": {
@@ -22410,8 +22410,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 30",
-    "team": "Indian Hill - 30",
+    "series": "Series 30",
+    "team": "Indian Hill 30",
     "league_id": "APTA_CHICAGO",
     "points": 58,
     "matches": {
@@ -22440,8 +22440,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Park Ridge CC - 31",
+    "series": "Series 31",
+    "team": "Park Ridge CC 31",
     "league_id": "APTA_CHICAGO",
     "points": 153,
     "matches": {
@@ -22470,8 +22470,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Winnetka - 31",
+    "series": "Series 31",
+    "team": "Winnetka 31",
     "league_id": "APTA_CHICAGO",
     "points": 149,
     "matches": {
@@ -22500,8 +22500,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Valley Lo - 31",
+    "series": "Series 31",
+    "team": "Valley Lo 31",
     "league_id": "APTA_CHICAGO",
     "points": 139,
     "matches": {
@@ -22530,8 +22530,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Tennaqua - 31",
+    "series": "Series 31",
+    "team": "Tennaqua 31",
     "league_id": "APTA_CHICAGO",
     "points": 139,
     "matches": {
@@ -22560,8 +22560,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Westmoreland - 31",
+    "series": "Series 31",
+    "team": "Westmoreland 31",
     "league_id": "APTA_CHICAGO",
     "points": 107,
     "matches": {
@@ -22590,8 +22590,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Knollwood - 31",
+    "series": "Series 31",
+    "team": "Knollwood 31",
     "league_id": "APTA_CHICAGO",
     "points": 95,
     "matches": {
@@ -22620,8 +22620,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Skokie - 31",
+    "series": "Series 31",
+    "team": "Skokie 31",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -22650,8 +22650,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 31",
-    "team": "Lake Bluff - 31",
+    "series": "Series 31",
+    "team": "Lake Bluff 31",
     "league_id": "APTA_CHICAGO",
     "points": 54,
     "matches": {
@@ -22680,8 +22680,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Winnetka I - 32",
+    "series": "Series 32",
+    "team": "Winnetka I 32",
     "league_id": "APTA_CHICAGO",
     "points": 201,
     "matches": {
@@ -22710,8 +22710,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Prairie Club II - 32",
+    "series": "Series 32",
+    "team": "Prairie Club II 32",
     "league_id": "APTA_CHICAGO",
     "points": 165,
     "matches": {
@@ -22740,8 +22740,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Evanston - 32",
+    "series": "Series 32",
+    "team": "Evanston 32",
     "league_id": "APTA_CHICAGO",
     "points": 136,
     "matches": {
@@ -22770,8 +22770,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Inverness - 32",
+    "series": "Series 32",
+    "team": "Inverness 32",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -22800,8 +22800,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Winnetka II - 32",
+    "series": "Series 32",
+    "team": "Winnetka II 32",
     "league_id": "APTA_CHICAGO",
     "points": 123,
     "matches": {
@@ -22830,8 +22830,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "North Shore - 32",
+    "series": "Series 32",
+    "team": "North Shore 32",
     "league_id": "APTA_CHICAGO",
     "points": 109,
     "matches": {
@@ -22860,8 +22860,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Prairie Club I - 32",
+    "series": "Series 32",
+    "team": "Prairie Club I 32",
     "league_id": "APTA_CHICAGO",
     "points": 91,
     "matches": {
@@ -22890,8 +22890,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Midtown - Chicago - 32",
+    "series": "Series 32",
+    "team": "Midtown - Chicago 32",
     "league_id": "APTA_CHICAGO",
     "points": 88,
     "matches": {
@@ -22920,8 +22920,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Glen View - 32",
+    "series": "Series 32",
+    "team": "Glen View 32",
     "league_id": "APTA_CHICAGO",
     "points": 66,
     "matches": {
@@ -22950,8 +22950,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 32",
-    "team": "Saddle & Cycle - 32",
+    "series": "Series 32",
+    "team": "Saddle & Cycle 32",
     "league_id": "APTA_CHICAGO",
     "points": 57,
     "matches": {
@@ -22980,8 +22980,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Lifesport-Lshire - 33",
+    "series": "Series 33",
+    "team": "Lifesport-Lshire 33",
     "league_id": "APTA_CHICAGO",
     "points": 175,
     "matches": {
@@ -23010,8 +23010,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Winnetka - 33",
+    "series": "Series 33",
+    "team": "Winnetka 33",
     "league_id": "APTA_CHICAGO",
     "points": 169,
     "matches": {
@@ -23040,8 +23040,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Wilmette PD - 33",
+    "series": "Series 33",
+    "team": "Wilmette PD 33",
     "league_id": "APTA_CHICAGO",
     "points": 144,
     "matches": {
@@ -23070,8 +23070,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Knollwood - 33",
+    "series": "Series 33",
+    "team": "Knollwood 33",
     "league_id": "APTA_CHICAGO",
     "points": 126,
     "matches": {
@@ -23100,8 +23100,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Prairie Club - 33",
+    "series": "Series 33",
+    "team": "Prairie Club 33",
     "league_id": "APTA_CHICAGO",
     "points": 125,
     "matches": {
@@ -23130,8 +23130,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Skokie - 33",
+    "series": "Series 33",
+    "team": "Skokie 33",
     "league_id": "APTA_CHICAGO",
     "points": 113,
     "matches": {
@@ -23160,8 +23160,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Tennaqua - 33",
+    "series": "Series 33",
+    "team": "Tennaqua 33",
     "league_id": "APTA_CHICAGO",
     "points": 98,
     "matches": {
@@ -23190,8 +23190,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Lake Shore CC - 33",
+    "series": "Series 33",
+    "team": "Lake Shore CC 33",
     "league_id": "APTA_CHICAGO",
     "points": 92,
     "matches": {
@@ -23220,8 +23220,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Valley Lo - 33",
+    "series": "Series 33",
+    "team": "Valley Lo 33",
     "league_id": "APTA_CHICAGO",
     "points": 67,
     "matches": {
@@ -23250,8 +23250,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 33",
-    "team": "Sunset Ridge - 33",
+    "series": "Series 33",
+    "team": "Sunset Ridge 33",
     "league_id": "APTA_CHICAGO",
     "points": 65,
     "matches": {
@@ -23280,8 +23280,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Birchwood - 34",
+    "series": "Series 34",
+    "team": "Birchwood 34",
     "league_id": "APTA_CHICAGO",
     "points": 173,
     "matches": {
@@ -23310,8 +23310,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Prairie Club II - 34",
+    "series": "Series 34",
+    "team": "Prairie Club II 34",
     "league_id": "APTA_CHICAGO",
     "points": 173,
     "matches": {
@@ -23340,8 +23340,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Michigan Shores - 34",
+    "series": "Series 34",
+    "team": "Michigan Shores 34",
     "league_id": "APTA_CHICAGO",
     "points": 159,
     "matches": {
@@ -23370,8 +23370,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Evanston - 34",
+    "series": "Series 34",
+    "team": "Evanston 34",
     "league_id": "APTA_CHICAGO",
     "points": 123,
     "matches": {
@@ -23400,8 +23400,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Prairie Club I - 34",
+    "series": "Series 34",
+    "team": "Prairie Club I 34",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -23430,8 +23430,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Winter Club - 34",
+    "series": "Series 34",
+    "team": "Winter Club 34",
     "league_id": "APTA_CHICAGO",
     "points": 105,
     "matches": {
@@ -23460,8 +23460,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Park Ridge CC - 34",
+    "series": "Series 34",
+    "team": "Park Ridge CC 34",
     "league_id": "APTA_CHICAGO",
     "points": 98,
     "matches": {
@@ -23490,8 +23490,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Valley Lo - 34",
+    "series": "Series 34",
+    "team": "Valley Lo 34",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -23520,8 +23520,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Hawthorn Woods - 34",
+    "series": "Series 34",
+    "team": "Hawthorn Woods 34",
     "league_id": "APTA_CHICAGO",
     "points": 76,
     "matches": {
@@ -23550,8 +23550,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 34",
-    "team": "Exmoor - 34",
+    "series": "Series 34",
+    "team": "Exmoor 34",
     "league_id": "APTA_CHICAGO",
     "points": 69,
     "matches": {
@@ -23580,8 +23580,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Tennaqua - 35",
+    "series": "Series 35",
+    "team": "Tennaqua 35",
     "league_id": "APTA_CHICAGO",
     "points": 174,
     "matches": {
@@ -23610,8 +23610,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Michigan Shores - 35",
+    "series": "Series 35",
+    "team": "Michigan Shores 35",
     "league_id": "APTA_CHICAGO",
     "points": 161,
     "matches": {
@@ -23640,8 +23640,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Indian Hill - 35",
+    "series": "Series 35",
+    "team": "Indian Hill 35",
     "league_id": "APTA_CHICAGO",
     "points": 159,
     "matches": {
@@ -23670,8 +23670,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Lake Bluff - 35",
+    "series": "Series 35",
+    "team": "Lake Bluff 35",
     "league_id": "APTA_CHICAGO",
     "points": 127,
     "matches": {
@@ -23700,8 +23700,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Wilmette PD - 35",
+    "series": "Series 35",
+    "team": "Wilmette PD 35",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -23730,8 +23730,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Bryn Mawr - 35",
+    "series": "Series 35",
+    "team": "Bryn Mawr 35",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -23760,8 +23760,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Prairie Club - 35",
+    "series": "Series 35",
+    "team": "Prairie Club 35",
     "league_id": "APTA_CHICAGO",
     "points": 79,
     "matches": {
@@ -23790,8 +23790,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 35",
-    "team": "Lake Forest - 35",
+    "series": "Series 35",
+    "team": "Lake Forest 35",
     "league_id": "APTA_CHICAGO",
     "points": 14,
     "matches": {
@@ -23820,8 +23820,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Evanston - 36",
+    "series": "Series 36",
+    "team": "Evanston 36",
     "league_id": "APTA_CHICAGO",
     "points": 179,
     "matches": {
@@ -23850,8 +23850,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Winnetka - 36",
+    "series": "Series 36",
+    "team": "Winnetka 36",
     "league_id": "APTA_CHICAGO",
     "points": 170,
     "matches": {
@@ -23880,8 +23880,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Winter Club - 36",
+    "series": "Series 36",
+    "team": "Winter Club 36",
     "league_id": "APTA_CHICAGO",
     "points": 141,
     "matches": {
@@ -23910,8 +23910,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Skokie - 36",
+    "series": "Series 36",
+    "team": "Skokie 36",
     "league_id": "APTA_CHICAGO",
     "points": 122,
     "matches": {
@@ -23940,8 +23940,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Prairie Club - 36",
+    "series": "Series 36",
+    "team": "Prairie Club 36",
     "league_id": "APTA_CHICAGO",
     "points": 111,
     "matches": {
@@ -23970,8 +23970,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Briarwood - 36",
+    "series": "Series 36",
+    "team": "Briarwood 36",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -24000,8 +24000,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "North Shore - 36",
+    "series": "Series 36",
+    "team": "North Shore 36",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -24030,8 +24030,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 36",
-    "team": "Park RIdge CC - 36",
+    "series": "Series 36",
+    "team": "Park RIdge CC 36",
     "league_id": "APTA_CHICAGO",
     "points": 25,
     "matches": {
@@ -24060,8 +24060,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Westmoreland - 37",
+    "series": "Series 37",
+    "team": "Westmoreland 37",
     "league_id": "APTA_CHICAGO",
     "points": 183,
     "matches": {
@@ -24090,8 +24090,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Inverness - 37",
+    "series": "Series 37",
+    "team": "Inverness 37",
     "league_id": "APTA_CHICAGO",
     "points": 169,
     "matches": {
@@ -24120,8 +24120,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Biltmore CC - 37",
+    "series": "Series 37",
+    "team": "Biltmore CC 37",
     "league_id": "APTA_CHICAGO",
     "points": 130,
     "matches": {
@@ -24150,8 +24150,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "South Barrington - 37",
+    "series": "Series 37",
+    "team": "South Barrington 37",
     "league_id": "APTA_CHICAGO",
     "points": 128,
     "matches": {
@@ -24180,8 +24180,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Skokie - 37",
+    "series": "Series 37",
+    "team": "Skokie 37",
     "league_id": "APTA_CHICAGO",
     "points": 118,
     "matches": {
@@ -24210,8 +24210,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Michigan Shores - 37",
+    "series": "Series 37",
+    "team": "Michigan Shores 37",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -24240,8 +24240,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Valley Lo - 37",
+    "series": "Series 37",
+    "team": "Valley Lo 37",
     "league_id": "APTA_CHICAGO",
     "points": 114,
     "matches": {
@@ -24270,8 +24270,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Park Ridge CC - 37",
+    "series": "Series 37",
+    "team": "Park Ridge CC 37",
     "league_id": "APTA_CHICAGO",
     "points": 100,
     "matches": {
@@ -24300,8 +24300,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Tennaqua - 37",
+    "series": "Series 37",
+    "team": "Tennaqua 37",
     "league_id": "APTA_CHICAGO",
     "points": 77,
     "matches": {
@@ -24330,8 +24330,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 37",
-    "team": "Lake Bluff - 37",
+    "series": "Series 37",
+    "team": "Lake Bluff 37",
     "league_id": "APTA_CHICAGO",
     "points": 40,
     "matches": {
@@ -24360,8 +24360,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Tennaqua - 38",
+    "series": "Series 38",
+    "team": "Tennaqua 38",
     "league_id": "APTA_CHICAGO",
     "points": 182,
     "matches": {
@@ -24390,8 +24390,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "North Shore - 38",
+    "series": "Series 38",
+    "team": "North Shore 38",
     "league_id": "APTA_CHICAGO",
     "points": 177,
     "matches": {
@@ -24420,8 +24420,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Evanston - 38",
+    "series": "Series 38",
+    "team": "Evanston 38",
     "league_id": "APTA_CHICAGO",
     "points": 136,
     "matches": {
@@ -24450,8 +24450,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Barrington Hills CC - 38",
+    "series": "Series 38",
+    "team": "Barrington Hills CC 38",
     "league_id": "APTA_CHICAGO",
     "points": 130,
     "matches": {
@@ -24480,8 +24480,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Birchwood - 38",
+    "series": "Series 38",
+    "team": "Birchwood 38",
     "league_id": "APTA_CHICAGO",
     "points": 115,
     "matches": {
@@ -24510,8 +24510,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Midt-Bannockburn - 38",
+    "series": "Series 38",
+    "team": "Midt-Bannockburn 38",
     "league_id": "APTA_CHICAGO",
     "points": 95,
     "matches": {
@@ -24540,8 +24540,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Skokie - 38",
+    "series": "Series 38",
+    "team": "Skokie 38",
     "league_id": "APTA_CHICAGO",
     "points": 83,
     "matches": {
@@ -24570,8 +24570,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Lake Bluff - 38",
+    "series": "Series 38",
+    "team": "Lake Bluff 38",
     "league_id": "APTA_CHICAGO",
     "points": 80,
     "matches": {
@@ -24600,8 +24600,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Sunset Ridge - 38",
+    "series": "Series 38",
+    "team": "Sunset Ridge 38",
     "league_id": "APTA_CHICAGO",
     "points": 69,
     "matches": {
@@ -24630,8 +24630,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 38",
-    "team": "Winter Club - 38",
+    "series": "Series 38",
+    "team": "Winter Club 38",
     "league_id": "APTA_CHICAGO",
     "points": 66,
     "matches": {
@@ -24660,8 +24660,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Prairie Club - 39",
+    "series": "Series 39",
+    "team": "Prairie Club 39",
     "league_id": "APTA_CHICAGO",
     "points": 171,
     "matches": {
@@ -24690,8 +24690,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Winnetka - 39",
+    "series": "Series 39",
+    "team": "Winnetka 39",
     "league_id": "APTA_CHICAGO",
     "points": 148,
     "matches": {
@@ -24720,8 +24720,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Royal Melbourne - 39",
+    "series": "Series 39",
+    "team": "Royal Melbourne 39",
     "league_id": "APTA_CHICAGO",
     "points": 143,
     "matches": {
@@ -24750,8 +24750,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Valley Lo - 39",
+    "series": "Series 39",
+    "team": "Valley Lo 39",
     "league_id": "APTA_CHICAGO",
     "points": 109,
     "matches": {
@@ -24780,8 +24780,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Exmoor - 39",
+    "series": "Series 39",
+    "team": "Exmoor 39",
     "league_id": "APTA_CHICAGO",
     "points": 107,
     "matches": {
@@ -24810,8 +24810,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Westmoreland - 39",
+    "series": "Series 39",
+    "team": "Westmoreland 39",
     "league_id": "APTA_CHICAGO",
     "points": 93,
     "matches": {
@@ -24840,8 +24840,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Lake Forest - 39",
+    "series": "Series 39",
+    "team": "Lake Forest 39",
     "league_id": "APTA_CHICAGO",
     "points": 82,
     "matches": {
@@ -24870,8 +24870,8 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 39",
-    "team": "Sunset Ridge - 39",
+    "series": "Series 39",
+    "team": "Sunset Ridge 39",
     "league_id": "APTA_CHICAGO",
     "points": 50,
     "matches": {
@@ -24900,7 +24900,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 E",
     "league_id": "APTA_CHICAGO",
     "points": 175,
@@ -24930,7 +24930,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 B",
     "league_id": "APTA_CHICAGO",
     "points": 159,
@@ -24960,7 +24960,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 E",
     "league_id": "APTA_CHICAGO",
     "points": 145,
@@ -24990,7 +24990,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 B",
     "league_id": "APTA_CHICAGO",
     "points": 143,
@@ -25020,7 +25020,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 C",
     "league_id": "APTA_CHICAGO",
     "points": 141,
@@ -25050,7 +25050,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 D",
     "league_id": "APTA_CHICAGO",
     "points": 120,
@@ -25080,7 +25080,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 F",
     "league_id": "APTA_CHICAGO",
     "points": 96,
@@ -25110,7 +25110,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 C",
     "league_id": "APTA_CHICAGO",
     "points": 95,
@@ -25140,7 +25140,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Winnetka 99 A",
     "league_id": "APTA_CHICAGO",
     "points": 82,
@@ -25170,7 +25170,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 D",
     "league_id": "APTA_CHICAGO",
     "points": 74,
@@ -25200,7 +25200,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 A",
     "league_id": "APTA_CHICAGO",
     "points": 61,
@@ -25230,7 +25230,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 99",
+    "series": "Series 99",
     "team": "Wilmette 99 F",
     "league_id": "APTA_CHICAGO",
     "points": 55,

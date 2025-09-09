@@ -84,6 +84,33 @@
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
 
+        <!-- Calendar Download Banner -->
+        <div class="bg-green-700 rounded-xl shadow-sm border border-green-600 overflow-hidden" style="background-color: #10645c !important;">
+            <div class="px-6 py-4">
+                <table class="w-full" style="border-collapse: separate; border-spacing: 5px;">
+                    <tr>
+                        <td class="align-middle" style="width: auto; padding: 10px;">
+                            <i class="fas fa-calendar-plus text-white text-xl"></i>
+                        </td>
+                        <td class="align-middle" style="width: auto;">
+                            <div>
+                                <h3 class="text-white font-semibold text-base">Download Your Schedule</h3>
+                                <p class="text-white text-xs">Get your matches and practices into your personal calendar</p>
+                            </div>
+                        </td>
+                        <td class="align-middle" style="width: auto;">
+                            <a href="{{ url_for('download.calendar_download_page') }}" 
+                               class="download-btn-fixed bg-white text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors duration-200 flex items-center"
+                               onclick="console.log('Download button clicked, going to: {{ url_for('download.calendar_download_page') }}')">
+                                <i class="fas fa-download mr-2"></i>
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
         <!-- Filter Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -164,7 +191,11 @@
                                         {% if not is_practice %}
                                             <i class="fas fa-map-marker-alt text-red-500 text-sm"></i>
                                             {% set location_text = match.location or match.home_team or session_data.user.club %}
-                                            {% set maps_query = match.club_address or location_text %}
+                                            {% if match.club_address and location_text %}
+                                                {% set maps_query = location_text + ', ' + match.club_address %}
+                                            {% else %}
+                                                {% set maps_query = match.club_address or location_text %}
+                                            {% endif %}
                                             {% if location_text != 'All Clubs' %}
                                                 <span class="text-gray-600 text-sm font-bold">{{ location_text }}</span>
                                             {% endif %}
@@ -491,7 +522,7 @@ async function updateAvailability(button, playerName, date, status) {
         
         // Show success toast that fades out
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = 'Availability updated!';
         document.body.appendChild(toast);
         
@@ -519,7 +550,7 @@ async function updateAvailability(button, playerName, date, status) {
         
         // Show error toast with fade effect
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = error.message || 'Error saving availability. Please try again.';
         document.body.appendChild(toast);
         
@@ -655,7 +686,7 @@ async function saveNoteFromModal() {
         
         // Show success toast
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = notes ? 'Note saved!' : 'Note removed!';
         document.body.appendChild(toast);
         
@@ -679,7 +710,7 @@ async function saveNoteFromModal() {
         
         // Show error toast
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = error.message || 'Error saving note. Please try again.';
         document.body.appendChild(toast);
         
@@ -969,23 +1000,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Filter button styling */
 .schedule-filter-btn {
-    background-color: #f3f4f6;
-    color: #374151;
-    border: 1px solid #d1d5db;
+    background-color: #10645c;
+    color: #bff863;
+    border: 1px solid #10645c;
 }
 
 .schedule-filter-btn.active {
-    background-color: #3b82f6;
-    color: #ffffff;
-    border-color: #3b82f6;
+    background-color: #bff863;
+    color: #10645c;
+    border-color: #bff863;
 }
 
 .schedule-filter-btn:hover {
-    background-color: #e5e7eb;
+    background-color: #045454;
+    color: #bff863;
 }
 
 .schedule-filter-btn.active:hover {
-    background-color: #2563eb;
+    background-color: #045454;
+    color: #bff863;
 }
 
 /* Header styling for practices and matches */
@@ -1449,6 +1482,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .view-team-button:hover {
     background-color: #2563eb;
+}
+
+/* Download button - prevent size increase */
+.download-btn-fixed {
+    width: 140px !important;
+    height: 44px !important;
+    flex: none !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    flex-basis: 140px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    gap: 8px !important;
 }
 </style>
 {% endblock %} 

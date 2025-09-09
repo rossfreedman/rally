@@ -146,3 +146,4 @@ docs/archive/
 # Old scraper files
 data/etl/scrapers/old/
 
+backups/*.sql

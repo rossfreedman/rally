@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
-from app.models.database_models import LineupEscrow, LineupEscrowView, SavedLineup, User, Team
+from app.models.database_models import LineupEscrow, LineupEscrowView, SavedLineup, User, Team, Club
 from app.services.notifications_service import send_sms_notification
 from utils.logging import log_user_activity
 
@@ -194,23 +194,91 @@ class LineupEscrowService:
                 "error": f"Failed to submit lineup: {str(e)}"
             }
 
-    def get_escrow_details(self, escrow_token: str, viewer_contact: str) -> Dict:
+    def _clean_lineup_text(self, lineup_text: str) -> str:
+        """Clean lineup text by removing HTML entities and preserving clean format"""
+        if not lineup_text:
+            return ""
+        
+        # Handle double-encoded HTML entities first
+        cleaned = lineup_text.replace('&lt;br&gt;', '\n').replace('&amp;amp;', '&')
+        
+        # Then handle single-encoded HTML entities
+        cleaned = cleaned.replace('<br>', '\n').replace('&amp;', '&')
+        
+        # Remove non-breaking spaces
+        cleaned = cleaned.replace('&nbsp;', ' ')
+        
+        # Remove any trailing <br> tags
+        cleaned = cleaned.rstrip('<br>')
+        
+        # Handle old legacy formats that might still exist in database
+        # Old format: "LINEUP:\nCourt 1: Player1 & Player2\n"
+        # Old format: "Court 1:\n  Ad: Player1\n  Deuce: Player2\n"
+        if cleaned.startswith('LINEUP:'):
+            lines = cleaned.split('\n')
+            new_lines = []
+            
+            for line in lines:
+                if line.startswith('LINEUP:'):
+                    continue  # Skip the LINEUP: header
+                elif line.startswith('Court ') and '&' in line:
+                    # Parse "Court X: Player1 & Player2" format
+                    court_match = line.split(':')
+                    if len(court_match) == 2:
+                        court_header = court_match[0].strip()
+                        players_text = court_match[1].strip()
+                        players = players_text.split('&')
+                        
+                        if len(players) == 2:
+                            player1 = players[0].strip()
+                            player2 = players[1].strip()
+                            
+                            # Add court header once
+                            new_lines.append(f"{court_header}:")
+                            
+                            # Skip placeholder text and add players on separate lines
+                            if not player1.startswith('[Need Partner]'):
+                                new_lines.append(f"  {player1}")
+                            if not player2.startswith('[Need Partner]'):
+                                new_lines.append(f"  {player2}")
+                            new_lines.append('')  # Add blank line between courts
+                        else:
+                            new_lines.append(line)
+                    else:
+                        new_lines.append(line)
+                elif line.startswith('  Ad:') or line.startswith('  Deuce:'):
+                    # Convert old "Ad:" and "Deuce:" format to clean format
+                    if line.startswith('  Ad:'):
+                        player_name = line.replace('  Ad:', '').strip()
+                        new_lines.append(f"  {player_name}")
+                    elif line.startswith('  Deuce:'):
+                        player_name = line.replace('  Deuce:', '').strip()
+                        new_lines.append(f"  {player_name}")
+                else:
+                    new_lines.append(line)
+            
+            cleaned = '\n'.join(new_lines)
+        
+        return cleaned
+
+    def get_escrow_details(self, escrow_token: str, viewer_contact: str = None) -> Dict:
         """
         Get escrow details for viewing
         
         Args:
             escrow_token: The escrow token
-            viewer_contact: Contact info of the viewer
+            viewer_contact: Contact info of the viewer (optional for originating captains)
             
         Returns:
             Dict with escrow details and lineup visibility
         """
         try:
-            # Validate viewer contact
-            if not viewer_contact or not viewer_contact.strip():
+            # Validate escrow token first
+            if not escrow_token or not escrow_token.strip():
+                logger.warning("Empty escrow token provided")
                 return {
                     "success": False,
-                    "error": "Contact information is required to view this lineup escrow"
+                    "error": "Invalid escrow token"
                 }
             
             escrow = self.db_session.query(LineupEscrow).filter(
@@ -218,20 +286,32 @@ class LineupEscrowService:
             ).first()
             
             if not escrow:
+                logger.warning(f"Escrow session not found for token: {escrow_token}")
                 return {
                     "success": False,
                     "error": "Escrow session not found"
                 }
             
-            # Validate that viewer contact matches recipient contact
-            if escrow.recipient_contact != viewer_contact.strip():
-                return {
-                    "success": False,
-                    "error": "Contact information does not match this escrow session"
-                }
+            # Skip contact validation - allow anyone with the escrow token to view
+            # This provides easier access to lineup escrow sessions
+            if not viewer_contact or not viewer_contact.strip():
+                logger.info(f"No viewer contact provided for escrow {escrow.id}, allowing access")
+                viewer_contact = "public_access"
+            else:
+                # Log the contact but don't validate it
+                from urllib.parse import unquote
+                decoded_viewer_contact = unquote(viewer_contact.strip())
+                logger.info(f"Viewer contact provided for escrow {escrow.id}: '{decoded_viewer_contact}' (allowing access)")
             
-            # Record view
-            self._record_view(escrow.id, viewer_contact)
+
+            
+            # Record view (skip for originating captain and public access to avoid confusion)
+            if viewer_contact not in ["originating_captain", "public_access"]:
+                try:
+                    self._record_view(escrow.id, viewer_contact)
+                except Exception as e:
+                    logger.warning(f"Failed to record view for escrow {escrow.id}: {str(e)}")
+                    # Continue without recording the view
             
             # Get team and club information
             initiator_team_name = "Unknown Team"
@@ -239,43 +319,48 @@ class LineupEscrowService:
             initiator_club_name = "Unknown Club"
             recipient_club_name = "Unknown Club"
             
-            if escrow.initiator_team_id:
-                initiator_team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
-                if initiator_team:
-                    initiator_team_name = initiator_team.display_name
-                    if hasattr(initiator_team, 'club_id') and initiator_team.club_id:
-                        from app.models.database_models import Club
-                        club = self.db_session.query(Club).filter(Club.id == initiator_team.club_id).first()
-                        if club:
-                            initiator_club_name = club.name
-            
-            if escrow.recipient_team_id:
-                recipient_team = self.db_session.query(Team).filter(Team.id == escrow.recipient_team_id).first()
-                if recipient_team:
-                    recipient_team_name = recipient_team.display_name
-                    if hasattr(recipient_team, 'club_id') and recipient_team.club_id:
-                        from app.models.database_models import Club
-                        club = self.db_session.query(Club).filter(Club.id == recipient_team.club_id).first()
-                        if club:
-                            recipient_club_name = club.name
+            try:
+                if escrow.initiator_team_id:
+                    initiator_team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
+                    if initiator_team:
+                        initiator_team_name = initiator_team.display_name
+                        if hasattr(initiator_team, 'club_id') and initiator_team.club_id:
+                            club = self.db_session.query(Club).filter(Club.id == initiator_team.club_id).first()
+                            if club:
+                                initiator_club_name = club.name
+                
+                if escrow.recipient_team_id:
+                    recipient_team = self.db_session.query(Team).filter(Team.id == escrow.recipient_team_id).first()
+                    if recipient_team:
+                        recipient_team_name = recipient_team.display_name
+                        if hasattr(recipient_team, 'club_id') and recipient_team.club_id:
+                            club = self.db_session.query(Club).filter(Club.id == recipient_team.club_id).first()
+                            if club:
+                                recipient_club_name = club.name
+            except Exception as e:
+                logger.warning(f"Error getting team/club information: {str(e)}")
+                # Continue with default values
             
             # Determine what to show based on status
             if escrow.status == 'both_submitted':
                 return {
                     "success": True,
-                    "escrow": {
+                    "escrow_data": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
-                        "recipient_lineup": escrow.recipient_lineup,
-                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup) if escrow.initiator_lineup else "",
+                        "recipient_lineup": self._clean_lineup_text(escrow.recipient_lineup),
+                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat() if escrow.initiator_submitted_at else None,
                         "recipient_submitted_at": escrow.recipient_submitted_at.isoformat() if escrow.recipient_submitted_at else None,
-                        "subject": escrow.subject,
-                        "message_body": escrow.message_body,
-                        "initiator_team_name": initiator_team_name,
-                        "recipient_team_name": recipient_team_name,
-                        "initiator_club_name": initiator_club_name,
-                        "recipient_club_name": recipient_club_name
+                        "subject": escrow.subject or "",
+                        "message_body": escrow.message_body or "",
+                        "initiator_team_name": initiator_team_name or "Unknown Team",
+                        "recipient_team_name": recipient_team_name or "Unknown Team",
+                        "initiator_club_name": initiator_club_name or "Unknown Club",
+                        "recipient_club_name": recipient_club_name or "Unknown Club",
+                        "initiator_team_id": escrow.initiator_team_id,
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": True
                 }
@@ -283,45 +368,54 @@ class LineupEscrowService:
                 # For pending status, only the recipient can view (initiator sees blurred)
                 return {
                     "success": True,
-                    "escrow": {
+                    "escrow_data": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup) if escrow.initiator_lineup else "",
                         "recipient_lineup": None,
-                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
+                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat() if escrow.initiator_submitted_at else None,
                         "recipient_submitted_at": None,
-                        "subject": escrow.subject,
-                        "message_body": escrow.message_body,
+                        "subject": escrow.subject or "",
+                        "message_body": escrow.message_body or "",
                         "is_initiator": True,  # Since we validated contact, this is the recipient
-                        "initiator_team_name": initiator_team_name,
-                        "recipient_team_name": recipient_team_name,
-                        "initiator_club_name": initiator_club_name,
-                        "recipient_club_name": recipient_club_name
+                        "initiator_team_name": initiator_team_name or "Unknown Team",
+                        "recipient_team_name": recipient_team_name or "Unknown Team",
+                        "initiator_club_name": initiator_club_name or "Unknown Club",
+                        "recipient_club_name": recipient_club_name or "Unknown Club",
+                        "initiator_team_id": escrow.initiator_team_id,
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": False
                 }
             else:
+                # For any other status, treat as both visible (fallback)
                 return {
                     "success": True,
-                    "escrow": {
+                    "escrow_data": {
                         "id": escrow.id,
                         "status": escrow.status,
-                        "initiator_lineup": escrow.initiator_lineup,
-                        "recipient_lineup": escrow.recipient_lineup,
-                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat(),
+                        "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup) if escrow.initiator_lineup else "",
+                        "recipient_lineup": self._clean_lineup_text(escrow.recipient_lineup) if escrow.recipient_lineup else None,
+                        "initiator_submitted_at": escrow.initiator_submitted_at.isoformat() if escrow.initiator_submitted_at else None,
                         "recipient_submitted_at": escrow.recipient_submitted_at.isoformat() if escrow.recipient_submitted_at else None,
-                        "subject": escrow.subject,
-                        "message_body": escrow.message_body,
-                        "initiator_team_name": initiator_team_name,
-                        "recipient_team_name": recipient_team_name,
-                        "initiator_club_name": initiator_club_name,
-                        "recipient_club_name": recipient_club_name
+                        "subject": escrow.subject or "",
+                        "message_body": escrow.message_body or "",
+                        "initiator_team_name": initiator_team_name or "Unknown Team",
+                        "recipient_team_name": recipient_team_name or "Unknown Team",
+                        "initiator_club_name": initiator_club_name or "Unknown Club",
+                        "recipient_club_name": recipient_club_name or "Unknown Club",
+                        "initiator_team_id": escrow.initiator_team_id,
+                        "recipient_team_id": escrow.recipient_team_id,
+                        "viewer_type": "originating_captain" if viewer_contact == "originating_captain" else "recipient_captain"
                     },
                     "both_lineups_visible": True
                 }
                 
         except Exception as e:
             logger.error(f"Error getting escrow details: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Failed to get escrow details: {str(e)}"
@@ -463,6 +557,60 @@ class LineupEscrowService:
                 "error": f"Failed to delete lineup: {str(e)}"
             }
 
+    def update_saved_lineup(self, lineup_id: int, user_id: int, lineup_name: str = None, lineup_data: str = None) -> Dict:
+        """
+        Update a saved lineup
+        
+        Args:
+            lineup_id: ID of the lineup to update
+            user_id: ID of the user (for verification)
+            lineup_name: New name for the lineup (optional)
+            lineup_data: New data for the lineup (optional)
+            
+        Returns:
+            Dict with success status
+        """
+        try:
+            lineup = self.db_session.query(SavedLineup).filter(
+                SavedLineup.id == lineup_id,
+                SavedLineup.user_id == user_id,
+                SavedLineup.is_active == True
+            ).first()
+            
+            if not lineup:
+                return {
+                    "success": False,
+                    "error": "Lineup not found"
+                }
+            
+            # Update fields if provided
+            if lineup_name is not None:
+                lineup.lineup_name = lineup_name
+            if lineup_data is not None:
+                lineup.lineup_data = lineup_data
+                
+            lineup.updated_at = datetime.now(timezone.utc)
+            self.db_session.commit()
+            
+            return {
+                "success": True,
+                "message": "Lineup updated successfully",
+                "lineup": {
+                    "id": lineup.id,
+                    "name": lineup.lineup_name,
+                    "data": lineup.lineup_data,
+                    "updated_at": lineup.updated_at.isoformat()
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Error updating saved lineup: {str(e)}")
+            self.db_session.rollback()
+            return {
+                "success": False,
+                "error": f"Failed to update lineup: {str(e)}"
+            }
+
     def _generate_escrow_token(self) -> str:
         """Generate a unique escrow token"""
         return f"escrow_{secrets.token_urlsafe(16)}"
@@ -501,14 +649,17 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
-            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
+            # URL encode the contact parameter to handle special characters like parentheses
+            from urllib.parse import quote
+            encoded_contact = quote(contact_param, safe='')
+            # Use the new opposing captain page for initial lineup submission
+            view_url = f"{base_url}/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={encoded_contact}" if base_url else f"/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={encoded_contact}"
             
             club_name = ""
             # 1. Try team-based lookup
             if escrow.initiator_team_id:
                 team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
                 if team and team.club_id:
-                    from app.models.database_models import Club
                     club = self.db_session.query(Club).filter(Club.id == team.club_id).first()
                     if club and club.name:
                         club_name = club.name
@@ -518,7 +669,6 @@ class LineupEscrowService:
                     from flask import session
                     session_club_id = session.get('user', {}).get('club_id')
                     if session_club_id:
-                        from app.models.database_models import Club
                         club = self.db_session.query(Club).filter(Club.id == session_club_id).first()
                         if club and club.name:
                             club_name = club.name
@@ -582,13 +732,20 @@ class LineupEscrowService:
             
             # Always include ?contact=... in the link
             contact_param = escrow.recipient_contact
-            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
+            # URL encode the contact parameter to handle special characters like parentheses
+            from urllib.parse import quote
+            encoded_contact = quote(contact_param, safe='')
+            # For completion notifications, use the view page since both lineups are visible
+            view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_contact}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_contact}"
             
             # Get initiator user
             initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
             if initiator and initiator.phone_number:
                 # Notify initiator (use their own contact info)
-                initiator_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={initiator.phone_number}"
+                # URL encode the initiator's phone number
+                encoded_initiator_contact = quote(initiator.phone_number, safe='')
+                # For completion notifications, use the view page since both lineups are visible
+                initiator_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_initiator_contact}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={encoded_initiator_contact}"
                 message = f"🏓 Lineup Escrow™ Complete!\n\nBoth lineups are ready to view.\n\nView results: {initiator_url}"
                 send_sms_notification(
                     to_number=initiator.phone_number,
@@ -617,7 +774,11 @@ class LineupEscrowService:
             self.db_session.commit()
         except Exception as e:
             logger.error(f"Error recording view: {str(e)}")
-            self.db_session.rollback() 
+            logger.error(f"Viewer contact: {viewer_contact}, Escrow ID: {escrow_id}")
+            try:
+                self.db_session.rollback()
+            except Exception as rollback_error:
+                logger.error(f"Error during rollback: {str(rollback_error)}") 
 
     def send_email_notification(self, to_email, subject, body):
         """Send email notification for lineup escrow."""
@@ -648,7 +809,8 @@ class LineupEscrowService:
         if not escrow:
             return False
         # Compose message (no lineup included)
-        link = f"https://rally.club/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={escrow.recipient_contact}"
+        # Use the new opposing captain page for initial lineup submission
+        link = f"https://rally.club/mobile/lineup-escrow-opposing/{escrow.escrow_token}?contact={escrow.recipient_contact}"
         subject = "Lineup Escrow™ - View and Submit Your Lineup"
         message = f"You have received a Lineup Escrow™ request from another captain.\n\nClick the link below to view and submit your lineup. Both lineups will be revealed simultaneously after submission.\n\n{link}\n\nDo not reply to this message."
         # Send email (implementation omitted)

@@ -13,8 +13,8 @@
                 <i class="fas fa-bell text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Captain Messages</h1>
-                <p class="text-sm text-gray-500">Create messages that appear in team notifications</p>
+                <h1 class="text-xl font-bold text-gray-900">Team Notifications</h1>
+                <p class="text-sm text-gray-500">Send messages to your team members</p>
             </div>
         </div>
     </div>
@@ -23,7 +23,7 @@
     <div class="px-4 py-6 space-y-6">
         
         <!-- Team Info Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hidden">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-users text-blue-500 mr-2"></i>
@@ -41,13 +41,77 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Notification Templates -->
+
+        <!-- Message Type Toggle -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-toggle-on text-blue-500 mr-2"></i>
+                    Message Type
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex bg-gray-100 rounded-lg p-1">
+                    <button id="sms-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center active-toggle">
+                        <i class="fas fa-mobile-alt mr-2"></i>
+                        Text Message
+                    </button>
+                    <button id="captain-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-bullhorn mr-2"></i>
+                        Player Home Page Notification
+                    </button>
+                </div>
+                
+                <!-- Description for Player Home Page Notification -->
+                <div id="notification-description" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        This notification will appear in the notifications section for each player's home page in Rally when they login
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipients (SMS Mode Only) -->
+        <div id="recipients-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-green-500 mr-2"></i>
+                    Recipients
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="all-team" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                            <label for="all-team" class="ml-3 text-sm font-medium text-gray-700">All Team Members</label>
+                        </div>
+                        <span id="recipient-count" class="text-xs text-gray-500">Loading...</span>
+                    </div>
+                    
+                    <!-- Individual team members would be loaded here -->
+                    <div id="individual-recipients" class="space-y-2 hidden">
+                        <!-- Individual checkboxes will be dynamically added here -->
+                    </div>
+                    
+                    <button id="toggle-individual" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                        Select individual members
+                    </button>
+                    
+
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification Templates (SMS Mode) -->
+        <div id="sms-templates-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-list text-green-500 mr-2"></i>
-                    Notification Templates
+                    Message Templates
                 </h2>
             </div>
             
@@ -61,113 +125,212 @@
             </div>
         </div>
         
-        <!-- Custom Message Form -->
-        <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl shadow-sm border border-purple-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-purple-100 bg-gradient-to-r from-purple-100 to-blue-100">
-                <h2 class="text-lg font-semibold text-purple-900 flex items-center">
-                    <i class="fas fa-edit text-purple-600 mr-2"></i>
-                    Create Captain Message
+        <!-- Message Composition -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+                    <span id="message-type-label">Text Message</span>
                 </h2>
             </div>
             
-            <div class="p-6 bg-gradient-to-br from-purple-50 to-blue-50">
-                <form id="customMessageForm" class="space-y-6">
-                    <!-- Message Content -->
-                    <div>
-                        <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-2">
-                            Captain Message <span class="text-red-500">*</span>
-                        </label>
-                        <textarea 
-                            id="messageContent" 
-                            name="messageContent"
-                            rows="4"
-                            placeholder="Enter your captain message here... This will appear in team notifications on the home page."
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
-                            required
-                        ></textarea>
-                        <div class="flex justify-between items-center mt-2">
-                            <p class="text-sm text-gray-500">
-                                Maximum 1600 characters
-                            </p>
-                            <span id="characterCount" class="text-sm text-gray-500">0 / 1600</span>
-                        </div>
+            <div class="p-6">
+                <!-- Message Content -->
+                <div>
+                    <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="message-label">Message</span> <span class="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        id="messageContent" 
+                        name="messageContent"
+                        rows="6"
+                        placeholder="Enter your message here..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
+                        required
+                    ></textarea>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-sm text-gray-500">
+                            <span id="character-limit-text">Maximum 1600 characters</span>
+                        </p>
+                        <span id="characterCount" class="text-sm text-gray-500">0 / 1600</span>
                     </div>
-                    
+                </div>
 
-                    
-                    <!-- Submit Button -->
-                    <div class="flex space-x-3">
-                        <button 
-                            type="submit" 
-                            id="sendButton"
-                            class="flex-1 text-white py-2 px-4 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                            style="background-color: #045454 !important;"
-                            onmouseover="this.style.backgroundColor='#034040 !important'"
-                            onmouseout="this.style.backgroundColor='#045454 !important'"
-                        >
-                            <i class="fas fa-paper-plane mr-1"></i>
-                            Create Captain Message
-                        </button>
-                        <button 
-                            type="button" 
-                            onclick="removeCaptainMessage()"
-                            id="removeButton"
-                            class="flex-1 text-white py-2 px-4 rounded-lg transition-colors font-medium text-sm"
-                            style="background-color: #dc2626 !important;"
-                            onmouseover="this.style.backgroundColor='#b91c1c !important'"
-                            onmouseout="this.style.backgroundColor='#dc2626 !important'"
-                        >
-                            <i class="fas fa-trash mr-1"></i>
-                            Remove Captain Message
-                        </button>
-                    </div>
-                </form>
+                <!-- SMS Parts Counter (SMS Mode Only) -->
+                <div id="sms-parts-counter" class="mt-3 text-sm text-gray-500">
+                    SMS parts: <span id="sms-parts">1</span>
+                </div>
+                
+                <!-- Submit Buttons -->
+                <div class="flex space-x-3 mt-6">
+                    <button 
+                        type="button" 
+                        id="sendButton"
+                        class="flex-1 text-white py-3 px-4 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        style="background-color: #045454 !important;"
+                        onmouseover="this.style.backgroundColor='#034040 !important'"
+                        onmouseout="this.style.backgroundColor='#045454 !important'"
+                    >
+                        <i class="fas fa-paper-plane mr-2"></i>
+                        <span id="send-button-text">Send Text Message</span>
+                        <span class="ml-2" id="send-btn-subtitle">(0)</span>
+                    </button>
+                    <button 
+                        type="button" 
+                        id="removeButton"
+                        class="flex-1 text-white py-3 px-4 rounded-lg transition-colors font-medium text-sm hidden"
+                        style="background-color: #dc2626 !important;"
+                        onmouseover="this.style.backgroundColor='#b91c1c !important'"
+                        onmouseout="this.style.backgroundColor='#dc2626 !important'"
+                    >
+                        <i class="fas fa-trash mr-2"></i>
+                        Remove Notification
+                    </button>
+                </div>
             </div>
         </div>
         
-        <!-- Results Area -->
-        <div id="resultsArea" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
-                Results
-            </h3>
-            <div id="resultsContent"></div>
-        </div>
-        
-        <!-- Recent Captain Messages History -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-history text-gray-500 mr-2"></i>
-                Recent Captain Messages
-            </h3>
-            <div id="notificationHistory" class="space-y-3">
-                <p class="text-gray-500 text-sm">Recent captain messages will appear here...</p>
-            </div>
-        </div>
+
+
     </div>
 </div>
 
 <script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
+
 let teamInfo = {};
 let notificationTemplates = {};
-let notificationHistory = [];
+let isSMSMode = true;
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     loadTeamInfo();
     loadNotificationTemplates();
     setupFormHandlers();
-    loadNotificationHistory();
+    setupMessageTypeToggle();
 });
+
+function setupMessageTypeToggle() {
+    const smsToggle = document.getElementById('sms-toggle');
+    const captainToggle = document.getElementById('captain-toggle');
+    
+    smsToggle.onclick = () => switchToSMS();
+    captainToggle.onclick = () => switchToCaptain();
+    
+    // Initialize with SMS mode
+    switchToSMS();
+}
+
+function switchToSMS() {
+    isSMSMode = true;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessagePlaceholder();
+    updateCharacterLimit();
+    updateSubmitButtons();
+    
+    // Load team members for SMS mode
+    loadTeamMembers();
+}
+
+function switchToCaptain() {
+    isSMSMode = false;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessagePlaceholder();
+    updateCharacterLimit();
+    updateSubmitButtons();
+}
+
+function updateToggleButtons() {
+    const smsBtn = document.getElementById('sms-toggle');
+    const captainBtn = document.getElementById('captain-toggle');
+    
+    if (isSMSMode) {
+        smsBtn.classList.add('active-toggle');
+        captainBtn.classList.remove('active-toggle');
+    } else {
+        captainBtn.classList.add('active-toggle');
+        smsBtn.classList.remove('active-toggle');
+    }
+}
+
+function updateUIForMessageType() {
+    const messageTypeLabel = document.getElementById('message-type-label');
+    const smsTemplatesSection = document.getElementById('sms-templates-section');
+    const smsPartsCounter = document.getElementById('sms-parts-counter');
+    const recipientsSection = document.getElementById('recipients-section');
+    const notificationDescription = document.getElementById('notification-description');
+    
+    if (isSMSMode) {
+        messageTypeLabel.textContent = 'Text Message';
+        if (smsTemplatesSection) smsTemplatesSection.classList.remove('hidden');
+        if (smsPartsCounter) smsPartsCounter.classList.remove('hidden');
+        if (recipientsSection) recipientsSection.classList.remove('hidden');
+        if (notificationDescription) notificationDescription.classList.add('hidden');
+    } else {
+        messageTypeLabel.textContent = 'Player Home Page Notification';
+        if (smsTemplatesSection) smsTemplatesSection.classList.add('hidden');
+        if (smsPartsCounter) smsPartsCounter.classList.add('hidden');
+        if (recipientsSection) recipientsSection.classList.add('hidden');
+        if (notificationDescription) notificationDescription.classList.remove('hidden');
+    }
+}
+
+function updateMessagePlaceholder() {
+    const textarea = document.getElementById('messageContent');
+    if (isSMSMode) {
+        textarea.placeholder = "Enter your text message here... This will be sent via SMS to selected team members.";
+    } else {
+        textarea.placeholder = "Enter your notification message here... This will appear on the player home page for all team members.";
+    }
+}
+
+function updateCharacterLimit() {
+    const characterLimitText = document.getElementById('character-limit-text');
+    if (isSMSMode) {
+        characterLimitText.textContent = 'Maximum 1600 characters';
+    } else {
+        characterLimitText.textContent = 'Maximum 1000 characters';
+    }
+    updateCharacterCount();
+}
+
+function updateSubmitButtons() {
+    const sendButton = document.getElementById('sendButton');
+    const removeButton = document.getElementById('removeButton');
+    const sendButtonText = document.getElementById('send-button-text');
+    const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+    
+    if (isSMSMode) {
+        sendButtonText.textContent = 'Send Text Message';
+        sendBtnSubtitle.classList.remove('hidden');
+        removeButton.classList.add('hidden');
+    } else {
+        sendButtonText.textContent = 'Create Home Page Notification';
+        sendBtnSubtitle.classList.add('hidden');
+        removeButton.classList.remove('hidden');
+    }
+}
 
 async function loadTeamInfo() {
     try {
+        console.log('Loading team info...');
         const response = await fetch('/api/team-notifications/team-info');
         const data = await response.json();
         
+        console.log('Team info API response:', data);
+        
         if (data.status === 'success') {
             teamInfo = data.team_info;
+            console.log('Team info data:', teamInfo);
             displayTeamInfo(data.team_info);
+            
+            // Load team members for SMS mode
+            if (isSMSMode) {
+                loadTeamMembers();
+            }
         } else {
             throw new Error(data.error || 'Failed to load team info');
         }
@@ -183,6 +346,8 @@ async function loadTeamInfo() {
 }
 
 function displayTeamInfo(info) {
+    console.log('Displaying team info:', info);
+    
     const teamInfoElement = document.getElementById('teamInfo');
     
     teamInfoElement.innerHTML = `
@@ -214,12 +379,17 @@ function displayTeamInfo(info) {
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div class="text-sm text-blue-800">
                     <p class="font-medium mb-1">📱 Notification Recipients:</p>
-                    <p>${info.member_count} team members will see captain messages</p>
-                    <p class="text-xs mt-1">Captain messages appear in the notifications section on the home page</p>
+                    <p>${info.member_count} team members will receive messages</p>
+                    <p class="text-xs mt-1">${info.members_with_phones} members have phone numbers for SMS</p>
                 </div>
             </div>
         </div>
     `;
+    
+    console.log('Team info display completed with counts:', {
+        member_count: info.member_count,
+        members_with_phones: info.members_with_phones
+    });
 }
 
 async function loadNotificationTemplates() {
@@ -274,61 +444,74 @@ function displayNotificationTemplates() {
 function useTemplate(templateKey) {
     const template = notificationTemplates[templateKey];
     if (template) {
+        // Special handling for poll template - navigate to polls page
+        if (templateKey === 'team_poll') {
+            window.location.href = '/mobile/polls';
+            return;
+        }
+        
         document.getElementById('messageContent').value = template.message;
         updateCharacterCount();
         
-        // Scroll to the custom message form
+        // Scroll to the message form
         document.getElementById('messageContent').scrollIntoView({ behavior: 'smooth' });
     }
 }
 
 function setupFormHandlers() {
-    const form = document.getElementById('customMessageForm');
     const messageContent = document.getElementById('messageContent');
     
     // Character count
     messageContent.addEventListener('input', updateCharacterCount);
     
     // Form submission
-    form.addEventListener('submit', handleFormSubmit);
+    document.getElementById('sendButton').addEventListener('click', handleFormSubmit);
+    
+    // Recipient selection
+    document.getElementById('all-team').addEventListener('change', toggleIndividualRecipients);
+    document.getElementById('toggle-individual').addEventListener('click', showIndividualRecipients);
 }
 
 function updateCharacterCount() {
     const textarea = document.getElementById('messageContent');
     const counter = document.getElementById('characterCount');
+    const smsParts = document.getElementById('sms-parts');
     const length = textarea.value.length;
     
-    counter.textContent = `${length} / 1600`;
+    const maxLength = isSMSMode ? 1600 : 1000;
+    counter.textContent = `${length} / ${maxLength}`;
     
-    if (length > 1600) {
+    if (length > maxLength) {
         counter.classList.add('text-red-500');
         counter.classList.remove('text-gray-500');
     } else {
         counter.classList.remove('text-red-500');
         counter.classList.add('text-gray-500');
     }
+    
+    // Update SMS parts counter
+    if (isSMSMode) {
+        const parts = Math.ceil(length / 160);
+        smsParts.textContent = parts;
+    }
 }
 
 async function handleFormSubmit(e) {
     e.preventDefault();
     
-    const formData = new FormData(e.target);
-    const messageContent = formData.get('messageContent').trim();
+    const messageContent = document.getElementById('messageContent').value.trim();
     
     // Validation
     if (!messageContent) {
-        showResults({
-            success: false,
-            error: 'Message content is required'
-        });
+        console.error('Message content is required');
+        alert('Message content is required');
         return;
     }
     
-    if (messageContent.length > 1600) {
-        showResults({
-            success: false,
-            error: 'Message too long (max 1600 characters)'
-        });
+    const maxLength = isSMSMode ? 1600 : 1000;
+    if (messageContent.length > maxLength) {
+        console.error(`Message too long (max ${maxLength} characters)`);
+        alert(`Message too long (max ${maxLength} characters)`);
         return;
     }
     
@@ -339,39 +522,95 @@ async function handleFormSubmit(e) {
     sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
     
     try {
-        const response = await fetch('/api/captain-messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: messageContent
-            })
-        });
+        let response;
+        let result;
         
-        const result = await response.json();
+        console.log('Sending message in mode:', isSMSMode ? 'SMS' : 'Notification');
         
-        // Add to history
-        addToNotificationHistory({
-            timestamp: new Date().toISOString(),
-            message: messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''),
-            success: result.success,
-            result: result
-        });
+        if (isSMSMode) {
+            // Get recipients for SMS
+            const recipients = getSelectedRecipients();
+            console.log('Selected recipients:', recipients);
+            
+            if (recipients.length === 0) {
+                console.error('No recipients selected or no phone numbers available');
+                alert('No recipients selected or no phone numbers available');
+                return;
+            }
+            
+            // Send SMS notification
+            console.log('Sending SMS to API...');
+            response = await fetch('/api/team-notifications/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: messageContent,
+                    recipients: recipients
+                })
+            });
+        } else {
+            // Create player home page notification (NO SMS - only appears on home page)
+            console.log('Creating notification via API...');
+            response = await fetch('/api/captain-messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: messageContent
+                })
+            });
+        }
         
-        showResults(result);
+        console.log('API Response status:', response.status);
+        console.log('API Response headers:', response.headers);
+        
+        result = await response.json();
+        console.log('API Response data:', result);
+        
+        console.log('Message sent successfully:', result);
         
         // Clear form on success
         if (result.success) {
             clearForm();
+            if (isSMSMode) {
+                alert('Message sent successfully!');
+            } else {
+                alert('Notification posted successfully on team home page');
+            }
+        } else {
+            alert('Failed to send message: ' + (result.error || 'Unknown error'));
         }
         
     } catch (error) {
-        console.error('Error sending team notification:', error);
-        showResults({
-            success: false,
-            error: 'Network error: ' + error.message
-        });
+        console.error('Error sending message:', error);
+        
+        let errorMessage = 'Network error: ' + error.message;
+        
+        // Try to parse response for more detailed error info
+        if (error.response) {
+            try {
+                const errorData = await error.response.json();
+                if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+            } catch (parseError) {
+                // If we can't parse the error response, use the status
+                if (error.response.status === 400) {
+                    errorMessage = 'Invalid request. Please check your message and try again.';
+                } else if (error.response.status === 401) {
+                    errorMessage = 'Authentication error. Please log in again.';
+                } else if (error.response.status === 403) {
+                    errorMessage = 'You do not have permission to send messages.';
+                } else if (error.response.status === 500) {
+                    errorMessage = 'Server error. Please try again later.';
+                }
+            }
+        }
+        
+        alert('Error: ' + errorMessage);
     } finally {
         // Re-enable form
         sendButton.disabled = false;
@@ -379,44 +618,219 @@ async function handleFormSubmit(e) {
     }
 }
 
-function showResults(result) {
-    const resultsArea = document.getElementById('resultsArea');
-    const resultsContent = document.getElementById('resultsContent');
+function getSelectedRecipients() {
+    const recipients = [];
+    const allTeamChecked = document.getElementById('all-team').checked;
     
-    resultsArea.classList.remove('hidden');
+    console.log('Getting selected recipients, all-team checked:', allTeamChecked);
     
-            if (result.success) {
-            resultsContent.innerHTML = `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div class="flex items-center text-green-800 mb-3">
-                        <i class="fas fa-check-circle mr-2"></i>
-                        <span class="font-medium">Captain message created successfully!</span>
-                    </div>
-                    <div class="text-sm text-green-700 space-y-1">
-                        <p><strong>Message ID:</strong> ${result.message_id}</p>
-                        <p><strong>Status:</strong> Message will appear in team notifications</p>
-                        <p class="text-xs mt-2">The message will be visible to all team members on their home page</p>
-                    </div>
-                </div>
-            `;
-                } else {
-            resultsContent.innerHTML = `
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div class="flex items-center text-red-800 mb-3">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        <span class="font-medium">Failed to create captain message</span>
-                    </div>
-                    <div class="text-sm text-red-700">
-                        <p><strong>Error:</strong> ${escapeHtml(result.error)}</p>
-                    </div>
-                </div>
-            `;
-        }
+    if (allTeamChecked) {
+        // When "All Team Members" is checked, return empty array
+        // This signals the backend to send to all team members with phone numbers
+        console.log('All team members selected, returning empty array for backend processing');
+        return [];
+    } else {
+        // Get individually selected recipients
+        const selectedCheckboxes = document.querySelectorAll('.member-checkbox:checked');
+        console.log('Individual selection, found', selectedCheckboxes.length, 'checked boxes');
+        
+        selectedCheckboxes.forEach(checkbox => {
+            const container = checkbox.closest('div');
+            const name = container.querySelector('label').textContent;
+            const phone = container.querySelector('.text-xs').textContent;
+            
+            // Clean up phone number (remove warning icons and extra text)
+            const cleanPhone = phone.replace(/[^\d+()-]/g, '');
+            
+            console.log('Adding recipient:', { name, originalPhone: phone, cleanPhone });
+            
+            recipients.push({
+                name: name,
+                phone: cleanPhone
+            });
+        });
+    }
+    
+    console.log('Final recipients array:', recipients);
+    return recipients;
+}
+
+function loadTeamMembers() {
+    const user = window.sessionData?.user || {};
+    const series = user.series;
+    const teamId = user.team_id || '';
+    
+    console.log('Loading team members with:', { series, teamId });
+    
+    if (!teamId) {
+        console.error('No team ID found in session data');
+        return;
+    }
+    
+    // Fetch actual team members to get count
+    fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(players => {
+            if (players.error) {
+                throw new Error(players.error);
+            }
+            
+            console.log('Team members API response:', players);
+            console.log('Number of team members found:', players.length);
+            
+            // Update the recipient count display
+            const recipientCount = document.getElementById('recipient-count');
+            const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+            
+            const count = players.length;
+            recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+            sendBtnSubtitle.textContent = `(${count})`;
+            
+            console.log('Updated recipient count display:', count);
+        })
+        .catch(error => {
+            console.error('Error loading team member count:', error);
+            // Keep default text on error
+        });
+}
+
+function toggleIndividualRecipients() {
+    const allTeamChecked = document.getElementById('all-team').checked;
+    const individualDiv = document.getElementById('individual-recipients');
+    
+    if (!allTeamChecked) {
+        showIndividualRecipients();
+    } else {
+        individualDiv.classList.add('hidden');
+    }
+}
+
+function showIndividualRecipients() {
+    const individualDiv = document.getElementById('individual-recipients');
+    const allTeamCheckbox = document.getElementById('all-team');
+    
+    // Get team members from the API using session data
+    const user = window.sessionData?.user || {};
+    const series = user.series;
+    const teamId = user.team_id || '';
+    
+    if (!teamId) {
+        console.error('No team ID found in session data');
+        // Fallback to mock data if no team info available
+        showMockTeamMembers(individualDiv, allTeamCheckbox);
+        return;
+    }
+    
+    // Fetch actual team members
+    fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(players => {
+            if (players.error) {
+                throw new Error(players.error);
+            }
+            
+            // Phone number mapping from club directory
+            const phoneDirectory = {
+                'Ross Freedman': '(773) 213-8911',
+                'Jonathan Blume': '(773) 354-1484', 
+                'Howard Dakoff': '(312) 804-9899',
+                'Victor Forman': '(703) 463-1853',
+                'Andrew Franger': '(847) 946-5507',
+                'Mike Lieberman': '(847) 644-6034',
+                'Paul Patt': '(262) 888-0366',
+                'Adam Seyb': '(312) 493-5764',
+                'Stephen Statkus': '(773) 450-1688',
+                'Brian Stutland': '(312) 318-9191'
+            };
+            
+            // Convert players to team member format
+            const teamMembers = players.map(player => ({
+                name: player.name,
+                phone: phoneDirectory[player.name] || player.phone || `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`
+            }));
+            
+            displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
+        })
+        .catch(error => {
+            console.error('Error loading team members:', error);
+            // Fallback to mock data on error
+            showMockTeamMembers(individualDiv, allTeamCheckbox);
+        });
+}
+
+function showMockTeamMembers(individualDiv, allTeamCheckbox) {
+    // Real team members from club directory (Series 22)
+    const teamMembers = [
+        { name: 'Ross Freedman', phone: '(773) 213-8911' },
+        { name: 'Jonathan Blume', phone: '(773) 354-1484' },
+        { name: 'Howard Dakoff', phone: '(312) 804-9899' },
+        { name: 'Victor Forman', phone: '(703) 463-1853' },
+        { name: 'Andrew Franger', phone: '(847) 946-5507' },
+        { name: 'Mike Lieberman', phone: '(847) 644-6034' },
+        { name: 'Paul Patt', phone: '(262) 888-0366' },
+        { name: 'Adam Seyb', phone: '(312) 493-5764' },
+        { name: 'Stephen Statkus', phone: '(773) 450-1688' },
+        { name: 'Brian Stutland', phone: '(312) 318-9191' }
+    ];
+    
+    displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
+}
+
+function displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox) {
+    individualDiv.innerHTML = '';
+    teamMembers.forEach((member, index) => {
+        const div = document.createElement('div');
+        const isValidPhone = isValidPhoneNumber(member.phone);
+        const phoneClass = isValidPhone ? 'text-gray-500' : 'text-red-500';
+        const phoneIcon = isValidPhone ? '' : '<i class="fas fa-exclamation-triangle text-red-500 mr-1"></i>';
+        
+        div.className = 'flex items-center p-2 bg-gray-50 rounded';
+        div.innerHTML = `
+            <input type="checkbox" id="member-${index}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded member-checkbox" checked>
+            <label for="member-${index}" class="ml-3 text-sm text-gray-700 flex-1">${member.name}</label>
+            <span class="text-xs ${phoneClass}">${phoneIcon}${member.phone}</span>
+        `;
+        individualDiv.appendChild(div);
+    });
+    
+    individualDiv.classList.remove('hidden');
+    allTeamCheckbox.checked = false;
+    
+    // Add event listeners to individual checkboxes
+    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+        checkbox.onchange = updateRecipientCount;
+    });
+    
+    // Update the recipient count display
+    const recipientCount = document.getElementById('recipient-count');
+    recipientCount.textContent = `${teamMembers.length} members`;
+    
+    updateRecipientCount();
+}
+
+function updateRecipientCount() {
+    const checkedBoxes = document.querySelectorAll('.member-checkbox:checked');
+    const recipientCount = document.getElementById('recipient-count');
+    const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+    
+    const count = checkedBoxes.length;
+    recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+    sendBtnSubtitle.textContent = `(${count})`;
 }
 
 async function removeCaptainMessage() {
     // Show confirmation dialog
-    if (!confirm('Are you sure you want to remove the current captain message? This action cannot be undone.')) {
+    if (!confirm('Are you sure you want to remove the current player home page notification? This action cannot be undone.')) {
         return;
     }
     
@@ -438,34 +852,17 @@ async function removeCaptainMessage() {
         
         if (result.success) {
             // Show success message
-            showResults({
-                success: true,
-                message: "Captain message removed successfully"
-            });
+            alert("Player home page notification removed successfully");
             
             // Clear form
             clearForm();
-            
-            // Add to history
-            addToNotificationHistory({
-                timestamp: new Date().toISOString(),
-                message: "Removed captain message",
-                success: true,
-                result: result
-            });
         } else {
-            showResults({
-                success: false,
-                error: result.error || 'Failed to remove captain message'
-            });
+            alert('Failed to remove player home page notification: ' + (result.error || 'Unknown error'));
         }
         
     } catch (error) {
-        console.error('Error removing captain message:', error);
-        showResults({
-            success: false,
-            error: 'Network error: ' + error.message
-        });
+        console.error('Error removing player home page notification:', error);
+        alert('Network error: ' + error.message);
     } finally {
         // Re-enable button
         removeButton.disabled = false;
@@ -474,61 +871,257 @@ async function removeCaptainMessage() {
 }
 
 function clearForm() {
-    document.getElementById('customMessageForm').reset();
     document.getElementById('messageContent').value = '';
     updateCharacterCount();
-    document.getElementById('resultsArea').classList.add('hidden');
+    
+    // Results card was removed, so no need to clear it
 }
+
+
 
 function refreshTeamInfo() {
     loadTeamInfo();
 }
 
-function loadNotificationHistory() {
-    // For now, just show a placeholder
-    // In the future, this could load from a database
-    document.getElementById('notificationHistory').innerHTML = `
-        <p class="text-gray-500 text-sm">No recent notifications yet.</p>
-    `;
-}
 
-function addToNotificationHistory(notification) {
-    notificationHistory.unshift(notification);
-    
-    // Keep only last 10 notifications
-    if (notificationHistory.length > 10) {
-        notificationHistory = notificationHistory.slice(0, 10);
-    }
-    
-    // Update display
-    const historyContainer = document.getElementById('notificationHistory');
-    if (notificationHistory.length === 1) {
-        // First notification, replace placeholder
-        historyContainer.innerHTML = '';
-    }
-    
-    const notificationElement = document.createElement('div');
-    notificationElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-    notificationElement.innerHTML = `
-        <div class="flex-1">
-            <div class="text-sm font-medium text-gray-900">${escapeHtml(notification.message)}</div>
-            <div class="text-xs text-gray-500">${new Date(notification.timestamp).toLocaleString()}</div>
-        </div>
-        <div class="ml-3">
-            ${notification.success ? 
-                '<i class="fas fa-check-circle text-green-500"></i>' : 
-                '<i class="fas fa-times-circle text-red-500"></i>'
-            }
-        </div>
-    `;
-    
-    historyContainer.insertBefore(notificationElement, historyContainer.firstChild);
-}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
+
+
+
+
+
+
+
+function isValidPhoneNumber(phone) {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    console.log('Validating phone number:', phone, 'digits:', digits);
+    
+    // Check if it's a valid US phone number (10 digits)
+    if (digits.length === 10) {
+        console.log('Valid 10-digit US number');
+        return true;
+    }
+    
+    // Check if it's a valid US phone number with country code (11 digits starting with 1)
+    if (digits.length === 11 && digits.startsWith('1')) {
+        console.log('Valid 11-digit US number with country code');
+        return true;
+    }
+    
+    // Check if it's a valid US phone number with country code (12 digits starting with +1)
+    if (digits.length === 12 && digits.startsWith('1')) {
+        console.log('Valid 12-digit US number with +1 country code');
+        return true;
+    }
+    
+    console.log('Invalid phone number format');
+    return false;
+}
+
+
 </script>
+
+<style>
+/* Custom styles for the messaging interface */
+.active-toggle {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, var(--tw-bg-opacity) 100%);
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ios-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.ios-card:active {
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+}
+
+.ios-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Ensure Font Awesome icons load properly */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Form styling */
+input[type="text"], textarea {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    accent-color: #3b82f6;
+}
+
+/* Animation utilities */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transform {
+    transform: translateZ(0);
+}
+
+.hover\:scale-105:hover {
+    transform: scale(1.05);
+}
+
+.duration-300 {
+    transition-duration: 300ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Loading state styles */
+.fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.min-h-screen { min-height: 100vh; }
+.w-full { width: 100%; }
+.w-12 { width: 3rem; }
+.h-12 { height: 3rem; }
+.h-4 { height: 1rem; }
+.w-4 { width: 1rem; }
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.hidden { display: none; }
+.block { display: block; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-full { border-radius: 9999px; }
+.rounded { border-radius: 0.25rem; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.border { border-width: 1px; }
+.border-b { border-bottom-width: 1px; }
+.overflow-hidden { overflow: hidden; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+
+/* Colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-gray-200 { background-color: #e5e7eb; }
+.bg-white { background-color: #ffffff; }
+.bg-blue-600 { background-color: #2563eb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-300 { border-color: #d1d5db; }
+.text-gray-900 { color: #111827; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-white { color: #ffffff; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-blue-500 { color: #3b82f6; }
+.text-green-500 { color: #10b981; }
+.text-purple-500 { color: #8b5cf6; }
+.hover\:text-blue-800:hover { color: #1e40af; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb; }
+
+/* Typography */
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+.text-left { text-align: left; }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-3 { padding: 0.75rem; }
+.p-2 { padding: 0.5rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.ml-3 { margin-left: 0.75rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mr-3 { margin-right: 0.75rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Focus styles */
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-blue-500:focus {
+    --tw-ring-color: #3b82f6;
+}
+
+.focus\:border-blue-500:focus {
+    border-color: #3b82f6;
+}
+</style>
 {% endblock %} 

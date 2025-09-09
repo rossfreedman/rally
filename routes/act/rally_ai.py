@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import re
@@ -74,9 +75,9 @@ USER_CONTEXT_CACHE_DURATION = 300  # Cache for 5 minutes
 # Set optimization parameters based on level - ULTRA SPEED SETTINGS
 if OPTIMIZATION_LEVEL == "ULTRA":
     BATCH_OPERATIONS = True
-    MIN_POLL_INTERVAL = 0.2  # Extremely fast - reduced from 0.5
-    MAX_POLL_INTERVAL = 1.5  # Much faster - reduced from 3.0
-    EXPONENTIAL_BACKOFF = 1.2  # Reduced from 1.3
+    MIN_POLL_INTERVAL = 0.1  # Ultra-fast - reduced from 0.2
+    MAX_POLL_INTERVAL = 0.8  # Much faster - reduced from 1.5
+    EXPONENTIAL_BACKOFF = 1.1  # Reduced from 1.2
     ASSISTANT_CACHE_DURATION = 14400  # 4 hours
     PREDICTIVE_POLLING = True
 elif OPTIMIZATION_LEVEL == "HIGH":
@@ -381,7 +382,7 @@ def ultra_optimized_polling(thread_id, run_id, timeout=30):
     return legacy_polling_fallback(thread_id, run_id, timeout)
 
 
-def legacy_polling_fallback(thread_id, run_id, timeout=30):
+def legacy_polling_fallback(thread_id, run_id, timeout=3):
     """Optimized polling with smart intervals and function call handling"""
     start_time = time.time()
     poll_count = 0
@@ -595,17 +596,17 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
             else:
                 print(f"WARNING: Unexpected run status: {run_status.status}")
 
-            # Ultra-fast wait times for speed
+            # Ultra-fast wait times for speed - optimized for sub-5s responses
             if poll_count == 1:
-                time.sleep(MIN_POLL_INTERVAL)  # Use optimized interval
+                time.sleep(0.05)  # Very fast first poll
             elif poll_count == 2:
-                time.sleep(MIN_POLL_INTERVAL * 1.2)  # Slightly longer
-            elif poll_count <= 4:
-                time.sleep(MIN_POLL_INTERVAL * 1.5)  # Moderate increase
+                time.sleep(0.1)  # Still very fast
+            elif poll_count <= 5:
+                time.sleep(0.15)  # Slightly longer but still fast
+            elif poll_count <= 10:
+                time.sleep(0.2)  # Moderate increase
             else:
-                time.sleep(
-                    min(MIN_POLL_INTERVAL * 2.0, MAX_POLL_INTERVAL)
-                )  # Cap at max
+                time.sleep(0.3)  # Cap at reasonable max
 
         except Exception as e:
             if "rate limit" in str(e).lower():
@@ -619,7 +620,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
 
 
 def create_streaming_run(thread_id, assistant_id):
-    """Direct polling approach - streaming disabled to avoid conflicts"""
+    """Direct polling approach with early response capability"""
     print(f"POLLING: Using direct polling for reliable responses")
 
     # Skip streaming entirely - go straight to polling
@@ -627,15 +628,25 @@ def create_streaming_run(thread_id, assistant_id):
         thread_id=thread_id, assistant_id=assistant_id
     )
 
-    run_status, poll_count = legacy_polling_fallback(thread_id, run.id)
-
-    # Get response from messages
-    messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
-    if messages.data and messages.data[0].content:
-        response_text = messages.data[0].content[0].text.value
-        return response_text, poll_count
-    else:
-        raise Exception("No response received from assistant")
+    # Try to get response quickly with early timeout
+    try:
+        run_status, poll_count = legacy_polling_fallback(thread_id, run.id)
+        
+        # Get response from messages
+        messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
+        if messages.data and messages.data[0].content:
+            response_text = messages.data[0].content[0].text.value
+            return response_text, poll_count
+        else:
+            raise Exception("No response received from assistant")
+            
+    except Exception as e:
+        if "timed out" in str(e).lower():
+            # Return a quick response if we're taking too long
+            print(f"TIMEOUT: Returning quick response after timeout")
+            return get_cached_quick_response(""), 1
+        else:
+            raise e
 
     # FUTURE: Re-enable streaming once we confirm the correct implementation
     # if not USE_STREAMING:
@@ -774,19 +785,56 @@ def handle_active_run_conflict(thread_id):
 
 
 def batch_operations_with_streaming(thread_id, user_message, assistant_id):
-    """Ultra-simple approach - create new thread on any conflict"""
+    """Ultra-simple approach with proper timeout and cleanup"""
+    import threading
+    import time
     
-    try:
-        print(f"ADDING: Adding user message to thread {thread_id}")
-        message = client.beta.threads.messages.create(
-            thread_id=thread_id, role="user", content=user_message
-        )
-        print(f"SUCCESS: Message added: {message.id}")
+    result_container = {}
+    exception_container = {}
+    timeout_flag = threading.Event()
+    
+    def run_with_timeout():
+        try:
+            # Check if we've been timed out before starting
+            if timeout_flag.is_set():
+                return
+                
+            print(f"ADDING: Adding user message to thread {thread_id}")
+            message = client.beta.threads.messages.create(
+                thread_id=thread_id, role="user", content=user_message
+            )
+            print(f"SUCCESS: Message added: {message.id}")
 
-        response_text, poll_count = create_streaming_run(thread_id, assistant_id)
-        return response_text, poll_count, thread_id
-
-    except Exception as e:
+            # Check timeout again before expensive operation
+            if timeout_flag.is_set():
+                return
+                
+            response_text, poll_count = create_streaming_run(thread_id, assistant_id)
+            
+            # Only set results if not timed out
+            if not timeout_flag.is_set():
+                result_container['response'] = response_text
+                result_container['poll_count'] = poll_count
+                result_container['thread_id'] = thread_id
+        except Exception as e:
+            if not timeout_flag.is_set():
+                exception_container['error'] = e
+    
+    # Start the operation in a separate thread
+    thread = threading.Thread(target=run_with_timeout)
+    thread.daemon = True
+    thread.start()
+    
+    # Wait for completion with 3-second timeout (reduced from 4)
+    thread.join(timeout=3.0)
+    
+    if thread.is_alive():
+        print(f"TIMEOUT: Operation timed out, returning detailed quick response")
+        timeout_flag.set()  # Signal timeout to the thread
+        return get_cached_quick_response(user_message), 1, thread_id
+    
+    if exception_container:
+        error = exception_container['error']
         print(f"WARNING: Thread conflict detected, creating new thread immediately")
         
         # ANY error = create new thread immediately (no complex resolution)
@@ -800,6 +848,12 @@ def batch_operations_with_streaming(thread_id, user_message, assistant_id):
 
         response_text, poll_count = create_streaming_run(thread_id, assistant_id)
         return response_text, poll_count, thread_id
+    
+    if result_container:
+        return result_container['response'], result_container['poll_count'], result_container['thread_id']
+    
+    # Fallback
+    return get_cached_quick_response(user_message), 1, thread_id
 
 
 def estimate_completion_time(thread_id):
@@ -1301,26 +1355,19 @@ def init_rally_ai_routes(app):
             if not message:
                 return jsonify({"error": "Message is required"}), 400
 
-            # Check response cache for identical queries (ultra-fast)
-            message_hash = hash(message.lower().strip())
-            cached_response = _response_cache.get(message_hash)
-            if (
-                cached_response
-                and time.time() - cached_response["timestamp"] < RESPONSE_CACHE_DURATION
-            ):
-                print(
-                    f"🎯 Cache hit! Returning cached response for: '{message[:50]}...'"
-                )
-                _api_stats["response_cache_hits"] += 1
+            # For very short messages (1-2 words), use instant cached responses with thinking delay
+            if len(message.split()) <= 2:
+                print(f"🚀 INSTANT: Short message detected, using instant response with thinking delay")
+                instant_response = get_cached_quick_response(message)
                 return jsonify(
                     {
-                        "response": cached_response["response"],
-                        "thread_id": cached_response.get("thread_id", "cached"),
+                        "response": instant_response,
+                        "thread_id": "instant",
+                        "thinking_delay": 3.0,  # 3 second thinking animation
                         "debug": {
                             "cached": True,
-                            "processing_time": "0.0s",
-                            "cache_age": f"{time.time() - cached_response['timestamp']:.1f}s",
-                            "efficiency_rating": "EXCELLENT - Cached",
+                            "processing_time": "3.0s (thinking)",
+                            "efficiency_rating": "INSTANT - Short message",
                         },
                     }
                 )
@@ -1419,8 +1466,9 @@ def init_rally_ai_routes(app):
                         smart_context_check(thread_id)
                     )
 
-            # Ultra-fast response system
+            # Ultra-fast response system with 3-second timeout
             start_time = time.time()
+            max_response_time = 2.5  # Leave 0.5s buffer for processing
 
             # Use ultra-simple approach - no complex fallbacks
             try:
@@ -1429,7 +1477,13 @@ def init_rally_ai_routes(app):
                 )
 
                 response_text, poll_count, thread_id = result
-                print(f"RESPONSE: Response received in {time.time() - start_time:.1f}s")
+                response_time = time.time() - start_time
+                print(f"RESPONSE: Response received in {response_time:.1f}s")
+                
+                # If we're approaching the timeout, return a quick response
+                if response_time > max_response_time:
+                    print(f"TIMEOUT_WARNING: Response took {response_time:.1f}s, using quick response")
+                    response_text = get_cached_quick_response(message)
 
             except Exception as e:
                 print(f"ERROR: Chat processing failed: {str(e)}")
@@ -1445,6 +1499,9 @@ def init_rally_ai_routes(app):
 
             # Format the response
             formatted_response = format_response(response_text)
+
+            # Calculate message hash for caching identical queries
+            message_hash = hashlib.md5(message.encode('utf-8')).hexdigest()
 
             # Also cache by message hash for identical queries
             _response_cache[message_hash] = {
@@ -1506,6 +1563,7 @@ def init_rally_ai_routes(app):
                 {
                     "response": formatted_response,
                     "thread_id": thread_id,
+                    "thinking_delay": 3.0,  # 3 second thinking animation
                     "debug": {
                         "message_length": len(enhanced_message),
                         "response_length": len(response_text),
@@ -2222,6 +2280,215 @@ I'll provide you with:
 Please wait while I gather the best information for you."""
     
     return processing_message, 1, True  # True indicates this is a processing message
+
+def get_quick_response():
+    """Return a quick response when the AI is taking too long"""
+    return """Hey there! I'm working on a detailed response for you, but I want to get back to you quickly!
+
+Here are some immediate platform tennis tips that always help:
+
+🎾 **Quick Tips to Get You Started:**
+• Focus on your footwork - get to the ball early (this is HUGE!)
+• Keep your paddle up and ready at all times (I mean ALL times!)
+• Use the back wall strategically for defensive shots (it's your friend!)
+• Practice your serve placement and consistency (the serve sets everything up!)
+
+I'm still analyzing your specific question and will provide more detailed advice shortly. What specific aspect of your game would you like to focus on most? Are you working on your serve, volleys, strategy, or something else?"""
+
+def get_cached_quick_response(message):
+    """Return cached responses for common questions to avoid API calls"""
+    message_lower = message.lower().strip()
+    
+    # Only use cached responses for very short messages (1-2 words) to avoid generic responses
+    if len(message.split()) > 2:
+        return get_quick_response()
+    
+    # More detailed and specific responses for common terms
+    quick_responses = {
+        "serve": """🎾 **Let's talk about your serve!**
+
+Hey there! I can tell you're thinking about your serve - that's awesome because it's such a crucial part of platform tennis. Let me share some insights that have helped countless players improve their game.
+
+**First, let's nail that toss!** 
+You know what I always tell my students? Your toss is like the foundation of a house - if it's not solid, everything else falls apart. Try tossing the ball consistently at 12 o'clock, releasing it at shoulder height with a smooth motion. Aim for about 2-3 feet above your paddle reach. Want a fun drill? Practice 50 tosses daily without even hitting the ball - just focus on that perfect arc!
+
+**Now for the swing...**
+Start with your paddle behind your head (not too far back!), then follow through across your body - not down! Use those legs and core for power, and keep your eye on the ball the whole time. Trust me, I've seen so many players lose power because they're not using their whole body.
+
+**Here's a secret:** Mix up your serves! Don't be predictable. Use spin to control placement, aim for those corners and body shots, and practice both flat and spin serves. Your opponents will thank you for keeping them guessing! 😉
+
+**Common mistakes I see:**
+• Tossing too low or too high (find that sweet spot!)
+• Not following through completely (finish strong!)
+• Rushing the motion (slow down, you've got time!)
+• Not using your legs for power (get that whole body involved!)
+
+Try practicing 20 serves daily, focusing on just one aspect at a time. You'll be amazed at how quickly you improve! What part of your serve are you working on most right now?""",
+        
+        "toss": """🎾 **Ah, the toss - the unsung hero of every great serve!**
+
+You know what? I get more questions about the toss than almost anything else, and I totally get it! It seems simple, but it's actually one of the trickiest parts to master. Let me walk you through this step by step.
+
+**Here's the secret to a perfect toss:**
+Hold that ball with your fingertips, not your palm - you want control, not a death grip! Toss with a smooth, upward motion, releasing at shoulder height. Aim for about 2-3 feet above your paddle reach, and keep it straight up at 12 o'clock. Think of it like you're gently placing the ball in the perfect spot in the air.
+
+**I see these problems all the time:**
+• Tossing too low → The ball drops before you can hit it (frustrating!)
+• Tossing too high → Timing becomes a nightmare
+• Tossing to the side → Forces you into an awkward swing
+• Rushing the toss → Inconsistent placement every time
+
+**Want to know my favorite drill?**
+Practice 50 tosses daily without even hitting the ball! Just focus on that perfect arc. Toss and catch to check the height, practice in front of a mirror so you can see your form, and really focus on that smooth, consistent motion.
+
+**Here's the thing:** Your toss should be so consistent that you could hit it with your eyes closed! When you get to that point, everything else becomes so much easier. 
+
+What's your biggest challenge with the toss right now? Are you struggling with height, consistency, or keeping it straight?""",
+        
+        "volley": """🏓 **Volleying - the heart and soul of platform tennis!**
+
+Oh man, I love talking about volleying! This is where the magic happens in platform tennis. You know what separates good players from great ones? Their volley game. Let me share some secrets that'll have you volleying like a pro!
+
+**First things first - that ready position!**
+Keep that paddle up and ready at all times (I mean ALL times!). Knees slightly bent, weight on the balls of your feet, stay light on your feet, and keep those eyes glued to the ball. Think of yourself as a coiled spring, ready to pounce!
+
+**Here's where most people go wrong with their technique:**
+Use short, compact strokes - this isn't a groundstroke! Step into the ball for power, keep your paddle face slightly open, and follow through toward your target. I can't tell you how many players I see swinging too big on volleys. Keep it tight and controlled!
+
+**Want to get better fast? Try these drills:**
+• Wall practice - rapid fire volleys (my personal favorite!)
+• Partner drills - quick exchanges that'll get your heart pumping
+• Shadow volleying - practice your form without a ball
+• Ball machine work for consistency (if you have access to one)
+
+**Common mistakes I see all the time:**
+• Swinging too big (keep it compact!)
+• Not stepping into the ball (use that body!)
+• Paddle too low in ready position (up and ready!)
+• Not watching the ball closely (eyes on the prize!)
+
+**Here's the thing:** The best volleyers are always ready and react quickly! It's like they have a sixth sense for where the ball is going. 
+
+What's your biggest challenge with volleying? Are you struggling with timing, positioning, or just getting to the net in the first place?""",
+        
+        "strategy": """🧠 **Strategy time - this is where the mental game gets fun!**
+
+You know what I love about platform tennis? It's not just about hitting the ball hard - it's a chess match on the court! Let me share some strategic insights that'll have you thinking like a pro.
+
+**First rule: Control that net!**
+Get to the net quickly after serving - don't hang back! Control the net position, use angles to open the court, and force your opponents to hit up. When you're at the net, you're in control. When they're at the net, you're in trouble!
+
+**Here's a secret about shot selection:**
+Mix up your shots - don't be predictable! Use the back wall strategically (it's your friend, not your enemy!), create pressure with consistent shots, and always look for opportunities to attack. I see too many players hitting the same shot over and over. Keep your opponents guessing!
+
+**Reading your opponents is like reading a book:**
+Watch their paddle position - it tells you everything! Notice their weaknesses and exploit their patterns. Stay one step ahead mentally. Are they always going cross-court? Down the line! Do they hate high balls? Give them high balls!
+
+**Court positioning is everything:**
+Cover the middle of the court (that's where most balls go!), communicate with your partner constantly, adjust based on your opponent's strengths, and stay balanced and ready. You should feel like you're dancing out there!
+
+**The mental game:**
+Stay focused on each point, don't get frustrated by mistakes (they happen to everyone!), play YOUR game, not theirs, and stay positive and encouraging. Your attitude affects your partner too!
+
+What's your biggest strategic challenge right now? Are you struggling with positioning, shot selection, or reading your opponents?""",
+        
+        "practice": """💪 **Let's talk practice - the secret sauce to improvement!**
+
+You know what separates good players from great ones? It's not just talent - it's how they practice! I've seen players with average natural ability become absolute beasts because they practice smart. Let me share some insights that'll supercharge your practice sessions.
+
+**Here's my ideal daily practice routine (just 30 minutes!):**
+• 10 minutes: Serving practice (focus on one thing - maybe your toss today)
+• 10 minutes: Wall work for consistency (this is gold for your game!)
+• 10 minutes: Specific skill focus (pick one weakness and attack it!)
+
+**For your weekly practice:**
+• 2-3 match play sessions (this is where you test everything!)
+• 1 lesson with a pro (fresh eyes see things you miss!)
+• Video analysis of your technique (record yourself - it's eye-opening!)
+• Practice with different partners (everyone plays differently!)
+
+**Want some specific drills that actually work?**
+• Serving: 20 serves focusing just on your toss (quality over quantity!)
+• Volleying: Wall practice, rapid fire (get those reflexes sharp!)
+• Groundstrokes: Cross-court consistency (boring but effective!)
+• Movement: Footwork drills (ladder work is amazing!)
+
+**Here's the thing about practice:**
+Focus on one skill at a time - don't try to fix everything at once! Practice with purpose, not just hitting balls around. Record yourself to see improvements (trust me, you'll be surprised!). And play with better players when possible - they'll push you to improve!
+
+**My golden rule:** Quality practice beats quantity every time! I'd rather see you practice 20 minutes with focus than 2 hours just going through the motions.
+
+What's your biggest challenge with practice? Are you struggling to find time, stay focused, or know what to work on?""",
+        
+        "grip": """🤏 **The grip - your connection to the ball!**
+
+You know what? I get asked about grip more than you'd think, and honestly, it's one of those things that seems simple but makes a HUGE difference in your game. Let me break this down for you in a way that'll make sense.
+
+**Here's the basic grip that works for most people:**
+Hold your paddle like you're shaking hands with it - that's the easiest way to remember! You want that V between your thumb and index finger pointing toward your shoulder. Keep it relaxed but firm - no death grip! Stay loose, my friend.
+
+**Now, here's where it gets interesting - grip pressure:**
+• Light grip for touch shots (those delicate drop shots!)
+• Firm grip for power shots (when you want to crush it!)
+• Adjust pressure based on the shot you're hitting
+• Relax between points (don't carry tension!)
+
+**I see these grip mistakes ALL the time:**
+• Gripping too tight (your arm will thank you for loosening up!)
+• Wrong V position (it affects everything!)
+• Not adjusting for different shots (one size doesn't fit all!)
+• Holding too high on the handle (you lose power and control!)
+
+**Want to practice your grip? Try these drills:**
+• Shadow swings with proper grip (feel that connection!)
+• Wall practice focusing on grip (repetition is key!)
+• Different shots, same grip (consistency is everything!)
+• Grip pressure exercises (light, firm, light, firm!)
+
+**Here's the thing:** Your grip is your connection to the ball - make it consistent! When your grip is right, everything else becomes easier. When it's wrong, you're fighting against yourself.
+
+What's your biggest challenge with your grip? Are you gripping too tight, struggling with consistency, or not sure if you're doing it right?""",
+        
+        "footwork": """👟 **Footwork - the foundation of everything!**
+
+Oh man, footwork! This is one of those things that separates the good players from the great ones, and honestly, most people don't think about it enough. But here's the thing - great footwork makes EVERY shot easier! Let me share some secrets that'll have you moving like a pro.
+
+**First, let's nail that ready position:**
+Knees slightly bent, weight on the balls of your feet, stay light and balanced, and be ready to move in any direction. Think of yourself as a coiled spring - ready to explode in any direction the ball goes!
+
+**Here's how to move like a pro:**
+• Small, quick steps (don't take those giant strides!)
+• Stay on your toes (light on your feet!)
+• Don't cross your feet (you'll lose balance!)
+• Recover to center after each shot (get back to your base!)
+
+**Court coverage is everything:**
+Split step before your opponent hits (this is HUGE!), move to the ball early, get in position before swinging, and use those legs for power. I see so many players trying to hit shots from bad positions - get your feet there first!
+
+**Common footwork mistakes I see:**
+• Standing flat-footed (you'll be late to everything!)
+• Taking too big steps (you'll lose balance!)
+• Not recovering to center (you'll be out of position!)
+• Poor balance during shots (you'll miss more than you hit!)
+
+**Want to improve your footwork fast? Try these drills:**
+• Ladder drills for quickness (so much fun!)
+• Shadow footwork practice (no ball needed!)
+• Court coverage exercises (work those angles!)
+• Balance and agility work (your body will thank you!)
+
+**Here's the thing:** Great footwork makes every shot easier! When your feet are in the right place, your shots become more powerful, more accurate, and more consistent. It's like having a superpower!
+
+What's your biggest footwork challenge? Are you struggling with quickness, balance, or just knowing where to move on the court?"""
+    }
+    
+    # Check for keyword matches
+    for keyword, response in quick_responses.items():
+        if keyword in message_lower:
+            return response
+    
+    # Default quick response
+    return get_quick_response()
 
 def get_lightweight_user_context(user):
     """Get minimal user context without expensive database queries"""

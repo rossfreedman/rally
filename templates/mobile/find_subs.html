@@ -193,63 +193,108 @@ async function fetchAndRenderSubsMobile() {
             throw new Error('Current series is not available. Please set your series in settings.');
         }
         
-        // FIXED: Use series objects for ID-based lookups
+        // FIXED: Enhanced series comparison logic for both numeric and letter-based series
         let currentSeriesObject = null;
-        let currentNum = null;
+        let currentSeriesValue = null;
+        
+        // Helper function to get series comparison value
+        function getSeriesComparisonValue(seriesName) {
+            if (!seriesName) return null;
+            
+            const parts = seriesName.split(' ');
+            const lastPart = parts[parts.length - 1];
+            
+            // Handle numeric series (Series 1, 2, 3, etc.)
+            const numericValue = parseInt(lastPart);
+            if (!isNaN(numericValue)) {
+                return { type: 'numeric', value: numericValue, display: seriesName };
+            }
+            
+            // Handle letter-based series (Series G, A, B, C, etc.)
+            if (/^[A-Z]+$/.test(lastPart)) {
+                // Define letter series precedence: G < A < B < C < D < E < F < H < I < J < K
+                const letterPrecedence = { 'G': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6, 'F': 7, 'H': 8, 'I': 9, 'J': 10, 'K': 11 };
+                const precedence = letterPrecedence[lastPart] || 999; // Unknown letters get high precedence
+                return { type: 'letter', value: precedence, display: seriesName, letter: lastPart };
+            }
+            
+            // Handle other series formats
+            return { type: 'other', value: 999, display: seriesName };
+        }
         
         if (allSeriesObjects && allSeriesObjects.length > 0) {
             // Find current series object by name
             currentSeriesObject = allSeriesObjects.find(s => s.name === currentSeries);
             
             if (currentSeriesObject) {
-                // Extract number from current series name
-                const parts = currentSeriesObject.name.split(' ');
-                const lastPart = parts[parts.length - 1];
-                currentNum = parseInt(lastPart);
+                currentSeriesValue = getSeriesComparisonValue(currentSeriesObject.name);
+                console.log('Current series value:', currentSeriesValue);
                 
-                if (isNaN(currentNum)) {
-                    throw new Error(`Unable to determine series number from "${currentSeriesObject.name}". Please contact support.`);
+                if (!currentSeriesValue) {
+                    throw new Error(`Unable to determine series value from "${currentSeriesObject.name}". Please contact support.`);
                 }
             } else {
                 throw new Error(`Current series "${currentSeries}" not found in series list. Please contact support.`);
             }
         } else {
             // Fallback to old method if series objects not available
-            const parts = currentSeries.split(' ');
-            const lastPart = parts[parts.length - 1];
-            currentNum = parseInt(lastPart);
+            currentSeriesValue = getSeriesComparisonValue(currentSeries);
             
-            if (isNaN(currentNum)) {
-                throw new Error(`Unable to determine series number from "${currentSeries}". Please contact support.`);
+            if (!currentSeriesValue) {
+                throw new Error(`Unable to determine series value from "${currentSeries}". Please contact support.`);
             }
         }
         
-        console.log('Current series number:', currentNum);
+        console.log('Current series value:', currentSeriesValue);
         console.log('Current series object:', currentSeriesObject);
         
-        // 2. Find all higher series using series objects for efficient ID-based queries
+        // 2. Find all higher series using enhanced comparison logic
         let higherSeriesObjects = [];
         
         if (allSeriesObjects && allSeriesObjects.length > 0) {
             // Use series objects with IDs (preferred method)
             higherSeriesObjects = allSeriesObjects.filter(seriesObj => {
-                const parts = seriesObj.name.split(' ');
-                const lastPart = parts[parts.length - 1];
-                const num = parseInt(lastPart);
-                const isHigher = !isNaN(num) && num > currentNum;
-                console.log(`Series "${seriesObj.name}" (ID: ${seriesObj.id}) -> number: ${num}, higher than ${currentNum}? ${isHigher}`);
+                const seriesValue = getSeriesComparisonValue(seriesObj.name);
+                if (!seriesValue) return false;
+                
+                let isHigher = false;
+                
+                if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'numeric') {
+                    // Both are numeric: compare numbers
+                    isHigher = seriesValue.value > currentSeriesValue.value;
+                } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
+                    // Current is numeric, comparing to letter: letter series are higher
+                    isHigher = true;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
+                    // Both are letter: compare alphabetically (A < B < C)
+                    isHigher = seriesValue.value > currentSeriesValue.value;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
+                    // Current is letter, comparing to numeric: numeric series are lower
+                    isHigher = false;
+                }
+                
                 return isHigher;
             });
             
             console.log('Higher series objects found:', higherSeriesObjects);
         } else {
             // Fallback to old method
-            const higherSeriesNames = allSeries.filter(s => {
-                const parts = s.split(' ');
-                const lastPart = parts[parts.length - 1];
-                const num = parseInt(lastPart);
-                const isHigher = !isNaN(num) && num > currentNum;
-                console.log(`Series "${s}" -> number: ${num}, higher than ${currentNum}? ${isHigher}`);
+            const higherSeriesNames = allSeries.filter(series => {
+                const seriesValue = getSeriesComparisonValue(series);
+                if (!seriesValue) return false;
+                
+                let isHigher = false;
+                
+                if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'numeric') {
+                    isHigher = seriesValue.value > currentSeriesValue.value;
+                } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
+                    isHigher = true;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
+                    isHigher = seriesValue.value > currentSeriesValue.value;
+                } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
+                    isHigher = false;
+                }
+                
                 return isHigher;
             });
             
@@ -319,7 +364,8 @@ async function fetchAndRenderSubsMobile() {
         // Use successful results for processing
         const workingResults = successfulResults.length > 0 ? successfulResults : results;
         
-        // 4. Aggregate all players (only from same club - current restrictive logic)
+        // 4. Get ALL players from the same club (not just higher series)
+        // This is the key fix - we need to get all available players, not just higher series
         const allPlayers = workingResults.flatMap(result =>
             result.players.map(player => ({
                 ...player,
@@ -332,23 +378,37 @@ async function fetchAndRenderSubsMobile() {
             player.club && player.club.toLowerCase() === '{{ session_data.user.club }}'.toLowerCase()
         );
         
-        console.log(`Found ${sameClubPlayers.length} players at same club from ${workingResults.length} higher series`);
+        console.log(`Found ${sameClubPlayers.length} players at same club from ${workingResults.length} series`);
         
-        // Fix: Show correct message - "No Subs Available" instead of "No Higher Series Found"
-        // when higher series exist but no players are found at user's club
+        // If no players found, show no results
         if (sameClubPlayers.length === 0) {
             loadingDiv.classList.add('hidden');
             noResultsDiv.classList.remove('hidden');
             return;
         }
         
-        // 5. Calculate composite score
+        // 5. Calculate composite score - ENHANCED: Handle both numeric and letter-based series
         function calculateCompositeScore(pti, winRate, series) {
             const winRateDecimal = parseFloat((winRate + '').replace('%', '')) / 100;
             const normalizedPTI = (100 - parseFloat(pti || 50)) / 100;
-            const seriesNum = parseInt(series.split(' ').pop());
-            const normalizedSeries = (40 - seriesNum) / 40;
-            return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
+            
+            // Enhanced series scoring for both numeric and letter-based series
+            let normalizedSeries = 0.5; // Default middle score
+            
+            const seriesValue = getSeriesComparisonValue(series);
+            if (seriesValue) {
+                if (seriesValue.type === 'numeric') {
+                    // Numeric series: normalize based on number (higher number = lower score)
+                    normalizedSeries = Math.max(0, (40 - seriesValue.value) / 40);
+                } else if (seriesValue.type === 'letter') {
+                    // Letter series: normalize based on precedence (higher precedence = higher score)
+                    // G=1, A=2, B=3, etc. - normalize to 0-1 range
+                    normalizedSeries = Math.max(0, (12 - seriesValue.value) / 12);
+                }
+            }
+            
+            const compositeScore = (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
+            return compositeScore;
         }
         
         const playersWithScores = sameClubPlayers.map(player => ({
@@ -406,7 +466,7 @@ async function fetchAndRenderSubsMobile() {
                         
                         <!-- Club and Series -->
                         <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
-                        <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                        <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</p>
                         
                         <!-- Stats -->
                         <div class="text-sm space-y-1">
@@ -421,15 +481,30 @@ async function fetchAndRenderSubsMobile() {
                         </div>
                     </div>
                     
-                    <!-- Right Column: Action Button -->
-                    <div class="flex flex-col justify-center w-40">
+                    <!-- Right Column: Action Buttons -->
+                    <div class="flex flex-col justify-center w-40 gap-2">
+                        <!-- Detail Button -->
+                        <button onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.name)}'" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
+                                style="
+                                    padding: 8px 16px !important; 
+                                    border-radius: 8px !important; 
+                                    font-size: 13px !important; 
+                                    min-height: 36px !important;
+                                    border: none !important; 
+                                    cursor: pointer !important;
+                                ">
+                            Detail
+                        </button>
+                        
+                        <!-- Contact Button -->
                         <button onclick="window.location.href='/contact-sub?first=${encodeURIComponent(player.name.split(' ')[0])}&last=${encodeURIComponent(player.name.split(' ').slice(1).join(' '))}'" 
                                 class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold transition-colors"
                                 style="
-                                    padding: 12px 16px !important; 
+                                    padding: 8px 16px !important; 
                                     border-radius: 8px !important; 
-                                    font-size: 14px !important; 
-                                    min-height: 44px !important;
+                                    font-size: 13px !important; 
+                                    min-height: 36px !important;
                                     border: none !important; 
                                     cursor: pointer !important;
                                 ">

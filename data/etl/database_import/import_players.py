@@ -283,10 +283,8 @@ class PlayersETL:
         
         # Cache series mappings (league_id, series_name) -> series_id
         cursor.execute("""
-            SELECT l.league_id, s.name, s.id 
-            FROM series s 
-            JOIN series_leagues sl ON s.id = sl.series_id
-            JOIN leagues l ON sl.league_id = l.id
+            SELECT league_id, name, id 
+            FROM series
         """)
         series_cache = {(row[0], row[1]): row[2] for row in cursor.fetchall()}
         
@@ -305,7 +303,7 @@ class PlayersETL:
             tenniscores_player_id = (record.get("Player ID") or "").strip()
             first_name = (record.get("First Name") or "").strip()
             last_name = (record.get("Last Name") or "").strip()
-            team_name = (record.get("Series Mapping ID") or "").strip()
+            team_name = (record.get("Team") or record.get("Series Mapping ID") or "").strip()
             club_name = (record.get("Club") or "").strip()
             raw_league_id = (record.get("League") or "").strip()
             series_name = (record.get("Series") or "").strip()

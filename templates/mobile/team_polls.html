@@ -51,7 +51,7 @@
 
         <!-- Create New Poll Button -->
         <div class="mb-6">
-            <button onclick="showCreatePollModal()" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors">
+            <button onclick="showCreatePollModal()" class="w-full py-3 px-4 rounded-lg shadow transition-colors" style="background-color: #045454; color: #bff863;" onmouseover="this.style.backgroundColor='#034444'" onmouseout="this.style.backgroundColor='#045454'">
                 <i class="fas fa-plus mr-2"></i>
                 Create New Poll
             </button>
@@ -82,11 +82,11 @@
 <!-- Create Poll Modal -->
 <div id="createPollModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
     <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md md:max-w-2xl">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold text-gray-800">Create New Poll</h2>
-                    <button onclick="hideCreatePollModal()" class="text-gray-400 hover:text-gray-600">
+                    <button onclick="hideCreatePollModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
@@ -147,9 +147,20 @@
                         </button>
                         <button 
                             type="submit" 
-                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                            id="createPollBtn"
+                            class="flex-1 px-4 py-2 rounded-md transition-colors"
+                            style="background-color: #045454; color: #bff863;"
+                            onmouseover="this.style.backgroundColor='#034444'"
+                            onmouseout="this.style.backgroundColor='#045454'"
                         >
-                            Create Poll
+                            <span id="createPollBtnText">
+                                <i class="fas fa-plus mr-2"></i>
+                                Create Poll
+                            </span>
+                            <span id="createPollBtnLoading" class="hidden">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Creating...
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -529,11 +540,11 @@ function renderPolls() {
             <div class="space-y-2">
                 <!-- Row 1: Respond, Results -->
                 <div class="flex gap-2">
-                    <button onclick="respondToPoll(${poll.id})" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #2563eb;">
+                    <button onclick="respondToPoll(${poll.id})" class="flex items-center space-x-2 text-white px-4 py-3 rounded transition-colors text-sm flex-1" style="background-color: #2563eb;">
                         <i class="fas fa-vote-yea"></i>
                         <span>Respond</span>
                     </button>
-                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #9333ea;">
+                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-2 text-white px-4 py-3 rounded transition-colors text-sm flex-1" style="background-color: #9333ea;">
                         <i class="fas fa-chart-bar"></i>
                         <span>Results</span>
                     </button>
@@ -541,16 +552,16 @@ function renderPolls() {
                 
                 <!-- Row 2: Text Team, Copy Link, Delete -->
                 <div class="flex gap-2">
-                    <button onclick="textTeam(${poll.id}, '${escapeHtml(poll.question).replace(/'/g, "\\'")}')" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #16a34a;" title="Send SMS to team">
+                    <button onclick="textTeam(${poll.id}, '${escapeHtml(poll.question).replace(/'/g, "\\'")}')" class="hidden flex items-center space-x-2 text-white px-4 py-3 rounded transition-colors text-sm flex-1" style="background-color: #16a34a;" title="Send SMS to team">
                         <i class="fas fa-sms"></i>
                         <span>Text Team</span>
                     </button>
-                    <button onclick="copyPollLink(${poll.id}, this)" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #059669;" title="Copy link">
+                    <button onclick="copyPollLink(${poll.id}, this)" class="hidden flex items-center space-x-2 text-white px-4 py-3 rounded transition-colors text-sm flex-1" style="background-color: #059669;" title="Copy link">
                         <i class="fas fa-copy"></i>
                         <span>Copy Link</span>
                     </button>
                     ${isAdmin ? `
-                        <button class="delete-poll-btn flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #dc2626;" data-poll-id="${poll.id}" data-poll-question="${escapeHtml(poll.question)}">
+                        <button class="delete-poll-btn flex items-center space-x-2 text-white px-4 py-3 rounded transition-colors text-sm flex-1" style="background-color: #dc2626;" data-poll-id="${poll.id}" data-poll-question="${escapeHtml(poll.question)}">
                             <i class="fas fa-trash"></i>
                             <span>Delete</span>
                         </button>
@@ -671,6 +682,21 @@ document.getElementById('createPollForm').addEventListener('submit', async funct
         return;
     }
     
+    // Get button elements
+    const submitBtn = document.getElementById('createPollBtn');
+    const submitBtnText = document.getElementById('createPollBtnText');
+    const submitBtnLoading = document.getElementById('createPollBtnLoading');
+    
+    // Prevent double submission
+    if (submitBtn.disabled) {
+        return;
+    }
+    
+    // Set loading state
+    submitBtn.disabled = true;
+    submitBtnText.classList.add('hidden');
+    submitBtnLoading.classList.remove('hidden');
+    
     try {
         const response = await fetch('/api/polls', {
             method: 'POST',
@@ -688,19 +714,37 @@ document.getElementById('createPollForm').addEventListener('submit', async funct
         if (data.success) {
             console.log('✅ Poll created successfully');
             showSuccess('Poll created successfully!');
-            hideCreatePollModal();
             
-            // Reload polls after a brief delay
+            // Update button to success state
+            submitBtnText.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Poll Created!';
+            submitBtnText.classList.remove('hidden');
+            submitBtnLoading.classList.add('hidden');
+            submitBtn.style.backgroundColor = '#059669';
+            
+            // Hide modal and reload polls after a brief delay
             setTimeout(() => {
+                hideCreatePollModal();
                 loadPolls();
             }, 1000);
         } else {
             console.error('❌ Failed to create poll:', data.error);
             showError(data.error || 'Failed to create poll');
+            
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtnText.classList.remove('hidden');
+            submitBtnLoading.classList.add('hidden');
+            submitBtn.style.backgroundColor = '#045454';
         }
     } catch (error) {
         console.error('❌ Error creating poll:', error);
         showError('Failed to create poll');
+        
+        // Restore button state
+        submitBtn.disabled = false;
+        submitBtnText.classList.remove('hidden');
+        submitBtnLoading.classList.add('hidden');
+        submitBtn.style.backgroundColor = '#045454';
     }
 });
 

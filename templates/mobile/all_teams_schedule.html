@@ -421,7 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = formatDateString(date);
             if (eventInfo.type === 'Practice') {
                 option.textContent += ' - Practice';
+            } else if (eventInfo.type === 'Match' && eventInfo.home_team && eventInfo.away_team) {
+                // Show full matchup: "Valley Lo 22 vs. Tennaqua 22"
+                option.textContent += ' - ' + eventInfo.home_team + ' vs. ' + eventInfo.away_team;
             } else if (eventInfo.type === 'Match' && eventInfo.opponent) {
+                // Fallback to opponent if full matchup not available
                 option.textContent += ' - Match vs ' + eventInfo.opponent;
             } else if (eventInfo.type === 'Match') {
                 option.textContent += ' - Match';
@@ -539,11 +543,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventData.event_type === 'Practice') {
             return '<div class="text-sm text-blue-600 mt-1"><i class="fas fa-dumbbell mr-1"></i>Practice</div>';
         } else if (eventData.event_type === 'Match') {
-            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match';
-            if (eventData.opponent) {
-                matchInfo += ' <span class="text-gray-600">vs ' + eventData.opponent + '</span>';
+            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match</div>';
+            
+            // Enhanced: Show full team matchup information on its own line
+            if (eventData.home_team && eventData.away_team) {
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">' + eventData.home_team + ' vs. ' + eventData.away_team + '</div>';
+            } else if (eventData.opponent) {
+                // Fallback to original opponent display if team info not available
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">vs ' + eventData.opponent + '</div>';
             }
-            matchInfo += '</div>';
             return matchInfo;
         }
         return '';
@@ -671,7 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
     seriesElements.forEach(element => {
         const seriesText = element.textContent;
         if (seriesText && seriesText !== 'Not set') {
-            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+            element.textContent = seriesText.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1');
         }
     });
 

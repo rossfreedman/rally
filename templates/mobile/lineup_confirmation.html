@@ -113,7 +113,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const lineupPreview = document.getElementById('lineup-preview');
     
     if (createdLineup && lineupPreview) {
-        lineupPreview.textContent = createdLineup;
+        // Convert HTML to plain text for proper display in <pre> element
+        let plainTextLineup = createdLineup
+            .replace(/<br\s*\/?>/gi, '\n')  // Convert <br> tags to newlines
+            .replace(/&nbsp;/g, ' ')        // Convert non-breaking spaces to regular spaces
+            .replace(/&amp;/g, '&')         // Convert HTML entities
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"');
+        
+        lineupPreview.textContent = plainTextLineup;
     } else {
         // If no lineup found, redirect back to lineup creation
         window.location.href = '/mobile/lineup';
@@ -127,23 +136,69 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('back-to-edit-btn').onclick = backToEdit;
 });
 
-function saveLineup() {
+async function saveLineup() {
     // Show loading state
     const btn = document.getElementById('save-lineup-btn');
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
     btn.disabled = true;
     
-    // TODO: Implement save lineup functionality
-    // For now, show success message
-    setTimeout(() => {
-        alert('Lineup saved successfully!');
+    try {
+        // Get the lineup data from sessionStorage
+        const createdLineup = sessionStorage.getItem('createdLineup');
+        if (!createdLineup) {
+            throw new Error('No lineup data found');
+        }
+        
+        // Prompt user for lineup name
+        const lineupName = prompt('Enter a name for this lineup:');
+        if (!lineupName || !lineupName.trim()) {
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+            return;
+        }
+        
+        // Get user data
+        const user = window.sessionData?.user || {};
+        const teamId = user.team_id;
+        
+        if (!teamId) {
+            throw new Error('No team ID found');
+        }
+        
+        // Save lineup to database
+        const response = await fetch('/api/saved-lineups', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                team_id: teamId,
+                lineup_name: lineupName.trim(),
+                lineup_data: createdLineup
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to save lineup');
+        }
+        
+        // Clear the sessionStorage since we've saved it
+        sessionStorage.removeItem('createdLineup');
+        
+        // Redirect to saved lineups page
+        window.location.href = '/mobile/saved-lineups';
+        
+    } catch (error) {
+        console.error('Error saving lineup:', error);
+        alert(`Error saving lineup: ${error.message}`);
+        
+        // Reset button state
         btn.innerHTML = originalHTML;
         btn.disabled = false;
-        
-        // Optionally redirect to lineup history or home
-        window.location.href = '/mobile/lineup-selection';
-    }, 1500);
+    }
 }
 
 function sendToTeam() {
@@ -152,7 +207,23 @@ function sendToTeam() {
 }
 
 function sendViaEscrow() {
+    // Store the lineup data for the escrow page
+    const createdLineup = sessionStorage.getItem('createdLineup');
+    console.log('🔍 Escrow Flow - createdLineup from sessionStorage:', createdLineup);
+    
+    if (createdLineup) {
+        sessionStorage.setItem('escrowLineupData', createdLineup);
+        console.log('✅ Escrow Flow - Stored escrowLineupData in sessionStorage');
+        
+        // Verify it was stored
+        const stored = sessionStorage.getItem('escrowLineupData');
+        console.log('🔍 Escrow Flow - Verification - escrowLineupData:', stored ? 'STORED' : 'NOT STORED');
+    } else {
+        console.error('❌ Escrow Flow - No createdLineup found in sessionStorage!');
+    }
+    
     // Redirect to lineup escrow page with the lineup data
+    console.log('🔄 Escrow Flow - Redirecting to /mobile/lineup-escrow');
     window.location.href = '/mobile/lineup-escrow';
 }
 

@@ -49,7 +49,13 @@ class UserAgentMetrics:
 class UserAgentManager:
     """Manages User-Agent pools with rotation and metrics tracking."""
     
-    def __init__(self, config_path: str = "data/etl/scrapers/user_agents.json"):
+    def __init__(self, config_path: str = None):
+        # Auto-detect config path if not provided
+        if config_path is None:
+            # Try to find the config file relative to this script's location
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            config_path = os.path.join(script_dir, "user_agents.json")
+        
         self.config_path = config_path
         self.windows_apta_pool: List[str] = []
         self.default_pool: List[str] = []
@@ -79,7 +85,9 @@ class UserAgentManager:
                 
                 logger.info(f"✅ Loaded {len(self.windows_apta_pool)} APTA UAs and {len(self.default_pool)} default UAs")
             else:
-                logger.warning(f"⚠️ Config file not found: {self.config_path}")
+                # Only show warning if we're not in fallback mode
+                if not hasattr(self, '_fallback_loaded'):
+                    logger.warning(f"⚠️ Config file not found: {self.config_path}")
                 self._load_fallback_config()
                 
         except Exception as e:
@@ -88,6 +96,7 @@ class UserAgentManager:
     
     def _load_fallback_config(self):
         """Load fallback configuration if JSON file is missing."""
+        self._fallback_loaded = True
         self.windows_apta_pool = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",

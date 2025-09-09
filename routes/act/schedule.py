@@ -47,12 +47,31 @@ def get_matches_for_user_club(user):
             """
             
             # Practice pattern for ILIKE search (fallback for practices not using team_id)
-            practice_pattern = f"{user_club} Practice%"
+            # FIXED: Use specific series pattern instead of broad club pattern
+            # Handle different series name formats to match practice patterns in database
+            if "Division" in user_series:
+                division_num = user_series.replace("Division ", "")
+                practice_pattern = f"{user_club} Practice - Series {division_num}"
+            elif "Series" in user_series:
+                # User series already has "Series" prefix, use as-is
+                practice_pattern = f"{user_club} Practice - {user_series}"
+            else:
+                # User series is just a number/letter, add "Series" prefix for practice pattern
+                practice_pattern = f"{user_club} Practice - Series {user_series}"
+            
             practice_search = f"%{practice_pattern}%"
+            print(f"Practice pattern search: {practice_search}")
             
             matches = execute_query(
                 matches_query, [practice_search, user_team_id, user_team_id, practice_search]
             )
+            
+            print(f"Found {len(matches)} matches using team_id {user_team_id}")
+            
+            # Debug: Log the types of matches found
+            practice_count = sum(1 for match in matches if match.get('type') == 'practice')
+            match_count = sum(1 for match in matches if match.get('type') == 'match')
+            print(f"Debug: Found {practice_count} practices and {match_count} matches")
             
             # FALLBACK: If no matches found with team_id, try string pattern matching
             # This handles cases where schedule records exist with string names but no team_id foreign keys
@@ -93,11 +112,16 @@ def get_matches_for_user_club(user):
                     ORDER BY s.match_date, s.match_time
                 """
                 
+                # Use the same practice pattern logic as the main query
                 if "Division" in user_series:
                     division_num = user_series.replace("Division ", "")
                     practice_pattern = f"{user_club} Practice - Series {division_num}"
-                else:
+                elif "Series" in user_series:
+                    # User series already has "Series" prefix, use as-is
                     practice_pattern = f"{user_club} Practice - {user_series}"
+                else:
+                    # User series is just a number/letter, add "Series" prefix for practice pattern
+                    practice_pattern = f"{user_club} Practice - Series {user_series}"
                 
                 practice_search_legacy = f"%{practice_pattern}%"
                 team_search = f"%{user_team_pattern}%"
@@ -175,6 +199,11 @@ def get_matches_for_user_club(user):
             matches = execute_query(
                 matches_query, [practice_search, practice_search, team_search, team_search]
             )
+            
+            # Debug: Log the types of matches found
+            practice_count = sum(1 for match in matches if match.get('type') == 'practice')
+            match_count = sum(1 for match in matches if match.get('type') == 'match')
+            print(f"Debug: Found {practice_count} practices and {match_count} matches")
 
         filtered_matches = []
         for match in matches:

@@ -1,0 +1,1313 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Mobile Cockpit | Rally{% endblock %}
+
+{% block content %}
+<!-- Mobile Cockpit Dashboard -->
+<div class="container mx-auto px-4 py-6">
+  <!-- Header Section -->
+  <div class="welcome-section text-center mb-8">
+    <div class="flex items-center justify-center mb-4">
+      <div class="w-16 h-16 bg-rally-primary rounded-2xl flex items-center justify-center shadow-lg">
+      </div>
+    </div>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">
+      Rally Mobile Cockpit
+    </h1>
+    <p class="text-sm text-gray-500 mb-4">
+      Real-time activity monitoring & page visit analytics
+    </p>
+    
+    <!-- Live Status Indicator -->
+    <div class="flex items-center justify-center space-x-2 mb-4">
+      <div class="w-3 h-3 bg-green-400 rounded-full pulse-green"></div>
+      <span class="text-sm text-gray-600">Live Updates Active</span>
+      <span id="last-updated" class="text-xs text-gray-500 font-mono">--:--:--</span>
+    </div>
+    
+  </div>
+
+
+
+  <!-- Activity Timeline Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3" style="background-color: #10645c !important;">
+            <i class="fas fa-clock text-white text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
+            <p class="text-sm text-gray-600">Real-time user actions and page visits</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="refreshActivityData()" class="text-gray-500 hover:text-rally-primary transition-colors">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          <span class="text-xs text-gray-500" id="timeline-status">Loading...</span>
+        </div>
+      </div>
+      
+      <!-- Activity Filter Buttons -->
+      <div class="flex space-x-2 overflow-x-auto pb-2">
+        <button onclick="setActivityFilter('realtime')" id="filter-realtime" class="activity-filter-btn active px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white whitespace-nowrap shadow-sm" style="background-color: #10645c; border-color: rgba(16, 100, 92, 0.3); box-shadow: 0 2px 8px rgba(16, 100, 92, 0.2);">
+          Real-time
+        </button>
+        <button onclick="setActivityFilter('hour')" id="filter-hour" class="activity-filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap shadow-sm">
+          Last Hour
+        </button>
+        <button onclick="setActivityFilter('day')" id="filter-day" class="activity-filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap shadow-sm">
+          Today
+        </button>
+        <button onclick="setActivityFilter('week')" id="filter-week" class="activity-filter-btn px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300 whitespace-nowrap shadow-sm">
+          This Week
+        </button>
+      </div>
+    </div>
+    
+    <div class="timeline-container p-4" style="max-height: 1000px; overflow-y: auto;">
+      <div id="timeline-content">
+        <!-- Timeline items will be loaded here -->
+        <div class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rally-primary"></div>
+          <span class="ml-2 text-gray-600">Loading activities...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Active Users Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-star text-yellow-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Most Active Users</h2>
+            <p class="text-sm text-gray-600">Top performers with recent activity</p>
+          </div>
+        </div>
+        <div class="flex space-x-1">
+          <button onclick="setTopUsersFilter('today')" id="top-users-filter-today" class="px-2 py-1 text-xs font-medium rounded-lg bg-rally-primary text-white">
+            Today
+          </button>
+          <button onclick="setTopUsersFilter('week')" id="top-users-filter-week" class="px-2 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+            Week
+          </button>
+          <button onclick="setTopUsersFilter('month')" id="top-users-filter-month" class="px-2 py-1 text-xs font-medium rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300">
+            Month
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div id="top-users-list" class="space-y-3">
+        <!-- Loading skeleton -->
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Most Active Pages Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-chart-bar text-blue-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Most Active Pages</h2>
+            <p class="text-sm text-gray-600">Top visited pages today</p>
+          </div>
+        </div>
+        <button onclick="refreshPageAnalytics()" class="text-gray-500 hover:text-rally-primary transition-colors">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div id="most-active-pages-list" class="space-y-3">
+        <!-- Loading skeleton -->
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-12 rounded-lg mb-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Metrics Cards -->
+  <div class="grid grid-cols-2 gap-4 mb-6">
+    <!-- Total Users -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-users text-blue-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Total Users</p>
+          <p id="total-users" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="total-users-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Today's Activities -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-calendar-day text-green-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Today</p>
+          <p id="today-activities" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="today-activities-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Active Users -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-users text-purple-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Active Users</p>
+          <p id="active-users" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="active-users-change">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Activity Rate -->
+    <div class="metric-card bg-white p-4 rounded-xl shadow-lg hover:shadow-xl transition-all">
+      <div class="flex items-center justify-between mb-2">
+        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+          <i class="fas fa-bolt text-orange-600 text-lg"></i>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-600">Rate/Hour</p>
+          <p id="activity-rate" class="text-xl font-bold text-gray-900">-</p>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500">
+        <span id="activity-rate-change">Peak at 2:00 PM</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Count Trends Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-users text-blue-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">User Growth</h2>
+          <p class="text-sm text-gray-600">New user registrations and total users over time</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <!-- Daily New Users Chart -->
+      <div class="mb-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Daily New Users</h3>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="daily-users-chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Cumulative Total Users Chart -->
+      <div class="mb-4">
+        <h3 class="text-sm font-medium text-gray-700 mb-2">Total Users (Cumulative)</h3>
+        <div class="chart-container" style="height: 200px;">
+          <canvas id="cumulative-users-chart"></canvas>
+        </div>
+      </div>
+      
+      <div class="mt-4 flex justify-between items-center text-sm text-gray-600">
+        <span id="user-count-total">Total: -</span>
+        <span id="user-count-growth">Growth: -</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-server text-green-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">System Status</h2>
+          <p class="text-sm text-gray-600">Real-time system health monitoring</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-green-600 mb-1">Healthy</div>
+          <div class="text-xs text-gray-500">Overall Status</div>
+        </div>
+        <div class="text-center">
+          <div id="online-users" class="text-2xl font-bold text-blue-600 mb-1">-</div>
+          <div class="text-xs text-gray-500">Online Users</div>
+        </div>
+        <div class="text-center">
+          <div id="memory-usage" class="text-lg font-bold text-gray-600 mb-1">-</div>
+          <div class="text-xs text-gray-500">Memory Usage</div>
+        </div>
+        <div class="text-center">
+          <div id="cpu-usage" class="text-lg font-bold text-gray-600 mb-1">-</div>
+          <div class="text-xs text-gray-500">CPU Usage</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Custom Rally colors */
+:root {
+  --rally-primary: #10645c;
+  --rally-secondary: #0d4f47;
+  --rally-accent: #1a7a6b;
+  --rally-light: #e6f7f5;
+}
+
+.rally-bg-primary { background-color: var(--rally-primary); }
+.rally-bg-secondary { background-color: var(--rally-secondary); }
+.rally-bg-accent { background-color: var(--rally-accent); }
+.rally-bg-light { background-color: var(--rally-light); }
+.rally-text-primary { color: var(--rally-primary); }
+.rally-text-secondary { color: var(--rally-secondary); }
+
+/* Real-time pulse animation */
+.pulse-green {
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Activity filter buttons */
+.activity-filter-btn {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.activity-filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.activity-filter-btn.active {
+  border-color: rgba(16, 100, 92, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 100, 92, 0.2);
+}
+
+/* Metric cards */
+.metric-card {
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* Loading skeleton */
+.loading-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Timeline items */
+.timeline-item {
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.timeline-item:hover {
+  background-color: #f8fafc;
+  border-left-color: var(--rally-primary);
+  transform: translateX(4px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .metric-card {
+    padding: 0.75rem;
+  }
+  
+  .metric-card .text-xl {
+    font-size: 1.125rem;
+  }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Global state
+let dashboardState = {
+  currentFilter: 'realtime',
+  lastUpdate: null,
+  refreshInterval: null,
+  topUsersFilter: 'today'  // Default to today's most active users
+};
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+  initializeDashboard();
+  startRealTimeUpdates();
+});
+
+function initializeDashboard() {
+  console.log('Initializing Rally Mobile Cockpit Dashboard...');
+  initializeFilterButtons();
+  loadAllData();
+}
+
+function initializeFilterButtons() {
+  // Set initial active state for filter buttons
+  const currentFilter = dashboardState.currentFilter || 'realtime';
+  setActivityFilter(currentFilter);
+}
+
+async function loadAllData() {
+  try {
+    await Promise.all([
+      loadMetrics(),
+      loadActivityData(),
+      loadTopUsers(),
+      loadSystemStatus(),
+      loadMostActivePages(),
+      loadUserCountTrends()
+    ]);
+    updateLastUpdated();
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+  }
+}
+
+async function loadMetrics() {
+  try {
+    const response = await fetch(`/api/admin/cockpit/real-time-stats?exclude_admin=true&exclude_impersonated=false`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateMetricsDisplay(data.stats, data.trends, data.system_health);
+    }
+  } catch (error) {
+    console.error('Error loading metrics:', error);
+  }
+}
+
+async function loadActivityData() {
+  try {
+    const filter = dashboardState.currentFilter;
+    const params = new URLSearchParams({
+      limit: '50',
+      exclude_admin: 'true',
+      exclude_impersonated: 'false'
+    });
+
+    // Add date filters based on current filter
+    const { dateFrom, dateTo } = getDateRangeForFilter(filter);
+    if (dateFrom) params.append('date_from', dateFrom);
+    if (dateTo) params.append('date_to', dateTo);
+
+    const response = await fetch(`/api/admin/cockpit/detailed-activities?${params}`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      renderActivityTimeline(data.activities);
+      const filterText = {
+        'realtime': 'recent',
+        'hour': 'last hour',
+        'day': 'today', 
+        'week': 'this week'
+      };
+      const period = filterText[filter] || 'selected period';
+      const count = data.activities.length;
+      document.getElementById('timeline-status').textContent = `${count} activities ${period}`;
+    }
+  } catch (error) {
+    console.error('Error loading activity data:', error);
+    document.getElementById('timeline-status').textContent = 'Error loading';
+  }
+}
+
+async function loadTopUsers() {
+  try {
+    const filter = dashboardState.topUsersFilter;
+    
+    // Build date range for the filter
+    const { dateFrom, dateTo } = getDateRangeForTopUsersFilter(filter);
+    
+    let url = `/api/admin/dashboard/top-players?limit=20&exclude_admin=true&exclude_impersonated=false`;
+    if (dateFrom) url += `&date_from=${dateFrom}`;
+    if (dateTo) url += `&date_to=${dateTo}`;
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      renderTopUsers(data.top_players);
+    }
+  } catch (error) {
+    console.error('Error loading top users:', error);
+  }
+}
+
+async function loadSystemStatus() {
+  try {
+    const response = await fetch('/api/admin/cockpit/system-metrics');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateSystemStatus(data.metrics);
+    }
+  } catch (error) {
+    console.error('Error loading system status:', error);
+  }
+}
+
+async function loadMostActivePages() {
+  try {
+    const response = await fetch('/api/admin/cockpit/most-active-pages?exclude_admin=true&exclude_impersonated=false&limit=10', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Most active pages API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      renderMostActivePages(data.pages);
+    } else {
+      console.error('Most active pages API returned error:', data.error);
+      renderMostActivePages([]);
+    }
+  } catch (error) {
+    console.error('Error loading most active pages:', error);
+    renderMostActivePages([]);
+  }
+}
+
+async function loadUserCountTrends() {
+  try {
+    const response = await fetch('/api/admin/cockpit/user-count-trends?days=30', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`User count trends API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateUserCountChart(data);
+    } else {
+      console.error('User count trends API returned error:', data.error);
+    }
+  } catch (error) {
+    console.error('Error loading user count trends:', error);
+  }
+}
+
+function updateMetricsDisplay(stats, trends, systemHealth) {
+  // Total Users - using total_activities as a proxy for total users for now
+  document.getElementById('total-users').textContent = formatNumber(stats.total_activities || 0);
+  document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
+  document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
+  
+  // Calculate activity rate
+  const currentHour = new Date().getHours();
+  const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
+  document.getElementById('activity-rate').textContent = `${rate}/hr`;
+
+  // Update change indicators with real trends
+  if (trends) {
+    document.getElementById('total-users-change').textContent = 
+      `${trends.total_activities_change > 0 ? '+' : ''}${trends.total_activities_change}% from yesterday`;
+    document.getElementById('today-activities-change').textContent = 
+      `${trends.today_activities_change > 0 ? '+' : ''}${trends.today_activities_change}% from yesterday`;
+    document.getElementById('active-users-change').textContent = 
+      `${trends.active_users_change > 0 ? '+' : ''}${trends.active_users_change}% from yesterday`;
+  } else {
+    document.getElementById('total-users-change').textContent = 'Loading trends...';
+    document.getElementById('today-activities-change').textContent = 'Loading trends...';
+    document.getElementById('active-users-change').textContent = 'Loading trends...';
+  }
+}
+
+function renderMostActivePages(pages) {
+  const container = document.getElementById('most-active-pages-list');
+  
+  if (!pages || pages.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500">No page data available</p>';
+    return;
+  }
+
+  container.innerHTML = pages.map((page, index) => `
+    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-rally-primary text-white rounded-lg flex items-center justify-center text-sm font-semibold mr-3">
+          ${index + 1}
+        </div>
+        <div>
+          <div class="font-medium text-gray-900">${page.page_name}</div>
+          <div class="text-sm text-gray-500">${page.page_id}</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="font-semibold text-gray-900">${formatNumber(page.visit_count)}</div>
+        <div class="text-sm text-gray-500">visits</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateUserCountChart(data) {
+  // Initialize daily users chart if it doesn't exist
+  if (!window.dailyUsersChart) {
+    const ctx = document.getElementById('daily-users-chart').getContext('2d');
+    window.dailyUsersChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'New Users (Daily)',
+          data: [],
+          borderColor: '#10645c',
+          backgroundColor: 'rgba(16, 100, 92, 0.1)',
+          tension: 0.4,
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Initialize cumulative users chart if it doesn't exist
+  if (!window.cumulativeUsersChart) {
+    const ctx = document.getElementById('cumulative-users-chart').getContext('2d');
+    window.cumulativeUsersChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Total Users (Cumulative)',
+          data: [],
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5, 150, 105, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(0,0,0,0.1)'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Update the daily chart data
+  if (data.daily_chart_data) {
+    window.dailyUsersChart.data.labels = data.daily_chart_data.labels;
+    window.dailyUsersChart.data.datasets[0].data = data.daily_chart_data.datasets[0].data;
+    window.dailyUsersChart.update();
+  }
+
+  // Update the cumulative chart data
+  if (data.cumulative_chart_data) {
+    window.cumulativeUsersChart.data.labels = data.cumulative_chart_data.labels;
+    window.cumulativeUsersChart.data.datasets[0].data = data.cumulative_chart_data.datasets[0].data;
+    window.cumulativeUsersChart.update();
+  }
+
+  // Update the summary text
+  const totalEl = document.getElementById('user-count-total');
+  const growthEl = document.getElementById('user-count-growth');
+  
+  if (totalEl) {
+    totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
+  }
+  
+  if (growthEl) {
+    const growthText = data.growth_rate >= 0 ? `+${data.growth_rate}%` : `${data.growth_rate}%`;
+    growthEl.textContent = `Growth: ${growthText}`;
+  }
+}
+
+function renderActivityTimeline(activities) {
+  const container = document.getElementById('timeline-content');
+  
+  if (activities.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+        <p class="text-gray-500">No activities found for the selected period</p>
+      </div>
+    `;
+    return;
+  }
+
+  const html = activities.map(activity => {
+    const timeAgo = getTimeAgo(activity.timestamp);
+    const actionIcon = getActionTypeIcon(activity.action_type, activity.page);
+    const actionColor = getActionTypeColor(activity.action_type, activity.page);
+    const actionDescription = getDetailedActionDescription(activity);
+    
+    return `
+      <div class="timeline-item bg-white rounded-lg p-5 shadow-sm border border-gray-200 mb-4 hover:shadow-md transition-shadow">
+        <div class="flex items-start space-x-4">
+          <div class="flex-shrink-0">
+            <div class="w-12 h-12 bg-${actionColor}-100 rounded-lg flex items-center justify-center p-2">
+              <i class="${actionIcon} text-${actionColor}-600 text-lg"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between mb-3">
+              <h4 class="text-sm font-semibold text-gray-900 leading-tight">${actionDescription}</h4>
+              <span class="text-xs text-gray-500 font-mono ml-3 flex-shrink-0">${timeAgo}</span>
+            </div>
+            
+            ${activity.user ? `
+              <div class="flex items-center mb-3">
+                <div class="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center mr-4">
+                  <i class="fas fa-user text-gray-500 text-xs"></i>
+                </div>
+                <span class="text-xs text-gray-600 font-medium">${activity.user.first_name} ${activity.user.last_name}</span>
+              </div>
+            ` : ''}
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-500">
+              <div class="flex items-center">
+                <div class="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                  <i class="fas fa-tag text-gray-500 text-xs"></i>
+                </div>
+                <span>${activity.action_type}</span>
+              </div>
+              ${activity.ip_address ? `
+                <div class="flex items-center">
+                  <div class="w-4 h-4 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                    <i class="fas fa-globe text-gray-500 text-xs"></i>
+                  </div>
+                  <span>${activity.ip_address}</span>
+                </div>
+              ` : ''}
+            </div>
+            
+            ${activity.action_type === 'registration_failed' && activity.details ? `
+              <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div class="flex items-start">
+                  <div class="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xs"></i>
+                  </div>
+                  <div class="flex-1">
+                    <h5 class="text-sm font-semibold text-red-800 mb-2">Registration Details</h5>
+                    ${formatRegistrationFailedDetails(activity.details)}
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function renderTopUsers(users) {
+  const container = document.getElementById('top-users-list');
+  
+  if (users.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No user data available</p>';
+    return;
+  }
+
+  const html = users.map((user, index) => {
+    const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
+    const lastActivity = user.last_activity ? getTimeAgo(user.last_activity) : 'Unknown';
+    
+    return `
+      <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div class="flex items-center space-x-3">
+          <span class="text-sm font-bold text-gray-600" style="min-width: 30px;">${rankIcon}</span>
+          <div>
+            <p class="text-sm font-medium text-gray-900">${user.first_name} ${user.last_name}</p>
+            <p class="text-xs text-gray-600">${user.club_name || 'Unknown Club'}</p>
+            <p class="text-xs text-gray-500">
+              <i class="fas fa-clock mr-1"></i>${lastActivity}
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-bold text-gray-900">${formatNumber(user.activity_count)}</p>
+          <p class="text-xs text-gray-600">activities</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function updateSystemStatus(metrics) {
+  document.getElementById('online-users').textContent = metrics.active_sessions || 0;
+  document.getElementById('memory-usage').textContent = metrics.memory_usage || '45%';
+  document.getElementById('cpu-usage').textContent = metrics.cpu_usage || '12%';
+}
+
+function startRealTimeUpdates() {
+  // Refresh data every 30 seconds
+  dashboardState.refreshInterval = setInterval(() => {
+    loadAllData();
+  }, 30000);
+}
+
+
+function refreshActivityData() {
+  loadActivityData();
+}
+
+function refreshPageAnalytics() {
+  loadMostActivePages();
+}
+
+function setActivityFilter(filter) {
+  console.log('Setting activity filter to:', filter);
+  dashboardState.currentFilter = filter;
+  
+  // Update button states - remove active styling from all buttons
+  document.querySelectorAll('.activity-filter-btn').forEach(btn => {
+    btn.classList.remove('active', 'bg-rally-primary', 'text-white');
+    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+    // Reset inline styles
+    btn.style.backgroundColor = '';
+    btn.style.borderColor = '';
+    btn.style.boxShadow = '';
+  });
+  
+  // Apply active styling to selected button
+  const activeBtn = document.getElementById(`filter-${filter}`);
+  if (activeBtn) {
+    activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+    activeBtn.classList.add('active', 'text-white');
+    activeBtn.style.backgroundColor = '#10645c'; // Rally primary green
+    activeBtn.style.borderColor = 'rgba(16, 100, 92, 0.3)';
+    activeBtn.style.boxShadow = '0 2px 8px rgba(16, 100, 92, 0.2)';
+    console.log('Applied active styling to filter button:', filter);
+  } else {
+    console.error('Filter button not found:', `filter-${filter}`);
+  }
+  
+  // Load activities with new filter
+  loadActivityData();
+}
+
+function getDateRangeForFilter(filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (filter) {
+    case 'realtime':
+      return { dateFrom: null, dateTo: null }; // Last 50 activities
+    case 'hour':
+      const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      return { dateFrom: hourAgo.toISOString(), dateTo: null };
+    case 'day':
+      return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+    case 'week':
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      return { dateFrom: weekAgo.toISOString().split('T')[0], dateTo: null };
+    default:
+      return { dateFrom: null, dateTo: null };
+  }
+}
+
+function getDateRangeForTopUsersFilter(filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (filter) {
+    case 'today':
+      return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+    case 'week':
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      return { dateFrom: weekAgo.toISOString().split('T')[0], dateTo: null };
+    case 'month':
+      const monthAgo = new Date(today);
+      monthAgo.setDate(today.getDate() - 30);
+      return { dateFrom: monthAgo.toISOString().split('T')[0], dateTo: null };
+    default:
+      return { dateFrom: today.toISOString().split('T')[0], dateTo: null };
+  }
+}
+
+function setTopUsersFilter(filter) {
+  dashboardState.topUsersFilter = filter;
+  
+  // Update button states
+  document.querySelectorAll('[id^="top-users-filter-"]').forEach(btn => {
+    btn.classList.remove('bg-rally-primary', 'text-white');
+    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+  });
+  
+  const activeBtn = document.getElementById(`top-users-filter-${filter}`);
+  activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+  activeBtn.classList.add('bg-rally-primary', 'text-white');
+  
+  // Reload top users with new filter
+  loadTopUsers();
+}
+
+function updateLastUpdated() {
+  const now = new Date();
+  const timeString = now.toLocaleTimeString();
+  document.getElementById('last-updated').textContent = timeString;
+  dashboardState.lastUpdate = now;
+}
+
+// Utility functions
+function formatNumber(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
+function getTimeAgo(timestamp) {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function getActionTypeIcon(actionType, page = null) {
+  // Page-specific icons for page_visit
+  if (actionType === 'page_visit' && page) {
+    const pageIconMap = {
+      'mobile_home': 'fas fa-home',
+      'mobile_matches': 'fas fa-table-tennis',
+      'mobile_rankings': 'fas fa-trophy',
+      'mobile_profile': 'fas fa-user',
+      'mobile_view_schedule': 'fas fa-calendar-alt',
+      'mobile_analyze_me': 'fas fa-chart-line',
+      'mobile_my_team': 'fas fa-users',
+      'mobile_settings': 'fas fa-cog',
+      'mobile_my_series': 'fas fa-list-ol',
+      'mobile_teams_players': 'fas fa-users-cog',
+      'mobile_player_search': 'fas fa-search',
+      'mobile_my_club': 'fas fa-building',
+      'mobile_player_stats': 'fas fa-chart-bar',
+      'mobile_email_team': 'fas fa-envelope',
+      'mobile_pickup_games': 'fas fa-gamepad',
+      'mobile_find_people_to_play': 'fas fa-handshake',
+      'mobile_availability': 'fas fa-calendar-check',
+      'mobile_availability_calendar': 'fas fa-calendar-week',
+      'mobile_track_byes_courts': 'fas fa-clipboard-list',
+      'mobile_team_schedule': 'fas fa-calendar',
+      'mobile_team_notifications': 'fas fa-bell',
+      'mobile_find_subs': 'fas fa-user-plus',
+      'mobile_create_lineup': 'fas fa-list',
+      'mobile_practice_times': 'fas fa-clock',
+      'mobile_improve': 'fas fa-graduation-cap',
+      'mobile_schedule_lesson': 'fas fa-chalkboard-teacher',
+      'mobile_matchup_simulator': 'fas fa-dice',
+      'mobile_admin': 'fas fa-shield-alt',
+      'mobile_share_rally': 'fas fa-share-alt',
+      'mobile_home_submenu': 'fas fa-bars'
+    };
+    
+    // Check for exact match first
+    if (pageIconMap[page]) {
+      return pageIconMap[page];
+    }
+    
+    // Check for partial matches
+    for (const [key, icon] of Object.entries(pageIconMap)) {
+      if (page.includes(key.replace('mobile_', ''))) {
+        return icon;
+      }
+    }
+  }
+  
+  // General action type icons
+  const iconMap = {
+    'page_visit': 'fas fa-eye',
+    'login': 'fas fa-sign-in-alt',
+    'logout': 'fas fa-sign-out-alt',
+    'registration_successful': 'fas fa-user-plus',
+    'registration_failed': 'fas fa-user-times',
+    'player_search': 'fas fa-search',
+    'team_switch': 'fas fa-exchange-alt',
+    'settings_update': 'fas fa-cog',
+    'poll_voted': 'fas fa-vote-yea',
+    'poll_created': 'fas fa-poll',
+    'availability_update': 'fas fa-calendar-check',
+    'ai_chat': 'fas fa-robot',
+    'simulation_run': 'fas fa-dice',
+    'score_submitted': 'fas fa-trophy',
+    'team_email': 'fas fa-envelope',
+    'court_reservation': 'fas fa-calendar-plus',
+    'admin_action': 'fas fa-shield-alt',
+    'user_action': 'fas fa-user-cog'
+  };
+  return iconMap[actionType] || 'fas fa-info-circle';
+}
+
+function getActionTypeColor(actionType, page = null) {
+  // Page-specific colors for page_visit
+  if (actionType === 'page_visit' && page) {
+    const pageColorMap = {
+      'mobile_home': 'blue',
+      'mobile_matches': 'red',
+      'mobile_rankings': 'yellow',
+      'mobile_profile': 'purple',
+      'mobile_view_schedule': 'green',
+      'mobile_analyze_me': 'indigo',
+      'mobile_my_team': 'teal',
+      'mobile_settings': 'orange',
+      'mobile_my_series': 'pink',
+      'mobile_teams_players': 'cyan',
+      'mobile_player_search': 'blue',
+      'mobile_my_club': 'emerald',
+      'mobile_player_stats': 'violet',
+      'mobile_email_team': 'sky',
+      'mobile_pickup_games': 'lime',
+      'mobile_find_people_to_play': 'amber',
+      'mobile_availability': 'green',
+      'mobile_availability_calendar': 'emerald',
+      'mobile_track_byes_courts': 'slate',
+      'mobile_team_schedule': 'green',
+      'mobile_team_notifications': 'red',
+      'mobile_find_subs': 'purple',
+      'mobile_create_lineup': 'indigo',
+      'mobile_practice_times': 'orange',
+      'mobile_improve': 'yellow',
+      'mobile_schedule_lesson': 'blue',
+      'mobile_matchup_simulator': 'purple',
+      'mobile_admin': 'red',
+      'mobile_share_rally': 'green',
+      'mobile_home_submenu': 'gray'
+    };
+    
+    // Check for exact match first
+    if (pageColorMap[page]) {
+      return pageColorMap[page];
+    }
+    
+    // Check for partial matches
+    for (const [key, color] of Object.entries(pageColorMap)) {
+      if (page.includes(key.replace('mobile_', ''))) {
+        return color;
+      }
+    }
+  }
+  
+  // General action type colors
+  const colorMap = {
+    'page_visit': 'blue',
+    'login': 'green',
+    'logout': 'gray',
+    'registration_successful': 'green',
+    'registration_failed': 'red',
+    'player_search': 'blue',
+    'team_switch': 'purple',
+    'settings_update': 'orange',
+    'poll_voted': 'green',
+    'poll_created': 'blue',
+    'availability_update': 'green',
+    'ai_chat': 'purple',
+    'simulation_run': 'yellow',
+    'score_submitted': 'yellow',
+    'team_email': 'blue',
+    'court_reservation': 'green',
+    'admin_action': 'red',
+    'user_action': 'gray'
+  };
+  return colorMap[actionType] || 'gray';
+}
+
+function getDetailedActionDescription(activity) {
+  const baseDescription = activity.action_description || activity.action_type;
+  
+  // Add more context based on action type
+  switch (activity.action_type) {
+    case 'page_visit':
+      return `${formatPageName(activity.page) || 'Unknown Page'}`;
+    case 'login':
+      return `Logged in successfully`;
+    case 'logout':
+      return `Logged out`;
+    case 'registration_successful':
+      return `New user registration completed`;
+    case 'registration_failed':
+      return `Registration failed`;
+    case 'player_search':
+      return `Searched for players`;
+    case 'team_switch':
+      return `Switched team context`;
+    case 'settings_update':
+      return `Updated user settings`;
+    case 'poll_voted':
+      return `Voted in poll`;
+    case 'availability_update':
+      return `Updated availability`;
+    case 'ai_chat':
+      return `Used AI chat feature`;
+    case 'simulation_run':
+      return `Ran simulation`;
+    case 'score_submitted':
+      return `Submitted match score`;
+    case 'team_email':
+      return `Sent team email`;
+    case 'court_reservation':
+      return `Made court reservation`;
+    case 'admin_action':
+      return `Admin action performed`;
+    default:
+      return baseDescription;
+  }
+}
+
+function formatRegistrationFailedDetails(details) {
+  try {
+    const detailsObj = typeof details === 'string' ? JSON.parse(details) : details;
+    
+    let html = '';
+    
+    // Show reason
+    if (detailsObj.reason) {
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Reason:</span>
+        <span class="text-red-600 ml-1">${detailsObj.reason}</span>
+      </div>`;
+    }
+    
+    // Show lookup method if available
+    if (detailsObj.lookup_method) {
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Method:</span>
+        <span class="text-red-600 ml-1 font-mono text-xs">${detailsObj.lookup_method}</span>
+      </div>`;
+    }
+    
+    // Show lookup attempt details
+    if (detailsObj.lookup_attempt) {
+      const attempt = detailsObj.lookup_attempt;
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Attempt:</span>
+        <div class="ml-2 mt-1 text-xs text-red-600">
+          <div><strong>Name:</strong> ${attempt.first_name} ${attempt.last_name}</div>
+          <div><strong>League:</strong> ${attempt.league_id}</div>
+          <div><strong>Club:</strong> ${attempt.club_name}</div>
+          <div><strong>Series:</strong> ${attempt.series_display || attempt.series_name || 'N/A'}</div>
+        </div>
+      </div>`;
+    }
+    
+    // Show player lookup result
+    if (detailsObj.player_lookup_result) {
+      const result = detailsObj.player_lookup_result;
+      html += `<div class="mb-2">
+        <span class="font-medium text-red-700">Lookup Result:</span>
+        <div class="ml-2 mt-1 text-xs text-red-600">
+          <div><strong>Match Type:</strong> ${result.match_type}</div>
+          <div><strong>Message:</strong> ${result.message}</div>
+        </div>
+      </div>`;
+    }
+    
+    return html || '<span class="text-red-600 text-xs">No additional details available</span>';
+  } catch (error) {
+    console.error('Error parsing registration failed details:', error);
+    return '<span class="text-red-600 text-xs">Error parsing details</span>';
+  }
+}
+
+function formatPageName(page) {
+  if (!page) return 'Unknown Page';
+  
+  // Define mapping for common page names
+  const pageMap = {
+    'mobile_home': 'Home Page',
+    'mobile_matches': 'Matches',
+    'mobile_rankings': 'Rankings',
+    'mobile_profile': 'Profile',
+    'mobile_view_schedule': 'Schedule',
+    'mobile_analyze_me': 'Analyze Me',
+    'mobile_my_team': 'My Team Page',
+    'mobile_settings': 'Settings',
+    'mobile_my_series': 'My Series Page',
+    'mobile_teams_players': 'Teams & Players',
+    'mobile_player_search': 'Player Search',
+    'mobile_my_club': 'My Club Page',
+    'mobile_player_stats': 'Player Stats',
+    'mobile_email_team': 'Email Team',
+    'mobile_practice_times': 'Practice Times',
+    'mobile_availability': 'Availability',
+    'mobile_availability_calendar': 'Availability Calendar',
+    'mobile_all_team_availability': 'Team Availability',
+    'mobile_team_schedule': 'Team Schedule',
+    'mobile_matchup_simulator': 'Matchup Simulator',
+    'mobile_polls': 'Team Polls',
+    'mobile_poll_vote': 'Poll Vote',
+    'mobile_ask_ai': 'Ask AI',
+    'mobile_find_subs': 'Find Subs',
+    'mobile_find_people_to_play': 'Find People to Play',
+    'mobile_lineup': 'Lineup',
+    'mobile_lineup_escrow': 'Lineup Escrow',
+    'mobile_improve': 'Improve Game',
+    'mobile_training_videos': 'Training Videos',
+    'mobile_reserve_court': 'Reserve Court',
+    'mobile_player_detail': 'Player Detail',
+    'mobile_track_byes_courts': 'Track Byes & Courts',
+    'mobile_create_pickup_game': 'Create Pickup Game',
+    'mobile_pickup_games': 'Pickup Games',
+    'mobile_rally': 'Rally AI Chat',
+    'mobile_schedule': 'Schedule Page'
+  };
+  
+  // Check for exact matches first
+  if (pageMap[page]) {
+    return pageMap[page];
+  }
+  
+  // Handle pages that start with mobile/
+  if (page.startsWith('mobile/')) {
+    const cleanPage = page.replace('mobile/', '').replace(/-/g, '_');
+    const mobileKey = `mobile_${cleanPage}`;
+    if (pageMap[mobileKey]) {
+      return pageMap[mobileKey];
+    }
+  }
+  
+  // Fallback: clean up the page name
+  return page
+    .replace(/[/_-]/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace(/^Mobile\s+/, '')
+    + ' Page';
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+  if (dashboardState.refreshInterval) {
+    clearInterval(dashboardState.refreshInterval);
+  }
+});
+</script>
+{% endblock %}

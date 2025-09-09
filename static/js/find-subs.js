@@ -437,10 +437,52 @@ function renderSubsTable(players) {
     tableBody.innerHTML = html;
 }
 
-// Helper: Calculate composite score (example logic, adjust as needed)
+// Enhanced series comparison logic for both numeric and letter-based series
+function getSeriesComparisonValue(seriesName) {
+    if (!seriesName) return null;
+    
+    const parts = seriesName.split(' ');
+    const lastPart = parts[parts.length - 1];
+    
+    // Handle numeric series (Series 1, 2, 3, etc.)
+    const numericValue = parseInt(lastPart);
+    if (!isNaN(numericValue)) {
+        return { type: 'numeric', value: numericValue, display: seriesName };
+    }
+    
+    // Handle letter-based series (Series G, A, B, C, etc.)
+    if (/^[A-Z]+$/.test(lastPart)) {
+        // Define letter series precedence: G < A < B < C < D < E < F < H < I < J < K
+        const letterPrecedence = { 'G': 1, 'A': 2, 'B': 3, 'C': 4, 'D': 5, 'E': 6, 'F': 7, 'H': 8, 'I': 9, 'J': 10, 'K': 11 };
+        const precedence = letterPrecedence[lastPart] || 999; // Unknown letters get high precedence
+        return { type: 'letter', value: precedence, display: seriesName, letter: lastPart };
+    }
+    
+    // Handle other series formats
+    return { type: 'other', value: 999, display: seriesName };
+}
+
+// Helper: Calculate composite score - ENHANCED: Handle both numeric and letter-based series
 function calculateCompositeScore(pti, winRate, series) {
-    // Example: composite = PTI * 0.5 + winRate * 0.5 (customize as needed)
-    return (parseFloat(pti) || 0) * 0.5 + (parseFloat(winRate) || 0) * 0.5;
+    const winRateDecimal = parseFloat((winRate + '').replace('%', '')) / 100;
+    const normalizedPTI = (100 - parseFloat(pti || 50)) / 100;
+    
+    // Enhanced series scoring for both numeric and letter-based series
+    let normalizedSeries = 0.5; // Default middle score
+    
+    const seriesValue = getSeriesComparisonValue(series);
+    if (seriesValue) {
+        if (seriesValue.type === 'numeric') {
+            // Numeric series: normalize based on number (higher number = lower score)
+            normalizedSeries = Math.max(0, (40 - seriesValue.value) / 40);
+        } else if (seriesValue.type === 'letter') {
+            // Letter series: normalize based on precedence (higher precedence = higher score)
+            // G=1, A=2, B=3, etc. - normalize to 0-1 range
+            normalizedSeries = Math.max(0, (12 - seriesValue.value) / 12);
+        }
+    }
+    
+    return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
 }
 
 // Fetch and render subs table

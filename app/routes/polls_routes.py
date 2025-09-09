@@ -259,6 +259,73 @@ def create_poll():
         # Generate shareable link
         poll_link = f"/mobile/polls/{poll_id}"
 
+        # Send SMS notifications to team about new poll
+        try:
+            print(f"🔥 Sending SMS notifications for new poll {poll_id}")
+            print(f"🔥 Poll creation request from user: {session['user']['email']}")
+            from app.services.notifications_service import send_sms_notification
+            
+            # Get team members for SMS
+            team_members_query = """
+                SELECT DISTINCT 
+                    u.first_name, 
+                    u.last_name, 
+                    u.phone_number
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                WHERE p.team_id = %s AND u.phone_number IS NOT NULL AND u.phone_number != ''
+            """
+            team_members = execute_query(team_members_query, [team_id])
+            print(f"🔥 Found {len(team_members)} team members for SMS")
+            
+            if team_members:
+                # Create poll choices text
+                choices_text = "\n".join([f"• {choice}" for choice in choices])
+                
+                # Create SMS message with full URL
+                base_url = request.url_root.rstrip('/')
+                poll_url = f"{base_url}/mobile/polls/{poll_id}"
+                message = f"📊 New Team Poll from Rally:\n\n\"{question}\"\n\nChoices:\n{choices_text}\n\nVote now: {poll_url}"
+                
+                print(f"🔥 SMS Message: {message}")
+                
+                # Send SMS to each team member
+                successful_sends = 0
+                processed_phones = set()  # Track processed phone numbers to prevent duplicates
+                for member in team_members:
+                    try:
+                        # Check if we've already processed this phone number
+                        if member["phone_number"] in processed_phones:
+                            print(f"🔥 ⚠️ Skipping duplicate phone number: {member['phone_number']}")
+                            continue
+                        processed_phones.add(member["phone_number"])
+                        
+                        print(f"🔥 Processing SMS for {member['first_name']} {member['last_name']} ({member['phone_number']})")
+                        
+                        result = send_sms_notification(
+                            to_number=member["phone_number"],
+                            message=message,
+                            test_mode=False
+                        )
+                        
+                        if result["success"]:
+                            successful_sends += 1
+                            print(f"🔥 ✅ SMS sent to {member['first_name']} {member['last_name']} ({phone_to_use})")
+                        else:
+                            print(f"🔥 ❌ SMS failed to {member['first_name']} {member['last_name']}: {result.get('error')}")
+                            
+                    except Exception as e:
+                        print(f"🔥 ❌ Error sending SMS to {member['first_name']} {member['last_name']}: {e}")
+                
+                print(f"🔥 SMS Results: {successful_sends} sent to team members")
+            else:
+                print(f"🔥 No team members found with phone numbers for team {team_id}")
+                
+        except Exception as e:
+            print(f"🔥 ❌ Error sending poll creation SMS: {e}")
+            # Don't fail the poll creation if SMS fails
+
         response_data = {
             "success": True,
             "poll_id": poll_id,
@@ -763,6 +830,94 @@ def respond_to_poll(poll_id):
 
         print(f"🗳️  Vote successfully processed")
 
+        # Send SMS notifications to team about the vote
+        try:
+            print(f"🗳️  Sending SMS notifications for poll vote {poll_id}")
+            from app.services.notifications_service import send_sms_notification
+            
+            # Get poll details and current results
+            poll_details_query = """
+                SELECT 
+                    p.question,
+                    p.team_id,
+                    u.first_name as voter_first_name,
+                    u.last_name as voter_last_name,
+                    pc.choice_text as voted_choice
+                FROM polls p
+                JOIN poll_choices pc ON p.id = pc.poll_id
+                JOIN users u ON u.id = %s
+                WHERE p.id = %s AND pc.id = %s
+            """
+            poll_details = execute_query_one(poll_details_query, [user_id, poll_id, choice_id])
+            
+            if poll_details:
+                # Get current poll results
+                results_query = """
+                    SELECT 
+                        pc.choice_text,
+                        COUNT(pr.id) as vote_count
+                    FROM poll_choices pc
+                    LEFT JOIN poll_responses pr ON pc.id = pr.choice_id
+                    WHERE pc.poll_id = %s
+                    GROUP BY pc.id, pc.choice_text
+                    ORDER BY pc.id
+                """
+                results = execute_query(results_query, [poll_id])
+                
+                # Get team members for SMS
+                team_members_query = """
+                    SELECT DISTINCT 
+                        u.first_name, 
+                        u.last_name, 
+                        u.phone_number
+                    FROM users u
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    WHERE p.team_id = %s AND u.phone_number IS NOT NULL AND u.phone_number != ''
+                """
+                team_members = execute_query(team_members_query, [poll_details["team_id"]])
+                
+                if team_members:
+                    # Create results summary
+                    total_votes = sum(r["vote_count"] for r in results)
+                    results_text = "\n".join([f"• {r['choice_text']}: {r['vote_count']} vote{'s' if r['vote_count'] != 1 else ''}" for r in results])
+                    
+                    # Create SMS message with full URL
+                    base_url = request.url_root.rstrip('/')
+                    poll_url = f"{base_url}/mobile/polls/{poll_id}"
+                    message = f"🗳️ Poll Update from Rally:\n\n\"{poll_details['question']}\"\n\n{poll_details['voter_first_name']} {poll_details['voter_last_name']} voted: {poll_details['voted_choice']}\n\nCurrent Results ({total_votes} total votes):\n{results_text}\n\nView poll: {poll_url}"
+                    
+                    print(f"🗳️  SMS Message: {message}")
+                    
+                    # Send SMS to each team member
+                    successful_sends = 0
+                    for member in team_members:
+                        try:
+                            result = send_sms_notification(
+                                to_number=member["phone_number"],
+                                message=message,
+                                test_mode=False
+                            )
+                            
+                            if result["success"]:
+                                successful_sends += 1
+                                print(f"🗳️  ✅ SMS sent to {member['first_name']} {member['last_name']} ({phone_to_use})")
+                            else:
+                                print(f"🗳️  ❌ SMS failed to {member['first_name']} {member['last_name']}: {result.get('error')}")
+                                
+                        except Exception as e:
+                            print(f"🗳️  ❌ Error sending SMS to {member['first_name']} {member['last_name']}: {e}")
+                    
+                    print(f"🗳️  SMS Results: {successful_sends} sent to team members")
+                else:
+                    print(f"🗳️  No team members found with phone numbers for team {poll_details['team_id']}")
+            else:
+                print(f"🗳️  Could not get poll details for SMS notification")
+                
+        except Exception as e:
+            print(f"🗳️  ❌ Error sending poll vote SMS: {e}")
+            # Don't fail the vote if SMS fails
+
         # Log the activity
         log_user_activity(
             session["user"]["email"], "poll_voted", details=f"Voted in poll {poll_id}"
@@ -974,8 +1129,9 @@ def text_team_about_poll(poll_id):
             else:
                 return jsonify({"error": f"No team members have phone numbers set. Found {total_team_members} team members total, but none have added phone numbers in their Profile Settings."}), 400
         
-        # Generate poll link
-        poll_url = f"https://lovetorally.com/mobile/polls/{poll_id}"
+        # Generate poll link with full URL
+        base_url = request.url_root.rstrip('/')
+        poll_url = f"{base_url}/mobile/polls/{poll_id}"
         
         # Create SMS message
         message = f"📊 Team Poll from Rally:\n\n\"{poll['question']}\"\n\nVote now:\n{poll_url}"

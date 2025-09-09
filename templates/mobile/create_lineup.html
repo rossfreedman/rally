@@ -1,0 +1,1015 @@
+{# Template Version: 2025-01-27 - Cache busting for lineup formatting updates #}
+<script>
+// Force cache refresh for this page
+if (performance.navigation.type === 1) {
+    // Page was refreshed, clear any cached data
+    sessionStorage.removeItem('lineupCache');
+} else {
+    // Page was navigated to, check if we need to force refresh
+    const lastVisit = sessionStorage.getItem('createLineupLastVisit');
+    const now = Date.now();
+    if (lastVisit && (now - parseInt(lastVisit)) > 300000) { // 5 minutes
+        // Force page refresh if it's been more than 5 minutes
+        window.location.reload(true);
+    }
+    sessionStorage.setItem('createLineupLastVisit', now);
+}
+</script>
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+<!-- Cache-busting meta tags -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
+{% block title %}Lineup Escrow™ | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #0284c7 !important;">
+                <i class="fas fa-clipboard-list text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">
+                    Create & Send Lineup
+                </h1>
+                <p class="text-sm text-gray-500">Build your team lineup</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Information Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    How Lineup Escrow™ Works
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <p class="text-sm text-gray-600 leading-relaxed">
+                    Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.
+                </p>
+            </div>
+        </div>
+
+        <!-- Lineup Creation Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <!-- Lineup Options -->
+                <div id="lineup-options-section" class="space-y-3">
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onclick="createManualLineup()">
+                        <div class="flex items-center">
+                            <i class="fas fa-edit text-blue-500 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-gray-900">Manual Lineup Builder</h3>
+                                <p class="text-sm text-gray-600">Create lineup by selecting players and courts</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onclick="loadSavedLineup()">
+                        <div class="flex items-center">
+                            <i class="fas fa-save text-green-500 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-gray-900">Load Saved Lineup</h3>
+                                <p class="text-sm text-gray-600">Use a previously saved lineup</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onclick="createAILineup()">
+                        <div class="flex items-center">
+                            <i class="fas fa-robot text-purple-500 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-gray-900">AI Lineup Generator</h3>
+                                <p class="text-sm text-gray-600">AI-powered lineup creation with strategy</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer hidden" onclick="showDirectLineupInput()">
+                        <div class="flex items-center">
+                            <i class="fas fa-keyboard text-orange-500 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-gray-900">Enter Lineup Directly</h3>
+                                <p class="text-sm text-gray-600">Type your lineup manually</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Current Lineup Display -->
+                <div id="current-lineup-section" class="hidden">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Current Lineup</h4>
+                        <div id="lineup-display" class="text-sm text-gray-600 font-mono whitespace-pre-wrap"></div>
+                        <div class="mt-3 flex gap-2" id="lineup-buttons">
+                            <button onclick="editLineup()" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
+                                Edit Lineup
+                            </button>
+                            <button onclick="clearLineup()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors">
+                                Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Direct Lineup Input -->
+                <div id="direct-lineup-input" class="hidden">
+                    <textarea 
+                        id="lineup-textarea" 
+                        rows="8"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-vertical" 
+                        placeholder="Enter your lineup here...&#10;&#10;Example:&#10;Court 1: John Smith / Jane Doe&#10;Court 2: Mike Johnson / Sarah Wilson&#10;Court 3: Tom Brown / Lisa Davis&#10;Court 4: Bob Wilson / Amy Miller"
+                    ></textarea>
+                    <div class="mt-3 flex gap-2">
+                        <button onclick="saveDirectLineup()" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors">
+                            Save Lineup
+                        </button>
+                        <button onclick="cancelDirectInput()" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipient Selection -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-user text-green-500 mr-2"></i>
+                    Opposing Captain
+                </h2>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <!-- Player Search -->
+                <div>
+                    <label for="player-search" class="block text-sm font-medium text-gray-700 mb-2">
+                        Search for Captain
+                    </label>
+                    <div class="relative flex flex-col gap-2">
+                        <input 
+                            type="text" 
+                            id="player-search"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                            placeholder="Enter captain's first and last name"
+                        />
+                        <button 
+                            id="search-btn"
+                            class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 transition-colors w-full"
+                        >
+                            Search
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Search by first and last name to find the captain's teams</p>
+                </div>
+
+                <!-- Search Results -->
+                <div id="search-results" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Team
+                    </label>
+                    <div id="teams-list" class="space-y-2">
+                        <!-- Teams will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Selected Team Info -->
+                <div id="selected-team-info" class="hidden">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Team</h4>
+                        <div id="team-details" class="text-sm text-gray-600">
+                            <!-- Team details will be shown here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Captain Contact -->
+                <div id="captain-contact-section">
+                    <label for="captain-contact" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="contact-label">Captain Phone</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        id="captain-contact"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        placeholder="(555) 123-4567"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Composition -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+                    <span id="message-type-label">Text Message</span>
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Message Body -->
+                <div class="mb-4">
+                    <label for="lineup-message" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <textarea 
+                        id="lineup-message" 
+                        rows="10"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-vertical" 
+                        placeholder="Your lineup message will appear here..."
+                    ></textarea>
+                </div>
+
+                <!-- Character Count -->
+                <div id="char-count" class="flex justify-between items-center text-xs text-gray-500 mb-4">
+                    <span>Character count: <span id="char-number">0</span></span>
+                    <span>SMS parts: <span id="parts-number">1</span></span>
+                </div>
+
+                <!-- Preview -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                    <div id="message-preview" class="text-sm text-gray-600 whitespace-pre-wrap font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Button -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="p-6 flex justify-center">
+                <button id="send-message-btn" class="text-white rounded-xl px-6 py-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 inline-flex text-base font-semibold" style="background-color: #059669;">
+                    <div class="flex items-center">
+                        <i class="fas fa-mobile-alt text-white text-base mr-2 opacity-90" id="send-btn-icon"></i>
+                        <span class="font-semibold" id="send-btn-text">Send Text Message</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Active toggle style */
+.active-toggle {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, var(--tw-bg-opacity) 100%);
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ios-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.ios-card:active {
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+}
+
+.ios-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.hover\:shadow-lg:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-300 { border-color: #d1d5db; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-white { background-color: #ffffff; }
+.bg-gray-400 { background-color: #9ca3af; }
+.bg-purple-600 { background-color: #9333ea; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-blue-500 { color: #3b82f6; }
+.text-green-500 { color: #10b981; }
+.text-purple-500 { color: #8b5cf6; }
+.text-orange-500 { color: #f97316; }
+.text-white { color: #ffffff; }
+
+/* Focus utilities */
+.focus\:border-blue-500:focus { border-color: #3b82f6; }
+.focus\:ring-blue-500:focus { --tw-ring-color: #3b82f6; }
+
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-purple-500 {
+    --tw-gradient-from: #8b5cf6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0));
+}
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+
+/* Flex utilities */
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.inline-flex { display: inline-flex; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Display utilities */
+.hidden { display: none; }
+.block { display: block; }
+
+/* Size utilities */
+.w-full { width: 100%; }
+
+/* Typography */
+.font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+
+/* Utility classes */
+.resize-vertical { resize: vertical; }
+.cursor-not-allowed { cursor: not-allowed; }
+.leading-relaxed { line-height: 1.625; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+
+/* Transitions */
+.transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.duration-200 { transition-duration: 200ms; }
+.transform { transform: translateZ(0); }
+.hover\:scale-102:hover { transform: scale(1.02); }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Opacity */
+.opacity-75 { opacity: 0.75; }
+.opacity-90 { opacity: 0.9; }
+
+/* Loading animation */
+.fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Font Awesome icons */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+
+<script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
+
+// Message state
+let lineupText = '';
+let selectedTeamId = null;
+let selectedTeamName = '';
+let selectedCaptainName = '';
+
+// Clear any stale lineup data
+function clearStaleLineupData() {
+    // Clear any lineup-related sessionStorage that might be stale
+    const keysToCheck = ['loadLineupData', 'savedLineupData'];
+    keysToCheck.forEach(key => {
+        if (sessionStorage.getItem(key)) {
+            console.log(`🧹 Clearing stale ${key} from sessionStorage`);
+            sessionStorage.removeItem(key);
+        }
+    });
+}
+
+// Debug function to check all sessionStorage
+function debugSessionStorage() {
+    console.log('🔍 DEBUG - All sessionStorage contents:');
+    for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        const value = sessionStorage.getItem(key);
+        console.log(`  ${key}: ${value ? value.substring(0, 50) + '...' : 'NULL'}`);
+    }
+}
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 Create Lineup - DOMContentLoaded fired');
+    debugSessionStorage();
+    // Clear any stale data first
+    clearStaleLineupData();
+    
+    // Debug: Log all sessionStorage keys
+    console.log('🔍 Lineup Escrow - SessionStorage keys:', Object.keys(sessionStorage));
+    
+    // Check for escrow data FIRST (highest priority)
+    const escrowLineupData = sessionStorage.getItem('escrowLineupData');
+    console.log('🔍 Create Lineup - Found escrowLineupData:', escrowLineupData ? 'YES' : 'NO');
+    if (escrowLineupData) {
+        console.log('🔍 Create Lineup - escrowLineupData content:', escrowLineupData.substring(0, 100) + '...');
+        console.log('✅ Create Lineup - Loading lineup from escrow flow (PRIORITY)');
+        lineupText = escrowLineupData;
+        console.log('✅ Create Lineup - Set lineupText to:', lineupText.substring(0, 100) + '...');
+        // Clear the sessionStorage after using it
+        sessionStorage.removeItem('escrowLineupData');
+        console.log('🧹 Create Lineup - Cleared escrowLineupData from sessionStorage');
+        showCurrentLineup();
+        console.log('✅ Create Lineup - Called showCurrentLineup()');
+        return; // Skip all other loading logic
+    }
+
+    // Check for edit mode second
+    const editLineupData = sessionStorage.getItem('editLineupData');
+    const editLineupId = sessionStorage.getItem('editLineupId');
+    const editLineupName = sessionStorage.getItem('editLineupName');
+    
+    if (editLineupData) {
+        console.log('✅ Create Lineup - Loading lineup for editing:', editLineupName);
+        lineupText = editLineupData;
+        
+        // Store edit context for saving later
+        window.editContext = {
+            lineupId: editLineupId,
+            lineupName: editLineupName
+        };
+        
+        // Clear edit data from sessionStorage
+        sessionStorage.removeItem('editLineupData');
+        sessionStorage.removeItem('editLineupId');
+        sessionStorage.removeItem('editLineupName');
+        
+        showCurrentLineup();
+        return; // Skip normal loading logic
+    }
+    
+    // Load the lineup from sessionStorage (normal flow)
+    const createdLineup = sessionStorage.getItem('createdLineup');
+    console.log('🔍 Create Lineup - Found createdLineup:', createdLineup ? 'YES' : 'NO');
+    if (createdLineup) {
+        console.log('🔍 Create Lineup - createdLineup content:', createdLineup.substring(0, 100) + '...');
+    }
+    
+    // Check if we have a valid cached lineup
+    {
+        // Only load cached lineup if it's a valid lineup AND user came from lineup builder
+        // (indicated by presence of lineup data without br tags indicating it's been processed)
+        const isValidCachedLineup = createdLineup && 
+                                   createdLineup.trim() && 
+                                   !createdLineup.includes('<br>') &&
+                                   createdLineup.includes('Court');
+        
+        if (isValidCachedLineup) {
+            console.log('✅ Create Lineup - Loading valid lineup from sessionStorage');
+            lineupText = createdLineup;
+            // Clear the sessionStorage after using it
+            sessionStorage.removeItem('createdLineup');
+            showCurrentLineup();
+        } else {
+            console.log('❌ Create Lineup - No valid lineup found or stale data, showing options');
+            // Clear any stale lineup data
+            sessionStorage.removeItem('createdLineup');
+            lineupText = '';
+            // Ensure we start fresh - show options and hide current lineup
+            document.getElementById('current-lineup-section').classList.add('hidden');
+            document.getElementById('lineup-options-section').classList.remove('hidden');
+        }
+    }
+    
+    // Initialize the message body with default text
+    updateMessageBody();
+    
+    // Setup event listeners
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Message body changes
+    document.getElementById('lineup-message').oninput = updatePreviewAndCount;
+    
+    // Player search
+    document.getElementById('search-btn').onclick = searchPlayer;
+    document.getElementById('player-search').onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            searchPlayer();
+        }
+    };
+    
+    // Actions
+    document.getElementById('send-message-btn').onclick = sendMessage;
+}
+
+
+
+function updateMessageBody() {
+    const messageBody = document.getElementById('lineup-message');
+    // Gather personalization variables
+    const recipientFirstName = selectedCaptainName ? selectedCaptainName.split(' ')[0] : '[first name]';
+    const senderFirstName = window.sessionData.user.first_name || '[Sender first name]';
+    const senderLastName = window.sessionData.user.last_name || '[Sender last name]';
+    
+    // Get club name from user's current team context
+    let clubName = '[club name]';
+    if (window.sessionData.user.team_id) {
+        // Try to get club name from current team context
+        if (window.sessionData.user.team && window.sessionData.user.team.club_name) {
+            clubName = window.sessionData.user.team.club_name;
+        } else if (window.sessionData.user.club_name) {
+            clubName = window.sessionData.user.club_name;
+        } else if (window.sessionData.user.team_name) {
+            // Extract club name from team name if it contains club info
+            const teamNameParts = window.sessionData.user.team_name.split(',');
+            if (teamNameParts.length > 1) {
+                clubName = teamNameParts[1].trim();
+            }
+        }
+    }
+    
+    const linkPlaceholder = '[link]';
+    // Compose the default message for SMS
+    const defaultMessage =
+        `Hi ${recipientFirstName},\n\n` +
+        `This is ${senderFirstName} ${senderLastName} from ${clubName}. Looking forward to our upcoming match.\n\n` +
+        `I'm using Lineup Escrow™ in the Rally app to share my lineup with you. Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.\n\n` +
+        `Once you share your lineup with me, both lineups will be disclosed simultaneously.\n\n` +
+        `Click the link below to share lineups...\n${linkPlaceholder}`;
+    messageBody.value = defaultMessage;
+    updatePreviewAndCount();
+}
+
+function updatePreviewAndCount() {
+    const messageBody = document.getElementById('lineup-message').value;
+    const preview = document.getElementById('message-preview');
+    const charNumber = document.getElementById('char-number');
+    const partsNumber = document.getElementById('parts-number');
+    
+    // Update preview
+    preview.textContent = messageBody;
+    
+    // Update character count
+    charNumber.textContent = messageBody.length;
+    
+    // Update SMS parts count
+    const parts = Math.ceil(messageBody.length / 160);
+    partsNumber.textContent = parts;
+}
+
+function updatePreview() {
+    updatePreviewAndCount();
+}
+
+async function searchPlayer() {
+    const searchInput = document.getElementById('player-search');
+    const searchBtn = document.getElementById('search-btn');
+    const searchResults = document.getElementById('search-results');
+    const teamsList = document.getElementById('teams-list');
+    
+    const playerName = searchInput.value.trim();
+    
+    if (!playerName) {
+        alert('Please enter a player name to search.');
+        return;
+    }
+    
+    // Show loading state
+    const originalBtnText = searchBtn.textContent;
+    searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    searchBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/lineup-escrow/search-player', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_name: playerName
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Display teams
+            teamsList.innerHTML = '';
+            
+            if (result.teams.length === 0) {
+                teamsList.innerHTML = '<p class="text-sm text-gray-500">No teams found for this player.</p>';
+            } else {
+                result.teams.forEach(team => {
+                    const teamDiv = document.createElement('div');
+                    teamDiv.className = 'bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors';
+                    teamDiv.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-base font-semibold text-gray-800 mb-1">${team.player_name}</div>
+                                <h4 class="font-medium text-gray-900">${team.team_name}</h4>
+                                <p class="text-sm text-gray-600">${team.league_name} - ${team.club_name}</p>
+                                <p class="text-xs text-gray-500">Series: ${team.series_name}</p>
+                            </div>
+                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors" onclick="selectTeam(${team.team_id}, '${team.team_name}', '${team.player_name}')">
+                                Select
+                            </button>
+                        </div>
+                    `;
+                    teamsList.appendChild(teamDiv);
+                });
+            }
+            
+            searchResults.classList.remove('hidden');
+            
+            // Auto-scroll down 100px after search results appear
+            setTimeout(() => {
+                window.scrollBy({
+                    top: 100,
+                    behavior: 'smooth'
+                });
+            }, 300);
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error searching for player:', error);
+        alert('An error occurred while searching for the player. Please try again.');
+    } finally {
+        // Reset button
+        searchBtn.textContent = originalBtnText;
+        searchBtn.disabled = false;
+    }
+}
+
+function selectTeam(teamId, teamName, playerName) {
+    selectedTeamId = teamId;
+    selectedTeamName = teamName;
+    selectedCaptainName = playerName;
+    
+    // Update UI to show selected team
+    document.getElementById('selected-team-info').classList.remove('hidden');
+    document.getElementById('team-details').innerHTML = `
+        <p><strong>Team:</strong> ${teamName}</p>
+        <p><strong>Captain:</strong> ${playerName}</p>
+    `;
+    
+    // Hide search results
+    document.getElementById('search-results').classList.add('hidden');
+    
+    // Update message body with selected captain name
+    updateMessageBody();
+}
+
+async function sendMessage() {
+    const btn = document.getElementById('send-message-btn');
+    const originalHTML = btn.innerHTML;
+    const captainContact = document.getElementById('captain-contact').value.trim();
+    const messageBody = document.getElementById('lineup-message').value.trim();
+    
+    // Validate required fields
+    if (!lineupText || lineupText === 'No lineup found') {
+        alert('Please create or enter your lineup first.');
+        return;
+    }
+    
+    if (!selectedTeamId) {
+        alert('Please search for and select a captain\'s team.');
+        return;
+    }
+    
+    if (!captainContact) {
+        alert('Please enter the captain\'s phone number.');
+        return;
+    }
+    
+    if (!messageBody) {
+        alert('Please enter a message.');
+        return;
+    }
+    
+    // Show loading state
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Escrow...';
+    btn.disabled = true;
+    
+    try {
+        // Create lineup escrow session
+        const response = await fetch('/api/lineup-escrow/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                recipient_name: selectedCaptainName,
+                recipient_contact: captainContact,
+                contact_type: 'sms',
+                initiator_lineup: lineupText,
+                subject: 'Lineup Escrow™',
+                message_body: messageBody,
+                initiator_team_id: window.sessionData.user.team_id,
+                recipient_team_id: selectedTeamId
+            })
+        });
+        
+        const result = await response.json();
+        
+        console.log('Lineup escrow creation response:', result);
+        
+        if (result.success) {
+            // Store details for confirmation page
+            localStorage.setItem('escrowConfirmation', JSON.stringify({
+                recipientName: selectedCaptainName,
+                teamName: selectedTeamName,
+                messageBody: messageBody,
+                subject: 'Lineup Escrow™',
+                lineup: lineupText
+            }));
+            // Redirect to confirmation page
+            window.location.href = '/mobile/lineup_escrow_confirmation';
+        } else {
+            console.error('Lineup escrow creation failed:', result);
+            alert(`Error: ${result.error || 'Unknown error occurred'}`);
+            // Reset button
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error creating lineup escrow:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            selectedTeamId,
+            selectedCaptainName,
+            captainContact,
+            messageBody
+        });
+        alert('An error occurred while creating the lineup escrow. Please try again.');
+        // Reset button
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+    }
+}
+
+// Lineup Creation Functions
+function createManualLineup() {
+    // Redirect to manual lineup builder
+    window.location.href = '/mobile/lineup';
+}
+
+function createAILineup() {
+    // Redirect to AI lineup generator
+    window.location.href = '/mobile/lineup-ai';
+}
+
+function loadSavedLineup() {
+    // Redirect to saved lineups page
+    window.location.href = '/mobile/saved-lineups';
+}
+
+function showDirectLineupInput() {
+    document.getElementById('direct-lineup-input').classList.remove('hidden');
+    document.getElementById('lineup-textarea').focus();
+}
+
+function saveDirectLineup() {
+    const lineupTextarea = document.getElementById('lineup-textarea');
+    const newLineup = lineupTextarea.value.trim();
+    
+    if (!newLineup) {
+        alert('Please enter a lineup');
+        return;
+    }
+    
+    lineupText = newLineup;
+    showCurrentLineup();
+    hideDirectLineupInput();
+    updateMessageBody();
+}
+
+function cancelDirectInput() {
+    hideDirectLineupInput();
+}
+
+function hideDirectLineupInput() {
+    document.getElementById('direct-lineup-input').classList.add('hidden');
+    document.getElementById('lineup-textarea').value = '';
+}
+
+function showCurrentLineup() {
+    if (lineupText && lineupText !== 'No lineup found') {
+        document.getElementById('lineup-display').innerHTML = lineupText;
+        document.getElementById('current-lineup-section').classList.remove('hidden');
+        document.getElementById('lineup-options-section').classList.add('hidden');
+        
+        // Customize buttons based on edit mode
+        const buttonsContainer = document.getElementById('lineup-buttons');
+        if (window.editContext) {
+            // In edit mode - show Save Changes and Cancel buttons
+            buttonsContainer.innerHTML = `
+                <button onclick="saveLineupChanges()" class="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors">
+                    Save Changes
+                </button>
+                <button onclick="cancelEdit()" class="text-xs bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 transition-colors">
+                    Cancel
+                </button>
+                <button onclick="editLineup()" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
+                    Edit Text
+                </button>
+            `;
+        } else {
+            // Normal mode - show Edit and Clear buttons
+            buttonsContainer.innerHTML = `
+                <button onclick="editLineup()" class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors">
+                    Edit Lineup
+                </button>
+                <button onclick="clearLineup()" class="text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition-colors">
+                    Clear
+                </button>
+            `;
+        }
+    }
+}
+
+function editLineup() {
+    document.getElementById('lineup-textarea').value = lineupText;
+    showDirectLineupInput();
+}
+
+function clearLineup() {
+    if (confirm('Are you sure you want to clear the current lineup?')) {
+        console.log('🧹 User manually clearing lineup');
+        lineupText = '';
+        
+        // Clear edit context if in edit mode
+        window.editContext = null;
+        
+        // Clear any lineup-related sessionStorage
+        ['createdLineup', 'loadLineupData', 'savedLineupData', 'escrowLineupData'].forEach(key => {
+            if (sessionStorage.getItem(key)) {
+                console.log(`🧹 Clearing ${key} from sessionStorage`);
+                sessionStorage.removeItem(key);
+            }
+        });
+        
+        document.getElementById('current-lineup-section').classList.add('hidden');
+        document.getElementById('lineup-options-section').classList.remove('hidden');
+        updateMessageBody();
+    }
+}
+
+async function saveLineupChanges() {
+    if (!window.editContext) {
+        alert('No edit context found');
+        return;
+    }
+    
+    try {
+        const user = window.sessionData?.user || {};
+        const teamId = user.team_id;
+        
+        if (!teamId) {
+            throw new Error('No team ID found');
+        }
+        
+        // Update the lineup in the database
+        const response = await fetch('/api/saved-lineups', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                lineup_id: parseInt(window.editContext.lineupId),
+                lineup_name: window.editContext.lineupName,
+                lineup_data: lineupText
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to update lineup');
+        }
+        
+        // Clear edit context
+        window.editContext = null;
+        
+        // Redirect back to saved lineups page
+        window.location.href = '/mobile/saved-lineups';
+        
+    } catch (error) {
+        console.error('Error saving lineup changes:', error);
+        alert(`Error saving changes: ${error.message}`);
+    }
+}
+
+function cancelEdit() {
+    if (confirm('Are you sure you want to cancel editing? Any changes will be lost.')) {
+        // Clear edit context and redirect back to saved lineups
+        window.editContext = null;
+        window.location.href = '/mobile/saved-lineups';
+    }
+}
+</script>
+
+{% endblock %} 

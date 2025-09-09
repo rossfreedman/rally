@@ -317,6 +317,7 @@
                         {% if stats and stats.topPartners %}
                         <div>
                             <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
+                            
                             <div class="space-y-2">
                                 {% for p in stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
@@ -947,14 +948,16 @@ async function loadSeasonHistory() {
 
 <!-- Match Detail Modal -->
 <div id="playerMatchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col">
             <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
-                <h2 class="text-xl font-semibold" style="color: #bff863;" id="playerMatchesModalTitle">Current Season Matches</h2>
-                <button onclick="closePlayerMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+            <div class="px-6 py-4 border-b border-gray-200" style="background-color: #045454; flex-shrink: 0;">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold" style="color: #bff863;" id="playerMatchesModalTitle">Current Season Matches</h2>
+                    <button onclick="closePlayerMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
             </div>
             <!-- Modal Content -->
             <div id="playerMatchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
@@ -963,6 +966,36 @@ async function loadSeasonHistory() {
         </div>
     </div>
 </div>
+
+<style>
+#playerMatchesModalContent {
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    min-height: 200px !important;
+    max-height: calc(80vh - 80px) !important;
+    overflow-y: scroll !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+    display: block !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 6px !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+/* Force scrollbar to always be visible */
+#playerMatchesModalContent::-webkit-scrollbar-corner {
+    background: #f1f1f1 !important;
+}
+</style>
 
 <script>
 // Partner matches modal functionality  
@@ -1149,7 +1182,6 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
     });
     
     modalContent.innerHTML = html;
-    console.log(`[DEBUG] Rendered ${matches.length} partner matches in modal`);
 }
 
 function groupMatchesByTeamMatchup(matches) {

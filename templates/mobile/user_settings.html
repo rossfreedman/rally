@@ -49,12 +49,31 @@
                         <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 mb-2" for="phoneNumber">Phone Number</label>
                             <input type="tel" id="phoneNumber" name="phoneNumber" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="+1 (555) 123-4567">
-                            <div class="text-xs text-gray-500 mt-1">For SMS notifications about pickup games, team polls, and lineups</div>
                         </div>
 
                         <div class="mb-3">
                             <label class="block text-sm font-medium text-gray-700 mb-2" for="currentPassword">Change Password</label>
-                            <input type="password" id="currentPassword" name="currentPassword" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter new password">
+                            <div class="relative">
+                                <input type="password" id="currentPassword" name="currentPassword" class="w-full p-3 pr-12 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter new password" autocomplete="new-password" value="">
+                                <button type="button" id="passwordToggle" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 cursor-pointer border border-gray-300 rounded-r-lg" onclick="
+                                    var input = document.getElementById('currentPassword');
+                                    var icon = document.getElementById('eyeIconText');
+                                    console.log('👁️ Eye button clicked! Current input type:', input.type);
+                                    if (input.type === 'password') {
+                                        input.type = 'text';
+                                        icon.textContent = 'HIDE';
+                                        icon.style.fontSize = '10px';
+                                        console.log('✅ Password now VISIBLE');
+                                    } else {
+                                        input.type = 'password';
+                                        icon.textContent = 'SHOW';
+                                        icon.style.fontSize = '10px';
+                                        console.log('✅ Password now HIDDEN');
+                                    }
+                                ">
+                                    <span id="eyeIconText" style="font-size: 10px; font-weight: bold;">SHOW</span>
+                                </button>
+                            </div>
                             <div class="text-xs text-gray-500 mt-1">Leave blank to keep current password</div>
                         </div>
                     </div>
@@ -172,6 +191,9 @@ function fillUserSettingsForm(user) {
   // Player preferences (placeholders for now)
   document.getElementById('adDeuce').value = user.ad_deuce_preference || '';
   document.getElementById('dominantHand').value = user.dominant_hand || '';
+  
+  // Always keep password field empty for security
+  document.getElementById('currentPassword').value = '';
 }
 // Fetch leagues, clubs and series for dropdowns
 function loadLeaguesClubsAndSeries(user) {
@@ -504,9 +526,18 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
 
 
 
+// SECURITY: Always clear password field on page load
+document.getElementById('currentPassword').value = '';
+
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   console.log('🔍 User settings API response:', user);
+  console.log('🔍 API returned user data:', {
+    first_name: user.first_name,
+    last_name: user.last_name, 
+    email: user.email,
+    phone_number: user.phone_number
+  });
   
   // ENHANCED ERROR CHECKING
   if (user.error) {
@@ -536,6 +567,9 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   // Fill form first
   fillUserSettingsForm(user);
   
+  // SECURITY: Force clear password field after form population
+  document.getElementById('currentPassword').value = '';
+  
   // Then load dropdowns with proper sequencing
   loadLeaguesClubsAndSeries(user);
   
@@ -563,20 +597,15 @@ const form = document.getElementById('user-settings-form');
 form.addEventListener('submit', function(e) {
   e.preventDefault();
   
-  // Ensure phone number has "+1" prefix for database storage
+  // ✅ PHONE NORMALIZATION: Use centralized phone validation
   let phoneNumber = form.phoneNumber.value.trim();
   if (phoneNumber) {
-    // Remove any existing formatting
-    phoneNumber = phoneNumber.replace(/[^\d]/g, '');
-    
-    // Add +1 prefix if not already present
-    if (phoneNumber.length === 10) {
-      phoneNumber = '+1' + phoneNumber;
-    } else if (phoneNumber.length === 11 && phoneNumber.startsWith('1')) {
-      phoneNumber = '+' + phoneNumber;
-    } else if (!phoneNumber.startsWith('+1')) {
-      phoneNumber = '+1' + phoneNumber;
+    const phoneResult = normalizePhoneNumber(phoneNumber);
+    if (!phoneResult.success) {
+      alert(`Phone number error: ${phoneResult.error}`);
+      return;
     }
+    phoneNumber = phoneResult.normalized;
   }
   
   const data = {
@@ -620,24 +649,44 @@ form.addEventListener('submit', function(e) {
     
     if (resp.success) {
       console.log('✅ Settings update successful');
-      window.app && window.app.showToast && window.app.showToast('Settings updated!', 'success');
       
-      // PRODUCTION FIX: Force hard refresh to bypass caching issues
-      setTimeout(() => {
-        console.log('🔄 Force refreshing page with cache bypass...');
-        // First, manually refresh session via API
-        fetch('/api/refresh-session', { method: 'POST' })
-          .then(r => r.json())
-          .then(sessionResp => {
-            console.log('🔄 Session refresh response:', sessionResp);
-            // Then hard reload to get fresh page content
-            window.location.reload(true); // Hard reload bypasses cache
-          })
-          .catch(err => {
-            console.warn('⚠️ Session refresh failed, proceeding with page reload:', err);
-            window.location.reload(true); // Hard reload anyway
-          });
-      }, 1500); // Slightly longer delay for production
+      // Show success message with details
+      let successMsg = resp.message || 'Settings updated successfully';
+      window.app && window.app.showToast && window.app.showToast(successMsg, 'success');
+      
+      // Update form with fresh data from API response instead of page reload
+      if (resp.user) {
+        console.log('🔄 Updating form with fresh user data:', resp.user);
+        fillUserSettingsForm(resp.user);
+        
+        // Clear password field for security (never display saved passwords)
+        document.getElementById('currentPassword').value = '';
+        
+        // Show password change feedback if password was changed
+        if (resp.message && resp.message.includes('password changed')) {
+          const passwordField = document.getElementById('currentPassword');
+          passwordField.placeholder = 'Password successfully changed';
+          passwordField.style.borderColor = '#10B981'; // Green border
+          setTimeout(() => {
+            passwordField.placeholder = 'Enter new password';
+            passwordField.style.borderColor = '#D1D5DB'; // Reset border
+          }, 3000);
+        }
+        
+        // Update Player ID display
+        const playerIdDisplay = document.getElementById('player-id-display');
+        if (resp.user.tenniscores_player_id) {
+          playerIdDisplay.textContent = `Player ID: ${resp.user.tenniscores_player_id}`;
+        } else {
+          playerIdDisplay.textContent = 'Player ID: Not linked';
+        }
+        
+        console.log('✅ Form updated with fresh data - no page reload needed');
+      } else {
+        // Fallback to page reload if no user data returned
+        console.log('⚠️ No user data in response, falling back to page reload');
+        setTimeout(() => window.location.reload(true), 1500);
+      }
     } else {
       console.log('❌ Settings update failed:', resp.message);
       window.app && window.app.showToast && window.app.showToast(resp.message || 'Update failed', 'error');
@@ -647,6 +696,8 @@ form.addEventListener('submit', function(e) {
     window.app && window.app.showToast && window.app.showToast('Update failed', 'error');
   });
 });
+
+// Password toggle is now inline in the HTML button onclick
 </script>
 
 <script>
@@ -814,4 +865,8 @@ document.addEventListener('DOMContentLoaded', function() {
     .gap-4 { gap: 0.75rem; }
 }
 </style>
+
+<!-- Phone Validation Script -->
+<script src="{{ url_for('static', filename='js/phone-validation.js') }}"></script>
+
 {% endblock %} 

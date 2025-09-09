@@ -4,11 +4,12 @@ import os
 import time
 from datetime import datetime, timedelta
 
-from flask import jsonify, render_template, request, session
+from flask import jsonify, render_template, request, session, make_response, redirect
 from flask_login import login_required
 
 from app.models.database_models import SessionLocal
 from app.services.lineup_escrow_service import LineupEscrowService
+from app.services.session_service import get_session_data_for_user
 from utils.ai import client, get_or_create_assistant
 from utils.auth import login_required
 from utils.db import execute_query, execute_query_one, execute_update
@@ -643,10 +644,31 @@ def init_lineup_routes(app):
             print(f"Error serving lineup confirmation page: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
+    @app.route("/mobile/create-lineup")
+    @login_required
+    def serve_mobile_create_lineup():
+        """Serve the mobile Create Lineup page"""
+        session_data = {"user": session["user"], "authenticated": True}
+        log_user_activity(
+            session["user"]["email"],
+            "page_visit",
+            page="mobile_create_lineup",
+            details="Accessed mobile create lineup page",
+        )
+        
+        # Enhanced cache-busting with timestamp and aggressive headers
+        response = make_response(render_template("mobile/create_lineup.html", session_data=session_data))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+        response.headers['Last-Modified'] = datetime.now().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        response.headers['ETag'] = f'"{int(time.time())}"'
+        return response
+
     @app.route("/mobile/lineup-escrow")
     @login_required
     def serve_mobile_lineup_escrow():
-        """Serve the mobile Lineup Escrow page"""
+        """Serve the mobile Lineup Escrow page with captain selection"""
         session_data = {"user": session["user"], "authenticated": True}
         log_user_activity(
             session["user"]["email"],
@@ -654,7 +676,13 @@ def init_lineup_routes(app):
             page="mobile_lineup_escrow",
             details="Accessed mobile lineup escrow page",
         )
-        return render_template("mobile/lineup_escrow.html", session_data=session_data)
+        
+        # Add cache-busting headers to prevent caching issues
+        response = make_response(render_template("mobile/lineup_escrow.html", session_data=session_data))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     @app.route("/mobile/lineup-messaging")
     @login_required
@@ -871,8 +899,8 @@ def init_lineup_routes(app):
         try:
             viewer_contact = request.args.get("contact", "")
             
-            if not viewer_contact:
-                return jsonify({"error": "contact parameter is required"}), 400
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
             
             with SessionLocal() as db_session:
                 escrow_service = LineupEscrowService(db_session)
@@ -899,25 +927,33 @@ def init_lineup_routes(app):
             if not player_name:
                 return jsonify({"error": "player_name is required"}), 400
             
+            # Get current user's league ID for filtering
+            current_user_league_id = session["user"].get("league_id")
+            if not current_user_league_id:
+                return jsonify({"error": "User league not found"}), 400
+            
             with SessionLocal() as db_session:
                 # Search for players by name (first name, last name, or full name)
                 from app.models.database_models import Player, Team, League, Club, Series
                 import re
+                
                 # Split name into parts for flexible search
                 name_parts = player_name.split()
                 if len(name_parts) >= 2:
                     first_name = name_parts[0]
                     last_name = name_parts[-1]
-                    # Search for exact matches first
-                    players = db_session.query(Player).filter(
-                        (Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
-                        (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%"))
+                    # Search for exact matches first, but only in the user's league
+                    players = db_session.query(Player).join(Team).filter(
+                        Team.league_id == current_user_league_id,
+                        ((Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
+                        (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%")))
                     ).all()
                 else:
-                    # Single name search
-                    players = db_session.query(Player).filter(
-                        (Player.first_name.ilike(f"%{player_name}%")) |
-                        (Player.last_name.ilike(f"%{player_name}%"))
+                    # Single name search, but only in the user's league
+                    players = db_session.query(Player).join(Team).filter(
+                        Team.league_id == current_user_league_id,
+                        ((Player.first_name.ilike(f"%{player_name}%")) |
+                        (Player.last_name.ilike(f"%{player_name}%")))
                     ).all()
                 if not players:
                     return jsonify({"error": "No players found with that name"}), 404
@@ -927,7 +963,7 @@ def init_lineup_routes(app):
                 for player in players:
                     if player.team_id and player.team_id not in seen_teams:
                         team = db_session.query(Team).filter(Team.id == player.team_id).first()
-                        if team:
+                        if team and team.league_id == current_user_league_id:  # Double-check league filtering
                             league = db_session.query(League).filter(League.id == team.league_id).first()
                             club = db_session.query(Club).filter(Club.id == team.club_id).first()
                             series = db_session.query(Series).filter(Series.id == team.series_id).first()
@@ -944,7 +980,7 @@ def init_lineup_routes(app):
                                 "team_name": team.display_name,
                                 "league_name": league.league_name if league else "Unknown League",
                                 "club_name": club.name if club else "Unknown Club",
-                                "series_display": series_display,
+                                "series_name": series_display,  # Fixed: was series_display, should be series_name
                                 "player_name": f"{player.first_name} {player.last_name}",
                                 "player_id": player.id
                             })
@@ -957,7 +993,62 @@ def init_lineup_routes(app):
             print(f"Error searching for player: {str(e)}")
             return jsonify({"error": str(e)}), 500
 
-    @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE"])
+    @app.route("/api/opposing-team-players/<int:team_id>", methods=["GET"])
+    def get_opposing_team_players(team_id):
+        """Get players for the opposing team in lineup escrow (no login required)"""
+        try:
+            with SessionLocal() as db_session:
+                from app.models.database_models import Player, Team, Club, Series
+                
+                # Get team information
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if not team:
+                    return jsonify({"error": "Team not found"}), 404
+                
+                # Get all players for this team
+                players = db_session.query(Player).filter(Player.team_id == team_id).all()
+                
+                if not players:
+                    return jsonify({"error": "No players found for this team"}), 404
+                
+                # Format player data
+                player_data = []
+                for player in players:
+                    # Get position preference (Ad, Deuce, Either)
+                    position_preference = None
+                    if player.pti:
+                        pti = float(player.pti)
+                        if pti >= 60:
+                            position_preference = 'Either'  # High-rated players can play both sides
+                        elif pti >= 50:
+                            position_preference = 'Ad'      # Mid-high rated players typically play Ad
+                        elif pti >= 45:
+                            position_preference = 'Deuce'   # Mid-rated players typically play Deuce
+                        elif pti >= 40:
+                            position_preference = 'Either'  # Lower rated players might need flexibility
+                    
+                    player_data.append({
+                        "id": player.id,
+                        "name": f"{player.first_name} {player.last_name}",
+                        "first_name": player.first_name,
+                        "last_name": player.last_name,
+                        "rating": player.pti or 0,
+                        "position_preference": position_preference,
+                        "tenniscores_player_id": player.tenniscores_player_id
+                    })
+                
+                return jsonify({
+                    "success": True,
+                    "team_id": team_id,
+                    "team_name": team.display_name,
+                    "players": player_data
+                })
+                
+        except Exception as e:
+            print(f"Error getting opposing team players: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE", "PUT"])
     @login_required
     def saved_lineups():
         """Handle saved lineups"""
@@ -1015,37 +1106,194 @@ def init_lineup_routes(app):
                     else:
                         return jsonify(result), 400
                         
+                elif request.method == "PUT":
+                    data = request.json
+                    lineup_id = data.get("lineup_id")
+                    
+                    if not lineup_id:
+                        return jsonify({"error": "lineup_id is required"}), 400
+                        
+                    result = escrow_service.update_saved_lineup(
+                        lineup_id=int(lineup_id),
+                        user_id=user["id"],
+                        lineup_name=data.get("lineup_name"),
+                        lineup_data=data.get("lineup_data")
+                    )
+                    
+                    if result["success"]:
+                        return jsonify(result)
+                    else:
+                        return jsonify(result), 400
+                        
         except Exception as e:
             print(f"Error handling saved lineups: {str(e)}")
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/mobile/saved-lineups")
+    @login_required 
+    def serve_saved_lineups_page():
+        """Serve the saved lineups page"""
+        try:
+            # Get session data for context (using same pattern as other routes)
+            session_data = {"user": session["user"], "authenticated": True}
+            return render_template("mobile/saved_lineups.html", session_data=session_data)
+        except Exception as e:
+            print(f"Error serving saved lineups page: {str(e)}")
+            # Create basic session data for error template
+            session_data = {"user": session.get("user", {}), "authenticated": True}
+            return render_template("mobile/error.html", error="Unable to load saved lineups page", session_data=session_data), 500
+
+    def _create_minimal_session_data():
+        """Create minimal session data for non-authenticated users"""
+        return {
+            "user": {
+                "is_admin": False,
+                "tenniscores_player_id": None
+            }, 
+            "authenticated": False
+        }
 
     @app.route("/mobile/lineup-escrow-view/<escrow_token>")
     def serve_lineup_escrow_view(escrow_token):
         """Serve the lineup escrow view page"""
         try:
-            # Get viewer contact from query parameter
+            # Get viewer contact from query parameter (optional for originating captains)
             viewer_contact = request.args.get("contact", "")
             
-            if not viewer_contact:
-                return render_template("mobile/lineup_escrow_error.html", 
-                                     error="Contact information is required to view this lineup escrow.")
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
             
-            with SessionLocal() as db_session:
-                escrow_service = LineupEscrowService(db_session)
-                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
-                
-                if not result["success"]:
-                    return render_template("mobile/lineup_escrow_error.html", 
-                                         error=result.get("error", "Escrow session not found."))
-                
-                # Pass escrow data to template
-                session_data = {"user": None, "authenticated": False}  # No login required
-                return render_template("mobile/lineup_escrow_view.html", 
-                                     session_data=session_data,
-                                     escrow_data=result["escrow"],
-                                     both_lineups_visible=result["both_lineups_visible"])
+            try:
+                with SessionLocal() as db_session:
+                    escrow_service = LineupEscrowService(db_session)
+                    # Pass viewer_contact (might be empty for originating captains)
+                    result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                    
+                    if not result["success"]:
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error=result.get("error", "Escrow session not found."),
+                                             session_data=session_data)
+                    
+                    # Validate that escrow_data exists
+                    if "escrow_data" not in result:
+                        print(f"Missing escrow_data in result: {result}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Invalid escrow data format.",
+                                             session_data=session_data)
+                    
+                    # Validate required fields
+                    required_fields = ["id", "status", "initiator_lineup", "message_body"]
+                    missing_fields = [field for field in required_fields if field not in result["escrow_data"]]
+                    if missing_fields:
+                        print(f"Missing required fields in escrow_data: {missing_fields}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Incomplete escrow data.",
+                                             session_data=session_data)
+                    
+                    # Validate both_lineups_visible field
+                    if "both_lineups_visible" not in result:
+                        print(f"Missing both_lineups_visible in result: {result}")
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="Invalid escrow data format.",
+                                             session_data=session_data)
+                    
+                    # Pass escrow data to template
+                    # Create minimal session data for non-authenticated users
+                    session_data = _create_minimal_session_data()  # No login required
+                    # Add cache-busting headers to prevent caching issues
+                    try:
+                        response = make_response(render_template("mobile/lineup_escrow_view.html", 
+                                         session_data=session_data,
+                                         escrow_data=result["escrow_data"],
+                                         both_lineups_visible=result["both_lineups_visible"]))
+                        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                        response.headers['Pragma'] = 'no-cache'
+                        response.headers['Expires'] = '0'
+                        return response
+                    except Exception as template_error:
+                        print(f"Error rendering template: {str(template_error)}")
+                        import traceback
+                        traceback.print_exc()
+                        # Create minimal session data for error template
+                        session_data = _create_minimal_session_data()
+                        return render_template("mobile/lineup_escrow_error.html", 
+                                             error="An error occurred while rendering the lineup escrow view.",
+                                             session_data=session_data)
+            except Exception as db_error:
+                print(f"Database error in lineup escrow view: {str(db_error)}")
+                import traceback
+                traceback.print_exc()
+                # Create minimal session data for error template
+                session_data = _create_minimal_session_data()
+                return render_template("mobile/lineup_escrow_error.html", 
+                                     error="Database error occurred while loading the lineup escrow.",
+                                     session_data=session_data)
                                      
         except Exception as e:
             print(f"Error serving lineup escrow view: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Create minimal session data for error template
+            session_data = _create_minimal_session_data()
             return render_template("mobile/lineup_escrow_error.html", 
-                                 error="An error occurred while loading the lineup escrow.")
+                                 error="An error occurred while loading the lineup escrow.",
+                                 session_data=session_data)
+
+    @app.route("/mobile/lineup-escrow-opposing/<escrow_token>", methods=["GET"])
+    def serve_mobile_lineup_escrow_opposing(escrow_token):
+        """Serve the mobile Lineup Escrow opposing captain page with drag and drop interface"""
+        try:
+            viewer_contact = request.args.get("contact", "")
+            
+            # Allow access without contact parameter for originating captains
+            # The service will handle this case gracefully
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                
+                if result["success"]:
+                    escrow_data = result["escrow_data"]
+                    both_lineups_visible = result["both_lineups_visible"]
+                    
+                    # If both lineups are already visible, redirect to view page
+                    if both_lineups_visible:
+                        # Only include contact parameter if it exists
+                        if viewer_contact and viewer_contact.strip():
+                            from urllib.parse import quote
+                            encoded_contact = quote(viewer_contact.strip(), safe='')
+                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}?contact={encoded_contact}")
+                        else:
+                            return redirect(f"/mobile/lineup-escrow-view/{escrow_token}")
+                    
+                    # Render the opposing captain template
+                    # Create minimal session data for non-authenticated users
+                    session_data = _create_minimal_session_data()
+                    # Add cache-busting headers to prevent caching issues
+                    response = make_response(render_template(
+                        "mobile/lineup_escrow_opposing_captain.html",
+                        escrow_data=escrow_data,
+                        both_lineups_visible=both_lineups_visible,
+                        session_data=session_data
+                    ))
+                    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                    response.headers['Pragma'] = 'no-cache'
+                    response.headers['Expires'] = '0'
+                    return response
+                else:
+                    return jsonify({"error": result.get("error", "Unknown error")}), 400
+                    
+        except Exception as e:
+            print(f"Error serving lineup escrow opposing page: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({"error": str(e)}), 500

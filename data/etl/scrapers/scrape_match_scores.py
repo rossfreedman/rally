@@ -205,6 +205,63 @@ class CNSWPLScraper(BaseLeagueScraper):
         except Exception as e:
             print(f"❌ CNSWPL: Error extracting detailed match data: {e}")
             return []
+    
+    def _lookup_roster_player_id(self, player_name: str) -> str:
+        """Look up existing roster player ID for CNSWPL players to avoid ID mismatches."""
+        try:
+            # Load the consolidated CNSWPL players.json to find existing player IDs
+            import json
+            import os
+            
+            players_file = "data/leagues/CNSWPL/players.json"
+            if not os.path.exists(players_file):
+                print(f"❌  CNSWPL players.json not found - cannot lookup player ID for '{player_name}'")
+                return None
+            
+            with open(players_file, 'r') as f:
+                players_data = json.load(f)
+            
+            # Search for player by name (case-insensitive)
+            first_name, last_name = self._parse_player_name(player_name)
+            if not first_name or not last_name:
+                print(f"❌  Could not parse player name '{player_name}' - cannot lookup player ID")
+                return None
+            
+            for player in players_data:
+                roster_first = player.get("First Name", "").strip()
+                roster_last = player.get("Last Name", "").strip()
+                roster_id = player.get("Player ID", "").strip()
+                
+                # Case-insensitive name matching
+                if (roster_first.lower() == first_name.lower() and 
+                    roster_last.lower() == last_name.lower() and 
+                    roster_id):
+                    print(f"✅  Found roster player ID for '{player_name}': {roster_id}")
+                    return roster_id
+            
+            print(f"❌  No roster player ID found for '{player_name}' - player not in roster data")
+            return None
+            
+        except Exception as e:
+            print(f"❌  Error looking up roster player ID for '{player_name}': {e}")
+            return None
+    
+    def _parse_player_name(self, full_name: str) -> tuple:
+        """Parse full name into first and last name."""
+        if not full_name:
+            return None, None
+        
+        name_parts = full_name.strip().split()
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            return first_name, last_name
+        elif len(name_parts) == 1:
+            return name_parts[0], ""
+        else:
+            return None, None
+    
+
 
 class NSTFScraper(BaseLeagueScraper):
     """NSTF-specific scraper with dedicated extraction logic."""
@@ -309,7 +366,7 @@ class NSTFScraper(BaseLeagueScraper):
                         # Get detailed NSTF match page using parent scraper's request method
                         match_response = self._safe_request_for_league_scraper(match_url, f"NSTF match detail page {i}")
                         if match_response:
-                            detailed_matches = self._extract_nstf_detailed_match_data(match_response, series_name, match_id)
+                            detailed_matches = self._extract_nstf_detailed_match_data(match_response, series_name, match_id, match_url)
                             if detailed_matches:
                                 matches.extend(detailed_matches)
                                 match_count += len(detailed_matches)
@@ -333,7 +390,7 @@ class NSTFScraper(BaseLeagueScraper):
         
         return matches, matches_processed_in_series
     
-    def _extract_nstf_detailed_match_data(self, html: str, series_name: str, match_id: str) -> List[Dict]:
+    def _extract_nstf_detailed_match_data(self, html: str, series_name: str, match_id: str, match_url: str) -> List[Dict]:
         """Extract detailed match data from NSTF individual match page."""
         try:
             from bs4 import BeautifulSoup
@@ -347,7 +404,7 @@ class NSTFScraper(BaseLeagueScraper):
                 return []
             
             # Extract NSTF line-specific data (similar to CNSWPL but with NSTF league_id)
-            line_matches = self._extract_nstf_lines(soup, series_name, match_id, match_date, teams_and_score)
+            line_matches = self._extract_nstf_lines(soup, series_name, match_id, match_date, teams_and_score, match_url)
             
             return line_matches
             
@@ -439,12 +496,55 @@ class NSTFScraper(BaseLeagueScraper):
             away_team = "Unknown Away Team"
             scores = "Unknown Scores"
             
-            # Method 1: Look for team names in page title or headers
+            # Method 1: PRIORITIZE datelocheader div for cleanest team names  
+            header_div = soup.find('div', class_='datelocheader')
+            if header_div:
+                header_text = header_div.get_text(strip=True)
+                print(f"  🔍 Found datelocheader: {header_text}")
+                # Extract teams from header like "Wilmette S1 T2 @ Tennaqua S1: 15 - 1"
+                import re
+                # Enhanced pattern to handle team variations: S1, S1A, S1B, S1 T1, S1 T2, etc.
+                match_header = re.search(r'([A-Za-z\s]+S\d+(?:[AB]|\s+T\d+)?)\s*@\s*([A-Za-z\s]+S\d+(?:[AB]|\s+T\d+)?):\s*(\d+)\s*-\s*(\d+)', header_text)
+                if match_header:
+                    away_team = match_header.group(1).strip()
+                    home_team = match_header.group(2).strip() 
+                    away_score = match_header.group(3).strip()
+                    home_score = match_header.group(4).strip()
+                    scores = f"{away_score}-{home_score}"
+                    print(f"  🏆 NSTF Match (CLEAN from datelocheader): {away_team} (away) @ {home_team} (home) - {scores}")
+                    
+                    return {
+                        "Home Team": home_team,
+                        "Away Team": away_team,
+                        "Scores": scores
+                    }
+                
+            # Method 2: Fallback to page content (may contain garbage text)
+            # Pattern: "Away Team @ Home Team: Away_Score - Home_Score"
+            page_text = soup.get_text()
+            import re  # Ensure re is available for fallback
+            
+            # Look for NSTF pattern: "Team A @ Team B: X - Y" with enhanced team name support
+            match_pattern = re.search(r'([A-Za-z\s\d]+S\d+(?:[AB]|\s+T\d+)?)\s*@\s*([A-Za-z\s\d]+S\d+(?:[AB]|\s+T\d+)?):\s*(\d+)\s*-\s*(\d+)', page_text)
+            if match_pattern:
+                away_team = match_pattern.group(1).strip()  # Team before @ is away
+                home_team = match_pattern.group(2).strip()  # Team after @ is home
+                away_score = match_pattern.group(3).strip()
+                home_score = match_pattern.group(4).strip()
+                scores = f"{away_score}-{home_score}"  # Away-Home format
+                print(f"  🏆 NSTF Match (FALLBACK from page text): {away_team} (away) @ {home_team} (home) - {scores}")
+                
+                return {
+                    "Home Team": home_team,
+                    "Away Team": away_team,
+                    "Scores": scores
+                }
+                
+            # Fallback: Look for team names in page title or headers  
             title = soup.find('title')
             if title:
                 title_text = title.get_text()
                 # Look for patterns like "Team A vs Team B" or "Team A - Team B"
-                import re
                 team_match = re.search(r'([^-\n]+)\s*(?:vs\.?|v\.?|-)\s*([^-\n]+)', title_text)
                 if team_match:
                     home_team = team_match.group(1).strip()
@@ -604,7 +704,7 @@ class NSTFScraper(BaseLeagueScraper):
                 "Scores": "Unknown Scores"
             }
     
-    def _extract_nstf_lines(self, soup, series_name: str, match_id: str, match_date: str, teams_and_score: dict) -> List[Dict]:
+    def _extract_nstf_lines(self, soup, series_name: str, match_id: str, match_date: str, teams_and_score: dict, match_url: str) -> List[Dict]:
         """Extract NSTF line-specific data with actual player names and IDs."""
         line_matches = []
         
@@ -646,7 +746,8 @@ class NSTFScraper(BaseLeagueScraper):
                     "Away Player 1 ID": away_player1.get("id", f"unknown_a{line_num}a"),
                     "Away Player 2 ID": away_player2.get("id", f"unknown_a{line_num}b"),
                     "Scores": line_score.get("score", teams_and_score.get("Scores")),
-                    "Winner": self._determine_nstf_winner(line_score, teams_and_score)
+                    "Winner": self._determine_nstf_winner(line_score, teams_and_score),
+                    "match_url": match_url  # Add URL for verification
                 }
                 line_matches.append(line_match)
             
@@ -658,7 +759,7 @@ class NSTFScraper(BaseLeagueScraper):
         return line_matches
     
     def _determine_nstf_winner(self, line_score: dict, teams_and_score: dict) -> str:
-        """Determine winner based on line score data in NSTF format."""
+        """Determine winner based on line score data in NSTF format with enhanced logic."""
         try:
             # Method 1: Use line-specific score if available
             if line_score and "score" in line_score:
@@ -671,11 +772,54 @@ class NSTFScraper(BaseLeagueScraper):
                         home_sets_won = 0
                         away_sets_won = 0
                         
-                        for home_score, away_score in sets:
-                            if int(home_score) > int(away_score):
-                                home_sets_won += 1
-                            elif int(away_score) > int(home_score):
-                                away_sets_won += 1
+                        for away_score, home_score in sets:  # CORRECTED: First score is AWAY, second is HOME
+                            try:
+                                away = int(away_score)
+                                home = int(home_score)
+                                
+                                if home > away:
+                                    home_sets_won += 1
+                                elif away > home:
+                                    away_sets_won += 1
+                            except ValueError:
+                                continue
+                        
+                        # Enhanced logic: require clear majority
+                        if home_sets_won > away_sets_won:
+                            return "home"
+                        elif away_sets_won > home_sets_won:
+                            return "away"
+                        elif home_sets_won == away_sets_won and home_sets_won > 0:
+                            return "tie"
+                        
+            # Method 2: Use line-specific winner if available
+            if line_score and "winner" in line_score:
+                line_winner = line_score["winner"]
+                if line_winner in ["home", "away", "tie"]:
+                    return line_winner
+            
+            # Method 3: Fallback to overall match score
+            if teams_and_score and "Scores" in teams_and_score:
+                match_scores = teams_and_score["Scores"]
+                if match_scores and match_scores != "Unknown Scores":
+                    # Use same logic as above for consistency
+                    import re
+                    sets = re.findall(r'(\d+)-(\d+)', match_scores)
+                    if sets:
+                        home_sets_won = 0
+                        away_sets_won = 0
+                        
+                        for away_score, home_score in sets:  # CORRECTED: First score is AWAY, second is HOME
+                            try:
+                                away = int(away_score)
+                                home = int(home_score)
+                                
+                                if home > away:
+                                    home_sets_won += 1
+                                elif away > home:
+                                    away_sets_won += 1
+                            except ValueError:
+                                continue
                         
                         if home_sets_won > away_sets_won:
                             return "home"
@@ -684,36 +828,12 @@ class NSTFScraper(BaseLeagueScraper):
                         else:
                             return "tie"
             
-            # Method 2: Use overall match score
-            overall_score = teams_and_score.get("Scores", "")
-            if overall_score and overall_score != "Unknown Scores":
-                # Similar logic for overall score
-                import re
-                sets = re.findall(r'(\d+)-(\d+)', overall_score)
-                if sets and len(sets) >= 2:  # At least 2 sets to determine winner
-                    home_sets_won = 0
-                    away_sets_won = 0
-                    
-                    for home_score, away_score in sets:
-                        if int(home_score) > int(away_score):
-                            home_sets_won += 1
-                        elif int(away_score) > int(home_score):
-                            away_sets_won += 1
-                    
-                    if home_sets_won >= 2:  # Best of 3 sets
-                        return "home"
-                    elif away_sets_won >= 2:
-                        return "away"
-                    else:
-                        return "tie"
-            
-            # Default fallback
+            # Method 4: Default fallback
             return "tie"
             
         except Exception as e:
-            print(f"❌ Error determining winner: {e}")
+            print(f"❌ Error determining NSTF winner: {e}")
             return "tie"
-    
     def _extract_nstf_players(self, soup) -> dict:
         """Extract player names and IDs from NSTF match page."""
         players_data = {}
@@ -736,22 +856,26 @@ class NSTFScraper(BaseLeagueScraper):
                     if player_id and player_name:
                         player_count += 1
                         
-                        # Better player positioning logic
-                        if player_count <= 8:  # Expecting 8 players total
-                            # For NSTF doubles: 2 players per line, 4 lines per match
-                            # Players 1-4: Home team (lines 1-4)
-                            # Players 5-8: Away team (lines 1-4)
+                        # FIXED: Better player positioning logic based on HTML structure analysis
+                        if player_count <= 16:  # Up to 16 players (4 lines × 2 teams × 2 players)
+                            # NSTF pattern analysis:
+                            # - Players appear in pairs per table row
+                            # - Each line has 2 rows: top row (away/winning team), bottom row (home team)
+                            # - Players 1-2: Line 1 Away team, Players 3-4: Line 1 Home team  
+                            # - Players 5-6: Line 2 Away team, Players 7-8: Line 2 Home team
+                            # - etc.
                             
-                            if player_count <= 4:
-                                # Home team players
-                                line_num = player_count
-                                team_prefix = "home"
-                                player_pos = "1"  # Only one player per line per team for now
-                            else:
-                                # Away team players  
-                                line_num = player_count - 4
+                            line_num = ((player_count - 1) // 4) + 1  # Which line (1-4)
+                            position_in_line = (player_count - 1) % 4  # Position within line (0-3)
+                            
+                            if position_in_line < 2:
+                                # First two players in line = Away team
                                 team_prefix = "away"
-                                player_pos = "1"
+                                player_pos = (position_in_line % 2) + 1  # 1 or 2
+                            else:
+                                # Last two players in line = Home team  
+                                team_prefix = "home"
+                                player_pos = (position_in_line % 2) + 1  # 1 or 2
                             
                             key = f"{team_prefix}_player_{line_num}_{player_pos}"
                             
@@ -761,24 +885,6 @@ class NSTFScraper(BaseLeagueScraper):
                             }
                             
                             print(f"  📍 NSTF Player {player_count}: {player_name} (ID: {player_id}) -> {key}")
-                            
-                        # Also look for doubles partners - check if there are additional players in same table row
-                        # This is simplified - in real implementation would parse table structure more carefully
-                        if player_count > 8:
-                            # Handle doubles partners
-                            base_player = ((player_count - 9) % 4) + 1
-                            is_home = player_count <= 12
-                            team_prefix = "home" if is_home else "away"
-                            line_num = base_player
-                            
-                            key = f"{team_prefix}_player_{line_num}_2"  # Second player in doubles
-                            
-                            players_data[key] = {
-                                "name": player_name,
-                                "id": player_id
-                            }
-                            
-                            print(f"  📍 NSTF Doubles Partner {player_count}: {player_name} (ID: {player_id}) -> {key}")
             
             print(f"🎾 NSTF: Extracted {len(players_data)} player records")
             
@@ -798,82 +904,141 @@ class NSTFScraper(BaseLeagueScraper):
         return players_data
     
     def _extract_nstf_line_data(self, soup) -> dict:
-        """Extract line-specific scores and winners from NSTF match page using proper table structure."""
+        """Extract line-specific scores and winners from NSTF match page."""
+        import re  # Ensure re is available in function scope
         lines_data = {}
         
         try:
-            # Find all NSTF line tables with class 'standings-table2'
+            # Extract tables for this line (each line should have its own table)
             line_tables = soup.find_all('table', class_='standings-table2')
-            print(f"  🏓 Found {len(line_tables)} NSTF line tables")
             
-            for line_idx, table in enumerate(line_tables):
-                line_num = line_idx + 1
+            if not line_tables:
+                print(f"  ❌ No tables found for line extraction")
+                return lines_data
+            
+            print(f"🏓 Found {len(line_tables)} NSTF line tables")
+            
+            line_num = 1
+            
+            for table_idx, table in enumerate(line_tables):
+                print(f"🔍 Processing Line {line_num} table with {len(table.find_all('tr'))} rows")
                 
-                # Extract all rows from this line table
+                # Each table represents one line/match with 2 rows (away team row + home team row)
                 rows = table.find_all('tr')
                 if len(rows) < 2:
+                    print(f"  ⚠️ Table {table_idx+1} has insufficient rows ({len(rows)})")
                     continue
                 
-                print(f"  🔍 Processing Line {line_num} table with {len(rows)} rows")
+                # Extract score cells from both rows
+                away_scores = []  # Row 1 (top row)
+                home_scores = []  # Row 2 (bottom row)
                 
-                # Initialize score collection for this line
-                home_scores = []
-                away_scores = []
-                
-                # Process each row to collect scores from pts2 cells
                 for row_idx, row in enumerate(rows):
-                    # Find all score cells (td with class 'pts2')
-                    score_cells = row.find_all('td', class_='pts2')
+                    cells = row.find_all('td')
+                    # Get all cells with 'pts2' class (score cells)
+                    score_cells = [cell for cell in cells if 'pts2' in cell.get('class', [])]
                     
-                    if score_cells:
-                        print(f"    Row {row_idx+1}: Found {len(score_cells)} score cells")
-                        
-                        # Extract scores from cells
-                        row_scores = []
-                        for cell in score_cells:
-                            score_text = cell.get_text(strip=True)
-                            if score_text and score_text.isdigit():
-                                score_val = int(score_text)
-                                if 0 <= score_val <= 15:  # Valid tennis score
-                                    row_scores.append(score_val)
-                                    print(f"      Score cell: {score_val}")
-                        
-                        # Assign scores to home/away based on row position
-                        if row_idx == 0:  # First row is home team
-                            home_scores = row_scores
-                        elif row_idx == 1:  # Second row is away team  
-                            away_scores = row_scores
-                
-                # Build score string from collected scores
-                if home_scores and away_scores:
-                    # Pair up scores to create sets
-                    sets = []
-                    max_sets = min(len(home_scores), len(away_scores))
+                    print(f"Row {row_idx+1}: Found {len(score_cells)} score cells")
                     
-                    for i in range(max_sets):
-                        home_score = home_scores[i]
-                        away_score = away_scores[i]
+                    # Process each score cell for tiebreaks and concatenated scores
+                    row_scores = []
+                    for cell in score_cells:
+                        cell_html = str(cell)
+                        plain_text = cell.get_text(strip=True)
                         
-                        # Skip empty or invalid scores
-                        if home_score == 0 and away_score == 0:
+                        if not plain_text or plain_text == '&nbsp;':
                             continue
+                        
+                        print(f"Score cell: {plain_text}")
+                        
+                        # Check for tiebreak pattern: number<sup>tiebreak</sup>
+                        sup_match = re.search(r'(\d+)<sup>(\d+)</sup>', cell_html)
+                        if sup_match:
+                            main_score = sup_match.group(1)
+                            tiebreak_points = sup_match.group(2)
                             
-                        sets.append(f"{home_score}-{away_score}")
+                            # NSTF tiebreak logic: 7<sup>7</sup> means 7-6, 6<sup>0</sup> means 6-0
+                            if main_score == "7":
+                                score_value = "7"  # Keep as 7 for now, will form 7-6 when paired
+                            elif main_score == "6" and tiebreak_points == "0":
+                                score_value = "6"  # 6-0 style
+                            else:
+                                score_value = main_score
+                            
+                            row_scores.append(score_value)
+                            print(f"    🏆 Tiebreak cell: {cell_html} → {score_value}")
+                        else:
+                            # Handle concatenated scores like '60' = '6' + '0'
+                            if len(plain_text) == 2 and plain_text.isdigit():
+                                first_digit = plain_text[0]
+                                second_digit = plain_text[1]
+                                # Treat as single score for now
+                                row_scores.append(first_digit)
+                                print(f"    🏆 Concatenated: '{plain_text}' → {first_digit}")
+                            elif plain_text.isdigit() and 0 <= int(plain_text) <= 15:
+                                row_scores.append(plain_text)
+                                print(f"    🏆 Regular score: {plain_text}")
+                    
+                    # Store scores by row
+                    if row_idx == 0:
+                        away_scores = row_scores
+                    elif row_idx == 1:
+                        home_scores = row_scores
+                
+                # Now combine away and home scores to form sets
+                print(f"🧮 Analyzing sets: {list(zip(away_scores, home_scores)) if away_scores and home_scores else 'No valid scores'}")
+                
+                if away_scores and home_scores:
+                    sets = []
+                    min_sets = min(len(away_scores), len(home_scores))
+                    
+                    away_sets_won = 0
+                    home_sets_won = 0
+                    
+                    for i in range(min_sets):
+                        away_score = int(away_scores[i]) if away_scores[i].isdigit() else 0
+                        home_score = int(home_scores[i]) if home_scores[i].isdigit() else 0
+                        
+                        set_score = f"{away_score}-{home_score}"
+                        sets.append(set_score)
+                        
+                        # Determine set winner
+                        if away_score > home_score:
+                            away_sets_won += 1
+                            print(f"Set {set_score}: AWAY wins")
+                        elif home_score > away_score:
+                            home_sets_won += 1
+                            print(f"Set {set_score}: HOME wins")
+                        else:
+                            print(f"Set {set_score}: TIE")
+                    
+                    print(f"📊 Final: Home {home_sets_won} sets, Away {away_sets_won} sets")
+                    
+                    # Determine overall winner
+                    if away_sets_won > home_sets_won:
+                        winner = "away"
+                        print(f"🏆 Winner: away")
+                    elif home_sets_won > away_sets_won:
+                        winner = "home"
+                        print(f"🏆 Winner: home")
+                    else:
+                        winner = "tie"
+                        print(f"🏆 Winner: tie")
                     
                     if sets:
                         score_text = ', '.join(sets)
-                        winner = self._determine_winner_from_score(score_text)
-                        
                         lines_data[line_num] = {
                             "score": score_text,
                             "winner": winner
                         }
-                        
-                        print(f"  📊 Line {line_num} extracted: {score_text} (Winner: {winner})")
-                    else:
-                        print(f"  ⚠️  Line {line_num}: No valid sets found")
-                else:
-                    print(f"  ⚠️  Line {line_num}: Missing home ({len(home_scores)}) or away ({len(away_scores)}) scores")
+                        print(f"📊 Line {line_num} extracted: {score_text} (Winner: {winner})")
+                
+                # Always increment line_num after processing each table (each table = one line)
+                line_num += 1
+            
+            # Debug: If no line scores found, show what was in tables
+            if not lines_data:
+                print(f"  ⚠️  No line scores found")
             
             print(f"📊 NSTF: Successfully extracted {len(lines_data)} line scores using table structure")
             
@@ -1452,7 +1617,7 @@ class EnhancedMatchScraper:
                     print(f"✅ Found {len(series_matches)} matches in {series_name}")
 
                     # Save per-series temp JSON to avoid all-or-nothing loss
-                    self._save_series_temp(league_subdomain, series_name, series_matches)
+                    self._save_series_temp_file(league_subdomain, series_name, series_matches)
                     
                     # Add delay between requests
                     if not self.config.fast_mode:
@@ -1855,11 +2020,10 @@ class EnhancedMatchScraper:
                 print(f"   ❌ Error extracting from table row: {e}")
             return None
     
-    def _generate_player_id(self, player_name: str) -> str:
-        """Generate a unique player ID for CNSWPL players."""
-        import hashlib
-        # Create a hash of the player name for consistent ID generation
-        return hashlib.md5(player_name.lower().encode()).hexdigest()[:16]
+    # REMOVED: _generate_player_id function that created MD5 hashes
+    # This was problematic as it could create inconsistent player IDs
+    
+
     
     def _extract_cnswpl_date(self, soup) -> str:
         """Extract match date from CNSWPL match page header and convert to DD-MMM-YY format."""
@@ -2020,6 +2184,27 @@ class EnhancedMatchScraper:
                 # Use proper league mapping
                 league_name = self._get_league_name_from_subdomain(league_subdomain)
                 
+                # Look up roster player IDs for all players
+                home_player1_id = self._lookup_roster_player_id(home_players[0])
+                home_player2_id = self._lookup_roster_player_id(home_players[1])
+                away_player1_id = self._lookup_roster_player_id(away_players[0])
+                away_player2_id = self._lookup_roster_player_id(away_players[1])
+                
+                # Check if any players are missing roster IDs
+                missing_players = []
+                if not home_player1_id:
+                    missing_players.append(f"Home Player 1: {home_players[0]}")
+                if not home_player2_id:
+                    missing_players.append(f"Home Player 2: {home_players[1]}")
+                if not away_player1_id:
+                    missing_players.append(f"Away Player 1: {away_players[0]}")
+                if not away_player2_id:
+                    missing_players.append(f"Away Player 2: {away_players[1]}")
+                
+                if missing_players:
+                    print(f"❌  Missing roster player IDs for: {', '.join(missing_players)}")
+                    # Still create the match record but with None for missing IDs
+                
                 line_match = {
                     "league_id": league_name,
                     "match_id": f"{match_id}_Line{court_num}",
@@ -2032,10 +2217,10 @@ class EnhancedMatchScraper:
                     "Home Player 2": home_players[1],
                     "Away Player 1": away_players[0],
                     "Away Player 2": away_players[1],
-                    "Home Player 1 ID": f"cnswpl_{self._generate_player_id(home_players[0])}",
-                    "Home Player 2 ID": f"cnswpl_{self._generate_player_id(home_players[1])}",
-                    "Away Player 1 ID": f"cnswpl_{self._generate_player_id(away_players[0])}",
-                    "Away Player 2 ID": f"cnswpl_{self._generate_player_id(away_players[1])}",
+                    "Home Player 1 ID": home_player1_id,
+                    "Home Player 2 ID": home_player2_id,
+                    "Away Player 1 ID": away_player1_id,
+                    "Away Player 2 ID": away_player2_id,
                     "Scores": tennis_scores,
                     "Winner": winner
                 }
@@ -2414,6 +2599,22 @@ def main():
     
     output_file = get_league_file_path(args.league, "match_history.json")
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    # Create backup of existing data before scraping to prevent corruption
+    if os.path.exists(output_file):
+        try:
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_file = output_file.replace('.json', f'_backup_{timestamp}.json')
+            
+            import shutil
+            shutil.copy2(output_file, backup_file)
+            print(f"💾 Created backup: {backup_file}")
+            logger.info(f"💾 Backup created: {backup_file}")
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Could not create backup: {e}")
+            logger.warning(f"⚠️ Backup failed: {e}")
     
     # Load existing matches to preserve data
     existing_matches = []

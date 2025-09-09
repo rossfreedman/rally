@@ -14,6 +14,9 @@ def login_required(f):
         if "user" not in session:
             if request.path.startswith("/api/"):
                 return jsonify({"error": "Not authenticated"}), 401
+            # Store the original URL (including query parameters) for redirect after login
+            original_url = request.url
+            session["redirect_after_login"] = original_url
             return redirect(url_for("auth.login"))
         
         # ENHANCEMENT: Check if session needs refreshing after ETL
@@ -21,7 +24,10 @@ def login_required(f):
             logger.info(f"Refreshing stale session for user: {session['user'].get('email', 'unknown')}")
             if not _refresh_session_from_db(session):
                 # If refresh fails, force re-login
+                # Store the original URL before clearing session
+                original_url = request.url
                 session.clear()
+                session["redirect_after_login"] = original_url
                 if request.path.startswith("/api/"):
                     return jsonify({"error": "Session expired, please login again"}), 401
                 return redirect(url_for("auth.login"))

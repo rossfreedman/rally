@@ -75,6 +75,23 @@ NAME_VARIATIONS = {
     "kenneth": ["ken"],
     "olg": ["olga"],  # Fix for Olg Martinsone case
     "olga": ["olg"],  # Bidirectional mapping
+    "jenn": ["jennifer", "jenny"],  # Fix for Jenn/Jennifer variations
+    "jennifer": ["jenn", "jenny"],  # Bidirectional mapping
+    "jenny": ["jennifer", "jenn"],  # Common nickname for Jennifer
+    "jess": ["jessica"],  # Fix for Jess/Jessica variations
+    "jessica": ["jess"],  # Bidirectional mapping
+    "beth": ["bethany"],  # Common nickname for Bethany
+    "bethany": ["beth"],  # Bidirectional mapping
+    "liz": ["elizabeth", "lizzie"],  # Common nicknames for Elizabeth
+    "lizzie": ["elizabeth", "liz"],  # Common nicknames for Elizabeth
+    "elizabeth": ["liz", "lizzie", "beth"],  # Common variations
+    "katie": ["katherine", "kate"],  # Common nicknames for Katherine
+    "kate": ["katherine", "katie"],  # Common nicknames for Katherine
+    "katherine": ["katie", "kate"],  # Bidirectional mapping
+    "sue": ["susan", "suzanne"],  # Common nicknames for Susan
+    "susan": ["sue", "suzanne"],  # Bidirectional mapping
+    "cathy": ["catherine", "cath"],  # Common nicknames for Catherine
+    "catherine": ["cathy", "cath"],  # Bidirectional mapping
 }
 
 
@@ -108,8 +125,7 @@ def normalize_series_name(series_name: str, league_id: str = None) -> str:
             mapping_query = """
                 SELECT s.name as database_name
                 FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
+                JOIN leagues l ON s.league_id = l.id
                 WHERE l.league_id = %s AND (s.display_name = %s OR s.name = %s)
                 LIMIT 1
             """
@@ -151,6 +167,97 @@ def get_name_variations(first_name: str) -> List[str]:
     return unique_variations
 
 
+def get_last_name_variations(last_name: str) -> List[str]:
+    """
+    Get all possible variations of a last name, including suffix removal and apostrophe handling.
+    
+    This handles common name suffixes like (S), (Jr), (Sr), (II), etc.
+    and apostrophe variations like O'Brien/OBrien that can cause registration failures.
+    
+    Args:
+        last_name: The last name to generate variations for
+        
+    Returns:
+        List of normalized last name variations
+    """
+    if not last_name:
+        return []
+    
+    norm_name = normalize_name(last_name)
+    variations = [norm_name]
+    
+    # APOSTROPHE VARIATIONS: Handle O'Brien/OBrien, D'Angelo/DAngelo, etc.
+    # Add version with apostrophe if it doesn't have one
+    if "'" not in norm_name and len(norm_name) > 1:
+        # Common patterns where apostrophe might be missing
+        apostrophe_patterns = [
+            # O'Brien, O'Connor, O'Malley, etc.
+            (r'^o([a-z])', r"o'\1"),
+            # D'Angelo, D'Antonio, etc.
+            (r'^d([a-z])', r"d'\1"),
+            # L'Abbe, L'Heureux, etc.
+            (r'^l([a-z])', r"l'\1"),
+            # M'Carthy, M'Donald, etc.
+            (r'^m([a-z])', r"m'\1"),
+        ]
+        
+        import re
+        for pattern, replacement in apostrophe_patterns:
+            if re.match(pattern, norm_name):
+                apostrophe_version = re.sub(pattern, replacement, norm_name)
+                variations.append(apostrophe_version)
+                break
+    
+    # Add version without apostrophe if it has one
+    if "'" in norm_name:
+        no_apostrophe = norm_name.replace("'", "")
+        variations.append(no_apostrophe)
+    
+    # Common suffixes that should be stripped for matching
+    suffixes_to_remove = [
+        '(s)', '(jr)', '(sr)', '(ii)', '(iii)', '(iv)', '(v)',
+        '(1)', '(2)', '(3)', '(4)', '(5)',
+        'jr.', 'sr.', 'jr', 'sr', 'ii', 'iii', 'iv', 'v',
+        'junior', 'senior'
+    ]
+    
+    # Generate variations by removing suffixes
+    for suffix in suffixes_to_remove:
+        # Try suffix with parentheses
+        paren_suffix = f'({suffix})' if not suffix.startswith('(') else suffix
+        if norm_name.endswith(f' {paren_suffix}'):
+            base_name = norm_name.replace(f' {paren_suffix}', '').strip()
+            variations.append(base_name)
+        elif norm_name.endswith(paren_suffix):
+            base_name = norm_name.replace(paren_suffix, '').strip()
+            variations.append(base_name)
+        
+        # Try suffix without parentheses (including periods)
+        plain_suffix = suffix.strip('()')
+        if norm_name.endswith(f' {plain_suffix}'):
+            base_name = norm_name.replace(f' {plain_suffix}', '').strip()
+            variations.append(base_name)
+        elif norm_name.endswith(plain_suffix):
+            base_name = norm_name.replace(plain_suffix, '').strip()
+            variations.append(base_name)
+    
+    # Also add the base name with common suffixes added (reverse direction)
+    base_without_suffix = norm_name
+    for suffix in ['(s)', 'jr', 'jr.', 'sr', 'sr.']:
+        if not base_without_suffix.endswith(suffix):
+            variations.append(f"{base_without_suffix} {suffix}")
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_variations = []
+    for var in variations:
+        if var and var not in seen:
+            seen.add(var)
+            unique_variations.append(var)
+    
+    return unique_variations
+
+
 def find_player_by_database_lookup(
     first_name: str, last_name: str, club_name: str, series_name: str, league_id: str
 ) -> Optional[str]:
@@ -181,8 +288,9 @@ def find_player_by_database_lookup(
         norm_club = normalize_name(club_name)
         norm_series = normalize_series_name(series_name, league_id)
 
-        # Get name variations for first name
+        # Get name variations for both first and last names
         first_name_variations = get_name_variations(first_name)
+        last_name_variations = get_last_name_variations(last_name)
         
         # Get all possible series name variations for better matching
         series_variations = get_series_name_variations(series_name, league_id)
@@ -191,6 +299,7 @@ def find_player_by_database_lookup(
             f"Database lookup for: {first_name} {last_name} ({club_name}, {series_name}, {league_id})"
         )
         logger.info(f"First name variations: {first_name_variations}")
+        logger.info(f"Last name variations: {last_name_variations}")
         logger.info(f"Series variations: {series_variations}")
 
         # Get league database ID
@@ -210,8 +319,13 @@ def find_player_by_database_lookup(
         logger.info(f"PRIMARY: Name variation search for {first_name} {last_name}")
 
         # Build query with OR conditions for first name variations
-        name_conditions = " OR ".join(
+        first_name_conditions = " OR ".join(
             ["LOWER(TRIM(p.first_name)) = %s"] * len(first_name_variations)
+        )
+        
+        # Build query with OR conditions for last name variations
+        last_name_conditions = " OR ".join(
+            ["LOWER(TRIM(p.last_name)) = %s"] * len(last_name_variations)
         )
         
         # Build query with OR conditions for series variations
@@ -226,14 +340,14 @@ def find_player_by_database_lookup(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s 
             AND p.is_active = true
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s  
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
             AND ({series_conditions})
         """
 
         params = (
-            [league_db_id] + first_name_variations + [norm_last, norm_club] + [var.lower() for var in series_variations]
+            [league_db_id] + first_name_variations + last_name_variations + [norm_club] + [var.lower() for var in series_variations]
         )
         primary_matches = execute_query(primary_query, params)
 
@@ -267,12 +381,12 @@ def find_player_by_database_lookup(
             JOIN series s ON p.series_id = s.id  
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND LOWER(TRIM(s.name)) = %s
         """
 
-        params = [league_db_id] + first_name_variations + [norm_last, norm_series]
+        params = [league_db_id] + first_name_variations + last_name_variations + [norm_series]
         fallback1_matches = execute_query(fallback1_query, params)
 
         if len(fallback1_matches) == 1:
@@ -311,12 +425,12 @@ def find_player_by_database_lookup(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s
             AND p.is_active = true  
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
         """
 
-        params = [league_db_id] + first_name_variations + [norm_last, norm_club]
+        params = [league_db_id] + first_name_variations + last_name_variations + [norm_club]
         fallback2_matches = execute_query(fallback2_query, params)
 
         if len(fallback2_matches) == 1:
@@ -349,20 +463,20 @@ def find_player_by_database_lookup(
         # ===========================================
         logger.info(f"FALLBACK 2.5: Last name + club + series search (no first name)")
 
-        fallback2_5_query = """
+        fallback2_5_query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
             FROM players p
             JOIN clubs c ON p.club_id = c.id
             JOIN series s ON p.series_id = s.id  
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
             AND LOWER(TRIM(s.name)) = %s
         """
 
         fallback2_5_matches = execute_query(
-            fallback2_5_query, (league_db_id, norm_last, norm_club, norm_series)
+            fallback2_5_query, [league_db_id] + last_name_variations + [norm_club, norm_series]
         )
 
         if len(fallback2_5_matches) == 1:
@@ -412,19 +526,19 @@ def find_player_by_database_lookup(
         # ===========================================
         logger.info(f"FALLBACK 3: Last name + series search (no first name)")
 
-        fallback3_query = """
+        fallback3_query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
             FROM players p
             JOIN clubs c ON p.club_id = c.id
             JOIN series s ON p.series_id = s.id  
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({last_name_conditions})
             AND LOWER(TRIM(s.name)) = %s
         """
 
         fallback3_matches = execute_query(
-            fallback3_query, (league_db_id, norm_last, norm_series)
+            fallback3_query, [league_db_id] + last_name_variations + [norm_series]
         )
 
         if len(fallback3_matches) == 1:
@@ -456,19 +570,19 @@ def find_player_by_database_lookup(
         # ===========================================
         logger.info(f"FALLBACK 4: Last name + club search (no first name)")
 
-        fallback4_query = """
+        fallback4_query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
             FROM players p
             JOIN clubs c ON p.club_id = c.id
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s
             AND p.is_active = true  
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
         """
 
         fallback4_matches = execute_query(
-            fallback4_query, (league_db_id, norm_last, norm_club)
+            fallback4_query, [league_db_id] + last_name_variations + [norm_club]
         )
 
         if len(fallback4_matches) == 1:
@@ -526,7 +640,7 @@ def find_player_by_database_lookup(
             JOIN series s ON p.series_id = s.id  
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND ({name_conditions})
+            AND ({first_name_conditions})
             AND LOWER(TRIM(s.name)) = %s
         """
 
@@ -740,13 +854,15 @@ def find_player_by_database_lookup_id(
         norm_last = normalize_name(last_name)
         norm_club = normalize_name(club_name)
         
-        # Get name variations for first name (keep this flexibility)
+        # Get name variations for both first and last names
         first_name_variations = get_name_variations(first_name)
+        last_name_variations = get_last_name_variations(last_name)
         
         logger.info(
             f"ID-based lookup for: {first_name} {last_name} ({club_name}, series_id={series_id}, {league_id})"
         )
         logger.info(f"First name variations: {first_name_variations}")
+        logger.info(f"Last name variations: {last_name_variations}")
         
         # Get league database ID
         league_record = execute_query_one(
@@ -763,12 +879,16 @@ def find_player_by_database_lookup_id(
         
         league_db_id = league_record["id"]
         
-        # Build name conditions for flexible first name matching
-        name_conditions = " OR ".join(
+        # Build name conditions for flexible first and last name matching
+        first_name_conditions = " OR ".join(
             ["LOWER(TRIM(p.first_name)) = %s"] * len(first_name_variations)
         )
         
-        # BULLETPROOF PRIMARY QUERY: Use series_id for exact matching
+        last_name_conditions = " OR ".join(
+            ["LOWER(TRIM(p.last_name)) = %s"] * len(last_name_variations)
+        )
+        
+        # ENHANCED BULLETPROOF PRIMARY QUERY: Use series_id + flexible name matching
         primary_query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
                    c.name as club_name, s.name as series_name, s.id as series_id
@@ -777,15 +897,15 @@ def find_player_by_database_lookup_id(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s 
             AND p.is_active = true
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s  
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
             AND p.series_id = %s
         """
         
         params = (
-            [league_db_id] + first_name_variations + 
-            [norm_last, norm_club, series_id]
+            [league_db_id] + first_name_variations + last_name_variations + 
+            [norm_club, series_id]
         )
         
         primary_matches = execute_query(primary_query, params)
@@ -821,12 +941,12 @@ def find_player_by_database_lookup_id(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND p.series_id = %s
         """
         
-        fallback1_params = [league_db_id] + first_name_variations + [norm_last, series_id]
+        fallback1_params = [league_db_id] + first_name_variations + last_name_variations + [series_id]
         fallback1_matches = execute_query(fallback1_query, fallback1_params)
         
         if len(fallback1_matches) == 1:
@@ -859,12 +979,12 @@ def find_player_by_database_lookup_id(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s
             AND p.is_active = true
-            AND ({name_conditions})
-            AND LOWER(TRIM(p.last_name)) = %s
+            AND ({first_name_conditions})
+            AND ({last_name_conditions})
             AND LOWER(TRIM(c.name)) = %s
         """
         
-        fallback2_params = [league_db_id] + first_name_variations + [norm_last, norm_club]
+        fallback2_params = [league_db_id] + first_name_variations + last_name_variations + [norm_club]
         fallback2_matches = execute_query(fallback2_query, fallback2_params)
         
         if len(fallback2_matches) == 1:
@@ -885,6 +1005,101 @@ def find_player_by_database_lookup_id(
             }
         else:
             logger.info(f"❌ ID-BASED FALLBACK 2: No matches for club {club_name}")
+        
+        # ===========================================
+        # FALLBACK 3: Drop first name requirement, keep last name + club + league
+        # This is the critical fallback that was missing!
+        # ===========================================
+        logger.info(f"ID-BASED FALLBACK 3: Drop first name, keep last name + club")
+        
+        fallback3_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({last_name_conditions})
+            AND LOWER(TRIM(c.name)) = %s
+        """
+        
+        fallback3_params = [league_db_id] + last_name_variations + [norm_club]
+        fallback3_matches = execute_query(fallback3_query, fallback3_params)
+        
+        if len(fallback3_matches) == 1:
+            player = fallback3_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 3: Found match (first name differs) - {match_info}: {player['tenniscores_player_id']}")
+            logger.info(f"✅ ID-BASED FALLBACK 3: Exact last name + club + league match (first name: '{player['first_name']}' vs requested '{first_name}')")
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Exact last name + club + league match (first name: {player['first_name']} vs requested {first_name})",
+            }
+        elif len(fallback3_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']} ({m['series_name']})"
+                for m in fallback3_matches
+            ]
+            logger.info(f"⚠️ ID-BASED FALLBACK 3: Multiple matches for {last_name} + {club_name}: {match_names}")
+            
+            # Return multiple matches for user selection
+            logger.info(f"✅ ID-BASED FALLBACK 3: Found multiple high-confidence matches - returning for user selection")
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback3_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact last name + club + league match with different first names.",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 3: No matches for {last_name} + {club_name}")
+        
+        # ===========================================
+        # FALLBACK 4: Drop first name requirement, keep last name + series + league
+        # ===========================================
+        logger.info(f"ID-BASED FALLBACK 4: Drop first name, keep last name + series")
+        
+        fallback4_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
+                   c.name as club_name, s.name as series_name, s.id as series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({last_name_conditions})
+            AND p.series_id = %s
+        """
+        
+        fallback4_params = [league_db_id] + last_name_variations + [series_id]
+        fallback4_matches = execute_query(fallback4_query, fallback4_params)
+        
+        if len(fallback4_matches) == 1:
+            player = fallback4_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(f"✅ ID-BASED FALLBACK 4: Found match (first name differs) - {match_info}: {player['tenniscores_player_id']}")
+            logger.info(f"✅ ID-BASED FALLBACK 4: Exact last name + series + league match (first name: '{player['first_name']}' vs requested '{first_name}')")
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Exact last name + series + league match (first name: {player['first_name']} vs requested {first_name})",
+            }
+        elif len(fallback4_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']} ({m['club_name']})"
+                for m in fallback4_matches
+            ]
+            logger.info(f"⚠️ ID-BASED FALLBACK 4: Multiple matches for {last_name} + series_id={series_id}: {match_names}")
+            
+            # Return multiple matches for user selection
+            logger.info(f"✅ ID-BASED FALLBACK 4: Found multiple high-confidence matches - returning for user selection")
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback4_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact last name + series + league match with different first names.",
+            }
+        else:
+            logger.info(f"❌ ID-BASED FALLBACK 4: No matches for {last_name} + series_id={series_id}")
         
         # No matches found
         logger.warning(f"❌ ID-BASED: No matches found for {first_name} {last_name} (series_id={series_id}, club={club_name})")
@@ -1279,8 +1494,7 @@ def get_series_name_variations(series_name: str, league_id: str = None) -> List[
             mappings_query = """
                 SELECT s.name as database_name, s.display_name
                 FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
+                JOIN leagues l ON s.league_id = l.id
                 WHERE l.league_id = %s 
                 AND (s.display_name = %s OR s.name = %s)
             """

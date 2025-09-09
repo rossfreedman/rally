@@ -69,7 +69,7 @@
                         <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Lineup</h3>
                     </div>
                     <div class="bg-white rounded-lg p-3 border border-gray-200">
-                        <pre id="lineupText" class="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed font-mono"></pre>
+                        <div id="lineupText" class="text-gray-700 text-sm leading-relaxed"></div>
                     </div>
                 </div>
                 
@@ -86,7 +86,7 @@
                     
                     <!-- Secondary Action -->
                     <button 
-                        onclick="window.location.href='/mobile/lineup-escrow'" 
+                        onclick="window.location.href='/mobile/create-lineup'" 
                         class="w-full bg-white text-gray-700 rounded-xl px-6 py-3 border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 font-medium text-sm flex items-center justify-center group"
                     >
                         <i class="fas fa-plus mr-2 group-hover:rotate-90 transition-transform duration-200"></i>
@@ -385,7 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update lineup text
     const lineupElement = document.getElementById('lineupText');
     if (lineupElement) {
-        lineupElement.textContent = data.lineup || '';
+        lineupElement.innerHTML = data.lineup || '';
         lineupElement.style.opacity = '0';
         setTimeout(() => {
             lineupElement.style.transition = 'opacity 0.5s ease-in';

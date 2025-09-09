@@ -1,0 +1,106 @@
+{% extends 'mobile/layout.html' %}
+{% set show_back_arrow = True %}
+{% block title %}Download Calendar | Rally{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                <i class="fas fa-calendar-plus text-white text-lg"></i>
+            </div>
+                                <div class="ml-4">
+                        <h1 class="text-xl font-bold text-gray-900">Download Schedule</h1>
+                        <p class="text-sm text-gray-500">Get your schedule in your personal calendar</p>
+                    </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        
+
+        <!-- Mobile Flow Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <div class="flex items-start">
+                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="font-medium text-blue-900 text-sm">Ready to Download</h3>
+                    <p class="text-blue-700 text-xs mt-1">
+                        Click the download button below to get your calendar file. Your session is already established from the availability page.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- What's Included Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list-check text-green-500 mr-2"></i>
+                    What's Included
+                </h2>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="flex items-start space-x-1">
+                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <i class="fas fa-check text-green-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-gray-900">All Your Matches</h3>
+                        <p class="text-sm text-gray-600">Home and away matches with opponent details and locations</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-1">
+                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <i class="fas fa-check text-green-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Practice Times</h3>
+                        <p class="text-sm text-gray-600">Regular practice schedules for all your teams</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-1">
+                    <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <i class="fas fa-check text-green-600 text-xs"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Location Details</h3>
+                        <p class="text-sm text-gray-600">Club addresses with Google Maps directions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Button Section -->
+        <div class="bg-green-700 rounded-xl shadow-sm border border-green-600 overflow-hidden" style="background-color: #10645c !important;">
+            <div class="px-6 py-8 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-calendar-download text-white text-4xl mb-4"></i>
+                    <h3 class="text-white font-bold text-xl mb-2">Ready to Download?</h3>
+                    <p class="text-white">Get your complete season schedule into your personal calendar</p>
+                </div>
+                
+                <a href="{{ url_for('download.download_season_calendar') }}" 
+                   class="inline-flex items-center justify-center bg-white text-green-700 px-12 py-4 rounded-xl font-bold text-base hover:bg-green-50 transition-colors duration-200 shadow-lg"
+                   style="width: 250px;">
+                    <i class="fas fa-download mr-3"></i>
+                    Download<br>to My Calendar
+                </a>
+                
+                <p class="text-white text-sm mt-4">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    File will download as .ics format
+                </p>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+{% endblock %}

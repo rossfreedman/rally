@@ -17,10 +17,18 @@
                     Lineup Escrow<span class="align-super text-xs ml-1">™</span> Results
                 </h1>
                 <p class="text-sm text-gray-500">
-                    {% if both_lineups_visible %}
-                        Both lineups are now visible
+                    {% if escrow_data.viewer_type == 'originating_captain' %}
+                        {% if both_lineups_visible %}
+                            Your lineup escrow is complete
+                        {% else %}
+                            Waiting for opponent's lineup
+                        {% endif %}
                     {% else %}
-                        Waiting for both lineups
+                        {% if both_lineups_visible %}
+                            Both lineups are now visible
+                        {% else %}
+                            Waiting for both lineups
+                        {% endif %}
                     {% endif %}
                 </p>
             </div>
@@ -69,8 +77,8 @@
             </div>
         </div>
 
-        <!-- Message Card -->
-        {% if escrow_data.message_body %}
+        <!-- Message Card - Hidden -->
+        {% if false %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -89,6 +97,27 @@
         </div>
         {% endif %}
 
+        <!-- Match Ready -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-trophy text-green-500 mr-2"></i>
+                    Match Ready
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-green-50 rounded-lg p-4 border-l-4 border-green-400">
+                    <p class="text-sm text-green-800 font-medium">
+                        {% if escrow_data.viewer_type == 'originating_captain' %}
+                            Your lineup escrow is ready! Both lineups are visible below.
+                        {% else %}
+                            Below are both lineups. Have a great match!
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <!-- Initiator Lineup -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -100,7 +129,47 @@
             <div class="p-6">
                 <div class="lineup-blur-container {% if not both_lineups_visible %}blurred-lineup mb-6{% endif %}">
                     {% if escrow_data.initiator_lineup %}
-                        <pre class="whitespace-pre-wrap text-gray-800 text-base">{{ escrow_data.initiator_lineup }}</pre>
+                        <div class="lineup-display text-gray-800 text-base">
+                            {% for line in escrow_data.initiator_lineup.split('\n') %}
+                                {% if line.strip() %}
+                                    {% if line.startswith('LINEUP:') %}
+                                        <div class="font-semibold text-lg mb-2">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% elif line.startswith('Court ') %}
+                                        <div class="font-semibold mt-4 mb-2">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% elif '(Ad)' in line or '(Deuce)' in line %}
+                                        {# Parse new format but remove position labels #}
+                                        {% if '(Ad)' in line %}
+                                            {% set player_name = line.split('(Ad)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                        {% if '(Deuce)' in line %}
+                                            {% set player_name = line.split('(Deuce)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
+                                        {# Parse old format with "Ad:" and "Deuce:" labels #}
+                                        {% if line.startswith('  Ad:') %}
+                                            {% set player_name = line.replace('  Ad:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% elif line.startswith('  Deuce:') %}
+                                            {% set player_name = line.replace('  Deuce:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% elif '&' in line %}
+                                        {# Fallback for old format - don't assume positions #}
+                                        {% set players = line.split('&') %}
+                                        {% if players|length == 2 %}
+                                            <div class="ml-4 mb-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
+                                        {% else %}
+                                            <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     {% endif %}
                 </div>
                 {% if not both_lineups_visible %}
@@ -123,7 +192,47 @@
             <div class="p-6">
                 <div class="lineup-blur-container {% if not both_lineups_visible %}blurred-lineup mb-6{% endif %}">
                     {% if escrow_data.recipient_lineup %}
-                        <pre class="whitespace-pre-wrap text-gray-800 text-base">{{ escrow_data.recipient_lineup }}</pre>
+                        <div class="lineup-display text-gray-800 text-base">
+                            {% for line in escrow_data.recipient_lineup.split('\n') %}
+                                {% if line.strip() %}
+                                    {% if line.startswith('LINEUP:') %}
+                                        <div class="font-semibold text-lg mb-2">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% elif line.startswith('Court ') %}
+                                        <div class="font-semibold mt-4 mb-2">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% elif '(Ad)' in line or '(Deuce)' in line %}
+                                        {# Parse new format but remove position labels #}
+                                        {% if '(Ad)' in line %}
+                                            {% set player_name = line.split('(Ad)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                        {% if '(Deuce)' in line %}
+                                            {% set player_name = line.split('(Deuce)')[0].strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
+                                        {# Parse old format with "Ad:" and "Deuce:" labels #}
+                                        {% if line.startswith('  Ad:') %}
+                                            {% set player_name = line.replace('  Ad:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% elif line.startswith('  Deuce:') %}
+                                            {% set player_name = line.replace('  Deuce:', '').strip() %}
+                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% elif '&' in line %}
+                                        {# Fallback for old format - don't assume positions #}
+                                        {% set players = line.split('&') %}
+                                        {% if players|length == 2 %}
+                                            <div class="ml-4 mb-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
+                                        {% else %}
+                                            <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     {% endif %}
                 </div>
                 {% if not both_lineups_visible %}
@@ -182,6 +291,27 @@
 /* Custom styles for modern mobile design */
 .min-h-screen {
     min-height: 100vh;
+}
+
+/* Lineup display styling */
+.lineup-display {
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+}
+
+.lineup-display .font-semibold {
+    color: #1f2937;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.lineup-display .mb-1 {
+    padding: 0.25rem 0;
+    border-radius: 0.25rem;
+    background-color: #f9fafb;
+    padding-left: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 /* iOS-style card enhancements */

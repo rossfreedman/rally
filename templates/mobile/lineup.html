@@ -11,7 +11,7 @@
                 <i class="fas fa-clipboard-list text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Create Lineup</h1>
+                <h1 class="text-xl font-bold text-gray-900">Create & Send Lineup</h1>
                 <p class="text-sm text-gray-500">Step-by-step lineup creation wizard</p>
             </div>
         </div>
@@ -21,7 +21,7 @@
     <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
 
         <!-- Saved Lineups Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 hidden">
             <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-save text-purple-500 mr-2"></i>
@@ -55,6 +55,16 @@
                         <i class="fas fa-tools text-green-500 mr-2"></i>
                         Lineup Builder
                     </h2>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-500 mr-2 mt-0.5"></i>
+                            <div class="text-sm text-blue-800 font-medium">
+                                <strong>How to use:</strong><br>
+                                1. Tap a player name to choose a player.<br>
+                                2. Tap a court to assign that player to the court.
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="p-4">
@@ -62,7 +72,6 @@
                     <!-- Available Players Pool -->
                     <div class="mb-4">
                         <h3 class="font-semibold mb-2 text-gray-900 text-sm">Available Players</h3>
-                        <p class="text-xs text-gray-600 mb-2" id="instruction-text">Drag players from here to the courts below:</p>
                         
                         <!-- Color Legend -->
                         <div class="mb-2 flex gap-4 text-xs">
@@ -112,7 +121,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 1
+                                Court 1 <span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -134,7 +143,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 2
+                                Court 2 <span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -156,7 +165,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 3
+                                Court 3 <span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -178,7 +187,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 4
+                                Court 4 <span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -200,7 +209,7 @@
                     <!-- Lineup Summary -->
                     <div id="manual-lineup-summary" class="mt-6 bg-gray-50 rounded-lg p-4 hidden">
                         <h4 class="font-semibold text-gray-900 mb-3">Lineup Summary</h4>
-                        <div id="manual-lineup-text" class="text-sm text-gray-700 whitespace-pre-line font-mono"></div>
+                        <div id="manual-lineup-text" class="text-sm text-gray-700 font-mono leading-relaxed" style="line-height: 1.8; padding: 8px; background: white; border-radius: 6px; border: 1px solid #e5e7eb; white-space: pre-wrap;"></div>
                     </div>
                 </div>
             </div>
@@ -233,6 +242,62 @@ let manualLineup = {};
 let selectedPlayerForTap = null;
 
 // Functions are loaded and ready
+
+// Immediate debug logging
+console.log('🔧 lineup.html JavaScript file loaded');
+console.log('🔧 SessionStorage at script load:', Object.keys(sessionStorage));
+
+// Check if we need to load a saved lineup
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM Content Loaded - checking for lineup data');
+    
+    const loadLineupData = sessionStorage.getItem('loadLineupData');
+    const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
+    const editLineupName = sessionStorage.getItem('editLineupName');
+    
+    console.log('📋 SessionStorage contents:');
+    console.log('  - loadLineupData:', loadLineupData ? 'YES' : 'NO');
+    console.log('  - isEditMode:', isEditMode);
+    console.log('  - editLineupName:', editLineupName);
+    
+    if (loadLineupData) {
+        console.log('✅ Found lineup data, will load after players are available:', loadLineupData);
+        
+        // Store the lineup data to load after players are ready
+        window.pendingLineupData = loadLineupData;
+        
+        // Clear the session storage
+        sessionStorage.removeItem('loadLineupData');
+    } else {
+        console.log('❌ No lineup data found in sessionStorage');
+    }
+    
+    // Update UI for edit mode
+    if (isEditMode) {
+        console.log('🎨 Updating UI for edit mode:', editLineupName);
+        
+        // Update page title and description
+        document.querySelector('h1').textContent = 'Edit Lineup';
+        document.querySelector('h1').nextElementSibling.textContent = `Editing: ${editLineupName}`;
+        
+        // Update button text
+        const sendButton = document.getElementById('manual-send');
+        sendButton.innerHTML = 'Save Changes';
+        
+        // Update icon to save icon instead of clipboard
+        const headerIcon = document.querySelector('.fas.fa-clipboard-list');
+        headerIcon.className = 'fas fa-edit text-white text-lg';
+    }
+});
+
+// Fallback window load event
+window.addEventListener('load', () => {
+    console.log('🔧 Window load event - secondary check for lineup data');
+    const loadLineupData = sessionStorage.getItem('loadLineupData');
+    if (loadLineupData) {
+        console.log('🔧 Found lineup data on window load:', loadLineupData);
+    }
+});
 
 // Player position determination
 function getPlayerPosition(playerName, rating) {
@@ -321,9 +386,12 @@ function renderPlayersForManual() {
       typeColor = playerTypeColors[positionPreference];
     }
     
+    // Get PTI value, default to 0 if not available
+    const ptiValue = player.pti || player.rating || 0;
+    
     playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
     playerDiv.dataset.playerName = player.name;
-    playerDiv.dataset.playerRating = player.rating;
+    playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
     playerDiv.dataset.playerType = playerType;
     
     // Set background color based on player type
@@ -333,15 +401,21 @@ function renderPlayersForManual() {
     playerDiv.draggable = true;
     playerDiv.style.cursor = 'grab';
     
-    // Always show position type - either preference or "Ct pref not set" for uniform height
+    // Show position type if available, otherwise keep blank
     const typeDisplay = playerType 
       ? `<div class="text-xs text-gray-700 mt-1">${playerType}</div>` 
-      : `<div class="text-xs text-gray-500 mt-1" style="font-size: 0.625rem;">Ct pref not set</div>`;
+      : '';
+    
+    // Extract last name from full name
+    const lastName = player.name.split(' ').pop();
     
     playerDiv.innerHTML = `
-      <div class="font-medium text-gray-900 text-sm">${player.name}</div>
-      ${typeDisplay}
+      <div class="font-medium text-gray-900 text-sm">${lastName}</div>
+      <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
     `;
+    
+    // Debug: Log the player card HTML to console
+    console.log(`🏴‍☠️ Player card HTML for ${lastName}:`, playerDiv.innerHTML);
     
     // Add both drag and tap event listeners simultaneously
     // Drag events
@@ -368,6 +442,15 @@ function renderPlayersForManual() {
   });
   
   updateModeUI();
+  
+  // Check if we have pending lineup data to populate after players are loaded
+  if (window.pendingLineupData) {
+    console.log('🔧 Players loaded, now populating pending lineup data');
+    setLineupFromText(window.pendingLineupData);
+    updateManualLineupSummary();
+    // Clear the pending data
+    window.pendingLineupData = null;
+  }
 }
 
 function handleDragStart(e) {
@@ -479,6 +562,12 @@ function handleTouchEnd(e) {
       };
       
       updateManualLineupSummary();
+      
+      // Auto scroll up 400px when player is added to court via touch drag and drop
+      window.scrollBy({
+        top: -400,
+        behavior: 'smooth'
+      });
     }
   }
   
@@ -564,6 +653,12 @@ function handleDrop(e) {
     };
     
     updateManualLineupSummary();
+    
+    // Auto scroll up 400px when player is added to court via drag and drop
+    window.scrollBy({
+      top: -400,
+      behavior: 'smooth'
+    });
   }
 }
 
@@ -623,37 +718,125 @@ function updateManualLineupSummary() {
     return;
   }
   
-  let lineupText = 'LINEUP:\n\n';
+  let lineupText = '';
   
   // Sort courts numerically
   const sortedCourts = Object.keys(manualLineup).sort((a, b) => parseInt(a) - parseInt(b));
   
-  sortedCourts.forEach(court => {
+  sortedCourts.forEach((court, index) => {
     const courtData = manualLineup[court];
     const player1 = courtData['1'];
     const player2 = courtData['2'];
     
-    lineupText += `Court ${court}: `;
+    // Calculate average PTI for this court using stored PTI values
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    if (player1) {
+      totalPTI += parseFloat(player1.rating || 0);
+      playerCount++;
+    }
+    
+    if (player2) {
+      totalPTI += parseFloat(player2.rating || 0);
+      playerCount++;
+    }
+    
+    const avgPTI = playerCount > 0 ? (totalPTI / playerCount).toFixed(1) : '--';
+    
+    // Add court header with PTI information
+    lineupText += `Court ${court}: (Avg PTI: ${avgPTI})<br>`;
     
     if (player1 && player2) {
-      lineupText += `${player1.name} & ${player2.name}\n`;
+      const p1PTI = parseFloat(player1.rating || 0);
+      const p2PTI = parseFloat(player2.rating || 0);
+      
+      lineupText += `  ${player1.name} (${p1PTI})<br>  ${player2.name} (${p2PTI})<br>`;
     } else if (player1) {
-      lineupText += `${player1.name} & [Need Partner]\n`;
+      const p1PTI = parseFloat(player1.rating || 0);
+      
+      lineupText += `  ${player1.name} (${p1PTI})<br>  [Need Partner]<br>`;
     } else if (player2) {
-      lineupText += `[Need Partner] & ${player2.name}\n`;
+      const p2PTI = parseFloat(player2.rating || 0);
+      
+      lineupText += `  [Need Partner]<br>  ${player2.name} (${p2PTI})<br>`;
+    }
+    
+    // Add spacing between courts (but not after the last court)
+    if (index < sortedCourts.length - 1) {
+      lineupText += `<br>`;
     }
   });
   
-  summaryText.textContent = lineupText;
+  summaryText.innerHTML = lineupText;
   summary.classList.remove('hidden');
   
-  // Enable send button if we have at least one complete court
+  // Enable send button if we have at least one complete court, or if we're in edit mode with any players assigned
   const hasCompleteCourt = sortedCourts.some(court => {
     const courtData = manualLineup[court];
     return courtData['1'] && courtData['2'];
   });
   
-  sendButton.disabled = !hasCompleteCourt;
+  const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
+  const hasAnyPlayer = sortedCourts.some(court => {
+    const courtData = manualLineup[court];
+    return courtData['1'] || courtData['2'];
+  });
+  
+  // In edit mode, allow saving if there are any players assigned; in create mode, require at least one complete court
+  sendButton.disabled = isEditMode ? !hasAnyPlayer : !hasCompleteCourt;
+  
+  // Update court PTI averages
+  updateCourtPTIAverages();
+}
+
+function updateCourtPTIAverages() {
+  // Calculate PTI for each court
+  for (let courtNum = 1; courtNum <= 4; courtNum++) {
+    const courtElement = document.getElementById(`court-${courtNum}-pti`);
+    if (!courtElement) continue;
+    
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) continue;
+    
+    const adPosition = courtContainer.querySelector('[data-position="1"]');
+    const deucePosition = courtContainer.querySelector('[data-position="2"]');
+    
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    // Check Ad position
+    if (adPosition && adPosition.querySelector('.player-card')) {
+      const playerElement = adPosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Check Deuce position
+    if (deucePosition && deucePosition.querySelector('.player-card')) {
+      const playerElement = deucePosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Update the display
+    if (playerCount > 0) {
+      const avgPTI = (totalPTI / playerCount).toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI})`;
+    } else {
+      courtElement.textContent = `(Avg PTI: --)`;
+    }
+  }
 }
 
 function sendManualLineup() {
@@ -663,13 +846,85 @@ function sendManualLineup() {
   }
   
   // Create lineup text from manual assignments
-  const lineupText = document.getElementById('manual-lineup-text').textContent;
+  const lineupText = document.getElementById('manual-lineup-text').innerHTML;
   
-  // Store lineup in sessionStorage for the confirmation page
-  sessionStorage.setItem('createdLineup', lineupText);
+  // Check if we're in edit mode
+  const isEditMode = sessionStorage.getItem('isEditMode') === 'true';
   
-  // Redirect to lineup confirmation page (Step 2)
-  window.location.href = '/mobile/lineup-confirmation';
+  if (isEditMode) {
+    // In edit mode - save changes directly
+    saveEditedLineup(lineupText);
+  } else {
+    // Normal mode - store lineup in sessionStorage for the confirmation page
+    sessionStorage.setItem('createdLineup', lineupText);
+    
+    // Redirect to lineup confirmation page (Step 2)
+    window.location.href = '/mobile/lineup-confirmation';
+  }
+}
+
+// Save edited lineup function
+async function saveEditedLineup(lineupText) {
+  try {
+    const editLineupId = sessionStorage.getItem('editLineupId');
+    const editLineupName = sessionStorage.getItem('editLineupName');
+    
+    if (!editLineupId || !editLineupName) {
+      throw new Error('Edit context not found');
+    }
+    
+    // Get user and team data
+    const user = window.sessionData?.user || {};
+    const teamId = user.team_id;
+    
+    if (!teamId) {
+      throw new Error('No team ID found');
+    }
+    
+    // Show loading state
+    const sendButton = document.getElementById('manual-send');
+    const originalText = sendButton.innerHTML;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving Changes...';
+    sendButton.disabled = true;
+    
+    // Update the lineup in the database
+    const response = await fetch('/api/saved-lineups', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        lineup_id: parseInt(editLineupId),
+        lineup_name: editLineupName,
+        lineup_data: lineupText,
+        team_id: teamId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update lineup');
+    }
+    
+    // Clear edit context
+    sessionStorage.removeItem('editLineupId');
+    sessionStorage.removeItem('editLineupName');
+    sessionStorage.removeItem('isEditMode');
+    
+    // Show success and redirect back to saved lineups page
+    alert('Lineup updated successfully!');
+    window.location.href = '/mobile/saved-lineups';
+    
+  } catch (error) {
+    console.error('Error saving lineup changes:', error);
+    alert(`Error saving changes: ${error.message}`);
+    
+    // Reset button
+    const sendButton = document.getElementById('manual-send');
+    sendButton.innerHTML = 'Save Changes';
+    sendButton.disabled = false;
+  }
 }
 
 // goToRallyAI function removed - now redirects to separate AI page
@@ -678,11 +933,7 @@ function sendManualLineup() {
 // Removed toggleInteractionMode - both drag and tap work simultaneously
 
 function updateModeUI() {
-  const instructionText = document.getElementById('instruction-text');
   const selectedIndicator = document.getElementById('selected-player-indicator');
-  
-  // Update instruction text to show both methods work
-  if (instructionText) instructionText.textContent = 'Drag players to courts OR tap a player, then tap a court position:';
   
   // Show/hide selected player indicator based on current selection
   if (selectedPlayerForTap) {
@@ -724,6 +975,12 @@ function handlePlayerTap(e) {
   e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
   
   showSelectedPlayer(playerName);
+  
+  // Auto scroll down 400px when player is selected
+  window.scrollBy({
+    top: 400,
+    behavior: 'smooth'
+  });
 }
 
 function showSelectedPlayer(playerName) {
@@ -810,6 +1067,12 @@ function handleCourtPositionTap(e) {
     clearPlayerSelection();
     
     updateManualLineupSummary();
+    
+    // Auto scroll up 400px when player is added to court
+    window.scrollBy({
+      top: -400,
+      behavior: 'smooth'
+    });
   }
 }
 
@@ -1008,53 +1271,186 @@ fetchSavedLineups();
 function getCurrentLineupText() {
     // Try to get from summary if visible
     const summary = document.getElementById('manual-lineup-text');
-    if (summary && summary.textContent.trim()) {
-        return summary.textContent.trim();
+    if (summary && summary.innerHTML.trim()) {
+        return summary.innerHTML.trim();
     }
     // Otherwise, build from court positions
     let text = '';
     document.querySelectorAll('.court-container').forEach((court, i) => {
         text += `Court ${i+1}:\n`;
-        court.querySelectorAll('.court-position').forEach((pos, j) => {
-            text += `  ${j === 0 ? 'Ad' : 'Deuce'}: ${pos.textContent.trim()}\n`;
-        });
-        text += '\n';
+        const adPlayer = court.querySelectorAll('.court-position')[0];
+        const deucePlayer = court.querySelectorAll('.court-position')[1];
+        
+        if (adPlayer && deucePlayer) {
+            text += `${adPlayer.textContent.trim()}\n${deucePlayer.textContent.trim()}\n\n`;
+        } else if (adPlayer) {
+            text += `${adPlayer.textContent.trim()}\n\n`;
+        } else if (deucePlayer) {
+            text += `${deucePlayer.textContent.trim()}\n\n`;
+        } else {
+            text += '\n';
+        }
     });
     return text.trim();
 }
 
 // Helper: set lineup from text (populate courts)
 function setLineupFromText(lineupText) {
-    // Parse the text and fill the courts
-    // Expected format:
-    // Court 1:
-    //   Ad: Player Name
-    //   Deuce: Player Name
-    // ...
-    const lines = lineupText.split('\n');
-    let courtIdx = -1;
+    console.log('🔧 setLineupFromText called with:', lineupText);
+    
+    // Clear existing lineup
+    manualLineup = {};
+    
+    // Parse the HTML lineup format: "LINEUP:<br>Court 1: Player1 & Player2<br>Court 2: Player3 & Player4<br>" (old format) or new format
+    // First, convert <br> tags to newlines and decode HTML entities
+    let normalizedText = lineupText.replace(/<br\s*\/?>/gi, '\n');
+    normalizedText = normalizedText.replace(/&amp;/g, '&'); // Decode &amp; to &
+    normalizedText = normalizedText.replace(/&lt;/g, '<'); // Decode &lt; to <
+    normalizedText = normalizedText.replace(/&gt;/g, '>'); // Decode &gt; to >
+    normalizedText = normalizedText.replace(/&quot;/g, '"'); // Decode &quot; to "
+    normalizedText = normalizedText.replace(/&nbsp;/g, ' '); // Decode &nbsp; to regular spaces
+    console.log('🔧 Normalized text:', normalizedText);
+    
+    const lines = normalizedText.split('\n');
+    
+    let currentCourt = null;
+    let currentPlayers = [];
+    
     lines.forEach(line => {
-        const courtMatch = line.match(/^Court (\d+):/);
+        const trimmedLine = line.trim();
+        
+        // Match pattern: "Court X:" or "Court X: (Avg PTI: XX.X)" to start a new court
+        const courtMatch = trimmedLine.match(/^Court (\d+):/);
         if (courtMatch) {
-            courtIdx = parseInt(courtMatch[1], 10) - 1;
-            return;
-        }
-        const adMatch = line.match(/^\s*Ad: (.+)$/);
-        const deuceMatch = line.match(/^\s*Deuce: (.+)$/);
-        if (courtIdx >= 0) {
-            if (adMatch) {
-                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[0].querySelector('.drop-text').textContent = adMatch[1];
+            // Save previous court if it exists
+            if (currentCourt && currentPlayers.length > 0) {
+                console.log(`🔧 Processing Court ${currentCourt} with players:`, currentPlayers);
+                
+                if (currentPlayers.length >= 2) {
+                    assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+                    assignPlayerToCourt(currentPlayers[1], currentCourt, 'Deuce');
+                } else if (currentPlayers.length === 1) {
+                    assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+                }
             }
-            if (deuceMatch) {
-                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[1].querySelector('.drop-text').textContent = deuceMatch[1];
+            
+            // Start new court
+            currentCourt = parseInt(courtMatch[1], 10);
+            currentPlayers = [];
+        } else if (trimmedLine && currentCourt) {
+            // This is a player name under the current court
+            const playerName = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
+            if (playerName && !playerName.includes('[Need Partner]')) {
+                // Extract just the player name, removing PTI values in parentheses
+                const cleanPlayerName = playerName.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
+                if (cleanPlayerName) {
+                    currentPlayers.push(cleanPlayerName);
+                }
             }
         }
     });
-    // Optionally update summary
-    if (document.getElementById('manual-lineup-summary')) {
-        document.getElementById('manual-lineup-summary').classList.remove('hidden');
-        document.getElementById('manual-lineup-text').textContent = lineupText;
+    
+    // Don't forget the last court
+    if (currentCourt && currentPlayers.length > 0) {
+        console.log(`🔧 Processing final Court ${currentCourt} with players:`, currentPlayers);
+        
+        if (currentPlayers.length >= 2) {
+            assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+            assignPlayerToCourt(currentPlayers[1], currentCourt, 'Deuce');
+        } else if (currentPlayers.length === 1) {
+            assignPlayerToCourt(currentPlayers[0], currentCourt, 'Ad');
+        }
     }
+    
+    // Update the lineup summary
+    updateManualLineupSummary();
+    console.log('🔧 Lineup populated, manualLineup:', manualLineup);
+}
+
+// Helper: assign a player to a specific court and position
+function assignPlayerToCourt(playerName, courtNum, position) {
+    console.log(`🔧 Assigning ${playerName} to Court ${courtNum} ${position}`);
+    
+    // Clean up the player name (trim whitespace)
+    const cleanPlayerName = playerName.trim();
+    
+    // Find the player in the available players pool - try exact match first
+    let playerElement = document.querySelector(`[data-player-name="${cleanPlayerName}"]`);
+    
+    // If exact match not found, try partial matching
+    if (!playerElement) {
+        const allPlayerElements = document.querySelectorAll('[data-player-name]');
+        playerElement = Array.from(allPlayerElements).find(el => {
+            const elPlayerName = el.getAttribute('data-player-name');
+            return elPlayerName && (
+                elPlayerName.includes(cleanPlayerName) || 
+                cleanPlayerName.includes(elPlayerName) ||
+                elPlayerName.toLowerCase() === cleanPlayerName.toLowerCase()
+            );
+        });
+    }
+    
+    if (!playerElement) {
+        console.log(`❌ Player ${cleanPlayerName} not found in available players pool`);
+        console.log(`Available players:`, Array.from(document.querySelectorAll('[data-player-name]')).map(el => el.getAttribute('data-player-name')));
+        return;
+    }
+    
+    // Find the target court position
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) {
+        console.log(`❌ Court ${courtNum} container not found`);
+        return;
+    }
+    
+    const courtPosition = position === 'Ad' ? 
+        courtContainer.querySelectorAll('.court-position')[0] : 
+        courtContainer.querySelectorAll('.court-position')[1];
+        
+    if (!courtPosition) {
+        console.log(`❌ Court ${courtNum} ${position} position not found`);
+        return;
+    }
+    
+    // Check if position is already occupied
+    if (courtPosition.querySelector('.player-card')) {
+        const existingPlayer = courtPosition.querySelector('.player-card');
+        movePlayerToPool(existingPlayer);
+    }
+    
+    // Move player from pool to court position
+    playerElement.remove();
+    
+    // Style the player card for court position
+    const playerType = playerElement.dataset.playerType;
+    const playerTypeColors = {
+        'Ad': '#70e6bb',
+        'Deuce': '#6f90d6', 
+        'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    playerElement.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+    playerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+    
+    // Clear the position and add the player
+    courtPosition.innerHTML = '';
+    courtPosition.appendChild(playerElement);
+    
+    // Update manual lineup data
+    if (!manualLineup[courtNum]) manualLineup[courtNum] = {};
+    // Convert position names to numbers: Ad = 1, Deuce = 2
+    const positionKey = position === 'Ad' ? '1' : '2';
+    
+    // Get the PTI value from the player element dataset (now stores PTI value)
+    const ptiValue = parseFloat(playerElement.dataset.playerRating) || 0;
+    
+    manualLineup[courtNum][positionKey] = {
+        name: cleanPlayerName,
+        rating: ptiValue
+    };
+    
+    console.log(`✅ Successfully assigned ${cleanPlayerName} to Court ${courtNum} ${position}`);
 }
 
 </script>
@@ -1074,6 +1470,10 @@ function setLineupFromText(lineupText) {
     transition: all 0.2s ease;
     touch-action: manipulation;
     user-select: none;
+    /* Constrain size for desktop views */
+    max-width: 120px;
+    min-width: 80px;
+    width: 100px;
 }
 
 .player-card:hover {
@@ -1101,6 +1501,18 @@ function setLineupFromText(lineupText) {
 
 #available-players-pool {
     transition: all 0.2s ease;
+}
+
+/* Desktop view - keep player cards consistent size */
+@media (min-width: 769px) {
+    .player-card {
+        width: 100px !important;
+        max-width: 100px !important;
+        min-width: 100px !important;
+        margin: 0.25rem;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
 }
 
 /* Mobile touch improvements */

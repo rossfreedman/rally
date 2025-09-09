@@ -125,8 +125,10 @@ class SessionRefreshMiddleware:
     def _should_refresh_session(self, user_email: str) -> bool:
         """Check if user's session should be refreshed"""
         try:
-            from data.etl.database_import.session_refresh_service import SessionRefreshService
-            return SessionRefreshService.should_refresh_session(user_email)
+            # TEMPORARILY DISABLED: Session refresh service not available
+            # from data.etl.database_import.session_refresh_service import SessionRefreshService
+            # return SessionRefreshService.should_refresh_session(user_email)
+            return False  # Disable session refresh for now
         except Exception as e:
             # Handle specific database errors gracefully
             if "cursor already closed" in str(e):
@@ -142,15 +144,17 @@ class SessionRefreshMiddleware:
     def _refresh_user_session(self, user_email: str) -> Optional[dict]:
         """Refresh user's session with updated data"""
         try:
-            from data.etl.database_import.session_refresh_service import SessionRefreshService
-            return SessionRefreshService.refresh_user_session(user_email)
+            # TEMPORARILY DISABLED: Session refresh service not available
+            # from data.etl.database_import.session_refresh_service import SessionRefreshService
+            # return SessionRefreshService.refresh_user_session(user_email)
+            return None  # Disable session refresh for now
         except Exception as e:
             # Handle specific database errors gracefully
             if "cursor already closed" in str(e):
                 logger.warning(f"Database cursor closed while refreshing session for {user_email}")
                 return None
             elif "connection" in str(e).lower():
-                logger.error(f"Database connection error refreshing session for {user_email}: {str(e)}")
+                logger.error(f"Database connection error refreshing session for {user_email}")
                 return None
             else:
                 logger.error(f"Error refreshing session: {str(e)}")

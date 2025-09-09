@@ -5,9 +5,9 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Loading Screen (shown initially) -->
-    <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
+    <div class="container">
+        <!-- Loading Screen (shown initially) -->
+        <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
         <div class="text-center mb-8">
             <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4" style="background-color: #0284c7 !important;">
                 <i class="fas fa-calendar text-white text-lg"></i>
@@ -65,7 +65,7 @@
 
             <!-- Filter Section -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
+                <div class="px-6 py-4 border-b border-gray-50 relative">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-filter text-blue-500 mr-2"></i>
                         Filter Team Schedule
@@ -150,6 +150,8 @@
                     </p>
                 </div>
             </div>
+
+
         </div>
     </div>
 </div>
@@ -350,7 +352,11 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = formatDateString(date);
             if (eventInfo.type === 'Practice') {
                 option.textContent += ' - Practice';
+            } else if (eventInfo.type === 'Match' && eventInfo.home_team && eventInfo.away_team) {
+                // Show full matchup: "Valley Lo 22 vs. Tennaqua 22"
+                option.textContent += ' - ' + eventInfo.home_team + ' vs. ' + eventInfo.away_team;
             } else if (eventInfo.type === 'Match' && eventInfo.opponent) {
+                // Fallback to opponent if full matchup not available
                 option.textContent += ' - Match vs ' + eventInfo.opponent;
             } else if (eventInfo.type === 'Match') {
                 option.textContent += ' - Match';
@@ -468,11 +474,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventData.event_type === 'Practice') {
             return '<div class="text-sm text-blue-600 mt-1"><i class="fas fa-dumbbell mr-1"></i>Practice</div>';
         } else if (eventData.event_type === 'Match') {
-            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match';
-            if (eventData.opponent) {
-                matchInfo += ' <span class="text-gray-600">vs ' + eventData.opponent + '</span>';
+            let matchInfo = '<div class="text-sm text-green-600 mt-1"><i class="fas fa-trophy mr-1"></i>Match</div>';
+            
+            // Enhanced: Show full team matchup information on its own line
+            if (eventData.home_team && eventData.away_team) {
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">' + eventData.home_team + ' vs. ' + eventData.away_team + '</div>';
+            } else if (eventData.opponent) {
+                // Fallback to original opponent display if team info not available
+                matchInfo += '<div class="text-xs text-gray-600 mt-1">vs ' + eventData.opponent + '</div>';
             }
-            matchInfo += '</div>';
             return matchInfo;
         }
         return '';
@@ -595,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function() {
     seriesElements.forEach(element => {
         const seriesText = element.textContent;
         if (seriesText && seriesText !== 'Not set') {
-            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+            element.textContent = seriesText.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1');
         }
     });
 
@@ -683,4 +693,6 @@ document.addEventListener('DOMContentLoaded', function() {
     .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 }
 </style>
+    </div>
+</div>
 {% endblock %} 

@@ -20,3 +20,5 @@ alembic>=1.13.1
 rapidfuzz==3.13.0
 flask_login==0.6.3
 sendgrid==6.11.0
+icalendar==5.0.11
+pytz==2024.1

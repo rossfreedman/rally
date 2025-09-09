@@ -12,7 +12,12 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
-    <link rel="apple-touch-icon" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
+    
+    <!-- Cache Control Meta Tags -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <!-- Basic Meta Tags -->
     <meta name="description" content="{% block meta_description %}One app to run your season. Built by players, for players.{% endblock %}">
@@ -50,6 +55,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="format-detection" content="telephone=no">
     
+    <!-- iOS Icon Cache Control -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <!-- Canonical URL -->
     <link rel="canonical" href="https://lovetorally.com{{ request.path }}">
     
@@ -63,9 +72,11 @@
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     
     <!-- App CSS and JS -->
-    <link href="/static/mobile/css/style.css" rel="stylesheet">
-    <script src="/static/js/activity-tracker.js" defer></script>
-    <script src="/static/mobile/js/main.js" defer></script>
+    <link href="/static/mobile/css/style.css?v=2025" rel="stylesheet">
+    <!-- Additive responsive layer -->
+    <link href="/static/css/responsive.css?v=2025" rel="stylesheet">
+    <script src="/static/js/activity-tracker.js?v=2025" defer></script>
+    <script src="/static/mobile/js/main.js?v=2025" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <!-- Database Switching Script -->
@@ -144,6 +155,7 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
         }
+        
         
         /* Smooth hover effects for navigation links */
         .nav-link {
@@ -294,7 +306,7 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
             color: #045454 !important;
             font-weight: 500 !important;
-            transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
             padding: 1.5rem !important;
             width: 100%;
             text-align: center;
@@ -302,27 +314,100 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            position: relative;
+            z-index: 1;
         }
         .category-button * { color: #045454 !important; font-weight: 500 !important; }
         .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
         .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
         .category-button:hover * { color: #045454 !important; }
         
-        /* Active category button styling when submenu is open */
+        /* Force Home button to match other buttons exactly - nuclear option */
+        .category-section:first-child .category-button {
+            background: #fff !important;
+            color: #045454 !important;
+            border-color: #E0E0E0 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+            padding: 1.5rem !important;
+            width: 100% !important;
+            min-height: 120px !important;
+            height: auto !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 1.5rem !important;
+            border: 1px solid #E0E0E0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            font-size: inherit !important;
+            line-height: inherit !important;
+        }
+        .category-section:first-child .category-button * {
+            color: #045454 !important;
+        }
+        .category-section:first-child .category-button svg {
+            color: #045454 !important;
+        }
+        .category-section:first-child .category-button:hover {
+            background: #f2f2f7 !important;
+            color: #045454 !important;
+            border-color: #E0E0E0 !important;
+        }
+        .category-section:first-child .category-button:hover * {
+            color: #045454 !important;
+        }
+        
+        /* Active category button styling when submenu is open - Reversed colors */
         .category-button.active {
             background: #045454 !important;
-            color: #bff863 !important;
             border-color: #045454 !important;
+            color: #bff863 !important;
             box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+            /* Ensure consistent sizing for active state */
+            padding: 1.5rem !important;
+            width: 100% !important;
+            text-align: center !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            /* Animation effects */
+            transform: scale(1.05) translateY(-2px) !important;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
-        .category-button.active * { 
+        .category-button.active:not([onclick*="'/mobile'"]) * { 
             color: #bff863 !important; 
         }
-        .category-button.active svg { 
+        .category-button.active:not([onclick*="'/mobile'"]) svg { 
             color: #bff863 !important; 
         }
-        .submenu { display: none; background: transparent; margin-top: 0.5rem; overflow: hidden; }
-        .submenu.active { display: block; }
+        
+          /* Captain's Corner button off state - very light green background */
+  .category-button[onclick*="captain"] {
+    background: #f0f9f0 !important;
+    border-color: #d4edda !important;
+  }
+        .submenu { 
+            display: block !important; 
+            background: transparent; 
+            margin-top: 0.5rem; 
+            overflow: hidden !important;
+            max-height: 0 !important;
+            opacity: 0 !important;
+            transform: translateY(-20px) scale(0.95) !important;
+            transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+                        opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                        transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            visibility: visible !important;
+        }
+        .submenu.active { 
+            display: block !important; 
+            max-height: 600px !important;
+            opacity: 1 !important;
+            transform: translateY(0) scale(1) !important;
+        }
         .submenu-item { 
             display: flex; 
             flex-direction: column; 
@@ -335,12 +420,41 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.08);
             text-decoration: none; 
             color: white !important; 
-            transition: box-shadow 0.2s, transform 0.1s, background 0.2s; 
+            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
             text-align: center;
             min-height: 120px;
             background: #797979 !important;
+            transform: translateY(-20px) scale(0.95) !important;
+            opacity: 0 !important;
+            position: relative;
         }
         .submenu-item:last-child { margin-bottom: 0; }
+        
+        /* Active state for submenu items */
+        .submenu.active .submenu-item {
+            transform: translateY(0) scale(1) !important;
+            opacity: 1 !important;
+        }
+        
+        /* Staggered animation delays for submenu items */
+        .submenu.active .submenu-item:nth-child(1) { 
+            transition-delay: 0.1s !important; 
+        }
+        .submenu.active .submenu-item:nth-child(2) { 
+            transition-delay: 0.2s !important; 
+        }
+        .submenu.active .submenu-item:nth-child(3) { 
+            transition-delay: 0.3s !important; 
+        }
+        .submenu.active .submenu-item:nth-child(4) { 
+            transition-delay: 0.4s !important; 
+        }
+        .submenu.active .submenu-item:nth-child(5) { 
+            transition-delay: 0.5s !important; 
+        }
+        .submenu.active .submenu-item:nth-child(6) { 
+            transition-delay: 0.6s !important; 
+        }
         .submenu-item:hover { 
             background-color: #f2f2f7; 
             box-shadow: 0 6px 20px rgba(0,0,0,0.12);
@@ -415,21 +529,58 @@
             }
         }
         
-        /* Desktop responsive constraints for hamburger menu */
+        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 768px) {
             .category-button {
-                max-width: 300px !important;
-                margin: 0 auto !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+            
+            /* Force Home button to match other buttons on desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 300px !important;
-                margin: 0 auto 0.5rem auto !important;
+                max-width: 100% !important;
+                margin: 0 0 0.5rem 0 !important;
             }
             
             .space-y-4 {
-                max-width: 350px !important;
-                margin: 0 auto !important;
+                max-width: 100% !important;
+                margin: 0 !important;
             }
             
             #navDrawer .px-4 {
@@ -438,33 +589,107 @@
             }
         }
         
-        /* Large desktop constraints for hamburger menu */
+        /* Large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1024px) {
             .category-button {
-                max-width: 280px !important;
+                max-width: 100% !important;
+            }
+            
+            /* Force Home button to match other buttons on large desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 280px !important;
+                max-width: 100% !important;
             }
             
             .space-y-4 {
-                max-width: 330px !important;
+                max-width: 100% !important;
             }
         }
         
-        /* Extra large desktop constraints for hamburger menu */
+        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1280px) {
             .category-button {
-                max-width: 260px !important;
+                max-width: 100% !important;
+            }
+            
+            /* Force Home button to match other buttons on extra large desktop */
+            .category-section:first-child .category-button {
+                background: #fff !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
+                width: 100% !important;
+                min-height: 120px !important;
+                height: auto !important;
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
+                border: 1px solid #E0E0E0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                font-size: inherit !important;
+                line-height: inherit !important;
+            }
+            .category-section:first-child .category-button * {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button svg {
+                color: #045454 !important;
+            }
+            .category-section:first-child .category-button:hover {
+                background: #f2f2f7 !important;
+                color: #045454 !important;
+                border-color: #E0E0E0 !important;
+            }
+            .category-section:first-child .category-button:hover * {
+                color: #045454 !important;
             }
             
             .submenu-item {
-                max-width: 260px !important;
+                max-width: 100% !important;
             }
             
             .space-y-4 {
-                max-width: 310px !important;
+                max-width: 100% !important;
             }
         }
     </style>
@@ -543,13 +768,16 @@
 
                   
                   <!-- Single Column Navigation (matches home_submenu) -->
-                  <div class="space-y-4">
+                  <div class="space-y-4" style="padding-bottom: 200px;">
                     <!-- Home Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="window.location.href='/mobile'">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         <div class="font-semibold text-lg">Home</div>
                       </button>
+                      <div id="drawer-home-submenu" class="submenu">
+                        <!-- Empty submenu to match structure of other buttons -->
+                      </div>
                     </div>
                     <!-- Act Category -->
                     <div class="category-section">
@@ -566,18 +794,16 @@
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                           <span class="text">Update Availability</span><span class="arrow">→</span>
                         </a>
+                        <a href="/mobile/polls" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
+                        </a>
                         <a href="/mobile/track-byes-courts" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 10h6M9 14h6M9 18h2" stroke="currentColor" stroke-width="2"/></svg>
                           <span class="text">Track Assignments</span><span class="arrow">→</span>
                         </a>
-                        <a href="/mobile/polls" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/reserve-court" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Reserve a Court</span><span class="arrow">→</span>
-                        </a>
+
+                        <!-- Reserve Court button hidden -->
                       </div>
                     </div>
                     <!-- Analyze Category -->
@@ -624,10 +850,7 @@
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20l16-16" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 16v5h-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                           <span class="text">Matchup Simulator</span><span class="arrow">→</span>
                         </a>
-                        <a href="/pti-calculator" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2"/><line x1="8" y1="10" x2="10" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="10" y2="18" stroke="currentColor" stroke-width="2"/><line x1="14" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/><line x1="14" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/><line x1="14" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">PTI Calculator</span><span class="arrow">→</span>
-                        </a>
+                        <!-- PTI Calculator button hidden -->
                       </div>
                     </div>
                     <!-- Play Category -->
@@ -671,32 +894,34 @@
                         <div class="font-semibold text-lg">Captain's Corner</div>
                       </button>
                       <div id="drawer-captain-submenu" class="submenu">
-                        <a href="/mobile/register-my-team" class="submenu-item">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
-                            <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                            <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2"/>
-                            <line x1="17" y1="11" x2="23" y2="11" stroke="currentColor" stroke-width="2"/>
-                          </svg>
-                          Register My Team
-                        </a>
+
                         <a href="/mobile/team-schedule" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
                           <span class="text">Team Schedule</span><span class="arrow">→</span>
                         </a>
 
+                        <a href="/mobile/team-notifications" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <!-- Bell shape -->
+                            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <!-- Bell clapper -->
+                            <path d="M12 20a2 2 0 002-2H10a2 2 0 002 2z" stroke="currentColor" stroke-width="2" fill="none"/>
+                          </svg>
+                          <span class="text">Team Notifications</span><span class="arrow">→</span>
+                        </a>
+                        
+
+
                         <a href="/mobile/find-subs" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 18v-2a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18 12v6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 15h-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                           <span class="text">Find Subs</span><span class="arrow">→</span>
                         </a>
-                        <a href="/mobile/lineup-escrow" class="submenu-item">
+                        
+                        <a href="/mobile/create-lineup" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">Create Lineup<br><small style="opacity: 0.7;">Send to opposing captain via Lineup Escrow</small></span><span class="arrow">→</span>
+                          <span class="text">Create & Send Lineup</span><span class="arrow">→</span>
                         </a>
-                        <a href="/mobile/polls" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">Team Polls</span><span class="arrow">→</span>
-                        </a>
+                        
                         <a href="/mobile/practice-times" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></svg>
                           <span class="text">Practice Times</span><span class="arrow">→</span>
@@ -818,12 +1043,12 @@
             </script>
             
             <!-- Scroll Indicator -->
-            <div id="scrollIndicator" class="scroll-indicator">
+            <!-- <div id="scrollIndicator" class="scroll-indicator">
                 <div class="scroll-indicator-content">
                     <i class="fas fa-chevron-down"></i>
                     <span>More options below</span>
                 </div>
-            </div>
+            </div> -->
         </div>
     </div>
 
@@ -844,7 +1069,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <main class="container mx-auto px-2 py-6" id="main-content" style="padding-top: 72px; padding-bottom: 84px;">
+    <main class="container mx-auto px-2 py-6" id="main-content" style="padding-top: 72px; padding-bottom: 250px;">
         <!-- Player ID Missing Alert -->
         {% if session_data and session_data.user and session_data.authenticated and not session_data.user.tenniscores_player_id %}
         <div class="mb-4 p-3 rounded-lg shadow-sm" style="background-color: #F5C842; border: 1px solid #E5B332;">
@@ -1348,4 +1573,5 @@
     </script>
 
 </body>
+</html> 
 </html> 

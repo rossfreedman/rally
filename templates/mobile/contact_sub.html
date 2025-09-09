@@ -6,8 +6,8 @@
     
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+        <div class="flex items-center px-4 py-3">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454;">
                 <i class="fas fa-envelope text-white text-lg"></i>
             </div>
             <div class="ml-4">
@@ -55,12 +55,30 @@
                         <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
                     </div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-2">Unable to Load Contact Info</h3>
-                    <p id="errorMessage" class="text-gray-500 mb-4">Failed to load player contact information.</p>
-                    <button onclick="loadContactInfo()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
-                        <i class="fas fa-refresh mr-2"></i>Try Again
-                    </button>
+                    <p id="errorMessage" class="text-gray-500 mb-4">No contact info found for <span id="errorPlayerName"></span>. They are not yet registered for Rally.</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Invitation Card -->
+        <div id="invitationCard" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-user-plus text-green-600 mr-2"></i>
+                    Invite to Rally
+                </h2>
+            </div>
+            
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-share-alt text-green-600 text-2xl"></i>
+                </div>
+                <p class="text-gray-600 mb-6">Help <span id="invitationPlayerName"></span> get started with Rally by sending an invitation.</p>
+                <a href="/mobile/share-rally" 
+                   class="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    Send Invitation
+                </a>
             </div>
         </div>
 
@@ -68,23 +86,53 @@
 </div>
 
 <!-- Toast Container -->
-<div id="toastContainer" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 space-y-2"></div>
+<div id="toastContainer" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 space-y-2"></div>
 
 <script>
 // Global variables for player info
 let playerFirstName = '';
 let playerLastName = '';
 
+function formatPhoneNumber(phone) {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // Handle different phone number formats
+    if (digits.length === 10) {
+        // Format as (XXX) XXX-XXXX
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+        // Remove leading 1 and format as (XXX) XXX-XXXX
+        const withoutOne = digits.slice(1);
+        return `(${withoutOne.slice(0, 3)}) ${withoutOne.slice(3, 6)}-${withoutOne.slice(6)}`;
+    } else {
+        // Return original if we can't format it
+        return phone;
+    }
+}
+
 function showError(message) {
     const loadingDiv = document.getElementById('contactLoading');
     const contactCard = document.getElementById('contactCard');
     const errorDiv = document.getElementById('errorState');
+    const invitationCard = document.getElementById('invitationCard');
     const errorMessage = document.getElementById('errorMessage');
+    const invitationPlayerName = document.getElementById('invitationPlayerName');
+    const errorPlayerName = document.getElementById('errorPlayerName');
     
     loadingDiv.classList.add('hidden');
     contactCard.classList.add('hidden');
     errorDiv.classList.remove('hidden');
-    errorMessage.textContent = message;
+    invitationCard.classList.remove('hidden');
+    
+    // Update player names in both error message and invitation card
+    const playerName = `${playerFirstName} ${playerLastName}`.replace(/\s+to\s*$/i, '').trim();
+    if (errorPlayerName) {
+        errorPlayerName.textContent = playerName;
+    }
+    if (invitationPlayerName) {
+        invitationPlayerName.textContent = playerName;
+    }
 }
 
 function copyToClipboard(text, playerName) {
@@ -262,28 +310,47 @@ function loadContactInfo() {
                 </div>
                 
                 <!-- Contact Information -->
-                <div class="p-6 space-y-4">
+                <div class="px-6 pt-3 pb-6 space-y-4">
                     <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-envelope text-blue-600"></i>
+                        <div class="flex flex-col items-center gap-2 mb-3">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-phone text-green-600"></i>
                             </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-500">Email Address</div>
-                                <a href="mailto:${data.email}" class="text-blue-600 hover:text-blue-800 font-medium">${data.email}</a>
+                            <div class="text-center">
+                                <div class="text-sm font-medium text-gray-500">Phone Number</div>
+                                <a href="tel:${data.phone}" class="text-green-600 hover:text-green-800 font-medium">${formatPhoneNumber(data.phone)}</a>
                             </div>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
+                                    class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-sms"></i>
+                                <span>Copy</span>
+                            </button>
+                            <a href="tel:${data.phone}" 
+                               class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-phone"></i>
+                                <span>Call</span>
+                            </a>
                         </div>
                     </div>
                     
                     <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                        <div class="flex items-center gap-4">
-                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-phone text-green-600"></i>
+                        <div class="flex flex-col items-center gap-2 mb-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-envelope text-blue-600"></i>
                             </div>
-                            <div class="flex-1">
-                                <div class="text-sm font-medium text-gray-500">Phone Number</div>
-                                <a href="tel:${data.phone}" class="text-green-600 hover:text-green-800 font-medium">${data.phone}</a>
+                            <div class="text-center">
+                                <div class="text-sm font-medium text-gray-500">Email Address</div>
+                                <a href="mailto:${data.email}" class="text-blue-600 hover:text-blue-800 font-medium">${data.email}</a>
                             </div>
+                        </div>
+                        <div class="flex gap-2 justify-center">
+                            <a href="mailto:${data.email}" 
+                               class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-1">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -302,39 +369,10 @@ function loadContactInfo() {
                                 <i class="fas fa-paper-plane" id="sendIcon"></i>
                                 <span>Send Text</span>
                             </button>
-                            <p class="text-xs text-gray-500">If this player doesn’t have a phone in their Rally profile, we’ll use the Tennaqua directory number on file.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Action Buttons (Self-contained Card) -->
-                <div class="px-6 pb-6" style="margin-top: 20px;">
-                    <div class="bg-white rounded-xl border border-gray-100 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-gray-50 flex items-center gap-2">
-                            <i class="fas fa-bolt text-purple-600"></i>
-                            <h3 class="text-md font-semibold text-gray-900">Other ways to connect</h3>
-                        </div>
-                        <div class="p-4">
-                            <div class="grid grid-cols-3 gap-3">
-                                <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
-                                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                                    <i class="fas fa-sms"></i>
-                                    <span>Copy</span>
-                                </button>
-                                <a href="tel:${data.phone}" 
-                                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                                    <i class="fas fa-phone"></i>
-                                    <span>Call</span>
-                                </a>
-                                <a href="mailto:${data.email}" 
-                                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>Email</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
                 
             `;
         })

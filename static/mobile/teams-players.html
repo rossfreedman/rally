@@ -298,6 +298,7 @@
         const playerStatsCard = document.getElementById('playerStatsCard');
         const playerStatsDiv = document.getElementById('playerStats');
         const courtBreakdownDiv = document.getElementById('courtBreakdown');
+        let currentTeamPlayers = []; // Store current team players data for substitute detection
 
         // Load teams on page load
         fetch('/api/teams-with-ids')
@@ -335,85 +336,123 @@
                 teamStatsCard.classList.add('d-none');
                 return;
             }
-            // Fetch both stats and matches, then analyze
+            // Load team players first, then generate team stats with substitute information
             teamStatsCard.classList.remove('d-none');
             teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
-            Promise.all([
-                fetch(`/api/research-team?team=${encodeURIComponent(teamName)}`).then(r => r.json()),
-                fetch(`/api/team-matches?team=${encodeURIComponent(teamName)}`).then(r => r.json())
-            ]).then(([stats, matches]) => {
-                // Use desktop logic to calculate analysis
-                const courtStats = calculateCourtStats(matches, teamName);
-                const playerStats = calculatePlayerStats(matches, teamName);
-                // --- Match Patterns ---
-                let totalMatches = matches.length;
-                let straightSetWins = 0, comebackWins = 0, threeSetWins = 0, threeSetLosses = 0;
-                matches.forEach(match => {
-                    const isHome = match["Home Team"] === teamName;
-                    const winnerIsHome = match["Winner"] === "home";
-                    const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
-                    const sets = match["Sets"] || [];
-                    if (sets.length === 2 && teamWon) straightSetWins++;
-                    if (sets.length === 3) {
-                        if (teamWon) threeSetWins++;
-                        else threeSetLosses++;
-                        // Comeback win: lost first set, won next two
-                        if (!teamWon) return;
-                        if (sets[0] && sets[0][isHome ? 'away' : 'home'] > sets[0][isHome ? 'home' : 'away']) {
-                            comebackWins++;
-                        }
-                    }
-                });
-                let threeSetRecord = `${threeSetWins}-${threeSetLosses}`;
-                // --- Render Overview Card ---
-                let html = `<div class="card-section mb-3">
-                    <div class="section-label">Team Stats</div>
-                    <div><span class='stat-label'>Points:</span><span class='stat-value'>${stats.overview.points}</span></div>
-                    <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${stats.overview.match_record}</span></div>
-                    <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${stats.overview.match_win_rate}%</span></div>
-                    <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${stats.overview.line_win_rate}%</span></div>
-                    <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${stats.overview.set_win_rate}%</span></div>
-                    <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${stats.overview.game_win_rate}%</span></div>
-                </div>`;
-                // --- Match Patterns Card ---
-                html += `<div class="card-section mb-3">
-                    <div class="section-label">Match Patterns</div>
-                    <div class='stat-item'><strong>Total Matches:</strong> ${totalMatches}</div>
-                    <div class='stat-item'><strong>Straight Set Wins:</strong> ${straightSetWins}</div>
-                    <div class='stat-item'><strong>Comeback Wins:</strong> ${comebackWins}</div>
-                    <div class='stat-item'><strong>Three-Set Record:</strong> ${threeSetRecord}</div>
-                </div>`;
-                // --- Court Analysis Card ---
-                html += `<div class="card-section mb-3">
-                    <div class="section-label">Court Analysis</div>`;
-                Object.entries(courtStats).forEach(([court, data]) => {
-                    html += `<div class='court-section mb-2'><strong>${court}:</strong> ${data.wins}-${data.losses} (${data.winRate}% win rate)`;
-                    if (data.topPlayers.length > 0) {
-                        html += `<br>Top Players: ` + data.topPlayers.map(p => `${p.name} (${p.winRate}% in ${p.matches} matches)`).join(', ');
-                    }
-                    html += `</div>`;
-                });
-                html += `</div>`;
-                // --- Top Players Card ---
-                html += `<div class="card-section mb-3">
-                    <div class="section-label">Top Players</div>
-                    <div class='table-responsive'><table class='table table-sm'><thead><tr><th>Name</th><th>Matches</th><th>Win Rate</th><th>Best Court</th><th>Best Partner</th></tr></thead><tbody>`;
-                Object.values(playerStats).filter(p => p.matches >= 3).sort((a, b) => b.winRate - a.winRate).forEach(player => {
-                    html += `<tr><td>${player.name}</td><td>${player.matches}</td><td>${player.winRate}%</td><td>${player.bestCourt ? player.bestCourt.name : '<span class="text-muted small">Threshold not met</span>'}</td><td>${player.bestPartner ? player.bestPartner.name : '<span class="text-muted small">Threshold not met</span>'}</td></tr>`;
-                });
-                html += `</tbody></table></div></div>`;
-                teamStatsDiv.innerHTML = html;
-            });
-            // Load players for this team using team_id
+            
+            // First load team players to get substitute information
             fetch(`/api/get-team-players/${teamId}`)
                 .then(r => r.json())
-                .then(data => {
+                .then(teamPlayersData => {
+                    // Store team players data for substitute detection
+                    currentTeamPlayers = teamPlayersData.players || [];
+                    
+                    // Now fetch team stats and matches
+                    return Promise.all([
+                        fetch(`/api/research-team?team=${encodeURIComponent(teamName)}`).then(r => r.json()),
+                        fetch(`/api/team-matches?team=${encodeURIComponent(teamName)}`).then(r => r.json()),
+                        Promise.resolve(teamPlayersData)
+                    ]);
+                })
+                .then(([stats, matches, teamPlayersData]) => {
+                    // Use desktop logic to calculate analysis
+                    const courtStats = calculateCourtStats(matches, teamName);
+                    const playerStats = calculatePlayerStats(matches, teamName);
+                    
+
+                    // --- Match Patterns ---
+                    let totalMatches = matches.length;
+                    let straightSetWins = 0, comebackWins = 0, threeSetWins = 0, threeSetLosses = 0;
+                    matches.forEach(match => {
+                        const isHome = match["Home Team"] === teamName;
+                        const winnerIsHome = match["Winner"] === "home";
+                        const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
+                        const sets = match["Sets"] || [];
+                        if (sets.length === 2 && teamWon) straightSetWins++;
+                        if (sets.length === 3) {
+                            if (teamWon) threeSetWins++;
+                            else threeSetLosses++;
+                            // Comeback win: lost first set, won next two
+                            if (!teamWon) return;
+                            if (sets[0] && sets[0][isHome ? 'away' : 'home'] > sets[0][isHome ? 'home' : 'away']) {
+                                comebackWins++;
+                            }
+                        }
+                    });
+                    let threeSetRecord = `${threeSetWins}-${threeSetLosses}`;
+                    // --- Render Overview Card ---
+                    let html = `<div class="card-section mb-3">
+                        <div class="section-label">Team Stats</div>
+                        <div><span class='stat-label'>Points:</span><span class='stat-value'>${stats.overview.points}</span></div>
+                        <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${stats.overview.match_record}</span></div>
+                        <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${stats.overview.match_win_rate}%</span></div>
+                        <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${stats.overview.line_win_rate}%</span></div>
+                        <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${stats.overview.set_win_rate}%</span></div>
+                        <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${stats.overview.game_win_rate}%</span></div>
+                    </div>`;
+                    // --- Match Patterns Card ---
+                    html += `<div class="card-section mb-3">
+                        <div class="section-label">Match Patterns</div>
+                        <div class='stat-item'><strong>Total Matches:</strong> ${totalMatches}</div>
+                        <div class='stat-item'><strong>Straight Set Wins:</strong> ${straightSetWins}</div>
+                        <div class='stat-item'><strong>Comeback Wins:</strong> ${comebackWins}</div>
+                        <div class='stat-item'><strong>Three-Set Record:</strong> ${threeSetRecord}</div>
+                    </div>`;
+                    // --- Court Analysis Card ---
+                    html += `<div class="card-section mb-3">
+                        <div class="section-label">Court Analysis</div>`;
+                    Object.entries(courtStats).forEach(([court, data]) => {
+                        html += `<div class='court-section mb-2'><strong>${court}:</strong> ${data.wins}-${data.losses} (${data.winRate}% win rate)`;
+                        if (data.topPlayers.length > 0) {
+                            html += `<br>Top Players: ` + data.topPlayers.map(p => `${p.name} (${p.winRate}% in ${p.matches} matches)`).join(', ');
+                        }
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                    // --- Team Players Card ---
+                    html += `<div class="card-section mb-3">
+                        <div class="section-label">Team Players</div>
+                        <div class='table-responsive'><table class='table table-sm'><thead><tr><th>Name</th><th>Matches</th><th>Win Rate</th><th>Best Court</th><th>Best Partner</th></tr></thead><tbody>`;
+                    
+                    // Use the team players data directly since it already has substitute information
+                    if (currentTeamPlayers && currentTeamPlayers.length > 0) {
+                        currentTeamPlayers.forEach(teamPlayer => {
+                            // Find match stats for this player if they exist
+                            const matchStats = playerStats[teamPlayer.name];
+                            
+                            let substituteChip = '';
+                            if (teamPlayer.isSubstitute) {
+                                substituteChip = `
+                                    <br><span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                        <i class="fas fa-exchange-alt mr-1"></i>
+                                        Sub
+                                    </span>
+                                `;
+                            }
+                            
+                            const matches = matchStats ? matchStats.matches : 0;
+                            const winRate = matchStats ? matchStats.winRate : 0;
+                            const bestCourt = matchStats ? matchStats.bestCourt : null;
+                            const bestPartner = matchStats ? matchStats.bestPartner : null;
+                            
+                            html += `<tr><td>${teamPlayer.name}${substituteChip}</td><td>${matches}</td><td>${matches > 0 ? winRate + '%' : 'N/A'}</td><td>${bestCourt ? bestCourt.name : '<span class="text-muted small">Threshold not met</span>'}</td><td>${bestPartner ? bestPartner.name : '<span class="text-muted small">Threshold not met</span>'}</td></tr>`;
+                        });
+                    } else {
+                        html += `<tr><td colspan="5" class="text-center text-muted">No team players found</td></tr>`;
+                    }
+                    
+                    html += `</tbody></table></div></div>`;
+                    teamStatsDiv.innerHTML = html;
+                    
+                    // Now populate the player select dropdown
                     playerSelect.innerHTML = '<option value="">Choose a player...</option>';
-                    if (data.players && data.players.length > 0) {
-                        data.players.forEach(player => {
+                    if (teamPlayersData.players && teamPlayersData.players.length > 0) {
+                        teamPlayersData.players.forEach(player => {
                             const opt = document.createElement('option');
                             opt.value = player.name;
-                            opt.textContent = player.name;
+                            // Add substitute indicator if player is a substitute
+                            const displayText = player.isSubstitute ? `${player.name} (Sub)` : player.name;
+                            opt.textContent = displayText;
                             playerSelect.appendChild(opt);
                         });
                         playerSelect.disabled = false;
@@ -444,12 +483,30 @@
                     const losses = player.losses ?? 0;
                     const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
                     const pti = player.pti ?? player.rating ?? '<span class="text-muted small">Threshold not met</span>';
+                    // Check if this player is a substitute for the current team
+                    const selectedTeamId = teamSelect.value;
+                    let substituteInfo = '';
+                    if (selectedTeamId && currentTeamPlayers) {
+                        const currentPlayer = currentTeamPlayers.find(p => p.name === playerName);
+                        if (currentPlayer && currentPlayer.isSubstitute) {
+                            substituteInfo = `
+                                <div class="mt-2">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                        <i class="fas fa-exchange-alt mr-1"></i>
+                                        Substitute Player
+                                    </span>
+                                </div>
+                            `;
+                        }
+                    }
+                    
                     playerStatsDiv.innerHTML = `
                         <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
                         <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
                         <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
                         <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
                         <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
+                        ${substituteInfo}
                     `;
                     // Court breakdown
                     if (player.courts && Object.keys(player.courts).length > 0) {

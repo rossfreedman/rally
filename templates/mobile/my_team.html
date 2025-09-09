@@ -3,10 +3,10 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                 <i class="fas fa-users text-white text-lg"></i>
             </div>
@@ -124,7 +124,7 @@
             </div>
             
             <div class="p-6">
-                <div class="overflow-x-auto">
+                <div class="table-wrap overflow-x-auto">
                     <table class="min-w-full text-xs">
                         <thead>
                             <tr class="border-b border-gray-100">
@@ -338,7 +338,8 @@
                     <div class="space-y-4">
                         {% for match in team_matches %}
                         <div class="border border-gray-200 rounded-lg p-4">
-                            <div class="flex items-center justify-between mb-2">
+                            <!-- Team Matchup Header -->
+                            <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm font-medium text-gray-700">{{ match.date }}</span>
                                     <span class="px-2 py-1 rounded-full text-xs font-medium
@@ -347,12 +348,35 @@
                                         {{ match.result }}
                                     </span>
                                 </div>
-                                <span class="text-sm text-gray-600">vs {{ match.opponent }}</span>
+                                <div class="text-right">
+                                    <span class="text-sm text-gray-600">vs {{ match.opponent }}</span>
+                                    <div class="text-xs text-gray-500">
+                                        {{ match.wins }}-{{ match.losses }} ({{ match.total_matches }} matches)
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-600 mb-2">{{ match.scores }}</div>
-                            <div class="text-xs text-gray-500">
-                                <div>Home: {{ match.home_players }}</div>
-                                <div>Away: {{ match.away_players }}</div>
+                            
+
+                            
+                            <!-- Individual Matches -->
+                            <div class="space-y-2">
+                                <div class="text-xs font-medium text-gray-700 mb-2">Individual Matches:</div>
+                                {% for individual_match in match.individual_matches %}
+                                <div class="border-l-2 border-gray-200 pl-3 py-2">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="text-xs text-gray-600">{{ individual_match.scores }}</span>
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                                            {% if individual_match.result == 'W' %}bg-green-100 text-green-700
+                                            {% else %}bg-red-100 text-red-700{% endif %}">
+                                            {{ individual_match.result }}
+                                        </span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        <div>Home: {{ individual_match.home_players }}</div>
+                                        <div>Away: {{ individual_match.away_players }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}
@@ -618,8 +642,8 @@ function createMatchesModal() {
     // Create modal HTML
     const modalHTML = `
         <div id="matchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
-            <div class="flex items-center justify-center min-h-screen p-4">
-                <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+                <div class="bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col">
                     <!-- Modal Header -->
                     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0" style="background-color: #045454;">
                         <h2 class="text-xl font-semibold" style="color: #bff863;">Current Season Matches</h2>
@@ -867,4 +891,6 @@ function showMatchesEmpty() {
 }
 
 </script>
+    </div>
+</div>
 {% endblock %} 

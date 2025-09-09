@@ -12,7 +12,7 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
-    <link rel="apple-touch-icon" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
     
     <!-- Basic Meta Tags -->
     <meta name="description" content="One app to run your season. Built by players, for players.">
@@ -382,9 +382,10 @@
                         <label for="loginEmail">Email address</label>
                     </div>
                     
-                    <div class="form-floating">
+                    <div class="form-floating" style="position: relative;">
                         <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
                         <label for="loginPassword">Password</label>
+                        <button type="button" id="loginPasswordToggle" onclick="toggleLoginPassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; font-size: 12px; cursor: pointer; z-index: 10;">SHOW</button>
                     </div>
                     
                     <div class="error-message" id="loginErrorMessage"></div>
@@ -428,14 +429,16 @@
                             <label for="phoneNumber">Phone Number</label>
                         </div>
                         
-                        <div class="form-floating mb-3">
+                        <div class="form-floating mb-3" style="position: relative;">
                             <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
                             <label for="registerPassword">Password</label>
+                            <button type="button" id="registerPasswordToggle" onclick="toggleRegisterPassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; font-size: 12px; cursor: pointer; z-index: 10;">SHOW</button>
                         </div>
                         
-                        <div class="form-floating mb-3">
+                        <div class="form-floating mb-3" style="position: relative;">
                             <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm Password" required>
                             <label for="confirmPassword">Confirm Password</label>
+                            <button type="button" id="confirmPasswordToggle" onclick="toggleConfirmPassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #6c757d; font-size: 12px; cursor: pointer; z-index: 10;">SHOW</button>
                         </div>
                         
                         <div class="password-feedback" id="passwordFeedback" style="display: none;">
@@ -945,7 +948,11 @@
                     }
                 } else {
                     resetButtonState(loginButton);
-                    authErrorMessage.textContent = data.error || 'Invalid email or password';
+                    if (response.status === 401) {
+                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it.';
+                    } else {
+                        authErrorMessage.textContent = data.error || 'An error occurred. Please try again.';
+                    }
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
                     scrollToTop();
@@ -966,7 +973,20 @@
             setButtonLoading(registerButton, true);
             
             const email = document.getElementById('registerEmail').value;
-            const phoneNumber = document.getElementById('phoneNumber').value;
+            let phoneNumber = document.getElementById('phoneNumber').value.trim();
+            
+            // ✅ PHONE NORMALIZATION: Use centralized phone validation
+            if (phoneNumber) {
+                const phoneResult = normalizePhoneNumber(phoneNumber);
+                if (!phoneResult.success) {
+                    errorMessage.textContent = phoneResult.error;
+                    errorMessage.style.display = 'block';
+                    setButtonLoading(registerButton, false);
+                    return;
+                }
+                phoneNumber = phoneResult.normalized;
+            }
+            
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const firstName = document.getElementById('firstName').value;
@@ -1131,7 +1151,51 @@
             addAutoScrollOnSelect('adDeuce', 100);
             addAutoScrollOnSelect('dominantHand', 100);
         });
+
+        // Password visibility toggle functions
+        function toggleLoginPassword() {
+            const passwordField = document.getElementById('loginPassword');
+            const toggleButton = document.getElementById('loginPasswordToggle');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleButton.textContent = 'HIDE';
+            } else {
+                passwordField.type = 'password';
+                toggleButton.textContent = 'SHOW';
+            }
+        }
+
+        function toggleRegisterPassword() {
+            const passwordField = document.getElementById('registerPassword');
+            const toggleButton = document.getElementById('registerPasswordToggle');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleButton.textContent = 'HIDE';
+            } else {
+                passwordField.type = 'password';
+                toggleButton.textContent = 'SHOW';
+            }
+        }
+
+        function toggleConfirmPassword() {
+            const passwordField = document.getElementById('confirmPassword');
+            const toggleButton = document.getElementById('confirmPasswordToggle');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleButton.textContent = 'HIDE';
+            } else {
+                passwordField.type = 'password';
+                toggleButton.textContent = 'SHOW';
+            }
+        }
     </script>
+    
+    <!-- Phone Validation Script -->
+    <script src="{{ url_for('static', filename='js/phone-validation.js') }}"></script>
+    
     <!-- Footer for branding -->
     <footer class="rally-footer">
         © 2025 Rally LLC. All rights reserved.

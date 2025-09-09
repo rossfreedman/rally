@@ -7,11 +7,21 @@ This is the main server file for the Rally platform tennis management applicatio
 Most routes have been moved to blueprints for better organization.
 """
 
+# Load environment variables from .env file FIRST, before any other imports
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+# Debug environment variable loading
+print("=== Environment Variables Debug ===")
+print(f"OPENWEATHER_API_KEY: {'SET' if os.getenv('OPENWEATHER_API_KEY') else 'NOT SET'}")
+print(f"TWILIO_ACCOUNT_SID: {'SET' if os.getenv('TWILIO_ACCOUNT_SID') else 'NOT SET'}")
+print(f"SENDGRID_API_KEY: {'SET' if os.getenv('SENDGRID_API_KEY') else 'NOT SET'}")
+
 print("🚀 Starting Rally application...")
 
 import json
 import logging
-import os
 import secrets
 import sys
 from datetime import datetime, timedelta
@@ -38,6 +48,7 @@ from app.routes.schema_fix_routes import schema_fix_bp
 # Import blueprints
 from app.routes.player_routes import player_bp
 from app.routes.polls_routes import polls_bp
+from app.routes.download_routes import download_bp
 
 # Import database utilities
 from database_config import test_db_connection
@@ -196,15 +207,33 @@ def minimal_healthcheck():
 # Determine environment
 is_development = os.environ.get("FLASK_ENV") == "development"
 
+# Set secret key and session config BEFORE registering blueprints
+app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
+
+# Session config
+app.config.update(
+    SESSION_COOKIE_SECURE=not is_development,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(days=1),
+    SESSION_COOKIE_NAME="rally_session",
+    SESSION_COOKIE_PATH="/",
+    SESSION_REFRESH_EACH_REQUEST=True,
+    # Mobile compatibility settings
+    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
+    SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
+)
+
 # Register blueprints
 app.register_blueprint(player_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(mobile_bp)
-app.register_blueprint(api_bp)
+app.register_blueprint(api_bp, url_prefix='/api')
 app.register_blueprint(polls_bp)
 app.register_blueprint(background_bp)
 app.register_blueprint(schema_fix_bp)
+app.register_blueprint(download_bp)
 
 # Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
 init_act_routes(app)
@@ -231,19 +260,7 @@ if not has_no_conflicts:
 else:
     print("✅ Route validation passed - no conflicts detected")
 
-# Set secret key
-app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
 
-# Session config
-app.config.update(
-    SESSION_COOKIE_SECURE=not is_development,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=timedelta(days=1),
-    SESSION_COOKIE_NAME="rally_session",
-    SESSION_COOKIE_PATH="/",
-    SESSION_REFRESH_EACH_REQUEST=True,
-)
 
 # Configure CORS
 CORS(
@@ -708,6 +725,38 @@ def serve_create_team_page():
     )
     
     return render_template("mobile/create_team.html", session_data=session_data)
+
+
+@app.route("/pro")
+@login_required
+def serve_pro_page():
+    """Serve the Pro Dashboard page with Rally branding and layout"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="pro_dashboard"
+        )
+
+        return render_template(
+            "mobile/pro.html", 
+            session_data={"user": user, "authenticated": True}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_pro_page: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/pro.html",
+            session_data=session_data,
+            error="An error occurred while loading the pro dashboard",
+        )
 
 
 # Marketing website HTML pages routes - CRITICAL FIX for feature pages

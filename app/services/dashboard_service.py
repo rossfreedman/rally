@@ -127,12 +127,26 @@ def get_recent_activities(
 
         # Date range filters
         if filters.get("date_from"):
-            where_clauses.append("DATE(ual.timestamp) >= %(date_from)s")
-            params["date_from"] = filters["date_from"]
+            # Handle both date strings (YYYY-MM-DD) and datetime strings (ISO format)
+            date_from = filters["date_from"]
+            if "T" in date_from:
+                # Full datetime string - use timestamp comparison
+                where_clauses.append("ual.timestamp >= %(date_from)s")
+            else:
+                # Date string only - use DATE comparison
+                where_clauses.append("DATE(ual.timestamp) >= %(date_from)s")
+            params["date_from"] = date_from
 
         if filters.get("date_to"):
-            where_clauses.append("DATE(ual.timestamp) <= %(date_to)s")
-            params["date_to"] = filters["date_to"]
+            # Handle both date strings (YYYY-MM-DD) and datetime strings (ISO format)
+            date_to = filters["date_to"]
+            if "T" in date_to:
+                # Full datetime string - use timestamp comparison
+                where_clauses.append("ual.timestamp <= %(date_to)s")
+            else:
+                # Date string only - use DATE comparison
+                where_clauses.append("DATE(ual.timestamp) <= %(date_to)s")
+            params["date_to"] = date_to
 
         # Action type filter
         if filters.get("action_type"):
@@ -189,8 +203,13 @@ def get_recent_activities(
         # Format activities for frontend
         formatted_activities = []
         for activity in activities:
-            # Create enhanced description for registration activities
-            description = activity["details"] or f"{activity['action_type'].replace('_', ' ').title()} activity"
+            # Create enhanced description using the proper function
+            description = create_activity_description(
+                activity["action_type"], 
+                activity["page"], 
+                activity["details"], 
+                activity["action"]
+            )
             
             # Handle registration activities with enhanced descriptions
             if activity["action_type"] == "registration_successful":
@@ -264,6 +283,8 @@ def get_recent_activities(
                 "action_type": activity["action_type"],
                 "action_description": description,
                 "timestamp": activity["timestamp"].isoformat() if activity["timestamp"] else None,
+                "page": activity["page"],  # Add raw page field
+                "user_email": activity["user_email"],  # Add raw user_email field
                 "user": {
                     "first_name": activity["user_first_name"],
                     "last_name": activity["user_last_name"],
@@ -834,7 +855,7 @@ def log_page_visit(
             page_display_name = format_page_name(page)
             log_activity(
                 action_type="page_visit",
-                action_description=f"Visited {page_display_name} page",
+                action_description=f"{page_display_name} page",
                 user_id=user_id,
                 player_id=player_id,
                 team_id=team_id,
@@ -920,29 +941,11 @@ def create_activity_description(
 
     # Handle page visits
     if activity_type == "page_visit":
-        # If details is a dict, try to extract a summary or join key fields
-        import json
-        try:
-            details_obj = json.loads(details) if details and details.strip().startswith('{') else details
-        except Exception:
-            details_obj = details
-        if details_obj:
-            if isinstance(details_obj, dict):
-                # Try to use a 'summary' or join key fields
-                summary = details_obj.get('summary')
-                if summary:
-                    return summary
-                # Join key fields for display
-                key_fields = [str(v) for k, v in details_obj.items() if v and k not in ('is_impersonating', 'page', 'page_category')]
-                if key_fields:
-                    return ", ".join(key_fields)
-            elif isinstance(details_obj, str) and details_obj.strip() and not details_obj.lower().startswith('visited'):
-                return details_obj
-        # Fallback to page name
+        # Use the page name to create a descriptive message
         if page:
             page_name = format_page_name(page)
-            return f"Visited {page_name}"
-        return "Visited a page"
+            return f"{page_name}"
+        return "Unknown Page"
 
     # Handle authentication
     elif activity_type == "auth":
@@ -1082,6 +1085,7 @@ def format_page_name(page: str) -> str:
     page_names = {
         # Mobile App Pages
         "mobile_home": "Home Page",
+        "mobile_home_submenu": "Home Page",
         "mobile_matches": "Matches",
         "mobile_rankings": "Rankings",
         "mobile_profile": "Profile",
