@@ -3051,17 +3051,21 @@ def get_pros_teams():
         if not club_name or not league_id:
             return jsonify({"error": "Club or league information not available"}), 400
 
-        # Get all teams in the current league for the user's club
+        # Get all teams in the current league for the user's club, prioritizing user's associated team
         teams_query = """
-            SELECT DISTINCT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, s.display_name as series_display_name, c.name as club_name
+            SELECT DISTINCT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, s.display_name as series_display_name, c.name as club_name,
+                   CASE WHEN p.tenniscores_player_id IS NOT NULL THEN 1 ELSE 0 END as is_user_team
             FROM teams t
             LEFT JOIN series s ON t.series_id = s.id
             LEFT JOIN clubs c ON t.club_id = c.id
-            WHERE t.league_id = %s AND c.name = %s
-            ORDER BY t.display_name
+            LEFT JOIN players p ON t.id = p.team_id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            WHERE t.league_id = %s AND c.name = %s AND (u.email = %s OR u.email IS NULL)
+            ORDER BY is_user_team DESC, t.display_name
         """
         
-        teams = execute_query(teams_query, [league_id, club_name])
+        teams = execute_query(teams_query, [league_id, club_name, user.get("email")])
         
         # Format the teams for the frontend
         formatted_teams = []
@@ -3083,6 +3087,63 @@ def get_pros_teams():
     except Exception as e:
         print(f"Error getting pros teams: {str(e)}")
         return jsonify({"error": "Failed to get teams"}), 500
+
+
+@mobile_bp.route("/api/pros-teams-with-practices", methods=["GET"])
+@login_required
+def get_pros_teams_with_practices():
+    """API endpoint to efficiently find teams that have practice times in a single query"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        user = session["user"]
+        club_name = user.get("club")
+        league_id = user.get("league_id")
+        
+        if not club_name or not league_id:
+            return jsonify({"error": "Club or league information not available"}), 400
+
+        # Single query to find teams with practice times
+        teams_with_practices_query = """
+            SELECT DISTINCT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, s.display_name as series_display_name, c.name as club_name,
+                   COUNT(sch.id) as practice_count
+            FROM teams t
+            LEFT JOIN series s ON t.series_id = s.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            LEFT JOIN schedule sch ON t.id = sch.home_team_id AND sch.home_team LIKE %s
+            WHERE t.league_id = %s AND c.name = %s
+            GROUP BY t.id, t.team_name, t.display_name, t.series_id, s.name, s.display_name, c.name
+            HAVING COUNT(sch.id) > 0
+            ORDER BY practice_count DESC, t.display_name
+        """
+        
+        # Create practice pattern based on club name
+        practice_pattern = f"%{club_name} Practice%"
+        
+        teams = execute_query(teams_with_practices_query, [practice_pattern, league_id, club_name])
+        
+        # Format the teams for the frontend
+        formatted_teams = []
+        for team in teams:
+            # Use series display_name if available, otherwise fall back to series name
+            series_display = team["series_display_name"] or team["series_name"]
+            formatted_teams.append({
+                "id": team["id"],
+                "name": team["team_name"],
+                "series_name": series_display,
+                "display_name": team["display_name"] or f"{team['club_name']} - {series_display}" if series_display else team["team_name"],
+                "practice_count": team["practice_count"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "teams": formatted_teams
+        })
+        
+    except Exception as e:
+        print(f"Error getting teams with practices: {str(e)}")
+        return jsonify({"error": "Failed to get teams with practices"}), 500
 
 
 @mobile_bp.route("/api/pros-team-schedule", methods=["GET"])

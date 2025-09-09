@@ -445,8 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         teamFilter.appendChild(option);
                     });
                     
-                    // Select the first team by default, but prioritize teams with practice times
-                    // We'll check for practice times after loading the schedule data
+                    // Select the first team (which is now prioritized by user association)
                     currentTeamId = availableTeams[0].id;
                     teamFilter.value = currentTeamId;
                 } else {
@@ -465,43 +464,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Find a team that has practice times
+    // Find a team that has practice times using efficient single query
     async function findTeamWithPractices() {
-        for (const team of availableTeams) {
-            if (team.id === currentTeamId) continue; // Skip current team
+        try {
+            const response = await fetch('/api/pros-teams-with-practices', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
             
-            try {
-                const response = await fetch(`/api/pros-team-schedule?team_id=${team.id}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
+            if (response.ok) {
+                const data = await response.json();
                 
-                if (response.ok) {
-                    const data = await response.json();
+                if (data.teams && data.teams.length > 0) {
+                    // Find the first team with practices from our available teams
+                    const teamWithPractices = availableTeams.find(team => 
+                        data.teams.some(practiceTeam => practiceTeam.id === team.id)
+                    );
                     
-                    if (data.error) {
-                        continue; // Skip this team if there's an error
-                    }
-                    
-                    // Check if this team has practices
-                    const allMatchDates = data.match_dates || [];
-                    const allEventDetails = data.event_details || {};
-                    
-                    let hasPractices = false;
-                    for (const date of allMatchDates) {
-                        const eventDetail = allEventDetails[date];
-                        if (eventDetail && eventDetail.type === 'practice') {
-                            hasPractices = true;
-                            break;
-                        }
-                    }
-                    
-                    if (hasPractices) {
-                        console.log(`Found team with practices: ${team.display_name} (ID: ${team.id})`);
+                    if (teamWithPractices) {
+                        console.log(`Found team with practices: ${teamWithPractices.display_name} (ID: ${teamWithPractices.id})`);
                         // Switch to this team
-                        currentTeamId = team.id;
+                        currentTeamId = teamWithPractices.id;
                         teamFilter.value = currentTeamId;
                         
                         // Reload the schedule data for this team
@@ -509,13 +494,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                 }
-            } catch (error) {
-                console.warn(`Error checking team ${team.id}:`, error);
-                continue;
             }
+            
+            console.log('No teams with practices found');
+        } catch (error) {
+            console.error('Error finding teams with practices:', error);
         }
-        
-        console.log('No teams with practices found');
     }
 
     // Load schedule data for the selected team
