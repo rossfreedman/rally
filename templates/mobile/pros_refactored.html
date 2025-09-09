@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pros Dashboard | Rally Mobile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f6faf7; }
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.2rem;
+            padding-left: 1rem;
+        }
+        .icon-box {
+            background: #fff;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 3rem;
+            width: 3rem;
+            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+        }
+        .icon-box i {
+            color: #007417;
+            font-size: 2rem;
+        }
+        .header-title {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .header-subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 0.2rem;
+        }
+        .card-section {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1.2rem 1rem 1.2rem 1rem;
+            margin-bottom: 1.2rem;
+            border: none;
+        }
+        .section-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 0.7rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        .form-select, .form-control {
+            font-size: 1.08rem;
+            border-radius: 0.7rem;
+            margin-bottom: 1rem;
+        }
+        .tab-content {
+            margin-top: 1rem;
+        }
+        .practice-card {
+            background: #f8f9fa;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #007417;
+        }
+        .player-card {
+            background: #f8f9fa;
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid #6c757d;
+        }
+        .lesson-request-card {
+            background: #fff3cd;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #ffc107;
+        }
+        .btn-confirm {
+            background: #28a745;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .btn-decline {
+            background: #dc3545;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .btn-message {
+            background: #007bff;
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        .no-data-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 2rem;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            .header-title { font-size: 1.3rem; }
+            .card-section { padding: 0.7rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header-row">
+        <div class="icon-box">
+            <i class="fas fa-chalkboard-teacher"></i>
+        </div>
+        <div>
+            <div class="header-title">Pros Dashboard</div>
+            <div class="header-subtitle">Manage team practices and lesson requests</div>
+        </div>
+    </div>
+
+    <!-- Main Content Section -->
+    <div class="container" style="max-width: 480px; margin: 0 auto;">
+        <!-- Selection Filters Card -->
+        <div class="card-section">
+            <div class="section-label"><i class="fas fa-filter text-secondary me-2"></i>Select Club & Team</div>
+            
+            <label for="clubSelect" class="form-label">Club</label>
+            <select class="form-select" id="clubSelect">
+                <option value="">Choose a club...</option>
+            </select>
+            
+            <label for="teamSelect" class="form-label">Team</label>
+            <select class="form-select" id="teamSelect" disabled>
+                <option value="">Choose a team...</option>
+            </select>
+        </div>
+
+        <!-- Tabs -->
+        <div class="card-section">
+            <ul class="nav nav-tabs" id="prosTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="practices-tab" data-bs-toggle="tab" data-bs-target="#practices" type="button" role="tab">
+                        <i class="fas fa-calendar-alt me-2"></i>Team Practices
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="lesson-requests-tab" data-bs-toggle="tab" data-bs-target="#lesson-requests" type="button" role="tab">
+                        <i class="fas fa-graduation-cap me-2"></i>Lesson Requests
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="prosTabsContent">
+                <!-- Team Practices Tab -->
+                <div class="tab-pane fade show active" id="practices" role="tabpanel">
+                    <div class="loading-spinner" id="practicesLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="practicesContent">
+                        <div class="no-data-message">
+                            Select a team to view practices
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lesson Requests Tab -->
+                <div class="tab-pane fade" id="lesson-requests" role="tabpanel">
+                    <div class="loading-spinner" id="lessonRequestsLoading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div id="lessonRequestsContent">
+                        <div class="no-data-message">
+                            Loading lesson requests...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let currentClubId = null;
+        let currentTeamId = null;
+        let clubsData = [];
+        let teamsData = [];
+        let teamDetailsData = null;
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Pros Dashboard initialized');
+            loadClubs();
+            loadLessonRequests();
+        });
+
+        // Load clubs for the picklist
+        async function loadClubs() {
+            try {
+                console.log('Loading clubs...');
+                const response = await fetch('/api/pros-clubs');
+                const data = await response.json();
+                
+                if (data.success) {
+                    clubsData = data.clubs;
+                    populateClubSelect();
+                    console.log('Clubs loaded:', clubsData);
+                } else {
+                    console.error('Failed to load clubs:', data.error);
+                    showError('Failed to load clubs');
+                }
+            } catch (error) {
+                console.error('Error loading clubs:', error);
+                showError('Error loading clubs');
+            }
+        }
+
+        // Populate club select dropdown
+        function populateClubSelect() {
+            const clubSelect = document.getElementById('clubSelect');
+            clubSelect.innerHTML = '<option value="">Choose a club...</option>';
+            
+            clubsData.forEach(club => {
+                const option = document.createElement('option');
+                option.value = club.id;
+                option.textContent = club.name;
+                clubSelect.appendChild(option);
+            });
+        }
+
+        // Handle club selection change
+        document.getElementById('clubSelect').addEventListener('change', function() {
+            const clubId = this.value;
+            if (clubId) {
+                currentClubId = clubId;
+                loadTeamsByClub(clubId);
+                // Reset team selection
+                document.getElementById('teamSelect').disabled = false;
+                document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+                // Clear team details
+                clearTeamDetails();
+            } else {
+                currentClubId = null;
+                document.getElementById('teamSelect').disabled = true;
+                document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+                clearTeamDetails();
+            }
+        });
+
+        // Load teams for selected club
+        async function loadTeamsByClub(clubId) {
+            try {
+                console.log('Loading teams for club:', clubId);
+                const response = await fetch(`/api/pros-teams-by-club?club_id=${clubId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    teamsData = data.teams;
+                    populateTeamSelect();
+                    console.log('Teams loaded:', teamsData);
+                } else {
+                    console.error('Failed to load teams:', data.error);
+                    showError('Failed to load teams');
+                }
+            } catch (error) {
+                console.error('Error loading teams:', error);
+                showError('Error loading teams');
+            }
+        }
+
+        // Populate team select dropdown
+        function populateTeamSelect() {
+            const teamSelect = document.getElementById('teamSelect');
+            teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+            
+            teamsData.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.id;
+                option.textContent = `${team.display_name} (${team.series_name})`;
+                teamSelect.appendChild(option);
+            });
+        }
+
+        // Handle team selection change
+        document.getElementById('teamSelect').addEventListener('change', function() {
+            const teamId = this.value;
+            if (teamId) {
+                currentTeamId = teamId;
+                loadTeamDetails(teamId);
+            } else {
+                currentTeamId = null;
+                clearTeamDetails();
+            }
+        });
+
+        // Load team details (practices and players)
+        async function loadTeamDetails(teamId) {
+            try {
+                console.log('Loading team details for team:', teamId);
+                showLoading('practicesLoading');
+                
+                const response = await fetch(`/api/pros-team-details?team_id=${teamId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    teamDetailsData = data;
+                    displayTeamDetails(data);
+                    console.log('Team details loaded:', data);
+                } else {
+                    console.error('Failed to load team details:', data.error);
+                    showError('Failed to load team details');
+                }
+            } catch (error) {
+                console.error('Error loading team details:', error);
+                showError('Error loading team details');
+            } finally {
+                hideLoading('practicesLoading');
+            }
+        }
+
+        // Display team details (practices and players)
+        function displayTeamDetails(data) {
+            const practicesContent = document.getElementById('practicesContent');
+            
+            if (data.practices.length === 0) {
+                practicesContent.innerHTML = `
+                    <div class="no-data-message">
+                        No practices scheduled for ${data.team.display_name}
+                    </div>
+                `;
+                return;
+            }
+
+            let practicesHtml = `
+                <div class="section-label mb-3">
+                    <i class="fas fa-calendar-alt text-secondary me-2"></i>
+                    Practices for ${data.team.display_name}
+                </div>
+            `;
+
+            data.practices.forEach(practice => {
+                const practiceDate = new Date(practice.date);
+                const formattedDate = practiceDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                practicesHtml += `
+                    <div class="practice-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">${formattedDate}</h6>
+                                <p class="mb-1 text-muted">${practice.time || 'Time TBD'}</p>
+                                ${practice.court_number ? `<small class="text-muted">Court ${practice.court_number}</small>` : ''}
+                                ${practice.notes ? `<p class="mb-0 mt-2"><small>${practice.notes}</small></p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Add players section
+            if (data.players.length > 0) {
+                practicesHtml += `
+                    <div class="section-label mb-3 mt-4">
+                        <i class="fas fa-users text-secondary me-2"></i>
+                        Team Players
+                    </div>
+                `;
+
+                data.players.forEach(player => {
+                    practicesHtml += `
+                        <div class="player-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">${player.full_name}</h6>
+                                    <small class="text-muted">${player.tenniscores_player_id}</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            practicesContent.innerHTML = practicesHtml;
+        }
+
+        // Clear team details
+        function clearTeamDetails() {
+            const practicesContent = document.getElementById('practicesContent');
+            practicesContent.innerHTML = `
+                <div class="no-data-message">
+                    Select a team to view practices
+                </div>
+            `;
+            teamDetailsData = null;
+        }
+
+        // Load lesson requests
+        async function loadLessonRequests() {
+            try {
+                console.log('Loading lesson requests...');
+                showLoading('lessonRequestsLoading');
+                
+                const response = await fetch('/api/lesson-requests');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayLessonRequests(data.lesson_requests);
+                    console.log('Lesson requests loaded:', data.lesson_requests);
+                } else {
+                    console.error('Failed to load lesson requests:', data.error);
+                    showError('Failed to load lesson requests');
+                }
+            } catch (error) {
+                console.error('Error loading lesson requests:', error);
+                showError('Error loading lesson requests');
+            } finally {
+                hideLoading('lessonRequestsLoading');
+            }
+        }
+
+        // Display lesson requests
+        function displayLessonRequests(requests) {
+            const lessonRequestsContent = document.getElementById('lessonRequestsContent');
+            
+            if (requests.length === 0) {
+                lessonRequestsContent.innerHTML = `
+                    <div class="no-data-message">
+                        No lesson requests at this time
+                    </div>
+                `;
+                return;
+            }
+
+            let requestsHtml = `
+                <div class="section-label mb-3">
+                    <i class="fas fa-graduation-cap text-secondary me-2"></i>
+                    Lesson Requests
+                </div>
+            `;
+
+            requests.forEach(request => {
+                const requestDate = new Date(request.lesson_date);
+                const formattedDate = requestDate.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                const statusBadge = getStatusBadge(request.status);
+                
+                requestsHtml += `
+                    <div class="lesson-request-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">${request.player_name}</h6>
+                                <p class="mb-1 text-muted">${formattedDate} at ${request.lesson_time}</p>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                        ${request.focus_areas ? `<p class="mb-2"><strong>Focus:</strong> ${request.focus_areas}</p>` : ''}
+                        ${request.notes ? `<p class="mb-2"><strong>Notes:</strong> ${request.notes}</p>` : ''}
+                        <div class="d-flex gap-2">
+                            <button class="btn-confirm" onclick="confirmLesson(${request.id})">
+                                <i class="fas fa-check me-1"></i>Confirm
+                            </button>
+                            <button class="btn-decline" onclick="declineLesson(${request.id})">
+                                <i class="fas fa-times me-1"></i>Decline
+                            </button>
+                            <button class="btn-message" onclick="messagePlayer('${request.user_email}')">
+                                <i class="fas fa-envelope me-1"></i>Message
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            lessonRequestsContent.innerHTML = requestsHtml;
+        }
+
+        // Get status badge HTML
+        function getStatusBadge(status) {
+            const statusClasses = {
+                'requested': 'badge bg-warning',
+                'confirmed': 'badge bg-success',
+                'declined': 'badge bg-danger',
+                'completed': 'badge bg-info'
+            };
+            
+            const statusText = {
+                'requested': 'Pending',
+                'confirmed': 'Confirmed',
+                'declined': 'Declined',
+                'completed': 'Completed'
+            };
+            
+            const className = statusClasses[status] || 'badge bg-secondary';
+            const text = statusText[status] || status;
+            
+            return `<span class="${className}">${text}</span>`;
+        }
+
+        // Confirm lesson request
+        async function confirmLesson(requestId) {
+            try {
+                const response = await fetch(`/api/lesson-requests/${requestId}/confirm`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Lesson confirmed:', requestId);
+                    loadLessonRequests(); // Refresh the list
+                } else {
+                    console.error('Failed to confirm lesson:', data.error);
+                    showError('Failed to confirm lesson');
+                }
+            } catch (error) {
+                console.error('Error confirming lesson:', error);
+                showError('Error confirming lesson');
+            }
+        }
+
+        // Decline lesson request
+        async function declineLesson(requestId) {
+            try {
+                const response = await fetch(`/api/lesson-requests/${requestId}/decline`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Lesson declined:', requestId);
+                    loadLessonRequests(); // Refresh the list
+                } else {
+                    console.error('Failed to decline lesson:', data.error);
+                    showError('Failed to decline lesson');
+                }
+            } catch (error) {
+                console.error('Error declining lesson:', error);
+                showError('Error declining lesson');
+            }
+        }
+
+        // Message player
+        function messagePlayer(email) {
+            // For now, just show an alert. In a real implementation, this would open a messaging interface
+            alert(`Messaging functionality would open for: ${email}`);
+        }
+
+        // Show loading spinner
+        function showLoading(elementId) {
+            document.getElementById(elementId).style.display = 'block';
+        }
+
+        // Hide loading spinner
+        function hideLoading(elementId) {
+            document.getElementById(elementId).style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            console.error(message);
+            // In a real implementation, you might want to show a toast notification
+            alert(message);
+        }
+    </script>
+</body>
+</html>

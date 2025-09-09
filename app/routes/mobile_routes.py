@@ -3342,6 +3342,252 @@ def debug_pros_data():
         return jsonify({"error": f"Debug failed: {str(e)}"}), 500
 
 
+@mobile_bp.route("/api/pros-clubs", methods=["GET"])
+@login_required
+def get_pros_clubs():
+    """API endpoint to get all clubs in the user's league for pros page club picklist"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        user = session["user"]
+        league_id = user.get("league_id")
+        
+        if not league_id:
+            return jsonify({"error": "League information not available"}), 400
+
+        # Convert string league_id to integer if needed
+        league_id_int = None
+        if isinstance(league_id, str) and league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(league_id, int):
+            league_id_int = league_id
+
+        if not league_id_int:
+            return jsonify({"error": "Invalid league ID"}), 400
+
+        # Get all clubs in the user's league
+        clubs_query = """
+            SELECT DISTINCT c.id, c.name as club_name
+            FROM clubs c
+            JOIN teams t ON c.id = t.club_id
+            WHERE t.league_id = %s
+            ORDER BY c.name
+        """
+        
+        clubs = execute_query(clubs_query, [league_id_int])
+        
+        # Format the clubs for the frontend
+        formatted_clubs = []
+        for club in clubs:
+            formatted_clubs.append({
+                "id": club["id"],
+                "name": club["club_name"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "clubs": formatted_clubs
+        })
+        
+    except Exception as e:
+        print(f"Error getting pros clubs: {str(e)}")
+        return jsonify({"error": "Failed to get clubs"}), 500
+
+
+@mobile_bp.route("/api/pros-teams-by-club", methods=["GET"])
+@login_required
+def get_pros_teams_by_club():
+    """API endpoint to get all teams for a specific club in the pros page"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        club_id = request.args.get('club_id')
+        if not club_id:
+            return jsonify({"error": "Club ID is required"}), 400
+
+        user = session["user"]
+        league_id = user.get("league_id")
+        
+        if not league_id:
+            return jsonify({"error": "League information not available"}), 400
+
+        # Convert string league_id to integer if needed
+        league_id_int = None
+        if isinstance(league_id, str) and league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(league_id, int):
+            league_id_int = league_id
+
+        if not league_id_int:
+            return jsonify({"error": "Invalid league ID"}), 400
+
+        # Get all teams for the specified club in the user's league
+        teams_query = """
+            SELECT DISTINCT t.id, t.team_name, t.display_name, t.series_id, 
+                   s.name as series_name, s.display_name as series_display_name,
+                   c.name as club_name
+            FROM teams t
+            LEFT JOIN series s ON t.series_id = s.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            WHERE t.league_id = %s AND t.club_id = %s
+            ORDER BY t.display_name
+        """
+        
+        teams = execute_query(teams_query, [league_id_int, club_id])
+        
+        # Format the teams for the frontend
+        formatted_teams = []
+        for team in teams:
+            series_display = team["series_display_name"] or team["series_name"]
+            formatted_teams.append({
+                "id": team["id"],
+                "team_name": team["team_name"],
+                "display_name": team["display_name"],
+                "series_name": series_display,
+                "club_name": team["club_name"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "teams": formatted_teams
+        })
+        
+    except Exception as e:
+        print(f"Error getting pros teams by club: {str(e)}")
+        return jsonify({"error": "Failed to get teams"}), 500
+
+
+@mobile_bp.route("/api/pros-team-details", methods=["GET"])
+@login_required
+def get_pros_team_details():
+    """API endpoint to get team practices and players for pros page"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        team_id = request.args.get('team_id')
+        if not team_id:
+            return jsonify({"error": "Team ID is required"}), 400
+
+        user = session["user"]
+        league_id = user.get("league_id")
+        
+        if not league_id:
+            return jsonify({"error": "League information not available"}), 400
+
+        # Convert string league_id to integer if needed
+        league_id_int = None
+        if isinstance(league_id, str) and league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(league_id, int):
+            league_id_int = league_id
+
+        if not league_id_int:
+            return jsonify({"error": "Invalid league ID"}), 400
+
+        # Get team information
+        team_query = """
+            SELECT t.id, t.team_name, t.display_name, t.series_id, 
+                   s.name as series_name, s.display_name as series_display_name,
+                   c.name as club_name
+            FROM teams t
+            LEFT JOIN series s ON t.series_id = s.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            WHERE t.id = %s AND t.league_id = %s
+        """
+        
+        team_info = execute_query_one(team_query, [team_id, league_id_int])
+        
+        if not team_info:
+            return jsonify({"error": "Team not found"}), 404
+
+        # Get team players
+        players_query = """
+            SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
+                   CONCAT(p.first_name, ' ', p.last_name) as full_name
+            FROM players p
+            WHERE p.team_id = %s AND p.is_active = true
+            ORDER BY p.last_name, p.first_name
+        """
+        
+        players = execute_query(players_query, [team_id])
+        
+        # Get team practices (from schedule table)
+        practices_query = """
+            SELECT DISTINCT 
+                sch.practice_date as date,
+                sch.start_time as time,
+                sch.court_number,
+                sch.notes
+            FROM schedule sch
+            WHERE sch.team_id = %s 
+            AND sch.practice_date >= CURRENT_DATE
+            ORDER BY sch.practice_date, sch.start_time
+        """
+        
+        practices = execute_query(practices_query, [team_id])
+        
+        # Format the response
+        formatted_players = []
+        for player in players:
+            formatted_players.append({
+                "id": player["id"],
+                "first_name": player["first_name"],
+                "last_name": player["last_name"],
+                "full_name": player["full_name"],
+                "tenniscores_player_id": player["tenniscores_player_id"]
+            })
+        
+        formatted_practices = []
+        for practice in practices:
+            formatted_practices.append({
+                "date": practice["date"].strftime("%Y-%m-%d") if practice["date"] else "",
+                "time": practice["time"].strftime("%H:%M") if practice["time"] else "",
+                "court_number": practice["court_number"],
+                "notes": practice["notes"] or ""
+            })
+        
+        return jsonify({
+            "success": True,
+            "team": {
+                "id": team_info["id"],
+                "team_name": team_info["team_name"],
+                "display_name": team_info["display_name"],
+                "series_name": team_info["series_display_name"] or team_info["series_name"],
+                "club_name": team_info["club_name"]
+            },
+            "players": formatted_players,
+            "practices": formatted_practices
+        })
+        
+    except Exception as e:
+        print(f"Error getting pros team details: {str(e)}")
+        return jsonify({"error": "Failed to get team details"}), 500
+
+
 @mobile_bp.route("/mobile/email-team")
 @login_required
 def serve_mobile_email_team():
@@ -3569,31 +3815,19 @@ def serve_mobile_team_schedule():
 @mobile_bp.route("/mobile/pros")
 @login_required
 def serve_mobile_pros():
-    """Serve the pros page for viewing team practices and managing lesson requests"""
+    """Serve the refactored pros page for viewing team practices and managing lesson requests"""
     try:
         user = session.get("user")
         if not user:
             return jsonify({"error": "Please log in first"}), 401
-
-        club_name = user.get("club")
-        series = user.get("series")
-
-        if not club_name or not series:
-            return render_template(
-                "mobile/pros.html",
-                session_data={"user": user},
-                error="Please set your club and series in your profile settings",
-            )
-
-        # Create a clean team name string for the title
-        team_name = f"{club_name} - {series}"
 
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_pros"
         )
 
         return render_template(
-            "mobile/pros.html", team=team_name, session_data={"user": user}
+            "mobile/pros_refactored.html", 
+            session_data={"user": user}
         )
 
     except Exception as e:
@@ -3605,7 +3839,7 @@ def serve_mobile_pros():
         session_data = {"user": session.get("user"), "authenticated": True}
 
         return render_template(
-            "mobile/pros.html",
+            "mobile/pros_refactored.html",
             session_data=session_data,
             error="An error occurred while loading the pros page",
         )
