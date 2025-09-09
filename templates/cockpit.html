@@ -1290,6 +1290,20 @@
             return 'Other';
         }
 
+        // Auto-refresh every minute
+        function startAutoRefresh() {
+            // Refresh the page every 60 seconds (60000 milliseconds)
+            setInterval(function() {
+                console.log('Auto-refreshing cockpit page...');
+                window.location.reload();
+            }, 60000);
+        }
+
+        // Start auto-refresh when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startAutoRefresh();
+        });
+
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {
             if (dashboardState.refreshInterval) {
