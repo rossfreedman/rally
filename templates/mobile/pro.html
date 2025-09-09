@@ -109,7 +109,7 @@
 
     <!-- Welcome Message -->
     <div class="welcome-message">
-        Welcome back! Choose an option below to manage your professional services.
+        Welcome back {{ session_data.user.first_name or session_data.user.name.split()[0] if session_data.user.name else 'there' }}!
     </div>
 
     <!-- Action Buttons -->
