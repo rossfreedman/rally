@@ -199,6 +199,11 @@ def get_matches_for_user_club(user):
             matches = execute_query(
                 matches_query, [practice_search, practice_search, team_search, team_search]
             )
+            
+            # Debug: Log the types of matches found
+            practice_count = sum(1 for match in matches if match.get('type') == 'practice')
+            match_count = sum(1 for match in matches if match.get('type') == 'match')
+            print(f"Debug: Found {practice_count} practices and {match_count} matches")
 
         filtered_matches = []
         for match in matches:
