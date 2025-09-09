@@ -3535,21 +3535,28 @@ def get_pros_team_details():
         
         players = execute_query(players_query, [team_id])
         
-        # Get team practices (from practice_times table)
+        # Get team practices (from schedule table, same logic as availability page)
         practices_query = """
             SELECT DISTINCT 
-                pt.practice_date as date,
-                pt.start_time as time,
-                pt.end_time,
-                pt.court_number,
-                pt.notes
-            FROM practice_times pt
-            WHERE pt.team_id = %s 
-            AND pt.practice_date >= CURRENT_DATE
-            ORDER BY pt.practice_date, pt.start_time
+                s.match_date as date,
+                s.match_time as time,
+                s.home_team,
+                s.away_team,
+                s.location,
+                s.home_team_id,
+                s.away_team_id
+            FROM schedule s
+            WHERE (s.home_team_id = %s OR s.away_team_id = %s)
+            AND s.match_date >= CURRENT_DATE
+            AND (
+                'Practice' IN s.home_team OR 
+                'Practice' IN s.away_team OR
+                (s.away_team IS NULL OR s.away_team = '')
+            )
+            ORDER BY s.match_date, s.match_time
         """
         
-        practices = execute_query(practices_query, [team_id])
+        practices = execute_query(practices_query, [team_id, team_id])
         
         # Format the response
         formatted_players = []
@@ -3564,18 +3571,19 @@ def get_pros_team_details():
         
         formatted_practices = []
         for practice in practices:
-            # Format time range if both start and end times exist
+            # Format time display
             time_display = ""
             if practice["time"]:
                 time_display = practice["time"].strftime("%H:%M")
-                if practice["end_time"]:
-                    time_display += " - " + practice["end_time"].strftime("%H:%M")
+            
+            # Get practice description from home_team (which contains the practice info)
+            practice_description = practice["home_team"] or "Practice"
             
             formatted_practices.append({
                 "date": practice["date"].strftime("%Y-%m-%d") if practice["date"] else "",
                 "time": time_display,
-                "court_number": practice["court_number"],
-                "notes": practice["notes"] or ""
+                "description": practice_description,
+                "location": practice["location"] or ""
             })
         
         return jsonify({

@@ -380,8 +380,8 @@
                             <div>
                                 <h6 class="mb-1">${formattedDate}</h6>
                                 <p class="mb-1 text-muted">${practice.time || 'Time TBD'}</p>
-                                ${practice.court_number ? `<small class="text-muted">Court ${practice.court_number}</small>` : ''}
-                                ${practice.notes ? `<p class="mb-0 mt-2"><small>${practice.notes}</small></p>` : ''}
+                                ${practice.description ? `<p class="mb-1 text-primary"><strong>${practice.description}</strong></p>` : ''}
+                                ${practice.location ? `<small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${practice.location}</small>` : ''}
                             </div>
                         </div>
                     </div>
