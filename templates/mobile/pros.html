@@ -445,7 +445,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         teamFilter.appendChild(option);
                     });
                     
-                    // Select the first team by default
+                    // Select the first team by default, but prioritize teams with practice times
+                    // We'll check for practice times after loading the schedule data
                     currentTeamId = availableTeams[0].id;
                     teamFilter.value = currentTeamId;
                 } else {
@@ -462,6 +463,59 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading teams:', error);
             availableTeams = [];
         }
+    }
+
+    // Find a team that has practice times
+    async function findTeamWithPractices() {
+        for (const team of availableTeams) {
+            if (team.id === currentTeamId) continue; // Skip current team
+            
+            try {
+                const response = await fetch(`/api/pros-team-schedule?team_id=${team.id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        continue; // Skip this team if there's an error
+                    }
+                    
+                    // Check if this team has practices
+                    const allMatchDates = data.match_dates || [];
+                    const allEventDetails = data.event_details || {};
+                    
+                    let hasPractices = false;
+                    for (const date of allMatchDates) {
+                        const eventDetail = allEventDetails[date];
+                        if (eventDetail && eventDetail.type === 'practice') {
+                            hasPractices = true;
+                            break;
+                        }
+                    }
+                    
+                    if (hasPractices) {
+                        console.log(`Found team with practices: ${team.display_name} (ID: ${team.id})`);
+                        // Switch to this team
+                        currentTeamId = team.id;
+                        teamFilter.value = currentTeamId;
+                        
+                        // Reload the schedule data for this team
+                        await loadTeamScheduleData();
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn(`Error checking team ${team.id}:`, error);
+                continue;
+            }
+        }
+        
+        console.log('No teams with practices found');
     }
 
     // Load schedule data for the selected team
@@ -510,6 +564,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update the data to only include practices
                 matchDates = practiceDates;
                 eventDetails = practiceEventDetails;
+                
+                // If no practices found for this team, try to find a team with practices
+                if (practiceDates.length === 0 && availableTeams.length > 1) {
+                    console.log('No practices found for current team, looking for team with practices...');
+                    await findTeamWithPractices();
+                }
                 
                 console.log('Filtered data (practices only):', {
                     originalDates: allMatchDates.length,
