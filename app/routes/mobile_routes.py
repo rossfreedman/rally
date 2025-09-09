@@ -3535,17 +3535,18 @@ def get_pros_team_details():
         
         players = execute_query(players_query, [team_id])
         
-        # Get team practices (from schedule table)
+        # Get team practices (from practice_times table)
         practices_query = """
             SELECT DISTINCT 
-                sch.practice_date as date,
-                sch.start_time as time,
-                sch.court_number,
-                sch.notes
-            FROM schedule sch
-            WHERE sch.team_id = %s 
-            AND sch.practice_date >= CURRENT_DATE
-            ORDER BY sch.practice_date, sch.start_time
+                pt.practice_date as date,
+                pt.start_time as time,
+                pt.end_time,
+                pt.court_number,
+                pt.notes
+            FROM practice_times pt
+            WHERE pt.team_id = %s 
+            AND pt.practice_date >= CURRENT_DATE
+            ORDER BY pt.practice_date, pt.start_time
         """
         
         practices = execute_query(practices_query, [team_id])
@@ -3563,9 +3564,16 @@ def get_pros_team_details():
         
         formatted_practices = []
         for practice in practices:
+            # Format time range if both start and end times exist
+            time_display = ""
+            if practice["time"]:
+                time_display = practice["time"].strftime("%H:%M")
+                if practice["end_time"]:
+                    time_display += " - " + practice["end_time"].strftime("%H:%M")
+            
             formatted_practices.append({
                 "date": practice["date"].strftime("%Y-%m-%d") if practice["date"] else "",
-                "time": practice["time"].strftime("%H:%M") if practice["time"] else "",
+                "time": time_display,
                 "court_number": practice["court_number"],
                 "notes": practice["notes"] or ""
             })
