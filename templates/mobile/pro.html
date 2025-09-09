@@ -1,0 +1,141 @@
+{% extends "mobile/layout.html" %}
+
+{% block title %}Pro Dashboard | Rally{% endblock %}
+
+{% block content %}
+<style>
+    /* Override background for pro dashboard page */
+    body {
+        background-color: white !important;
+    }
+    #main-content {
+        background-color: white !important;
+    }
+    
+    .pro-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2rem 1rem;
+        background: linear-gradient(135deg, #045454, #0a6b6b);
+        color: white;
+        border-radius: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .pro-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: #bff863;
+    }
+    
+    .pro-title {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .pro-subtitle {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+    
+    .pro-button {
+        background: #045454;
+        color: #bff863;
+        border: none;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        width: 100%;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 16px rgba(4, 84, 84, 0.2);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: block;
+    }
+    
+    .pro-button:hover {
+        background: #034343;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(4, 84, 84, 0.3);
+        color: #bff863;
+        text-decoration: none;
+    }
+    
+    .pro-button i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .pro-button-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .pro-button-desc {
+        font-size: 0.9rem;
+        opacity: 0.8;
+    }
+    
+    
+    .welcome-message {
+        text-align: center;
+        color: #6b7280;
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+        padding: 0 1rem;
+    }
+    
+    @media (max-width: 600px) {
+        .pro-title { font-size: 2rem; }
+        .pro-subtitle { font-size: 1rem; }
+        .pro-button { padding: 1.2rem; font-size: 1rem; }
+        .pro-button i { font-size: 1.5rem; }
+    }
+</style>
+
+<div class="container mx-auto px-4 py-6">
+    <!-- Pro Header Section -->
+    <div class="pro-header">
+        <div class="pro-icon">
+            <i class="fas fa-user-tie"></i>
+        </div>
+        <div class="pro-title">Pro Dashboard</div>
+        <div class="pro-subtitle">Manage your professional tennis services</div>
+    </div>
+
+    <!-- Welcome Message -->
+    <div class="welcome-message">
+        Welcome back! Choose an option below to manage your professional services.
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="space-y-4">
+        <!-- Team Practice Times Button -->
+        <a href="/mobile/pros" class="pro-button">
+            <i class="fas fa-calendar-alt"></i>
+            <div class="pro-button-text">Team Practice Times</div>
+            <div class="pro-button-desc">View and manage team practice schedules</div>
+        </a>
+
+        <!-- Lesson Requests Button -->
+        <a href="/mobile/lesson-requests" class="pro-button">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <div class="pro-button-text">Lesson Requests</div>
+            <div class="pro-button-desc">Review and respond to lesson requests</div>
+        </a>
+    </div>
+
+</div>
+
+<script>
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Pro Dashboard initialized with Rally branding');
+    });
+</script>
+
+{% endblock %}

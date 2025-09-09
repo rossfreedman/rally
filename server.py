@@ -727,6 +727,38 @@ def serve_create_team_page():
     return render_template("mobile/create_team.html", session_data=session_data)
 
 
+@app.route("/pro")
+@login_required
+def serve_pro_page():
+    """Serve the Pro Dashboard page with Rally branding and layout"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="pro_dashboard"
+        )
+
+        return render_template(
+            "mobile/pro.html", 
+            session_data={"user": user, "authenticated": True}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_pro_page: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/pro.html",
+            session_data=session_data,
+            error="An error occurred while loading the pro dashboard",
+        )
+
+
 # Marketing website HTML pages routes - CRITICAL FIX for feature pages
 # Must be before /<path:path> catch-all route to work properly
 @app.route("/search-players.html", methods=["GET"])

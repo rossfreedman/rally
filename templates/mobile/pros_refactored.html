@@ -1,599 +1,620 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pros Dashboard | Rally Mobile</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="/static/mobile/css/style.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body { background: #f6faf7; }
-        .header-row {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            margin-bottom: 1.2rem;
-            padding-left: 1rem;
-        }
-        .icon-box {
-            background: #fff;
-            border-radius: 0.75rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 3rem;
-            width: 3rem;
-            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
-        }
-        .icon-box i {
-            color: #007417;
-            font-size: 2rem;
-        }
-        .header-title {
-            font-size: 2rem;
-            font-weight: bold;
-            line-height: 1.1;
-        }
-        .header-subtitle {
-            font-size: 1rem;
-            color: #6b7280;
-            margin-top: 0.2rem;
-        }
-        .card-section {
-            background: #fff;
-            border-radius: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            padding: 1.2rem 1rem 1.2rem 1rem;
-            margin-bottom: 1.2rem;
-            border: none;
-        }
-        .section-label {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #222;
-            margin-bottom: 0.7rem;
-        }
-        .form-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 0.3rem;
-        }
-        .form-select, .form-control {
-            font-size: 1.08rem;
-            border-radius: 0.7rem;
-            margin-bottom: 1rem;
-        }
-        .tab-content {
-            margin-top: 1rem;
-        }
-        .practice-card {
-            background: #f8f9fa;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border-left: 4px solid #007417;
-        }
-        .player-card {
-            background: #f8f9fa;
-            border-radius: 0.75rem;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-left: 4px solid #6c757d;
-        }
-        .lesson-request-card {
-            background: #fff3cd;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border-left: 4px solid #ffc107;
-        }
-        .btn-confirm {
-            background: #28a745;
-            border: none;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .btn-decline {
-            background: #dc3545;
-            border: none;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .btn-message {
-            background: #007bff;
-            border: none;
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.9rem;
-        }
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        .no-data-message {
-            text-align: center;
-            color: #6c757d;
-            padding: 2rem;
-            font-style: italic;
-        }
-        @media (max-width: 600px) {
-            .header-title { font-size: 1.3rem; }
-            .card-section { padding: 0.7rem 0.5rem; }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header Section -->
-    <div class="header-row">
-        <div class="icon-box">
-            <i class="fas fa-chalkboard-teacher"></i>
-        </div>
-        <div>
-            <div class="header-title">Pros Dashboard</div>
-            <div class="header-subtitle">Manage team practices and lesson requests</div>
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg" style="background: #10645c !important;">
+                <i class="fas fa-users-cog text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Pros Dashboard</h1>
+                <p class="text-sm text-gray-500">Manage team practices and player availability</p>
+            </div>
         </div>
     </div>
 
-    <!-- Main Content Section -->
-    <div class="container" style="max-width: 480px; margin: 0 auto;">
-        <!-- Selection Filters Card -->
-        <div class="card-section">
-            <div class="section-label"><i class="fas fa-filter text-secondary me-2"></i>Select Club & Team</div>
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- League, Club and Team Selection Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-filter text-green-500 mr-2"></i>
+                    Select League, Club & Team
+                </h2>
+            </div>
             
-            <label for="clubSelect" class="form-label">Club</label>
-            <select class="form-select" id="clubSelect">
-                <option value="">Choose a club...</option>
-            </select>
-            
-            <label for="teamSelect" class="form-label">Team</label>
-            <select class="form-select" id="teamSelect" disabled>
-                <option value="">Choose a team...</option>
-            </select>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="leagueSelect" class="block text-sm font-medium text-gray-700 mb-2">League</label>
+                    <select class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition appearance-none" id="leagueSelect">
+                        <option value="">Choose a league...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="clubSelect" class="block text-sm font-medium text-gray-700 mb-2">Club</label>
+                    <select class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition appearance-none" id="clubSelect" disabled>
+                        <option value="">Choose a club...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="teamSelect" class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+                    <select class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition appearance-none" id="teamSelect" disabled>
+                        <option value="">Choose a team...</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="card-section">
-            <ul class="nav nav-tabs" id="prosTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="practices-tab" data-bs-toggle="tab" data-bs-target="#practices" type="button" role="tab">
-                        <i class="fas fa-calendar-alt me-2"></i>Team Practices
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="lesson-requests-tab" data-bs-toggle="tab" data-bs-target="#lesson-requests" type="button" role="tab">
-                        <i class="fas fa-graduation-cap me-2"></i>Lesson Requests
-                    </button>
-                </li>
-            </ul>
+        <!-- Team Practices Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-alt text-green-500 mr-2"></i>
+                    Team Practices
+                </h2>
+            </div>
             
-            <div class="tab-content" id="prosTabsContent">
-                <!-- Team Practices Tab -->
-                <div class="tab-pane fade show active" id="practices" role="tabpanel">
-                    <div class="loading-spinner" id="practicesLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                    <div id="practicesContent">
-                        <div class="no-data-message">
-                            Select a team to view practices
-                        </div>
+            <div class="p-6">
+                <!-- Loading Spinner -->
+                <div class="loading-spinner" id="practicesLoading" style="display: none;">
+                    <div class="flex justify-center items-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                        <span class="ml-3 text-gray-600">Loading...</span>
                     </div>
                 </div>
                 
-                <!-- Lesson Requests Tab -->
-                <div class="tab-pane fade" id="lesson-requests" role="tabpanel">
-                    <div class="loading-spinner" id="lessonRequestsLoading">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                <!-- Practice Date Selection -->
+                <div id="practiceDateSection" style="display: none;" class="mb-6">
+                    <label for="practiceDateSelect" class="block text-sm font-medium text-gray-700 mb-2">Select Practice Date</label>
+                    <select class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500 transition appearance-none" id="practiceDateSelect">
+                        <option value="">Choose a practice date...</option>
+                    </select>
+                </div>
+                
+                <!-- Practices Content -->
+                <div id="practicesContent">
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-calendar-alt text-4xl text-gray-300 mb-4"></i>
+                        <p>Select a team to view practices</p>
+                    </div>
+                </div>
+                
+                <!-- Player Availability Section -->
+                <div id="playerAvailabilitySection" style="display: none;" class="mt-6">
+                    <div class="loading-spinner" id="playerAvailabilityLoading" style="display: none;">
+                        <div class="flex justify-center items-center py-4">
+                            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                            <span class="ml-2 text-gray-600">Loading availability...</span>
                         </div>
                     </div>
-                    <div id="lessonRequestsContent">
-                        <div class="no-data-message">
-                            Loading lesson requests...
-                        </div>
+                    <div id="playerAvailabilityContent">
+                        <!-- Player availability will be loaded here -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Global variables
-        let currentClubId = null;
-        let currentTeamId = null;
-        let clubsData = [];
-        let teamsData = [];
-        let teamDetailsData = null;
+<script>
+    // Global variables
+    let currentLeagueId = null;
+    let currentClubId = null;
+    let currentTeamId = null;
+    let leaguesData = [];
+    let clubsData = [];
+    let teamsData = [];
+    let teamDetailsData = null;
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Pros Dashboard initialized');
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Pros Dashboard initialized');
+        loadLeagues();
+    });
+
+    // Load leagues for the picklist
+    async function loadLeagues() {
+        try {
+            console.log('Loading leagues...');
+            const response = await fetch('/api/pros-leagues');
+            const data = await response.json();
+            
+            if (data.success) {
+                leaguesData = data.leagues;
+                populateLeagueSelect();
+                console.log('Leagues loaded:', leaguesData);
+            } else {
+                console.error('Failed to load leagues:', data.error);
+                showError('Failed to load leagues');
+            }
+        } catch (error) {
+            console.error('Error loading leagues:', error);
+            showError('Error loading leagues');
+        }
+    }
+
+    // Populate league select dropdown
+    function populateLeagueSelect() {
+        const leagueSelect = document.getElementById('leagueSelect');
+        leagueSelect.innerHTML = '<option value="">Choose a league...</option>';
+        
+        leaguesData.forEach(league => {
+            const option = document.createElement('option');
+            option.value = league.id;
+            option.textContent = league.name;
+            leagueSelect.appendChild(option);
+        });
+    }
+
+    // Load clubs for the selected league
+    async function loadClubs() {
+        if (!currentLeagueId) {
+            console.log('No league selected, cannot load clubs');
+            return;
+        }
+        
+        try {
+            console.log('Loading clubs for league:', currentLeagueId);
+            const response = await fetch(`/api/pros-clubs?league_id=${currentLeagueId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                clubsData = data.clubs;
+                populateClubSelect();
+                console.log('Clubs loaded:', clubsData);
+            } else {
+                console.error('Failed to load clubs:', data.error);
+                showError('Failed to load clubs');
+            }
+        } catch (error) {
+            console.error('Error loading clubs:', error);
+            showError('Error loading clubs');
+        }
+    }
+
+    // Populate club select dropdown
+    function populateClubSelect() {
+        const clubSelect = document.getElementById('clubSelect');
+        clubSelect.innerHTML = '<option value="">Choose a club...</option>';
+        
+        clubsData.forEach(club => {
+            const option = document.createElement('option');
+            option.value = club.id;
+            option.textContent = club.name;
+            clubSelect.appendChild(option);
+        });
+    }
+
+    // Handle league selection change
+    document.getElementById('leagueSelect').addEventListener('change', function() {
+        const leagueId = this.value;
+        if (leagueId) {
+            currentLeagueId = leagueId;
             loadClubs();
-            loadLessonRequests();
-        });
-
-        // Load clubs for the picklist
-        async function loadClubs() {
-            try {
-                console.log('Loading clubs...');
-                const response = await fetch('/api/pros-clubs');
-                const data = await response.json();
-                
-                if (data.success) {
-                    clubsData = data.clubs;
-                    populateClubSelect();
-                    console.log('Clubs loaded:', clubsData);
-                } else {
-                    console.error('Failed to load clubs:', data.error);
-                    showError('Failed to load clubs');
-                }
-            } catch (error) {
-                console.error('Error loading clubs:', error);
-                showError('Error loading clubs');
-            }
+            // Reset club and team selections
+            document.getElementById('clubSelect').disabled = false;
+            document.getElementById('clubSelect').innerHTML = '<option value="">Choose a club...</option>';
+            document.getElementById('teamSelect').disabled = true;
+            document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+            // Clear team details
+            clearTeamDetails();
+        } else {
+            currentLeagueId = null;
+            document.getElementById('clubSelect').disabled = true;
+            document.getElementById('clubSelect').innerHTML = '<option value="">Choose a club...</option>';
+            document.getElementById('teamSelect').disabled = true;
+            document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+            clearTeamDetails();
         }
+    });
 
-        // Populate club select dropdown
-        function populateClubSelect() {
-            const clubSelect = document.getElementById('clubSelect');
-            clubSelect.innerHTML = '<option value="">Choose a club...</option>';
+    // Handle club selection change
+    document.getElementById('clubSelect').addEventListener('change', function() {
+        const clubId = this.value;
+        if (clubId) {
+            currentClubId = clubId;
+            loadTeamsByClub(clubId);
+            // Reset team selection
+            document.getElementById('teamSelect').disabled = false;
+            document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+            // Clear team details
+            clearTeamDetails();
+        } else {
+            currentClubId = null;
+            document.getElementById('teamSelect').disabled = true;
+            document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
+            clearTeamDetails();
+        }
+    });
+
+    // Load teams for selected club
+    async function loadTeamsByClub(clubId) {
+        if (!currentLeagueId) {
+            console.log('No league selected, cannot load teams');
+            return;
+        }
+        
+        try {
+            console.log('Loading teams for club:', clubId, 'league:', currentLeagueId);
+            const response = await fetch(`/api/pros-teams-by-club?club_id=${clubId}&league_id=${currentLeagueId}`);
+            const data = await response.json();
             
-            clubsData.forEach(club => {
-                const option = document.createElement('option');
-                option.value = club.id;
-                option.textContent = club.name;
-                clubSelect.appendChild(option);
-            });
-        }
-
-        // Handle club selection change
-        document.getElementById('clubSelect').addEventListener('change', function() {
-            const clubId = this.value;
-            if (clubId) {
-                currentClubId = clubId;
-                loadTeamsByClub(clubId);
-                // Reset team selection
-                document.getElementById('teamSelect').disabled = false;
-                document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
-                // Clear team details
-                clearTeamDetails();
+            if (data.success) {
+                teamsData = data.teams;
+                populateTeamSelect();
+                console.log('Teams loaded:', teamsData);
             } else {
-                currentClubId = null;
-                document.getElementById('teamSelect').disabled = true;
-                document.getElementById('teamSelect').innerHTML = '<option value="">Choose a team...</option>';
-                clearTeamDetails();
+                console.error('Failed to load teams:', data.error);
+                showError('Failed to load teams');
             }
+        } catch (error) {
+            console.error('Error loading teams:', error);
+            showError('Error loading teams');
+        }
+    }
+
+    // Populate team select dropdown
+    function populateTeamSelect() {
+        const teamSelect = document.getElementById('teamSelect');
+        teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+        
+        teamsData.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.display_name;
+            teamSelect.appendChild(option);
         });
+    }
 
-        // Load teams for selected club
-        async function loadTeamsByClub(clubId) {
-            try {
-                console.log('Loading teams for club:', clubId);
-                const response = await fetch(`/api/pros-teams-by-club?club_id=${clubId}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    teamsData = data.teams;
-                    populateTeamSelect();
-                    console.log('Teams loaded:', teamsData);
-                } else {
-                    console.error('Failed to load teams:', data.error);
-                    showError('Failed to load teams');
-                }
-            } catch (error) {
-                console.error('Error loading teams:', error);
-                showError('Error loading teams');
-            }
+    // Handle team selection change
+    document.getElementById('teamSelect').addEventListener('change', function() {
+        const teamId = this.value;
+        if (teamId) {
+            currentTeamId = teamId;
+            loadTeamDetails(teamId);
+        } else {
+            currentTeamId = null;
+            clearTeamDetails();
         }
+    });
 
-        // Populate team select dropdown
-        function populateTeamSelect() {
-            const teamSelect = document.getElementById('teamSelect');
-            teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+    // Load team details (practices and players)
+    async function loadTeamDetails(teamId) {
+        if (!currentLeagueId) {
+            console.log('No league selected, cannot load team details');
+            return;
+        }
+        
+        try {
+            console.log('Loading team details for team:', teamId, 'league:', currentLeagueId);
+            showLoading('practicesLoading');
             
-            teamsData.forEach(team => {
-                const option = document.createElement('option');
-                option.value = team.id;
-                option.textContent = `${team.display_name} (${team.series_name})`;
-                teamSelect.appendChild(option);
-            });
-        }
-
-        // Handle team selection change
-        document.getElementById('teamSelect').addEventListener('change', function() {
-            const teamId = this.value;
-            if (teamId) {
-                currentTeamId = teamId;
-                loadTeamDetails(teamId);
+            const response = await fetch(`/api/pros-team-details?team_id=${teamId}&league_id=${currentLeagueId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                teamDetailsData = data;
+                displayTeamDetails(data);
+                console.log('Team details loaded:', data);
             } else {
-                currentTeamId = null;
-                clearTeamDetails();
+                console.error('Failed to load team details:', data.error);
+                showError('Failed to load team details');
             }
-        });
-
-        // Load team details (practices and players)
-        async function loadTeamDetails(teamId) {
-            try {
-                console.log('Loading team details for team:', teamId);
-                showLoading('practicesLoading');
-                
-                const response = await fetch(`/api/pros-team-details?team_id=${teamId}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    teamDetailsData = data;
-                    displayTeamDetails(data);
-                    console.log('Team details loaded:', data);
-                } else {
-                    console.error('Failed to load team details:', data.error);
-                    showError('Failed to load team details');
-                }
-            } catch (error) {
-                console.error('Error loading team details:', error);
-                showError('Error loading team details');
-            } finally {
-                hideLoading('practicesLoading');
-            }
+        } catch (error) {
+            console.error('Error loading team details:', error);
+            showError('Error loading team details');
+        } finally {
+            hideLoading('practicesLoading');
         }
+    }
 
-        // Display team details (practices and players)
-        function displayTeamDetails(data) {
-            const practicesContent = document.getElementById('practicesContent');
-            
-            if (data.practices.length === 0) {
-                practicesContent.innerHTML = `
-                    <div class="no-data-message">
-                        No practices scheduled for ${data.team.display_name}
-                    </div>
-                `;
-                return;
-            }
-
-            let practicesHtml = `
-                <div class="section-label mb-3">
-                    <i class="fas fa-calendar-alt text-secondary me-2"></i>
+    // Display team details (practices and players)
+    function displayTeamDetails(data) {
+        const practicesContent = document.getElementById('practicesContent');
+        const practiceDateSection = document.getElementById('practiceDateSection');
+        const playerAvailabilitySection = document.getElementById('playerAvailabilitySection');
+        
+        // Always show practice date section if there are practices
+        if (data.practices.length > 0) {
+            practiceDateSection.style.display = 'block';
+            populatePracticeDateSelect(data.practices);
+        } else {
+            practiceDateSection.style.display = 'none';
+        }
+        
+        // Show team players info
+        let practicesHtml = `
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                    <i class="fas fa-calendar-alt text-green-500 mr-2"></i>
                     Practices for ${data.team.display_name}
+                </h3>
+                ${data.practices.length === 0 ? 
+                    '<p class="text-red-500 mt-2">No practices scheduled</p>' : 
+                    ''
+                }
+            </div>
+        `;
+
+        // Add players section
+        if (data.players.length > 0) {
+            practicesHtml += `
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center mb-4">
+                        <i class="fas fa-users text-green-500 mr-2"></i>
+                        Team Players (${data.players.length})
+                    </h3>
                 </div>
             `;
 
-            data.practices.forEach(practice => {
-                const practiceDate = new Date(practice.date);
-                const formattedDate = practiceDate.toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric'
-                });
-                
+            data.players.forEach(player => {
                 practicesHtml += `
-                    <div class="practice-card">
-                        <div class="d-flex justify-content-between align-items-start">
+                    <div class="bg-gray-50 rounded-lg p-4 mb-3 border border-gray-200" id="player-${player.tenniscores_player_id}">
+                        <div class="flex justify-between items-center">
                             <div>
-                                <h6 class="mb-1">${formattedDate}</h6>
-                                <p class="mb-1 text-muted">${practice.time || 'Time TBD'}</p>
-                                ${practice.description ? `<p class="mb-1 text-primary"><strong>${practice.description}</strong></p>` : ''}
-                                ${practice.location ? `<small class="text-muted"><i class="fas fa-map-marker-alt me-1"></i>${practice.location}</small>` : ''}
+                                <h6 class="font-medium text-gray-900">${player.full_name}</h6>
+                            </div>
+                            <div id="availability-${player.tenniscores_player_id}" class="availability-status">
+                                <!-- Availability will be shown here when practice date is selected -->
                             </div>
                         </div>
                     </div>
                 `;
             });
-
-            // Add players section
-            if (data.players.length > 0) {
-                practicesHtml += `
-                    <div class="section-label mb-3 mt-4">
-                        <i class="fas fa-users text-secondary me-2"></i>
-                        Team Players
-                    </div>
-                `;
-
-                data.players.forEach(player => {
-                    practicesHtml += `
-                        <div class="player-card">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-0">${player.full_name}</h6>
-                                    <small class="text-muted">${player.tenniscores_player_id}</small>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            practicesContent.innerHTML = practicesHtml;
         }
 
-        // Clear team details
-        function clearTeamDetails() {
+        practicesContent.innerHTML = practicesHtml;
+    }
+
+    // Populate practice date select dropdown
+    function populatePracticeDateSelect(practices) {
+        const practiceDateSelect = document.getElementById('practiceDateSelect');
+        practiceDateSelect.innerHTML = '<option value="">Choose a practice date...</option>';
+
+        // Get unique practice dates
+        const uniqueDates = [...new Set(practices.map(practice => practice.date))];
+        
+        uniqueDates.forEach(date => {
+            const option = document.createElement('option');
+            option.value = date;
+            
+            // Parse the date string directly to avoid timezone issues
+            const [year, month, day] = date.split('-');
+            const practiceDate = new Date(year, month - 1, day); // month is 0-indexed
+            const formattedDate = practiceDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            
+            option.textContent = formattedDate;
+            practiceDateSelect.appendChild(option);
+        });
+    }
+
+    // Handle practice date selection change
+    document.getElementById('practiceDateSelect').addEventListener('change', function() {
+        const practiceDate = this.value;
+        if (practiceDate && currentTeamId) {
+            loadPlayerAvailability(currentTeamId, practiceDate);
+        } else {
+            hidePlayerAvailability();
+        }
+    });
+
+    // Load player availability for selected practice date
+    async function loadPlayerAvailability(teamId, practiceDate) {
+        if (!currentLeagueId) {
+            console.log('No league selected, cannot load player availability');
+            return;
+        }
+        
+        try {
+            console.log('Loading player availability for team:', teamId, 'date:', practiceDate, 'league:', currentLeagueId);
+            showLoading('playerAvailabilityLoading');
+            
+            const response = await fetch(`/api/pros-player-availability?team_id=${teamId}&practice_date=${practiceDate}&league_id=${currentLeagueId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                displayPlayerAvailability(data.availability, practiceDate);
+                console.log('Player availability loaded:', data.availability);
+            } else {
+                console.error('Failed to load player availability:', data.error);
+                showError('Failed to load player availability');
+            }
+        } catch (error) {
+            console.error('Error loading player availability:', error);
+            showError('Error loading player availability');
+        } finally {
+            hideLoading('playerAvailabilityLoading');
+        }
+    }
+
+    // Display player availability
+    function displayPlayerAvailability(availability, practiceDate) {
+        // Clear all existing availability status
+        const allAvailabilityElements = document.querySelectorAll('.availability-status');
+        allAvailabilityElements.forEach(element => {
+            element.innerHTML = '';
+        });
+        
+        if (availability.length === 0) {
+            // Show "No availability data" message in the practices content
             const practicesContent = document.getElementById('practicesContent');
-            practicesContent.innerHTML = `
-                <div class="no-data-message">
-                    Select a team to view practices
-                </div>
-            `;
-            teamDetailsData = null;
+            const noDataMessage = document.createElement('div');
+            noDataMessage.className = 'bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4';
+            noDataMessage.innerHTML = '<div class="flex items-center"><i class="fas fa-info-circle text-blue-500 mr-2"></i><span class="text-blue-700">No availability data found for this practice date</span></div>';
+            practicesContent.appendChild(noDataMessage);
+            return;
         }
 
-        // Load lesson requests
-        async function loadLessonRequests() {
-            try {
-                console.log('Loading lesson requests...');
-                showLoading('lessonRequestsLoading');
-                
-                const response = await fetch('/api/lesson-requests');
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayLessonRequests(data.lesson_requests);
-                    console.log('Lesson requests loaded:', data.lesson_requests);
+        // Parse the date string directly to avoid timezone issues
+        const [year, month, day] = practiceDate.split('-');
+        const practiceDateObj = new Date(year, month - 1, day); // month is 0-indexed
+        const formattedDate = practiceDateObj.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        // Create a map of availability data for quick lookup
+        const availabilityMap = {};
+        availability.forEach(player => {
+            availabilityMap[player.tenniscores_player_id] = player;
+        });
+        
+        // Update each player's availability status (including those without data)
+        const allPlayerCards = document.querySelectorAll('[id^="player-"]');
+        allPlayerCards.forEach(playerCard => {
+            const playerId = playerCard.id.replace('player-', '');
+            const availabilityElement = document.getElementById(`availability-${playerId}`);
+            
+            if (availabilityElement) {
+                const playerData = availabilityMap[playerId];
+                if (playerData) {
+                    // Player has availability data
+                    const statusClass = getAvailabilityStatusClass(playerData.availability_status);
+                    const statusText = getAvailabilityStatusText(playerData.availability_status);
+                    const statusIcon = getAvailabilityStatusIcon(playerData.availability_status);
+                    
+                    availabilityElement.innerHTML = `
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusClass}">
+                            <i class="${statusIcon} mr-1"></i>${statusText}
+                        </span>
+                        ${playerData.notes ? `<div class="mt-2 text-xs text-gray-600"><i class="fas fa-sticky-note mr-1"></i>${playerData.notes}</div>` : ''}
+                    `;
                 } else {
-                    console.error('Failed to load lesson requests:', data.error);
-                    showError('Failed to load lesson requests');
+                    // Player has no availability data - show "Not entered"
+                    const statusClass = getAvailabilityStatusClass(null);
+                    const statusText = getAvailabilityStatusText(null);
+                    const statusIcon = getAvailabilityStatusIcon(null);
+                    
+                    availabilityElement.innerHTML = `
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusClass}">
+                            <i class="${statusIcon} mr-1"></i>${statusText}
+                        </span>
+                    `;
                 }
-            } catch (error) {
-                console.error('Error loading lesson requests:', error);
-                showError('Error loading lesson requests');
-            } finally {
-                hideLoading('lessonRequestsLoading');
+            }
+        });
+
+        // Show a header for the selected practice date just below team players
+        const existingHeader = document.getElementById('practice-date-header');
+        if (existingHeader) {
+            existingHeader.remove();
+        }
+        
+        // Find the team players section by looking for the text "Team Players"
+        const allSectionLabels = document.querySelectorAll('h3');
+        let teamPlayersSection = null;
+        for (let section of allSectionLabels) {
+            if (section.textContent.includes('Team Players')) {
+                teamPlayersSection = section;
+                break;
             }
         }
-
-        // Display lesson requests
-        function displayLessonRequests(requests) {
-            const lessonRequestsContent = document.getElementById('lessonRequestsContent');
+        
+        if (teamPlayersSection) {
+            const header = document.createElement('div');
+            header.id = 'practice-date-header';
+            header.className = 'bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4';
+            header.innerHTML = `<div class="flex items-center"><i class="fas fa-calendar-check text-blue-500 mr-2"></i><span class="text-blue-700 font-medium">Availability for ${formattedDate}</span></div>`;
             
-            if (requests.length === 0) {
-                lessonRequestsContent.innerHTML = `
-                    <div class="no-data-message">
-                        No lesson requests at this time
-                    </div>
-                `;
-                return;
-            }
-
-            let requestsHtml = `
-                <div class="section-label mb-3">
-                    <i class="fas fa-graduation-cap text-secondary me-2"></i>
-                    Lesson Requests
-                </div>
-            `;
-
-            requests.forEach(request => {
-                const requestDate = new Date(request.lesson_date);
-                const formattedDate = requestDate.toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric'
-                });
-                
-                const statusBadge = getStatusBadge(request.status);
-                
-                requestsHtml += `
-                    <div class="lesson-request-card">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h6 class="mb-1">${request.player_name}</h6>
-                                <p class="mb-1 text-muted">${formattedDate} at ${request.lesson_time}</p>
-                                ${statusBadge}
-                            </div>
-                        </div>
-                        ${request.focus_areas ? `<p class="mb-2"><strong>Focus:</strong> ${request.focus_areas}</p>` : ''}
-                        ${request.notes ? `<p class="mb-2"><strong>Notes:</strong> ${request.notes}</p>` : ''}
-                        <div class="d-flex gap-2">
-                            <button class="btn-confirm" onclick="confirmLesson(${request.id})">
-                                <i class="fas fa-check me-1"></i>Confirm
-                            </button>
-                            <button class="btn-decline" onclick="declineLesson(${request.id})">
-                                <i class="fas fa-times me-1"></i>Decline
-                            </button>
-                            <button class="btn-message" onclick="messagePlayer('${request.user_email}')">
-                                <i class="fas fa-envelope me-1"></i>Message
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            lessonRequestsContent.innerHTML = requestsHtml;
+            // Insert after the team players section
+            teamPlayersSection.parentNode.insertBefore(header, teamPlayersSection.nextSibling);
         }
+    }
 
-        // Get status badge HTML
-        function getStatusBadge(status) {
-            const statusClasses = {
-                'requested': 'badge bg-warning',
-                'confirmed': 'badge bg-success',
-                'declined': 'badge bg-danger',
-                'completed': 'badge bg-info'
-            };
-            
-            const statusText = {
-                'requested': 'Pending',
-                'confirmed': 'Confirmed',
-                'declined': 'Declined',
-                'completed': 'Completed'
-            };
-            
-            const className = statusClasses[status] || 'badge bg-secondary';
-            const text = statusText[status] || status;
-            
-            return `<span class="${className}">${text}</span>`;
-        }
+    // Get availability status CSS class
+    function getAvailabilityStatusClass(status) {
+        const statusClasses = {
+            1: 'bg-green-100 text-green-800',      // Available
+            2: 'bg-red-100 text-red-800',          // Unavailable
+            3: 'bg-yellow-100 text-yellow-800',    // Not sure
+            null: 'bg-gray-100 text-gray-800',      // Not entered
+            undefined: 'bg-gray-100 text-gray-800'  // Not entered
+        };
+        return statusClasses[status] || 'bg-gray-100 text-gray-800';
+    }
 
-        // Confirm lesson request
-        async function confirmLesson(requestId) {
-            try {
-                const response = await fetch(`/api/lesson-requests/${requestId}/confirm`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    console.log('Lesson confirmed:', requestId);
-                    loadLessonRequests(); // Refresh the list
-                } else {
-                    console.error('Failed to confirm lesson:', data.error);
-                    showError('Failed to confirm lesson');
-                }
-            } catch (error) {
-                console.error('Error confirming lesson:', error);
-                showError('Error confirming lesson');
-            }
-        }
+    // Get availability status text
+    function getAvailabilityStatusText(status) {
+        const statusTexts = {
+            1: 'Available',
+            2: 'Unavailable', 
+            3: 'Not Sure',
+            null: 'Not entered',
+            undefined: 'Not entered'
+        };
+        return statusTexts[status] || 'Not entered';
+    }
 
-        // Decline lesson request
-        async function declineLesson(requestId) {
-            try {
-                const response = await fetch(`/api/lesson-requests/${requestId}/decline`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    console.log('Lesson declined:', requestId);
-                    loadLessonRequests(); // Refresh the list
-                } else {
-                    console.error('Failed to decline lesson:', data.error);
-                    showError('Failed to decline lesson');
-                }
-            } catch (error) {
-                console.error('Error declining lesson:', error);
-                showError('Error declining lesson');
-            }
-        }
+    // Get availability status icon
+    function getAvailabilityStatusIcon(status) {
+        const statusIcons = {
+            1: 'fas fa-check',
+            2: 'fas fa-times',
+            3: 'fas fa-question',
+            null: 'fas fa-minus',
+            undefined: 'fas fa-minus'
+        };
+        return statusIcons[status] || 'fas fa-minus';
+    }
 
-        // Message player
-        function messagePlayer(email) {
-            // For now, just show an alert. In a real implementation, this would open a messaging interface
-            alert(`Messaging functionality would open for: ${email}`);
-        }
+    // Hide player availability section
+    function hidePlayerAvailability() {
+        const playerAvailabilitySection = document.getElementById('playerAvailabilitySection');
+        playerAvailabilitySection.style.display = 'none';
+    }
 
-        // Show loading spinner
-        function showLoading(elementId) {
-            document.getElementById(elementId).style.display = 'block';
-        }
+    // Clear team details
+    function clearTeamDetails() {
+        const practicesContent = document.getElementById('practicesContent');
+        const practiceDateSection = document.getElementById('practiceDateSection');
+        const playerAvailabilitySection = document.getElementById('playerAvailabilitySection');
+        
+        practicesContent.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-calendar-alt text-4xl text-gray-300 mb-4"></i>
+                <p>Select a team to view practices</p>
+            </div>
+        `;
+        practiceDateSection.style.display = 'none';
+        playerAvailabilitySection.style.display = 'none';
+        teamDetailsData = null;
+    }
 
-        // Hide loading spinner
-        function hideLoading(elementId) {
-            document.getElementById(elementId).style.display = 'none';
+    // Show loading spinner
+    function showLoading(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style.display = 'block';
         }
+    }
 
-        // Show error message
-        function showError(message) {
-            console.error(message);
-            // In a real implementation, you might want to show a toast notification
-            alert(message);
+    // Hide loading spinner
+    function hideLoading(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.style.display = 'none';
         }
-    </script>
-</body>
-</html>
+    }
+
+    // Show error message
+    function showError(message) {
+        console.error(message);
+        // You can add a toast notification here if needed
+    }
+</script>
+{% endblock %}
