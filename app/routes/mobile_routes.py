@@ -3503,7 +3503,6 @@ def get_pros_teams_by_club():
             LEFT JOIN series s ON t.series_id = s.id
             LEFT JOIN clubs c ON t.club_id = c.id
             WHERE t.league_id = %s AND t.club_id = %s
-            ORDER BY t.display_name
         """
         
         teams = execute_query(teams_query, [league_id_int, club_id])
@@ -3519,6 +3518,28 @@ def get_pros_teams_by_club():
                 "series_name": series_display,
                 "club_name": team["club_name"]
             })
+        
+        # Custom sorting: extract number or letter from team name and sort
+        def extract_sort_key(team):
+            display_name = team["display_name"] or team["team_name"]
+            
+            # Extract the last part after the last space (e.g., "22" from "Tennaqua 22", "K" from "Tennaqua K")
+            parts = display_name.split()
+            if len(parts) > 1:
+                last_part = parts[-1]
+                
+                # Try to convert to number first
+                try:
+                    return (0, int(last_part))  # Numbers come first, sorted numerically
+                except ValueError:
+                    # If not a number, treat as string
+                    return (1, last_part)  # Letters come after numbers, sorted alphabetically
+            else:
+                # If no space found, use the whole name
+                return (2, display_name)
+        
+        # Sort teams using the custom key
+        formatted_teams.sort(key=extract_sort_key)
         
         return jsonify({
             "success": True,
