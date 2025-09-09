@@ -550,7 +550,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetails = practiceEventDetails;
                 
                 // If no practices found for this team, try to find a team with practices
-                if (practiceDates.length === 0 && availableTeams.length > 1) {
+                // Only do this on initial load, not when user manually changes teams
+                if (practiceDates.length === 0 && availableTeams.length > 1 && !window.teamManuallySelected) {
                     console.log('No practices found for current team, looking for team with practices...');
                     await findTeamWithPractices();
                 }
@@ -1036,6 +1037,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedTeamId = teamFilter.value;
         if (selectedTeamId && selectedTeamId !== currentTeamId) {
             currentTeamId = selectedTeamId;
+            
+            // Mark that user manually selected a team
+            window.teamManuallySelected = true;
             
             // Show loading state
             updateProgress(2, 30, 'Loading team practice data...');
