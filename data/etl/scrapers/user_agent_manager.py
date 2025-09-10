@@ -114,6 +114,10 @@ class UserAgentManager:
         for ua in self.windows_apta_pool + self.default_pool:
             self.ua_metrics[ua] = UserAgentMetrics(user_agent=ua)
     
+    def _is_tenniscores(self, site_url: str) -> bool:
+        """Check if site is any tenniscores.com domain."""
+        return isinstance(site_url, str) and "tenniscores.com" in site_url.lower()
+
     def get_user_agent_for_site(self, site_url: str, force_new: bool = False) -> str:
         """
         Get appropriate User-Agent for a specific site.
@@ -125,11 +129,20 @@ class UserAgentManager:
         Returns:
             str: Selected User-Agent string
         """
-        # Check if this is APTA
-        if "apta.tenniscores.com" in site_url.lower():
+        # Check if this is any tenniscores.com site (APTA, CNSWPL, NSTF, etc.)
+        if self._is_tenniscores(site_url):
             return self._get_apta_user_agent(force_new)
         else:
             return self._get_default_user_agent()
+
+    def get_sticky_ua(self) -> str:
+        """
+        Get sticky Windows-Chrome User-Agent for consistent sessions.
+        
+        Returns:
+            str: Consistent Windows User-Agent for tenniscores.com sites
+        """
+        return self._get_apta_user_agent(force_new=False)
     
     def _get_apta_user_agent(self, force_new: bool = False) -> str:
         """

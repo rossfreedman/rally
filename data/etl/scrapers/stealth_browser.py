@@ -261,10 +261,29 @@ class EnhancedStealthBrowser:
         logger.info(f"   Environment: {config.environment}")
         logger.info(f"   Delays: {config.min_delay}-{config.max_delay}s")
     
-    def _create_driver(self):
+    def _create_driver(self, preferred_ua: str = None):
         """Create a new Chrome driver with stealth settings and OS signal leak prevention."""
-        # Get a random user agent for this driver
-        user_agent = UserAgentManager.get_random_user_agent()
+        # Import settings
+        try:
+            from .settings_stealth import STEALTH_STICKY_UA, STEALTH_LANG, STEALTH_VIEWPORT, STEALTH_TIMEZONE
+        except ImportError:
+            from settings_stealth import STEALTH_STICKY_UA, STEALTH_LANG, STEALTH_VIEWPORT, STEALTH_TIMEZONE
+        
+        # Get user agent - use preferred if provided, otherwise get appropriate one
+        if preferred_ua:
+            user_agent = preferred_ua
+        else:
+            # Import UA manager
+            try:
+                from .user_agent_manager import UserAgentManager
+            except ImportError:
+                from user_agent_manager import UserAgentManager
+            
+            ua_mgr = UserAgentManager()
+            if STEALTH_STICKY_UA:
+                user_agent = ua_mgr.get_sticky_ua()
+            else:
+                user_agent = ua_mgr.get_user_agent_for_site("https://tenniscores.com")
         
         # Try multiple ChromeDriver strategies
         driver = None
@@ -293,6 +312,13 @@ class EnhancedStealthBrowser:
         if not driver:
             raise Exception("All Chrome driver strategies failed")
         
+        # Set timezone using CDP command
+        try:
+            driver.execute_cdp_cmd("Emulation.setTimezoneOverride", {"timezoneId": STEALTH_TIMEZONE})
+        except Exception as e:
+            if hasattr(self.config, 'verbose') and self.config.verbose:
+                logger.warning(f"⚠️ Failed to set timezone: {e}")
+        
         # Inject stealth scripts with OS-specific overrides
         self._inject_stealth_scripts(driver, user_agent)
         
@@ -300,90 +326,22 @@ class EnhancedStealthBrowser:
     
     def _create_fresh_options(self, user_agent: str):
         """Create fresh ChromeOptions for each strategy attempt."""
-        options = uc.ChromeOptions()
+        # Import settings and build function
+        try:
+            from .settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT
+            from .chrome_driver_config import build_chrome_options
+        except ImportError:
+            from settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT
+            from chrome_driver_config import build_chrome_options
         
-        # Enhanced stealth settings for APTA Chicago
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("--disable-extensions")
-        options.add_argument("--disable-plugins")
-        options.add_argument("--disable-web-security")
-        options.add_argument("--allow-running-insecure-content")
-        options.add_argument("--disable-features=VizDisplayCompositor")
-        
-        # Advanced anti-detection
-        options.add_argument("--disable-ipc-flooding-protection")
-        options.add_argument("--disable-renderer-backgrounding")
-        options.add_argument("--disable-client-side-phishing-detection")
-        options.add_argument("--no-first-run")
-        options.add_argument("--disable-safebrowsing")
-        options.add_argument("--disable-translate")
-        options.add_argument("--disable-default-apps")
-        options.add_argument("--disable-sync")
-        options.add_argument("--disable-background-timer-throttling")
-        options.add_argument("--disable-backgrounding-occluded-windows")
-        options.add_argument("--disable-renderer-backgrounding")
-        options.add_argument("--disable-features=TranslateUI")
-        options.add_argument("--disable-ipc-flooding-protection")
-        options.add_argument("--disable-hang-monitor")
-        options.add_argument("--disable-prompt-on-repost")
-        options.add_argument("--disable-domain-reliability")
-        options.add_argument("--disable-component-extensions-with-background-pages")
-        options.add_argument("--disable-background-networking")
-        options.add_argument("--disable-background-timer-throttling")
-        options.add_argument("--disable-backgrounding-occluded-windows")
-        options.add_argument("--disable-renderer-backgrounding")
-        options.add_argument("--disable-features=TranslateUI")
-        options.add_argument("--disable-ipc-flooding-protection")
-        options.add_argument("--disable-hang-monitor")
-        options.add_argument("--disable-prompt-on-repost")
-        options.add_argument("--disable-domain-reliability")
-        options.add_argument("--disable-component-extensions-with-background-pages")
-        options.add_argument("--disable-background-networking")
-        
-        # Hide automation indicators
-        options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        options.add_experimental_option('useAutomationExtension', False)
-        options.add_experimental_option("prefs", {
-            "profile.default_content_setting_values.notifications": 2,
-            "profile.default_content_settings.popups": 0,
-            "profile.managed_default_content_settings.images": 2,
-            "profile.default_content_setting_values.media_stream": 2,
-        })
-        
-        # Avoid OS signal leaks - force Windows platform for APTA
-        if hasattr(self, 'current_url') and "apta.tenniscores.com" in self.current_url:
-            options.add_argument("--platform=Windows")
-            options.add_argument("--window-size=1920,1080")
-            # Use Windows User-Agent from UA manager
-            try:
-                from .user_agent_manager import get_user_agent_for_site
-            except ImportError:
-                import sys
-                import os
-                current_dir = os.path.dirname(__file__)
-                parent_dir = os.path.dirname(current_dir)
-                if parent_dir not in sys.path:
-                    sys.path.insert(0, parent_dir)
-                # Get the absolute path to the scrapers directory
-                current_file = os.path.abspath(__file__)
-                scrapers_dir = os.path.dirname(current_file)
-                if scrapers_dir not in sys.path:
-                    sys.path.insert(0, scrapers_dir)
-                from user_agent_manager import get_user_agent_for_site
-            user_agent = get_user_agent_for_site(self.current_url)
-        else:
-            # Set window size
-            options.add_argument(f"--window-size={self.config.window_width},{self.config.window_height}")
-            # Use default User-Agent
-            user_agent = UserAgentManager.get_random_user_agent()
-        
-        options.add_argument(f"--user-agent={user_agent}")
-        
-        # Headless mode
-        if self.config.headless:
-            options.add_argument("--headless")
+        # Use the centralized build_chrome_options function
+        options = build_chrome_options(
+            user_agent=user_agent,
+            lang=STEALTH_LANG,
+            viewport=STEALTH_VIEWPORT,
+            headless=self.config.headless,
+            proxy=self.current_proxy if hasattr(self, 'current_proxy') else None
+        )
         
         return options
     

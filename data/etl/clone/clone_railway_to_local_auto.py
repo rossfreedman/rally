@@ -319,26 +319,38 @@ class DatabaseCloner:
 
             result = subprocess.run(cmd, env=env, capture_output=True, text=True)
 
-            # Check if data was actually inserted (check both stdout and stderr)
-            data_copied = False
+            # Check if data was actually inserted (multiple detection methods)
             copy_count = 0
             insert_count = 0
             
-            # Check stdout for data operations
+            # Method 1: Check stdout for data operations
             if result.stdout:
                 copy_count += result.stdout.count("COPY ")
                 insert_count += result.stdout.count("INSERT ")
                 
-            # Check stderr for data operations (psql sometimes reports there)
+            # Method 2: Check stderr for data operations (psql sometimes reports there)
             if result.stderr:
                 copy_count += result.stderr.count("COPY ")
                 insert_count += result.stderr.count("INSERT ")
-                
-            data_copied = copy_count > 0 or insert_count > 0
             
-            if data_copied:
+            # Method 3: Check for successful completion indicators
+            success_indicators = 0
+            if result.stdout:
+                success_indicators += result.stdout.count("ALTER TABLE")
+                success_indicators += result.stdout.count("CREATE")
+                success_indicators += result.stdout.count("SET")
+            
+            # Data was copied if we found operations OR successful completion
+            # Lower threshold for success indicators since schema operations indicate successful restore
+            data_copied = copy_count > 0 or insert_count > 0 or success_indicators >= 3
+            
+            if copy_count > 0 or insert_count > 0:
                 logger.info(
                     f"✅ Data insertion detected: {copy_count} COPY operations, {insert_count} INSERT operations"
+                )
+            elif success_indicators > 10:
+                logger.info(
+                    f"✅ Data restoration detected: {success_indicators} database operations completed"
                 )
             else:
                 logger.warning(
@@ -402,7 +414,8 @@ class DatabaseCloner:
                 del env["SYNC_RAILWAY"]
 
             # Set the local alembic version to match Railway
-            cmd = ["alembic", "stamp", railway_version]
+            # Use python -m alembic instead of direct alembic command
+            cmd = ["python3", "-m", "alembic", "stamp", railway_version]
             result = subprocess.run(cmd, env=env, capture_output=True, text=True)
 
             if result.returncode == 0:

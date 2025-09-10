@@ -311,6 +311,85 @@ def send_urgent_sms(message: str) -> bool:
         logger.error(f"❌ Error sending SMS: {e}")
         return False
 
+def mark_failure(proxy: str, reason: str = ""):
+    """
+    Mark proxy failure with hard block detection.
+    Only retires proxy on hard blocks, otherwise just backs off.
+    
+    Args:
+        proxy: Proxy URL or identifier
+        reason: Reason for failure
+    """
+    try:
+        # Import settings for hard block detection
+        try:
+            from .settings_stealth import PROXY_RETIRE_ON_HARD_BLOCKS_ONLY, HARD_BLOCK_PATTERNS
+        except ImportError:
+            from settings_stealth import PROXY_RETIRE_ON_HARD_BLOCKS_ONLY, HARD_BLOCK_PATTERNS
+    except ImportError:
+        # Fallback if settings not available
+        PROXY_RETIRE_ON_HARD_BLOCKS_ONLY = True
+        HARD_BLOCK_PATTERNS = ["captcha", "access denied", "forbidden", "cloudflare", "just a moment", "bot detection"]
+    
+    if not PROXY_RETIRE_ON_HARD_BLOCKS_ONLY:
+        # Old behavior - retire on any failure
+        return retire_proxy(proxy)
+    
+    # Check if this is a hard block
+    reason_lower = (reason or "").lower()
+    is_hard_block = any(pattern in reason_lower for pattern in HARD_BLOCK_PATTERNS)
+    
+    if is_hard_block:
+        logger.warning(f"🚫 Hard block detected for proxy {proxy}: {reason}")
+        return retire_proxy(proxy)
+    else:
+        logger.info(f"⚠️ Soft failure for proxy {proxy}: {reason} - backing off")
+        return backoff_proxy(proxy)
+
+def retire_proxy(proxy: str):
+    """Mark proxy as retired/dead."""
+    # This would integrate with the existing proxy rotator
+    logger.warning(f"💀 Retiring proxy: {proxy}")
+    return True
+
+def backoff_proxy(proxy: str):
+    """Apply backoff to proxy without retiring it."""
+    # This would integrate with the existing proxy rotator  
+    logger.info(f"⏸️ Backing off proxy: {proxy}")
+    return True
+
+def _test_target_home(proxy: str, url: str = "https://aptachicago.tenniscores.com/") -> bool:
+    """
+    Test proxy against target homepage to verify it can access tenniscores.com sites.
+    
+    Args:
+        proxy: Proxy URL string
+        url: Target homepage URL to test
+        
+    Returns:
+        bool: True if proxy can access the target site successfully
+    """
+    try:
+        proxies = {"http": proxy, "https": proxy}
+        headers = get_random_headers(url)
+        
+        response = requests.get(url, proxies=proxies, timeout=10, headers=headers)
+        
+        if response.status_code != 200:
+            return False
+            
+        html = (response.text or "").lower()
+        
+        # Check for tenniscores site indicators
+        required_indicators = ["tenniscores", "series", "division"]
+        found_indicators = sum(1 for indicator in required_indicators if indicator in html)
+        
+        # Must find at least 2 indicators and have substantial content
+        return found_indicators >= 2 and len(html) > 1000
+        
+    except Exception:
+        return False
+
 def is_blocked(response: requests.Response) -> bool:
     """
     Detect if response indicates proxy blocking or bot detection.
@@ -594,6 +673,12 @@ class EnhancedProxyRotator:
     def _test_proxy(self, proxy_info: ProxyInfo) -> bool:
         """Test if a proxy is working with multiple fallback URLs and better error handling."""
         try:
+            # Import settings for proxy testing
+            try:
+                from .settings_stealth import PROXY_TEST_TARGET
+            except ImportError:
+                from settings_stealth import PROXY_TEST_TARGET
+            
             # Create proxy URL with authentication if available
             if proxy_info.username and proxy_info.password:
                 proxy_url = f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
@@ -669,11 +754,23 @@ class EnhancedProxyRotator:
                             data = response.json()
                             # Check for expected fields in different APIs
                             if any(field in data for field in ['origin', 'ip', 'user-agent']):
-                                proxy_info.status = ProxyStatus.ACTIVE
-                                proxy_info.success_count += 1
-                                proxy_info.consecutive_failures = 0
-                                logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
-                                return True
+                                # Basic test passed, now test target homepage if enabled
+                                if PROXY_TEST_TARGET:
+                                    if _test_target_home(proxy_url):
+                                        proxy_info.status = ProxyStatus.ACTIVE
+                                        proxy_info.success_count += 1
+                                        proxy_info.consecutive_failures = 0
+                                        logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url} + homepage)")
+                                        return True
+                                    else:
+                                        logger.warning(f"⚠️ Proxy {proxy_info.port} failed homepage test")
+                                        continue  # Try next URL
+                                else:
+                                    proxy_info.status = ProxyStatus.ACTIVE
+                                    proxy_info.success_count += 1
+                                    proxy_info.consecutive_failures = 0
+                                    logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
+                                    return True
                             else:
                                 logger.warning(f"⚠️ Proxy {proxy_info.port} returned invalid JSON from {test_url}")
                                 continue  # Try next URL
@@ -1210,7 +1307,7 @@ class EnhancedProxyRotator:
             # Reset consecutive blocks on successful request
             self.reset_consecutive_blocks()
     
-    def report_failure(self, port: int = None):
+    def report_failure(self, port: int = None, reason: str = ""):
         """Report failed request for proxy."""
         port = port or self.current_port
         if port in self.proxies:

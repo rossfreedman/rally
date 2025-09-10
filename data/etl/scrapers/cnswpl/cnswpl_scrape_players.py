@@ -37,6 +37,13 @@ sys.path.append(parent_path)
 from stealth_browser import EnhancedStealthBrowser, StealthConfig
 from user_agent_manager import UserAgentManager
 from proxy_manager import fetch_with_retry
+# Import the new rally runtime for efficiency upgrades
+try:
+    from rally_runtime import ScrapeContext
+    RALLY_RUNTIME_AVAILABLE = True
+except ImportError:
+    RALLY_RUNTIME_AVAILABLE = False
+    print("⚠️ Rally runtime not available, using traditional approach")
 
 class CNSWPLRosterScraper:
     """Comprehensive CNSWPL roster scraper that hits all series pages"""
@@ -50,10 +57,15 @@ class CNSWPLRosterScraper:
         self.start_time = time.time()
         self.force_restart = force_restart
         
+        # Try to initialize rally runtime context for efficiency
+        self.rally_context = self._initialize_rally_context()
+        
         # Initialize stealth browser with better error handling
         self.stealth_browser = self._initialize_stealth_browser()
         
-        if self.stealth_browser:
+        if self.rally_context:
+            print("✅ Rally runtime context initialized - using efficient driver reuse")
+        elif self.stealth_browser:
             print("✅ Stealth browser initialized successfully")
         else:
             print("⚠️ Stealth browser failed - using curl fallback for all requests")
@@ -78,6 +90,22 @@ class CNSWPLRosterScraper:
             url_status = "🔍 DISCOVER" if series_url == "DISCOVER" else "✅ URL READY"
             print(f"   - {series_name} {status} ({url_status})")
     
+    def _initialize_rally_context(self) -> Optional['ScrapeContext']:
+        """Initialize rally runtime context for efficient scraping."""
+        if not RALLY_RUNTIME_AVAILABLE:
+            return None
+            
+        try:
+            context = ScrapeContext(
+                series_id="cnswpl_players",
+                site_hint="https://cnswpl.tenniscores.com/"
+            )
+            print("✅ Rally runtime context initialized")
+            return context
+        except Exception as e:
+            print(f"⚠️ Failed to initialize rally context: {e}")
+            return None
+
     def _initialize_stealth_browser(self) -> Optional[EnhancedStealthBrowser]:
         """
         Initialize stealth browser with enhanced error handling and proxy management.
@@ -595,6 +623,51 @@ class CNSWPLRosterScraper:
             print(f"❌ Error scraping {series_name}: {e}")
             return []
     
+    def extract_players_from_team_page_with_rally_context(self, team_name: str, team_url: str, series_name: str, series_url: str, player_index: int = 0) -> List[Dict]:
+        """
+        Extract players using rally runtime context for efficiency.
+        This demonstrates the new stealth & efficiency approach.
+        """
+        if not self.rally_context:
+            # Fallback to traditional method
+            return self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
+        
+        try:
+            # Start driver if not already started (reuses existing driver)
+            driver = self.rally_context.start_driver()
+            if not driver:
+                # Fallback to traditional method
+                return self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
+            
+            # Get HTML using the rally context
+            html = self.rally_context.get_html_with_driver(team_url)
+            
+            # Validate the HTML
+            success = len(html) > 1000 and "player" in html.lower()
+            
+            # Maybe save debug HTML (respects settings_stealth.py configuration)
+            def save_html_debug(content, filename):
+                with open(filename, 'w', encoding='utf-8') as f:
+                    f.write(content)
+            
+            self.rally_context.maybe_save_debug(html, success, save_html_debug, f"team_{team_name}", player_index)
+            
+            if not success:
+                print(f"     ❌ Invalid HTML received for team {team_name}")
+                return []
+            
+            # Parse the HTML (same logic as original)
+            soup = BeautifulSoup(html, 'html.parser')
+            # Add human-like pause after successful extraction
+            self.rally_context.pause_between_players(player_index)
+            
+            return self._extract_players_from_soup(soup, team_name, team_url, series_name, series_url)
+            
+        except Exception as e:
+            print(f"     ❌ Rally context error for team {team_name}: {e}")
+            # Fallback to traditional method
+            return self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
+
     def extract_players_from_team_page(self, team_name: str, team_url: str, series_name: str, series_url: str) -> List[Dict]:
         """Extract all players from a specific team roster page, excluding sub players"""
         try:
@@ -1570,6 +1643,14 @@ def main():
         if scraper.all_players:
             print("💾 Saving partial results...")
             scraper.save_results(is_final=False)
+    finally:
+        # Clean up rally context (driver reuse) for efficiency
+        if hasattr(scraper, 'rally_context') and scraper.rally_context:
+            try:
+                scraper.rally_context.stop_driver()
+                print("✅ Rally context cleaned up")
+            except:
+                pass
 
 if __name__ == "__main__":
     main()
