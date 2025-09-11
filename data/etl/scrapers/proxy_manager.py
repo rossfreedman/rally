@@ -373,7 +373,7 @@ def _test_target_home(proxy: str, url: str = "https://aptachicago.tenniscores.co
         proxies = {"http": proxy, "https": proxy}
         headers = get_random_headers(url)
         
-        response = requests.get(url, proxies=proxies, timeout=10, headers=headers)
+        response = requests.get(url, proxies=proxies, timeout=5, headers=headers)  # Reduced from 10 to 5 seconds
         
         if response.status_code != 200:
             return False
@@ -486,6 +486,7 @@ class ProxyInfo:
     success_count: int = 0
     failure_count: int = 0
     consecutive_failures: int = 0
+    consecutive_successes: int = 0
     total_requests: int = 0
     last_failure_type: Optional[str] = None  # Track what type of failure occurred
     avg_latency: float = 0.0  # Average response time in seconds
@@ -516,15 +517,17 @@ class EnhancedProxyRotator:
     - Intelligent rotation based on health
     - Automatic testing of proxies
     - Comprehensive metrics
+    - Session name rotation for maximum IP diversity
     """
     
     def __init__(self, 
                  ports: List[int] = None,
-                 rotate_every: int = 30,
+                 rotate_every: int = 15,  # More frequent rotation
                  session_duration: int = 600,
                  test_url: str = "https://httpbin.org/ip",
-                 usage_cap_per_proxy: int = 80,
-                 sticky: bool = False):
+                 usage_cap_per_proxy: int = 80,  # Lower cap per proxy since we have 3x more IPs
+                 sticky: bool = False,
+                 session_names: List[str] = None):
         """
         Initialize enhanced proxy rotator.
         
@@ -534,11 +537,18 @@ class EnhancedProxyRotator:
             session_duration: Session duration in seconds
             test_url: URL to test proxy health
             usage_cap_per_proxy: Maximum requests per proxy per session (60-100)
+            sticky: Whether to use sticky sessions
+            session_names: List of session names for IP diversity (e.g., ['abc123', 'def456'])
         """
         self.rotate_every = rotate_every
         self.session_duration = session_duration
         self.test_url = test_url
         self.usage_cap_per_proxy = usage_cap_per_proxy
+        
+        # Initialize session names for IP diversity
+        self.session_names = session_names or self._generate_default_session_names()
+        self.current_session_index = 0
+        self.session_rotation_count = 0
         
         # Initialize proxy credentials storage BEFORE loading ports
         self.proxy_credentials: Dict[int, Dict[str, str]] = {}
@@ -615,6 +625,7 @@ class EnhancedProxyRotator:
         logger.info(f"🔄 Rotation: Every {rotate_every} requests")
         logger.info(f"⏱️ Session duration: {session_duration} seconds")
         logger.info(f"🎯 Usage cap: {usage_cap_per_proxy} requests per proxy")
+        logger.info(f"🎭 Session names: {len(self.session_names)} (max IP diversity: {len(self.ports) * len(self.session_names)})")
         
         # Test all proxies initially (skip if in quick test mode or fast mode)
         skip_testing = os.getenv('QUICK_TEST') or os.getenv('FAST_MODE') or os.getenv('SKIP_PROXY_TEST')
@@ -667,8 +678,20 @@ class EnhancedProxyRotator:
         except Exception as e:
             logger.error(f"❌ Error loading ips.txt: {e}")
         
-        # Fallback to default range
-        return list(range(10001, 10101))  # 100 ports
+        # Fallback to expanded range - access more IPs from Decodo pool
+        # Your 8GB plan gives access to unlimited IPs, so we can use more ports
+        return list(range(10001, 10301))  # 300 ports (3x more IPs)
+    
+    def _generate_default_session_names(self) -> List[str]:
+        """Generate default session names for maximum IP diversity."""
+        # Create 10 unique session names following Decodo's recommendation
+        # Each session name should be at least 3 letters and 3 numbers
+        session_names = [
+            "abc123", "def456", "ghi789", "jkl012", "mno345",
+            "pqr678", "stu901", "vwx234", "yza567", "bcd890"
+        ]
+        logger.info(f"🎭 Generated {len(session_names)} default session names for IP diversity")
+        return session_names
     
     def _test_proxy(self, proxy_info: ProxyInfo) -> bool:
         """Test if a proxy is working with multiple fallback URLs and better error handling."""
@@ -679,7 +702,7 @@ class EnhancedProxyRotator:
             except ImportError:
                 from settings_stealth import PROXY_TEST_TARGET
             
-            # Create proxy URL with authentication if available
+            # Create proxy URL with authentication (session names not supported by Decodo)
             if proxy_info.username and proxy_info.password:
                 proxy_url = f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
             else:
@@ -1046,6 +1069,7 @@ class EnhancedProxyRotator:
             
             # Test 1: Basic IP validation
             try:
+                # Use working credentials for warmup testing
                 proxy_url = f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:{port}"
                 proxies = {"http": proxy_url, "https": proxy_url}
                 
@@ -1169,11 +1193,129 @@ class EnhancedProxyRotator:
             self.session_metrics["usage_capped_proxies"] += 1
             return True
         
+        # Rotate if we're running low on available proxies (proactive rotation)
+        available_proxies = len(self._get_available_proxies())
+        total_proxies = len(self.ports)
+        if available_proxies < (total_proxies * 0.3):  # Less than 30% available
+            logger.info(f"🔄 Proactive rotation: Only {available_proxies}/{total_proxies} proxies available")
+            # Try to recover some dead proxies
+            self._attempt_proxy_recovery()
+            return True
+        
+        # Rotate session name every 50 requests for maximum IP diversity
+        if self.request_count % 50 == 0 and self.request_count > 0:
+            self._rotate_session_name()
+            # Don't return True here - we want to continue with proxy rotation if needed
+        
         # Rotate if session is too old
         if time.time() - self.session_start_time > self.session_duration:
             return True
         
+        # Restart session every 2 hours to prevent exhaustion
+        if time.time() - self.session_start_time > 7200:  # 2 hours
+            logger.info("🔄 2-hour session limit reached - restarting proxy session")
+            self._restart_proxy_session()
+            return True
+        
         return False
+    
+    def _attempt_proxy_recovery(self):
+        """Attempt to recover dead proxies by testing them again."""
+        if not self.dead_proxies:
+            return
+        
+        logger.info(f"🔄 Attempting to recover {len(self.dead_proxies)} dead proxies...")
+        recovered_count = 0
+        
+        for port in list(self.dead_proxies):
+            try:
+                # Test the dead proxy
+                proxy_info = self.proxies.get(port)
+                if not proxy_info:
+                    continue
+                
+                # Use working credentials for recovery testing
+                if proxy_info.username and proxy_info.password:
+                    username = proxy_info.username
+                    password = proxy_info.password
+                else:
+                    username = "sp2lv5ti3g"
+                    password = "zU0Pdl~7rcGqgxuM69"
+                
+                proxies = {
+                    'http': f'http://{username}:{password}@{proxy_info.host}:{port}',
+                    'https': f'http://{username}:{password}@{proxy_info.host}:{port}'
+                }
+                
+                response = requests.get(self.test_url, proxies=proxies, timeout=5, headers=self._get_headers())
+                if response.status_code == 200 and len(response.text) > 50:
+                    # Proxy is working again
+                    self.dead_proxies.discard(port)
+                    proxy_info.is_healthy = True
+                    proxy_info.consecutive_failures = 0
+                    recovered_count += 1
+                    logger.info(f"✅ Recovered proxy {port}")
+                    
+            except Exception as e:
+                # Still dead, keep it in dead_proxies
+                continue
+        
+        if recovered_count > 0:
+            logger.info(f"🎉 Successfully recovered {recovered_count} proxies")
+        else:
+            logger.info(f"❌ No proxies could be recovered")
+    
+    def _restart_proxy_session(self):
+        """Restart the proxy session to clear dead/capped proxies."""
+        logger.info("🔄 Restarting proxy session...")
+        
+        # Clear dead and capped proxies
+        self.dead_proxies.clear()
+        self.capped_proxies.clear()
+        self.proxy_usage.clear()
+        
+        # Reset session metrics
+        self.session_start_time = time.time()
+        self.request_count = 0
+        self.total_rotations = 0
+        
+        # Reset proxy health
+        for port, info in self.proxies.items():
+            info.is_healthy = True
+            info.consecutive_failures = 0
+            info.status = ProxyStatus.ACTIVE
+        
+        # Choose new random proxy
+        self.current_port = random.choice(self.ports)
+        
+        logger.info("✅ Proxy session restarted - all proxies available again")
+    
+    def _rotate_session_name(self):
+        """Rotate to the next session name for maximum IP diversity."""
+        old_session = self.session_names[self.current_session_index]
+        self.current_session_index = (self.current_session_index + 1) % len(self.session_names)
+        new_session = self.session_names[self.current_session_index]
+        self.session_rotation_count += 1
+        
+        logger.info(f"🎭 Rotating session name: {old_session} → {new_session} (rotation #{self.session_rotation_count})")
+    
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers for proxy testing."""
+        return {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json,text/html,*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive"
+        }
+    
+    def _get_available_proxies(self) -> List[int]:
+        """Get list of available (healthy, not dead, not capped) proxies."""
+        return [port for port, info in self.proxies.items()
+                if info.is_healthy 
+                and port not in self.dead_proxies 
+                and port not in self.capped_proxies
+                and self.proxy_usage.get(port, 0) < self.usage_cap_per_proxy]
     
     def _rotate_proxy(self):
         """Rotate to a new healthy proxy."""
@@ -1222,6 +1364,10 @@ class EnhancedProxyRotator:
         self.total_rotations += 1
         self.session_metrics["proxy_rotations"] += 1
         
+        # Rotate session name every 10 proxy rotations for maximum IP diversity
+        if self.total_rotations % 10 == 0:
+            self._rotate_session_name()
+        
         # Update proxy info
         if self.current_port in self.proxies:
             self.proxies[self.current_port].last_used = datetime.now()
@@ -1260,12 +1406,14 @@ class EnhancedProxyRotator:
         if self.current_port in self.proxies:
             self.proxies[self.current_port].last_used = datetime.now()
         
-        # Get proxy info with credentials
+        # Get proxy info with credentials (session names not supported by Decodo)
         proxy_info = self.proxies.get(self.current_port)
+        
         if proxy_info and proxy_info.username and proxy_info.password:
+            # Use credentials from proxy info (original format)
             return f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
         else:
-            # Use working credentials as fallback (from working_proxy_config.json)
+            # Use working credentials as fallback (original format)
             return f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:{self.current_port}"
     
     def report_success(self, port: int = None, latency: float = None):
@@ -1275,6 +1423,7 @@ class EnhancedProxyRotator:
             proxy_info = self.proxies[port]
             proxy_info.success_count += 1
             proxy_info.consecutive_failures = 0
+            proxy_info.consecutive_successes += 1
             proxy_info.total_requests += 1
             self.session_metrics["successful_requests"] += 1
             
@@ -1291,10 +1440,11 @@ class EnhancedProxyRotator:
             # Update success rate tracking
             self.session_metrics["proxy_success_rates"][port] = proxy_info.success_rate
             
-            # Check for pool promotion (to trusted pool)
+            # Check for pool promotion (to trusted pool) - require 3+ consecutive successes
             if (proxy_info.pool == "rotating" and 
                 proxy_info.success_rate >= 90 and 
                 proxy_info.total_requests >= 10 and
+                proxy_info.consecutive_successes >= 3 and
                 port not in self.trusted_pool):
                 self._promote_to_trusted(port)
             
@@ -1314,6 +1464,7 @@ class EnhancedProxyRotator:
             proxy_info = self.proxies[port]
             proxy_info.failure_count += 1
             proxy_info.consecutive_failures += 1
+            proxy_info.consecutive_successes = 0  # Reset consecutive successes on failure
             proxy_info.total_requests += 1
             
             # Update success rate tracking
@@ -1325,10 +1476,11 @@ class EnhancedProxyRotator:
                 proxy_info.total_requests >= 10):
                 self._demote_from_trusted(port)
             
-            # Mark as dead if too many consecutive failures
+            # Retire proxy after 3 consecutive failures
             if proxy_info.consecutive_failures >= 3:
-                proxy_info.status = ProxyStatus.DEAD
                 self.dead_proxies.add(port)
+                proxy_info.status = ProxyStatus.DEAD
+                logger.warning(f"💀 Retiring proxy {port} after 3 consecutive failures")
                 self.session_metrics["dead_proxies_detected"] += 1
                 logger.warning(f"💀 Marking proxy {port} as dead")
             
@@ -1471,10 +1623,11 @@ class EnhancedProxyRotator:
             if proxy_info.total_requests < 5:  # Need minimum data
                 continue
                 
-            # Promote to trusted if criteria met
+            # Promote to trusted if criteria met - require 3+ consecutive successes
             if (proxy_info.pool == "rotating" and 
                 proxy_info.success_rate >= 90 and 
                 proxy_info.total_requests >= 10 and
+                proxy_info.consecutive_successes >= 3 and
                 port not in self.trusted_pool):
                 self._promote_to_trusted(port)
             
@@ -1501,6 +1654,9 @@ class EnhancedProxyRotator:
             "sticky_sessions": self.session_metrics.get("sticky_sessions", 0),
             "current_port": self.current_port,
             "sticky_proxy_port": self.sticky_proxy_port,
+            "current_session": self.session_names[self.current_session_index],
+            "session_rotations": self.session_rotation_count,
+            "max_ip_combinations": len(self.ports) * len(self.session_names),
             "session_metrics": self.session_metrics
         }
     
@@ -1607,7 +1763,12 @@ def make_proxy_request(url: str, timeout: int = 30, max_retries: int = 3) -> Opt
                 pass
             
             if attempt < max_retries - 1:
-                time.sleep(random.uniform(2 ** attempt, 2 ** (attempt + 1)))  # Exponential backoff with randomization
+                # Exponential backoff with full jitter
+                base_delay = min(2 ** attempt, 10)  # Cap at 10 seconds
+                jitter = random.uniform(0, base_delay)  # Full jitter
+                total_delay = base_delay + jitter
+                logger.info(f"⏳ Exponential backoff: {total_delay:.1f}s (base: {base_delay:.1f}s, jitter: {jitter:.1f}s)")
+                time.sleep(total_delay)
                 continue
     
     raise Exception(f"All proxies failed for {url}")
@@ -1668,14 +1829,22 @@ def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, session_
                 rotator.report_blocked(current_proxy_port)
                 skipped_proxies.add(current_proxy_port)
                 
-                # Force rotation to try a different proxy
-                rotator._rotate_proxy()
+                # Special handling for 429 (rate limit) - swap both IP and UA
+                if response.status_code == 429:
+                    logger.warning(f"⏰ Rate limited (429) - swapping IP and UA")
+                    rotator._rotate_proxy()
+                    # Force UA rotation by getting new headers
+                    kwargs['headers'] = get_random_headers()
+                else:
+                    # Force rotation to try a different proxy
+                    rotator._rotate_proxy()
                 
                 if attempt < max_retries - 1:
                     # Apply adaptive throttling
                     adaptive_delay = rotator.get_adaptive_throttle_delay()
                     base_backoff = min(2 ** attempt, 10)  # Cap at 10 seconds
-                    total_delay = max(base_backoff, adaptive_delay)
+                    jitter = random.uniform(0, base_backoff)  # Full jitter
+                    total_delay = max(base_backoff + jitter, adaptive_delay)
                     
                     logger.info(f"⏳ Adaptive throttling: {total_delay:.1f}s delay (base: {base_backoff:.1f}s, adaptive: {adaptive_delay:.1f}s)")
                     time.sleep(total_delay)
@@ -1694,7 +1863,8 @@ def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, session_
                     # Apply adaptive throttling for content validation failures too
                     adaptive_delay = rotator.get_adaptive_throttle_delay()
                     base_backoff = min(2 ** attempt, 10)
-                    total_delay = max(base_backoff, adaptive_delay)
+                    jitter = random.uniform(0, base_backoff)  # Full jitter
+                    total_delay = max(base_backoff + jitter, adaptive_delay)
                     
                     logger.info(f"⏳ Content validation failed - adaptive delay: {total_delay:.1f}s")
                     time.sleep(total_delay)
@@ -1717,8 +1887,10 @@ def fetch_with_retry(url: str, max_retries: int = 3, timeout: int = 30, session_
             rotator._rotate_proxy()
             
             if attempt < max_retries - 1:
-                backoff_delay = min(2 ** attempt, 10)
-                logger.info(f"⏳ Network error - waiting {backoff_delay}s before retry...")
+                base_delay = min(2 ** attempt, 10)
+                jitter = random.uniform(0, base_delay)  # Full jitter
+                backoff_delay = base_delay + jitter
+                logger.info(f"⏳ Network error - waiting {backoff_delay:.1f}s before retry (base: {base_delay:.1f}s, jitter: {jitter:.1f}s)...")
                 time.sleep(backoff_delay)
                 continue
             else:

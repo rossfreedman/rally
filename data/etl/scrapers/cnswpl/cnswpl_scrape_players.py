@@ -203,6 +203,31 @@ class CNSWPLRosterScraper:
             print(f"   ❌ Proxy rotation error: {e}")
             return False
     
+    def _check_proxy_health(self) -> bool:
+        """
+        Check if proxy pool is healthy and suggest fallback if needed.
+        
+        Returns:
+            bool: True if proxy pool is healthy, False if should use fallback
+        """
+        try:
+            from proxy_manager import rotator
+            if hasattr(rotator, 'session_metrics'):
+                total_requests = rotator.session_metrics.get('total_requests', 0)
+                failed_requests = rotator.session_metrics.get('failed_requests', 0)
+                dead_proxies = rotator.session_metrics.get('dead_proxies_detected', 0)
+                
+                if total_requests > 0:
+                    failure_rate = (failed_requests / total_requests) * 100
+                    if failure_rate > 60 or dead_proxies > 5:
+                        print(f"   ⚠️ Proxy pool health: {failure_rate:.1f}% failure rate, {dead_proxies} dead proxies")
+                        print(f"   🔄 Consider using browser fallback for better reliability")
+                        return False
+        except Exception as e:
+            print(f"   ⚠️ Could not check proxy health: {e}")
+        
+        return True
+
     def _add_intelligent_delay(self, request_type: str = "general"):
         """
         Add intelligent, randomized delays between requests to mimic human behavior.
@@ -798,8 +823,12 @@ class CNSWPLRosterScraper:
                     cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
                     
                     # Get player stats from individual player page
-                    print(f"           📊 Getting stats for {player_name}...")
+                    print(f"           📊 Getting current season stats for {player_name}...")
                     stats = self.get_player_stats_from_individual_page(href)
+                    
+                    # Get career stats from individual player page
+                    print(f"           📊 Getting career stats for {player_name}...")
+                    career_stats = self.get_career_stats_from_individual_page(href)
                     
                     # Create player record
                     player_data = {
@@ -811,16 +840,19 @@ class CNSWPLRosterScraper:
                         'First Name': first_name,
                         'Last Name': last_name,
                         'PTI': 'N/A',
-                        'Wins': str(stats['Wins']),
-                        'Losses': str(stats['Losses']),
-                        'Win %': stats['Win %'],
+                        'Wins': str(stats['Wins']),  # Current season wins
+                        'Losses': str(stats['Losses']),  # Current season losses
+                        'Win %': stats['Win %'],  # Current season win percentage
+                        'Career Wins': career_stats["wins"],  # Career wins from player page
+                        'Career Losses': career_stats["losses"],  # Career losses from player page
+                        'Career Win %': career_stats["win_percentage"],  # Career win percentage
                         'Captain': 'Yes' if is_captain else '',
                         'Source URL': team_url,
                         'source_league': 'CNSWPL'
                     }
                     
                     players.append(player_data)
-                    print(f"           🎾 Added player: {player_name} (section: {current_section})")
+                    print(f"           🎾 Added player: {player_name} (section: {current_section}, Season W: {stats['Wins']}, Season L: {stats['Losses']}, Career W: {career_stats['wins']}, Career L: {career_stats['losses']})")
             
             elif len(cells) != 4:
                 # Skip rows that don't have the expected 4-cell structure
@@ -881,8 +913,12 @@ class CNSWPLRosterScraper:
                 cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
                 
                 # Get player stats from individual player page
-                print(f"           📊 Getting stats for {player_name}...")
+                print(f"           📊 Getting current season stats for {player_name}...")
                 stats = self.get_player_stats_from_individual_page(href)
+                
+                # Get career stats from individual player page
+                print(f"           📊 Getting career stats for {player_name}...")
+                career_stats = self.get_career_stats_from_individual_page(href)
                 
                 # Create player record
                 player_data = {
@@ -894,9 +930,12 @@ class CNSWPLRosterScraper:
                     'First Name': first_name,
                     'Last Name': last_name,
                     'PTI': 'N/A',
-                    'Wins': str(stats['Wins']),
-                    'Losses': str(stats['Losses']),
-                    'Win %': stats['Win %'],
+                    'Wins': str(stats['Wins']),  # Current season wins
+                    'Losses': str(stats['Losses']),  # Current season losses
+                    'Win %': stats['Win %'],  # Current season win percentage
+                    'Career Wins': career_stats["wins"],  # Career wins from player page
+                    'Career Losses': career_stats["losses"],  # Career losses from player page
+                    'Career Win %': career_stats["win_percentage"],  # Career win percentage
                     'Captain': 'Yes' if is_captain else '',
                     'Source URL': team_url,
                     'source_league': 'CNSWPL'
@@ -1006,6 +1045,20 @@ class CNSWPLRosterScraper:
             series_urls = self.get_series_urls()
         else:
             series_urls = discovered_series
+        
+        # Filter series based on target_series parameter if specified
+        if self.target_series:
+            print(f"\n🎯 Filtering to target series: {', '.join(self.target_series)}")
+            filtered_series = []
+            for series_name, series_url in series_urls:
+                # Extract series identifier (number or letter) from series name
+                series_id = series_name.replace('Series ', '').strip()
+                if series_id in self.target_series:
+                    filtered_series.append((series_name, series_url))
+                else:
+                    print(f"   ⏭️ Skipping {series_name} (not in target list)")
+            series_urls = filtered_series
+            print(f"✅ Filtered to {len(series_urls)} target series")
         
         print(f"\n📋 Will scrape {len(series_urls)} series:")
         for series_name, series_url in series_urls:
@@ -1455,23 +1508,9 @@ class CNSWPLRosterScraper:
                 else:
                     full_url = player_url
                 
-                # Use proxy-first approach with intelligent fallback for CNSWPL
-                try:
-                    response = fetch_with_retry(full_url, timeout=15)
-                    if response and response.status_code == 200:
-                        html_content = response.text
-                        print(f"   ✅ Proxy request successful - got {len(html_content)} characters")
-                    else:
-                        print(f"   ⚠️ Proxy request failed for {full_url}, trying fallback")
-                        html_content = self.get_html_with_fallback(full_url)
-                except Exception as e:
-                    if "522" in str(e) or "Cloudflare" in str(e):
-                        print(f"   ⚠️ CNSWPL 522/Cloudflare error (may be temporary): {e}")
-                        print(f"   🔄 Trying fallback method...")
-                        html_content = self.get_html_with_fallback(full_url)
-                    else:
-                        print(f"   ⚠️ Proxy request error: {e}, trying fallback")
-                        html_content = self.get_html_with_fallback(full_url)
+                # Use browser-first approach for better reliability during long scrapes
+                print(f"   🌐 Using browser automation for reliable data extraction...")
+                html_content = self.get_html_with_fallback(full_url)
                 
                 if not html_content:
                     if attempt < max_retries - 1:
@@ -1510,6 +1549,132 @@ class CNSWPLRosterScraper:
         
         # Return default stats if all retries failed
         return {"Wins": 0, "Losses": 0, "Win %": "0.0%"}
+
+    def get_career_stats_from_individual_page(self, player_url: str, max_retries: int = 2) -> Dict[str, any]:
+        """
+        Get career wins and losses from individual player page - simple approach like scraper_player_history.py
+        
+        Args:
+            player_url: URL to the individual player page
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            Dictionary with career wins, losses, and win_percentage
+        """
+        for attempt in range(max_retries):
+            try:
+                print(f"   📊 Getting career stats from individual player page (attempt {attempt + 1})...")
+                
+                # Construct full URL if needed
+                if not player_url.startswith("http"):
+                    full_url = f"{self.base_url}{player_url}"
+                else:
+                    full_url = player_url
+                
+                # For career stats, we need browser automation to click the Chronological checkbox
+                if self.stealth_browser:
+                    browser = self.stealth_browser
+                else:
+                    from stealth_browser import create_stealth_browser
+                    browser = create_stealth_browser(force_browser=True, verbose=False)
+                
+                # Ensure browser has a driver for UI interactions
+                if not hasattr(browser, 'current_driver') or browser.current_driver is None:
+                    print(f"   🔧 Initializing browser driver for UI interactions...")
+                    # Force browser mode to ensure driver is created
+                    browser.config.force_browser = True
+                    browser.current_driver = browser._create_driver()
+                
+                # Use browser automation to get HTML content
+                html_content = browser.get_html(full_url)
+                if not html_content:
+                    print(f"   ❌ Failed to get HTML content")
+                    continue
+                
+                print(f"   ✅ Browser automation successful: {len(html_content)} characters")
+                
+                # Check if we need to click "Chronological" checkbox to load match data
+                if 'playercard_value_wins' in html_content and 'html(\'0\')' in html_content:
+                    print(f"   🔄 Detected unloaded match data, clicking Chronological checkbox...")
+                    
+                    try:
+                        driver = getattr(browser, 'current_driver', None)
+                        print(f"   🔍 Driver available: {driver is not None}")
+                        if driver:
+                            # Find and click the Chronological checkbox by ID
+                            chronological_checkbox = driver.find_elements("xpath", "//input[@id='chron']")
+                            print(f"   🔍 Checkbox elements found: {len(chronological_checkbox)}")
+                            
+                            if chronological_checkbox:
+                                # Check if checkbox is already checked
+                                is_checked = chronological_checkbox[0].is_selected()
+                                print(f"   ✅ Found Chronological checkbox, currently checked: {is_checked}")
+                                
+                                if not is_checked:
+                                    print(f"   🔄 Clicking Chronological checkbox to enable...")
+                                    chronological_checkbox[0].click()
+                                    
+                                    # Wait for JavaScript to load the match data
+                                    time.sleep(1.5)
+                                    
+                                    # Get updated HTML content
+                                    html_content = driver.page_source
+                                    print(f"   ✅ Updated HTML after clicking Chronological: {len(html_content)} characters")
+                                else:
+                                    print(f"   ℹ️ Chronological checkbox already checked, data should be loaded")
+                                
+                                # Also try clicking "Expand All Matches" if available
+                                expand_button = driver.find_elements("xpath", "//a[contains(text(), 'Expand All Matches')]")
+                                if expand_button:
+                                    print(f"   🔄 Clicking Expand All Matches...")
+                                    expand_button[0].click()
+                                    time.sleep(1)
+                                    html_content = driver.page_source
+                                    print(f"   ✅ Updated HTML after expanding: {len(html_content)} characters")
+                            else:
+                                print(f"   ⚠️ Chronological checkbox not found")
+                    except Exception as e:
+                        print(f"   ⚠️ Error clicking Chronological checkbox: {e}")
+                
+                # Use the exact same approach as scraper_player_history.py
+                wins = 0
+                losses = 0
+                
+                # Count wins and losses from HTML content
+                if "W" in html_content or "L" in html_content:
+                    # Simple pattern matching for wins/losses - same as scraper_player_history.py
+                    w_matches = re.findall(r'\bW\b', html_content)
+                    l_matches = re.findall(r'\bL\b', html_content)
+                    wins = len(w_matches)
+                    losses = len(l_matches)
+                    print(f"   📊 Found {wins}W/{losses}L via word boundary matching")
+                else:
+                    print(f"   📊 No W or L found in HTML content")
+                
+                # Calculate win percentage
+                if wins + losses > 0:
+                    win_percentage = f"{(wins / (wins + losses) * 100):.1f}%"
+                else:
+                    win_percentage = "0.0%"
+                
+                career_stats = {
+                    "wins": str(wins),
+                    "losses": str(losses),
+                    "win_percentage": win_percentage
+                }
+                
+                print(f"   ✅ Career stats extracted: {wins} wins, {losses} losses, {win_percentage}")
+                return career_stats
+                
+            except Exception as e:
+                print(f"   ❌ Error getting career stats (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2)
+                else:
+                    print(f"   ⚠️ All attempts failed for career stats")
+                    return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+        
+        return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
 
 def main():
     """Main function"""

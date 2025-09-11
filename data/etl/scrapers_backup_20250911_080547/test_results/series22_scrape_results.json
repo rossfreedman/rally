@@ -1,0 +1,25 @@
+{
+  "test": "series22_player_scrape",
+  "timestamp": "2025-08-26 22:50:37",
+  "url": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNzY%3D",
+  "page_loaded": true,
+  "page_length": 337816,
+  "blocked": false,
+  "stealth_working": true,
+  "potential_players_found": 20,
+  "pti_references_found": 7,
+  "pti_values_found": [],
+  "sample_player_names": [
+    "Prairie Club - 36",
+    "Salt Creek - 13 SW",
+    "Midtown - Chicago - 19",
+    "Westmoreland - 10",
+    "Chicago",
+    "LaGrange CC - 11 SW",
+    "Dunham Woods - 29 SW",
+    "Glen Oak II - 27 SW",
+    "Sunset Ridge - 17",
+    "Winter Club - 17"
+  ],
+  "html_file": "test_results/series22_raw.html"
+}

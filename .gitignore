@@ -147,3 +147,4 @@ docs/archive/
 data/etl/scrapers/old/
 
 backups/*.sql
+.db.env

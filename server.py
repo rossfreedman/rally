@@ -664,6 +664,19 @@ def serve_interstitial():
     return render_template("interstitial.html", session_data=session_data)
 
 
+@app.route("/contact")
+def serve_contact():
+    """Serve the marketing contact page"""
+    host = request.host.split(":")[0].lower()
+    
+    # Only serve on marketing hosts
+    if host in MARKETING_HOSTS:
+        return send_from_directory(WEBSITE_DIR, "contact.html")
+    
+    # For other hosts, redirect to login
+    return redirect("/login")
+
+
 @app.route("/contact-sub")
 @login_required
 def serve_contact_sub():
@@ -1534,6 +1547,63 @@ def fix_series_dropdown():
             "error": str(e),
             "traceback": traceback.format_exc(),
             "railway_env": railway_env
+        }), 500
+
+
+# ==========================================
+# API ENDPOINTS
+# ==========================================
+
+@app.route("/api/contact", methods=["POST"])
+def handle_contact_form():
+    """Handle contact form submissions from marketing website"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['firstName', 'lastName', 'email', 'requestType', 'subject', 'message']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Extract form data
+        contact_data = {
+            'first_name': data.get('firstName'),
+            'last_name': data.get('lastName'),
+            'email': data.get('email'),
+            'request_type': data.get('requestType'),
+            'subject': data.get('subject'),
+            'message': data.get('message'),
+            'newsletter_opt_in': data.get('newsletter', False),
+            'submitted_at': datetime.now().isoformat(),
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', '')
+        }
+        
+        # Log the contact form submission
+        print(f"📧 Contact form submission received:")
+        print(f"   Name: {contact_data['first_name']} {contact_data['last_name']}")
+        print(f"   Email: {contact_data['email']}")
+        print(f"   Type: {contact_data['request_type']}")
+        print(f"   Subject: {contact_data['subject']}")
+        print(f"   Newsletter: {contact_data['newsletter_opt_in']}")
+        
+        # Here you could add database storage, email sending, etc.
+        # For now, we'll just log it and return success
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! We\'ll get back to you soon.'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error handling contact form: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'An error occurred while processing your request. Please try again.'
         }), 500
 
 

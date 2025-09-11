@@ -201,7 +201,7 @@ class StealthConfig:
         # Environment-specific defaults (can be overridden)
         if min_delay is None:
             if environment == "local":
-                self.min_delay = 1.0 if fast_mode else 1.5
+                self.min_delay = 0.5 if fast_mode else 0.8
             elif environment == "staging":
                 self.min_delay = 1.5 if fast_mode else 2.5
             else:  # production
@@ -211,7 +211,7 @@ class StealthConfig:
             
         if max_delay is None:
             if environment == "local":
-                self.max_delay = 3.0 if fast_mode else 4.0
+                self.max_delay = 1.5 if fast_mode else 2.0
             elif environment == "staging":
                 self.max_delay = 4.0 if fast_mode else 6.0
             else:  # production
@@ -230,7 +230,7 @@ class StealthConfig:
         
         # Detection thresholds
         self.min_page_size = 1000
-        self.timeout_seconds = 30
+        self.timeout_seconds = 20
         
         # Browser settings
         self.window_width = 1920
@@ -321,6 +321,9 @@ class EnhancedStealthBrowser:
         
         # Inject stealth scripts with OS-specific overrides
         self._inject_stealth_scripts(driver, user_agent)
+        
+        # Ensure consistent fingerprint across all components
+        self._ensure_consistent_fingerprint(driver, user_agent)
         
         return driver
     
@@ -468,6 +471,36 @@ class EnhancedStealthBrowser:
         except Exception as e:
             raise Exception(f"Basic ChromeDriver failed: {e}")
     
+    def _ensure_consistent_fingerprint(self, driver, user_agent: str = None):
+        """Ensure consistent fingerprint across UA, viewport, timezone, and fonts."""
+        try:
+            # Get current fingerprint components
+            current_ua = driver.execute_script("return navigator.userAgent")
+            current_viewport = driver.execute_script("return {width: window.innerWidth, height: window.innerHeight}")
+            current_timezone = driver.execute_script("return Intl.DateTimeFormat().resolvedOptions().timeZone")
+            
+            # Ensure UA consistency
+            if user_agent and current_ua != user_agent:
+                driver.execute_script(f"Object.defineProperty(navigator, 'userAgent', {{get: function() {{ return '{user_agent}'; }}, configurable: true}});")
+            
+            # Ensure viewport consistency
+            target_viewport = STEALTH_VIEWPORT
+            if current_viewport['width'] != target_viewport[0] or current_viewport['height'] != target_viewport[1]:
+                driver.set_window_size(target_viewport[0], target_viewport[1])
+            
+            # Ensure timezone consistency
+            if current_timezone != STEALTH_TIMEZONE:
+                driver.execute_cdp_cmd("Emulation.setTimezoneOverride", {"timezoneId": STEALTH_TIMEZONE})
+            
+            # Ensure language consistency
+            driver.execute_script(f"Object.defineProperty(navigator, 'language', {{get: function() {{ return '{STEALTH_LANG}'; }}, configurable: true}});")
+            driver.execute_script(f"Object.defineProperty(navigator, 'languages', {{get: function() {{ return ['{STEALTH_LANG}']; }}, configurable: true}});")
+            
+            logger.debug(f"🔧 Ensured consistent fingerprint: UA={user_agent[:50]}..., viewport={target_viewport}, tz={STEALTH_TIMEZONE}")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to ensure consistent fingerprint: {e}")
+
     def _inject_stealth_scripts(self, driver, user_agent: str = None):
         """Inject JavaScript to hide automation indicators and override OS signals."""
         # Enhanced stealth scripts for APTA Chicago - grouped by functionality to avoid scope issues
@@ -962,7 +995,7 @@ class EnhancedStealthBrowser:
         user_agent = get_user_agent_for_site(url)
         
         try:
-            response = make_proxy_request(url, timeout=30)
+            response = make_proxy_request(url, timeout=15)
             if not response:
                 report_ua_failure(user_agent, url)
                 return None
@@ -1110,7 +1143,7 @@ class EnhancedStealthBrowser:
                     pass  # Ignore if mouse simulation fails
             
             # Random page interaction delays
-            interaction_delay = random.uniform(1.0, 3.0)
+            interaction_delay = random.uniform(0.5, 1.5)
             time.sleep(interaction_delay)
             
             # Sometimes move mouse to random position
