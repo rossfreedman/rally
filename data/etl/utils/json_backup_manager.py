@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class JSONBackupManager:
     """Manages backup operations for JSON files used in scraping."""
     
-    def __init__(self, backup_base_dir: str = "data/etl/scrapers/temp_jsons/backups/backup_jsons"):
+    def __init__(self, backup_base_dir: str = "data/etl/scrapers/helpers/temp_jsons/backups/backup_jsons"):
         """
         Initialize the backup manager.
         

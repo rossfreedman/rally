@@ -22,8 +22,8 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 sys.path.insert(0, project_root)
 
 # Import stealth components
-from data.etl.scrapers.stealth_browser import create_stealth_browser, DetectionType, SessionMetrics
-from data.etl.scrapers.proxy_manager import get_proxy_rotator
+from data.etl.scrapers.helpers.stealth_browser import create_stealth_browser, DetectionType, SessionMetrics
+from data.etl.scrapers.helpers.proxy_manager import get_proxy_rotator
 from data.etl.utils.json_backup_manager import backup_before_scraping, create_backup_manager
 
 # Import database components
@@ -110,7 +110,7 @@ class StealthConfig:
     delta_mode: bool = False
     delta_start_date: Optional[str] = None
     delta_end_date: Optional[str] = None
-    delta_config_file: str = "data/etl/scrapers/delta_scraper_config.json"
+    delta_config_file: str = "data/etl/scrapers/helpers/delta_scraper_config.json"
 
 class IncrementalScrapingManager:
     """Manages intelligent incremental scraping using latest match detection"""
@@ -1190,7 +1190,7 @@ def main():
     parser.add_argument("--delta-mode", action="store_true", help="Enable delta scraping mode")
     parser.add_argument("--delta-start-date", help="Start date for delta scraping (YYYY-MM-DD)")
     parser.add_argument("--delta-end-date", help="End date for delta scraping (YYYY-MM-DD)")
-    parser.add_argument("--delta-config", default="data/etl/scrapers/delta_scraper_config.json", 
+    parser.add_argument("--delta-config", default="data/etl/scrapers/helpers/delta_scraper_config.json", 
                        help="Path to delta configuration file")
     
     args = parser.parse_args()

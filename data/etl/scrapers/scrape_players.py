@@ -54,18 +54,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 # Import enhanced stealth browser with all features
-from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
+from helpers.stealth_browser import EnhancedStealthBrowser, create_stealth_browser
 from utils.league_utils import standardize_league_id
 
 # Import for NSTF player extraction
 try:
-    from data.etl.scrapers.proxy_manager import make_proxy_request
+    from data.etl.scrapers.helpers.proxy_manager import make_proxy_request
 except ImportError:
-    from proxy_manager import make_proxy_request
+    from helpers.proxy_manager import make_proxy_request
 
 # Import missing functions - provide fallbacks if they don't exist
 try:
-    from stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, make_decodo_request
+    from helpers.stealth_browser import StealthBrowserManager, create_enhanced_scraper, add_throttling_to_loop, make_decodo_request
 except ImportError:
     print("⚠️ Some stealth browser functions not available, using fallbacks")
     

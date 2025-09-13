@@ -23,6 +23,44 @@ import re
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+
+# Add the scrapers directory to the path to access helper modules
+scrapers_path = os.path.join(os.path.dirname(__file__), '..')
+if scrapers_path not in sys.path:
+    sys.path.insert(0, scrapers_path)
+
+# Import speed optimizations with safe fallbacks
+try:
+    from ..adaptive_pacer import pace_sleep, mark
+    from ..stealth_browser import stop_after_selector
+    SPEED_OPTIMIZATIONS_AVAILABLE = True
+except ImportError:
+    try:
+        from helpers.adaptive_pacer import pace_sleep, mark
+        from helpers.stealth_browser import stop_after_selector
+        SPEED_OPTIMIZATIONS_AVAILABLE = True
+    except ImportError:
+        SPEED_OPTIMIZATIONS_AVAILABLE = False
+        print("⚠️ Speed optimizations not available - using standard pacing")
+        
+        # Safe no-op fallbacks
+        def pace_sleep():
+            pass
+            
+        def mark(*args, **kwargs):
+            pass
+            
+        def stop_after_selector(*args, **kwargs):
+            pass
+
+def _pacer_mark_ok():
+    """Helper function to safely mark successful responses for adaptive pacing."""
+    try:
+        mark('ok')
+    except Exception:
+        pass
 
 # Configure logging to reduce output
 logging.basicConfig(level=logging.WARNING)
@@ -30,16 +68,12 @@ logging.getLogger('selenium').setLevel(logging.ERROR)
 logging.getLogger('urllib3').setLevel(logging.ERROR)
 logging.getLogger('requests').setLevel(logging.ERROR)
 
-# Add the parent directory to the path to access scraper modules
-parent_path = os.path.join(os.path.dirname(__file__), '..')
-sys.path.append(parent_path)
-
-from stealth_browser import EnhancedStealthBrowser, StealthConfig
-from user_agent_manager import UserAgentManager
-from proxy_manager import fetch_with_retry
+from helpers.stealth_browser import EnhancedStealthBrowser, StealthConfig
+from helpers.user_agent_manager import UserAgentManager
+from helpers.proxy_manager import fetch_with_retry
 # Import the new rally runtime for efficiency upgrades
 try:
-    from rally_runtime import ScrapeContext
+    from helpers.rally_runtime import ScrapeContext
     RALLY_RUNTIME_AVAILABLE = True
 except ImportError:
     RALLY_RUNTIME_AVAILABLE = False
@@ -56,6 +90,17 @@ class CNSWPLRosterScraper:
 
         self.start_time = time.time()
         self.force_restart = force_restart
+        
+        # Progress tracking
+        self.total_players_processed = 0
+        self.total_players_expected = 0
+        self.total_series_count = 0
+        self.current_series = ""
+        self.current_player = ""
+        self.last_progress_update = time.time()
+        
+        # Speed optimizations flag
+        self.SPEED_OPTIMIZATIONS_AVAILABLE = SPEED_OPTIMIZATIONS_AVAILABLE
         
         # Try to initialize rally runtime context for efficiency
         self.rally_context = self._initialize_rally_context()
@@ -136,9 +181,11 @@ class CNSWPLRosterScraper:
             test_url = "https://cnswpl.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI"  # Use series page instead of root
             
             try:
+                pace_sleep()  # Adaptive pacing before network request
                 test_response = stealth_browser.get_html(test_url)
                 
                 if test_response and len(test_response) > 100:
+                    mark('ok')  # Mark successful response
                     print("   ✅ Stealth browser test successful")
                     return stealth_browser
                 else:
@@ -185,8 +232,10 @@ class CNSWPLRosterScraper:
                         time.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
                     
                     # Test the new proxy with a simple request
+                    pace_sleep()  # Adaptive pacing before network request
                     test_response = stealth_browser.get_html("https://tennisscores.com")
                     if test_response and len(test_response) > 100:
+                        mark('ok')  # Mark successful response
                         print("   ✅ Proxy rotation successful")
                         return True
                     else:
@@ -211,7 +260,7 @@ class CNSWPLRosterScraper:
             bool: True if proxy pool is healthy, False if should use fallback
         """
         try:
-            from proxy_manager import rotator
+            from helpers.proxy_manager import rotator
             if hasattr(rotator, 'session_metrics'):
                 total_requests = rotator.session_metrics.get('total_requests', 0)
                 failed_requests = rotator.session_metrics.get('failed_requests', 0)
@@ -228,65 +277,419 @@ class CNSWPLRosterScraper:
         
         return True
 
+    def _format_time(self, seconds):
+        """Format seconds into human-readable time string."""
+        if seconds < 60:
+            return f"{seconds:.0f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}m"
+        else:
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+    
+    def _format_completion_time(self, completion_timestamp):
+        """Format completion time in a user-friendly way."""
+        if completion_timestamp <= 0:
+            return "Calculating..."
+        
+        # Get current time and completion time
+        now = time.time()
+        completion_time = time.localtime(completion_timestamp)
+        current_time = time.localtime(now)
+        
+        # Calculate time difference
+        time_diff = completion_timestamp - now
+        
+        # If completion is today
+        if completion_time.tm_yday == current_time.tm_yday:
+            if time_diff < 3600:  # Less than 1 hour
+                return f"in {self._format_time(time_diff)}"
+            else:  # More than 1 hour today
+                hour = completion_time.tm_hour
+                minute = completion_time.tm_min
+                am_pm = "AM" if hour < 12 else "PM"
+                display_hour = hour if hour <= 12 else hour - 12
+                if display_hour == 0:
+                    display_hour = 12
+                return f"today at {display_hour}:{minute:02d} {am_pm}"
+        else:  # Different day
+            days_diff = completion_time.tm_yday - current_time.tm_yday
+            if days_diff == 1:
+                return "tomorrow"
+            elif days_diff <= 7:
+                return f"in {days_diff} days"
+            else:
+                return f"in {days_diff} days"
+    
+    def _create_progress_bar(self, percent_complete, width=20):
+        """Create a visual progress bar."""
+        # Ensure percentage is within 0-100 range for display
+        display_percent = max(0, min(percent_complete, 100))
+        
+        filled = int((display_percent / 100) * width)
+        empty = width - filled
+        
+        # Create progress bar with different characters for different completion levels
+        if display_percent < 25:
+            fill_char = "░"  # Light fill
+        elif display_percent < 50:
+            fill_char = "▒"  # Medium fill
+        elif display_percent < 75:
+            fill_char = "▓"  # Dark fill
+        else:
+            fill_char = "█"  # Full fill
+        
+        bar = fill_char * filled + "░" * empty
+        return f"[{bar}] {display_percent:.1f}%"
+
+    def _update_progress(self, series_name="", player_name="", players_processed=0, total_players=0, player_stats=None):
+        """Update and display comprehensive progress information with player details."""
+        current_time = time.time()
+        elapsed_time = current_time - self.start_time
+        
+        # Update counters
+        if players_processed > 0:
+            self.total_players_processed = players_processed
+        if total_players > 0:
+            self.total_players_expected = total_players
+        if series_name:
+            self.current_series = series_name
+        if player_name:
+            self.current_player = player_name
+        
+        # Calculate progress metrics - dynamically adjust expected total based on actual discoveries
+        if hasattr(self, 'total_series_count') and self.total_series_count > 0:
+            # Use actual series count and realistic estimates for better progress tracking
+            if self.total_players_processed > self.total_players_expected:
+                # We've discovered more players than initially estimated
+                # Recalculate based on current average and remaining series
+                completed_series_count = len(self.completed_series) if hasattr(self, 'completed_series') else 1
+                if completed_series_count > 0:
+                    avg_players_per_series = self.total_players_processed / completed_series_count
+                    remaining_series = self.total_series_count - completed_series_count
+                    self.total_players_expected = self.total_players_processed + (remaining_series * avg_players_per_series)
+                else:
+                    # Fallback: add buffer for remaining players
+                    self.total_players_expected = self.total_players_processed + 100
+        
+        if self.total_players_expected > 0:
+            percent_complete = (self.total_players_processed / self.total_players_expected) * 100
+            # Cap percentage at 100% for display purposes
+            percent_complete = min(percent_complete, 100.0)
+        else:
+            percent_complete = 0
+        
+        # Calculate estimated time remaining
+        if self.total_players_processed > 0 and elapsed_time > 0:
+            avg_time_per_player = elapsed_time / self.total_players_processed
+            remaining_players = max(0, self.total_players_expected - self.total_players_processed)
+            estimated_remaining_time = remaining_players * avg_time_per_player
+            estimated_completion_time = time.time() + estimated_remaining_time
+            
+            # If we've exceeded our estimate, show minimal remaining time
+            if remaining_players == 0:
+                estimated_remaining_time = 60  # Show 1 minute remaining when near completion
+        else:
+            estimated_remaining_time = 0
+            estimated_completion_time = 0
+        
+        # Calculate processing rate
+        if elapsed_time > 0:
+            players_per_hour = (self.total_players_processed / elapsed_time) * 3600
+        else:
+            players_per_hour = 0
+        
+        # Display progress (only update every 5 seconds to avoid spam, or when processing new players)
+        if current_time - self.last_progress_update >= 5 or players_processed > 0:
+            print(f"\n{'='*80}")
+            print(f"📊 SCRAPING PROGRESS UPDATE")
+            print(f"{'='*80}")
+            print(f"🎯 Current Series: {self.current_series}")
+            print(f"👤 Current Player: {self.current_player}")
+            
+            # Show player stats if available
+            if player_stats:
+                self._display_player_stats(player_stats)
+            
+            # Show progress with prominent percentage and progress bar
+            print(f"📈 Progress: {self.total_players_processed:,} / {self.total_players_expected:,} players")
+            print(f"🎯 TOTAL COMPLETE: {percent_complete:.1f}%")
+            print(f"📊 Progress Bar: {self._create_progress_bar(percent_complete)}")
+            print(f"⏱️  Elapsed Time: {self._format_time(elapsed_time)}")
+            print(f"⏳ Estimated Remaining: {self._format_time(estimated_remaining_time)}")
+            print(f"🏁 Estimated Completion: {self._format_completion_time(estimated_completion_time)}")
+            print(f"🚀 Processing Rate: {players_per_hour:.1f} players/hour")
+            print(f"{'='*80}")
+            self.last_progress_update = current_time
+    
+    def _display_player_stats(self, player_stats):
+        """Display player statistics in a formatted way."""
+        if not player_stats:
+            return
+        
+        print(f"📊 Player Stats:")
+        
+        # Season stats
+        season_wins = player_stats.get('Season Wins', 0)
+        season_losses = player_stats.get('Season Losses', 0)
+        season_win_pct = player_stats.get('Season Win %', '0.0%')
+        print(f"   🏆 Season: {season_wins}W/{season_losses}L ({season_win_pct})")
+        
+        # Career stats
+        career_wins = player_stats.get('Career Wins', 0)
+        career_losses = player_stats.get('Career Losses', 0)
+        career_win_pct = player_stats.get('Career Win %', '0.0%')
+        print(f"   🎯 Career: {career_wins}W/{career_losses}L ({career_win_pct})")
+        
+        # Additional info
+        club = player_stats.get('Club', 'Unknown')
+        series = player_stats.get('Series', 'Unknown')
+        print(f"   🏢 Club: {club} | Series: {series}")
+
+    def _get_recent_success_rate(self) -> float:
+        """Calculate recent success rate for adaptive delays."""
+        if not hasattr(self, 'recent_requests'):
+            self.recent_requests = []
+        
+        # Keep only last 20 requests for recent success rate
+        if len(self.recent_requests) > 20:
+            self.recent_requests = self.recent_requests[-20:]
+        
+        if not self.recent_requests:
+            return 1.0  # Assume success if no history
+        
+        return sum(self.recent_requests) / len(self.recent_requests)
+    
+    def _get_delay_multiplier(self, success_rate: float, very_fast: float, fast: float, moderate: float, conservative: float) -> float:
+        """Get delay multiplier based on success rate."""
+        if success_rate >= 0.98:
+            return very_fast
+        elif success_rate >= 0.95:
+            return fast
+        elif success_rate >= 0.90:
+            return moderate
+        else:
+            return conservative
+    
+    def _record_request_result(self, success: bool):
+        """Record request result for success rate tracking."""
+        if not hasattr(self, 'recent_requests'):
+            self.recent_requests = []
+        
+        self.recent_requests.append(success)
+    
+    def _process_teams_parallel(self, team_links: List[Tuple[str, str]], series_name: str, series_url: str) -> List[Dict]:
+        """Process teams in parallel for massive speed improvement."""
+        try:
+            from .settings_stealth import (
+                ENABLE_PARALLEL_PROCESSING, PARALLEL_WORKERS, PARALLEL_BATCH_SIZE,
+                PARALLEL_BATCH_DELAY, PARALLEL_MAX_RETRIES, PARALLEL_TIMEOUT
+            )
+        except ImportError:
+            # Fallback to sequential processing
+            return self._process_teams_sequential(team_links, series_name, series_url)
+        
+        if not ENABLE_PARALLEL_PROCESSING:
+            return self._process_teams_sequential(team_links, series_name, series_url)
+        
+        print(f"   🚀 Processing {len(team_links)} teams in parallel ({PARALLEL_WORKERS} workers)")
+        
+        all_players = []
+        seen_player_ids = set()
+        
+        # Process teams in batches
+        for i in range(0, len(team_links), PARALLEL_BATCH_SIZE):
+            batch = team_links[i:i + PARALLEL_BATCH_SIZE]
+            batch_num = (i // PARALLEL_BATCH_SIZE) + 1
+            total_batches = (len(team_links) + PARALLEL_BATCH_SIZE - 1) // PARALLEL_BATCH_SIZE
+            
+            print(f"   📦 Processing batch {batch_num}/{total_batches} ({len(batch)} teams)")
+            
+            # Process batch in parallel
+            batch_players = self._process_team_batch_parallel(batch, series_name, series_url)
+            
+            # Filter duplicates and add to results
+            for player in batch_players:
+                player_id = player.get('Player ID', '')
+                if player_id and player_id not in seen_player_ids:
+                    seen_player_ids.add(player_id)
+                    all_players.append(player)
+                elif player_id:
+                    print(f"      ⚠️ Skipping duplicate player: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
+            
+            # Add delay between batches
+            if i + PARALLEL_BATCH_SIZE < len(team_links):
+                time.sleep(PARALLEL_BATCH_DELAY)
+        
+        print(f"   ✅ Parallel processing complete: {len(all_players)} unique players from {len(team_links)} teams")
+        return all_players
+    
+    def _process_team_batch_parallel(self, team_batch: List[Tuple[str, str]], series_name: str, series_url: str) -> List[Dict]:
+        """Process a batch of teams in parallel using ThreadPoolExecutor."""
+        try:
+            from .settings_stealth import PARALLEL_WORKERS, PARALLEL_TIMEOUT
+        except ImportError:
+            PARALLEL_WORKERS = 4
+            PARALLEL_TIMEOUT = 30
+        
+        batch_players = []
+        
+        with ThreadPoolExecutor(max_workers=PARALLEL_WORKERS) as executor:
+            # Submit all team processing tasks
+            future_to_team = {
+                executor.submit(self._extract_players_from_team_page_safe, team_name, team_url, series_name, series_url): 
+                (team_name, team_url) for team_name, team_url in team_batch
+            }
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_team, timeout=PARALLEL_TIMEOUT * len(team_batch)):
+                team_name, team_url = future_to_team[future]
+                try:
+                    team_players = future.result(timeout=PARALLEL_TIMEOUT)
+                    if team_players:
+                        batch_players.extend(team_players)
+                        print(f"      ✅ {team_name}: {len(team_players)} players")
+                    else:
+                        print(f"      ⚠️ {team_name}: No players found")
+                except Exception as e:
+                    print(f"      ❌ {team_name}: Error - {e}")
+                    # Record failure for success rate tracking
+                    self._record_request_result(False)
+        
+        return batch_players
+    
+    def _extract_players_from_team_page_safe(self, team_name: str, team_url: str, series_name: str, series_url: str) -> List[Dict]:
+        """Thread-safe version of extract_players_from_team_page for parallel processing."""
+        try:
+            # Get the team page with timeout monitoring using fallback method
+            start_time = time.time()
+            html_content = self.get_html_with_fallback(team_url)
+            elapsed = time.time() - start_time
+            
+            if elapsed > 60:  # 1 minute warning
+                print(f"        ⚠️ {team_name} request took {elapsed:.1f}s")
+                
+            if not html_content:
+                print(f"        ❌ Failed to get team page for {team_name}")
+                self._record_request_result(False)
+                return []
+            
+            print(f"        ✅ Got team page for {team_name} ({len(html_content)} characters)")
+            self._record_request_result(True)
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            players = []
+            
+            # CNSWPL uses a table-based structure with class 'team_roster_table'
+            roster_table = soup.find('table', class_='team_roster_table')
+            
+            if roster_table:
+                players = self._extract_players_from_table(roster_table, team_name, team_url, series_name, series_url)
+            else:
+                # Fall back to the old method but with sub filtering
+                players = self._extract_players_fallback_with_sub_filtering(soup, team_name, team_url, series_name, series_url)
+            
+            return players
+            
+        except Exception as e:
+            print(f"        ❌ Error scraping team {team_name}: {e}")
+            self._record_request_result(False)
+            return []
+    
+    def _process_teams_sequential(self, team_links: List[Tuple[str, str]], series_name: str, series_url: str) -> List[Dict]:
+        """Fallback sequential processing for teams."""
+        print(f"   📝 Processing {len(team_links)} teams sequentially")
+        
+        all_players = []
+        seen_player_ids = set()
+        
+        for i, (team_name, team_url) in enumerate(team_links):
+            print(f"   🎾 Scraping team {i+1}/{len(team_links)}: {team_name}")
+            print(f"      🌐 URL: {team_url}")
+            team_players = self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
+            
+            # Filter out duplicate players based on Player ID
+            unique_team_players = []
+            for player in team_players:
+                player_id = player.get('Player ID', '')
+                if player_id and player_id not in seen_player_ids:
+                    seen_player_ids.add(player_id)
+                    unique_team_players.append(player)
+                elif player_id:
+                    print(f"         ⚠️ Skipping duplicate player: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
+            
+            all_players.extend(unique_team_players)
+            
+            # Show team summary
+            if unique_team_players:
+                print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
+            else:
+                print(f"      ⚠️ Team {team_name}: No unique players found")
+            
+            # Add delay between team requests
+            if i < len(team_links) - 1:
+                self._add_intelligent_delay("team")
+        
+        return all_players
+
     def _add_intelligent_delay(self, request_type: str = "general"):
         """
         Add intelligent, randomized delays between requests to mimic human behavior.
+        Uses adaptive pacing when available for speed optimization.
         
         Args:
             request_type: Type of request ("series", "team", "general")
         """
         import random
         
+        # Use adaptive pacing if available
+        if SPEED_OPTIMIZATIONS_AVAILABLE:
+            try:
+                pace_sleep()
+                return
+            except Exception as e:
+                print(f"⚠️ Adaptive pacing failed, using optimized delay: {e}")
+        
+        # Get optimized delay settings
+        try:
+            from .settings_stealth import (
+                TEAM_DELAY_MIN, TEAM_DELAY_MAX, SERIES_DELAY_MIN, SERIES_DELAY_MAX,
+                HIGH_SUCCESS_THRESHOLD, GOOD_SUCCESS_THRESHOLD, MODERATE_SUCCESS_THRESHOLD,
+                VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER
+            )
+        except ImportError:
+            # Fallback to conservative settings
+            TEAM_DELAY_MIN, TEAM_DELAY_MAX = 0.8, 2.0
+            SERIES_DELAY_MIN, SERIES_DELAY_MAX = 2.0, 4.0
+            HIGH_SUCCESS_THRESHOLD, GOOD_SUCCESS_THRESHOLD, MODERATE_SUCCESS_THRESHOLD = 0.98, 0.95, 0.90
+            VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER = 0.3, 0.6, 0.8, 1.2
+        
+        # Calculate success rate for adaptive delays
+        success_rate = self._get_recent_success_rate()
+        
         if request_type == "series":
-            # Longer delay between series pages with human-like variation
-            base_delay = 5 + (2 * (len(self.completed_series) % 3))  # 5-9 seconds base
-            jitter = random.uniform(0.8, 1.4)  # ±20% variation
-            delay = round(base_delay * jitter, 1)
+            # Optimized series delays with adaptive speed
+            base_delay = random.uniform(SERIES_DELAY_MIN, SERIES_DELAY_MAX)
+            multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
+            delay = round(base_delay * multiplier, 1)
             
-            # Add occasional "thinking time" (10% chance of extra delay)
-            if random.random() < 0.1:
-                thinking_time = random.uniform(2, 5)
-                delay += thinking_time
-                print(f"   🤔 Taking a moment to think... (+{thinking_time:.1f}s)")
-            
-            print(f"   ⏳ Waiting {delay:.1f}s before next series...")
+            print(f"   ⏳ Waiting {delay:.1f}s before next series... (success rate: {success_rate:.1%})")
             time.sleep(delay)
             
         elif request_type == "team":
-            # Variable delay between team pages with realistic human patterns
-            # Humans don't click at exactly 3-second intervals
-            base_delay = random.uniform(2.5, 4.5)  # 2.5-4.5 seconds
+            # Optimized team delays with adaptive speed
+            base_delay = random.uniform(TEAM_DELAY_MIN, TEAM_DELAY_MAX)
+            multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
+            delay = round(base_delay * multiplier, 1)
             
-            # Apply personality traits (attention span and energy level)
-            if hasattr(self, 'attention_span'):
-                base_delay *= self.attention_span
+            # Add occasional human-like variation (10% chance)
+            if random.random() < 0.10:
+                variation = random.uniform(0.2, 0.8)
+                delay += variation
+                print(f"   🤔 Human variation... (+{variation:.1f}s)")
             
-            if hasattr(self, 'energy_level'):
-                base_delay *= self.energy_level
-            
-            # Add micro-variations based on "mood" and "fatigue"
-            mood_factor = random.uniform(0.85, 1.15)
-            
-            # Calculate fatigue factor based on completed series vs total expected
-            # Use a reasonable estimate if we don't have the exact count
-            total_expected_series = 28  # CNSWPL has 17 numeric + 11 letter series
-            fatigue_factor = 1.0 + (len(self.completed_series) / total_expected_series) * 0.1  # Get slightly slower over time
-            
-            delay = round(base_delay * mood_factor * fatigue_factor, 1)
-            
-            # Occasionally add "distraction" delays (15% chance)
-            if random.random() < 0.15:
-                distraction = random.uniform(1, 3)
-                delay += distraction
-                print(f"   📱 Got distracted... (+{distraction:.1f}s)")
-            
-            # Add "typing mistakes" effect (5% chance of longer delay)
-            if random.random() < 0.05:
-                typing_delay = random.uniform(2, 4)
-                delay += typing_delay
-                print(f"   ⌨️ Made a typo... (+{typing_delay:.1f}s)")
-            
-            print(f"   ⏳ Waiting {delay:.1f}s before next team...")
+            print(f"   ⏳ Waiting {delay:.1f}s before next team... (success rate: {success_rate:.1%})")
             time.sleep(delay)
             
         else:
@@ -525,9 +928,11 @@ class CNSWPLRosterScraper:
                 
             if not html_content:
                 print(f"❌ Failed to get content for {series_name}")
+                self._record_request_result(False)
                 return []
             
             print(f"   ✅ Got HTML content ({len(html_content)} characters)")
+            self._record_request_result(True)
             
             # Add intelligent delay after successful series page request
             self._add_intelligent_delay("series")
@@ -578,37 +983,8 @@ class CNSWPLRosterScraper:
             if not team_links:
                 print(f"   ⚠️ No team links found - this might indicate a filtering issue")
             
-            # Scrape each team's roster page
-            # Use a set to track unique player IDs to prevent duplicates
-            # Players should NOT appear on multiple teams within the same series
-            seen_player_ids = set()
-            
-            for i, (team_name, team_url) in enumerate(team_links):
-                print(f"   🎾 Scraping team {i+1}/{len(team_links)}: {team_name}")
-                print(f"      🌐 URL: {team_url}")
-                team_players = self.extract_players_from_team_page(team_name, team_url, series_name, series_url)
-                
-                # Filter out duplicate players based on Player ID (series-level deduplication)
-                unique_team_players = []
-                for player in team_players:
-                    player_id = player.get('Player ID', '')
-                    if player_id and player_id not in seen_player_ids:
-                        seen_player_ids.add(player_id)
-                        unique_team_players.append(player)
-                    elif player_id:
-                        print(f"         ⚠️ Skipping duplicate player: {player.get('First Name', '')} {player.get('Last Name', '')} (ID: {player_id})")
-                
-                all_players.extend(unique_team_players)
-                
-                # Show team summary
-                if unique_team_players:
-                    print(f"      📊 Team {team_name}: {len(unique_team_players)} unique players added (filtered from {len(team_players)} total)")
-                else:
-                    print(f"      ⚠️ Team {team_name}: No unique players found")
-                
-                # Longer delay between team requests to avoid rate limiting
-                if i < len(team_links) - 1:
-                    self._add_intelligent_delay("team")
+            # Process teams using parallel or sequential processing
+            all_players = self._process_teams_parallel(team_links, series_name, series_url)
             
             print(f"✅ Extracted {len(all_players)} total players from {series_name}")
             
@@ -706,7 +1082,11 @@ class CNSWPLRosterScraper:
                 
             if not html_content:
                 print(f"     ❌ Failed to get team page for {team_name}")
+                self._record_request_result(False)
                 return []
+            
+            print(f"     ✅ Got team page for {team_name} ({len(html_content)} characters)")
+            self._record_request_result(True)
             
             soup = BeautifulSoup(html_content, 'html.parser')
             players = []
@@ -786,6 +1166,14 @@ class CNSWPLRosterScraper:
                     if '/player.php?print&p=' not in href:
                         continue
                     
+                    # Convert print URL to individual player page URL for career stats
+                    # Print URL: /player.php?print&p=PLAYER_ID
+                    # Individual URL: /player.php?p=PLAYER_ID
+                    if 'print&p=' in href:
+                        player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                        href = f"/player.php?p={player_id}"
+                        print(f"           🔗 Converted print URL to individual page: {href}")
+                    
                     # Get the player name from the link
                     player_name = link.get_text(strip=True)
                     
@@ -852,6 +1240,14 @@ class CNSWPLRosterScraper:
                     }
                     
                     players.append(player_data)
+                    
+                    # Update progress tracking with player stats
+                    self._update_progress(
+                        player_name=player_name, 
+                        players_processed=len(self.all_players) + len(players),
+                        player_stats=player_data
+                    )
+                    
                     print(f"           🎾 Added player: {player_name} (section: {current_section}, Season W: {stats['Wins']}, Season L: {stats['Losses']}, Career W: {career_stats['wins']}, Career L: {career_stats['losses']})")
             
             elif len(cells) != 4:
@@ -880,8 +1276,14 @@ class CNSWPLRosterScraper:
                     print(f"         ⚠️ Skipping sub player: {player_name}")
                     continue
                 
-                # Extract player ID from href
-                player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                # Convert print URL to individual player page URL for career stats
+                if 'print&p=' in href:
+                    player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
+                    href = f"/player.php?p={player_id}"
+                    print(f"           🔗 Converted print URL to individual page: {href}")
+                else:
+                    # Extract player ID from href
+                    player_id = href.split('p=')[1].split('&')[0] if '&' in href else href.split('p=')[1]
                 
                 # Check for captain indicators and clean player name
                 is_captain = False
@@ -911,6 +1313,8 @@ class CNSWPLRosterScraper:
                 
                 # Convert player ID to cnswpl_ format for ETL compatibility
                 cnswpl_player_id = self._convert_to_cnswpl_format(player_id)
+                
+                # Get player stats first
                 
                 # Get player stats from individual player page
                 print(f"           📊 Getting current season stats for {player_name}...")
@@ -942,6 +1346,13 @@ class CNSWPLRosterScraper:
                 }
                 
                 players.append(player_data)
+                
+                # Update progress tracking with player stats
+                self._update_progress(
+                    player_name=player_name, 
+                    players_processed=len(self.all_players) + len(players),
+                    player_stats=player_data
+                )
         
         return players
     
@@ -1066,6 +1477,19 @@ class CNSWPLRosterScraper:
             url_status = "🔍 DISCOVER" if series_url == "DISCOVER" else "✅ URL READY"
             print(f"   - {series_name} {status} ({url_status})")
         
+        # Estimate total players for progress tracking using realistic assumptions
+        # Average players per team: 10, Average teams per series: 10
+        estimated_players_per_series = 10 * 10  # 10 teams × 10 players = 100 players per series
+        self.total_players_expected = len(series_urls) * estimated_players_per_series
+        self.total_series_count = len(series_urls)
+        
+        print(f"\n🚀 Beginning scraping process...")
+        print(f"⏰ Started at: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"🔄 Force restart: {'Yes' if self.force_restart else 'No'}")
+        print(f"🎯 Target series: {self.target_series if self.target_series else 'All series'}")
+        print(f"📊 Estimated total players: {self.total_players_expected:,}")
+        print(f"{'='*60}")
+        
         # Track progress and failures
         successful_series = len(self.completed_series)
         failed_series = []
@@ -1100,14 +1524,11 @@ class CNSWPLRosterScraper:
             if series_name in self.completed_series:
                 print(f"\n⏭️ Skipping {series_name} (already completed)")
                 continue
-                
-            # Calculate progress
-            progress_percent = (i - 1) / len(series_urls) * 100
-            elapsed_time = time.time() - self.start_time
+            
+            # Update progress tracking
+            self._update_progress(series_name=series_name)
             
             print(f"\n🏆 Processing Series {i}/{len(series_urls)}: {series_name}")
-            print(f"📊 Progress: {progress_percent:.1f}% complete")
-            print(f"⏱️ Elapsed time: {elapsed_time/60:.1f} minutes")
             
             # Handle dynamic discovery for letter series
             if series_url == "DISCOVER":
@@ -1130,6 +1551,7 @@ class CNSWPLRosterScraper:
             print(f"🎯 Target: {series_url}")
             
             if i > 1:
+                elapsed_time = time.time() - self.start_time  # Calculate elapsed time
                 avg_time_per_series = elapsed_time / (i - 1)
                 remaining_series = len(series_urls) - i + 1
                 eta_minutes = (remaining_series * avg_time_per_series) / 60
@@ -1289,10 +1711,20 @@ class CNSWPLRosterScraper:
         """Print detailed completion summary"""
         elapsed_time = time.time() - self.start_time
         
+        # Final progress update
+        self._update_progress(players_processed=len(self.all_players))
+        
         print(f"\n🎉 COMPREHENSIVE SCRAPING COMPLETED!")
-        print(f"⏱️ Total time: {elapsed_time/60:.1f} minutes ({elapsed_time/3600:.1f} hours)")
+        print(f"⏱️ Total time: {self._format_time(elapsed_time)}")
         print(f"📊 Successful series: {successful_series}/{len(series_urls)}")
-        print(f"📊 Total players found: {len(self.all_players)}")
+        print(f"📊 Total players found: {len(self.all_players):,}")
+        
+        # Calculate final performance metrics
+        if len(self.all_players) > 0 and elapsed_time > 0:
+            players_per_hour = (len(self.all_players) / elapsed_time) * 3600
+            avg_time_per_player = elapsed_time / len(self.all_players)
+            print(f"🚀 Final processing rate: {players_per_hour:.1f} players/hour")
+            print(f"⏱️ Average time per player: {avg_time_per_player:.1f} seconds")
         
         if failed_series:
             print(f"\n⚠️ Failed series ({len(failed_series)}):")
@@ -1437,15 +1869,43 @@ class CNSWPLRosterScraper:
                         print(f"   ⏳ Retry attempt {attempt + 1}/3, waiting {delay}s...")
                         time.sleep(delay)
                     
+                    pace_sleep()  # Adaptive pacing before network request
                     html = self.stealth_browser.get_html(url)
+                    
+                    # Add early stop optimization if available
+                    if SPEED_OPTIMIZATIONS_AVAILABLE and hasattr(self.stealth_browser, 'current_driver') and self.stealth_browser.current_driver:
+                        try:
+                            from selenium.webdriver.common.by import By
+                            # Stop loading after key elements are present (adjust selector as needed)
+                            stop_after_selector(self.stealth_browser.current_driver, By.CSS_SELECTOR, "table, .roster, .team", timeout=8)
+                        except Exception as e:
+                            print(f"   ⚠️ Early stop optimization failed: {e}")
+                    
                     if html and len(html) > 100:
                         print(f"   ✅ Stealth browser successful - got {len(html)} characters")
+                        # Mark success for adaptive pacing
+                        if SPEED_OPTIMIZATIONS_AVAILABLE:
+                            try:
+                                mark("ok")
+                            except Exception:
+                                pass
                         return html
                     else:
                         print(f"   ⚠️ Stealth browser returned insufficient data (attempt {attempt + 1})")
                         
                 except Exception as e:
                     print(f"   ❌ Stealth browser error (attempt {attempt + 1}): {e}")
+                    # Mark failure for adaptive pacing
+                    if SPEED_OPTIMIZATIONS_AVAILABLE:
+                        try:
+                            if "429" in str(e) or "rate limit" in str(e).lower():
+                                mark("429")
+                            elif "javascript" in str(e).lower() or "js" in str(e).lower():
+                                mark("js")
+                            else:
+                                mark("ok")  # Mark as ok for other errors to avoid over-slowing
+                        except Exception:
+                            pass
                     continue
             
             print(f"   🔄 Stealth browser failed after 3 attempts, falling back to curl...")
@@ -1552,7 +2012,8 @@ class CNSWPLRosterScraper:
 
     def get_career_stats_from_individual_page(self, player_url: str, max_retries: int = 2) -> Dict[str, any]:
         """
-        Get career wins and losses from individual player page - simple approach like scraper_player_history.py
+        Get career wins and losses from individual player page - RESTORED WORKING VERSION.
+        Uses the exact same approach that was working earlier today.
         
         Args:
             player_url: URL to the individual player page
@@ -1571,110 +2032,203 @@ class CNSWPLRosterScraper:
                 else:
                     full_url = player_url
                 
-                # For career stats, we need browser automation to click the Chronological checkbox
-                if self.stealth_browser:
-                    browser = self.stealth_browser
-                else:
-                    from stealth_browser import create_stealth_browser
-                    browser = create_stealth_browser(force_browser=True, verbose=False)
-                
-                # Ensure browser has a driver for UI interactions
-                if not hasattr(browser, 'current_driver') or browser.current_driver is None:
-                    print(f"   🔧 Initializing browser driver for UI interactions...")
-                    # Force browser mode to ensure driver is created
-                    browser.config.force_browser = True
-                    browser.current_driver = browser._create_driver()
-                
-                # Use browser automation to get HTML content
-                html_content = browser.get_html(full_url)
-                if not html_content:
-                    print(f"   ❌ Failed to get HTML content")
+                # Extract player ID from the player URL
+                player_id = self._extract_player_id_from_url(player_url)
+                if not player_id:
+                    print(f"   ❌ Could not extract player ID from URL: {player_url}")
                     continue
                 
-                print(f"   ✅ Browser automation successful: {len(html_content)} characters")
+                # Build the direct chronological URL (discovered from JavaScript analysis)
+                chronological_url = f"{self.base_url}/?print&mod=nndz-Sm5yb2lPdTcxdFJibXc9PQ%3D%3D&all&p={player_id}"
+                print(f"   🔗 Chronological URL: {chronological_url}")
                 
-                # Check if we need to click "Chronological" checkbox to load match data
-                if 'playercard_value_wins' in html_content and 'html(\'0\')' in html_content:
-                    print(f"   🔄 Detected unloaded match data, clicking Chronological checkbox...")
-                    
-                    try:
-                        driver = getattr(browser, 'current_driver', None)
-                        print(f"   🔍 Driver available: {driver is not None}")
-                        if driver:
-                            # Find and click the Chronological checkbox by ID
-                            chronological_checkbox = driver.find_elements("xpath", "//input[@id='chron']")
-                            print(f"   🔍 Checkbox elements found: {len(chronological_checkbox)}")
-                            
-                            if chronological_checkbox:
-                                # Check if checkbox is already checked
-                                is_checked = chronological_checkbox[0].is_selected()
-                                print(f"   ✅ Found Chronological checkbox, currently checked: {is_checked}")
-                                
-                                if not is_checked:
-                                    print(f"   🔄 Clicking Chronological checkbox to enable...")
-                                    chronological_checkbox[0].click()
-                                    
-                                    # Wait for JavaScript to load the match data
-                                    time.sleep(1.5)
-                                    
-                                    # Get updated HTML content
-                                    html_content = driver.page_source
-                                    print(f"   ✅ Updated HTML after clicking Chronological: {len(html_content)} characters")
-                                else:
-                                    print(f"   ℹ️ Chronological checkbox already checked, data should be loaded")
-                                
-                                # Also try clicking "Expand All Matches" if available
-                                expand_button = driver.find_elements("xpath", "//a[contains(text(), 'Expand All Matches')]")
-                                if expand_button:
-                                    print(f"   🔄 Clicking Expand All Matches...")
-                                    expand_button[0].click()
-                                    time.sleep(1)
-                                    html_content = driver.page_source
-                                    print(f"   ✅ Updated HTML after expanding: {len(html_content)} characters")
-                            else:
-                                print(f"   ⚠️ Chronological checkbox not found")
-                    except Exception as e:
-                        print(f"   ⚠️ Error clicking Chronological checkbox: {e}")
+                # Use existing stealth infrastructure for consistency (maintains proxy/UA)
+                html_content = self.get_html_with_fallback(chronological_url)
                 
-                # Use the exact same approach as scraper_player_history.py
-                wins = 0
-                losses = 0
+                if not html_content:
+                    print(f"   ❌ Failed to get chronological HTML content")
+                    continue
                 
-                # Count wins and losses from HTML content
-                if "W" in html_content or "L" in html_content:
-                    # Simple pattern matching for wins/losses - same as scraper_player_history.py
-                    w_matches = re.findall(r'\bW\b', html_content)
-                    l_matches = re.findall(r'\bL\b', html_content)
-                    wins = len(w_matches)
-                    losses = len(l_matches)
-                    print(f"   📊 Found {wins}W/{losses}L via word boundary matching")
-                else:
-                    print(f"   📊 No W or L found in HTML content")
+                print(f"   ✅ Chronological content retrieved: {len(html_content)} characters")
                 
-                # Calculate win percentage
-                if wins + losses > 0:
-                    win_percentage = f"{(wins / (wins + losses) * 100):.1f}%"
-                else:
-                    win_percentage = "0.0%"
-                
-                career_stats = {
-                    "wins": str(wins),
-                    "losses": str(losses),
-                    "win_percentage": win_percentage
-                }
-                
-                print(f"   ✅ Career stats extracted: {wins} wins, {losses} losses, {win_percentage}")
-                return career_stats
+                # Extract career stats from div elements (not tables)
+                return self._extract_career_from_result_divs(html_content)
                 
             except Exception as e:
                 print(f"   ❌ Error getting career stats (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
-                    time.sleep(2)
+                    time.sleep(1)
                 else:
                     print(f"   ⚠️ All attempts failed for career stats")
                     return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
         
         return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+    
+    def _extract_player_id_from_url(self, player_url: str) -> str:
+        """Extract player ID from player URL."""
+        try:
+            if 'p=' in player_url:
+                player_id = player_url.split('p=')[1].split('&')[0] if '&' in player_url else player_url.split('p=')[1]
+                return player_id
+            else:
+                print(f"   ⚠️ No player ID found in URL: {player_url}")
+                return ""
+        except Exception as e:
+            print(f"   ❌ Error extracting player ID: {e}")
+            return ""
+    
+    def _extract_career_from_result_divs(self, html_content: str) -> Dict[str, str]:
+        """
+        Extract career stats from result divs using the working chronological URL approach.
+        Looks for divs with specific styling that contain W/L results.
+        """
+        from bs4 import BeautifulSoup
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        wins = 0
+        losses = 0
+        
+        # Method 1: Look for result divs with the specific style (width: 57px, text-align: right)
+        result_divs = soup.find_all('div', style=re.compile(r'width:\s*57px.*text-align:\s*right'))
+        
+        for div in result_divs:
+            result_text = div.get_text().strip()
+            if result_text == 'W':
+                wins += 1
+            elif result_text == 'L':
+                losses += 1
+        
+        print(f"   📊 Method 1 (Result divs): {wins}W/{losses}L")
+        
+        # Method 2: If no specific divs found, look for any right-aligned divs with W/L
+        if wins == 0 and losses == 0:
+            right_aligned_divs = soup.find_all('div', style=re.compile(r'text-align:\s*right'))
+            
+            for div in right_aligned_divs:
+                text = div.get_text().strip()
+                if text == 'W':
+                    wins += 1
+                elif text == 'L':
+                    losses += 1
+            
+            print(f"   📊 Method 2 (Right-aligned): {wins}W/{losses}L")
+        
+        # Method 3: Conservative fallback if still no results
+        if wins == 0 and losses == 0:
+            all_w = len(re.findall(r'\bW\b', html_content))
+            all_l = len(re.findall(r'\bL\b', html_content))
+            
+            # Filter out navigation/UI W/L (conservative)
+            wins = max(0, all_w - 5)  # Subtract likely navigation
+            losses = max(0, all_l - 2)  # Subtract likely navigation
+            
+            print(f"   📊 Method 3 (Conservative): {wins}W/{losses}L (filtered from {all_w}W/{all_l}L)")
+        
+        # Calculate win percentage
+        if wins + losses > 0:
+            win_percentage = f"{(wins / (wins + losses) * 100):.1f}%"
+        else:
+            win_percentage = "0.0%"
+        
+        career_stats = {
+            "wins": str(wins),
+            "losses": str(losses),
+            "win_percentage": win_percentage
+        }
+        
+        print(f"   ✅ Career stats extracted: {wins} wins, {losses} losses, {win_percentage}")
+        return career_stats
+    
+    def _has_career_stats_in_html(self, html_content: str) -> bool:
+        """
+        Quick check if HTML contains career stats without full parsing.
+        """
+        # Look for common career stats patterns
+        career_patterns = [
+            r'\b\d+W\b',  # XW pattern
+            r'\b\d+L\b',  # XL pattern
+            r'Career.*\d+.*\d+',  # Career X Y pattern
+            r'Total.*\d+.*\d+',   # Total X Y pattern
+        ]
+        
+        for pattern in career_patterns:
+            if re.search(pattern, html_content, re.IGNORECASE):
+                return True
+        return False
+    
+    def _extract_career_stats_from_tables(self, html_content: str) -> Dict[str, str]:
+        """
+        Extract career stats from match history tables - FIXED VERSION from backup.
+        Only counts W/L from actual match results in Date/Result tables.
+        """
+        from bs4 import BeautifulSoup
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        total_wins = 0
+        total_losses = 0
+        
+        # Look for match history tables (tables with Date, Match, Line, Result columns)
+        tables = soup.find_all('table')
+        print(f"   🔍 Found {len(tables)} tables, analyzing for match history...")
+        
+        for i, table in enumerate(tables):
+            table_text = table.get_text()
+            
+            # Look for tables that contain match history
+            if 'Date' in table_text and 'Result' in table_text:
+                print(f"   📊 Found match history table {i+1}, analyzing results...")
+                
+                # Count W's and L's only in the Result column
+                rows = table.find_all('tr')
+                table_wins = 0
+                table_losses = 0
+                
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 4:  # Date, Match, Line, Result
+                        result_cell = cells[-1]  # Last cell should be Result
+                        result_text = result_cell.get_text().strip()
+                        
+                        if result_text == 'W':
+                            table_wins += 1
+                        elif result_text == 'L':
+                            table_losses += 1
+                
+                if table_wins > 0 or table_losses > 0:
+                    total_wins += table_wins
+                    total_losses += table_losses
+                    print(f"   📊 Table {i+1}: {table_wins}W/{table_losses}L")
+        
+        # If no match history tables found, try conservative pattern matching
+        if total_wins == 0 and total_losses == 0:
+            print(f"   🔍 No match history tables found, trying conservative patterns...")
+            
+            # Look for W/L in any table, but be very conservative
+            for i, table in enumerate(tables):
+                table_text = table.get_text()
+                w_count = len(re.findall(r'\bW\b', table_text))
+                l_count = len(re.findall(r'\bL\b', table_text))
+                
+                # Only count if it looks reasonable (not too many W's from team names like "Wilmette")
+                if w_count <= 15 and l_count <= 15 and (w_count > 0 or l_count > 0):
+                    total_wins += w_count
+                    total_losses += l_count
+                    print(f"   📊 Conservative table {i+1}: {w_count}W/{l_count}L")
+        
+        # Calculate win percentage
+        if total_wins + total_losses > 0:
+            win_percentage = f"{(total_wins / (total_wins + total_losses) * 100):.1f}%"
+        else:
+            win_percentage = "0.0%"
+        
+        career_stats = {
+            "wins": str(total_wins),
+            "losses": str(total_losses),
+            "win_percentage": win_percentage
+        }
+        
+        print(f"   ✅ Career stats extracted: {total_wins} wins, {total_losses} losses, {win_percentage}")
+        return career_stats
 
 def main():
     """Main function"""

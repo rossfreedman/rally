@@ -22,8 +22,34 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 sys.path.insert(0, project_root)
 
 # Import stealth components
-from data.etl.scrapers.stealth_browser import create_stealth_browser, DetectionType
-from data.etl.scrapers.proxy_manager import get_proxy_rotator
+from data.etl.scrapers.helpers.stealth_browser import create_stealth_browser, DetectionType
+from data.etl.scrapers.helpers.proxy_manager import get_proxy_rotator
+
+# Import speed optimizations with safe fallbacks
+try:
+    from data.etl.scrapers.helpers.adaptive_pacer import pace_sleep, mark
+    from data.etl.scrapers.helpers.stealth_browser import stop_after_selector
+    SPEED_OPTIMIZATIONS_AVAILABLE = True
+except ImportError:
+    SPEED_OPTIMIZATIONS_AVAILABLE = False
+    print("⚠️ Speed optimizations not available - using standard pacing")
+    
+    # Safe no-op fallbacks
+    def pace_sleep():
+        pass
+        
+    def mark(*args, **kwargs):
+        pass
+        
+    def stop_after_selector(*args, **kwargs):
+        pass
+
+def _pacer_mark_ok():
+    """Helper function to safely mark successful responses for adaptive pacing."""
+    try:
+        mark('ok')
+    except Exception:
+        pass
 
 # Configure logging
 logging.basicConfig(
@@ -1108,7 +1134,7 @@ class EnhancedMatchScraper:
     def __init__(self, config: ScrapingConfig):
         self.config = config
         self.stealth_browser = create_stealth_browser(
-            fast_mode=config.fast_mode,
+            fast_mode=config.fast_mode or SPEED_OPTIMIZATIONS_AVAILABLE,  # Enable fast mode if optimizations available
             verbose=config.verbose,
             environment=config.environment
         )
@@ -1304,8 +1330,17 @@ class EnhancedMatchScraper:
                     print(f"   URL: {url}")
                     print(f"   Attempt: {attempt + 1}/{self.config.max_retries + 1}")
                 
-                # Make request using stealth browser
+                # Make request using stealth browser with speed optimizations
                 html = self.stealth_browser.get_html(url)
+                
+                # Apply stop-after-selector optimization if available
+                if SPEED_OPTIMIZATIONS_AVAILABLE and hasattr(self.stealth_browser, 'current_driver') and self.stealth_browser.current_driver:
+                    try:
+                        from selenium.webdriver.common.by import By
+                        # Stop loading after key elements are present (adjust selector for match data)
+                        stop_after_selector(self.stealth_browser.current_driver, By.CSS_SELECTOR, "table, .match-data, .scores", timeout=8)
+                    except Exception:
+                        pass  # Non-fatal optimization failure
                 
                 # Update metrics
                 self.metrics["total_requests"] += 1
@@ -1315,12 +1350,21 @@ class EnhancedMatchScraper:
                     print(f"✅ Successfully fetched {description}")
                     print(f"   Response size: {len(html)} characters")
                 
-                # Add random delay
+                # Mark successful response for adaptive pacing
+                _pacer_mark_ok()
+                
+                # Add adaptive pacing instead of random delay
                 if not self.config.fast_mode:
-                    delay = random.uniform(self.config.min_delay, self.config.max_delay)
-                    if self.config.verbose:
-                        print(f"⏳ Waiting {delay:.1f} seconds before next request...")
-                    time.sleep(delay)
+                    if SPEED_OPTIMIZATIONS_AVAILABLE:
+                        if self.config.verbose:
+                            print("⏳ Using adaptive pacing before next request...")
+                        pace_sleep()  # Intelligent adaptive pacing
+                    else:
+                        # Fallback to random delay if optimizations unavailable
+                        delay = random.uniform(self.config.min_delay, self.config.max_delay)
+                        if self.config.verbose:
+                            print(f"⏳ Waiting {delay:.1f} seconds before next request...")
+                        time.sleep(delay)
                 
                 return html
                 
@@ -1619,10 +1663,13 @@ class EnhancedMatchScraper:
                     # Save per-series temp JSON to avoid all-or-nothing loss
                     self._save_series_temp_file(league_subdomain, series_name, series_matches)
                     
-                    # Add delay between requests
+                    # Add adaptive delay between series processing
                     if not self.config.fast_mode:
-                        import time
-                        time.sleep(2)
+                        if SPEED_OPTIMIZATIONS_AVAILABLE:
+                            pace_sleep()  # Adaptive pacing between series
+                        else:
+                            import time
+                            time.sleep(2)  # Fallback fixed delay
                         
                 except Exception as e:
                     print(f"❌ Error scraping series {series_name}: {e}")

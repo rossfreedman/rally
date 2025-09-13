@@ -31,8 +31,34 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Import enhanced stealth browser with all features
-from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
+from helpers.stealth_browser import EnhancedStealthBrowser, create_stealth_browser
 from webdriver_manager.chrome import ChromeDriverManager
+
+# Import speed optimizations with safe fallbacks
+try:
+    from helpers.adaptive_pacer import pace_sleep, mark
+    from helpers.stealth_browser import stop_after_selector
+    SPEED_OPTIMIZATIONS_AVAILABLE = True
+except ImportError:
+    SPEED_OPTIMIZATIONS_AVAILABLE = False
+    print("⚠️ Speed optimizations not available - using standard pacing")
+    
+    # Safe no-op fallbacks
+    def pace_sleep():
+        pass
+        
+    def mark(*args, **kwargs):
+        pass
+        
+    def stop_after_selector(*args, **kwargs):
+        pass
+
+def _pacer_mark_ok():
+    """Helper function to safely mark successful responses for adaptive pacing."""
+    try:
+        mark('ok')
+    except Exception:
+        pass
 
 # Import notification service
 import sys
@@ -315,8 +341,20 @@ def scrape_series_stats(
     for attempt in range(max_retries):
         try:
             print(f"   📄 Navigating to URL: {url} (attempt {attempt + 1}/{max_retries})")
+            pace_sleep()  # Adaptive pacing before navigation
             driver.get(url)
-            time.sleep(2)  # Wait for page to load
+            
+            # Use stop-after-selector for faster page ready detection
+            if SPEED_OPTIMIZATIONS_AVAILABLE:
+                try:
+                    from selenium.webdriver.common.by import By
+                    stop_after_selector(driver, By.CSS_SELECTOR, "table, .standings, .stats", timeout=8)
+                except Exception:
+                    time.sleep(1)  # Fallback delay if optimization fails
+            else:
+                time.sleep(2)  # Original delay as fallback
+                
+            _pacer_mark_ok()  # Mark successful page load
             print(f"   ✅ Page loaded successfully")
 
             # Look for and click the "Statistics" link
@@ -327,7 +365,18 @@ def scrape_series_stats(
                 )
                 print(f"   ✅ Found Statistics link, clicking...")
                 stats_link.click()
-                time.sleep(2)  # Wait for navigation
+                
+                # Use intelligent wait for navigation
+                if SPEED_OPTIMIZATIONS_AVAILABLE:
+                    try:
+                        from selenium.webdriver.common.by import By
+                        stop_after_selector(driver, By.CSS_SELECTOR, "table.standings, .stats-table, table", timeout=10)
+                    except Exception:
+                        time.sleep(2)  # Fallback delay
+                else:
+                    time.sleep(2)  # Original delay as fallback
+                    
+                _pacer_mark_ok()  # Mark successful navigation
                 print(f"   ✅ Navigated to Statistics page")
             except TimeoutException:
                 print(f"   ❌ Could not find Statistics link on {series_name}")
@@ -912,7 +961,12 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                             use_fallback = False
                             try:
                                 if not chrome_manager:
-                                    chrome_manager = create_stealth_browser(fast_mode=False, verbose=True, environment="production")
+                                    # Create stealth browser with speed optimizations
+                                    chrome_manager = create_stealth_browser(
+                                        fast_mode=SPEED_OPTIMIZATIONS_AVAILABLE,  # Enable fast mode if optimizations available
+                                        verbose=True, 
+                                        environment="production"
+                                    )
                                     driver = chrome_manager.__enter__()
                                 print("   🚗 Using Chrome WebDriver for series discovery (fallback)...")
                                 driver.get(base_url)
@@ -1045,9 +1099,9 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                 f"\n=== Series {series_idx}/{len(series_urls)} ({progress_percent:.1f}%) | Elapsed: {elapsed} ==="
             )
 
-            # Track request and add throttling before series processing
-            print(f"   ⏳ Adding delay before processing {series_number}...")
-            time.sleep(2)  # Simple delay instead of complex throttling
+            # Track request and add intelligent pacing before series processing
+            print(f"   ⏳ Adding adaptive delay before processing {series_number}...")
+            pace_sleep()  # Adaptive pacing instead of fixed delay
 
             print(f"🏆 Processing: {series_number}")
             print(f"   📄 Series URL: {series_url}")
@@ -1107,7 +1161,9 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                     f"   ⏰ ETA: {eta.strftime('%H:%M:%S')} (est. {estimated_remaining/60:.1f} min remaining)"
                 )
 
-            time.sleep(1)  # Reduced delay between series for faster execution
+            # Mark successful completion and add minimal delay
+            _pacer_mark_ok()  # Mark successful series processing
+            time.sleep(0.5)  # Minimal delay between series
 
         # Save all stats to a JSON file
         json_filename = "series_stats.json"

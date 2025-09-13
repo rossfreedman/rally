@@ -11,11 +11,11 @@ from bs4 import BeautifulSoup
 # Import enhanced scraping utilities
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from stealth_browser import EnhancedStealthBrowser, create_stealth_browser
+from helpers.stealth_browser import EnhancedStealthBrowser, create_stealth_browser
 try:
-    from data.etl.scrapers.proxy_manager import make_proxy_request
+    from data.etl.scrapers.helpers.proxy_manager import make_proxy_request
 except ImportError:
-    from proxy_manager import make_proxy_request
+    from helpers.proxy_manager import make_proxy_request
 
 # Import notification service
 import sys
@@ -329,9 +329,9 @@ def scrape_tennis_schedule(league_subdomain):
         
         # Use the new proxy request function
         try:
-            from data.etl.scrapers.proxy_manager import make_proxy_request
+            from data.etl.scrapers.helpers.proxy_manager import make_proxy_request
         except ImportError:
-            from proxy_manager import make_proxy_request
+            from helpers.proxy_manager import make_proxy_request
         
         print(f"   📡 Fetching main page: {base_url}")
         try:

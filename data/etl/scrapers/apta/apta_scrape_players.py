@@ -35,9 +35,40 @@ print(f"🔍 Debug: absolute parent_path = {os.path.abspath(parent_path)}")
 sys.path.append(parent_path)
 print(f"🔍 Debug: sys.path now contains: {sys.path[-3:]}")
 
-from stealth_browser import EnhancedStealthBrowser, StealthConfig
-from user_agent_manager import UserAgentManager
-from proxy_manager import fetch_with_retry
+from helpers.stealth_browser import EnhancedStealthBrowser, StealthConfig
+from helpers.user_agent_manager import UserAgentManager
+from helpers.proxy_manager import fetch_with_retry
+
+# Import speed optimizations with safe fallbacks
+try:
+    from helpers.adaptive_pacer import pace_sleep, mark
+    from helpers.stealth_browser import stop_after_selector
+    SPEED_OPTIMIZATIONS_AVAILABLE = True
+except ImportError:
+    try:
+        from ..adaptive_pacer import pace_sleep, mark
+        from ..stealth_browser import stop_after_selector
+        SPEED_OPTIMIZATIONS_AVAILABLE = True
+    except ImportError:
+        SPEED_OPTIMIZATIONS_AVAILABLE = False
+        print("⚠️ Speed optimizations not available - using standard pacing")
+        
+        # Safe no-op fallbacks
+        def pace_sleep():
+            pass
+            
+        def mark(*args, **kwargs):
+            pass
+            
+        def stop_after_selector(*args, **kwargs):
+            pass
+
+def _pacer_mark_ok():
+    """Helper function to safely mark successful responses for adaptive pacing."""
+    try:
+        mark('ok')
+    except Exception:
+        pass
 
 class APTAChicagoRosterScraper:
     """Comprehensive APTA Chicago roster scraper that hits all series pages"""
@@ -50,6 +81,16 @@ class APTAChicagoRosterScraper:
 
         self.start_time = time.time()
         self.force_restart = force_restart
+        
+        # Progress tracking attributes
+        self.total_players_processed = 0
+        self.total_players_expected = 0
+        self.current_series = ""
+        self.current_player = ""
+        self.last_progress_update = time.time()
+        
+        # Speed optimizations flag
+        self.SPEED_OPTIMIZATIONS_AVAILABLE = SPEED_OPTIMIZATIONS_AVAILABLE
         
         # Force stealth browser usage instead of curl
         print("🔧 Forcing stealth browser usage...")
@@ -66,6 +107,147 @@ class APTAChicagoRosterScraper:
         # Load existing progress if not forcing restart
         self.load_existing_progress()
     
+    def _format_time(self, seconds):
+        """Format seconds into human-readable time string."""
+        if seconds < 60:
+            return f"{seconds:.0f}s"
+        elif seconds < 3600:
+            minutes = seconds / 60
+            return f"{minutes:.1f}m"
+        else:
+            hours = seconds / 3600
+            return f"{hours:.1f}h"
+    
+    def _format_completion_time(self, completion_timestamp):
+        """Format completion time in a user-friendly way."""
+        if completion_timestamp <= 0:
+            return "Calculating..."
+        
+        # Get current time and completion time
+        now = time.time()
+        completion_time = time.localtime(completion_timestamp)
+        current_time = time.localtime(now)
+        
+        # Calculate time difference
+        time_diff = completion_timestamp - now
+        
+        # If completion is today
+        if completion_time.tm_yday == current_time.tm_yday:
+            if time_diff < 3600:  # Less than 1 hour
+                return f"in {self._format_time(time_diff)}"
+            else:  # More than 1 hour today
+                hour = completion_time.tm_hour
+                minute = completion_time.tm_min
+                am_pm = "AM" if hour < 12 else "PM"
+                display_hour = hour if hour <= 12 else hour - 12
+                if display_hour == 0:
+                    display_hour = 12
+                return f"today at {display_hour}:{minute:02d} {am_pm}"
+        else:  # Different day
+            days_diff = completion_time.tm_yday - current_time.tm_yday
+            if days_diff == 1:
+                return "tomorrow"
+            elif days_diff <= 7:
+                return f"in {days_diff} days"
+            else:
+                return f"in {days_diff} days"
+    
+    def _create_progress_bar(self, percent_complete, width=20):
+        """Create a visual progress bar."""
+        filled = int((percent_complete / 100) * width)
+        empty = width - filled
+        
+        # Create progress bar with different characters for different completion levels
+        if percent_complete < 25:
+            fill_char = "░"  # Light fill
+        elif percent_complete < 50:
+            fill_char = "▒"  # Medium fill
+        elif percent_complete < 75:
+            fill_char = "▓"  # Dark fill
+        else:
+            fill_char = "█"  # Full fill
+        
+        bar = fill_char * filled + "░" * empty
+        return f"[{bar}] {percent_complete:.1f}%"
+
+    def _update_progress(self, series_name="", player_name="", players_processed=0, total_players=0, player_stats=None):
+        """Update and display comprehensive progress information with player details."""
+        current_time = time.time()
+        elapsed_time = current_time - self.start_time
+        
+        # Update tracking variables
+        if series_name:
+            self.current_series = series_name
+        if player_name:
+            self.current_player = player_name
+        if players_processed > 0:
+            self.total_players_processed += players_processed
+        if total_players > 0:
+            self.total_players_expected = max(self.total_players_expected, total_players)
+        
+        # Calculate progress percentage
+        if self.total_players_expected > 0:
+            percent_complete = (self.total_players_processed / self.total_players_expected) * 100
+        else:
+            percent_complete = 0
+        
+        # Estimate remaining time and completion
+        if self.total_players_processed > 0 and elapsed_time > 0:
+            players_per_second = self.total_players_processed / elapsed_time
+            remaining_players = max(0, self.total_players_expected - self.total_players_processed)
+            estimated_remaining_time = remaining_players / players_per_second if players_per_second > 0 else 0
+            estimated_completion_time = current_time + estimated_remaining_time
+            players_per_hour = players_per_second * 3600
+        else:
+            estimated_remaining_time = 0
+            estimated_completion_time = 0
+            players_per_hour = 0
+        
+        # Display progress (only update every 5 seconds to avoid spam, or when processing new players)
+        if current_time - self.last_progress_update >= 5 or players_processed > 0:
+            print(f"\n{'='*80}")
+            print(f"📊 SCRAPING PROGRESS UPDATE")
+            print(f"{'='*80}")
+            print(f"🎯 Current Series: {self.current_series}")
+            print(f"👤 Current Player: {self.current_player}")
+            
+            # Show player stats if available
+            if player_stats:
+                self._display_player_stats(player_stats)
+            
+            # Show progress with prominent percentage
+            print(f"📈 Progress: {self.total_players_processed:,} / {self.total_players_expected:,} players")
+            print(f"🎯 TOTAL COMPLETE: {percent_complete:.1f}%")
+            print(f"📊 Progress Bar: {self._create_progress_bar(percent_complete)}")
+            print(f"⏱️  Elapsed Time: {self._format_time(elapsed_time)}")
+            print(f"⏳ Estimated Remaining: {self._format_time(estimated_remaining_time)}")
+            print(f"🏁 Estimated Completion: {self._format_completion_time(estimated_completion_time)}")
+            print(f"🚀 Processing Rate: {players_per_hour:.1f} players/hour")
+            print(f"{'='*80}")
+            self.last_progress_update = current_time
+    
+    def _display_player_stats(self, player_stats):
+        """Display player statistics in a formatted way."""
+        if not player_stats:
+            return
+        
+        # Season stats
+        season_wins = player_stats.get('Wins', 0)
+        season_losses = player_stats.get('Losses', 0)
+        season_pct = player_stats.get('Win %', '0.0%')
+        print(f"   🏆 Season: {season_wins}W/{season_losses}L ({season_pct})")
+        
+        # Career stats
+        career_wins = player_stats.get('Career Wins', 0)
+        career_losses = player_stats.get('Career Losses', 0)
+        career_pct = player_stats.get('Career Win %', '0.0%')
+        print(f"   🎯 Career: {career_wins}W/{career_losses}L ({career_pct})")
+        
+        # Additional info
+        club = player_stats.get('Club', 'Unknown')
+        series = player_stats.get('Series', 'Unknown')
+        print(f"   🏢 Club: {club} | Series: {series}")
+
     def _initialize_stealth_browser(self) -> Optional[EnhancedStealthBrowser]:
         """
         Initialize stealth browser with enhanced error handling and proxy management.
@@ -121,9 +303,11 @@ class APTAChicagoRosterScraper:
                         print("   🔄 Rotating proxy before test...")
                         stealth_browser.rotate_proxy()
                     
+                    pace_sleep()  # Adaptive pacing before network request
                     test_response = stealth_browser.get_html(test_url)
                     
                     if test_response and len(test_response) > 100000:  # Series pages should be ~179K chars
+                        _pacer_mark_ok()  # Mark successful response
                         print("   ✅ Stealth browser test successful - got full Series page")
                         return stealth_browser
                     elif test_response and len(test_response) > 50000:  # Partial but usable
@@ -279,8 +463,10 @@ class APTAChicagoRosterScraper:
                         time.sleep(2 ** attempt)  # Exponential backoff: 2s, 4s
                     
                     # Test the new proxy with a simple request
+                    pace_sleep()  # Adaptive pacing before network request
                     test_response = stealth_browser.get_html("https://apta.tenniscores.com")
                     if test_response and len(test_response) > 100:
+                        _pacer_mark_ok()  # Mark successful response
                         print("   ✅ Proxy rotation successful")
                         return True
                     else:
@@ -300,10 +486,21 @@ class APTAChicagoRosterScraper:
     def _add_intelligent_delay(self, request_type: str = "general"):
         """
         Add intelligent delays between requests to avoid rate limiting.
+        Uses adaptive pacing when available for speed optimization.
         
         Args:
             request_type: Type of request ("series", "team", "general")
         """
+        import random
+        
+        # Use adaptive pacing if available
+        if SPEED_OPTIMIZATIONS_AVAILABLE:
+            try:
+                pace_sleep()
+                return
+            except Exception as e:
+                print(f"⚠️ Adaptive pacing failed, using standard delay: {e}")
+        
         if request_type == "series":
             # Longer delay between series pages
             delay = 5 + (2 * (len(self.completed_series) % 3))  # 5-9 seconds
@@ -823,6 +1020,7 @@ class APTAChicagoRosterScraper:
                         if player_link and player_link.get('href'):
                             href = player_link.get('href')
                             # Get career stats from individual player page
+                            print(f"           📊 Getting career stats for {clean_player_name}...")
                             career_stats = self.get_career_stats_from_individual_page(href)
                             # Rename keys to indicate career stats
                             career_stats = {
@@ -882,13 +1080,23 @@ class APTAChicagoRosterScraper:
                         }
                         players.append(player_data)
                         print(f"      ✅ Extracted player: {first_name} {last_name} (PTI: {pti_value}, Season W: {wins_value}, Season L: {losses_value}, Career W: {career_stats['career_wins']}, Career L: {career_stats['career_losses']})")
+                        
+                        # Update progress tracking
+                        self._update_progress(
+                            series_name=series_identifier,
+                            player_name=f"{first_name} {last_name}",
+                            players_processed=1,
+                            total_players=0,
+                            player_stats=player_data
+                        )
         
         print(f"      📊 Extracted {len(players)} players from {team_name}")
         return players
     
     def get_career_stats_from_individual_page(self, player_url: str, max_retries: int = 2) -> Dict[str, any]:
         """
-        Get career wins and losses from individual player page using browser automation for JavaScript rendering
+        Get career wins and losses using the direct chronological URL approach.
+        WORKING SOLUTION: Same pattern as CNSWPL using chronological URLs.
         
         Args:
             player_url: URL to the individual player page
@@ -899,143 +1107,177 @@ class APTAChicagoRosterScraper:
         """
         for attempt in range(max_retries):
             try:
-                print(f"   📊 Getting career stats from individual player page (attempt {attempt + 1})...")
+                print(f"   📊 Getting career stats using chronological URL (attempt {attempt + 1})...")
                 
-                # Construct full URL if needed
-                if not player_url.startswith("http"):
-                    full_url = f"{self.base_url}{player_url}"
-                else:
-                    full_url = player_url
+                # Extract player ID from the player URL
+                player_id = self._extract_player_id_from_url(player_url)
+                if not player_id:
+                    print(f"   ❌ Could not extract player ID from URL: {player_url}")
+                    continue
                 
-                # Use stealth browser to execute JavaScript and get rendered content
-                try:
-                    print(f"   🌐 Using stealth browser to render JavaScript...")
-                    
-                    # Create a new stealth browser instance with force_browser=True for JavaScript execution
-                    from stealth_browser import create_stealth_browser
-                    browser = create_stealth_browser(force_browser=True, verbose=True)
-                    
-                    # Ensure driver is created by making a request first
-                    print(f"   🌐 Making initial request to initialize driver...")
-                    html_content = browser.get_html(full_url)
-                    print(f"   ✅ Initial request successful - got {len(html_content)} characters")
-                    
-                    # Get the browser driver to interact with elements
-                    driver = browser.current_driver
-                    if not driver:
-                        raise Exception("Failed to get browser driver after initialization")
-                    
-                    # Click the "Chronological" checkbox to load match history data
-                    try:
-                        chron_checkbox = driver.find_element("id", "chron")
-                        if chron_checkbox and not chron_checkbox.is_selected():
-                            print(f"   📅 Clicking chronological checkbox to load match history...")
-                            chron_checkbox.click()
-                            # Wait for data to load after clicking
-                            time.sleep(3)
-                            print(f"   ✅ Chronological view enabled")
-                        else:
-                            print(f"   ℹ️ Chronological checkbox already selected or not found")
-                    except Exception as e:
-                        print(f"   ⚠️ Could not click chronological checkbox: {e}")
-                    
-                    # Get the rendered HTML content after enabling chronological view
-                    html_content = driver.page_source
-                    print(f"   ✅ Browser rendered content after chronological click - got {len(html_content)} characters")
-                    
-                    # Save rendered content for debugging
-                    with open('/tmp/apta_rendered_debug.html', 'w') as f:
-                        f.write(html_content)
-                    print(f"   💾 Saved rendered content to /tmp/apta_rendered_debug.html")
-                    
-                    # Try to extract wins and losses from the rendered content
-                    wins = 0
-                    losses = 0
-                    
-                    # Look for the specific elements that JavaScript populates
-                    soup = BeautifulSoup(html_content, 'html.parser')
-                    
-                    # Look for elements with IDs that contain wins/losses
-                    wins_element = soup.find(id='playercard_value_wins')
-                    losses_element = soup.find(id='playercard_value_losses')
-                    
-                    if wins_element:
-                        wins_text = wins_element.get_text().strip()
-                        try:
-                            wins = int(wins_text) if wins_text.isdigit() else 0
-                        except ValueError:
-                            wins = 0
-                    
-                    if losses_element:
-                        losses_text = losses_element.get_text().strip()
-                        try:
-                            losses = int(losses_text) if losses_text.isdigit() else 0
-                        except ValueError:
-                            losses = 0
-                    
-                    # If we didn't find the specific elements, fall back to W/L pattern matching
-                    if wins == 0 and losses == 0:
-                        print(f"   🔍 Fallback: Looking for W/L patterns in rendered content...")
-                        if "W" in html_content or "L" in html_content:
-                            w_matches = re.findall(r'\bW\b', html_content)
-                            l_matches = re.findall(r'\bL\b', html_content)
-                            wins = len(w_matches)
-                            losses = len(l_matches)
-                            print(f"   🎯 Found {wins} career wins and {losses} career losses via pattern matching")
-                        else:
-                            print(f"   ⚠️ No W/L content found in rendered player page")
-                    else:
-                        print(f"   🎯 Found {wins} career wins and {losses} career losses from JavaScript elements")
-                    
-                except Exception as e:
-                    print(f"   ⚠️ Browser automation failed: {e}")
-                    print(f"   🔄 Trying fallback HTTP method...")
-                    
-                    # Fallback to HTTP request (though this won't get JavaScript-rendered content)
-                    response = fetch_with_retry(full_url, timeout=15)
-                    if response and response.status_code == 200:
-                        html_content = response.text
-                        print(f"   ✅ Fallback HTTP request successful - got {len(html_content)} characters")
-                        
-                        # This won't work for APTA due to JavaScript, but we'll try anyway
-                        wins = 0
-                        losses = 0
-                        if "W" in html_content or "L" in html_content:
-                            w_matches = re.findall(r'\bW\b', html_content)
-                            l_matches = re.findall(r'\bL\b', html_content)
-                            wins = len(w_matches)
-                            losses = len(l_matches)
-                    else:
-                        print(f"   ❌ Fallback HTTP request also failed")
-                        return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+                # Build the direct chronological URL (same pattern as CNSWPL)
+                chronological_url = f"{self.base_url}/?print&mod=nndz-Sm5yb2lPdTcxdFJibXc9PQ%3D%3D&all&p={player_id}"
+                print(f"   🔗 Chronological URL: {chronological_url}")
                 
-                # Calculate win percentage
-                try:
-                    wins_int = int(wins)
-                    losses_int = int(losses)
-                    total_matches = wins_int + losses_int
-                    if total_matches > 0:
-                        win_percentage = f"{(wins_int / total_matches * 100):.1f}%"
-                    else:
-                        win_percentage = "0.0%"
-                except (ValueError, ZeroDivisionError):
-                    win_percentage = "0.0%"
-                
-                return {
-                    "wins": str(wins),
-                    "losses": str(losses), 
-                    "win_percentage": win_percentage
+                # Use simple requests for chronological URL (fast and reliable)
+                import requests
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 }
                 
-            except Exception as e:
-                print(f"   ❌ Error getting player stats (attempt {attempt + 1}): {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(0.5)
+                pace_sleep()  # Adaptive pacing before network request
+                response = requests.get(chronological_url, headers=headers, timeout=30)
+                
+                if response.status_code != 200:
+                    print(f"   ❌ Failed to get chronological content: {response.status_code}")
                     continue
                 else:
+                    _pacer_mark_ok()  # Mark successful response
+                
+                html_content = response.text
+                print(f"   ✅ Chronological content retrieved: {len(html_content)} characters")
+                
+                # Extract career stats from div elements (same approach as CNSWPL)
+                return self._extract_apta_career_from_result_divs(html_content)
+                
+            except Exception as e:
+                print(f"   ❌ Error getting career stats (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                else:
+                    print(f"   ⚠️ All attempts failed for career stats")
                     return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+        
+        return {"wins": "0", "losses": "0", "win_percentage": "0.0%"}
+    
+    def _extract_player_id_from_url(self, player_url: str) -> str:
+        """Extract player ID from player URL."""
+        try:
+            if 'p=' in player_url:
+                player_id = player_url.split('p=')[1].split('&')[0] if '&' in player_url else player_url.split('p=')[1]
+                return player_id
+            else:
+                print(f"   ⚠️ No player ID found in URL: {player_url}")
+                return ""
+        except Exception as e:
+            print(f"   ❌ Error extracting player ID: {e}")
+            return ""
+    
+    def _extract_apta_career_from_result_divs(self, html_content: str) -> Dict[str, str]:
+        """
+        Extract APTA career stats from result divs using the same approach as CNSWPL.
+        """
+        from bs4 import BeautifulSoup
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        wins = 0
+        losses = 0
+        
+        # Method 1: Look for result divs with the specific style
+        result_divs = soup.find_all('div', style=re.compile(r'width:\s*57px.*text-align:\s*right'))
+        
+        for div in result_divs:
+            result_text = div.get_text().strip()
+            if result_text == 'W':
+                wins += 1
+            elif result_text == 'L':
+                losses += 1
+        
+        print(f"   📊 Method 1 (Result divs): {wins}W/{losses}L")
+        
+        # Method 2: If no specific divs found, look for right-aligned divs
+        if wins == 0 and losses == 0:
+            right_aligned_divs = soup.find_all('div', style=re.compile(r'text-align:\s*right'))
+            
+            for div in right_aligned_divs:
+                text = div.get_text().strip()
+                if text == 'W':
+                    wins += 1
+                elif text == 'L':
+                    losses += 1
+            
+            print(f"   📊 Method 2 (Right-aligned): {wins}W/{losses}L")
+        
+        # Calculate win percentage
+        if wins + losses > 0:
+            win_percentage = f"{(wins / (wins + losses) * 100):.1f}%"
+        else:
+            win_percentage = "0.0%"
+        
+        career_stats = {
+            "wins": str(wins),
+            "losses": str(losses),
+            "win_percentage": win_percentage
+        }
+        
+        print(f"   ✅ Career stats extracted: {wins} wins, {losses} losses, {win_percentage}")
+        return career_stats
+
 
     
+    def _extract_player_id_from_url(self, player_url: str) -> str:
+        """Extract player ID from player URL."""
+        try:
+            if 'p=' in player_url:
+                player_id = player_url.split('p=')[1].split('&')[0] if '&' in player_url else player_url.split('p=')[1]
+                return player_id
+            else:
+                print(f"   ⚠️ No player ID found in URL: {player_url}")
+                return ""
+        except Exception as e:
+            print(f"   ❌ Error extracting player ID: {e}")
+            return ""
+    
+    def _extract_apta_career_from_result_divs(self, html_content: str) -> Dict[str, str]:
+        """
+        Extract APTA career stats from result divs using the same approach as CNSWPL.
+        """
+        from bs4 import BeautifulSoup
+        
+        soup = BeautifulSoup(html_content, 'html.parser')
+        wins = 0
+        losses = 0
+        
+        # Method 1: Look for result divs with the specific style
+        result_divs = soup.find_all('div', style=re.compile(r'width:\s*57px.*text-align:\s*right'))
+        
+        for div in result_divs:
+            result_text = div.get_text().strip()
+            if result_text == 'W':
+                wins += 1
+            elif result_text == 'L':
+                losses += 1
+        
+        print(f"   📊 Method 1 (Result divs): {wins}W/{losses}L")
+        
+        # Method 2: If no specific divs found, look for right-aligned divs
+        if wins == 0 and losses == 0:
+            right_aligned_divs = soup.find_all('div', style=re.compile(r'text-align:\s*right'))
+            
+            for div in right_aligned_divs:
+                text = div.get_text().strip()
+                if text == 'W':
+                    wins += 1
+                elif text == 'L':
+                    losses += 1
+            
+            print(f"   📊 Method 2 (Right-aligned): {wins}W/{losses}L")
+        
+        # Calculate win percentage
+        if wins + losses > 0:
+            win_percentage = f"{(wins / (wins + losses) * 100):.1f}%"
+        else:
+            win_percentage = "0.0%"
+        
+        career_stats = {
+            "wins": str(wins),
+            "losses": str(losses),
+            "win_percentage": win_percentage
+        }
+        
+        print(f"   ✅ Career stats extracted: {wins} wins, {losses} losses, {win_percentage}")
+        return career_stats
     def _consolidate_all_temp_files(self) -> List[Dict]:
         """Consolidate all series temp files into a single player list"""
         print("🔍 Consolidating all temp series files...")
@@ -1378,6 +1620,17 @@ class APTAChicagoRosterScraper:
         # Load existing progress if available
         self.load_existing_progress()
         
+        # Estimate total players for progress tracking
+        estimated_players_per_series = 150  # Conservative estimate
+        if self.target_series:
+            self.total_players_expected = len(self.target_series) * estimated_players_per_series
+        else:
+            self.total_players_expected = 22 * estimated_players_per_series  # ~22 series
+        
+        print(f"\n📊 Estimated total players to process: ~{self.total_players_expected:,}")
+        print(f"🚀 Starting APTA scraper with enhanced progress tracking...")
+        print(f"{'='*80}")
+        
         # For targeted scraping, use dynamic discovery to find specific series
         if self.target_series:
             print("🎯 Using dynamic discovery for targeted series scraping...")
@@ -1442,6 +1695,9 @@ class APTAChicagoRosterScraper:
             print(f"\n🏆 Processing Series {i}/{len(series_urls)}: {series_name}")
             print(f"📊 Progress: {progress_percent:.1f}% complete")
             print(f"⏱️ Elapsed time: {elapsed_time/60:.1f} minutes")
+            
+            # Update progress tracking for series start
+            self._update_progress(series_name=series_name)
             
             # Handle dynamic discovery for letter series
             if series_url == "DISCOVER":
@@ -1726,16 +1982,20 @@ class APTAChicagoRosterScraper:
             print(f"   🌐 Using stealth browser for: {url}")
             try:
                 # Try stealth browser first (prioritized)
+                pace_sleep()  # Adaptive pacing before network request
                 response = self.stealth_browser.get_html(url)
                 if response and len(response) > 1000:
+                    _pacer_mark_ok()  # Mark successful response
                     print(f"   ✅ Stealth browser successful: {len(response)} characters")
                     return response
                 else:
                     print("   ⚠️ Stealth browser returned insufficient content, trying again...")
                     # Give stealth browser another chance
                     time.sleep(2)
+                    pace_sleep()  # Adaptive pacing before retry
                     response = self.stealth_browser.get_html(url)
                     if response and len(response) > 1000:
+                        _pacer_mark_ok()  # Mark successful response
                         print(f"   ✅ Stealth browser retry successful: {len(response)} characters")
                         return response
                     else:
@@ -1774,7 +2034,7 @@ class APTAChicagoRosterScraper:
                 
                 # Get user agent from manager
                 try:
-                    from user_agent_manager import UserAgentManager
+                    from helpers.user_agent_manager import UserAgentManager
                     ua_manager = UserAgentManager()
                     user_agent = ua_manager.get_user_agent_for_site(url)
                 except:

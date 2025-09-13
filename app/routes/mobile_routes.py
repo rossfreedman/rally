@@ -2089,6 +2089,279 @@ def get_player_season_history(player_name):
         return jsonify({"error": "Failed to fetch season history"}), 500
 
 
+@mobile_bp.route("/impersonate")
+@login_required
+def serve_impersonate():
+    """Serve the team impersonation page"""
+    try:
+        user = session["user"]
+        user_email = user["email"]
+        
+        # Get user's current team context
+        team_id = user.get("team_id")
+        if not team_id:
+            return render_template("mobile/impersonate.html", 
+                                 error="No team context found. Please ensure you're properly associated with a team.",
+                                 team_members=[])
+        
+        # Get team members for impersonation
+        team_members = get_team_members_for_impersonation(team_id, user_email)
+        
+        return render_template("mobile/impersonate.html", 
+                             team_members=team_members,
+                             current_user_email=user_email)
+        
+    except Exception as e:
+        print(f"Error in serve_impersonate: {e}")
+        return render_template("mobile/impersonate.html", 
+                             error="Failed to load team members",
+                             team_members=[])
+
+
+def get_team_members_for_impersonation(team_id, current_user_email):
+    """Get team members that can be impersonated by the current user"""
+    try:
+        query = """
+            SELECT DISTINCT
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name,
+                p.tenniscores_player_id,
+                p.team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE p.team_id = %s
+            AND p.is_active = TRUE
+            AND u.email != %s
+            ORDER BY u.first_name, u.last_name
+        """
+        
+        results = execute_query(query, [team_id, current_user_email])
+        
+        team_members = []
+        for row in results:
+            team_members.append({
+                "id": row["id"],
+                "email": row["email"],
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "tenniscores_player_id": row["tenniscores_player_id"],
+                "team_id": row["team_id"],
+                "team_name": row["team_name"],
+                "club_name": row["club_name"],
+                "series_name": row["series_name"],
+                "league_name": row["league_name"],
+                "display_name": f"{row['first_name']} {row['last_name']} ({row['email']})"
+            })
+        
+        return team_members
+        
+    except Exception as e:
+        print(f"Error getting team members for impersonation: {e}")
+        return []
+
+
+@mobile_bp.route("/api/team-impersonation/start", methods=["POST"])
+@login_required
+def start_team_impersonation():
+    """Start impersonating a team member"""
+    try:
+        data = request.get_json()
+        target_email = data.get("user_email")
+        target_player_id = data.get("tenniscores_player_id")
+        
+        if not target_email:
+            return jsonify({"error": "User email is required"}), 400
+        
+        # Get current user's team context
+        current_user = session["user"]
+        current_team_id = current_user.get("team_id")
+        current_user_email = current_user["email"]
+        
+        if not current_team_id:
+            return jsonify({"error": "No team context found"}), 400
+        
+        # Verify the target user is on the same team
+        target_user_query = """
+            SELECT DISTINCT
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name,
+                u.is_admin,
+                p.tenniscores_player_id,
+                p.team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.email = %s
+            AND p.team_id = %s
+            AND p.is_active = TRUE
+        """
+        
+        target_user = execute_query_one(target_user_query, [target_email, current_team_id])
+        
+        if not target_user:
+            return jsonify({"error": "User not found on your team"}), 404
+        
+        # Prevent impersonating admins
+        if target_user.get("is_admin"):
+            return jsonify({"error": "Cannot impersonate admin users"}), 403
+        
+        # Prevent self-impersonation
+        if target_email == current_user_email:
+            return jsonify({"error": "Cannot impersonate yourself"}), 400
+        
+        # Backup current session
+        original_session = {
+            "user": current_user,
+            "impersonation_active": False
+        }
+        
+        # Build target user session data
+        from app.services.session_service import get_session_data_for_user_team
+        
+        target_session_data = get_session_data_for_user_team(target_email, current_team_id)
+        
+        if not target_session_data:
+            return jsonify({"error": "Failed to build session data for target user"}), 500
+        
+        # Store impersonation state
+        session["impersonation_active"] = True
+        session["original_user_session"] = original_session
+        session["impersonated_user_email"] = target_email
+        session["impersonated_player_id"] = target_player_id
+        session["impersonation_type"] = "team"  # Distinguish from admin impersonation
+        
+        # Replace current session with target user's session
+        session["user"] = target_session_data
+        session.modified = True
+        
+        # Log the impersonation
+        log_user_activity(
+            current_user_email,
+            "team_impersonation",
+            action="start_impersonation",
+            details=f"Started impersonating team member: {target_email} ({target_user['first_name']} {target_user['last_name']})"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully started impersonating {target_user['first_name']} {target_user['last_name']}",
+            "impersonated_user": {
+                "email": target_email,
+                "first_name": target_user["first_name"],
+                "last_name": target_user["last_name"],
+                "team_name": target_user["team_name"],
+                "club_name": target_user["club_name"],
+                "series_name": target_user["series_name"]
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in start_team_impersonation: {e}")
+        return jsonify({"error": f"Failed to start impersonation: {str(e)}"}), 500
+
+
+@mobile_bp.route("/api/team-impersonation/stop", methods=["POST"])
+@login_required
+def stop_team_impersonation():
+    """Stop team impersonation and restore original session"""
+    try:
+        # Check if currently impersonating
+        if not session.get("impersonation_active") or session.get("impersonation_type") != "team":
+            return jsonify({"error": "Not currently impersonating a team member"}), 400
+        
+        # Get original session
+        original_session = session.get("original_user_session")
+        impersonated_email = session.get("impersonated_user_email")
+        
+        if not original_session:
+            return jsonify({"error": "Original session not found"}), 500
+        
+        # Restore original session
+        session["user"] = original_session["user"]
+        
+        # Clear impersonation state
+        session.pop("impersonation_active", None)
+        session.pop("original_user_session", None)
+        session.pop("impersonated_user_email", None)
+        session.pop("impersonated_player_id", None)
+        session.pop("impersonation_type", None)
+        session.modified = True
+        
+        # Log the impersonation stop
+        current_user_email = session["user"]["email"]
+        log_user_activity(
+            current_user_email,
+            "team_impersonation",
+            action="stop_impersonation",
+            details=f"Stopped impersonating team member: {impersonated_email}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully stopped impersonation and restored your session"
+        })
+        
+    except Exception as e:
+        print(f"Error in stop_team_impersonation: {e}")
+        return jsonify({"error": f"Failed to stop impersonation: {str(e)}"}), 500
+
+
+@mobile_bp.route("/api/team-impersonation/status")
+@login_required
+def get_team_impersonation_status():
+    """Get current team impersonation status"""
+    try:
+        is_impersonating = session.get("impersonation_active", False)
+        impersonation_type = session.get("impersonation_type")
+        
+        if is_impersonating and impersonation_type == "team":
+            impersonated_email = session.get("impersonated_user_email")
+            current_user = session["user"]
+            
+            return jsonify({
+                "is_impersonating": True,
+                "impersonation_type": "team",
+                "impersonated_user": {
+                    "email": impersonated_email,
+                    "first_name": current_user.get("first_name"),
+                    "last_name": current_user.get("last_name"),
+                    "team_name": current_user.get("team_name"),
+                    "club_name": current_user.get("club"),
+                    "series_name": current_user.get("series")
+                }
+            })
+        else:
+            return jsonify({
+                "is_impersonating": False,
+                "impersonation_type": None
+            })
+            
+    except Exception as e:
+        print(f"Error in get_team_impersonation_status: {e}")
+        return jsonify({"error": f"Failed to get impersonation status: {str(e)}"}), 500
+
+
 @mobile_bp.route("/mobile/my-team")
 @login_required
 def serve_mobile_my_team():

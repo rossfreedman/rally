@@ -1061,7 +1061,7 @@
     <div id="global-impersonation-banner" class="hidden fixed top-14 left-0 right-0 bg-orange-500 text-white p-2 z-50 shadow-lg">
         <div class="flex items-center justify-center text-sm">
             <i class="fas fa-user-secret mr-2"></i>
-            <span>Admin Mode: Impersonating <span id="global-impersonated-user-name" class="font-semibold"></span></span>
+            <span id="global-impersonation-text">Impersonating <span id="global-impersonated-user-name" class="font-semibold"></span></span>
             <button onclick="stopGlobalImpersonation()" class="ml-4 bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 text-xs rounded transition-colors">
                 Stop
             </button>
@@ -1210,28 +1210,44 @@
         // Global impersonation status checking
         async function checkGlobalImpersonationStatus() {
             try {
-                const response = await fetch('/api/admin/impersonation-status');
-                const status = await response.json();
+                // Check both admin and team impersonation
+                const [adminResponse, teamResponse] = await Promise.all([
+                    fetch('/api/admin/impersonation-status').catch(() => ({ json: () => ({ is_impersonating: false }) })),
+                    fetch('/api/team-impersonation/status').catch(() => ({ json: () => ({ is_impersonating: false }) }))
+                ]);
                 
-                if (status.is_impersonating) {
-                    const banner = document.getElementById('global-impersonation-banner');
-                    const userName = document.getElementById('global-impersonated-user-name');
-                    const mainContent = document.getElementById('main-content');
-                    
-                    if (banner && userName && mainContent) {
-                        const playerContext = status.impersonated_user.player_context;
+                const adminStatus = await adminResponse.json();
+                const teamStatus = await teamResponse.json();
+                
+                const banner = document.getElementById('global-impersonation-banner');
+                const userName = document.getElementById('global-impersonated-user-name');
+                const impersonationText = document.getElementById('global-impersonation-text');
+                const mainContent = document.getElementById('main-content');
+                
+                if (adminStatus.is_impersonating) {
+                    // Admin impersonation
+                    if (banner && userName && impersonationText && mainContent) {
+                        const playerContext = adminStatus.impersonated_user.player_context;
                         const displayText = playerContext && playerContext.club && playerContext.series 
-                            ? `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email}) as ${playerContext.club.name}, ${playerContext.series.name}`
-                            : `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+                            ? `${adminStatus.impersonated_user.first_name} ${adminStatus.impersonated_user.last_name} (${adminStatus.impersonated_user.email}) as ${playerContext.club.name}, ${playerContext.series.name}`
+                            : `${adminStatus.impersonated_user.first_name} ${adminStatus.impersonated_user.last_name} (${adminStatus.impersonated_user.email})`;
                         userName.textContent = displayText;
+                        impersonationText.textContent = 'Admin Mode: Impersonating ';
                         banner.classList.remove('hidden');
-                        // Adjust main content padding to account for banner
+                        mainContent.style.paddingTop = '104px'; // 72px (nav) + 32px (banner)
+                    }
+                } else if (teamStatus.is_impersonating) {
+                    // Team impersonation
+                    if (banner && userName && impersonationText && mainContent) {
+                        const user = teamStatus.impersonated_user;
+                        const displayText = `${user.first_name} ${user.last_name} (${user.email}) - ${user.club_name}, ${user.series_name}`;
+                        userName.textContent = displayText;
+                        impersonationText.textContent = 'Team Mode: Impersonating ';
+                        banner.classList.remove('hidden');
                         mainContent.style.paddingTop = '104px'; // 72px (nav) + 32px (banner)
                     }
                 } else {
-                    const banner = document.getElementById('global-impersonation-banner');
-                    const mainContent = document.getElementById('main-content');
-                    
+                    // No impersonation
                     if (banner && mainContent) {
                         banner.classList.add('hidden');
                         mainContent.style.paddingTop = '72px'; // Just nav padding
@@ -1244,23 +1260,34 @@
 
         // Stop impersonation from global banner
         async function stopGlobalImpersonation() {
-            if (!confirm('Stop impersonation and return to your admin session?')) {
+            if (!confirm('Stop impersonation and return to your original session?')) {
                 return;
             }
             
             try {
-                const response = await fetch('/api/admin/stop-impersonation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                // Try both admin and team impersonation stop endpoints
+                const [adminResponse, teamResponse] = await Promise.all([
+                    fetch('/api/admin/stop-impersonation', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).catch(() => ({ json: () => ({ success: false, error: 'Not admin impersonation' }) })),
+                    fetch('/api/team-impersonation/stop', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    }).catch(() => ({ json: () => ({ success: false, error: 'Not team impersonation' }) }))
+                ]);
                 
-                const result = await response.json();
+                const adminResult = await adminResponse.json();
+                const teamResult = await teamResponse.json();
                 
-                if (result.success) {
-                    alert('Impersonation stopped. Returning to admin session.');
+                if (adminResult.success) {
+                    alert('Admin impersonation stopped. Returning to admin session.');
+                    window.location.reload();
+                } else if (teamResult.success) {
+                    alert('Team impersonation stopped. Returning to your original session.');
                     window.location.reload();
                 } else {
-                    alert(`Failed to stop impersonation: ${result.error}`);
+                    alert('No active impersonation found.');
                 }
             } catch (error) {
                 console.error('Error stopping impersonation:', error);
