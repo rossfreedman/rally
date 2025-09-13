@@ -35,3 +35,4 @@ Replaced complex multi-context system with a simple, unified approach:
 - URL parameters like `?league_id=APTA_CHICAGO` still work
 
 ## Architecture
+# Force deployment Sat Sep 13 17:25:58 EDT 2025
