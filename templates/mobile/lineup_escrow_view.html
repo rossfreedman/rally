@@ -140,32 +140,32 @@
                                         {# Parse new format but remove position labels #}
                                         {% if '(Ad)' in line %}
                                             {% set player_name = line.split('(Ad)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                         {% if '(Deuce)' in line %}
                                             {% set player_name = line.split('(Deuce)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
                                         {# Parse old format with "Ad:" and "Deuce:" labels #}
                                         {% if line.startswith('  Ad:') %}
                                             {% set player_name = line.replace('  Ad:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% elif line.startswith('  Deuce:') %}
                                             {% set player_name = line.replace('  Deuce:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% elif '&' in line %}
                                         {# Fallback for old format - don't assume positions #}
                                         {% set players = line.split('&') %}
                                         {% if players|length == 2 %}
-                                            <div class="ml-4 mb-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
-                                            <div class="ml-4 mb-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
                                         {% else %}
-                                            <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ line.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% else %}
-                                        <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                        <div class="ml-4 mb-2 py-1">{{ line.replace('&nbsp;', '') }}</div>
                                     {% endif %}
                                 {% endif %}
                             {% endfor %}
@@ -203,32 +203,32 @@
                                         {# Parse new format but remove position labels #}
                                         {% if '(Ad)' in line %}
                                             {% set player_name = line.split('(Ad)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                         {% if '(Deuce)' in line %}
                                             {% set player_name = line.split('(Deuce)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
                                         {# Parse old format with "Ad:" and "Deuce:" labels #}
                                         {% if line.startswith('  Ad:') %}
                                             {% set player_name = line.replace('  Ad:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% elif line.startswith('  Deuce:') %}
                                             {% set player_name = line.replace('  Deuce:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ player_name.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% elif '&' in line %}
                                         {# Fallback for old format - don't assume positions #}
                                         {% set players = line.split('&') %}
                                         {% if players|length == 2 %}
-                                            <div class="ml-4 mb-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
-                                            <div class="ml-4 mb-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ players[0].strip().replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ players[1].strip().replace('&nbsp;', '') }}</div>
                                         {% else %}
-                                            <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                            <div class="ml-4 mb-2 py-1">{{ line.replace('&nbsp;', '') }}</div>
                                         {% endif %}
                                     {% else %}
-                                        <div class="ml-4 mb-1">{{ line.replace('&nbsp;', '') }}</div>
+                                        <div class="ml-4 mb-2 py-1">{{ line.replace('&nbsp;', '') }}</div>
                                     {% endif %}
                                 {% endif %}
                             {% endfor %}
@@ -550,6 +550,8 @@ async function processLineupContainer(lineupContainer) {
             
             // Find players for this court (next few divs until next court or end)
             const players = [];
+            const playerElements = [];
+            
             for (let j = i + 1; j < courtHeaders.length; j++) {
                 const nextHeader = courtHeaders[j];
                 const nextText = nextHeader.textContent.trim();
@@ -563,6 +565,7 @@ async function processLineupContainer(lineupContainer) {
                     const cleanName = nextText.replace(/\(Ad\)|\(Deuce\)|\(Either\)/g, '').trim();
                     if (cleanName) {
                         players.push(cleanName);
+                        playerElements.push(nextHeader);
                     }
                 }
             }
@@ -575,11 +578,19 @@ async function processLineupContainer(lineupContainer) {
                 let totalPTI = 0;
                 let playerCount = 0;
                 
-                players.forEach(playerName => {
+                // Update individual player elements with PTI values
+                players.forEach((playerName, index) => {
                     const pti = ptiData[playerName];
+                    const playerElement = playerElements[index];
+                    
                     if (pti !== null && pti !== undefined) {
                         totalPTI += pti;
                         playerCount++;
+                        // Add PTI value to player name
+                        playerElement.innerHTML = `${playerName} <span class="text-sm text-gray-600">(${pti})</span>`;
+                    } else {
+                        // Show no PTI data available
+                        playerElement.innerHTML = `${playerName} <span class="text-sm text-gray-400">(No PTI)</span>`;
                     }
                 });
                 
