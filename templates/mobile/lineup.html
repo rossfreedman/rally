@@ -109,19 +109,19 @@
                     <!-- Subs Selection Modal -->
                     <div id="subs-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
                         <div class="flex items-center justify-center min-h-screen p-4">
-                            <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
-                                <!-- Modal Header -->
-                                <div class="bg-white border-b border-gray-200 px-6 py-4" style="flex-shrink: 0;">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h2 class="text-xl font-semibold text-gray-900">Select Substitute Players</h2>
-                                            <p class="text-sm text-gray-500 mt-1">Choose subs to add to your lineup from higher series at {{ session_data.user.club }}</p>
-                                        </div>
-                                        <button id="close-subs-modal" class="text-gray-400 hover:text-gray-600">
-                                            <i class="fas fa-times text-xl"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                            <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4" style="flex-shrink: 0; background-color: #045454; border-bottom: 1px solid #033333;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold" style="color: #bff863;">Select Substitute Players</h2>
+                    <p class="text-sm mt-1" style="color: #bff863; opacity: 0.8;">Choose subs to add to your lineup from higher series at {{ session_data.user.club }}</p>
+                </div>
+                <button id="close-subs-modal" style="color: #bff863; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
                                 
                                 <!-- Modal Body -->
                                 <div class="p-6" style="height: calc(80vh - 140px); overflow-y: scroll; flex: 1;">
@@ -698,62 +698,61 @@ function renderSubsInModal(subsData) {
   subsData.forEach((player, idx) => {
     const isTopThree = idx < 3;
     const card = document.createElement('div');
-    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200';
+    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2 hover:shadow-md transition-shadow duration-200 max-w-md mx-auto';
     card.dataset.playerId = player.name; // Use name as unique identifier
     
-    // Determine win rate color
+    // Determine win rate color using Rally brand colors
     const winRateNum = parseFloat((player.winRate || '0%').replace('%', ''));
     let winRateColor = 'text-gray-600';
     if (winRateNum >= 60) {
-      winRateColor = 'text-green-600';
+      winRateColor = 'color: #bff863;'; // Rally Bright Green
     } else if (winRateNum >= 45) {
-      winRateColor = 'text-yellow-600';
+      winRateColor = 'color: #fbbf24;'; // Yellow
     } else if (winRateNum > 0) {
-      winRateColor = 'text-red-600';
+      winRateColor = 'color: #ef4444;'; // Red
     }
     
     card.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4 flex-1">
-          <!-- Selection Checkbox -->
-          <div class="flex-shrink-0">
-            <input type="checkbox" class="sub-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
-                   data-player-name="${player.name}" data-player-data='${JSON.stringify(player)}'>
+      <div class="flex items-start gap-4">
+        <!-- Checkbox Column -->
+        <div class="flex items-center pt-1 flex-shrink-0">
+          <input type="checkbox" class="sub-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
+                 data-player-name="${player.name}" data-player-data='${JSON.stringify(player)}'>
+        </div>
+        
+        <!-- Player Content Column -->
+        <div class="flex-1 min-w-0">
+          <!-- TOP PICK Badge (if applicable) -->
+          ${isTopThree ? `
+            <div class="mb-2">
+              <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+                <i class="fas fa-star text-xs"></i>TOP PICK
+              </span>
+            </div>
+          ` : ''}
+          
+          <!-- Player Name -->
+          <div class="flex items-center space-x-2 mb-2">
+            <h4 class="font-semibold text-gray-900 truncate">${player.name}</h4>
           </div>
           
-          <!-- Player Info -->
-          <div class="flex-1 min-w-0">
-            <!-- TOP PICK Badge (if applicable) -->
-            ${isTopThree ? `
-              <div class="mb-2">
-                <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
-                  <i class="fas fa-star text-xs"></i>TOP PICK
-                </span>
-              </div>
-            ` : ''}
-            
-            <!-- Player Name -->
-            <h4 class="font-semibold text-gray-900 text-lg">${player.name}</h4>
-            
-            <!-- PTI (most prominent) -->
-            ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
-              <div class="text-blue-600 font-bold text-xl mb-1">PTI: ${player.pti}</div>
-            ` : ''}
-            
-            <!-- Club and Series -->
-            <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
-            <p class="text-sm text-gray-500 mb-2">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</p>
-            
-            <!-- Stats -->
-            <div class="text-sm space-y-1">
-              <div>
-                <span class="text-gray-600">Record:</span> 
-                <span class="text-gray-900 font-medium">${player.wins || 0}W-${player.losses || 0}L</span>
-              </div>
-              <div>
-                <span class="text-gray-600">Win Rate:</span> 
-                <span class="font-medium ${winRateColor}">${player.winRate || '0%'}</span>
-              </div>
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">PTI:</span>
+              <span class="font-medium text-blue-600">${player.pti || player.rating || 'N/A'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Series:</span>
+              <span class="font-medium text-gray-900">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Record:</span>
+              <span class="font-medium text-gray-900">${player.wins || 0}W-${player.losses || 0}L</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Win Rate:</span>
+              <span class="font-medium" style="${winRateColor}">${player.winRate || '0%'}</span>
             </div>
           </div>
         </div>
@@ -1250,9 +1249,10 @@ function updateManualLineupSummary() {
     }
     
     const avgPTI = playerCount > 0 ? (totalPTI / playerCount).toFixed(1) : '--';
+    const totalPTIFormatted = playerCount > 0 ? totalPTI.toFixed(1) : '--';
     
     // Add court header with PTI information
-    lineupText += `Court ${court}: (Avg PTI: ${avgPTI})<br>`;
+    lineupText += `Court ${court}: (Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})<br>`;
     
     if (player1 && player2) {
       const p1PTI = parseFloat(player1.rating || 0);
@@ -1339,9 +1339,10 @@ function updateCourtPTIAverages() {
     // Update the display
     if (playerCount > 0) {
       const avgPTI = (totalPTI / playerCount).toFixed(1);
-      courtElement.textContent = `(Avg PTI: ${avgPTI})`;
+      const totalPTIFormatted = totalPTI.toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`;
     } else {
-      courtElement.textContent = `(Avg PTI: --)`;
+      courtElement.textContent = `(Avg PTI: --, Total PTI: --)`;
     }
   }
 }

@@ -1032,7 +1032,8 @@ def init_lineup_routes(app):
                         "name": f"{player.first_name} {player.last_name}",
                         "first_name": player.first_name,
                         "last_name": player.last_name,
-                        "rating": player.pti or 0,
+                        "pti": player.pti or 0,  # Add PTI field for frontend compatibility
+                        "rating": player.pti or 0,  # Keep rating for backward compatibility
                         "position_preference": position_preference,
                         "tenniscores_player_id": player.tenniscores_player_id
                     })

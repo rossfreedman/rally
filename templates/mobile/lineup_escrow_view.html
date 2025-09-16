@@ -438,6 +438,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!window.bothLineupsVisible) {
         setupFormSubmission();
     }
+    
+    // Add PTI information to lineups if both are visible
+    if (window.bothLineupsVisible) {
+        addPTIInformationToLineups();
+    }
 });
 
 function setupFormSubmission() {
@@ -502,6 +507,116 @@ function setupFormSubmission() {
             submitBtn.disabled = false;
         }
     });
+}
+
+async function addPTIInformationToLineups() {
+    console.log('Adding PTI information to lineups...');
+    
+    try {
+        // Process both initiator and recipient lineups
+        await processLineupPTI('initiator');
+        await processLineupPTI('recipient');
+    } catch (error) {
+        console.error('Error adding PTI information:', error);
+    }
+}
+
+async function processLineupPTI(teamType) {
+    // Find the lineup containers - there should be two: one for initiator and one for recipient
+    const lineupContainers = document.querySelectorAll('.lineup-display');
+    if (!lineupContainers || lineupContainers.length === 0) return;
+    
+    // Process each lineup container
+    for (const lineupContainer of lineupContainers) {
+        await processLineupContainer(lineupContainer);
+    }
+}
+
+async function processLineupContainer(lineupContainer) {
+    
+    // Find all court headers and process them
+    const courtHeaders = lineupContainer.querySelectorAll('div');
+    
+    for (let i = 0; i < courtHeaders.length; i++) {
+        const header = courtHeaders[i];
+        const text = header.textContent.trim();
+        
+        if (text.startsWith('Court ')) {
+            // Find the court number
+            const courtMatch = text.match(/Court (\d+)/);
+            if (!courtMatch) continue;
+            
+            const courtNum = courtMatch[1];
+            
+            // Find players for this court (next few divs until next court or end)
+            const players = [];
+            for (let j = i + 1; j < courtHeaders.length; j++) {
+                const nextHeader = courtHeaders[j];
+                const nextText = nextHeader.textContent.trim();
+                
+                // Stop if we hit another court header
+                if (nextText.startsWith('Court ')) break;
+                
+                // Skip empty lines and non-player lines
+                if (nextText && !nextText.startsWith('LINEUP:')) {
+                    // Clean player name (remove position indicators, extra spaces)
+                    const cleanName = nextText.replace(/\(Ad\)|\(Deuce\)|\(Either\)/g, '').trim();
+                    if (cleanName) {
+                        players.push(cleanName);
+                    }
+                }
+            }
+            
+            if (players.length > 0) {
+                // Fetch PTI data for these players
+                const ptiData = await fetchPTIDataForPlayers(players);
+                
+                // Calculate court PTI
+                let totalPTI = 0;
+                let playerCount = 0;
+                
+                players.forEach(playerName => {
+                    const pti = ptiData[playerName];
+                    if (pti !== null && pti !== undefined) {
+                        totalPTI += pti;
+                        playerCount++;
+                    }
+                });
+                
+                // Update court header with PTI information
+                if (playerCount > 0) {
+                    const avgPTI = (totalPTI / playerCount).toFixed(1);
+                    const totalPTIFormatted = totalPTI.toFixed(1);
+                    header.innerHTML = `${text} <span class="text-sm text-gray-600">(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})</span>`;
+                } else {
+                    header.innerHTML = `${text} <span class="text-sm text-gray-600">(Avg PTI: --, Total PTI: --)</span>`;
+                }
+            }
+        }
+    }
+}
+
+async function fetchPTIDataForPlayers(playerNames) {
+    const ptiData = {};
+    
+    // Fetch PTI data for each player
+    for (const playerName of playerNames) {
+        try {
+            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            const data = await response.json();
+            
+            if (data && data.current_pti !== undefined) {
+                ptiData[playerName] = data.current_pti;
+            } else {
+                ptiData[playerName] = null; // No PTI data available
+            }
+        } catch (error) {
+            console.error(`Error fetching PTI for ${playerName}:`, error);
+            ptiData[playerName] = null;
+        }
+    }
+    
+    return ptiData;
 }
 </script>
 

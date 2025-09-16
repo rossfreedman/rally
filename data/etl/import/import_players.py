@@ -557,7 +557,7 @@ def upsert_player(cur, league_id, player_data):
                 cur.execute("""
                     INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                    ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id)
+                    ON CONFLICT (club_id, series_id, tenniscores_player_id, league_id)
                     DO UPDATE SET 
                         first_name = EXCLUDED.first_name, 
                         last_name = EXCLUDED.last_name,
@@ -579,10 +579,12 @@ def upsert_player(cur, league_id, player_data):
                 return result[0], "inserted"
         else:
             # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
+            # Use a dummy tenniscores_player_id since we don't have one
+            dummy_player_id = f"dummy_{first_name}_{last_name}_{league_id}_{club_id}_{series_id}"
             cur.execute("""
-                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                ON CONFLICT (first_name, last_name, league_id, club_id, series_id) 
+                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                ON CONFLICT (club_id, series_id, tenniscores_player_id, league_id) 
                 DO UPDATE SET 
                     team_id = EXCLUDED.team_id,
                     pti = EXCLUDED.pti,
@@ -594,7 +596,7 @@ def upsert_player(cur, league_id, player_data):
                     career_matches = EXCLUDED.career_matches,
                     career_win_percentage = EXCLUDED.career_win_percentage
                 RETURNING id
-            """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
+            """, (first_name, last_name, league_id, club_id, series_id, team_id, dummy_player_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
             
             result = cur.fetchone()
             if result:

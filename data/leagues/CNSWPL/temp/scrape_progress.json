@@ -1,5 +1,6 @@
 {
   "completed_series": [
+    "Series 12",
     "Series A",
     "Series I",
     "Series H",
@@ -14,14 +15,16 @@
     "Series 7",
     "Series 2",
     "Series 6",
+    "Series K",
     "Series 4",
     "Series D",
     "Series 9",
     "Series 10",
+    "Series 11",
     "Series G",
     "Series 8"
   ],
-  "last_update": "2025-09-16T08:01:09.986182",
-  "total_players": 1676,
-  "series_files_created": 20
+  "last_update": "2025-09-16T11:10:38.418368",
+  "total_players": 1986,
+  "series_files_created": 23
 }

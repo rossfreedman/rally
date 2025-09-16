@@ -474,7 +474,7 @@ function clearStaleLineupData() {
 }
 
 // Initialize the lineup escrow page
-function initializeLineupEscrow() {
+async function initializeLineupEscrow() {
     console.log('🔍 Lineup Escrow - Initializing page...');
     
     // Clear any stale data first
@@ -492,7 +492,7 @@ function initializeLineupEscrow() {
         lineupText = escrowLineupData;
         // Clear the sessionStorage after using it
         sessionStorage.removeItem('escrowLineupData');
-        showCurrentLineup();
+        await showCurrentLineup();
     } else {
         // Load the lineup from sessionStorage (normal flow)
         const createdLineup = sessionStorage.getItem('createdLineup');
@@ -503,7 +503,7 @@ function initializeLineupEscrow() {
             lineupText = createdLineup;
             // Clear the sessionStorage after using it
             sessionStorage.removeItem('createdLineup');
-            showCurrentLineup();
+            await showCurrentLineup();
         } else {
             console.log('❌ Lineup Escrow - No valid lineup found, showing options');
             lineupText = '';
@@ -970,7 +970,7 @@ function showDirectLineupInput() {
     document.getElementById('lineup-textarea').focus();
 }
 
-function saveDirectLineup() {
+async function saveDirectLineup() {
     const lineupTextarea = document.getElementById('lineup-textarea');
     const newLineup = lineupTextarea.value.trim();
     
@@ -980,7 +980,7 @@ function saveDirectLineup() {
     }
     
     lineupText = newLineup;
-    showCurrentLineup();
+    await showCurrentLineup();
     hideDirectLineupInput();
     updateMessageBody();
 }
@@ -994,9 +994,11 @@ function hideDirectLineupInput() {
     document.getElementById('lineup-textarea').value = '';
 }
 
-function showCurrentLineup() {
+async function showCurrentLineup() {
     if (lineupText && lineupText !== 'No lineup found') {
-        document.getElementById('lineup-display').innerHTML = lineupText;
+        // Add PTI information to the lineup
+        const lineupWithPTI = await addPTIInformationToLineup(lineupText);
+        document.getElementById('lineup-display').innerHTML = lineupWithPTI.replace(/\n/g, '<br>');
         document.getElementById('current-lineup-section').classList.remove('hidden');
         document.getElementById('lineup-options-section').classList.add('hidden');
     }
@@ -1024,6 +1026,107 @@ function clearLineup() {
         document.getElementById('lineup-options-section').classList.remove('hidden');
         updateMessageBody();
     }
+}
+
+async function addPTIInformationToLineup(lineupText) {
+    console.log('Adding PTI information to lineup...');
+    
+    try {
+        const lines = lineupText.split('\n');
+        const updatedLines = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.trim().startsWith('Court ')) {
+                // Find the court number
+                const courtMatch = line.trim().match(/Court (\d+)/);
+                if (!courtMatch) {
+                    updatedLines.push(line);
+                    continue;
+                }
+                
+                const courtNum = courtMatch[1];
+                
+                // Find players for this court (next few lines until next court or end)
+                const players = [];
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    
+                    // Stop if we hit another court header
+                    if (nextLine.startsWith('Court ')) break;
+                    
+                    // Skip empty lines and non-player lines
+                    if (nextLine && !nextLine.startsWith('LINEUP:')) {
+                        // Clean player name (remove position indicators, extra spaces)
+                        const cleanName = nextLine.replace(/\(Ad\)|\(Deuce\)|\(Either\)/g, '').trim();
+                        if (cleanName) {
+                            players.push(cleanName);
+                        }
+                    }
+                }
+                
+                if (players.length > 0) {
+                    // Fetch PTI data for these players
+                    const ptiData = await fetchPTIDataForPlayers(players);
+                    
+                    // Calculate court PTI
+                    let totalPTI = 0;
+                    let playerCount = 0;
+                    
+                    players.forEach(playerName => {
+                        const pti = ptiData[playerName];
+                        if (pti !== null && pti !== undefined) {
+                            totalPTI += pti;
+                            playerCount++;
+                        }
+                    });
+                    
+                    // Update court header with PTI information
+                    if (playerCount > 0) {
+                        const avgPTI = (totalPTI / playerCount).toFixed(1);
+                        const totalPTIFormatted = totalPTI.toFixed(1);
+                        updatedLines.push(`${line} (Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`);
+                    } else {
+                        updatedLines.push(`${line} (Avg PTI: --, Total PTI: --)`);
+                    }
+                } else {
+                    updatedLines.push(line);
+                }
+            } else {
+                updatedLines.push(line);
+            }
+        }
+        
+        return updatedLines.join('\n');
+        
+    } catch (error) {
+        console.error('Error adding PTI information:', error);
+        return lineupText; // Return original text if error occurs
+    }
+}
+
+async function fetchPTIDataForPlayers(playerNames) {
+    const ptiData = {};
+    
+    // Fetch PTI data for each player
+    for (const playerName of playerNames) {
+        try {
+            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            const data = await response.json();
+            
+            if (data && data.current_pti !== undefined) {
+                ptiData[playerName] = data.current_pti;
+            } else {
+                ptiData[playerName] = null; // No PTI data available
+            }
+        } catch (error) {
+            console.error(`Error fetching PTI for ${playerName}:`, error);
+            ptiData[playerName] = null;
+        }
+    }
+    
+    return ptiData;
 }
 </script>
 

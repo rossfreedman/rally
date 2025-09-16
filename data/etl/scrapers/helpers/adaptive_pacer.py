@@ -3,8 +3,8 @@ import time, random
 from collections import deque
 
 # Tunables: conservative base; bump when things are "green"
-BASE_RPM = 30       # Increased from 24 (25% faster base)
-MAX_RPM  = 60       # Increased from 50 (20% faster max)
+BASE_RPM = 45       # Phase 1 optimization: 33% faster (was 30)
+MAX_RPM  = 90       # Phase 1 optimization: 33% faster (was 60)
 WINDOW_SEC = 300    # 5 minutes for faster adaptation (37.5% faster)
 MAX_429 = 1
 MAX_JS  = 1

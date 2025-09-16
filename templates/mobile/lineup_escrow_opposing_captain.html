@@ -231,9 +231,12 @@
                     
                     <!-- Court 1 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 1
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 1
+                            </div>
+                            <div id="court-1-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -253,9 +256,12 @@
 
                     <!-- Court 2 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 2
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 2
+                            </div>
+                            <div id="court-2-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -275,9 +281,12 @@
 
                     <!-- Court 3 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 3
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 3
+                            </div>
+                            <div id="court-3-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -297,9 +306,12 @@
 
                     <!-- Court 4 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 4
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 4
+                            </div>
+                            <div id="court-4-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -350,19 +362,19 @@
     <!-- Subs Selection Modal -->
     <div id="subs-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
-                <!-- Modal Header -->
-                <div class="bg-white border-b border-gray-200 px-6 py-4" style="flex-shrink: 0;">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-xl font-semibold text-gray-900">Select Substitute Players</h2>
-                            <p class="text-sm text-gray-500 mt-1">Choose subs to add to your lineup from higher series at {{ escrow_data.recipient_club_name }}</p>
-                        </div>
-                        <button id="close-subs-modal" class="text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
+            <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4" style="flex-shrink: 0; background-color: #045454; border-bottom: 1px solid #033333;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold" style="color: #bff863;">Select Substitute Players</h2>
+                    <p class="text-sm mt-1" style="color: #bff863; opacity: 0.8;">Choose subs to add to your lineup from higher series at {{ escrow_data.recipient_club_name }}</p>
                 </div>
+                <button id="close-subs-modal" style="color: #bff863; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
                 
                 <!-- Modal Body -->
                 <div class="p-6" style="height: calc(80vh - 140px); overflow-y: scroll; flex: 1;">
@@ -730,9 +742,12 @@ function renderPlayers() {
         const borderClass = isSubstitute ? 'border-red-400' : 'border-gray-300';
         const substituteLabel = isSubstitute ? '<div class="text-xs text-red-600 font-semibold mb-1">SUB</div>' : '';
         
+        // Get PTI value, default to 0 if not available
+        const ptiValue = player.pti || player.rating || 0;
+        
         playerDiv.className = `player-card border ${borderClass} rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center`;
         playerDiv.dataset.playerName = player.name;
-        playerDiv.dataset.playerRating = player.rating;
+        playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
         playerDiv.dataset.playerType = playerType;
         
         // Set background color based on player type
@@ -749,9 +764,6 @@ function renderPlayers() {
         
         // Extract last name from full name
         const lastName = player.name.split(' ').pop();
-        
-        // Get PTI value, default to 0 if not available
-        const ptiValue = player.pti || player.rating || 0;
         
         playerDiv.innerHTML = `
             ${substituteLabel}
@@ -898,6 +910,7 @@ function handleTouchEnd(e) {
             };
             
             updateManualLineupSummary();
+            updateCourtPTIAverages();
             
             // Auto scroll up 400px when player is added to court via touch drag and drop
             window.scrollBy({
@@ -965,6 +978,7 @@ function handleDrop(e) {
         };
         
         updateManualLineupSummary();
+        updateCourtPTIAverages();
         
         // Auto scroll up 400px when player is added to court via drag and drop
         window.scrollBy({
@@ -1020,6 +1034,7 @@ function movePlayerToPool(playerElement) {
     document.getElementById('available-players-pool').appendChild(playerElement);
     
     updateManualLineupSummary();
+    updateCourtPTIAverages();
 }
 
 function updateManualLineupSummary() {
@@ -1074,6 +1089,56 @@ function updateManualLineupSummary() {
         submitBtn.classList.remove('bg-green-600', 'cursor-pointer');
         console.log(`❌ Submit button DISABLED - only ${totalPlayers}/8 players assigned`);
     }
+}
+
+function updateCourtPTIAverages() {
+  // Calculate PTI for each court
+  for (let courtNum = 1; courtNum <= 4; courtNum++) {
+    const courtElement = document.getElementById(`court-${courtNum}-pti`);
+    if (!courtElement) continue;
+    
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) continue;
+    
+    const adPosition = courtContainer.querySelector('[data-position="1"]');
+    const deucePosition = courtContainer.querySelector('[data-position="2"]');
+    
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    // Check Ad position
+    if (adPosition && adPosition.querySelector('.player-card')) {
+      const playerElement = adPosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Check Deuce position
+    if (deucePosition && deucePosition.querySelector('.player-card')) {
+      const playerElement = deucePosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Update the display
+    if (playerCount > 0) {
+      const avgPTI = (totalPTI / playerCount).toFixed(1);
+      const totalPTIFormatted = totalPTI.toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`;
+    } else {
+      courtElement.textContent = `(Avg PTI: --, Total PTI: --)`;
+    }
+  }
 }
 
 // Mode switching and tap functionality
@@ -1204,6 +1269,7 @@ function handleCourtPositionTap(e) {
     clearPlayerSelection();
     
     updateManualLineupSummary();
+    updateCourtPTIAverages();
     
     // Auto scroll up 400px when player is added to court
     window.scrollBy({
@@ -1596,7 +1662,7 @@ function renderSubsInModal(subsData) {
   
   subsData.forEach(player => {
     const playerDiv = document.createElement('div');
-    playerDiv.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors';
+    playerDiv.className = 'bg-white border border-gray-200 rounded-lg p-3 mb-2 hover:bg-gray-50 transition-colors max-w-md mx-auto';
     
     const playerTypeColors = {
       'Ad': '#70e6bb',
@@ -1608,22 +1674,35 @@ function renderSubsInModal(subsData) {
     const typeColor = positionPreference && playerTypeColors[positionPreference] ? playerTypeColors[positionPreference] : grayColor;
     
     playerDiv.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="flex items-center space-x-2">
-            <input type="checkbox" class="sub-checkbox" data-player-name="${player.name}" 
-                   style="accent-color: #3b82f6;">
+      <div class="flex items-start gap-4">
+        <!-- Checkbox Column -->
+        <div class="flex items-center pt-1 flex-shrink-0">
+          <input type="checkbox" class="sub-checkbox" data-player-name="${player.name}" 
+                 data-player-data='${JSON.stringify(player)}' style="accent-color: #3b82f6;">
+        </div>
+        
+        <!-- Player Content Column -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center space-x-2 mb-2">
+            <h4 class="font-semibold text-gray-900 truncate">${player.name}</h4>
+            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${typeColor};" title="${positionPreference || 'No preference'}"></div>
           </div>
-          <div class="flex-1">
-            <div class="flex items-center space-x-2">
-              <h4 class="font-medium text-gray-900">${player.name}</h4>
-              <div class="w-3 h-3 rounded-full" style="background-color: ${typeColor};" title="${positionPreference || 'No preference'}"></div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">PTI:</span>
+              <span class="font-medium text-blue-600">${player.pti || player.rating || 'N/A'}</span>
             </div>
-            <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-              <span><strong>PTI:</strong> ${player.pti || player.rating || 'N/A'}</span>
-              <span><strong>Series:</strong> ${player.series}</span>
-              <span><strong>Record:</strong> ${player.wins || 0}W-${player.losses || 0}L</span>
-              <span><strong>Win Rate:</strong> ${player.winRate || 0}%</span>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Series:</span>
+              <span class="font-medium text-gray-900">${player.series}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Record:</span>
+              <span class="font-medium text-gray-900">${player.wins || 0}W-${player.losses || 0}L</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Win Rate:</span>
+              <span class="font-medium" style="color: ${(parseFloat(player.winRate) || 0) >= 60 ? '#bff863' : (parseFloat(player.winRate) || 0) >= 50 ? '#fbbf24' : '#ef4444'}">${player.winRate || 0}%</span>
             </div>
           </div>
         </div>
@@ -1655,20 +1734,26 @@ function addSelectedSubs() {
   
   // Add selected subs to the players array
   selectedPlayerNames.forEach(playerName => {
-    // Find the player data from the modal
-    const playerData = Array.from(document.querySelectorAll('.sub-checkbox'))
-      .find(cb => cb.dataset.playerName === playerName)
-      ?.closest('.bg-white')
-      ?.querySelector('h4')?.textContent;
+    // Find the checkbox for this player to get the stored player data
+    const checkbox = Array.from(document.querySelectorAll('.sub-checkbox'))
+      .find(cb => cb.dataset.playerName === playerName);
     
-    if (playerData) {
-      // Create a new player object for the subs
+    if (checkbox) {
+      // Get the player data from the modal's stored data
+      const playerData = JSON.parse(checkbox.dataset.playerData || '{}');
+      
+      // Create a new player object for the subs with actual data
       const subPlayer = {
         name: playerName,
-        rating: 0, // Default rating
-        position_preference: 'Either',
+        pti: playerData.pti || playerData.rating || 0,
+        rating: playerData.rating || playerData.pti || 0,
+        position_preference: playerData.position_preference || 'Either',
         isSubstitute: true,
-        pti: 0
+        wins: playerData.wins || 0,
+        losses: playerData.losses || 0,
+        winRate: playerData.winRate || '0%',
+        series: playerData.series,
+        club: playerData.club
       };
       
       // Add to players array
