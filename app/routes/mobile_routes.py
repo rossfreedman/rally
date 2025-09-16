@@ -83,7 +83,7 @@ def should_preserve_session_context(user_email: str, current_session: dict) -> b
     """
     try:
         # Get current league_context from database
-        from database import execute_query_one
+        # execute_query_one is already imported at module level
         db_user_info = execute_query_one("SELECT league_context FROM users WHERE email = %s", [user_email])
         db_league_context = db_user_info.get("league_context") if db_user_info else None
         
@@ -5137,6 +5137,41 @@ def get_series_for_subs():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/api/get-team-series/<int:team_id>")
+def get_team_series(team_id):
+    """Get series information for a team ID"""
+    try:
+        # execute_query is already imported at module level
+        
+        query = """
+            SELECT s.name as series_name, s.id as series_id
+            FROM teams t
+            JOIN series s ON t.series_id = s.id
+            WHERE t.id = %s
+        """
+        
+        result = execute_query(query, (team_id,))
+        
+        if result:
+            return jsonify({
+                "success": True,
+                "series_name": result[0]['series_name'],
+                "series_id": result[0]['series_id']
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Team not found"
+            }), 404
+            
+    except Exception as e:
+        print(f"Error getting team series: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 @mobile_bp.route("/api/escrow-subs")
 def get_escrow_subs():
     """Get substitute players for escrow opposing captain - no login required"""
@@ -5144,38 +5179,197 @@ def get_escrow_subs():
         from app.services.player_service import get_players_by_league_and_series_id
         
         # Get parameters
-        series_id = request.args.get("series_id")
         club_name = request.args.get("club_name")
         user_series = request.args.get("user_series", "Series 22")  # Default fallback
-        
-        if not series_id:
-            return jsonify({"error": "series_id parameter is required"}), 400
         
         if not club_name:
             return jsonify({"error": "club_name parameter is required"}), 400
         
         print(f"\n=== DEBUG: get_escrow_subs ===")
-        print(f"Requested series_id: {series_id}")
         print(f"Requested club_name: {club_name}")
         print(f"User series (for filtering): {user_series}")
         
-        # Get players from the specified series and club
-        players = get_players_by_league_and_series_id(
-            league_id="APTA_CHICAGO",  # Default league for escrow
-            series_id=series_id,
-            club_name=club_name
-        )
+        # Get the user's series value for comparison
+        user_series_value = get_series_comparison_value(user_series)
+        if not user_series_value:
+            print("Could not determine user series value")
+            return jsonify([])
         
-        print(f"Found {len(players)} players in series_id {series_id} and club {club_name}")
+        print(f"User series value: {user_series_value}")
+        
+        # Get all series in the league efficiently with a single query
+        all_series_query = """
+            SELECT DISTINCT s.id, s.name
+            FROM series s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE l.league_id = %s
+            ORDER BY s.name
+        """
+        
+        all_series = execute_query(all_series_query, ("APTA_CHICAGO",))
+        print(f"Found {len(all_series)} total series in APTA_CHICAGO")
+        
+        # Find higher series only (exclude same series)
+        higher_series_ids = []
+        for series in all_series:
+            series_name = series['name']
+            series_value = get_series_comparison_value(series_name)
+            
+            if series_value and is_higher_series(series_value, user_series_value):
+                higher_series_ids.append(series['id'])
+                print(f"Higher series found: {series_name} (ID: {series['id']})")
+        
+        print(f"Found {len(higher_series_ids)} higher series")
+        
+        if not higher_series_ids:
+            print("No higher series found")
+            return jsonify([])
+        
+        # Get players from all higher series at the specified club in one efficient query
+        placeholders = ','.join(['%s'] * len(higher_series_ids))
+        players_query = f"""
+            SELECT DISTINCT 
+                p.id,
+                p.first_name,
+                p.last_name,
+                CONCAT(p.first_name, ' ', p.last_name) as name,
+                c.name as club,
+                s.name as series,
+                p.pti,
+                p.pti as rating,
+                p.wins,
+                p.losses,
+                p.win_percentage as win_rate,
+                p.series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.series_id IN ({placeholders})
+            AND c.name = %s
+            AND p.league_id = (SELECT id FROM leagues WHERE league_id = 'APTA_CHICAGO')
+        """
+        
+        params = higher_series_ids + [club_name]
+        all_players = execute_query(players_query, params)
+        
+        print(f"Total found {len(all_players)} players in higher series at {club_name}")
+        
+        # Apply Rally's Recommendation Algorithm: PTI (70%), win rate (20%), series level (10%)
+        for player in all_players:
+            player['compositeScore'] = calculate_composite_score(player, user_series_value)
+        
+        # Debug: Show top 5 players before sorting
+        print("Top 5 players before sorting:")
+        for i, player in enumerate(all_players[:5]):
+            print(f"  {i+1}. {player['name']} - PTI: {player['pti']}, Score: {player['compositeScore']:.2f}")
+        
+        # Sort by composite score (highest first - higher composite score means better player)
+        all_players.sort(key=lambda x: x['compositeScore'], reverse=True)
+        
+        # Debug: Show top 5 players after sorting
+        print("Top 5 players after sorting:")
+        for i, player in enumerate(all_players[:5]):
+            print(f"  {i+1}. {player['name']} - PTI: {player['pti']}, Score: {player['compositeScore']:.2f}")
+        
         print("=== END DEBUG ===\n")
         
-        return jsonify(players)
+        return jsonify(all_players)
         
     except Exception as e:
         print(f"Error getting escrow subs: {str(e)}")
         import traceback
         print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
+
+
+def get_series_comparison_value(series_name):
+    """Get series comparison value for ranking (same logic as frontend)"""
+    if not series_name:
+        return None
+    
+    # Handle numeric series (e.g., "Series 1", "Series 2", "Chicago 22")
+    import re
+    numeric_match = re.search(r'(\d+)', series_name)
+    if numeric_match:
+        return {"type": "numeric", "value": int(numeric_match.group(1))}
+    
+    # Handle letter series (e.g., "Series A", "Series B", "Division G")
+    letter_match = re.search(r'([A-Z])', series_name)
+    if letter_match:
+        letter = letter_match.group(1).upper()
+        precedence = ord(letter) - ord('A') + 1  # A=1, B=2, etc.
+        return {"type": "letter", "value": precedence}
+    
+    return None
+
+
+def is_higher_series(series_value, user_series_value):
+    """Check if series_value is higher than user_series_value"""
+    if not series_value or not user_series_value:
+        return False
+    
+    # Both must be same type
+    if series_value["type"] != user_series_value["type"]:
+        return False
+    
+    # For numeric series, higher number = higher series (Series 23 > Series 22)
+    if series_value["type"] == "numeric":
+        return series_value["value"] > user_series_value["value"]
+    
+    # For letter series, higher letter = higher series (Series B > Series A)
+    if series_value["type"] == "letter":
+        return series_value["value"] > user_series_value["value"]
+    
+    return False
+
+
+def calculate_composite_score(player, user_series_value):
+    """Calculate Rally's Recommendation Algorithm composite score: PTI (70%), win rate (20%), series level (10%)"""
+    try:
+        # Get PTI (70% weight)
+        pti = float(player.get('pti', 0) or 0)
+        
+        # Get win rate (20% weight)
+        win_rate = float(player.get('win_rate', 0) or 0)
+        
+        # Get series level (10% weight)
+        series_name = player.get('series', '')
+        series_value = get_series_comparison_value(series_name)
+        
+        # Calculate composite score
+        score = 0
+        
+        # PTI component (70%) - lower PTI is better, so invert it
+        # Use a baseline of 100 and subtract PTI to make lower values give higher scores
+        score += (100 - pti) * 0.7
+        
+        # Win rate component (20%)
+        score += win_rate * 0.2
+        
+        # Series level component (10%) - higher series get higher scores
+        if series_value:
+            if series_value["type"] == "numeric":
+                # For numeric series, higher numbers are higher series (Series 23 > Series 22)
+                # Give bonus points for being in higher series
+                series_bonus = (series_value["value"] - user_series_value["value"]) * 2
+                score += max(0, series_bonus) * 0.1
+            elif series_value["type"] == "letter":
+                # For letter series, higher letters are higher series (Series B > Series A)
+                if user_series_value["type"] == "numeric":
+                    # If user is in numeric series, any letter series gets bonus
+                    score += 5 * 0.1
+                else:
+                    # Both letter series - compare
+                    series_bonus = (series_value["value"] - user_series_value["value"]) * 2
+                    score += max(0, series_bonus) * 0.1
+        
+        return score
+        
+    except (ValueError, TypeError) as e:
+        print(f"Error calculating composite score for player {player.get('name', 'unknown')}: {e}")
+        return 0
+
+
 
 
 @mobile_bp.route("/mobile/polls")

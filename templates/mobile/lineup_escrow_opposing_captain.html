@@ -114,46 +114,48 @@
             <div class="p-6">
                 <div class="lineup-blur-container blurred-lineup mb-6">
                     {% if escrow_data.initiator_lineup %}
-                        <div class="lineup-display text-gray-800 text-base">
-                            {% for line in escrow_data.initiator_lineup.split('\n') %}
-                                {% if line.strip() %}
-                                    {% if line.startswith('LINEUP:') %}
-                                        <div class="font-semibold text-lg mb-2">{{ line }}</div>
-                                    {% elif line.startswith('Court ') %}
-                                        <div class="font-semibold mt-4 mb-2">{{ line }}</div>
-                                    {% elif '(Ad)' in line or '(Deuce)' in line %}
-                                        {# Parse new format but remove position labels #}
-                                        {% if '(Ad)' in line %}
-                                            {% set player_name = line.split('(Ad)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                        {% if '(Deuce)' in line %}
-                                            {% set player_name = line.split('(Deuce)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                    {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
-                                        {# Parse old format with "Ad:" and "Deuce:" labels #}
-                                        {% if line.startswith('  Ad:') %}
-                                            {% set player_name = line.replace('  Ad:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% elif line.startswith('  Deuce:') %}
-                                            {% set player_name = line.replace('  Deuce:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                    {% elif '&' in line %}
-                                        {# Fallback for old format - don't assume positions #}
-                                        {% set players = line.split('&') %}
-                                        {% if players|length == 2 %}
-                                            <div class="ml-4 mb-1">{{ players[0].strip() }}</div>
-                                            <div class="ml-4 mb-1">{{ players[1].strip() }}</div>
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 shadow-sm">
+                            <div class="lineup-display text-gray-800 text-base leading-relaxed">
+                                {% for line in escrow_data.initiator_lineup.split('\n') %}
+                                    {% if line.strip() %}
+                                        {% if line.startswith('LINEUP:') %}
+                                            <div class="font-semibold text-lg mb-2">{{ line }}</div>
+                                        {% elif line.startswith('Court ') %}
+                                            <div class="font-semibold mt-4 mb-2">{{ line }}</div>
+                                        {% elif '(Ad)' in line or '(Deuce)' in line %}
+                                            {# Parse new format but remove position labels #}
+                                            {% if '(Ad)' in line %}
+                                                {% set player_name = line.split('(Ad)')[0].strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                            {% if '(Deuce)' in line %}
+                                                {% set player_name = line.split('(Deuce)')[0].strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                        {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
+                                            {# Parse old format with "Ad:" and "Deuce:" labels #}
+                                            {% if line.startswith('  Ad:') %}
+                                                {% set player_name = line.replace('  Ad:', '').strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% elif line.startswith('  Deuce:') %}
+                                                {% set player_name = line.replace('  Deuce:', '').strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                        {% elif '&' in line %}
+                                            {# Fallback for old format - don't assume positions #}
+                                            {% set players = line.split('&') %}
+                                            {% if players|length == 2 %}
+                                                <div class="ml-4 mb-1">{{ players[0].strip() }}</div>
+                                                <div class="ml-4 mb-1">{{ players[1].strip() }}</div>
+                                            {% else %}
+                                                <div class="ml-4 mb-1">{{ line }}</div>
+                                            {% endif %}
                                         {% else %}
                                             <div class="ml-4 mb-1">{{ line }}</div>
                                         {% endif %}
-                                    {% else %}
-                                        <div class="ml-4 mb-1">{{ line }}</div>
                                     {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -444,23 +446,81 @@
 
 /* Lineup display styling */
 .lineup-display {
-    font-family: 'Courier New', monospace;
-    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.8;
+    font-size: 0.95rem;
 }
 
+/* Court headers */
 .lineup-display .font-semibold {
     color: #1f2937;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 1.5rem 0 0.75rem 0;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 0.5rem;
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Player names styling */
 .lineup-display .mb-1 {
-    padding: 0.25rem 0;
-    border-radius: 0.25rem;
-    background-color: #f9fafb;
-    padding-left: 0.5rem;
-    margin-bottom: 0.25rem;
+    color: #374151;
+    font-weight: 500;
+    margin: 0.25rem 0 0.25rem 1.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 0.375rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Court sections spacing */
+.lineup-display {
+    padding: 0.5rem 0;
+}
+
+/* First court header spacing */
+.lineup-display .font-semibold:first-child {
+    margin-top: 0.5rem;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+    .lineup-display {
+        font-size: 0.9rem;
+        line-height: 1.7;
+    }
+    
+    .lineup-display .font-semibold {
+        font-size: 1rem;
+        padding: 0.625rem 0.875rem;
+        margin: 1.25rem 0 0.625rem 0;
+    }
+    
+    .lineup-display .mb-1 {
+        padding: 0.375rem 0.625rem;
+        margin: 0.25rem 0 0.25rem 1.25rem;
+    }
+}
+
+/* Hover effects for better interactivity */
+.lineup-display .mb-1:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+/* Court number highlighting */
+.lineup-display .font-semibold {
+    position: relative;
+}
+
+.lineup-display .font-semibold::before {
+    content: "🏆";
+    margin-right: 0.5rem;
+    font-size: 0.9em;
 }
 
 /* iOS-style card enhancements */
@@ -1488,8 +1548,21 @@ function updateSelectedSubsCount() {
 
 async function loadAndDisplaySubs() {
   try {
-    // Get current user's series and club from escrow data
-    const currentSeries = 'Series 22'; // This would need to be determined from escrow data
+    // Debug: Log all available escrow data
+    console.log('🔍 Available escrow data:', window.escrowData);
+    
+    // Get the recipient's team series from the team ID
+    const recipientTeamId = window.escrowData.recipient_team_id;
+    console.log('🔍 Getting series for team ID:', recipientTeamId);
+    
+    const seriesResponse = await fetch(`/api/get-team-series/${recipientTeamId}`);
+    const seriesData = await seriesResponse.json();
+    
+    if (!seriesData.success) {
+      throw new Error(`Failed to get team series: ${seriesData.error}`);
+    }
+    
+    const currentSeries = seriesData.series_name;
     const currentClub = window.escrowData.recipient_club_name;
     
     console.log('🔍 Finding subs for series:', currentSeries, 'club:', currentClub);
@@ -1514,91 +1587,26 @@ async function loadAndDisplaySubs() {
 
 async function findSubsForUser(userSeries, userClub) {
   try {
-    // Fetch series data
-    const response = await fetch('/api/get-series');
-    const data = await response.json();
+    console.log('Finding subs for user series:', userSeries, 'at club:', userClub);
     
-    if (data.error) {
-      throw new Error(data.error);
+    // Call the escrow-subs endpoint which handles all the series filtering logic
+    const response = await fetch(`/api/escrow-subs?club_name=${encodeURIComponent(userClub)}&user_series=${encodeURIComponent(userSeries)}`);
+    const playersData = await response.json();
+    
+    if (response.error) {
+      throw new Error(response.error);
     }
     
-    const allSeries = data.all_series_objects;
-    const currentSeries = userSeries;
+    console.log(`Found ${playersData.length} substitute players at ${userClub}`);
     
-    console.log('Current series:', currentSeries, 'Type:', typeof currentSeries);
-    console.log('All series objects:', allSeries);
-    console.log('All series (fallback):', data.all_series);
-    console.log('Current series value:', getSeriesComparisonValue(currentSeries));
+    // Add substitute flag to all players
+    const subsData = playersData.map(player => ({
+      ...player,
+      isSubstitute: true
+    }));
     
-    // Get current series comparison value
-    const currentSeriesValue = getSeriesComparisonValue(currentSeries);
-    if (!currentSeriesValue) {
-      throw new Error('Could not determine current series level');
-    }
-    
-    // Filter to higher series only
-    const higherSeriesObjects = allSeries.filter(seriesObj => {
-      const seriesValue = getSeriesComparisonValue(seriesObj.name);
-      if (!seriesValue) return false;
-      
-      let isHigher = false;
-      
-      if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'numeric') {
-        // Both are numeric: higher numbers are higher series (Series 23 > Series 22)
-        isHigher = seriesValue.value > currentSeriesValue.value;
-        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
-      } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
-        // Current is numeric, comparing to letter: letter series are higher
-        isHigher = true;
-        console.log(`Comparing ${seriesObj.name} (letter) vs ${currentSeries} (numeric): isHigher = ${isHigher}`);
-      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
-        // Both are letter: higher letters are higher series (B > A)
-        isHigher = seriesValue.value > currentSeriesValue.value;
-        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
-      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
-        // Current is letter, comparing to numeric: letter series are higher
-        isHigher = false;
-        console.log(`Comparing ${seriesObj.name} (numeric) vs ${currentSeries} (letter): isHigher = ${isHigher}`);
-      }
-      
-      return isHigher;
-    });
-    
-    console.log('Higher series objects found:', higherSeriesObjects);
-    
-    // Get players from higher series at the same club
-    const subsData = [];
-    
-    for (const seriesObj of higherSeriesObjects) {
-      try {
-        // Use escrow endpoint to get players from the specified club
-        const playersResponse = await fetch(`/api/escrow-subs?series_id=${seriesObj.id}&club_name=${encodeURIComponent(userClub)}&user_series=${encodeURIComponent(userSeries)}`);
-        const playersData = await playersResponse.json();
-        
-        console.log(`Found ${playersData.length} players in ${seriesObj.name} at ${userClub}`);
-        
-        if (Array.isArray(playersData)) {
-          // Add series information to each player
-          playersData.forEach(player => {
-            player.series = seriesObj.name;
-            player.series_id = seriesObj.id;
-            player.isSubstitute = true;
-          });
-          
-          subsData.push(...playersData);
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch players for series ${seriesObj.name}:`, error);
-      }
-    }
-    
-    // Calculate composite scores and sort
-    subsData.forEach(player => {
-      player.compositeScore = calculateCompositeScore(player);
-    });
-    
-    // Sort by composite score (highest first)
-    subsData.sort((a, b) => b.compositeScore - a.compositeScore);
+    // Backend already calculates composite scores and sorts correctly
+    // No need to recalculate or resort on frontend
     
     return subsData;
     
