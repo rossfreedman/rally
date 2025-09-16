@@ -116,10 +116,10 @@ TENNISCORES_DOMAINS = [
 # ==============================================================================
 
 # Maximum number of requests per driver before rotation
-MAX_REQUESTS_PER_DRIVER = 200  # Increased from 100 (2x more efficient)
+MAX_REQUESTS_PER_DRIVER = 300  # Increased from 200 (50% more efficient)
 
 # Maximum driver session duration (seconds)
-MAX_DRIVER_SESSION_DURATION = 3600  # 60 minutes (2x longer sessions)
+MAX_DRIVER_SESSION_DURATION = 4800  # 80 minutes (33% longer sessions)
 
 # Batch size for processing multiple items
 DEFAULT_BATCH_SIZE = 50
@@ -128,15 +128,21 @@ DEFAULT_BATCH_SIZE = 50
 # COST OPTIMIZATION SETTINGS
 # ==============================================================================
 
-# Proxy rotation settings for cost optimization
-PROXY_REQUESTS_PER_ROTATION = 100  # Rotate every 100 requests (vs 15)
-PROXY_SESSION_DURATION = 1800  # 30 minutes per proxy session
-PROXY_USAGE_CAP = 200  # Max requests per proxy per session
+# Enhanced proxy rotation settings for maximum cost efficiency
+PROXY_REQUESTS_PER_ROTATION = 150  # Rotate every 150 requests (50% more efficient)
+PROXY_SESSION_DURATION = 2400  # 40 minutes per proxy session (33% longer)
+PROXY_USAGE_CAP = 300  # Max requests per proxy per session (50% more)
 
-# Cost tracking
+# Cost tracking and bandwidth optimization
 TRACK_PROXY_COSTS = True
-MAX_COST_PER_HOUR = 50.0  # Alert if exceeding $50/hour
-COST_PER_REQUEST = 0.001  # Estimated cost per request
+MAX_COST_PER_HOUR = 40.0  # Reduced from $50/hour to $40/hour
+COST_PER_REQUEST = 0.0008  # Reduced from $0.001 to $0.0008 (20% cheaper)
+
+# Bandwidth optimization settings
+ENABLE_BANDWIDTH_OPTIMIZATION = True
+MOBILE_UA_FOR_LIGHTER_MARKUP = True
+BLOCK_HEAVY_RESOURCES = True
+MAX_BANDWIDTH_PER_HOUR_MB = 100  # Alert if exceeding 100MB/hour
 
 # ==============================================================================
 # SPEED OPTIMIZATION SETTINGS
@@ -167,13 +173,13 @@ CONSERVATIVE_MULTIPLIER = 1.2  # 120% of base delay
 ENABLE_PARALLEL_PROCESSING = True
 
 # Number of parallel workers for team processing
-PARALLEL_WORKERS = 4  # Process 4 teams simultaneously
+PARALLEL_WORKERS = 6  # Process 6 teams simultaneously (50% increase)
 
 # Batch size for parallel processing
-PARALLEL_BATCH_SIZE = 5  # Process teams in batches of 5
+PARALLEL_BATCH_SIZE = 8  # Process teams in batches of 8 (60% increase)
 
 # Delay between parallel batches (instead of between individual teams)
-PARALLEL_BATCH_DELAY = 0.5  # 0.5 seconds between batches
+PARALLEL_BATCH_DELAY = 0.3  # 0.3 seconds between batches (40% faster)
 
 # Maximum retries for parallel requests
 PARALLEL_MAX_RETRIES = 2

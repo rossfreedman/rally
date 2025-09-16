@@ -529,11 +529,11 @@ async function updateAvailability(button, playerName, date, status) {
         // Fade in
         requestAnimationFrame(() => {
             toast.style.opacity = '1';
-            // Fade out after 2 seconds
+            // Fade out after 1.5 seconds
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
-            }, 2000);
+            }, 1500);
         });
         
     } catch (error) {

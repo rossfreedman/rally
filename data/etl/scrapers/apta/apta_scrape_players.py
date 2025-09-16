@@ -1809,7 +1809,7 @@ class APTAChicagoRosterScraper:
         """Save individual series file and progress after each completed series"""
         try:
             # Create data/leagues/APTA_CHICAGO/temp directory if it doesn't exist
-            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp')
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'APTA_CHICAGO', 'temp')
             os.makedirs(series_dir, exist_ok=True)
             
             # Save individual series file
@@ -1822,7 +1822,7 @@ class APTAChicagoRosterScraper:
             print(f"📁 Saved {series_name} to: {series_file} ({len(series_players)} players)")
             
             # Save progress tracking
-            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
+            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'APTA_CHICAGO', 'temp', 'scrape_progress.json')
             progress_data = {
                 'completed_series': list(self.completed_series),
                 'last_update': datetime.now().isoformat(),
@@ -1833,7 +1833,7 @@ class APTAChicagoRosterScraper:
                 json.dump(progress_data, f, indent=2)
                 
             # Save current aggregate player data (only if we have aggregate data)
-            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
+            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'APTA_CHICAGO', 'temp', 'players_comprehensive_partial.json')
             if self.all_players:  # Only save if we have aggregate data
                 with open(output_file, 'w', encoding='utf-8') as f:
                     json.dump(self.all_players, f, indent=2, ensure_ascii=False)

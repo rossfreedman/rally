@@ -1,0 +1,37 @@
+{
+  "actual_performance": {
+    "total_players": 2500,
+    "total_time_hours": 13.0,
+    "series_count": 30,
+    "players_per_hour": 192.30769230769232,
+    "time_per_series_hours": 0.43333333333333335,
+    "time_per_player_seconds": 18.72,
+    "requests_per_player": 2.2,
+    "total_requests": 5500.0
+  },
+  "realistic_improvements": {
+    "speed_improvement": 0.5212,
+    "cost_improvement": 0.8,
+    "new_time_hours": 6.2244,
+    "new_players_per_hour": 401.6451384872438,
+    "new_time_per_series_hours": 0.20748,
+    "new_time_per_player_seconds": 8.963136
+  },
+  "cost_projections": {
+    "current_cost_per_hour": 2.0,
+    "current_total_cost": 26.0,
+    "optimized_cost_per_hour": 0.3999999999999999,
+    "optimized_total_cost": 2.4897599999999995,
+    "cost_savings": 23.51024,
+    "cost_savings_percent": 90.42399999999999
+  },
+  "apta_projections": {
+    "total_players": 6000,
+    "series_count": 22,
+    "current_time_hours": 31.2,
+    "optimized_time_hours": 14.938559999999999,
+    "time_saved_hours": 16.26144,
+    "players_per_hour": 401.6451384872438,
+    "time_per_series_minutes": 40.74152727272727
+  }
+}

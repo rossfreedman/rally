@@ -59,12 +59,11 @@ def _load_players_data():
 
 def get_career_stats_from_db(player_id):
     """
-    Get career stats from player_history.json file.
-    This contains the true career statistics across all seasons.
+    Get career stats from database instead of JSON file.
+    This queries the players table for career statistics.
     """
     try:
-        import json
-        import os
+        from database_utils import execute_query_one
         
         # Helper function to convert Decimal to float for template compatibility
         def decimal_to_float(value):
@@ -76,35 +75,34 @@ def get_career_stats_from_db(player_id):
                 return float(value)
             return value
 
-        # Load player history data from JSON file
-        player_history_path = "data/leagues/APTA_CHICAGO/player_history.json"
+        # Query database for career stats
+        player_record = execute_query_one(
+            """
+            SELECT career_wins, career_losses, career_matches, career_win_percentage, pti
+            FROM players 
+            WHERE tenniscores_player_id = %s
+            """,
+            [player_id]
+        )
         
-        if not os.path.exists(player_history_path):
-            print(f"[ERROR] Player history file not found: {player_history_path}")
-            return None
-            
-        with open(player_history_path, 'r') as f:
-            player_history_data = json.load(f)
-        
-        # Find the player in the history data
-        player_data = None
-        for player in player_history_data:
-            if player.get("player_id") == player_id:
-                player_data = player
-                break
-        
-        if not player_data:
-            print(f"[DEBUG] get_career_stats_from_db: No player found in history for tenniscores_player_id {player_id}")
+        if not player_record:
+            print(f"[DEBUG] get_career_stats_from_db: No player found in database for tenniscores_player_id {player_id}")
             return None
         
-        # Extract career stats from the JSON data
-        career_wins = player_data.get("wins", 0)
-        career_losses = player_data.get("losses", 0)
-        career_matches = career_wins + career_losses
-        current_pti = player_data.get("rating", "N/A")
+        # Extract career stats from database
+        career_wins = player_record.get('career_wins', 0) or 0
+        career_losses = player_record.get('career_losses', 0) or 0
+        career_matches = player_record.get('career_matches', 0) or 0
+        career_win_percentage = player_record.get('career_win_percentage', 0) or 0
+        current_pti = player_record.get('pti', 'N/A')
         
-        # Calculate win rate
-        win_rate = (career_wins / career_matches * 100) if career_matches > 0 else 0.0
+        # Calculate win rate from database percentage or calculate if missing
+        if career_win_percentage > 0:
+            win_rate = float(career_win_percentage)
+        elif career_matches > 0:
+            win_rate = (career_wins / career_matches * 100)
+        else:
+            win_rate = 0.0
 
         career_stats = {
             "winRate": round(win_rate, 1),
@@ -115,7 +113,7 @@ def get_career_stats_from_db(player_id):
         }
 
         print(
-            f"[DEBUG] get_career_stats_from_db: Found career stats in player_history.json for player {player_id}: {career_matches} matches, {career_wins} wins, {career_losses} losses, {win_rate:.1f}% win rate"
+            f"[DEBUG] get_career_stats_from_db: Found career stats in database for player {player_id}: {career_matches} matches, {career_wins} wins, {career_losses} losses, {win_rate:.1f}% win rate"
         )
         return career_stats
 
@@ -2701,29 +2699,73 @@ def get_all_team_availability_data(user, selected_date=None):
 
         # FIXED: Use database to get team players instead of JSON files
         # Get all players for this club and series from the database
+        # CRITICAL FIX: Filter by both league_id AND team_id to prevent cross-league data mixing
         try:
-            team_players_query = """
-                SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
-                       c.name as club_name, s.name as series_name
-                FROM players p
-                JOIN clubs c ON p.club_id = c.id
-                JOIN series s ON p.series_id = s.id
-                WHERE c.name = %s AND s.name = %s AND p.is_active = true
-                ORDER BY p.first_name, p.last_name
-            """
-
-            team_players_data = execute_query(team_players_query, (club_name, series))
-
-            if not team_players_data:
-                print(f"❌ No players found in database for {club_name} - {series}")
+            # Get user's league_id and team_id for proper filtering
+            user_league_id = user.get("league_id")
+            user_team_id = user.get("team_id")
+            
+            print(f"🔍 DEBUG: User league_id: {user_league_id}, team_id: {user_team_id}")
+            
+            # Convert string league_id to integer if needed
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"🔍 DEBUG: Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"❌ League '{user_league_id}' not found in leagues table")
+                        return {
+                            "players_schedule": {},
+                            "selected_date": selected_date,
+                            "error": f"League '{user_league_id}' not found in database",
+                        }
+                except Exception as e:
+                    print(f"❌ Error converting league ID: {e}")
+                    return {
+                        "players_schedule": {},
+                        "selected_date": selected_date,
+                        "error": f"Error processing league ID: {e}",
+                    }
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+                print(f"🔍 DEBUG: League_id already integer: {league_id_int}")
+            else:
+                print(f"❌ No valid league_id found in user session")
                 return {
                     "players_schedule": {},
                     "selected_date": selected_date,
-                    "error": f"No players found for {club_name} - {series}",
+                    "error": "No valid league context found. Please check your profile settings.",
+                }
+            
+            # Enhanced query with both league_id and team_id filtering
+            team_players_query = """
+                SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
+                       c.name as club_name, s.name as series_name, t.id as team_id
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN teams t ON (p.club_id = t.club_id AND p.series_id = t.series_id AND p.league_id = t.league_id)
+                WHERE c.name = %s AND s.name = %s AND p.league_id = %s AND t.id = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+
+            team_players_data = execute_query(team_players_query, (club_name, series, league_id_int, user_team_id))
+
+            if not team_players_data:
+                print(f"❌ No players found in database for {club_name} - {series} (league_id: {league_id_int}, team_id: {user_team_id})")
+                return {
+                    "players_schedule": {},
+                    "selected_date": selected_date,
+                    "error": f"No players found for {club_name} - {series} in your current league and team context",
                 }
 
             print(
-                f"Found {len(team_players_data)} players in database for {club_name} - {series}"
+                f"Found {len(team_players_data)} players in database for {club_name} - {series} (league_id: {league_id_int}, team_id: {user_team_id})"
             )
 
             # Create lookup structures for efficient processing
@@ -2852,7 +2894,9 @@ def get_all_team_availability_data(user, selected_date=None):
             "availability_found": len(availability_lookup) if 'availability_lookup' in locals() else 0,
             "date_converted": str(selected_date_utc) if 'selected_date_utc' in locals() else "None",
             "session_series": series,
-            "session_club": club_name
+            "session_club": club_name,
+            "league_id_filtered": league_id_int if 'league_id_int' in locals() else "None",
+            "team_id_filtered": user_team_id if 'user_team_id' in locals() else "None"
         }
         
         return {

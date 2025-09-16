@@ -69,32 +69,16 @@ def enable_lightweight_blocking(driver):
         return
         
     try:
-        # Enhanced block list for maximum bandwidth efficiency
-        blocked = [
-            # Heavy assets by extension
-            "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.svg",
-            "*.mp4", "*.webm", "*.mov", "*.avi", "*.m4v",
-            "*.woff", "*.woff2", "*.ttf", "*.otf",
-            "*.css.map", "*.js.map", "*.ico",
-            
-            # Analytics / pixels / beacons
-            "*googletagmanager*", "*google-analytics*", "*doubleclick*", "*googleoptimize*",
-            "*stats.g.doubleclick*", "*analytics.google*", "*clarity.ms*", "*mixpanel*",
-            "*hotjar*", "*segment.io*", "*fullstory*", "*amplitude*", "*newrelic*",
-            
-            # Third-party CDNs you likely don't need for HTML
-            "*cdn.jsdelivr.net*", "*cdnjs.cloudflare.com*", "*unpkg.com*", "*static.chartbeat*",
-            "*snap.licdn.com*", "*bat.bing.com*", "*facebook.com/tr*", "*connect.facebook.net*",
-            "*gstatic.com/recaptcha*", "*recaptcha.net*", "*googleapis.com*", "*gstatic.com/*",
-            "*cloudflareinsights.com/*", "*optimizely.com/*", "*facebook.net/*"
-        ]
-        driver.execute_cdp_cmd("Network.setBlockedURLs", {"urls": blocked})
+        driver.execute_cdp_cmd("Network.setBlockedURLs", {
+            "urls": [
+                "*.png","*.jpg","*.jpeg","*.gif","*.webp","*.svg",
+                "*.css","*.woff","*.woff2","*.ttf","*.otf",
+                "*googletagmanager.com/*","*google-analytics.com/*",
+                "*doubleclick.net/*","*facebook.net/*","*optimizely.com/*"
+            ]
+        })
     except Exception as e:
         print("CDP setBlockedURLs failed:", e)
-
-def hard_block_extras(driver):
-    """Alias for enable_lightweight_blocking for compatibility."""
-    enable_lightweight_blocking(driver)
 
 def stop_after_selector(driver, by, locator, timeout=12):
     """
@@ -307,7 +291,7 @@ class StealthConfig:
         self.session_duration = 600  # 10 minutes
         
         # Detection thresholds
-        self.min_page_size = 100  # Reduced from 1000 to avoid false blank_page detection
+        self.min_page_size = 1000
         self.timeout_seconds = 20
         
         # Browser settings
@@ -409,43 +393,26 @@ class EnhancedStealthBrowser:
         except Exception as e:
             logger.warning(f"enable_lightweight_blocking failed: {e}")
         
-        # Enable mobile CDP optimization for bandwidth efficiency
-        try:
-            from .chrome_driver_config import enable_mobile_cdp_optimization
-            enable_mobile_cdp_optimization(driver)
-        except Exception as e:
-            logger.warning(f"Mobile CDP optimization failed: {e}")
-        
         return driver
     
     def _create_fresh_options(self, user_agent: str):
         """Create fresh ChromeOptions for each strategy attempt."""
         # Import settings and build function
         try:
-            from .settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT, ENABLE_SPEED_OPTIMIZATIONS
-            from .chrome_driver_config import build_chrome_options, build_mobile_lean_driver
+            from .settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT
+            from .chrome_driver_config import build_chrome_options
         except ImportError:
-            from settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT, ENABLE_SPEED_OPTIMIZATIONS
-            from chrome_driver_config import build_chrome_options, build_mobile_lean_driver
+            from settings_stealth import STEALTH_LANG, STEALTH_VIEWPORT
+            from chrome_driver_config import build_chrome_options
         
-        # Use mobile optimization if speed optimizations are enabled
-        if ENABLE_SPEED_OPTIMIZATIONS:
-            options = build_mobile_lean_driver(
-                user_agent=user_agent,
-                lang=STEALTH_LANG,
-                viewport=STEALTH_VIEWPORT,
-                headless=self.config.headless,
-                proxy=self.current_proxy if hasattr(self, 'current_proxy') else None
-            )
-        else:
-            # Use the centralized build_chrome_options function
-            options = build_chrome_options(
-                user_agent=user_agent,
-                lang=STEALTH_LANG,
-                viewport=STEALTH_VIEWPORT,
-                headless=self.config.headless,
-                proxy=self.current_proxy if hasattr(self, 'current_proxy') else None
-            )
+        # Use the centralized build_chrome_options function
+        options = build_chrome_options(
+            user_agent=user_agent,
+            lang=STEALTH_LANG,
+            viewport=STEALTH_VIEWPORT,
+            headless=self.config.headless,
+            proxy=self.current_proxy if hasattr(self, 'current_proxy') else None
+        )
         
         return options
     

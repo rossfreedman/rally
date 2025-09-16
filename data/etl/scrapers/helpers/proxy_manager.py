@@ -522,10 +522,10 @@ class EnhancedProxyRotator:
     
     def __init__(self, 
                  ports: List[int] = None,
-                 rotate_every: int = 100,  # Cost-optimized: rotate every 100 requests
-                 session_duration: int = 1800,  # 30 minutes (3x longer)
+                 rotate_every: int = 150,  # Enhanced cost-optimized: rotate every 150 requests
+                 session_duration: int = 2400,  # 40 minutes (33% longer)
                  test_url: str = "https://httpbin.org/ip",
-                 usage_cap_per_proxy: int = 200,  # Increased cap for cost efficiency
+                 usage_cap_per_proxy: int = 300,  # Enhanced cap for cost efficiency
                  sticky: bool = False,
                  session_names: List[str] = None):
         """
@@ -617,7 +617,9 @@ class EnhancedProxyRotator:
             "proxy_success_rates": {},
             "pool_promotions": 0,
             "pool_demotions": 0,
-            "sticky_sessions": 0
+            "sticky_sessions": 0,
+            "bandwidth_used_mb": 0.0,
+            "bandwidth_saved_mb": 0.0
         }
         
         logger.info(f"🔄 Enhanced Proxy Rotator initialized")
@@ -1436,7 +1438,7 @@ class EnhancedProxyRotator:
             # Use working credentials as fallback (original format)
             return f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@us.decodo.com:{self.current_port}"
     
-    def report_success(self, port: int = None, latency: float = None):
+    def report_success(self, port: int = None, latency: float = None, response_size: int = None):
         """Report successful request for proxy."""
         port = port or self.current_port
         if port in self.proxies:
@@ -1456,6 +1458,18 @@ class EnhancedProxyRotator:
                     proxy_info.avg_latency = (proxy_info.avg_latency * 0.8) + (latency * 0.2)
                 
                 self.session_metrics["avg_latency_per_proxy"][port] = proxy_info.avg_latency
+            
+            # Update bandwidth tracking
+            if response_size is not None:
+                bandwidth_mb = response_size / (1024 * 1024)  # Convert bytes to MB
+                self.session_metrics["bandwidth_used_mb"] += bandwidth_mb
+                
+                # Estimate bandwidth saved by mobile optimization and blocking
+                # Mobile pages are typically 60-80% smaller than desktop
+                # Blocking saves additional 40-60% on images/fonts/analytics
+                estimated_desktop_size = response_size * 2.5  # Desktop is ~2.5x larger
+                bandwidth_saved = (estimated_desktop_size - response_size) / (1024 * 1024)
+                self.session_metrics["bandwidth_saved_mb"] += bandwidth_saved
             
             # Update success rate tracking
             self.session_metrics["proxy_success_rates"][port] = proxy_info.success_rate
@@ -1766,8 +1780,9 @@ def make_proxy_request(url: str, timeout: int = 30, max_retries: int = 3) -> Opt
                 else:
                     raise Exception(f"All proxies blocked for {url}")
             
-            # Report success with latency
-            rotator.report_success(latency=latency)
+            # Report success with latency and bandwidth
+            response_size = len(response.content) if response.content else 0
+            rotator.report_success(latency=latency, response_size=response_size)
             report_ua_success(user_agent, url)
             return response
             

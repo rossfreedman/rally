@@ -5113,6 +5113,71 @@ def get_team_players(team_id):
 # instead of the legacy debug functionality
 
 
+@mobile_bp.route("/api/get-series")
+@login_required
+def get_series_for_subs():
+    """Get all series data for substitute player discovery"""
+    try:
+        from app.services.admin_service import get_all_series_with_stats
+        
+        series = get_all_series_with_stats()
+        
+        # Get current user's series
+        current_user_series = session["user"].get("series")
+        
+        # Format the response to match what find-subs expects
+        return jsonify({
+            "all_series_objects": series,
+            "all_series": [s["name"] for s in series],  # Fallback series names
+            "series": current_user_series  # Current user's series
+        })
+        
+    except Exception as e:
+        print(f"Error getting series for subs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/api/escrow-subs")
+def get_escrow_subs():
+    """Get substitute players for escrow opposing captain - no login required"""
+    try:
+        from app.services.player_service import get_players_by_league_and_series_id
+        
+        # Get parameters
+        series_id = request.args.get("series_id")
+        club_name = request.args.get("club_name")
+        user_series = request.args.get("user_series", "Series 22")  # Default fallback
+        
+        if not series_id:
+            return jsonify({"error": "series_id parameter is required"}), 400
+        
+        if not club_name:
+            return jsonify({"error": "club_name parameter is required"}), 400
+        
+        print(f"\n=== DEBUG: get_escrow_subs ===")
+        print(f"Requested series_id: {series_id}")
+        print(f"Requested club_name: {club_name}")
+        print(f"User series (for filtering): {user_series}")
+        
+        # Get players from the specified series and club
+        players = get_players_by_league_and_series_id(
+            league_id="APTA_CHICAGO",  # Default league for escrow
+            series_id=series_id,
+            club_name=club_name
+        )
+        
+        print(f"Found {len(players)} players in series_id {series_id} and club {club_name}")
+        print("=== END DEBUG ===\n")
+        
+        return jsonify(players)
+        
+    except Exception as e:
+        print(f"Error getting escrow subs: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/polls")
 @login_required
 def serve_mobile_polls():

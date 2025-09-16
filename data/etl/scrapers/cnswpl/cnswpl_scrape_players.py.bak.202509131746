@@ -478,16 +478,6 @@ class CNSWPLRosterScraper:
             self.recent_requests = []
         
         self.recent_requests.append(success)
-        
-        # Track recent errors for adaptive pacing
-        if not hasattr(self, 'recent_errors'):
-            self.recent_errors = 0
-        
-        if not success:
-            self.recent_errors += 1
-        else:
-            # Decay error count on success
-            self.recent_errors = max(0, self.recent_errors - 0.1)
     
     def _process_teams_parallel(self, team_links: List[Tuple[str, str]], series_name: str, series_url: str) -> List[Dict]:
         """Process teams in parallel for massive speed improvement."""
@@ -679,50 +669,28 @@ class CNSWPLRosterScraper:
         success_rate = self._get_recent_success_rate()
         
         if request_type == "series":
-            # Use adaptive pacing for series delays
-            try:
-                from .adaptive_pacer import next_delay
-                recent_errors = getattr(self, 'recent_errors', 0)
-                delay = next_delay(success_rate, recent_errors)
-                print(f"   ⏳ Adaptive series delay: {delay:.1f}s (success rate: {success_rate:.1%})")
-                time.sleep(delay)
-            except ImportError:
-                # Fallback to optimized delays
-                base_delay = random.uniform(SERIES_DELAY_MIN, SERIES_DELAY_MAX)
-                multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
-                delay = round(base_delay * multiplier, 1)
-                print(f"   ⏳ Waiting {delay:.1f}s before next series... (success rate: {success_rate:.1%})")
-                time.sleep(delay)
+            # Optimized series delays with adaptive speed
+            base_delay = random.uniform(SERIES_DELAY_MIN, SERIES_DELAY_MAX)
+            multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
+            delay = round(base_delay * multiplier, 1)
+            
+            print(f"   ⏳ Waiting {delay:.1f}s before next series... (success rate: {success_rate:.1%})")
+            time.sleep(delay)
             
         elif request_type == "team":
-            # Use adaptive pacing for team delays
-            try:
-                from .adaptive_pacer import next_delay
-                recent_errors = getattr(self, 'recent_errors', 0)
-                delay = next_delay(success_rate, recent_errors)
-                
-                # Add occasional human-like variation (10% chance)
-                if random.random() < 0.10:
-                    variation = random.uniform(0.2, 0.5)
-                    delay += variation
-                    print(f"   🤔 Human variation... (+{variation:.1f}s)")
-                
-                print(f"   ⏳ Adaptive team delay: {delay:.1f}s (success rate: {success_rate:.1%})")
-                time.sleep(delay)
-            except ImportError:
-                # Fallback to optimized delays
-                base_delay = random.uniform(TEAM_DELAY_MIN, TEAM_DELAY_MAX)
-                multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
-                delay = round(base_delay * multiplier, 1)
-                
-                # Add occasional human-like variation (10% chance)
-                if random.random() < 0.10:
-                    variation = random.uniform(0.2, 0.8)
-                    delay += variation
-                    print(f"   🤔 Human variation... (+{variation:.1f}s)")
-                
-                print(f"   ⏳ Waiting {delay:.1f}s before next team... (success rate: {success_rate:.1%})")
-                time.sleep(delay)
+            # Optimized team delays with adaptive speed
+            base_delay = random.uniform(TEAM_DELAY_MIN, TEAM_DELAY_MAX)
+            multiplier = self._get_delay_multiplier(success_rate, VERY_FAST_MULTIPLIER, FAST_MULTIPLIER, MODERATE_MULTIPLIER, CONSERVATIVE_MULTIPLIER)
+            delay = round(base_delay * multiplier, 1)
+            
+            # Add occasional human-like variation (10% chance)
+            if random.random() < 0.10:
+                variation = random.uniform(0.2, 0.8)
+                delay += variation
+                print(f"   🤔 Human variation... (+{variation:.1f}s)")
+            
+            print(f"   ⏳ Waiting {delay:.1f}s before next team... (success rate: {success_rate:.1%})")
+            time.sleep(delay)
             
         else:
             # General delay with natural variation
@@ -1664,8 +1632,8 @@ class CNSWPLRosterScraper:
         if self.force_restart:
             # Clean up any existing progress files
             try:
-                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
-                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
+                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
+                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
                 
                 if os.path.exists(progress_file):
                     os.remove(progress_file)
@@ -1683,7 +1651,7 @@ class CNSWPLRosterScraper:
             return
             
         try:
-            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
+            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
             if os.path.exists(progress_file):
                 with open(progress_file, 'r', encoding='utf-8') as f:
                     progress_data = json.load(f)
@@ -1691,7 +1659,7 @@ class CNSWPLRosterScraper:
                     print(f"📂 Loaded progress: {len(self.completed_series)} series already completed")
                     
                 # Load existing player data
-                output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
+                output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
                 if os.path.exists(output_file):
                     with open(output_file, 'r', encoding='utf-8') as f:
                         self.all_players = json.load(f)
@@ -1706,7 +1674,7 @@ class CNSWPLRosterScraper:
         """Save individual series file and progress after each completed series"""
         try:
             # Create data/leagues/CNSWPL/temp directory if it doesn't exist
-            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp')
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp')
             os.makedirs(series_dir, exist_ok=True)
             
             # Save individual series file
@@ -1719,7 +1687,7 @@ class CNSWPLRosterScraper:
             print(f"📁 Saved {series_name} to: {series_file} ({len(series_players)} players)")
             
             # Save progress tracking
-            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
+            progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'scrape_progress.json')
             progress_data = {
                 'completed_series': list(self.completed_series),
                 'last_update': datetime.now().isoformat(),
@@ -1730,7 +1698,7 @@ class CNSWPLRosterScraper:
                 json.dump(progress_data, f, indent=2)
                 
             # Save current aggregate player data (only if we have aggregate data)
-            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
+            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp', 'players_comprehensive_partial.json')
             if self.all_players:  # Only save if we have aggregate data
                 with open(output_file, 'w', encoding='utf-8') as f:
                     json.dump(self.all_players, f, indent=2, ensure_ascii=False)
@@ -1789,7 +1757,7 @@ class CNSWPLRosterScraper:
     def save_intermediate_results(self):
         """Save intermediate results during long scrape (legacy method)"""
         try:
-            output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'players_intermediate.json')
+            output_file = os.path.join(os.path.dirname(__file__), '..', '..', 'leagues', 'CNSWPL', 'players_intermediate.json')
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(self.all_players, f, indent=2, ensure_ascii=False)
             print(f"   💾 Intermediate results saved to {output_file}")
@@ -1804,7 +1772,7 @@ class CNSWPLRosterScraper:
             print(f"\n🏁 FINALIZING COMPREHENSIVE SCRAPE RESULTS...")
             
             # Show individual series files created
-            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp')
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'temp')
             if os.path.exists(series_dir):
                 series_files = [f for f in os.listdir(series_dir) if f.endswith('.json')]
                 print(f"📁 Individual series files created: {len(series_files)}")
@@ -1813,8 +1781,8 @@ class CNSWPLRosterScraper:
             
             # Clean up progress files since we're done
             try:
-                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'scrape_progress.json')
-                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'players_comprehensive_partial.json')
+                progress_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'scrape_progress.json')
+                partial_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'players_comprehensive_partial.json')
                 
                 if os.path.exists(progress_file):
                     os.remove(progress_file)
@@ -1828,12 +1796,12 @@ class CNSWPLRosterScraper:
                 print(f"⚠️ Warning: Could not clean up temporary files: {e}")
         
         # Update main players.json file directly
-        main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'players.json')
+        main_output_file = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'players.json')
         
         if os.path.exists(main_output_file):
             # BACKUP EXISTING players.json BEFORE OVERWRITING
             try:
-                backup_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'backup')
+                backup_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'leagues', 'CNSWPL', 'backup')
                 os.makedirs(backup_dir, exist_ok=True)
                 
                 backup_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

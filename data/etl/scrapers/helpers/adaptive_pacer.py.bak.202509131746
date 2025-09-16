@@ -3,9 +3,9 @@ import time, random
 from collections import deque
 
 # Tunables: conservative base; bump when things are "green"
-BASE_RPM = 30       # Increased from 24 (25% faster base)
-MAX_RPM  = 60       # Increased from 50 (20% faster max)
-WINDOW_SEC = 300    # 5 minutes for faster adaptation (37.5% faster)
+BASE_RPM = 22
+MAX_RPM  = 34
+WINDOW_SEC = 600  # last 10 minutes
 MAX_429 = 1
 MAX_JS  = 1
 
@@ -29,13 +29,3 @@ def pace_sleep():
     base = 60.0 / max(1, rpm)
     jitter = 0.4 + (random.random()*0.8)
     time.sleep(base + jitter)
-
-def next_delay(success_rate_10m: float, last_errors: int) -> float:
-    """Enhanced delay calculation with fast-on-clean / slow-on-wobble behavior."""
-    if last_errors > 0 or (success_rate_10m is not None and success_rate_10m < 0.92):
-        return random.uniform(2.0, 3.5)
-    if success_rate_10m is not None and success_rate_10m > 0.98:
-        return random.uniform(0.3, 0.8)
-    if success_rate_10m is not None and success_rate_10m > 0.95:
-        return random.uniform(0.8, 1.5)
-    return random.uniform(1.5, 2.2)

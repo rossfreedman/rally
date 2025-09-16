@@ -202,6 +202,13 @@
                     <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: 200px; -webkit-overflow-scrolling: touch; padding-bottom: 0.75rem;">
                         <div class="text-gray-400 text-center text-sm" id="loading-players">Loading your team players...</div>
                     </div>
+
+                    <!-- Add Subs Link -->
+                    <div class="mt-3 text-center">
+                        <button id="add-subs-btn" class="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                            <i class="fas fa-plus mr-1"></i>Add Subs
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Selected Player Indicator (for tap mode) -->
@@ -337,6 +344,82 @@
             <p class="text-xs text-gray-500">
                 Lineup Escrow™ - Fair lineup disclosure between captains
             </p>
+        </div>
+    </div>
+
+    <!-- Subs Selection Modal -->
+    <div id="subs-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
+                <!-- Modal Header -->
+                <div class="bg-white border-b border-gray-200 px-6 py-4" style="flex-shrink: 0;">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-900">Select Substitute Players</h2>
+                            <p class="text-sm text-gray-500 mt-1">Choose subs to add to your lineup from higher series at {{ escrow_data.recipient_club_name }}</p>
+                        </div>
+                        <button id="close-subs-modal" class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6" style="height: calc(80vh - 140px); overflow-y: scroll; flex: 1;">
+                    <!-- Loading State -->
+                    <div id="subs-modal-loading" class="text-center py-8">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div class="loading loading-spinner loading-lg text-blue-600"></div>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Finding Available Subs</h3>
+                        <p class="text-gray-500">Searching for players in higher series...</p>
+                    </div>
+                    <!-- Error State -->
+                    <div id="subs-modal-error" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Subs</h3>
+                        <p id="subs-modal-error-message" class="text-gray-500"></p>
+                    </div>
+                    <!-- No Results State -->
+                    <div id="subs-modal-no-results" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-user-slash text-blue-500 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Subs Available</h3>
+                        <p class="text-gray-500">No subs found in higher series at {{ escrow_data.recipient_club_name }}.</p>
+                    </div>
+                    <!-- Algorithm Header -->
+                    <div id="subs-modal-algorithm-header" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-robot text-blue-500 mr-2"></i>
+                            <div>
+                                <h4 class="font-semibold text-blue-900">Rally's Recommendation Algorithm</h4>
+                                <p class="text-sm text-blue-700">Weighted by PTI (70%), win rate (20%), and series level (10%)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Subs List -->
+                    <div id="subs-modal-list" class="hidden space-y-4"></div>
+                </div>
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div id="selected-count" class="text-sm text-gray-600">
+                            <span id="selected-subs-count">0</span> subs selected
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="cancel-subs-modal" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button id="add-selected-subs" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                                Add Selected Subs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -528,6 +611,11 @@
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
+
+/* Substitute player styling */
+.border-red-400 { 
+    border-color: #f87171; 
+}
 </style>
 
 <script>
@@ -637,7 +725,12 @@ function renderPlayers() {
             typeColor = playerTypeColors[positionPreference];
         }
         
-        playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+        // Apply red border for substitute players
+        const isSubstitute = player.isSubstitute;
+        const borderClass = isSubstitute ? 'border-red-400' : 'border-gray-300';
+        const substituteLabel = isSubstitute ? '<div class="text-xs text-red-600 font-semibold mb-1">SUB</div>' : '';
+        
+        playerDiv.className = `player-card border ${borderClass} rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center`;
         playerDiv.dataset.playerName = player.name;
         playerDiv.dataset.playerRating = player.rating;
         playerDiv.dataset.playerType = playerType;
@@ -661,6 +754,7 @@ function renderPlayers() {
         const ptiValue = player.pti || player.rating || 0;
         
         playerDiv.innerHTML = `
+            ${substituteLabel}
             <div class="font-medium text-gray-900 text-sm">${lastName}</div>
             <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
         `;
@@ -1229,6 +1323,408 @@ async function submitLineup() {
         submitBtn.disabled = false;
     }
 }
+
+// Modal-based Subs functionality
+let selectedSubs = new Set();
+
+function openSubsModal() {
+  console.log('🔍 Opening subs modal...');
+  
+  // Add scrollbar styling for webkit browsers (same pattern as analyze-me modal)
+  const style = document.createElement('style');
+  style.id = 'subs-modal-scrollbar-style';
+  style.textContent = `
+    #subs-modal .overflow-y-scroll {
+      scrollbar-width: thin !important;
+      scrollbar-color: #888 #f1f1f1 !important;
+      min-height: 200px !important;
+      max-height: calc(80vh - 140px) !important;
+      overflow-y: scroll !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar {
+      width: 12px !important;
+      height: 12px !important;
+      display: block !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb {
+      background: #888 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb:hover {
+      background: #555 !important;
+    }
+  `;
+  
+  // Only add style if not already added
+  if (!document.getElementById('subs-modal-scrollbar-style')) {
+    document.head.appendChild(style);
+  }
+  
+  // Reset modal state
+  selectedSubs.clear();
+  document.getElementById('subs-modal').classList.remove('hidden');
+  
+  // Show loading state
+  showModalLoading();
+  
+  // Load and display subs
+  loadAndDisplaySubs();
+}
+
+function showModalLoading() {
+  document.getElementById('subs-modal-loading').classList.remove('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+}
+
+function showModalError(message) {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.remove('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+  document.getElementById('subs-modal-error-message').textContent = message;
+}
+
+function showModalNoResults() {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.remove('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+}
+
+function showModalResults() {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.remove('hidden');
+  document.getElementById('subs-modal-list').classList.remove('hidden');
+}
+
+function closeSubsModal() {
+  document.getElementById('subs-modal').classList.add('hidden');
+  selectedSubs.clear();
+  updateSelectedSubsCount();
+}
+
+function updateSelectedSubsCount() {
+  const count = selectedSubs.size;
+  document.getElementById('selected-subs-count').textContent = count;
+  document.getElementById('add-selected-subs').disabled = count === 0;
+}
+
+async function loadAndDisplaySubs() {
+  try {
+    // Get current user's series and club from escrow data
+    const currentSeries = 'Series 22'; // This would need to be determined from escrow data
+    const currentClub = window.escrowData.recipient_club_name;
+    
+    console.log('🔍 Finding subs for series:', currentSeries, 'club:', currentClub);
+    
+    // Find subs using the same logic as find-subs page
+    const subsData = await findSubsForUser(currentSeries, currentClub);
+    
+    if (subsData.length === 0) {
+      showModalNoResults();
+      return;
+    }
+    
+    // Show results
+    showModalResults();
+    renderSubsInModal(subsData);
+    
+  } catch (error) {
+    console.error('Error loading subs:', error);
+    showModalError('Failed to load substitute players. Please try again.');
+  }
+}
+
+async function findSubsForUser(userSeries, userClub) {
+  try {
+    // Fetch series data
+    const response = await fetch('/api/get-series');
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    const allSeries = data.all_series_objects;
+    const currentSeries = userSeries;
+    
+    console.log('Current series:', currentSeries, 'Type:', typeof currentSeries);
+    console.log('All series objects:', allSeries);
+    console.log('All series (fallback):', data.all_series);
+    console.log('Current series value:', getSeriesComparisonValue(currentSeries));
+    
+    // Get current series comparison value
+    const currentSeriesValue = getSeriesComparisonValue(currentSeries);
+    if (!currentSeriesValue) {
+      throw new Error('Could not determine current series level');
+    }
+    
+    // Filter to higher series only
+    const higherSeriesObjects = allSeries.filter(seriesObj => {
+      const seriesValue = getSeriesComparisonValue(seriesObj.name);
+      if (!seriesValue) return false;
+      
+      let isHigher = false;
+      
+      if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'numeric') {
+        // Both are numeric: higher numbers are higher series (Series 23 > Series 22)
+        isHigher = seriesValue.value > currentSeriesValue.value;
+        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
+        // Current is numeric, comparing to letter: letter series are higher
+        isHigher = true;
+        console.log(`Comparing ${seriesObj.name} (letter) vs ${currentSeries} (numeric): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
+        // Both are letter: higher letters are higher series (B > A)
+        isHigher = seriesValue.value > currentSeriesValue.value;
+        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
+        // Current is letter, comparing to numeric: letter series are higher
+        isHigher = false;
+        console.log(`Comparing ${seriesObj.name} (numeric) vs ${currentSeries} (letter): isHigher = ${isHigher}`);
+      }
+      
+      return isHigher;
+    });
+    
+    console.log('Higher series objects found:', higherSeriesObjects);
+    
+    // Get players from higher series at the same club
+    const subsData = [];
+    
+    for (const seriesObj of higherSeriesObjects) {
+      try {
+        // Use escrow endpoint to get players from the specified club
+        const playersResponse = await fetch(`/api/escrow-subs?series_id=${seriesObj.id}&club_name=${encodeURIComponent(userClub)}&user_series=${encodeURIComponent(userSeries)}`);
+        const playersData = await playersResponse.json();
+        
+        console.log(`Found ${playersData.length} players in ${seriesObj.name} at ${userClub}`);
+        
+        if (Array.isArray(playersData)) {
+          // Add series information to each player
+          playersData.forEach(player => {
+            player.series = seriesObj.name;
+            player.series_id = seriesObj.id;
+            player.isSubstitute = true;
+          });
+          
+          subsData.push(...playersData);
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch players for series ${seriesObj.name}:`, error);
+      }
+    }
+    
+    // Calculate composite scores and sort
+    subsData.forEach(player => {
+      player.compositeScore = calculateCompositeScore(player);
+    });
+    
+    // Sort by composite score (highest first)
+    subsData.sort((a, b) => b.compositeScore - a.compositeScore);
+    
+    return subsData;
+    
+  } catch (error) {
+    console.error('Error in findSubsForUser:', error);
+    throw error;
+  }
+}
+
+function getSeriesComparisonValue(seriesName) {
+  if (!seriesName) return null;
+  
+  // Handle numeric series (e.g., "Series 1", "Series 2", "Chicago 22")
+  const numericMatch = seriesName.match(/(?:Series\s+)?(\d+)/i);
+  if (numericMatch) {
+    return { type: 'numeric', value: parseInt(numericMatch[1], 10) };
+  }
+  
+  // Handle letter series (e.g., "Series A", "Series B", "Division G")
+  const letterMatch = seriesName.match(/(?:Series\s+|Division\s+)?([A-Z])/i);
+  if (letterMatch) {
+    const letter = letterMatch[1].toUpperCase();
+    const precedence = letter.charCodeAt(0) - 64; // A=1, B=2, etc.
+    return { type: 'letter', value: precedence };
+  }
+  
+  return null;
+}
+
+function calculateCompositeScore(player) {
+  const pti = parseFloat(player.pti || player.rating || 0);
+  const winRate = parseFloat(player.winRate || 0);
+  const seriesLevel = getSeriesComparisonValue(player.series);
+  
+  // Weight: PTI 70%, win rate 20%, series level 10%
+  let score = 0;
+  
+  // PTI component (70%)
+  score += pti * 0.7;
+  
+  // Win rate component (20%)
+  score += winRate * 0.2;
+  
+  // Series level component (10%) - higher series (lower numbers) get higher scores
+  if (seriesLevel) {
+    if (seriesLevel.type === 'numeric') {
+      // For numeric series, lower numbers are higher series
+      score += (30 - seriesLevel.value) * 0.1; // Invert so Series 1 > Series 22
+    } else if (seriesLevel.type === 'letter') {
+      // For letter series, lower letters are higher series
+      score += (26 - seriesLevel.value) * 0.1; // Invert so A > Z
+    }
+  }
+  
+  return score;
+}
+
+function renderSubsInModal(subsData) {
+  const subsList = document.getElementById('subs-modal-list');
+  subsList.innerHTML = '';
+  
+  subsData.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors';
+    
+    const playerTypeColors = {
+      'Ad': '#70e6bb',
+      'Deuce': '#6f90d6',
+      'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    const positionPreference = player.position_preference;
+    const typeColor = positionPreference && playerTypeColors[positionPreference] ? playerTypeColors[positionPreference] : grayColor;
+    
+    playerDiv.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="flex items-center space-x-2">
+            <input type="checkbox" class="sub-checkbox" data-player-name="${player.name}" 
+                   style="accent-color: #3b82f6;">
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center space-x-2">
+              <h4 class="font-medium text-gray-900">${player.name}</h4>
+              <div class="w-3 h-3 rounded-full" style="background-color: ${typeColor};" title="${positionPreference || 'No preference'}"></div>
+            </div>
+            <div class="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+              <span><strong>PTI:</strong> ${player.pti || player.rating || 'N/A'}</span>
+              <span><strong>Series:</strong> ${player.series}</span>
+              <span><strong>Record:</strong> ${player.wins || 0}W-${player.losses || 0}L</span>
+              <span><strong>Win Rate:</strong> ${player.winRate || 0}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add checkbox event listener
+    const checkbox = playerDiv.querySelector('.sub-checkbox');
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        selectedSubs.add(player.name);
+      } else {
+        selectedSubs.delete(player.name);
+      }
+      updateSelectedSubsCount();
+    });
+    
+    subsList.appendChild(playerDiv);
+  });
+}
+
+function addSelectedSubs() {
+  const selectedPlayerNames = Array.from(selectedSubs);
+  
+  if (selectedPlayerNames.length === 0) {
+    alert('Please select at least one substitute player.');
+    return;
+  }
+  
+  // Add selected subs to the players array
+  selectedPlayerNames.forEach(playerName => {
+    // Find the player data from the modal
+    const playerData = Array.from(document.querySelectorAll('.sub-checkbox'))
+      .find(cb => cb.dataset.playerName === playerName)
+      ?.closest('.bg-white')
+      ?.querySelector('h4')?.textContent;
+    
+    if (playerData) {
+      // Create a new player object for the subs
+      const subPlayer = {
+        name: playerName,
+        rating: 0, // Default rating
+        position_preference: 'Either',
+        isSubstitute: true,
+        pti: 0
+      };
+      
+      // Add to players array
+      players.push(subPlayer);
+    }
+  });
+  
+  // Re-render the available players pool
+  renderPlayers();
+  
+  // Close modal
+  closeSubsModal();
+  
+  // Show success message
+  alert(`Added ${selectedPlayerNames.length} substitute player(s) to your lineup.`);
+}
+
+// Setup modal event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Add Subs button
+  const addSubsBtn = document.getElementById('add-subs-btn');
+  if (addSubsBtn) {
+    addSubsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSubsModal();
+    });
+  }
+  
+  // Modal event handlers
+  const closeSubsModalBtn = document.getElementById('close-subs-modal');
+  const cancelSubsModalBtn = document.getElementById('cancel-subs-modal');
+  const addSelectedSubsBtn = document.getElementById('add-selected-subs');
+  
+  if (closeSubsModalBtn) {
+    closeSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (cancelSubsModalBtn) {
+    cancelSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (addSelectedSubsBtn) {
+    addSelectedSubsBtn.addEventListener('click', addSelectedSubs);
+  }
+  
+  // Close modal when clicking outside
+  const subsModal = document.getElementById('subs-modal');
+  if (subsModal) {
+    subsModal.addEventListener('click', (e) => {
+      if (e.target === subsModal) {
+        closeSubsModal();
+      }
+    });
+  }
+});
 </script>
 
 {% endblock %}

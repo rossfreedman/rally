@@ -786,6 +786,11 @@ def upsert_players(cur, league_id, players_data, has_external_id):
         wins_raw = player_data.get("Wins", "0")
         losses_raw = player_data.get("Losses", "0")
         
+        # Extract career stats data
+        career_wins_raw = player_data.get("Career Wins", "0")
+        career_losses_raw = player_data.get("Career Losses", "0")
+        career_win_pct_raw = player_data.get("Career Win %", "0.0%")
+        
         # Parse PTI value (handle "N/A" and convert to numeric)
         pti_value = None
         if pti_raw and pti_raw != "N/A" and pti_raw != "0":
@@ -811,6 +816,32 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                 win_percentage_value = (wins_value / (wins_value + losses_value)) * 100
             except (ValueError, TypeError, ZeroDivisionError):
                 win_percentage_value = None
+        
+        # Parse career stats values
+        career_wins_value = None
+        career_losses_value = None
+        career_win_percentage_value = None
+        
+        try:
+            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" else 0
+            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" else 0
+        except (ValueError, TypeError):
+            career_wins_value = 0
+            career_losses_value = 0
+        
+        # Parse career win percentage (handle "0.0%" format)
+        if career_win_pct_raw and career_win_pct_raw != "N/A":
+            try:
+                # Remove % sign and convert to float
+                career_win_pct_clean = career_win_pct_raw.replace("%", "").strip()
+                career_win_percentage_value = float(career_win_pct_clean)
+            except (ValueError, TypeError):
+                career_win_percentage_value = None
+        else:
+            career_win_percentage_value = None
+        
+        # Calculate career matches
+        career_matches_value = career_wins_value + career_losses_value
         
         # Validate player data
         is_valid, errors = validate_player_data(player_data)
@@ -855,10 +886,10 @@ def upsert_players(cur, league_id, players_data, has_external_id):
             team_id = None
             
             if has_external_id and external_id:
-                # Use tenniscores_player_id for upsert - NOW INCLUDING PTI AND WIN/LOSS DATA
+                # Use tenniscores_player_id for upsert - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
                 cur.execute("""
-                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id) 
                     DO UPDATE SET 
                         first_name = EXCLUDED.first_name, 
@@ -867,9 +898,13 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                         pti = EXCLUDED.pti,
                         wins = EXCLUDED.wins,
                         losses = EXCLUDED.losses,
-                        win_percentage = EXCLUDED.win_percentage
+                        win_percentage = EXCLUDED.win_percentage,
+                        career_wins = EXCLUDED.career_wins,
+                        career_losses = EXCLUDED.career_losses,
+                        career_matches = EXCLUDED.career_matches,
+                        career_win_percentage = EXCLUDED.career_win_percentage
                     RETURNING id
-                """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value))
+                """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
                 
                 result = cur.fetchone()
                 if result:
@@ -880,19 +915,23 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                 else:
                     existing += 1
             else:
-                # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI AND WIN/LOSS DATA
+                # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
                 cur.execute("""
-                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                     ON CONFLICT (first_name, league_id, club_id, series_id) 
                     DO UPDATE SET 
                         team_id = EXCLUDED.team_id,
                         pti = EXCLUDED.pti,
                         wins = EXCLUDED.wins,
                         losses = EXCLUDED.losses,
-                        win_percentage = EXCLUDED.win_percentage
+                        win_percentage = EXCLUDED.win_percentage,
+                        career_wins = EXCLUDED.career_wins,
+                        career_losses = EXCLUDED.career_losses,
+                        career_matches = EXCLUDED.career_matches,
+                        career_win_percentage = EXCLUDED.career_win_percentage
                     RETURNING id
-                """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value))
+                """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
                 
                 result = cur.fetchone()
                 if result:

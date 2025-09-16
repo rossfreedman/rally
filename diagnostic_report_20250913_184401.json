@@ -1,0 +1,27 @@
+{
+  "speed_efficiency": {
+    "total_hours": 7.386561711629232,
+    "players_per_hour": 812.2859097695939,
+    "speed_improvement": 63.37242126464845,
+    "score": 80,
+    "effective_delay": 0.5145168304443359,
+    "parallel_processing": true
+  },
+  "stealth": {
+    "score": 75,
+    "ua_management": true,
+    "proxy_rotation": false,
+    "stealth_headers": 0,
+    "delay_variance": 2.8709604063174883
+  },
+  "efficiency": {
+    "score": 100,
+    "rotation_improvement": -566.6666666666667,
+    "session_improvement": 200.0,
+    "cost_savings": 50.0,
+    "estimated_cost": 13.200000000000003,
+    "total_requests": 13200.000000000002,
+    "proxies_needed": 132.00000000000003
+  },
+  "overall_score": 84.5
+}

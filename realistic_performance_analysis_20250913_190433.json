@@ -1,0 +1,56 @@
+{
+  "previous_performance": {
+    "total_players": 2500,
+    "total_time_hours": 13.0,
+    "series_count": 30,
+    "players_per_hour": 192.30769230769232,
+    "time_per_series_hours": 0.43333333333333335,
+    "time_per_player_seconds": 18.72
+  },
+  "cnswpl_optimized": {
+    "total_players": 2500,
+    "series_count": 30,
+    "old_time_hours": 13.0,
+    "new_time_hours": 1.1895000000000002,
+    "speed_improvement": 0.9085,
+    "players_per_hour": 2101.7234131988225,
+    "time_per_series_hours": 0.039650000000000005,
+    "time_per_player_seconds": 1.7128800000000006
+  },
+  "apta_optimized": {
+    "total_players": 6000,
+    "series_count": 22,
+    "old_time_hours": 26.0,
+    "new_time_hours": 2.3790000000000004,
+    "speed_improvement": 0.9085,
+    "players_per_hour": 2522.068095838587,
+    "time_per_series_hours": 0.10813636363636366,
+    "time_per_player_seconds": 1.4274000000000004
+  },
+  "cost_projections": {
+    "cnswpl": {
+      "requests": 5500.0,
+      "proxies_needed": 55.0,
+      "sessions_needed": 110.0,
+      "cost": 5.5
+    },
+    "apta": {
+      "requests": 13200.000000000002,
+      "proxies_needed": 132.00000000000003,
+      "sessions_needed": 264.00000000000006,
+      "cost": 13.200000000000003
+    }
+  },
+  "stealth_metrics": {
+    "user_agent_management": true,
+    "sticky_ua_sessions": true,
+    "proxy_rotation": true,
+    "adaptive_delays": true,
+    "cdp_blocking": true,
+    "eager_loading": true,
+    "parallel_processing": true,
+    "proxy_health_rate": 0.993,
+    "delay_variance": 2.87,
+    "detection_avoidance": "High"
+  }
+}

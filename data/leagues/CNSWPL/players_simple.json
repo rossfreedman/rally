@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "scraper": "CNSWPL Simple Player Scraper",
+    "version": "1.0",
+    "scraped_at": "2025-09-15T10:19:30.465659",
+    "is_final": true,
+    "total_players": 0,
+    "completed_series": [],
+    "target_series": [
+      "A"
+    ],
+    "scraping_duration_minutes": 3.6723527312278748,
+    "description": "Simplified scraper - only current season player data (no career stats)"
+  },
+  "players": []
+}
