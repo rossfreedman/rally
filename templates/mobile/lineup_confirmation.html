@@ -149,6 +149,13 @@ async function addPTIInformationToLineup(lineupText) {
             const line = lines[i];
             
             if (line.trim().startsWith('Court ')) {
+                // Check if PTI information already exists in this line
+                if (line.includes('Avg PTI:') || line.includes('Total PTI:')) {
+                    // PTI information already exists, use the line as-is
+                    updatedLines.push(line);
+                    continue;
+                }
+                
                 // Find the court number
                 const courtMatch = line.trim().match(/Court (\d+)/);
                 if (!courtMatch) {
@@ -196,9 +203,9 @@ async function addPTIInformationToLineup(lineupText) {
                     if (playerCount > 0) {
                         const avgPTI = (totalPTI / playerCount).toFixed(1);
                         const totalPTIFormatted = totalPTI.toFixed(1);
-                        updatedLines.push(`${line} (Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`);
+                        updatedLines.push(`${line}\n(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`);
                     } else {
-                        updatedLines.push(`${line} (Avg PTI: --, Total PTI: --)`);
+                        updatedLines.push(`${line}\n(Avg PTI: --, Total PTI: --)`);
                     }
                 } else {
                     updatedLines.push(line);

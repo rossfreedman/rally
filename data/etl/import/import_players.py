@@ -516,67 +516,29 @@ def upsert_player(cur, league_id, player_data):
         has_tenniscores_id = column_exists(cur, "players", "tenniscores_player_id")
         
         if has_tenniscores_id and external_id:
-            # FIXED: Handle series movement correctly
-            # First check if player exists in same league/club (regardless of series)
+            # Simple upsert - no name matching, just import data as-is
             cur.execute("""
-                SELECT id, series_id, team_id FROM players 
-                WHERE tenniscores_player_id = %s AND league_id = %s AND club_id = %s
-                LIMIT 1
-            """, (external_id, league_id, club_id))
-            
-            existing_player = cur.fetchone()
-            
-            if existing_player:
-                # Player exists in same league/club - this is series movement, UPDATE the record
-                existing_id, old_series_id, old_team_id = existing_player
-                
-                cur.execute("""
-                    UPDATE players SET 
-                        first_name = %s, 
-                        last_name = %s,
-                        series_id = %s,
-                        team_id = %s,
-                        pti = %s,
-                        wins = %s,
-                        losses = %s,
-                        win_percentage = %s,
-                        career_wins = %s,
-                        career_losses = %s,
-                        career_matches = %s,
-                        career_win_percentage = %s,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = %s
-                    RETURNING id
-                """, (first_name, last_name, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value, existing_id))
-                
-                result = cur.fetchone()
-                if result:
-                    return result[0], "updated_series_movement"
-            else:
-                # New player - use original upsert logic with series included in conflict
-                cur.execute("""
-                    INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                    ON CONFLICT (club_id, series_id, tenniscores_player_id, league_id)
-                    DO UPDATE SET 
-                        first_name = EXCLUDED.first_name, 
-                        last_name = EXCLUDED.last_name,
-                        team_id = EXCLUDED.team_id,
-                        pti = EXCLUDED.pti,
-                        wins = EXCLUDED.wins,
-                        losses = EXCLUDED.losses,
-                        win_percentage = EXCLUDED.win_percentage,
-                        career_wins = EXCLUDED.career_wins,
-                        career_losses = EXCLUDED.career_losses,
-                        career_matches = EXCLUDED.career_matches,
-                        career_win_percentage = EXCLUDED.career_win_percentage
-                    RETURNING id
-                """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
+                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id)
+                DO UPDATE SET 
+                    first_name = EXCLUDED.first_name, 
+                    last_name = EXCLUDED.last_name,
+                    team_id = EXCLUDED.team_id,
+                    pti = EXCLUDED.pti,
+                    wins = EXCLUDED.wins,
+                    losses = EXCLUDED.losses,
+                    win_percentage = EXCLUDED.win_percentage,
+                    career_wins = EXCLUDED.career_wins,
+                    career_losses = EXCLUDED.career_losses,
+                    career_matches = EXCLUDED.career_matches,
+                    career_win_percentage = EXCLUDED.career_win_percentage
+                RETURNING id
+            """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
             
             result = cur.fetchone()
             if result:
-                # This was a new player insertion (no conflict occurred)
-                return result[0], "inserted"
+                return result[0], "upserted"
         else:
             # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
             # Use a dummy tenniscores_player_id since we don't have one
@@ -584,7 +546,7 @@ def upsert_player(cur, league_id, player_data):
             cur.execute("""
                 INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                ON CONFLICT (club_id, series_id, tenniscores_player_id, league_id) 
+                ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id) 
                 DO UPDATE SET 
                     team_id = EXCLUDED.team_id,
                     pti = EXCLUDED.pti,
@@ -801,7 +763,6 @@ def import_players(league_key, file_path=None, limit=None):
             print("Importing players...")
             
             # Statistics
-            inserted = 0
             updated = 0
             existing = 0
             skipped = 0
@@ -811,17 +772,7 @@ def import_players(league_key, file_path=None, limit=None):
                 try:
                     player_id, action = upsert_player(cur, league_id, player_data)
                     
-                    if action == "inserted":
-                        inserted += 1
-                    elif action == "updated":
-                        updated += 1
-                    elif action == "updated_series_movement":
-                        updated += 1
-                        if i < 10:  # Show first 10 series movements for visibility
-                            player_name = f"{player_data.get('First Name', '')} {player_data.get('Last Name', '')}"
-                            new_series = player_data.get('Series', 'Unknown')
-                            print(f"  🔄 Series movement: {player_name} moved to {new_series}")
-                    elif action == "upserted":
+                    if action == "upserted":
                         # For upserted records, we can't distinguish between insert and update
                         # so we'll count them as updated since they were processed successfully
                         updated += 1
@@ -851,7 +802,7 @@ def import_players(league_key, file_path=None, limit=None):
             # Commit transaction
             conn.commit()
             print("\nImport completed successfully!")
-            print(f"Players: {inserted} inserted, {updated} updated, {existing} existing, {skipped} skipped, {validation_failed} validation failed")
+            print(f"Players: {updated} upserted, {existing} existing, {skipped} skipped, {validation_failed} validation failed")
             print(f"Team assignments: {assigned} assigned, {failed} failed")
             
             # Run post-import integrity checks

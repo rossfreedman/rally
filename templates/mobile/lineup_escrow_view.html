@@ -542,6 +542,12 @@ async function processLineupContainer(lineupContainer) {
         const text = header.textContent.trim();
         
         if (text.startsWith('Court ')) {
+            // Check if PTI information already exists in this header
+            if (text.includes('Avg PTI:') || text.includes('Total PTI:')) {
+                // PTI information already exists, skip this header
+                continue;
+            }
+            
             // Find the court number
             const courtMatch = text.match(/Court (\d+)/);
             if (!courtMatch) continue;
@@ -598,9 +604,9 @@ async function processLineupContainer(lineupContainer) {
                 if (playerCount > 0) {
                     const avgPTI = (totalPTI / playerCount).toFixed(1);
                     const totalPTIFormatted = totalPTI.toFixed(1);
-                    header.innerHTML = `${text} <span class="text-sm text-gray-600">(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})</span>`;
+                    header.innerHTML = `${text}<br><span class="text-sm text-gray-600">(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})</span>`;
                 } else {
-                    header.innerHTML = `${text} <span class="text-sm text-gray-600">(Avg PTI: --, Total PTI: --)</span>`;
+                    header.innerHTML = `${text}<br><span class="text-sm text-gray-600">(Avg PTI: --, Total PTI: --)</span>`;
                 }
             }
         }

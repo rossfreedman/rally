@@ -209,7 +209,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 1 <span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
+                                Court 1<br><span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -231,7 +231,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 2 <span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
+                                Court 2<br><span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -253,7 +253,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 3 <span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
+                                Court 3<br><span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -275,7 +275,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 4 <span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
+                                Court 4<br><span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -1252,7 +1252,7 @@ function updateManualLineupSummary() {
     const totalPTIFormatted = playerCount > 0 ? totalPTI.toFixed(1) : '--';
     
     // Add court header with PTI information
-    lineupText += `Court ${court}: (Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})<br>`;
+    lineupText += `Court ${court}:<br>(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})<br>`;
     
     if (player1 && player2) {
       const p1PTI = parseFloat(player1.rating || 0);
