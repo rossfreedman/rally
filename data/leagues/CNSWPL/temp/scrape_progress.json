@@ -1,8 +1,27 @@
 {
   "completed_series": [
-    "Series D"
+    "Series A",
+    "Series I",
+    "Series H",
+    "Series B",
+    "Series 1",
+    "Series 5",
+    "Series E",
+    "Series C",
+    "Series J",
+    "Series 3",
+    "Series F",
+    "Series 7",
+    "Series 2",
+    "Series 6",
+    "Series 4",
+    "Series D",
+    "Series 9",
+    "Series 10",
+    "Series G",
+    "Series 8"
   ],
-  "last_update": "2025-09-14T23:01:35.364295",
-  "total_players": 0,
-  "series_files_created": 1
+  "last_update": "2025-09-16T08:01:09.986182",
+  "total_players": 1676,
+  "series_files_created": 20
 }

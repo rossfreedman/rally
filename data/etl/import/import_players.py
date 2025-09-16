@@ -432,10 +432,14 @@ def upsert_player(cur, league_id, player_data):
     wins_raw = player_data.get("Wins", "0")
     losses_raw = player_data.get("Losses", "0")
     
-    # Extract career stats data
-    career_wins_raw = player_data.get("Career Wins", "0")
-    career_losses_raw = player_data.get("Career Losses", "0")
-    career_win_pct_raw = player_data.get("Career Win %", "0.0%")
+    # Extract career stats data - try both field name formats
+    career_wins_raw = player_data.get("Career Wins", player_data.get("Wins", "0"))
+    career_losses_raw = player_data.get("Career Losses", player_data.get("Losses", "0"))
+    career_win_pct_raw = player_data.get("Career Win %", player_data.get("Win %", "0.0%"))
+    
+    # Debug logging for career stats
+    if career_wins_raw != "0" or career_losses_raw != "0":
+        print(f"[DEBUG] Player {player_data.get('First Name', 'Unknown')} {player_data.get('Last Name', 'Unknown')}: Career stats found - Wins: {career_wins_raw}, Losses: {career_losses_raw}, Win%: {career_win_pct_raw}")
     
     # Parse PTI value (handle "N/A" and convert to numeric)
     pti_value = None
@@ -469,8 +473,8 @@ def upsert_player(cur, league_id, player_data):
     career_win_percentage_value = None
     
     try:
-        career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" else 0
-        career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" else 0
+        career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" and career_wins_raw.strip() != "" else 0
+        career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" and career_losses_raw.strip() != "" else 0
     except (ValueError, TypeError):
         career_wins_value = 0
         career_losses_value = 0
