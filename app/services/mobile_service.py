@@ -2546,11 +2546,17 @@ def get_mobile_club_data(user):
         print(f"[DEBUG] Calling calculate_player_streaks with club_name='{club_name}', user_league_db_id={user_league_db_id}")
         player_streaks = calculate_player_streaks(club_name, user_league_db_id)
 
+        # Get club player ratings (ranked by PTI)
+        print(f"[DEBUG] Getting club player ratings for club_name='{club_name}'")
+        club_ratings_data = get_club_player_ratings(user)
+
         return {
             "team_name": club_name,
             "weekly_results": weekly_results,
             "tennaqua_standings": tennaqua_standings,
             "player_streaks": player_streaks,
+            "club_player_ratings": club_ratings_data.get("club_player_ratings", []),
+            "club_name": club_ratings_data.get("club_name", club_name),
         }
 
     except Exception as e:
@@ -2563,6 +2569,8 @@ def get_mobile_club_data(user):
             "weekly_results": [],
             "tennaqua_standings": [],
             "player_streaks": [],
+            "club_player_ratings": [],
+            "club_name": user.get("club", "Unknown"),
             "error": str(e),
         }
 
@@ -2604,6 +2612,106 @@ def get_practice_times_data(user):
             "practice_times": [],
             "user_preferences": {},
             "error": str(e),
+        }
+
+
+def get_club_player_ratings(user):
+    """Get all players at user's club ranked by PTI (low to high)"""
+    try:
+        from database_utils import execute_query
+        
+        # Get user's club and league information
+        user_club = user.get("club", "")
+        user_league_id = user.get("league_id", "")
+        user_league_context = user.get("league_context")  # This should be the integer DB ID
+
+        print(f"[DEBUG] get_club_player_ratings called with user: {user}")
+        print(f"[DEBUG] club: '{user_club}', league_id: '{user_league_id}', league_context: '{user_league_context}'")
+
+        if not user_club:
+            print(f"[DEBUG] No club name found, returning error")
+            return {
+                "club_player_ratings": [],
+                "error": "User club not found"
+            }
+
+        # Get the correct league database ID
+        user_league_db_id = None
+        
+        # First try league_context (should be integer DB ID)
+        if user_league_context:
+            try:
+                user_league_db_id = int(user_league_context)
+                print(f"Using league_context as DB ID: {user_league_db_id}")
+            except (ValueError, TypeError):
+                print(f"league_context is not a valid integer: {user_league_context}")
+
+        # Fallback: convert string league_id to DB ID
+        if not user_league_db_id and user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+                    print(f"Converted league_id '{user_league_id}' to DB ID: {user_league_db_id}")
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+
+        if not user_league_db_id:
+            print(f"[DEBUG] Could not determine league DB ID, returning error")
+            return {
+                "club_player_ratings": [],
+                "error": "Could not determine user's league"
+            }
+
+        # Query to get all players at the user's club, ranked by PTI (low to high)
+        club_ratings_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti,
+                s.name as series_name,
+                t.team_name
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN teams t ON p.team_id = t.id
+            WHERE c.name = %s
+            AND p.league_id = %s
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.pti ASC
+        """
+        
+        print(f"[DEBUG] Executing club ratings query for club: '{user_club}', league_id: {user_league_db_id}")
+        club_players = execute_query(club_ratings_query, [user_club, user_league_db_id])
+        
+        print(f"[DEBUG] Found {len(club_players)} players at club '{user_club}'")
+        
+        # Format the results
+        formatted_ratings = []
+        for player in club_players:
+            formatted_ratings.append({
+                "name": f"{player['first_name']} {player['last_name']}",
+                "pti": float(player['pti']) if player['pti'] is not None else None,
+                "series": player['series_name'],
+                "team": player['team_name']
+            })
+        
+        return {
+            "club_player_ratings": formatted_ratings,
+            "club_name": user_club
+        }
+
+    except Exception as e:
+        print(f"Error getting club player ratings: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {
+            "club_player_ratings": [],
+            "club_name": user.get("club", "Unknown"),
+            "error": str(e)
         }
 
 
