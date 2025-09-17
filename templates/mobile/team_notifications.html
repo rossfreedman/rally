@@ -739,24 +739,10 @@ function showIndividualRecipients() {
                 throw new Error(players.error);
             }
             
-            // Phone number mapping from club directory
-            const phoneDirectory = {
-                'Ross Freedman': '(773) 213-8911',
-                'Jonathan Blume': '(773) 354-1484', 
-                'Howard Dakoff': '(312) 804-9899',
-                'Victor Forman': '(703) 463-1853',
-                'Andrew Franger': '(847) 946-5507',
-                'Mike Lieberman': '(847) 644-6034',
-                'Paul Patt': '(262) 888-0366',
-                'Adam Seyb': '(312) 493-5764',
-                'Stephen Statkus': '(773) 450-1688',
-                'Brian Stutland': '(312) 318-9191'
-            };
-            
-            // Convert players to team member format
+            // Convert players to team member format using real phone numbers from database
             const teamMembers = players.map(player => ({
                 name: player.name,
-                phone: phoneDirectory[player.name] || player.phone || `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`
+                phone: player.phone || 'No phone number'
             }));
             
             displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
@@ -769,18 +755,18 @@ function showIndividualRecipients() {
 }
 
 function showMockTeamMembers(individualDiv, allTeamCheckbox) {
-    // Real team members from club directory (Series 22)
+    // Fallback mock data when API fails
     const teamMembers = [
-        { name: 'Ross Freedman', phone: '(773) 213-8911' },
-        { name: 'Jonathan Blume', phone: '(773) 354-1484' },
-        { name: 'Howard Dakoff', phone: '(312) 804-9899' },
-        { name: 'Victor Forman', phone: '(703) 463-1853' },
-        { name: 'Andrew Franger', phone: '(847) 946-5507' },
-        { name: 'Mike Lieberman', phone: '(847) 644-6034' },
-        { name: 'Paul Patt', phone: '(262) 888-0366' },
-        { name: 'Adam Seyb', phone: '(312) 493-5764' },
-        { name: 'Stephen Statkus', phone: '(773) 450-1688' },
-        { name: 'Brian Stutland', phone: '(312) 318-9191' }
+        { name: 'Ross Freedman', phone: 'No phone number' },
+        { name: 'Jonathan Blume', phone: 'No phone number' },
+        { name: 'Howard Dakoff', phone: 'No phone number' },
+        { name: 'Victor Forman', phone: 'No phone number' },
+        { name: 'Andrew Franger', phone: 'No phone number' },
+        { name: 'Mike Lieberman', phone: 'No phone number' },
+        { name: 'Paul Patt', phone: 'No phone number' },
+        { name: 'Adam Seyb', phone: 'No phone number' },
+        { name: 'Stephen Statkus', phone: 'No phone number' },
+        { name: 'Brian Stutland', phone: 'No phone number' }
     ];
     
     displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);

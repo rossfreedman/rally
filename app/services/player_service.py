@@ -440,7 +440,7 @@ def get_players_by_league_and_series_id(league_id, series_id, club_name=None, te
             SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
                    p.club_id, p.series_id, p.team_id, c.name as club_name, s.name as series_name,
                    l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage,
-                   u.ad_deuce_preference, u.dominant_hand
+                   u.ad_deuce_preference, u.dominant_hand, u.phone_number
             FROM players p
             JOIN leagues l ON p.league_id = l.id
             LEFT JOIN clubs c ON p.club_id = c.id
@@ -525,6 +525,7 @@ def get_players_by_league_and_series_id(league_id, series_id, club_name=None, te
                     "winRate": win_rate,
                     "position_preference": position_preference,  # Ad/Deuce preference
                     "hand_preference": hand_preference,  # Lefty/Righty preference
+                    "phone": player.get("phone_number"),  # Phone number from users table
                 }
             )
 
