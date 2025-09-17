@@ -356,6 +356,26 @@
             color: var(--primary-color);
             text-decoration: underline;
         }
+
+        /* Banner styling */
+        .sync-banner {
+            background: linear-gradient(135deg, #ff6b35, #f7931e);
+            color: white;
+            padding: 15px 20px;
+            margin: 20px auto;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 1rem;
+            box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .sync-banner i {
+            margin-right: 8px;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
@@ -365,6 +385,13 @@
                                 <img src="/static/rallylogo.png" alt="Rally" class="logo-img rally-logo">
         </div>
         <div style="height:87.5px;"></div>
+        
+        <!-- Sync Banner -->
+        <div class="sync-banner">
+            <i class="fas fa-sync-alt"></i>
+            Men's Paddle Players: Rally is currently syncing with APTA Chicago to start the new season. This process should take 24 hours. Thanks for your patience
+        </div>
+        
         <div class="auth-container">
             <div class="auth-content">
                 <div class="auth-error-container" id="authErrorContainer">
