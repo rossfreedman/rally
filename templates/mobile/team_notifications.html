@@ -742,7 +742,7 @@ function showIndividualRecipients() {
             // Convert players to team member format using real phone numbers from database
             const teamMembers = players.map(player => ({
                 name: player.name,
-                phone: formatPhoneNumber(player.phone) || 'No phone number'
+                phone: formatPhoneNumber(player.phone) || 'No phone # (not registered)'
             }));
             
             displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
@@ -757,16 +757,16 @@ function showIndividualRecipients() {
 function showMockTeamMembers(individualDiv, allTeamCheckbox) {
     // Fallback mock data when API fails
     const teamMembers = [
-        { name: 'Ross Freedman', phone: 'No phone number' },
-        { name: 'Jonathan Blume', phone: 'No phone number' },
-        { name: 'Howard Dakoff', phone: 'No phone number' },
-        { name: 'Victor Forman', phone: 'No phone number' },
-        { name: 'Andrew Franger', phone: 'No phone number' },
-        { name: 'Mike Lieberman', phone: 'No phone number' },
-        { name: 'Paul Patt', phone: 'No phone number' },
-        { name: 'Adam Seyb', phone: 'No phone number' },
-        { name: 'Stephen Statkus', phone: 'No phone number' },
-        { name: 'Brian Stutland', phone: 'No phone number' }
+        { name: 'Ross Freedman', phone: 'No phone # (not registered)' },
+        { name: 'Jonathan Blume', phone: 'No phone # (not registered)' },
+        { name: 'Howard Dakoff', phone: 'No phone # (not registered)' },
+        { name: 'Victor Forman', phone: 'No phone # (not registered)' },
+        { name: 'Andrew Franger', phone: 'No phone # (not registered)' },
+        { name: 'Mike Lieberman', phone: 'No phone # (not registered)' },
+        { name: 'Paul Patt', phone: 'No phone # (not registered)' },
+        { name: 'Adam Seyb', phone: 'No phone # (not registered)' },
+        { name: 'Stephen Statkus', phone: 'No phone # (not registered)' },
+        { name: 'Brian Stutland', phone: 'No phone # (not registered)' }
     ];
     
     displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
@@ -884,21 +884,22 @@ function escapeHtml(text) {
 
 
 function formatPhoneNumber(phone) {
-    if (!phone || phone === 'No phone number') {
+    if (!phone || phone === 'No phone # (not registered)') {
         return phone;
     }
     
     // Remove all non-digit characters
     const digits = phone.replace(/\D/g, '');
     
-    // If it's 11 digits and starts with 1, remove the leading 1
+    // If it's 11 digits and starts with 1, remove the leading 1 and format
     if (digits.length === 11 && digits.startsWith('1')) {
-        return digits.substring(1);
+        const tenDigits = digits.substring(1);
+        return `(${tenDigits.substring(0, 3)}) ${tenDigits.substring(3, 6)}-${tenDigits.substring(6)}`;
     }
     
-    // If it's 10 digits, return as is
+    // If it's 10 digits, format as (XXX) XXX-XXXX
     if (digits.length === 10) {
-        return digits;
+        return `(${digits.substring(0, 3)}) ${digits.substring(3, 6)}-${digits.substring(6)}`;
     }
     
     // For any other format, return as is
