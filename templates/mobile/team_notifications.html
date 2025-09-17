@@ -742,7 +742,7 @@ function showIndividualRecipients() {
             // Convert players to team member format using real phone numbers from database
             const teamMembers = players.map(player => ({
                 name: player.name,
-                phone: player.phone || 'No phone number'
+                phone: formatPhoneNumber(player.phone) || 'No phone number'
             }));
             
             displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
@@ -882,6 +882,28 @@ function escapeHtml(text) {
 
 
 
+
+function formatPhoneNumber(phone) {
+    if (!phone || phone === 'No phone number') {
+        return phone;
+    }
+    
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // If it's 11 digits and starts with 1, remove the leading 1
+    if (digits.length === 11 && digits.startsWith('1')) {
+        return digits.substring(1);
+    }
+    
+    // If it's 10 digits, return as is
+    if (digits.length === 10) {
+        return digits;
+    }
+    
+    // For any other format, return as is
+    return phone;
+}
 
 function isValidPhoneNumber(phone) {
     // Remove all non-digit characters
