@@ -5779,11 +5779,11 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court6, 0) as court6
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
-                WHERE p.team_id = %s AND p.is_active = TRUE
+                WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
                 ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
         else:
             # Fallback without league filter
             comprehensive_query = """

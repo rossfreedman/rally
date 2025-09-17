@@ -4075,23 +4075,27 @@ def get_teams_players_data(user, team_id=None):
     try:
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
+        print(f"[DEBUG] get_teams_players_data: user = {user}")
+        print(f"[DEBUG] get_teams_players_data: user_league_id = {user_league_id} (type: {type(user_league_id)})")
 
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != "":
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                # First try to convert string to integer (e.g., "4783" -> 4783)
+                try:
+                    league_id_int = int(user_league_id)
+                    print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
+                except ValueError:
+                    # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
                     )
-                else:
-                    print(
-                        f"[WARNING] League '{user_league_id}' not found in leagues table"
-                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"[WARNING] League '{user_league_id}' not found in leagues table")
             except Exception as e:
                 print(f"[DEBUG] Could not convert league ID: {e}")
         elif isinstance(user_league_id, int):
@@ -4102,12 +4106,16 @@ def get_teams_players_data(user, team_id=None):
         # Note: execute_query and execute_query_one are already imported at module level
 
         # Get all teams in user's league with their IDs - only filter if we have a valid league_id
+        print(f"[DEBUG] get_teams_players_data: league_id_int = {league_id_int} (truthy: {bool(league_id_int)})")
+        
         if league_id_int:
             teams_query = """
                 SELECT DISTINCT 
                     t.id as team_id, 
                     t.team_name, 
                     t.display_name,
+                    t.league_id,
+                    l.league_id as league_key,
                     REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
                     CAST(
                         COALESCE(
@@ -4116,9 +4124,11 @@ def get_teams_players_data(user, team_id=None):
                         ) AS INTEGER
                     ) as team_number
                 FROM teams t
+                JOIN leagues l ON t.league_id = l.id
                 WHERE t.league_id = %s AND t.is_active = TRUE
                 ORDER BY team_base_name, team_number
             """
+            print(f"[DEBUG] Using FILTERED query with league_id = {league_id_int}")
             all_teams_data = execute_query(teams_query, [league_id_int])
         else:
             teams_query = """
@@ -4126,6 +4136,8 @@ def get_teams_players_data(user, team_id=None):
                     t.id as team_id, 
                     t.team_name, 
                     t.display_name,
+                    t.league_id,
+                    l.league_id as league_key,
                     REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
                     CAST(
                         COALESCE(
@@ -4134,9 +4146,11 @@ def get_teams_players_data(user, team_id=None):
                         ) AS INTEGER
                     ) as team_number
                 FROM teams t
+                JOIN leagues l ON t.league_id = l.id
                 WHERE t.is_active = TRUE
                 ORDER BY team_base_name, team_number
             """
+            print(f"[DEBUG] Using ALL TEAMS query (no league filter)")
             all_teams_data = execute_query(teams_query)
 
         # Convert to list format for backward compatibility and add team IDs
@@ -4152,8 +4166,23 @@ def get_teams_players_data(user, team_id=None):
             team_id_to_name[tid] = team_name
             team_name_to_id[team_name] = tid
 
-        print(f"[DEBUG] Found {len(all_teams)} teams in league {league_id_int}")
+        print(f"[DEBUG] Found {len(all_teams_data)} teams in league {league_id_int}")
         print(f"[DEBUG] Sample teams_data: {all_teams_data[:3] if all_teams_data else 'None'}")
+        
+        # Debug: Show league distribution
+        if all_teams_data:
+            league_counts = {}
+            for team in all_teams_data:
+                league_key = team.get('league_key', 'Unknown')
+                league_counts[league_key] = league_counts.get(league_key, 0) + 1
+            print(f"[DEBUG] League distribution: {league_counts}")
+            
+            # Show any CNSWPL teams
+            cnswpl_teams = [t for t in all_teams_data if t.get('league_key') == 'CNSWPL']
+            if cnswpl_teams:
+                print(f"[DEBUG] ❌ FOUND CNSWPL TEAMS: {[t['team_name'] for t in cnswpl_teams[:5]]}")
+            else:
+                print(f"[DEBUG] ✅ No CNSWPL teams found")
 
         # If team_id is provided, validate it and get team name
         selected_team = None
@@ -4639,7 +4668,11 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     FROM players 
                     WHERE tenniscores_player_id = ANY(%s) AND is_active = true
                 """
-                name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
+                if team_id and league_id_int:
+                    name_lookup_query += " AND team_id = %s AND league_id = %s"
+                    name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches), team_id, league_id_int])
+                else:
+                    name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
                 for row in name_results:
                     player_id = row["tenniscores_player_id"]
                     full_name = f"{row['first_name']} {row['last_name']}"

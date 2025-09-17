@@ -4380,14 +4380,20 @@ def get_teams_with_ids():
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != "":
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
-                else:
-                    print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+                # First try to convert string to integer (e.g., "4783" -> 4783)
+                try:
+                    league_id_int = int(user_league_id)
+                    print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
+                except ValueError:
+                    # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"[WARNING] League '{user_league_id}' not found in leagues table")
             except Exception as e:
                 print(f"[DEBUG] Could not convert league ID: {e}")
         elif isinstance(user_league_id, int):
@@ -4395,6 +4401,8 @@ def get_teams_with_ids():
             print(f"[DEBUG] League_id already integer: {league_id_int}")
 
         # Get teams from database with IDs
+        print(f"[DEBUG] teams-with-ids: league_id_int = {league_id_int} (truthy: {bool(league_id_int)})")
+        
         if league_id_int:
             teams_query = """
                 SELECT DISTINCT 
@@ -4445,6 +4453,32 @@ def get_teams_with_ids():
 
         print(f"[DEBUG] teams-with-ids: Found {len(teams)} teams with IDs for league {league_id_int}")
         print(f"[DEBUG] teams-with-ids: Sample teams: {teams[:3] if teams else 'None'}")
+        
+        # Debug: Show league distribution
+        if teams:
+            # Get league info for debug
+            team_ids = [str(t['team_id']) for t in teams[:10]]  # Sample first 10
+            if team_ids:
+                debug_query = """
+                    SELECT t.id, t.team_name, l.league_id as league_key
+                    FROM teams t
+                    JOIN leagues l ON t.league_id = l.id
+                    WHERE t.id = ANY(%s)
+                    ORDER BY t.team_name
+                """
+                debug_teams = execute_query(debug_query, [team_ids])
+                league_counts = {}
+                for team in debug_teams:
+                    league_key = team['league_key']
+                    league_counts[league_key] = league_counts.get(league_key, 0) + 1
+                print(f"[DEBUG] teams-with-ids: League distribution: {league_counts}")
+                
+                # Show any CNSWPL teams
+                cnswpl_teams = [t for t in debug_teams if t['league_key'] == 'CNSWPL']
+                if cnswpl_teams:
+                    print(f"[DEBUG] ❌ FOUND CNSWPL TEAMS: {[t['team_name'] for t in cnswpl_teams[:5]]}")
+                else:
+                    print(f"[DEBUG] ✅ No CNSWPL teams found")
 
         return jsonify({"teams": teams})
 

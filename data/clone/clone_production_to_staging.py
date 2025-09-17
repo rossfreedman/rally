@@ -21,6 +21,7 @@ import os
 import sys
 import subprocess
 import logging
+import time
 from datetime import datetime
 
 # Set up logging
@@ -114,9 +115,38 @@ def create_staging_backup():
         logger.warning("⚠️  Failed to create backup, but continuing with clone...")
         return None
 
+def terminate_active_connections():
+    """Terminate active connections to the staging database"""
+    logger.info("🔌 Terminating active connections to staging database...")
+    
+    # Connect to postgres database to terminate connections
+    postgres_url = STAGING_URL.replace('/railway', '/postgres')
+    
+    # Terminate all connections to the railway database
+    terminate_sql = """
+    SELECT pg_terminate_backend(pid)
+    FROM pg_stat_activity
+    WHERE datname = 'railway' AND pid <> pg_backend_pid();
+    """
+    
+    try:
+        cmd = ['psql', postgres_url, '-c', terminate_sql]
+        run_command(cmd, "Terminating active connections")
+        logger.info("✅ Active connections terminated")
+        
+        # Wait a moment for connections to fully close
+        logger.info("⏳ Waiting for connections to close...")
+        time.sleep(3)
+        
+    except subprocess.CalledProcessError:
+        logger.warning("⚠️  Failed to terminate some connections, but continuing...")
+
 def drop_and_recreate_staging_db():
     """Drop and recreate the staging database"""
     logger.info("🗑️  Dropping and recreating staging database...")
+    
+    # First, terminate active connections
+    terminate_active_connections()
     
     # Connect to postgres database to drop/recreate railway database
     postgres_url = STAGING_URL.replace('/railway', '/postgres')
