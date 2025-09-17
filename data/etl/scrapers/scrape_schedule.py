@@ -422,15 +422,15 @@ def scrape_tennis_schedule(league_subdomain):
                 if series_link and series_link.text:
                     series_number = series_link.text.strip()
 
-                    # Format the series number to auto-detect APTA vs NSTF format
+                    # Format the series number to match reference format: "Series X"
                     if series_number.isdigit():
-                        formatted_series = f"Chicago {series_number}"
+                        formatted_series = f"Series {series_number}"
                     elif series_number.startswith("Series "):
                         # Series name already has "Series" prefix, use as-is
                         formatted_series = series_number
                     elif "SW" in series_number:
-                        # Handle SW series: "23 SW" -> "Chicago 23 SW"
-                        formatted_series = f"Chicago {series_number}"
+                        # Handle SW series: "23 SW" -> "Series 23 SW"
+                        formatted_series = f"Series {series_number}"
                     else:
                         # Handle non-numeric series (like "2B", "3A", etc.)
                         formatted_series = f"Series {series_number}"
@@ -562,7 +562,7 @@ def scrape_tennis_schedule(league_subdomain):
                             location = entry.find("div", class_="week_location")
 
                         if all([date, match_time, home, away]):  # Only require core fields
-                            # Fix team name formatting - don't add series number if already present
+                            # Fix team name formatting to match reference format
                             raw_home = home.text.strip()
                             raw_away = away.text.strip()
 
@@ -573,16 +573,13 @@ def scrape_tennis_schedule(league_subdomain):
                                 )
                                 continue
 
-                            # Check if team name already ends with the series number
-                            if raw_home.endswith(f" - {series_number}"):
-                                formatted_home = raw_home
-                            else:
-                                formatted_home = f"{raw_home} - {series_number}"
-
-                            if raw_away.endswith(f" - {series_number}"):
-                                formatted_away = raw_away
-                            else:
-                                formatted_away = f"{raw_away} - {series_number}"
+                            # Format team names to match reference: "Club X" (no dashes)
+                            # Remove any existing series numbers and re-add in correct format
+                            home_club = raw_home.replace(f" - {series_number}", "").replace(f" {series_number}", "").strip()
+                            away_club = raw_away.replace(f" - {series_number}", "").replace(f" {series_number}", "").strip()
+                            
+                            formatted_home = f"{home_club} {series_number}"
+                            formatted_away = f"{away_club} {series_number}"
 
                             # Extract location text, handling different formats
                             location_text = ""
@@ -593,6 +590,11 @@ def scrape_tennis_schedule(league_subdomain):
                                     location_text = "TBD"
                             else:
                                 location_text = "TBD"
+                            
+                            # Format location to match reference format (club name without series number)
+                            if location_text and location_text != "TBD":
+                                # Remove series number from location if present
+                                location_text = location_text.replace(f" - {series_number}", "").replace(f" {series_number}", "").strip()
 
                             schedule_item = {
                                 "date": date.text.strip(),

@@ -2664,6 +2664,7 @@ def mobile_teams_players():
             "selected_team": data.get("selected_team"),
             "selected_team_id": data.get("selected_team_id"),
             "team_analysis_data": data.get("team_analysis_data"),
+            "team_roster": data.get("team_roster", []),  # Add team roster data
             "error": data.get("error")
         }
 

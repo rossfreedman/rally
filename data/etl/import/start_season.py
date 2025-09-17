@@ -703,9 +703,9 @@ def parse_team_name(team_name):
         series_name = f"Series {team_suffix}"
         return club_name, series_name, team_suffix
     
-    # If no pattern matches, assume the entire string is the club name
-    # and create a generic series
-    return team_name.strip(), "Series 1", "1"
+    # If no pattern matches, return None to indicate parsing failure
+    # This prevents creation of generic series that cause data integrity issues
+    return None, None, None
 
 
 def assign_players_to_teams(cur, league_id):

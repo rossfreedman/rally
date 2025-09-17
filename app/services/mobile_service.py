@@ -4108,34 +4108,33 @@ def get_teams_players_data(user, team_id=None):
                     t.id as team_id, 
                     t.team_name, 
                     t.display_name,
-                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
+                    REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
                     CAST(
                         COALESCE(
-                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
+                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* ([0-9]+)$', '\\1'), t.team_name),
                             '0'
                         ) AS INTEGER
                     ) as team_number
                 FROM teams t
-                JOIN series_stats ss ON t.team_name = ss.team
-                WHERE ss.league_id = %s AND t.league_id = %s
+                WHERE t.league_id = %s AND t.is_active = TRUE
                 ORDER BY team_base_name, team_number
             """
-            all_teams_data = execute_query(teams_query, [league_id_int, league_id_int])
+            all_teams_data = execute_query(teams_query, [league_id_int])
         else:
             teams_query = """
                 SELECT DISTINCT 
                     t.id as team_id, 
                     t.team_name, 
                     t.display_name,
-                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
+                    REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
                     CAST(
                         COALESCE(
-                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
+                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* ([0-9]+)$', '\\1'), t.team_name),
                             '0'
                         ) AS INTEGER
                     ) as team_number
                 FROM teams t
-                JOIN series_stats ss ON t.team_name = ss.team
+                WHERE t.is_active = TRUE
                 ORDER BY team_base_name, team_number
             """
             all_teams_data = execute_query(teams_query)
@@ -4243,8 +4242,19 @@ def get_teams_players_data(user, team_id=None):
             team_stats, team_matches, selected_team, league_id_int, team_id
         )
 
+        # Get team roster/players data even if no series_stats exists
+        team_roster = []
+        try:
+            from app.routes.mobile_routes import get_team_members_with_court_stats
+            team_roster = get_team_members_with_court_stats(team_id, user)
+            print(f"[DEBUG] Found {len(team_roster)} team members for team_id {team_id}")
+        except Exception as e:
+            print(f"[DEBUG] Error getting team roster: {e}")
+            team_roster = []
+
         return {
             "team_analysis_data": team_analysis_data,
+            "team_roster": team_roster,  # Add team roster data
             "all_teams": all_teams,
             "all_teams_data": all_teams_data,  # Include team IDs for frontend
             "selected_team": selected_team,
