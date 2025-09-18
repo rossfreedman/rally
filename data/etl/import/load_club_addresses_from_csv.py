@@ -16,7 +16,7 @@ from typing import Dict, Optional, Set
 from difflib import SequenceMatcher
 
 # Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 
 from database_utils import execute_query, execute_update, get_db
 
@@ -114,12 +114,8 @@ def load_club_addresses(csv_file: str) -> Dict[str, str]:
         with open(csv_file, 'r', encoding='utf-8') as file:
             reader = csv.DictReader(file)
             for row in reader:
-                raw_name = row.get('Raw Name', '').strip()
-                full_name = row.get('Full Name', '').strip()
-                address = row.get('Address', '').strip()
-                
-                # Use raw name if available, otherwise use full name
-                club_name = raw_name if raw_name else full_name
+                club_name = row.get('club_name', '').strip()
+                address = row.get('address', '').strip()
                 
                 if club_name and address:
                     # Normalize the club name for matching
@@ -291,8 +287,8 @@ def show_current_status():
 def main():
     """Main function to load club addresses from CSV."""
     parser = argparse.ArgumentParser(description="Load club addresses from CSV file")
-    parser.add_argument("--csv-file", default="data/OLD-club_addresses.csv", 
-                       help="Path to CSV file with club addresses (default: data/OLD-club_addresses.csv)")
+    parser.add_argument("--csv-file", default="data/club_addresses.csv", 
+                       help="Path to CSV file with club addresses (default: data/club_addresses.csv)")
     parser.add_argument("--dry-run", action="store_true", 
                        help="Show what would be updated without making changes")
     args = parser.parse_args()
