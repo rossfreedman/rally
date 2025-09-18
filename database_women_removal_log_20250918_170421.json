@@ -1,0 +1,37 @@
+{
+  "removal_date": "2025-09-18T17:04:21.724490",
+  "backup_tables": [
+    "players_backup_before_women_removal_20250918_170418",
+    "user_player_associations_backup_before_women_removal_20250918_170418",
+    "match_scores_backup_before_women_removal_20250918_170418",
+    "series_stats_backup_before_women_removal_20250918_170418"
+  ],
+  "apta_league_id": 4783,
+  "players_removed": 146,
+  "associations_removed": 150,
+  "matches_removed": 0,
+  "series_stats_removed": 0,
+  "remaining_women_count": 4,
+  "remaining_women": [
+    {
+      "first_name": "Kelly",
+      "last_name": "Isenhart",
+      "count": 1
+    },
+    {
+      "first_name": "Kelly",
+      "last_name": "Luthringshausen",
+      "count": 1
+    },
+    {
+      "first_name": "Kelly",
+      "last_name": "Taira",
+      "count": 1
+    },
+    {
+      "first_name": "Kim",
+      "last_name": "Bickford",
+      "count": 1
+    }
+  ]
+}

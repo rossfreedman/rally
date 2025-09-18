@@ -24,10 +24,10 @@
     </div>
 
     <!-- Content -->
-    <div class="px-4 py-6 space-y-6">
+    <div class="px-4 py-6 space-y-6" style="overflow: visible;">
         
-        <!-- Team Selection Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- Team Selection Card - Hidden -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-search text-purple-500 mr-2"></i>
@@ -52,6 +52,34 @@
                           {% endif %}
                         </select>
                         <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Team Typeahead Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-keyboard text-blue-500 mr-2"></i>
+                    Type a team name
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form method="get" id="teamTypeaheadForm">
+                    <div class="relative overflow-visible">
+                        <input type="text" 
+                               id="teamTypeahead" 
+                               placeholder="Start typing a team name..."
+                               class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                               autocomplete="off">
+                        <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        
+                        <!-- Dropdown for suggestions -->
+                        <div id="teamSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto" style="top: 100%; left: 0;">
+                            <!-- Suggestions will be populated here -->
+                        </div>
                     </div>
                 </form>
             </div>
@@ -597,12 +625,98 @@
 @media (min-width: 640px) {
     .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Typeahead specific styles */
+.suggestion-item {
+    transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+    background-color: #f3f4f6;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Ensure dropdown is not clipped by parent containers */
+#teamSuggestions {
+    position: absolute !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    width: 100% !important;
+}
+
+/* Ensure parent containers don't clip the dropdown */
+.bg-white.overflow-hidden {
+    overflow: visible !important;
+}
+
+/* Add some bottom margin to prevent clipping by next cards */
+#teamTypeaheadForm {
+    margin-bottom: 20px;
+}
+
+/* Focus states for typeahead */
+#teamTypeahead:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Loading state for typeahead */
+.nav-link-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.nav-link-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const teamSelect = document.getElementById('team');
     const teamForm = document.getElementById('teamSelectionForm');
+    const teamTypeahead = document.getElementById('teamTypeahead');
+    const teamTypeaheadForm = document.getElementById('teamTypeaheadForm');
+    const teamSuggestions = document.getElementById('teamSuggestions');
+    
+    // Store teams data for typeahead
+    let teamsData = [];
+    
+    // Initialize teams data from the select options
+    if (teamSelect) {
+        const options = teamSelect.querySelectorAll('option');
+        options.forEach(option => {
+            if (option.value && option.value !== '') {
+                teamsData.push({
+                    id: option.value,
+                    name: option.textContent.trim()
+                });
+            }
+        });
+    }
     
     if (teamSelect && teamForm) {
         teamSelect.addEventListener('change', function() {
@@ -633,6 +747,148 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }, 10000);
         });
+    }
+    
+    // Typeahead functionality
+    if (teamTypeahead && teamSuggestions) {
+        let selectedIndex = -1;
+        
+        // Handle input changes
+        teamTypeahead.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // Filter teams based on query
+            const filteredTeams = teamsData.filter(team => 
+                team.name.toLowerCase().includes(query)
+            );
+            
+            if (filteredTeams.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            showSuggestions(filteredTeams);
+        });
+        
+        // Handle keyboard navigation
+        teamTypeahead.addEventListener('keydown', function(e) {
+            const suggestions = teamSuggestions.querySelectorAll('.suggestion-item');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+                    updateSelection(suggestions);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(suggestions);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                        selectTeam(suggestions[selectedIndex].dataset.teamId, suggestions[selectedIndex].textContent);
+                    }
+                    break;
+                case 'Escape':
+                    hideSuggestions();
+                    break;
+            }
+        });
+        
+        // Handle clicks outside to close suggestions
+        document.addEventListener('click', function(e) {
+            if (!teamTypeahead.contains(e.target) && !teamSuggestions.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+        
+        // Show suggestions dropdown
+        function showSuggestions(teams) {
+            let html = '';
+            teams.forEach((team, index) => {
+                html += `
+                    <div class="suggestion-item px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0" 
+                         data-team-id="${team.id}" 
+                         onclick="selectTeam('${team.id}', '${team.name}')">
+                        ${team.name}
+                    </div>
+                `;
+            });
+            
+            teamSuggestions.innerHTML = html;
+            teamSuggestions.classList.remove('hidden');
+            selectedIndex = -1;
+            
+            // Ensure dropdown is positioned correctly and visible
+            const inputRect = teamTypeahead.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = Math.min(240, teams.length * 48); // Max 5 items visible
+            
+            // Check if dropdown would be cut off at bottom
+            if (inputRect.bottom + dropdownHeight > viewportHeight) {
+                // Position dropdown above the input
+                teamSuggestions.style.top = 'auto';
+                teamSuggestions.style.bottom = '100%';
+                teamSuggestions.style.marginTop = '0';
+                teamSuggestions.style.marginBottom = '4px';
+            } else {
+                // Position dropdown below the input (default)
+                teamSuggestions.style.top = '100%';
+                teamSuggestions.style.bottom = 'auto';
+                teamSuggestions.style.marginTop = '4px';
+                teamSuggestions.style.marginBottom = '0';
+            }
+        }
+        
+        // Hide suggestions dropdown
+        function hideSuggestions() {
+            teamSuggestions.classList.add('hidden');
+            selectedIndex = -1;
+        }
+        
+        // Update selection highlighting
+        function updateSelection(suggestions) {
+            suggestions.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-blue-50', 'text-blue-700');
+                } else {
+                    item.classList.remove('bg-blue-50', 'text-blue-700');
+                }
+            });
+        }
+        
+        // Select a team and submit form
+        window.selectTeam = function(teamId, teamName) {
+            teamTypeahead.value = teamName;
+            hideSuggestions();
+            
+            // Add visual feedback
+            teamTypeahead.classList.add('nav-link-loading');
+            
+            // Show loading indicator
+            if (window.app && window.app.showLoadingIndicator) {
+                window.app.showLoadingIndicator('Loading Team Analysis...');
+            }
+            
+            // Redirect to the team page with team_id parameter
+            setTimeout(() => {
+                window.location.href = `/mobile/teams-players?team_id=${teamId}`;
+            }, 150);
+            
+            // Safety timeout - hide loading indicator after 10 seconds if still showing
+            setTimeout(() => {
+                if (window.app && window.app.hideLoadingIndicator) {
+                    window.app.hideLoadingIndicator();
+                }
+            }, 10000);
+        };
     }
     
     // Load team last 3 matches data if we have a selected team

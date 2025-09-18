@@ -394,19 +394,27 @@
             background: transparent; 
             margin-top: 0.5rem; 
             overflow: hidden !important;
-            max-height: 0 !important;
+            visibility: visible !important;
             opacity: 0 !important;
+            height: 0 !important;
+            max-height: 0 !important;
             transform: translateY(-20px) scale(0.95) !important;
             transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
                         opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
                         transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            visibility: visible !important;
+            -webkit-transform: translateY(-20px) scale(0.95) !important;
+            -webkit-transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+                        opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                        -webkit-transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
         .submenu.active { 
             display: block !important; 
-            max-height: 600px !important;
+            visibility: visible !important;
             opacity: 1 !important;
+            height: auto !important;
+            max-height: 800px !important;
             transform: translateY(0) scale(1) !important;
+            -webkit-transform: translateY(0) scale(1) !important;
         }
         .submenu-item { 
             display: flex; 
@@ -768,7 +776,7 @@
 
                   
                   <!-- Single Column Navigation (matches home_submenu) -->
-                  <div class="space-y-4" style="padding-bottom: 400px;">
+                  <div class="space-y-4" style="padding-bottom: 600px;">
                     <!-- Home Category -->
                     <div class="category-section">
                       <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
@@ -1006,51 +1014,13 @@
                       
                       if (submenuId === 'drawer-captain-submenu') {
                         // Captain's Corner: scroll to show the submenu items, especially Practice Times
-                        // Calculate a more aggressive scroll to ensure Practice Times is visible
-                        const submenuItems = submenu.querySelectorAll('.submenu-item');
-                        const practiceTimesItem = Array.from(submenuItems).find(item => 
-                          item.querySelector('.text') && item.querySelector('.text').textContent.includes('Practice Times')
-                        );
-                        
-                        if (practiceTimesItem) {
-                          // Get the Practice Times item position
-                          const practiceTimesRect = practiceTimesItem.getBoundingClientRect();
-                          const navContentRect = navContent.getBoundingClientRect();
-                          const practiceTimesTop = practiceTimesRect.top - navContentRect.top + navContent.scrollTop;
-                          
-                          // Scroll to show Practice Times with some padding
-                          scrollTo = practiceTimesTop - 50; // 50px padding above Practice Times
-                          console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - scrolling to Practice Times at position ${scrollTo}px`);
-                        } else {
-                          // Fallback: use aggressive adjustment
-                          adjustment = -150;
-                          console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - using -150px adjustment (Practice Times not found)`);
-                        }
-                      } else if (submenuId === 'drawer-act-submenu') {
-                        // Act: moderate adjustment
-                        adjustment = -50;
-                        console.log(`📊 DRAWER SCROLL DEBUG: Act button - using -50px adjustment`);
-                      } else if (submenuId === 'drawer-analyze-submenu') {
-                        // Analyze: minimal adjustment
-                        adjustment = -20;
-                        console.log(`📊 DRAWER SCROLL DEBUG: Analyze button - using -20px adjustment`);
-                      } else if (submenuId === 'drawer-prepare-submenu' || submenuId === 'drawer-play-submenu') {
-                        // Prepare and Play: moderate adjustment
-                        adjustment = -60;
-                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - using -60px adjustment`);
-                      } else if (submenuId === 'drawer-improve-submenu') {
-                        // Improve: moderate adjustment
-                        adjustment = -80;
-                        console.log(`📊 DRAWER SCROLL DEBUG: Improve button - using -80px adjustment`);
+                        // Use a simple but effective approach - scroll to show the submenu with extra space
+                        scrollTo = buttonTopRelativeToNavContent - 100; // Scroll up to show more of the submenu
+                        console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - scrolling to position ${scrollTo}px to show Practice Times`);
                       } else {
-                        // Default adjustment
-                        adjustment = -40;
-                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - using default -40px adjustment`);
-                      }
-                      
-                      // Only calculate scrollTo if we haven't already set it (for Captain's Corner)
-                      if (submenuId !== 'drawer-captain-submenu' || !practiceTimesItem) {
-                        scrollTo = buttonTopRelativeToNavContent + adjustment;
+                        // All other submenus: scroll to show the button with some padding
+                        scrollTo = buttonTopRelativeToNavContent - 50; // Scroll up to show more content
+                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - scrolling to position ${scrollTo}px`);
                       }
                       
                       console.log(`📊 DRAWER SCROLL DEBUG: Scrolling navContent to position: ${scrollTo}px`);
