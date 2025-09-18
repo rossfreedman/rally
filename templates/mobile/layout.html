@@ -768,7 +768,7 @@
 
                   
                   <!-- Single Column Navigation (matches home_submenu) -->
-                  <div class="space-y-4" style="padding-bottom: 300px;">
+                  <div class="space-y-4" style="padding-bottom: 400px;">
                     <!-- Home Category -->
                     <div class="category-section">
                       <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
@@ -973,67 +973,115 @@
                 // Add class to body to style submit buttons when submenu is active
                 document.body.classList.add('submenu-active');
                 
-                // Enhanced scroll debug functionality for submenu buttons
+                // Enhanced scroll functionality for drawer content
                 setTimeout(() => {
-                  console.log('🔍 SCROLL DEBUG: Submenu opened for', submenuId);
+                  console.log('🔍 DRAWER SCROLL DEBUG: Submenu opened for', submenuId);
                   
-                  // Determine scroll distance based on submenu type
-                  let scrollDistance = 300; // Default for most submenus
-                  if (submenuId === 'captain-submenu' || submenuId === 'drawer-captain-submenu') {
-                    scrollDistance = 100; // Reduced scroll for Captain's Corner
-                    console.log('🎯 SCROLL DEBUG: Using reduced scroll distance (100px) for Captain\'s Corner');
+                  // Get the drawer content area
+                  const navContent = document.getElementById('navContent');
+                  if (!navContent) {
+                    console.log('⚠️ DRAWER SCROLL DEBUG: navContent not found');
+                    return;
                   }
                   
-                  // Always try window scroll first (most visible)
-                  console.log('🔍 SCROLL DEBUG: Attempting window scroll...');
-                  
-                  try {
-                    // Get current scroll position
-                    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
-                    console.log(`📊 SCROLL DEBUG: Current window scroll position: ${currentScroll}`);
-                    
-                    // Scroll window by determined distance
-                    window.scrollBy({
-                      top: scrollDistance,
-                      behavior: 'smooth'
-                    });
-                    
-                    console.log(`✅ SCROLL DEBUG: Window scroll initiated (${scrollDistance}px)`);
-                    
-                    // Check scroll position after a delay
-                    setTimeout(() => {
-                      const newScroll = window.pageYOffset || document.documentElement.scrollTop;
-                      console.log(`📊 SCROLL DEBUG: New window scroll position: ${newScroll}`);
-                      console.log(`📊 SCROLL DEBUG: Scroll difference: ${newScroll - currentScroll}px`);
-                      
-                      if (newScroll > currentScroll) {
-                        console.log('✅ SCROLL DEBUG: Window scroll successful and visible!');
-                      } else {
-                        console.log('⚠️ SCROLL DEBUG: Window scroll may not be visible (already at bottom)');
-                      }
-                    }, 800);
-                    
-                  } catch (error) {
-                    console.error('❌ SCROLL DEBUG: Window scroll failed:', error);
-                  }
-                  
-                  // Also try scrolling the submenu container if it exists
-                  const submenuContainer = document.querySelector('.submenu.active');
-                  if (submenuContainer) {
-                    console.log('🔍 SCROLL DEBUG: Attempting submenu container scroll...');
+                  // Find the category button that was clicked
+                  const categoryButton = submenu.previousElementSibling;
+                  if (categoryButton && categoryButton.classList.contains('category-button')) {
+                    console.log('🔍 DRAWER SCROLL DEBUG: Found category button');
                     
                     try {
-                      submenuContainer.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
+                      // Get the button's position relative to the drawer content
+                      const buttonRect = categoryButton.getBoundingClientRect();
+                      const navContentRect = navContent.getBoundingClientRect();
+                      
+                      // Calculate the button's position relative to the navContent
+                      const buttonTopRelativeToNavContent = buttonRect.top - navContentRect.top + navContent.scrollTop;
+                      
+                      console.log(`📊 DRAWER SCROLL DEBUG: Button position relative to navContent: ${buttonTopRelativeToNavContent}px`);
+                      console.log(`📊 DRAWER SCROLL DEBUG: Current navContent scroll: ${navContent.scrollTop}px`);
+                      
+                      // Calculate scroll position based on which section was clicked
+                      let scrollTo;
+                      let adjustment = 0;
+                      
+                      if (submenuId === 'drawer-captain-submenu') {
+                        // Captain's Corner: scroll to show the submenu items, especially Practice Times
+                        // Calculate a more aggressive scroll to ensure Practice Times is visible
+                        const submenuItems = submenu.querySelectorAll('.submenu-item');
+                        const practiceTimesItem = Array.from(submenuItems).find(item => 
+                          item.querySelector('.text') && item.querySelector('.text').textContent.includes('Practice Times')
+                        );
+                        
+                        if (practiceTimesItem) {
+                          // Get the Practice Times item position
+                          const practiceTimesRect = practiceTimesItem.getBoundingClientRect();
+                          const navContentRect = navContent.getBoundingClientRect();
+                          const practiceTimesTop = practiceTimesRect.top - navContentRect.top + navContent.scrollTop;
+                          
+                          // Scroll to show Practice Times with some padding
+                          scrollTo = practiceTimesTop - 50; // 50px padding above Practice Times
+                          console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - scrolling to Practice Times at position ${scrollTo}px`);
+                        } else {
+                          // Fallback: use aggressive adjustment
+                          adjustment = -150;
+                          console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - using -150px adjustment (Practice Times not found)`);
+                        }
+                      } else if (submenuId === 'drawer-act-submenu') {
+                        // Act: moderate adjustment
+                        adjustment = -50;
+                        console.log(`📊 DRAWER SCROLL DEBUG: Act button - using -50px adjustment`);
+                      } else if (submenuId === 'drawer-analyze-submenu') {
+                        // Analyze: minimal adjustment
+                        adjustment = -20;
+                        console.log(`📊 DRAWER SCROLL DEBUG: Analyze button - using -20px adjustment`);
+                      } else if (submenuId === 'drawer-prepare-submenu' || submenuId === 'drawer-play-submenu') {
+                        // Prepare and Play: moderate adjustment
+                        adjustment = -60;
+                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - using -60px adjustment`);
+                      } else if (submenuId === 'drawer-improve-submenu') {
+                        // Improve: moderate adjustment
+                        adjustment = -80;
+                        console.log(`📊 DRAWER SCROLL DEBUG: Improve button - using -80px adjustment`);
+                      } else {
+                        // Default adjustment
+                        adjustment = -40;
+                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - using default -40px adjustment`);
+                      }
+                      
+                      // Only calculate scrollTo if we haven't already set it (for Captain's Corner)
+                      if (submenuId !== 'drawer-captain-submenu' || !practiceTimesItem) {
+                        scrollTo = buttonTopRelativeToNavContent + adjustment;
+                      }
+                      
+                      console.log(`📊 DRAWER SCROLL DEBUG: Scrolling navContent to position: ${scrollTo}px`);
+                      
+                      // Scroll the drawer content area
+                      navContent.scrollTo({
+                        top: Math.max(0, scrollTo), // Don't scroll above top
+                        behavior: 'smooth'
                       });
-                      console.log('✅ SCROLL DEBUG: Submenu container scroll initiated');
+                      
+                      console.log('✅ DRAWER SCROLL DEBUG: Drawer content scroll initiated');
+                      
                     } catch (error) {
-                      console.error('❌ SCROLL DEBUG: Submenu container scroll failed:', error);
+                      console.error('❌ DRAWER SCROLL DEBUG: Scroll alignment failed:', error);
+                      
+                      // Fallback: try to scroll the button into view within the drawer
+                      try {
+                        categoryButton.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'center'
+                        });
+                        console.log('✅ DRAWER SCROLL DEBUG: Fallback scrollIntoView initiated');
+                      } catch (fallbackError) {
+                        console.error('❌ DRAWER SCROLL DEBUG: Fallback scrollIntoView also failed:', fallbackError);
+                      }
                     }
+                  } else {
+                    console.log('⚠️ DRAWER SCROLL DEBUG: Category button not found');
                   }
                   
-                }, 100); // Reduced delay for faster response
+                }, 100); // Small delay to ensure submenu is rendered
               } else {
                 // Remove class from body when submenu is closed
                 document.body.classList.remove('submenu-active');
