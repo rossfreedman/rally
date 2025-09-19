@@ -2395,5 +2395,24 @@
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkMrL3hiai8%3D",
     "source_league": "APTA_CHICAGO",
     "Scraped At": "2025-09-16T20:52:14.610998"
+  },
+  {
+    "League": "APTA_CHICAGO",
+    "Club": "Tennaqua",
+    "Series": "Series 30",
+    "Team": "Tennaqua 30",
+    "Player ID": "nndz-WlNlN3lMbjhnZz09",
+    "First Name": "Aden",
+    "Last Name": "Siegel",
+    "PTI": "N/A",
+    "Wins": "0",
+    "Losses": "0",
+    "Win %": "0.0%",
+    "Captain": "Player",
+    "Source URL": "https://aptachicago.tenniscores.com/player.php?print&p=nndz-WlNlN3lMbjhnZz09",
+    "source_league": "APTA_CHICAGO",
+    "Career Wins": "7",
+    "Career Losses": "9",
+    "Career Win %": "43.8%"
   }
 ]
