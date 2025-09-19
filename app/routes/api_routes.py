@@ -9477,7 +9477,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             if days_until_practice <= 30:
                 practice_date_str = practice_date.strftime("%b %d")
                 practice_time = next_practice["match_time"].strftime("%I:%M %p").lstrip("0") if next_practice["match_time"] else ""
-                practice_text = f"Practice: {practice_date_str}"
+                practice_text = f"Practice:\n{practice_date_str}"
                 if practice_time:
                     practice_text += f" at {practice_time}"
                 logger.info(f"Schedule notification: Showing practice on {practice_date_str} ({days_until_practice} days away)")
@@ -9492,7 +9492,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 opponent = next_match["away_team"]
             else:
                 opponent = next_match["home_team"]
-            match_text = f"Match: {match_date}"
+            match_text = f"Match:\n{match_date}"
             if match_time:
                 match_text += f" at {match_time}"
             if opponent:

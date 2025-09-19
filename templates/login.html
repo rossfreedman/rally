@@ -952,7 +952,7 @@
                 } else {
                     resetButtonState(loginButton);
                     if (response.status === 401) {
-                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it.';
+                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it. Or click <a href="/mobile/support">here</a> for support.';
                     } else {
                         authErrorMessage.textContent = data.error || 'An error occurred. Please try again.';
                     }

@@ -1111,25 +1111,34 @@ function renderScheduleWithWeather(notification) {
     const lines = notification.message.split('\n');
     let html = '';
     
-    lines.forEach(line => {
+    // Process lines in pairs: label line + date line
+    for (let i = 0; i < lines.length; i += 2) {
+        const labelLine = lines[i];
+        const dateLine = lines[i + 1] || '';
+        
         if (notification.weather && typeof notification.weather === 'object') {
-            console.log('🌦️ Processing weather for line:', line);
-            // Extract date and time from the line
+            console.log('🌦️ Processing weather for lines:', labelLine, dateLine);
+            
+            // Extract date and time from the date line
             let eventDate = null;
             let eventType = null;
             
-            // Parse practice line: "Practice: Jul 19 at 6:00 AM"
-            const practiceMatch = line.match(/Practice: (\w+ \d+) at (\d+:\d+ \w+)/);
-            if (practiceMatch) {
-                eventDate = practiceMatch[1]; // "Jul 19"
+            // Parse practice line: "Practice:" + "Jul 19 at 6:00 AM"
+            if (labelLine.match(/Practice:/)) {
                 eventType = 'practice';
+                const practiceDateMatch = dateLine.match(/(\w+ \d+) at (\d+:\d+ \w+)/);
+                if (practiceDateMatch) {
+                    eventDate = practiceDateMatch[1]; // "Jul 19"
+                }
             }
             
-            // Parse match line: "Match: Jul 17 at 6:00 PM vs Winnetka S2B - Series 2B"
-            const matchMatch = line.match(/Match: (\w+ \d+) at (\d+:\d+ \w+)/);
-            if (matchMatch) {
-                eventDate = matchMatch[1]; // "Jul 17"
+            // Parse match line: "Match:" + "Jul 17 at 6:00 PM vs Winnetka S2B"
+            if (labelLine.match(/Match:/)) {
                 eventType = 'match';
+                const matchDateMatch = dateLine.match(/(\w+ \d+) at (\d+:\d+ \w+)/);
+                if (matchDateMatch) {
+                    eventDate = matchDateMatch[1]; // "Jul 17"
+                }
             }
             
             // Find matching weather data by event type and date
@@ -1198,12 +1207,12 @@ function renderScheduleWithWeather(notification) {
                         console.log('🌦️ Creating weather card for:', weatherEntry);
                         // Create horizontal layout with event and weather side by side
                         // Make "Practice:" and "Match:" labels bold
-                        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
-                        html += `<div class="flex items-center gap-3 mb-2">`;
-                        html += `<div class="text-sm flex-1">${boldLine}</div>`;
+                        const boldLabelLine = labelLine.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+                        html += `<div class="flex items-center gap-3 mb-3">`;
+                        html += `<div class="text-sm flex-1"><div class="mb-1">${boldLabelLine}</div><div>${dateLine}</div></div>`;
                         html += generateCompactHorizontalWeatherCard(weatherEntry);
                         html += `</div>`;
-                        return; // Skip the default line rendering below
+                        continue; // Skip the default line rendering below
                     }
                 } else {
                     console.log('🌦️ No matching weather key found for event date:', eventDate);
@@ -1213,9 +1222,14 @@ function renderScheduleWithWeather(notification) {
         
         // Default rendering for lines without weather or non-matching lines
         // Make "Practice:" and "Match:" labels bold
-        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
-        html += `<div class="text-sm mb-2">${boldLine}</div>`;
-    });
+        const boldLabelLine = labelLine.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+        html += `<div class="text-sm mb-3">`;
+        html += `<div class="mb-1">${boldLabelLine}</div>`;
+        if (dateLine) {
+            html += `<div>${dateLine}</div>`;
+        }
+        html += `</div>`;
+    }
     
     console.log('🌦️ Final HTML output:', html);
     return html;

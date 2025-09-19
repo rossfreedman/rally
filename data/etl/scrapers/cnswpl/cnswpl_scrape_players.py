@@ -918,7 +918,9 @@ class CNSWPLRosterScraper:
             ("Series H", None),  # Will be discovered dynamically
             ("Series I", None),  # Will be discovered dynamically
             ("Series J", None),  # Will be discovered dynamically
-            ("Series K", None)   # Will be discovered dynamically
+            ("Series K", None),  # Will be discovered dynamically
+            # Special series
+            ("Series SN", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNlN3lMcz0%3D")
         ]
         
         # Filter series based on target_series parameter
@@ -1437,6 +1439,17 @@ class CNSWPLRosterScraper:
                 if not any(name == series_name for name, _ in series_links):
                     series_links.append((series_name, "DISCOVER"))
                     print(f"   📋 Discovered letter series: {series_name}")
+            
+            # Special handling for Series SN - override any existing URL with correct one
+            series_name = "Series SN"
+            correct_sn_url = f"{self.base_url}/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNlN3lMcz0%3D"
+            
+            # Remove any existing Series SN entries
+            series_links = [(name, url) for name, url in series_links if name != series_name]
+            
+            # Add Series SN with correct URL
+            series_links.append((series_name, correct_sn_url))
+            print(f"   📋 Discovered special series: {series_name} (with correct URL)")
             
             if series_links:
                 print(f"✅ Dynamically discovered {len(series_links)} series")
@@ -2317,11 +2330,11 @@ def main():
     
     # Validate target_series if specified
     if target_series:
-        valid_series = [str(i) for i in range(1, 18)] + list('ABCDEFGHIJK')
+        valid_series = [str(i) for i in range(1, 18)] + list('ABCDEFGHIJK') + ['SN']
         invalid_series = [s for s in target_series if s not in valid_series]
         if invalid_series:
             print(f"❌ Error: Invalid series specified: {', '.join(invalid_series)}")
-            print(f"   Valid series are: 1-17 and A-K")
+            print(f"   Valid series are: 1-17, A-K, and SN")
             return
         print(f"✅ Valid series specified: {', '.join(target_series)}")
     

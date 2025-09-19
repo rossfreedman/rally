@@ -356,7 +356,10 @@ class PlayerScraperService:
             pti_patterns = [
                 r'PTI[:\s]*([0-9]+\.?[0-9]*)',
                 r'Performance[:\s]*([0-9]+\.?[0-9]*)',
-                r'Rating[:\s]*([0-9]+\.?[0-9]*)'
+                r'Rating[:\s]*([0-9]+\.?[0-9]*)',
+                r'([0-9]+\.?[0-9]*)\s*Paddle Tennis Index',
+                r'([0-9]+\.?[0-9]*)\s*PTI',
+                r'R[:\s]*([0-9]+\.?[0-9]*)'
             ]
             
             page_text = soup.get_text()
@@ -366,10 +369,24 @@ class PlayerScraperService:
                 match = re.search(pattern, page_text, re.IGNORECASE)
                 if match:
                     try:
-                        return float(match.group(1))
+                        pti_value = float(match.group(1))
+                        print(f"   ✅ Found PTI: {pti_value}")
+                        return pti_value
                     except ValueError:
                         continue
             
+            # Fallback: Look for any decimal number that could be PTI (between 0-100)
+            decimal_matches = re.findall(r'([0-9]+\.?[0-9]*)', page_text)
+            for match in decimal_matches:
+                try:
+                    value = float(match)
+                    if 0 <= value <= 100:  # PTI should be in this range
+                        print(f"   ✅ Found potential PTI: {value}")
+                        return value
+                except ValueError:
+                    continue
+            
+            print(f"   ⚠️ No PTI found for player {player_id}")
             return None
             
         except Exception as e:

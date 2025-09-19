@@ -4727,6 +4727,87 @@ def send_share_rally_mms():
         return jsonify({"success": False, "error": "An error occurred while sending the invitation"}), 500
 
 
+@mobile_bp.route("/mobile/support")
+@login_required
+def serve_mobile_support():
+    """Serve the mobile Support page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_support"
+        )
+
+        return render_template("mobile/support.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving support page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/api/support", methods=["POST"])
+@login_required
+def send_support_request():
+    """Send support request SMS to admin"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        user_name = data.get("user_name", "").strip()
+        message = data.get("message", "").strip()
+        
+        # Get user's email from session
+        user_email = session['user']['email']
+        
+        # Validate required fields
+        if not user_name:
+            return jsonify({"success": False, "error": "Your name is required"}), 400
+        
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+        
+        # Create the support SMS content
+        sms_message = f"Rally Support Request from {user_name} ({user_email}): {message}"
+        
+        # Get sender's info for logging
+        sender_email = session['user']['email']
+        sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+        
+        # Log the support request
+        log_user_activity(
+            sender_email, 
+            "support_request", 
+            page="mobile_support", 
+            details={
+                "user_name": user_name,
+                "email_address": user_email,
+                "message_length": len(message)
+            }
+        )
+        
+        # Send the support SMS to admin
+        result = send_sms_notification(
+            to_number="7732138911",  # Admin phone number
+            message=sms_message,
+            test_mode=False
+        )
+        
+        if result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Support request sent successfully! We'll get back to you soon."
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Failed to send support request")
+            }), 400
+    
+    except Exception as e:
+        print(f"Error sending support request: {str(e)}")
+        return jsonify({"success": False, "error": "An error occurred while sending the support request"}), 500
+
+
 @mobile_bp.route("/mobile/create-team")
 @login_required
 def serve_mobile_create_team():
