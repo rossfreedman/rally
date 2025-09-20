@@ -9020,6 +9020,7 @@ def remove_captain_message():
             }), 400
         
         # Get the most recent captain message for the team
+        logger.info(f"Looking for captain message for team_id: {team_id}")
         message_query = """
             SELECT id, message, captain_user_id
             FROM captain_messages 
@@ -9029,6 +9030,7 @@ def remove_captain_message():
         """
         
         current_message = execute_query_one(message_query, [team_id])
+        logger.info(f"Found captain message: {current_message}")
         
         if not current_message:
             return jsonify({"error": "No captain message found to remove"}), 404
@@ -9043,7 +9045,9 @@ def remove_captain_message():
             WHERE id = %s
         """
         
-        result = execute_query(delete_query, [current_message["id"]])
+        logger.info(f"Attempting to delete captain message with ID: {current_message['id']}")
+        result = execute_update(delete_query, [current_message["id"]])
+        logger.info(f"Delete query result: {result}")
         
         if result:
             # Log the activity
@@ -9063,6 +9067,124 @@ def remove_captain_message():
     except Exception as e:
         logger.error(f"Error removing captain message: {str(e)}")
         return jsonify({"error": "Failed to remove captain message"}), 500
+
+
+@api_bp.route("/captain-messages", methods=["GET"])
+@login_required
+def get_captain_message():
+    """Get the current captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT id, message, captain_user_id, created_at
+            FROM captain_messages 
+            WHERE team_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        current_message = execute_query_one(message_query, [team_id])
+        
+        if current_message:
+            return jsonify({
+                "status": "success",
+                "message": {
+                    "id": current_message["id"],
+                    "message": current_message["message"],
+                    "captain_user_id": current_message["captain_user_id"],
+                    "created_at": current_message["created_at"].isoformat() if current_message["created_at"] else None
+                }
+            }), 200
+        else:
+            return jsonify({
+                "status": "success",
+                "message": None
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Error getting captain message: {str(e)}")
+        return jsonify({"error": "Failed to get captain message"}), 500
+
+
+@api_bp.route("/captain-messages", methods=["PUT"])
+@login_required
+def update_captain_message():
+    """Update the current captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        data = request.get_json()
+        message = data.get("message", "").strip()
+        
+        if not message:
+            return jsonify({"error": "Message content is required"}), 400
+        
+        if len(message) > 1000:
+            return jsonify({"error": "Message too long (max 1000 characters)"}), 400
+        
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT id, captain_user_id
+            FROM captain_messages 
+            WHERE team_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        current_message = execute_query_one(message_query, [team_id])
+        
+        if not current_message:
+            return jsonify({"error": "No captain message found to update"}), 404
+        
+        # Check if the user is the captain who created the message
+        if current_message["captain_user_id"] != user_id:
+            return jsonify({"error": "Only the captain who created the message can update it"}), 403
+        
+        # Update the captain message
+        update_query = """
+            UPDATE captain_messages 
+            SET message = %s, created_at = NOW()
+            WHERE id = %s
+        """
+        
+        result = execute_update(update_query, [message, current_message["id"]])
+        
+        if result:
+            # Log the activity
+            log_user_activity(
+                user.get("email"),
+                "captain_message_updated",
+                details=f"Updated captain message for team {team_id}: {message[:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Captain message updated successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to update captain message"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating captain message: {str(e)}")
+        return jsonify({"error": "Failed to update captain message"}), 500
 
 
 @api_bp.route("/register-team-players", methods=["POST"])

@@ -1088,6 +1088,8 @@ function renderNotifications(notifications) {
     }
     
     // Update notification badge count AFTER all notifications are added
+    console.log('Total notifications count:', notifications.length);
+    console.log('Notification types:', notifications.map(n => n.type));
     updateNotificationBadge(notifications.length);
     
     // Render each notification as detailed card
