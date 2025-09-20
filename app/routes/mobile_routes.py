@@ -4780,10 +4780,54 @@ def send_support_request():
             sender_name = user_name
             is_authenticated = False
         
+        # Gather user context information for authenticated users
+        user_context_info = ""
+        if is_authenticated:
+            try:
+                from database_utils import execute_query_one
+                
+                # Get user's current team context
+                user_data = session.get('user', {})
+                player_id = user_data.get('tenniscores_player_id')
+                league_id = user_data.get('league_id')
+                team_id = user_data.get('team_id')
+                club = user_data.get('club')
+                series = user_data.get('series')
+                
+                # Build context string
+                context_parts = []
+                if league_id:
+                    # Get league name
+                    league_result = execute_query_one("SELECT name FROM leagues WHERE id = %s", [league_id])
+                    if league_result:
+                        context_parts.append(f"League: {league_result['name']}")
+                
+                if club:
+                    context_parts.append(f"Club: {club}")
+                
+                if series:
+                    context_parts.append(f"Series: {series}")
+                
+                if team_id:
+                    # Get team name
+                    team_result = execute_query_one("SELECT name FROM teams WHERE id = %s", [team_id])
+                    if team_result:
+                        context_parts.append(f"Team: {team_result['name']}")
+                
+                if player_id:
+                    context_parts.append(f"Player ID: {player_id}")
+                
+                if context_parts:
+                    user_context_info = f" | {' | '.join(context_parts)}"
+                
+            except Exception as e:
+                print(f"Error gathering user context: {str(e)}")
+                user_context_info = " | Error gathering context"
+        
         # Create the support SMS content
         auth_status = "Authenticated User" if is_authenticated else "Unauthenticated User"
         phone_info = f" | Phone: {user_phone}" if user_phone else ""
-        sms_message = f"Rally Support Request from {user_name} ({sender_email}){phone_info} [{auth_status}]: {message}"
+        sms_message = f"Rally Support Request from {user_name} ({sender_email}){phone_info}{user_context_info} [{auth_status}]: {message}"
         
         # Log the support request (only if we have session data for authenticated users)
         if is_authenticated:
@@ -4796,7 +4840,8 @@ def send_support_request():
                     "email_address": sender_email,
                     "phone_number": user_phone,
                     "message_length": len(message),
-                    "authenticated": True
+                    "authenticated": True,
+                    "user_context": user_context_info.strip(" | ") if user_context_info else "No context available"
                 }
             )
         else:
