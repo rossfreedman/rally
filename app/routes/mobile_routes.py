@@ -4789,6 +4789,13 @@ def send_support_request():
                 # Get user's current team context from session
                 user_data = session.get('user', {})
                 
+                # DEBUG: Log session data structure
+                print(f"=== SMS DEBUG: Session user data ===")
+                print(f"Session user keys: {list(user_data.keys())}")
+                for key, value in user_data.items():
+                    print(f"  {key}: {value}")
+                print(f"=====================================")
+                
                 # Build context string with available data
                 context_parts = []
                 
@@ -4817,13 +4824,23 @@ def send_support_request():
                 if player_id:
                     context_parts.append(f"Player ID: {player_id}")
                 
+                # DEBUG: Log context parts found
+                print(f"=== SMS DEBUG: Context parts ===")
+                print(f"Context parts found: {context_parts}")
+                print(f"================================")
+                
                 # If we have context parts, join them
                 if context_parts:
                     user_context_info = f" | {' | '.join(context_parts)}"
+                    print(f"=== SMS DEBUG: Using session context ===")
+                    print(f"Final context info: {user_context_info}")
+                    print(f"======================================")
                 else:
                     # Fallback: try to get context from database using email
+                    print(f"=== SMS DEBUG: No session context, trying database fallback ===")
                     user_email = user_data.get('email')
                     if user_email:
+                        print(f"User email for fallback: {user_email}")
                         # Get fresh context from database
                         context_query = """
                         SELECT DISTINCT ON (u.id)
@@ -4840,6 +4857,10 @@ def send_support_request():
                         LIMIT 1
                         """
                         context_result = execute_query_one(context_query, [user_email])
+                        print(f"=== SMS DEBUG: Database fallback result ===")
+                        print(f"Database query result: {context_result}")
+                        print(f"=========================================")
+                        
                         if context_result:
                             fallback_parts = []
                             if context_result.get('league_name'):
@@ -4853,8 +4874,19 @@ def send_support_request():
                             if context_result.get('tenniscores_player_id'):
                                 fallback_parts.append(f"Player ID: {context_result['tenniscores_player_id']}")
                             
+                            print(f"=== SMS DEBUG: Fallback parts ===")
+                            print(f"Fallback parts: {fallback_parts}")
+                            print(f"================================")
+                            
                             if fallback_parts:
                                 user_context_info = f" | {' | '.join(fallback_parts)}"
+                                print(f"=== SMS DEBUG: Using database fallback ===")
+                                print(f"Final fallback context: {user_context_info}")
+                                print(f"======================================")
+                        else:
+                            print(f"=== SMS DEBUG: No database result ===")
+                            print(f"No context found in database for email: {user_email}")
+                            print(f"====================================")
                 
             except Exception as e:
                 print(f"Error gathering user context: {str(e)}")
