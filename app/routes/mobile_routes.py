@@ -4767,13 +4767,19 @@ def send_support_request():
             return jsonify({"success": False, "error": "Message is required"}), 400
         
         # Determine user email and authentication status
+        print(f"DEBUG: Session keys: {list(session.keys())}")
+        print(f"DEBUG: Session user exists: {'user' in session}")
+        
         if "user" in session:
             # Authenticated user
+            print(f"DEBUG: Authenticated user detected")
+            print(f"DEBUG: Session user data: {session['user']}")
             sender_email = session['user']['email']
             sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
             is_authenticated = True
         else:
             # Unauthenticated user
+            print(f"DEBUG: Unauthenticated user detected")
             if not user_phone:
                 return jsonify({"success": False, "error": "Phone number is required"}), 400
             sender_email = "No email provided"  # Default since we removed email requirement
