@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club Food - Rally</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
+    
+    <!-- Basic Meta Tags -->
+    <meta name="description" content="Club Food Menu - Rally Platform Tennis Management">
+    <meta name="author" content="Rally">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="/static/css/output.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <style>
+        .rally-gradient {
+            background: linear-gradient(135deg, #1e40af 0%, #059669 100%);
+        }
+        .rally-green {
+            background-color: #059669;
+        }
+        .rally-blue {
+            background-color: #1e40af;
+        }
+        .text-rally-green {
+            color: #059669;
+        }
+        .text-rally-blue {
+            color: #1e40af;
+        }
+        .border-rally-green {
+            border-color: #059669;
+        }
+        .border-rally-blue {
+            border-color: #1e40af;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="rally-gradient text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <img src="/static/images/rally_favicon.png" alt="Rally Logo" class="h-10 w-10">
+                    <h1 class="text-2xl font-bold">Rally</h1>
+                </div>
+                <div class="text-sm opacity-90">
+                    <i class="fas fa-utensils mr-2"></i>
+                    Club Food Menu
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Current Food Highlight -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                Today's Special
+            </h2>
+            
+            <div id="currentFood" class="text-center py-8">
+                <div class="text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading today's menu...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Food History -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                <i class="fas fa-history text-rally-blue mr-2"></i>
+                Recent Menu Items
+            </h2>
+            
+            <div id="foodHistory" class="space-y-4">
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading menu history...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Error Messages -->
+    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <!-- Scripts -->
+    <script>
+        // Load food data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFoodData();
+        });
+
+        // Load food data function
+        async function loadFoodData() {
+            try {
+                // Get club_id from URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const clubId = urlParams.get('club_id');
+                
+                console.log('URL params:', window.location.search);
+                console.log('Club ID:', clubId);
+                
+                if (!clubId) {
+                    document.getElementById('currentFood').innerHTML = `
+                        <div class="text-center text-red-500 py-8">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                            <p class="text-lg font-semibold">Club ID Required</p>
+                            <p class="text-sm mt-2">Please access this page with a club_id parameter</p>
+                            <p class="text-xs mt-1">Example: /food-display?club_id=8556</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('foodHistory').innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-utensils text-4xl mb-4"></i>
+                            <p>No club selected</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const response = await fetch(`/api/food?club_id=${clubId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayFoodData(result.food_records);
+                } else {
+                    showMessage('Error loading food menu: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading food data:', error);
+                showMessage('Error loading food menu: ' + error.message, 'error');
+            }
+        }
+
+        // Display food data function
+        function displayFoodData(foodRecords) {
+            if (foodRecords.length === 0) {
+                document.getElementById('currentFood').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-utensils text-4xl mb-4"></i>
+                        <p>No food items available today.</p>
+                    </div>
+                `;
+                
+                document.getElementById('foodHistory').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-utensils text-4xl mb-4"></i>
+                        <p>No menu items have been added yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get today's date
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Find today's food items
+            const todayFood = foodRecords.filter(record => record.date === today);
+            
+            // Display current food (today's items)
+            displayCurrentFood(todayFood);
+            
+            // Display food history (all items)
+            displayFoodHistory(foodRecords);
+        }
+
+        // Display current food function
+        function displayCurrentFood(todayFood) {
+            const container = document.getElementById('currentFood');
+            
+            if (todayFood.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-utensils text-4xl mb-4"></i>
+                        <p>No special items for today.</p>
+                        <p class="text-sm mt-2">Check back later for updates!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show the most recent item for today
+            const latestItem = todayFood[0];
+            const formattedDate = new Date(latestItem.date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            container.innerHTML = `
+                <div class="bg-gradient-to-r from-rally-green to-rally-blue text-white rounded-lg p-6">
+                    <div class="text-center">
+                        <h3 class="text-3xl font-bold mb-2">${latestItem.food_text}</h3>
+                        <p class="text-lg opacity-90">${formattedDate}</p>
+                        <div class="mt-4 text-sm opacity-75">
+                            <i class="fas fa-clock mr-1"></i>
+                            Updated ${getTimeAgo(new Date(latestItem.created_at))}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display food history function
+        function displayFoodHistory(foodRecords) {
+            const container = document.getElementById('foodHistory');
+            
+            const html = foodRecords.map(record => {
+                const date = new Date(record.date);
+                const formattedDate = date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                const createdDate = new Date(record.created_at);
+                const timeAgo = getTimeAgo(createdDate);
+                
+                // Check if this is today's item
+                const today = new Date().toISOString().split('T')[0];
+                const isToday = record.date === today;
+
+                return `
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${isToday ? 'bg-green-50 border-green-200' : ''}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold text-gray-800 ${isToday ? 'text-green-800' : ''}">
+                                ${record.food_text}
+                                ${isToday ? '<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Today</span>' : ''}
+                            </h3>
+                            <span class="text-sm text-gray-500">${timeAgo}</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            ${formattedDate}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Show message function
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center`;
+            messageDiv.innerHTML = `
+                <i class="${icon} mr-2"></i>
+                ${message}
+            `;
+            
+            container.appendChild(messageDiv);
+            
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        // Get time ago function
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) {
+                return 'Just now';
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else if (diffInSeconds < 86400) {
+                const hours = Math.floor(diffInSeconds / 3600);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else {
+                const days = Math.floor(diffInSeconds / 86400);
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1095,3 +1095,24 @@ class PickupGameParticipant(Base):
 
     def __repr__(self):
         return f"<PickupGameParticipant(id={self.id}, game_id={self.pickup_game_id}, user_id={self.user_id})>"
+
+
+class Food(Base):
+    """
+    Food notifications from the chef
+    Club-specific table to store food announcements with timestamps
+    """
+
+    __tablename__ = "food"
+
+    id = Column(Integer, primary_key=True)
+    food_text = Column(Text, nullable=False)
+    date = Column(Date, nullable=False)
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    # Relationships
+    club = relationship("Club")
+
+    def __repr__(self):
+        return f"<Food(id={self.id}, food_text='{self.food_text[:50]}...', date='{self.date}', club_id={self.club_id}, created_at='{self.created_at}')>"

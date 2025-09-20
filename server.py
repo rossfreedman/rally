@@ -740,6 +740,18 @@ def serve_create_team_page():
     return render_template("mobile/create_team.html", session_data=session_data)
 
 
+@app.route("/food")
+def serve_food_page():
+    """Serve the food input page for chef (no authentication required)"""
+    return render_template("food.html")
+
+
+@app.route("/food-display")
+def serve_food_display_page():
+    """Serve the food display page for users (no authentication required)"""
+    return render_template("food_display.html")
+
+
 @app.route("/pro")
 @login_required
 def serve_pro_page():
@@ -825,6 +837,13 @@ def serve_static(path):
         "signup.css",
         "preview.png",  # Allow public access for social media link previews
     }
+    
+    # Public routes that don't require authentication
+    public_routes = {
+        "/food",
+        "/food-display",
+        "/api/food"
+    }
 
     def is_public_file(file_path):
         filename = os.path.basename(file_path)
@@ -842,6 +861,11 @@ def serve_static(path):
         if path == "index.html":
             return send_from_directory("website", path)
         return send_from_directory(".", path)
+
+    # Check if this is a public route
+    if path in public_routes:
+        # Let Flask handle the route normally (no redirect)
+        return None
 
     # Require authentication for all other files
     if "user" not in session:

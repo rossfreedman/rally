@@ -11408,3 +11408,156 @@ def get_player_matches_detail():
             "success": False,
             "error": f"Failed to retrieve player matches: {str(e)}"
         }), 500
+
+
+# ==============================
+# Food API Routes
+# ==============================
+
+@api_bp.route("/food", methods=["GET"])
+def get_food():
+    """Get food records for a specific club, ordered by date (most recent first)"""
+    try:
+        from app.models.database_models import Food
+        
+        # Get club_id from query parameter
+        club_id = request.args.get('club_id', type=int)
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id parameter is required"
+            }), 400
+        
+        with SessionLocal() as session:
+            food_records = session.query(Food).filter(
+                Food.club_id == club_id
+            ).order_by(Food.date.desc(), Food.created_at.desc()).all()
+            
+            food_data = []
+            for record in food_records:
+                food_data.append({
+                    "id": record.id,
+                    "food_text": record.food_text,
+                    "date": record.date.isoformat() if record.date else None,
+                    "club_id": record.club_id,
+                    "created_at": record.created_at.isoformat() if record.created_at else None
+                })
+            
+            return jsonify({
+                "success": True,
+                "food_records": food_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting food records: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve food records: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food", methods=["POST"])
+def save_food():
+    """Save a new food record (chef input - no authentication required)"""
+    try:
+        from app.models.database_models import Food, Club
+        
+        data = request.get_json()
+        if not data or 'food_text' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "food_text and club_id are required"
+            }), 400
+        
+        food_text = data['food_text'].strip()
+        if not food_text:
+            return jsonify({
+                "success": False,
+                "error": "food_text cannot be empty"
+            }), 400
+        
+        club_id = data['club_id']
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id cannot be empty"
+            }), 400
+        
+        # Verify club exists
+        with SessionLocal() as session:
+            club = session.query(Club).filter(Club.id == club_id).first()
+            if not club:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid club_id - club not found"
+                }), 400
+        
+        # Get date from request or use today's date
+        food_date = data.get('date')
+        if food_date:
+            try:
+                food_date = datetime.strptime(food_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid date format. Use YYYY-MM-DD"
+                }), 400
+        else:
+            food_date = date.today()
+        
+        with SessionLocal() as session:
+            new_food = Food(
+                food_text=food_text,
+                date=food_date,
+                club_id=club_id
+            )
+            session.add(new_food)
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Food record saved successfully",
+                "food_record": {
+                    "id": new_food.id,
+                    "food_text": new_food.food_text,
+                    "date": new_food.date.isoformat(),
+                    "club_id": new_food.club_id,
+                    "created_at": new_food.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error saving food record: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to save food record: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/clubs", methods=["GET"])
+def get_clubs():
+    """Get all available clubs for food input"""
+    try:
+        from app.models.database_models import Club
+        
+        with SessionLocal() as session:
+            clubs = session.query(Club).order_by(Club.name).all()
+            
+            club_data = []
+            for club in clubs:
+                club_data.append({
+                    "id": club.id,
+                    "name": club.name
+                })
+            
+            return jsonify({
+                "success": True,
+                "clubs": club_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting clubs: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve clubs: {str(e)}"
+        }), 500
