@@ -443,6 +443,19 @@
     min-height: calc(100vh - 144px); /* Account for top nav (72px) + bottom nav (72px) */
     padding-bottom: 300px !important; /* Extra space for floating elements */
   }
+  
+  /* Progress bar animation for notifications loading */
+  @keyframes progressBar {
+    0% { width: 0%; }
+    50% { width: 75%; }
+    100% { width: 100%; }
+  }
+  
+  .progress-bar-animated {
+    animation: progressBar 1.5s ease-out forwards;
+    animation-fill-mode: forwards;
+    animation-delay: 0.2s;
+  }
 </style>
 
 <!-- Icon Library - FontAwesome is already loaded in layout.html -->
@@ -580,10 +593,26 @@
     </div>
     
     <!-- Loading State -->
-    <div id="notifications-loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
-      <p class="-mt-1 text-gray-600">I'm loading your personalized recommendations.</p>
+    <div id="notifications-loading" class="text-center py-12">
+      <!-- Simple, effective loading spinner -->
+      <div class="bg-white rounded-2xl shadow-xl p-8 mx-4 border-2 border-gray-100">
+        <!-- Large, simple spinning circle -->
+        <div class="flex justify-center mb-6">
+          <div class="w-16 h-16 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+        </div>
+        
+        <!-- Simple progress bar -->
+        <div class="w-full max-w-sm mx-auto mb-6">
+          <div class="bg-gray-200 rounded-full h-2 border border-gray-300">
+            <div id="notification-progress-bar" class="bg-rally-teal h-2 rounded-full transition-all duration-100" style="width: 0%;"></div>
+          </div>
+        </div>
+        
+        <!-- Loading text -->
+        <p class="text-lg font-semibold text-gray-700">Loading your notifications...</p>
+      </div>
     </div>
+    
     
     <!-- Empty State (Hidden - we always show notifications) -->
     <div id="notifications-empty" class="text-center py-8 hidden" style="display: none;">
@@ -1952,6 +1981,7 @@ function getNotificationIcon(type) {
         'team': trophyIcon,            // Team notifications (position) use trophy icon
         'schedule': scheduleIcon,      // Schedule notifications use calendar with clock icon
         'poll': teamPollIcon,          // Team poll notifications use survey icon
+        'food': `<i class="fas fa-utensils text-gray-700" style="font-size: 18px;"></i>`,  // Food notifications use FontAwesome utensils icon
         'install': `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2"/>
         </svg>`  // Install notifications use download/install icon
@@ -1967,7 +1997,8 @@ function getNotificationBgColor(type) {
         'result': 'bg-green-500',
         'personal': 'bg-orange-500',
         'team': 'bg-indigo-500',
-        'schedule': 'bg-teal-500'
+        'schedule': 'bg-teal-500',
+        'food': 'bg-amber-500'
     };
     
     return colors[type] || 'bg-gray-500';
@@ -2442,6 +2473,38 @@ function generateCompactHorizontalWeatherCard(forecast) {
 }
 
 // Install notification functionality - REMOVED: Now handled by dynamic notifications
+
+// Simple progress bar animation - always runs on page load
+function animateProgressBar() {
+    const progressBar = document.getElementById('notification-progress-bar');
+    if (!progressBar) {
+        console.log('Progress bar element not found');
+        return;
+    }
+    
+    console.log('Starting progress bar animation');
+    progressBar.style.width = '0%';
+    progressBar.style.backgroundColor = '#14b8a6'; // Rally teal color
+    progressBar.style.boxShadow = '0 0 8px rgba(20, 184, 166, 0.4)'; // Teal glow
+    
+    let width = 0;
+    const interval = setInterval(() => {
+        if (width >= 100) {
+            clearInterval(interval);
+            console.log('Progress bar animation completed');
+            return;
+        }
+        width += 2; // Faster animation
+        progressBar.style.width = width + '%';
+        console.log('Progress bar width:', width + '%');
+    }, 30); // 30ms * 50 = 1500ms = 1.5 seconds
+}
+
+// Start animation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, starting progress bar animation');
+    setTimeout(animateProgressBar, 500); // Start after 500ms delay
+});
 </script>
 
 <!-- Final spacer to ensure Practice Times button is fully visible -->

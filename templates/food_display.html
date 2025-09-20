@@ -1,117 +1,79 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Club Food - Rally</title>
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#000000">
-    <meta name="msapplication-navbutton-color" content="#000000">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
-    
-    <!-- Basic Meta Tags -->
-    <meta name="description" content="Club Food Menu - Rally Platform Tennis Management">
-    <meta name="author" content="Rally">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="/static/css/output.css">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom Styles -->
-    <style>
-        .rally-gradient {
-            background: linear-gradient(135deg, #1e40af 0%, #059669 100%);
-        }
-        .rally-green {
-            background-color: #059669;
-        }
-        .rally-blue {
-            background-color: #1e40af;
-        }
-        .text-rally-green {
-            color: #059669;
-        }
-        .text-rally-blue {
-            color: #1e40af;
-        }
-        .border-rally-green {
-            border-color: #059669;
-        }
-        .border-rally-blue {
-            border-color: #1e40af;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="rally-gradient text-white shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="/static/images/rally_favicon.png" alt="Rally Logo" class="h-10 w-10">
-                    <h1 class="text-2xl font-bold">Rally</h1>
-                </div>
-                <div class="text-sm opacity-90">
-                    <i class="fas fa-utensils mr-2"></i>
-                    Club Food Menu
-                </div>
-            </div>
-        </div>
-    </header>
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <!-- Current Food Highlight -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                <i class="fas fa-star text-yellow-500 mr-2"></i>
-                Today's Special
-            </h2>
-            
-            <div id="currentFood" class="text-center py-8">
-                <div class="text-gray-500">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading today's menu...</p>
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-rally-teal rounded-full flex items-center justify-center shadow-sm">
+                    <i class="fas fa-utensils text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">Club Food Menu</h1>
+                    <p class="text-base font-semibold text-gray-700">Today's Special</p>
                 </div>
             </div>
         </div>
 
-        <!-- Food History -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                <i class="fas fa-history text-rally-blue mr-2"></i>
-                Recent Menu Items
-            </h2>
-            
-            <div id="foodHistory" class="space-y-4">
-                <div class="text-center text-gray-500 py-8">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading menu history...</p>
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+            <!-- Today's Special Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Today's Special
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="currentFood" class="text-center py-8">
+                        <div class="text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading today's menu...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Menu Items Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        Recent Menu Items
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="foodHistory" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading menu history...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
+</div>
 
     <!-- Error Messages -->
     <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
 
-    <!-- Scripts -->
     <script>
-        // Load food data on page load
+        // Load food data on page load - wait for Rally mobile to initialize
         document.addEventListener('DOMContentLoaded', function() {
-            loadFoodData();
+            console.log('Food display page loaded, starting food data load...');
+            // Add a small delay to ensure Rally mobile JS has initialized
+            setTimeout(loadFoodData, 100);
         });
 
         // Load food data function
         async function loadFoodData() {
+            console.log('loadFoodData function called');
             try {
                 // Get club_id from URL parameter
                 const urlParams = new URLSearchParams(window.location.search);
@@ -119,6 +81,8 @@
                 
                 console.log('URL params:', window.location.search);
                 console.log('Club ID:', clubId);
+                console.log('Current food element:', document.getElementById('currentFood'));
+                console.log('Food history element:', document.getElementById('foodHistory'));
                 
                 if (!clubId) {
                     document.getElementById('currentFood').innerHTML = `
@@ -143,7 +107,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    displayFoodData(result.food_records);
+                    displayFoodData(result.food_records, result.current_menu);
                 } else {
                     showMessage('Error loading food menu: ' + result.error, 'error');
                 }
@@ -154,12 +118,12 @@
         }
 
         // Display food data function
-        function displayFoodData(foodRecords) {
+        function displayFoodData(foodRecords, currentMenu) {
             if (foodRecords.length === 0) {
                 document.getElementById('currentFood').innerHTML = `
                     <div class="text-center text-gray-500 py-8">
                         <i class="fas fa-utensils text-4xl mb-4"></i>
-                        <p>No food items available today.</p>
+                        <p>No food items available.</p>
                     </div>
                 `;
                 
@@ -172,29 +136,58 @@
                 return;
             }
 
-            // Get today's date
-            const today = new Date().toISOString().split('T')[0];
+            // Records are already sorted by API (most recent first)
+            const sortedFoodRecords = foodRecords;
             
-            // Find today's food items
-            const todayFood = foodRecords.filter(record => record.date === today);
+            // Display current menu (if exists) or fallback to today's items
+            displayCurrentFood(currentMenu, sortedFoodRecords);
             
-            // Display current food (today's items)
-            displayCurrentFood(todayFood);
-            
-            // Display food history (all items)
-            displayFoodHistory(foodRecords);
+            // Display food history (all items sorted by most recent first)
+            displayFoodHistory(sortedFoodRecords);
         }
 
         // Display current food function
-        function displayCurrentFood(todayFood) {
+        function displayCurrentFood(currentMenu, allFoodRecords) {
             const container = document.getElementById('currentFood');
+            
+            // If there's a current menu, show it prominently
+            if (currentMenu) {
+                const formattedDate = new Date(currentMenu.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                container.innerHTML = `
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">Current Menu</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2">${currentMenu.food_text}</h3>
+                            <p class="text-lg text-gray-600">${formattedDate}</p>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-clock mr-1"></i>
+                            Updated ${getTimeAgo(new Date(currentMenu.created_at))}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Fallback: Show today's items if no current menu
+            const today = new Date().toISOString().split('T')[0];
+            const todayFood = allFoodRecords.filter(record => record.date === today);
             
             if (todayFood.length === 0) {
                 container.innerHTML = `
                     <div class="text-center text-gray-500 py-8">
                         <i class="fas fa-utensils text-4xl mb-4"></i>
-                        <p>No special items for today.</p>
-                        <p class="text-sm mt-2">Check back later for updates!</p>
+                        <p class="text-lg font-medium">No current menu set.</p>
+                        <p class="text-sm mt-2 text-gray-400">Check recent menu items below or ask the chef to set a current menu.</p>
                     </div>
                 `;
                 return;
@@ -210,14 +203,18 @@
             });
 
             container.innerHTML = `
-                <div class="bg-gradient-to-r from-rally-green to-rally-blue text-white rounded-lg p-6">
-                    <div class="text-center">
-                        <h3 class="text-3xl font-bold mb-2">${latestItem.food_text}</h3>
-                        <p class="text-lg opacity-90">${formattedDate}</p>
-                        <div class="mt-4 text-sm opacity-75">
-                            <i class="fas fa-clock mr-1"></i>
-                            Updated ${getTimeAgo(new Date(latestItem.created_at))}
+                <div class="text-center">
+                    <div class="mb-4">
+                        <div class="flex items-center justify-center mb-2">
+                            <i class="fas fa-calendar-day text-blue-500 mr-2"></i>
+                            <span class="text-sm font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">Today's Special</span>
                         </div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2">${latestItem.food_text}</h3>
+                        <p class="text-lg text-gray-600">${formattedDate}</p>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        Updated ${getTimeAgo(new Date(latestItem.created_at))}
                     </div>
                 </div>
             `;
@@ -244,13 +241,18 @@
                 const isToday = record.date === today;
 
                 return `
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${isToday ? 'bg-green-50 border-green-200' : ''}">
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${record.is_current_menu ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}">
                         <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-semibold text-gray-800 ${isToday ? 'text-green-800' : ''}">
-                                ${record.food_text}
-                                ${isToday ? '<span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Today</span>' : ''}
-                            </h3>
-                            <span class="text-sm text-gray-500">${timeAgo}</span>
+                            <div class="flex items-center">
+                                ${record.is_current_menu ? '<i class="fas fa-star text-yellow-500 mr-2"></i>' : ''}
+                                <h3 class="font-semibold text-gray-900">
+                                    ${record.food_text}
+                                </h3>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${record.is_current_menu ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Current Menu</span>' : ''}
+                                <span class="text-sm text-gray-500">${timeAgo}</span>
+                            </div>
                         </div>
                         <div class="text-sm text-gray-600">
                             <i class="fas fa-calendar-alt mr-1"></i>
@@ -306,5 +308,4 @@
             }
         }
     </script>
-</body>
-</html>
+{% endblock %}

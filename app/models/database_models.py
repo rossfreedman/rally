@@ -1109,10 +1109,11 @@ class Food(Base):
     food_text = Column(Text, nullable=False)
     date = Column(Date, nullable=False)
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    is_current_menu = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Relationships
     club = relationship("Club")
 
     def __repr__(self):
-        return f"<Food(id={self.id}, food_text='{self.food_text[:50]}...', date='{self.date}', club_id={self.club_id}, created_at='{self.created_at}')>"
+        return f"<Food(id={self.id}, food_text='{self.food_text[:50]}...', date='{self.date}', club_id={self.club_id}, is_current_menu={self.is_current_menu}, created_at='{self.created_at}')>"

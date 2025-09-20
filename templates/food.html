@@ -1,186 +1,167 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chef Food Input - Rally</title>
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#000000">
-    <meta name="msapplication-navbutton-color" content="#000000">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon-green-small.png') }}?v=2025">
-    
-    <!-- Basic Meta Tags -->
-    <meta name="description" content="Chef Food Input - Rally Platform Tennis Management">
-    <meta name="author" content="Rally">
-    <meta name="robots" content="noindex, nofollow">
-    
-    <!-- Tailwind CSS -->
-    <link rel="stylesheet" href="/static/css/output.css">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom Styles -->
-    <style>
-        .rally-gradient {
-            background: linear-gradient(135deg, #1e40af 0%, #059669 100%);
-        }
-        .rally-green {
-            background-color: #059669;
-        }
-        .rally-blue {
-            background-color: #1e40af;
-        }
-        .text-rally-green {
-            color: #059669;
-        }
-        .text-rally-blue {
-            color: #1e40af;
-        }
-        .border-rally-green {
-            border-color: #059669;
-        }
-        .border-rally-blue {
-            border-color: #1e40af;
-        }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Header -->
-    <header class="rally-gradient text-white shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <img src="/static/images/rally_favicon.png" alt="Rally Logo" class="h-10 w-10">
-                    <h1 class="text-2xl font-bold">Rally Chef</h1>
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-rally-teal rounded-full flex items-center justify-center shadow-sm">
+                    <i class="fas fa-utensils text-white text-lg"></i>
                 </div>
-                <div class="text-sm opacity-90">
-                    <i class="fas fa-utensils mr-2"></i>
-                    Food Input System
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">Current Menu Update</h1>
+                    <p class="text-base font-semibold text-gray-700">Replace Current Menu</p>
                 </div>
             </div>
         </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <!-- Food Input Form -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                <i class="fas fa-plus-circle text-rally-green mr-2"></i>
-                Add New Food Item
-            </h2>
-            
-            <form id="foodForm" class="space-y-6">
-                <div>
-                    <label for="clubSelect" class="block text-sm font-medium text-gray-700 mb-2">
-                        Club
-                    </label>
-                    <select 
-                        id="clubSelect" 
-                        name="clubSelect" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rally-green focus:border-rally-green"
-                        required
-                    >
-                        <option value="">Select a club...</option>
-                    </select>
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+            <!-- Food Input Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Update Current Menu
+                    </h2>
                 </div>
                 
-                <div>
-                    <label for="foodText" class="block text-sm font-medium text-gray-700 mb-2">
-                        Food Description
-                    </label>
-                    <textarea 
-                        id="foodText" 
-                        name="foodText" 
-                        rows="4" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rally-green focus:border-rally-green"
-                        placeholder="Enter the food item description (e.g., 'Grilled Salmon with Roasted Vegetables')"
-                        required
-                    ></textarea>
-                </div>
-                
-                <div>
-                    <label for="foodDate" class="block text-sm font-medium text-gray-700 mb-2">
-                        Date
-                    </label>
-                    <input 
-                        type="date" 
-                        id="foodDate" 
-                        name="foodDate" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rally-green focus:border-rally-green"
-                        required
-                    >
-                </div>
-                
-                <div class="flex justify-end space-x-4">
-                    <button 
-                        type="button" 
-                        id="clearForm" 
-                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                    >
-                        <i class="fas fa-eraser mr-2"></i>
-                        Clear
-                    </button>
-                    <button 
-                        type="submit" 
-                        class="px-6 py-2 rally-green text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                        <i class="fas fa-save mr-2"></i>
-                        Save Food Item
-                    </button>
-                </div>
-            </form>
-        </div>
+                <div class="p-6">
+                    <form id="foodForm" class="space-y-6">
+                        <!-- Club Selection -->
+                        <div>
+                            <label for="clubSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-building mr-1"></i>
+                                Club
+                            </label>
+                            <select id="clubSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal">
+                                <option value="">Select a club...</option>
+                            </select>
+                        </div>
 
-        <!-- Current Food Display -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">
-                <i class="fas fa-list text-rally-blue mr-2"></i>
-                Food History
-            </h2>
-            
-            <div id="foodHistory" class="space-y-4">
-                <div class="text-center text-gray-500 py-8">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading food history...</p>
+                        <!-- Food Description -->
+                        <div>
+                            <label for="foodText" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-utensils mr-1"></i>
+                                Food Description
+                            </label>
+                            <textarea 
+                                id="foodText" 
+                                rows="4" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal resize-none"
+                                placeholder="Enter the food item description (e.g., Grilled Salmon with Quinoa and Asparagus)"
+                                required
+                            ></textarea>
+                        </div>
+
+
+                        <!-- Submit Button -->
+                        <button 
+                            type="submit" 
+                            class="w-full bg-rally-teal text-white py-3 px-4 rounded-lg font-medium hover:bg-rally-teal-dark transition-colors duration-200 flex items-center justify-center"
+                        >
+                            <i class="fas fa-star mr-2"></i>
+                            Update Current Menu
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current Menu Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Current Menu
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="currentMenu" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-utensils text-4xl mb-4"></i>
+                            <p>Select a club to view current menu</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Food History Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        Recent Menu Items
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="foodHistory" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-utensils text-4xl mb-4"></i>
+                            <p>Select a club to view recent menu items</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
+</div>
 
-    <!-- Success/Error Messages -->
-    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+<!-- Error Messages -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
 
-    <!-- Scripts -->
-    <script>
-        // Set today's date as default
-        document.getElementById('foodDate').value = new Date().toISOString().split('T')[0];
+<script>
+    // Load clubs and set up form on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadClubs();
+        setupForm();
+    });
 
-        // Load clubs and food history on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadClubs();
-        });
+    // Load clubs function
+    async function loadClubs() {
+        try {
+            const response = await fetch('/api/clubs');
+            const result = await response.json();
+            
+            if (result.success) {
+                const clubSelect = document.getElementById('clubSelect');
+                clubSelect.innerHTML = '<option value="">Select a club...</option>';
+                
+                result.clubs.forEach(club => {
+                    const option = document.createElement('option');
+                    option.value = club.id;
+                    option.textContent = club.name;
+                    clubSelect.appendChild(option);
+                });
+                
+                // Auto-select Tennaqua if it exists
+                const tennaquaOption = Array.from(clubSelect.options).find(option => 
+                    option.textContent.toLowerCase().includes('tennaqua')
+                );
+                if (tennaquaOption) {
+                    clubSelect.value = tennaquaOption.value;
+                    // Trigger the change event to load food history
+                    clubSelect.dispatchEvent(new Event('change'));
+                }
+            } else {
+                showMessage('Error loading clubs: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading clubs:', error);
+            showMessage('Error loading clubs: ' + error.message, 'error');
+        }
+    }
 
-        // Handle form submission
-        document.getElementById('foodForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            saveFood();
-        });
-
-        // Handle clear form
-        document.getElementById('clearForm').addEventListener('click', function() {
-            document.getElementById('foodForm').reset();
-            document.getElementById('foodDate').value = new Date().toISOString().split('T')[0];
-        });
-
+    // Setup form function
+    function setupForm() {
+        const form = document.getElementById('foodForm');
+        const clubSelect = document.getElementById('clubSelect');
+        
         // Handle club selection change
-        document.getElementById('clubSelect').addEventListener('change', function() {
+        clubSelect.addEventListener('change', function() {
             const clubId = this.value;
             if (clubId) {
                 loadFoodHistory(clubId);
@@ -188,175 +169,313 @@
                 document.getElementById('foodHistory').innerHTML = `
                     <div class="text-center text-gray-500 py-8">
                         <i class="fas fa-utensils text-4xl mb-4"></i>
-                        <p>Please select a club to view food history.</p>
+                        <p>Select a club to view recent menu items</p>
+                    </div>
+                `;
+                document.getElementById('currentMenu').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-utensils text-4xl mb-4"></i>
+                        <p>Select a club to view current menu</p>
                     </div>
                 `;
             }
         });
-
-        // Save food function
-        async function saveFood() {
-            const formData = new FormData(document.getElementById('foodForm'));
-            const foodData = {
-                food_text: formData.get('foodText'),
-                date: formData.get('foodDate'),
-                club_id: parseInt(formData.get('clubSelect'))
-            };
-
+        
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const clubId = clubSelect.value;
+            const foodText = document.getElementById('foodText').value.trim();
+            
+            if (!clubId || !foodText) {
+                showMessage('Please select a club and enter food description', 'error');
+                return;
+            }
+            
             try {
                 const response = await fetch('/api/food', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(foodData)
+                    body: JSON.stringify({
+                        food_text: foodText,
+                        date: new Date().toISOString().split('T')[0], // Use today's date
+                        club_id: parseInt(clubId),
+                        is_current_menu: true // Always set as current menu
+                    })
                 });
-
+                
                 const result = await response.json();
-
+                
                 if (result.success) {
-                    showMessage('Food item saved successfully!', 'success');
-                    document.getElementById('foodForm').reset();
-                    document.getElementById('foodDate').value = new Date().toISOString().split('T')[0];
-                    loadFoodHistory(); // Reload the history
+                    showMessage('Current menu updated successfully!', 'success');
+                    document.getElementById('foodText').value = ''; // Clear food text
+                    loadFoodHistory(clubId);
                 } else {
-                    showMessage('Error: ' + result.error, 'error');
+                    showMessage('Error updating current menu: ' + result.error, 'error');
                 }
             } catch (error) {
-                showMessage('Error saving food item: ' + error.message, 'error');
+                console.error('Error updating current menu:', error);
+                showMessage('Error updating current menu: ' + error.message, 'error');
             }
-        }
+        });
+    }
 
-        // Load food history function
-        async function loadFoodHistory(clubId) {
-            try {
-                const response = await fetch(`/api/food?club_id=${clubId}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    displayFoodHistory(result.food_records);
-                } else {
-                    showMessage('Error loading food history: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showMessage('Error loading food history: ' + error.message, 'error');
-            }
-        }
-
-        // Load clubs function
-        async function loadClubs() {
-            try {
-                const response = await fetch('/api/clubs');
-                const result = await response.json();
-
-                if (result.success) {
-                    displayClubs(result.clubs);
-                } else {
-                    showMessage('Error loading clubs: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showMessage('Error loading clubs: ' + error.message, 'error');
-            }
-        }
-
-        // Display clubs function
-        function displayClubs(clubs) {
-            const select = document.getElementById('clubSelect');
-            select.innerHTML = '<option value="">Select a club...</option>';
+    // Load food history function
+    async function loadFoodHistory(clubId) {
+        try {
+            const response = await fetch(`/api/food?club_id=${clubId}`);
+            const result = await response.json();
             
-            clubs.forEach(club => {
-                const option = document.createElement('option');
-                option.value = club.id;
-                option.textContent = club.name;
-                select.appendChild(option);
+            if (result.success) {
+                displayFoodHistory(result.food_records);
+                displayCurrentMenu(result.food_records);
+            } else {
+                showMessage('Error loading food history: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading food history:', error);
+            showMessage('Error loading food history: ' + error.message, 'error');
+        }
+    }
+
+    // Display food history function
+    function displayFoodHistory(foodRecords) {
+        const container = document.getElementById('foodHistory');
+        
+        if (foodRecords.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-utensils text-4xl mb-4"></i>
+                    <p>No menu items found for this club</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Records are already sorted by API (most recent first)
+        const sortedRecords = foodRecords;
+        
+        const html = sortedRecords.map(record => {
+            const date = new Date(record.date);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
-        }
 
-        // Display food history function
-        function displayFoodHistory(foodRecords) {
-            const container = document.getElementById('foodHistory');
+            const createdDate = new Date(record.created_at);
+            const timeAgo = getTimeAgo(createdDate);
             
-            if (foodRecords.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-gray-500 py-8">
-                        <i class="fas fa-utensils text-4xl mb-4"></i>
-                        <p>No food items have been added yet.</p>
-                    </div>
-                `;
-                return;
-            }
+            // Check if this is today's item
+            const today = new Date().toISOString().split('T')[0];
+            const isToday = record.date === today;
 
-            const html = foodRecords.map(record => {
-                const date = new Date(record.date);
-                const formattedDate = date.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                const createdDate = new Date(record.created_at);
-                const timeAgo = getTimeAgo(createdDate);
-
-                return `
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-semibold text-gray-800">${record.food_text}</h3>
+            return `
+                <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${record.is_current_menu ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center">
+                            ${record.is_current_menu ? '<i class="fas fa-star text-yellow-500 mr-2"></i>' : ''}
+                            <h3 class="font-semibold text-gray-900">
+                                ${record.food_text}
+                            </h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${record.is_current_menu ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Current Menu</span>' : ''}
                             <span class="text-sm text-gray-500">${timeAgo}</span>
                         </div>
-                        <div class="text-sm text-gray-600">
-                            <i class="fas fa-calendar-alt mr-1"></i>
-                            ${formattedDate}
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        ${formattedDate}
+                    </div>
+                    ${!record.is_current_menu ? `
+                        <div class="flex space-x-2">
+                            <button 
+                                onclick="setAsCurrentMenu(${record.id}, ${record.club_id})"
+                                class="text-xs bg-rally-teal text-white px-3 py-1 rounded hover:bg-rally-teal-dark transition-colors"
+                            >
+                                <i class="fas fa-star mr-1"></i>
+                                Set as Current
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="flex space-x-2">
+                            <button 
+                                onclick="unsetCurrentMenu(${record.club_id})"
+                                class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                            >
+                                <i class="fas fa-times mr-1"></i>
+                                Remove Current
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    }
+
+    // Display current menu function
+    function displayCurrentMenu(foodRecords) {
+        const container = document.getElementById('currentMenu');
+        
+        // Find the current menu item (is_current_menu = true)
+        const currentMenuItem = foodRecords.find(record => record.is_current_menu);
+        
+        if (currentMenuItem) {
+            const date = new Date(currentMenuItem.date);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const createdDate = new Date(currentMenuItem.created_at);
+            const timeAgo = getTimeAgo(createdDate);
+            
+            container.innerHTML = `
+                <div class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-star text-yellow-500 text-xl mr-3"></i>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    ${currentMenuItem.food_text}
+                                </h3>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">Current Menu</span>
+                                    <span class="text-sm text-gray-500">${timeAgo}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                `;
-            }).join('');
-
-            container.innerHTML = html;
-        }
-
-        // Show message function
-        function showMessage(message, type) {
-            const container = document.getElementById('messageContainer');
-            const messageDiv = document.createElement('div');
-            
-            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
-            const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
-            
-            messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center`;
-            messageDiv.innerHTML = `
-                <i class="${icon} mr-2"></i>
-                ${message}
+                    <div class="text-sm text-gray-600 mb-4">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        ${formattedDate}
+                    </div>
+                    <div class="flex space-x-2">
+                        <button 
+                            onclick="unsetCurrentMenu(${currentMenuItem.club_id})"
+                            class="text-sm bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center"
+                        >
+                            <i class="fas fa-times mr-2"></i>
+                            Remove Current Menu
+                        </button>
+                    </div>
+                </div>
             `;
-            
-            container.appendChild(messageDiv);
-            
-            // Remove message after 5 seconds
-            setTimeout(() => {
-                if (messageDiv.parentNode) {
-                    messageDiv.parentNode.removeChild(messageDiv);
-                }
-            }, 5000);
+        } else {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-utensils text-4xl mb-4"></i>
+                    <p>No current menu set for this club</p>
+                </div>
+            `;
         }
+    }
 
-        // Get time ago function
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diffInSeconds = Math.floor((now - date) / 1000);
+    // Set as current menu function
+    async function setAsCurrentMenu(foodId, clubId) {
+        try {
+            const response = await fetch('/api/food/set-current', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    food_id: foodId,
+                    club_id: clubId
+                })
+            });
             
-            if (diffInSeconds < 60) {
-                return 'Just now';
-            } else if (diffInSeconds < 3600) {
-                const minutes = Math.floor(diffInSeconds / 60);
-                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-            } else if (diffInSeconds < 86400) {
-                const hours = Math.floor(diffInSeconds / 3600);
-                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('Current menu updated successfully!', 'success');
+                loadFoodHistory(clubId);
             } else {
-                const days = Math.floor(diffInSeconds / 86400);
-                return `${days} day${days > 1 ? 's' : ''} ago`;
+                showMessage('Error updating current menu: ' + result.error, 'error');
             }
+        } catch (error) {
+            console.error('Error setting current menu:', error);
+            showMessage('Error updating current menu: ' + error.message, 'error');
         }
-    </script>
-</body>
-</html>
+    }
+
+    // Unset current menu function
+    async function unsetCurrentMenu(clubId) {
+        try {
+            const response = await fetch('/api/food/unset-current', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    club_id: clubId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('Current menu removed successfully!', 'success');
+                loadFoodHistory(clubId);
+            } else {
+                showMessage('Error removing current menu: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error unsetting current menu:', error);
+            showMessage('Error removing current menu: ' + error.message, 'error');
+        }
+    }
+
+    // Show message function
+    function showMessage(message, type) {
+        const container = document.getElementById('messageContainer');
+        const messageDiv = document.createElement('div');
+        
+        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+        const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+        
+        messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center`;
+        messageDiv.innerHTML = `
+            <i class="${icon} mr-2"></i>
+            ${message}
+        `;
+        
+        container.appendChild(messageDiv);
+        
+        // Remove message after 5 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 5000);
+    }
+
+    // Get time ago function
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) {
+            return 'Just now';
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else {
+            const days = Math.floor(diffInSeconds / 86400);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+    }
+</script>
+{% endblock %}

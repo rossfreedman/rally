@@ -490,14 +490,17 @@ def log_request_info():
 def marketing_host_redirects():
     host = request.host.split(":")[0].lower()
     
-    # Club-specific domains always redirect to login (except for static assets)
+    # Club-specific domains always redirect to login (except for static assets and food routes)
     if host in CLUB_DOMAIN_PATTERNS:
-        # Allow static assets to be served
+        # Allow static assets and food routes to be served
         if not (request.path.startswith('/static/') or 
                 request.path.startswith('/css/') or 
                 request.path.startswith('/js/') or 
                 request.path.startswith('/images/') or
-                request.path == '/favicon.ico'):
+                request.path == '/favicon.ico' or
+                request.path == '/food' or
+                request.path == '/food-display' or
+                request.path.startswith('/api/food')):
             return redirect("/login", code=302)
     
     if host in MARKETING_HOSTS:

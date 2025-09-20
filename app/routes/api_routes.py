@@ -8425,7 +8425,14 @@ def get_home_notifications():
         except Exception as e:
             logger.error(f"Error getting pickup games notifications: {str(e)}")
         
-        # 6. My Win Streaks (priority 6)
+        # 6. Food Notifications (priority 6)
+        try:
+            food_notifications = get_food_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(food_notifications)
+        except Exception as e:
+            logger.error(f"Error getting food notifications: {str(e)}")
+        
+        # 7. My Win Streaks (priority 7)
         try:
             win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(win_streaks_notifications)
@@ -9858,7 +9865,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Great job {user_name}, you're on a {current_streak_length}-match win streak! Keep the momentum going.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
             elif best_win_streak_length >= 3:
                 # Show best season streak message
@@ -9880,7 +9887,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Your best win streak this season was {best_win_streak_length}, which ended on {date_str}.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
             else:
                 # Show no streaks message
@@ -9891,7 +9898,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"You don't have any winning streaks this season.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
         else:
             # No match data available
@@ -9902,7 +9909,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 "message": f"You don't have any winning streaks this season.",
                 "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                 "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                "priority": 6
+                "priority": 7
             })
             
     except Exception as e:
@@ -11416,7 +11423,7 @@ def get_player_matches_detail():
 
 @api_bp.route("/food", methods=["GET"])
 def get_food():
-    """Get food records for a specific club, ordered by date (most recent first)"""
+    """Get food records for a specific club, with current menu prominently displayed"""
     try:
         from app.models.database_models import Food
         
@@ -11429,9 +11436,16 @@ def get_food():
             }), 400
         
         with SessionLocal() as session:
+            # Get all food records for the club, sorted by most recent first
             food_records = session.query(Food).filter(
                 Food.club_id == club_id
-            ).order_by(Food.date.desc(), Food.created_at.desc()).all()
+            ).order_by(Food.created_at.desc()).all()
+            
+            # Find current menu (only one per club)
+            current_menu = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
             
             food_data = []
             for record in food_records:
@@ -11440,12 +11454,26 @@ def get_food():
                     "food_text": record.food_text,
                     "date": record.date.isoformat() if record.date else None,
                     "club_id": record.club_id,
+                    "is_current_menu": record.is_current_menu,
                     "created_at": record.created_at.isoformat() if record.created_at else None
                 })
             
+            # Prepare current menu data
+            current_menu_data = None
+            if current_menu:
+                current_menu_data = {
+                    "id": current_menu.id,
+                    "food_text": current_menu.food_text,
+                    "date": current_menu.date.isoformat() if current_menu.date else None,
+                    "club_id": current_menu.club_id,
+                    "is_current_menu": current_menu.is_current_menu,
+                    "created_at": current_menu.created_at.isoformat() if current_menu.created_at else None
+                }
+            
             return jsonify({
                 "success": True,
-                "food_records": food_data
+                "food_records": food_data,
+                "current_menu": current_menu_data
             })
             
     except Exception as e:
@@ -11483,6 +11511,9 @@ def save_food():
                 "error": "club_id cannot be empty"
             }), 400
         
+        # Check if this should be set as current menu
+        is_current_menu = data.get('is_current_menu', False)
+        
         # Verify club exists
         with SessionLocal() as session:
             club = session.query(Club).filter(Club.id == club_id).first()
@@ -11506,10 +11537,20 @@ def save_food():
             food_date = date.today()
         
         with SessionLocal() as session:
+            # If setting as current menu, unset any existing current menu for this club
+            if is_current_menu:
+                existing_current = session.query(Food).filter(
+                    Food.club_id == club_id,
+                    Food.is_current_menu == True
+                ).first()
+                if existing_current:
+                    existing_current.is_current_menu = False
+            
             new_food = Food(
                 food_text=food_text,
                 date=food_date,
-                club_id=club_id
+                club_id=club_id,
+                is_current_menu=is_current_menu
             )
             session.add(new_food)
             session.commit()
@@ -11522,6 +11563,7 @@ def save_food():
                     "food_text": new_food.food_text,
                     "date": new_food.date.isoformat(),
                     "club_id": new_food.club_id,
+                    "is_current_menu": new_food.is_current_menu,
                     "created_at": new_food.created_at.isoformat()
                 }
             })
@@ -11531,6 +11573,112 @@ def save_food():
         return jsonify({
             "success": False,
             "error": f"Failed to save food record: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food/set-current", methods=["POST"])
+def set_current_menu():
+    """Set a specific food record as the current menu for a club"""
+    try:
+        from app.models.database_models import Food
+        
+        data = request.get_json()
+        if not data or 'food_id' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "food_id and club_id are required"
+            }), 400
+        
+        food_id = data['food_id']
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Verify the food record exists and belongs to the club
+            food_record = session.query(Food).filter(
+                Food.id == food_id,
+                Food.club_id == club_id
+            ).first()
+            
+            if not food_record:
+                return jsonify({
+                    "success": False,
+                    "error": "Food record not found or doesn't belong to this club"
+                }), 404
+            
+            # Unset any existing current menu for this club
+            existing_current = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            if existing_current:
+                existing_current.is_current_menu = False
+            
+            # Set the specified record as current menu
+            food_record.is_current_menu = True
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current menu updated successfully",
+                "current_menu": {
+                    "id": food_record.id,
+                    "food_text": food_record.food_text,
+                    "date": food_record.date.isoformat(),
+                    "club_id": food_record.club_id,
+                    "is_current_menu": food_record.is_current_menu,
+                    "created_at": food_record.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error setting current menu: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to set current menu: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food/unset-current", methods=["POST"])
+def unset_current_menu():
+    """Unset the current menu for a club"""
+    try:
+        from app.models.database_models import Food
+        
+        data = request.get_json()
+        if not data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "club_id is required"
+            }), 400
+        
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Find and unset the current menu for this club
+            current_menu = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            
+            if not current_menu:
+                return jsonify({
+                    "success": False,
+                    "error": "No current menu found for this club"
+                }), 404
+            
+            current_menu.is_current_menu = False
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current menu unset successfully"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error unsetting current menu: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to unset current menu: {str(e)}"
         }), 500
 
 
@@ -11561,3 +11709,70 @@ def get_clubs():
             "success": False,
             "error": f"Failed to retrieve clubs: {str(e)}"
         }), 500
+
+
+def get_food_notifications(user_id, player_id, league_id, team_id):
+    """Get food notifications for the user's club"""
+    try:
+        from app.models.database_models import Food, Club, Player
+        
+        # Get user's club_id from the player record
+        club_id = None
+        with SessionLocal() as db_session:
+            if player_id:
+                # Get club_id from player record
+                player = db_session.query(Player).filter(Player.tenniscores_player_id == player_id).first()
+                if player:
+                    club_id = player.club_id
+                    logger.info(f"Found club_id {club_id} for player {player_id}")
+            
+            if not club_id and team_id:
+                # Fallback: get club_id from team
+                from app.models.database_models import Team
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if team:
+                    club_id = team.club_id
+                    logger.info(f"Found club_id {club_id} for team {team_id}")
+        
+        if not club_id:
+            logger.warning(f"No club_id found for user {user_id}, player_id: {player_id}, team_id: {team_id}")
+            return []
+        
+        with SessionLocal() as db_session:
+            # Get today's food items for the user's club
+            today = date.today()
+            food_records = db_session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.date == today
+            ).order_by(Food.created_at.desc()).all()
+            
+            if not food_records:
+                return []
+            
+            # Get the most recent food item for today
+            latest_food = food_records[0]
+            
+            # Format the date as requested (e.g., "Wednesday January 12, 2025")
+            formatted_date = latest_food.date.strftime("%A %B %d, %Y")
+            
+            # Get club name
+            club = db_session.query(Club).filter(Club.id == club_id).first()
+            club_name = club.name if club else "Your Club"
+            
+            notification = {
+                "id": f"food_{latest_food.id}",
+                "type": "food",
+                "title": f"Today's Menu at {club_name}",
+                "message": f"{latest_food.food_text} - {formatted_date}",
+                "cta": {
+                    "label": "View Full Menu",
+                    "href": f"/food-display?club_id={club_id}"
+                },
+                "priority": 6
+            }
+            
+            return [notification]
+            
+    except Exception as e:
+        logger.error(f"Error getting food notifications: {str(e)}")
+        return []
