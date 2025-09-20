@@ -4767,19 +4767,13 @@ def send_support_request():
             return jsonify({"success": False, "error": "Message is required"}), 400
         
         # Determine user email and authentication status
-        print(f"DEBUG: Session keys: {list(session.keys())}")
-        print(f"DEBUG: Session user exists: {'user' in session}")
-        
         if "user" in session:
             # Authenticated user
-            print(f"DEBUG: Authenticated user detected")
-            print(f"DEBUG: Session user data: {session['user']}")
             sender_email = session['user']['email']
             sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
             is_authenticated = True
         else:
             # Unauthenticated user
-            print(f"DEBUG: Unauthenticated user detected")
             if not user_phone:
                 return jsonify({"success": False, "error": "Phone number is required"}), 400
             sender_email = "No email provided"  # Default since we removed email requirement
@@ -4792,67 +4786,75 @@ def send_support_request():
             try:
                 from database_utils import execute_query_one
                 
-                # Get user's current team context
+                # Get user's current team context from session
                 user_data = session.get('user', {})
-                player_id = user_data.get('tenniscores_player_id')
-                league_id = user_data.get('league_id')  # This is the database league ID
-                team_id = user_data.get('team_id')
-                club = user_data.get('club')
-                series = user_data.get('series')
                 
-                # Also check for league_name which might be more useful
-                league_name = user_data.get('league_name')
-                
-                # Debug logging
-                print(f"DEBUG: User context data - player_id: {player_id}, league_id: {league_id}, team_id: {team_id}, club: {club}, series: {series}")
-                
-                # Build context string
+                # Build context string with available data
                 context_parts = []
                 
-                # Use league_name if available, otherwise lookup by league_id
+                # League information
+                league_name = user_data.get('league_name')
                 if league_name:
                     context_parts.append(f"League: {league_name}")
-                    print(f"DEBUG: Using league_name: {league_name}")
-                elif league_id:
-                    # Get league name from database
-                    league_result = execute_query_one("SELECT name FROM leagues WHERE id = %s", [league_id])
-                    if league_result:
-                        context_parts.append(f"League: {league_result['name']}")
-                        print(f"DEBUG: Found league by ID: {league_result['name']}")
-                    else:
-                        print(f"DEBUG: No league found for ID: {league_id}")
                 
+                # Club information
+                club = user_data.get('club')
                 if club:
                     context_parts.append(f"Club: {club}")
-                    print(f"DEBUG: Added club: {club}")
                 
+                # Series information
+                series = user_data.get('series')
                 if series:
                     context_parts.append(f"Series: {series}")
-                    print(f"DEBUG: Added series: {series}")
                 
-                # Use team_name if available, otherwise lookup by team_id
+                # Team information
                 team_name = user_data.get('team_name')
                 if team_name:
                     context_parts.append(f"Team: {team_name}")
-                    print(f"DEBUG: Using team_name: {team_name}")
-                elif team_id:
-                    # Get team name from database
-                    team_result = execute_query_one("SELECT name FROM teams WHERE id = %s", [team_id])
-                    if team_result:
-                        context_parts.append(f"Team: {team_result['name']}")
-                        print(f"DEBUG: Found team by ID: {team_result['name']}")
-                    else:
-                        print(f"DEBUG: No team found for ID: {team_id}")
                 
+                # Player ID
+                player_id = user_data.get('tenniscores_player_id')
                 if player_id:
                     context_parts.append(f"Player ID: {player_id}")
-                    print(f"DEBUG: Added player_id: {player_id}")
                 
+                # If we have context parts, join them
                 if context_parts:
                     user_context_info = f" | {' | '.join(context_parts)}"
-                    print(f"DEBUG: Final context info: {user_context_info}")
                 else:
-                    print("DEBUG: No context parts found")
+                    # Fallback: try to get context from database using email
+                    user_email = user_data.get('email')
+                    if user_email:
+                        # Get fresh context from database
+                        context_query = """
+                        SELECT DISTINCT ON (u.id)
+                            l.name as league_name, c.name as club, s.name as series, 
+                            t.name as team_name, p.tenniscores_player_id
+                        FROM users u
+                        LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+                        LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
+                        LEFT JOIN teams t ON p.team_id = t.id
+                        LEFT JOIN clubs c ON p.club_id = c.id
+                        LEFT JOIN series s ON p.series_id = s.id
+                        LEFT JOIN leagues l ON t.league_id = l.id
+                        WHERE u.email = %s
+                        LIMIT 1
+                        """
+                        context_result = execute_query_one(context_query, [user_email])
+                        if context_result:
+                            fallback_parts = []
+                            if context_result.get('league_name'):
+                                fallback_parts.append(f"League: {context_result['league_name']}")
+                            if context_result.get('club'):
+                                fallback_parts.append(f"Club: {context_result['club']}")
+                            if context_result.get('series'):
+                                fallback_parts.append(f"Series: {context_result['series']}")
+                            if context_result.get('team_name'):
+                                fallback_parts.append(f"Team: {context_result['team_name']}")
+                            if context_result.get('tenniscores_player_id'):
+                                fallback_parts.append(f"Player ID: {context_result['tenniscores_player_id']}")
+                            
+                            if fallback_parts:
+                                user_context_info = f" | {' | '.join(fallback_parts)}"
                 
             except Exception as e:
                 print(f"Error gathering user context: {str(e)}")
