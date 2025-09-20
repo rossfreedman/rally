@@ -1495,7 +1495,7 @@ function generateCompactHorizontalWeatherCard(forecast) {
     }
 
                 const weatherCardHtml = `
-                <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
+                <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; height: 80px !important; min-height: 80px !important; max-height: 80px !important; background-color: #797979 !important;">
                     <!-- Weather Icon -->
                     <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" style="${iconStyle}" onerror="this.style.display='none'">
                     
