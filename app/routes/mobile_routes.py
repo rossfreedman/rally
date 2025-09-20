@@ -4789,36 +4789,64 @@ def send_support_request():
                 # Get user's current team context
                 user_data = session.get('user', {})
                 player_id = user_data.get('tenniscores_player_id')
-                league_id = user_data.get('league_id')
+                league_id = user_data.get('league_id')  # This is the database league ID
                 team_id = user_data.get('team_id')
                 club = user_data.get('club')
                 series = user_data.get('series')
                 
+                # Also check for league_name which might be more useful
+                league_name = user_data.get('league_name')
+                
+                # Debug logging
+                print(f"DEBUG: User context data - player_id: {player_id}, league_id: {league_id}, team_id: {team_id}, club: {club}, series: {series}")
+                
                 # Build context string
                 context_parts = []
-                if league_id:
-                    # Get league name
+                
+                # Use league_name if available, otherwise lookup by league_id
+                if league_name:
+                    context_parts.append(f"League: {league_name}")
+                    print(f"DEBUG: Using league_name: {league_name}")
+                elif league_id:
+                    # Get league name from database
                     league_result = execute_query_one("SELECT name FROM leagues WHERE id = %s", [league_id])
                     if league_result:
                         context_parts.append(f"League: {league_result['name']}")
+                        print(f"DEBUG: Found league by ID: {league_result['name']}")
+                    else:
+                        print(f"DEBUG: No league found for ID: {league_id}")
                 
                 if club:
                     context_parts.append(f"Club: {club}")
+                    print(f"DEBUG: Added club: {club}")
                 
                 if series:
                     context_parts.append(f"Series: {series}")
+                    print(f"DEBUG: Added series: {series}")
                 
-                if team_id:
-                    # Get team name
+                # Use team_name if available, otherwise lookup by team_id
+                team_name = user_data.get('team_name')
+                if team_name:
+                    context_parts.append(f"Team: {team_name}")
+                    print(f"DEBUG: Using team_name: {team_name}")
+                elif team_id:
+                    # Get team name from database
                     team_result = execute_query_one("SELECT name FROM teams WHERE id = %s", [team_id])
                     if team_result:
                         context_parts.append(f"Team: {team_result['name']}")
+                        print(f"DEBUG: Found team by ID: {team_result['name']}")
+                    else:
+                        print(f"DEBUG: No team found for ID: {team_id}")
                 
                 if player_id:
                     context_parts.append(f"Player ID: {player_id}")
+                    print(f"DEBUG: Added player_id: {player_id}")
                 
                 if context_parts:
                     user_context_info = f" | {' | '.join(context_parts)}"
+                    print(f"DEBUG: Final context info: {user_context_info}")
+                else:
+                    print("DEBUG: No context parts found")
                 
             except Exception as e:
                 print(f"Error gathering user context: {str(e)}")
