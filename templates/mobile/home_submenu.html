@@ -1507,10 +1507,10 @@ function generateCompactHorizontalWeatherCard(forecast) {
                         </div>
                         
                         <!-- Condition and Rain on same line -->
-                        <div class="text-xs text-white capitalize flex items-center gap-1">
-                            <span>${forecast.condition}</span>
+                        <div class="text-xs text-white capitalize flex items-center gap-1 whitespace-nowrap overflow-hidden">
+                            <span class="truncate">${forecast.condition}</span>
                             ${precip > 0 ? `
-                                <span>💧 ${precip}%</span>
+                                <span class="flex-shrink-0">💧 ${precip}%</span>
                             ` : ''}
                         </div>
                     </div>
