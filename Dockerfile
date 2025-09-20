@@ -16,9 +16,13 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies with psycopg2-binary first
-RUN pip install --no-cache-dir psycopg2-binary
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip first to avoid issues
+RUN pip install --upgrade pip
+
+# Install Python dependencies with improved error handling
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --timeout=300 --retries=5 psycopg2-binary
+RUN pip install --no-cache-dir --timeout=300 --retries=5 -r requirements.txt
 
 # Copy application code
 COPY . .
