@@ -288,7 +288,8 @@ function checkAuthentication() {
         '/register', 
         '/forgot-password',
         '/mobile/lineup-escrow-opposing',
-        '/mobile/lineup-escrow-view'
+        '/mobile/lineup-escrow-view',
+        '/mobile/support'
     ];
     
     // Check if current path matches any public route

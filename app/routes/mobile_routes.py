@@ -4728,15 +4728,18 @@ def send_share_rally_mms():
 
 
 @mobile_bp.route("/mobile/support")
-@login_required
 def serve_mobile_support():
-    """Serve the mobile Support page"""
+    """Serve the mobile Support page - accessible to both authenticated and unauthenticated users"""
     try:
-        session_data = {"user": session["user"], "authenticated": True}
-
-        log_user_activity(
-            session["user"]["email"], "page_visit", page="mobile_support"
-        )
+        # Check if user is authenticated
+        if "user" in session:
+            session_data = {"user": session["user"], "authenticated": True}
+            log_user_activity(
+                session["user"]["email"], "page_visit", page="mobile_support"
+            )
+        else:
+            # For unauthenticated users, create minimal session data
+            session_data = {"user": None, "authenticated": False}
 
         return render_template("mobile/support.html", session_data=session_data)
 
@@ -4746,18 +4749,15 @@ def serve_mobile_support():
 
 
 @mobile_bp.route("/api/support", methods=["POST"])
-@login_required
 def send_support_request():
-    """Send support request SMS to admin"""
+    """Send support request SMS to admin - accessible to both authenticated and unauthenticated users"""
     try:
         from app.services.notifications_service import send_sms_notification
         
         data = request.get_json()
         user_name = data.get("user_name", "").strip()
         message = data.get("message", "").strip()
-        
-        # Get user's email from session
-        user_email = session['user']['email']
+        user_phone = data.get("user_phone", "").strip()  # For unauthenticated users
         
         # Validate required fields
         if not user_name:
@@ -4766,24 +4766,42 @@ def send_support_request():
         if not message:
             return jsonify({"success": False, "error": "Message is required"}), 400
         
+        # Determine user email and authentication status
+        if "user" in session:
+            # Authenticated user
+            sender_email = session['user']['email']
+            sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+            is_authenticated = True
+        else:
+            # Unauthenticated user
+            if not user_phone:
+                return jsonify({"success": False, "error": "Phone number is required"}), 400
+            sender_email = "No email provided"  # Default since we removed email requirement
+            sender_name = user_name
+            is_authenticated = False
+        
         # Create the support SMS content
-        sms_message = f"Rally Support Request from {user_name} ({user_email}): {message}"
+        auth_status = "Authenticated User" if is_authenticated else "Unauthenticated User"
+        phone_info = f" | Phone: {user_phone}" if user_phone else ""
+        sms_message = f"Rally Support Request from {user_name} ({sender_email}){phone_info} [{auth_status}]: {message}"
         
-        # Get sender's info for logging
-        sender_email = session['user']['email']
-        sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
-        
-        # Log the support request
-        log_user_activity(
-            sender_email, 
-            "support_request", 
-            page="mobile_support", 
-            details={
-                "user_name": user_name,
-                "email_address": user_email,
-                "message_length": len(message)
-            }
-        )
+        # Log the support request (only if we have session data for authenticated users)
+        if is_authenticated:
+            log_user_activity(
+                sender_email, 
+                "support_request", 
+                page="mobile_support", 
+                details={
+                    "user_name": user_name,
+                    "email_address": sender_email,
+                    "phone_number": user_phone,
+                    "message_length": len(message),
+                    "authenticated": True
+                }
+            )
+        else:
+            # For unauthenticated users, just log to console
+            print(f"Support request from unauthenticated user: {user_name} | Phone: {user_phone}")
         
         # Send the support SMS to admin
         result = send_sms_notification(
