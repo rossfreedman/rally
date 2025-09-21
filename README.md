@@ -36,3 +36,4 @@ Replaced complex multi-context system with a simple, unified approach:
 
 ## Architecture
 # Force deployment Sat Sep 13 17:25:58 EDT 2025
+# Trigger production deployment for Lake Forest Series 20 players
