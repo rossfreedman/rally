@@ -149,7 +149,7 @@
                                     <th class="py-1 px-1 text-left text-xs">Rank</th>
                                     <th class="py-1 px-1 text-left text-xs">Player</th>
                                     <th class="py-1 px-1 text-center text-xs">PTI</th>
-                                    <th class="py-1 px-1 text-center text-xs">Team</th>
+                                    <th class="py-1 px-1 text-left text-xs">Team</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -161,9 +161,6 @@
                                             </td>
                                             <td class="py-1 px-1">
                                                 <div class="font-medium text-xs text-gray-900">{{ player.name }}</div>
-                                                {% if player.club %}
-                                                    <div class="text-xs text-gray-500">{{ player.club }}</div>
-                                                {% endif %}
                                             </td>
                                             <td class="py-1 px-1 text-center">
                                                 <span class="px-2 py-1 text-xs font-bold rounded-full" style="
@@ -180,7 +177,7 @@
                                                     {{ "%.1f"|format(player.pti) if player.pti else "N/A" }}
                                                 </span>
                                             </td>
-                                            <td class="py-1 px-1 text-center">
+                                            <td class="py-1 px-1 text-left">
                                                 <span class="text-xs text-gray-600">{{ player.team or "N/A" }}</span>
                                             </td>
                                         </tr>
