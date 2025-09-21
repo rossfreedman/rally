@@ -1631,40 +1631,58 @@ class APTAChicagoRosterScraper:
         print(f"🚀 Starting APTA scraper with enhanced progress tracking...")
         print(f"{'='*80}")
         
-        # For targeted scraping, use dynamic discovery to find specific series
+        # For targeted scraping, use hardcoded URLs first, then dynamic discovery as fallback
         if self.target_series:
-            print("🎯 Using dynamic discovery for targeted series scraping...")
+            print("🎯 Using targeted series scraping...")
             series_urls = []
             
-            # First, discover all available series dynamically
-            print("   🔍 Discovering all available series...")
-            discovered_urls = self.discover_series_dynamically()
+            # First, try to use hardcoded URLs for known series (1-22)
+            print("   🔍 Checking hardcoded URLs for known series...")
+            hardcoded_urls = self.get_series_urls()
+            hardcoded_series_map = {name: url for name, url in hardcoded_urls}
             
-            # Filter to only include the requested series
             for series_id in self.target_series:
                 target_series_name = f"Series {series_id}"
                 found_series = False
                 
-                # Look for exact match first
-                for series_name, series_url in discovered_urls:
-                    if series_name == target_series_name:
-                        series_urls.append((series_name, series_url))
-                        print(f"   ✅ Added {series_name}")
-                        found_series = True
-                        break
-                
-                # If not found, look for SW variant
-                if not found_series:
+                # Check hardcoded URLs first
+                if target_series_name in hardcoded_series_map:
+                    series_urls.append((target_series_name, hardcoded_series_map[target_series_name]))
+                    print(f"   ✅ Added {target_series_name} from hardcoded URLs")
+                    found_series = True
+                else:
+                    # Check for SW variant in hardcoded URLs
                     sw_series_name = f"Series {series_id} SW"
+                    if sw_series_name in hardcoded_series_map:
+                        series_urls.append((sw_series_name, hardcoded_series_map[sw_series_name]))
+                        print(f"   ✅ Added {sw_series_name} from hardcoded URLs")
+                        found_series = True
+                
+                # If not found in hardcoded URLs, try dynamic discovery
+                if not found_series:
+                    print(f"   🔍 Series {series_id} not in hardcoded URLs, trying dynamic discovery...")
+                    discovered_urls = self.discover_series_dynamically()
+                    
+                    # Look for exact match
                     for series_name, series_url in discovered_urls:
-                        if series_name == sw_series_name:
+                        if series_name == target_series_name:
                             series_urls.append((series_name, series_url))
-                            print(f"   ✅ Added {series_name}")
+                            print(f"   ✅ Added {series_name} from dynamic discovery")
                             found_series = True
                             break
+                    
+                    # If still not found, look for SW variant
+                    if not found_series:
+                        sw_series_name = f"Series {series_id} SW"
+                        for series_name, series_url in discovered_urls:
+                            if series_name == sw_series_name:
+                                series_urls.append((series_name, series_url))
+                                print(f"   ✅ Added {series_name} from dynamic discovery")
+                                found_series = True
+                                break
                 
                 if not found_series:
-                    print(f"   ⚠️ Series {series_id} not found in discovered series")
+                    print(f"   ⚠️ Series {series_id} not found in hardcoded URLs or dynamic discovery")
             
             print(f"   📋 Total target series: {len(series_urls)}")
         else:
