@@ -4141,6 +4141,65 @@ def get_mobile_team_data(user):
         }
 
 
+def get_series_analysis_data(user):
+    """Get series analysis data showing all teams in the user's series ranked by total PTI"""
+    try:
+        # Get user's series and league info
+        series_id = user.get("series_id")
+        league_id = user.get("league_id")
+        
+        if not series_id or not league_id:
+            return {"error": "Missing series or league information"}
+        
+        # Convert league_id to integer if it's a string
+        league_id_int = int(league_id) if isinstance(league_id, str) else league_id
+        
+        # Get all teams in the user's series with their PTI data
+        teams_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                t.display_name,
+                c.name as club_name,
+                COUNT(p.id) as player_count,
+                AVG(COALESCE(p.pti, 0)) as avg_pti
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
+            WHERE t.series_id = %s AND t.league_id = %s AND t.is_active = true
+            GROUP BY t.id, t.team_name, t.display_name, c.name
+            HAVING COUNT(p.id) > 0  -- Only include teams with active players
+            ORDER BY avg_pti DESC
+        """
+        
+        teams_result = execute_query(teams_query, [series_id, league_id_int])
+        
+        if not teams_result:
+            return {"error": "No teams found in this series"}
+        
+        # Format the results
+        teams_analysis = []
+        for i, team in enumerate(teams_result, 1):
+            teams_analysis.append({
+                "rank": i,
+                "team_id": team["team_id"],
+                "team_name": team["display_name"] or team["team_name"],
+                "club_name": team["club_name"],
+                "player_count": team["player_count"],
+                "avg_pti": round(float(team["avg_pti"]), 1)
+            })
+        
+        return {
+            "teams_analysis": teams_analysis,
+            "total_teams": len(teams_analysis),
+            "success": True
+        }
+        
+    except Exception as e:
+        print(f"Error getting series analysis data: {str(e)}")
+        return {"error": str(e)}
+
+
 def get_mobile_series_data(user):
     """Get series data for mobile my series page"""
     try:
@@ -4150,6 +4209,12 @@ def get_mobile_series_data(user):
 
         # Calculate comprehensive Strength of Schedule data
         sos_data = calculate_strength_of_schedule(user)
+        
+        # Get series analysis data
+        series_analysis = get_series_analysis_data(user)
+        
+        # Get series player ratings
+        series_ratings = get_series_player_ratings(user)
 
         return {
             "user_series": user_series,
@@ -4172,10 +4237,116 @@ def get_mobile_series_data(user):
             "sos_total_teams": sos_data.get("total_teams"),
             "sos_user_team_name": sos_data.get("user_team_name"),
             "sos_error": sos_data.get("error"),
+            # Series analysis data
+            "series_analysis_teams": series_analysis.get("teams_analysis", []),
+            "series_analysis_total_teams": series_analysis.get("total_teams", 0),
+            "series_analysis_error": series_analysis.get("error"),
+            # Series player ratings data
+            "series_player_ratings": series_ratings.get("series_player_ratings", []),
+            "series_ratings_error": series_ratings.get("error"),
         }
     except Exception as e:
         print(f"Error getting mobile series data: {str(e)}")
         return {"error": str(e)}
+
+
+def get_series_player_ratings(user):
+    """Get all players in user's series ranked by PTI (low to high)"""
+    try:
+        from database_utils import execute_query
+        
+        # Get user's series and league information
+        user_series = user.get("series", "")
+        user_league_id = user.get("league_id", "")
+        user_league_context = user.get("league_context")  # This should be the integer DB ID
+
+        print(f"[DEBUG] get_series_player_ratings called with user: {user}")
+        print(f"[DEBUG] series: '{user_series}', league_id: '{user_league_id}', league_context: '{user_league_context}'")
+
+        if not user_series:
+            print(f"[DEBUG] No series name found, returning error")
+            return {
+                "series_player_ratings": [],
+                "error": "User series not found"
+            }
+
+        # Get the correct league database ID
+        user_league_db_id = None
+        
+        # First try league_context (should be integer DB ID)
+        if user_league_context:
+            try:
+                user_league_db_id = int(user_league_context)
+                print(f"Using league_context as DB ID: {user_league_db_id}")
+            except (ValueError, TypeError):
+                print(f"league_context is not a valid integer: {user_league_context}")
+
+        # Fallback: convert string league_id to DB ID
+        if not user_league_db_id and user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+                    print(f"Converted league_id '{user_league_id}' to DB ID: {user_league_db_id}")
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+
+        if not user_league_db_id:
+            print(f"[DEBUG] Could not determine league DB ID, returning error")
+            return {
+                "series_player_ratings": [],
+                "error": "Could not determine user's league"
+            }
+
+        # Query to get all players in the user's series, ranked by PTI (low to high)
+        series_ratings_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti,
+                s.name as series_name,
+                t.team_name,
+                c.name as club_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN teams t ON p.team_id = t.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            WHERE s.name = %s
+            AND p.league_id = %s
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.pti ASC
+        """
+        
+        print(f"[DEBUG] Executing series ratings query for series: '{user_series}', league_id: {user_league_db_id}")
+        series_players = execute_query(series_ratings_query, [user_series, user_league_db_id])
+        
+        print(f"[DEBUG] Found {len(series_players)} players in series '{user_series}'")
+        
+        # Format the results
+        formatted_ratings = []
+        for player in series_players:
+            formatted_ratings.append({
+                "name": f"{player['first_name']} {player['last_name']}",
+                "pti": float(player['pti']) if player['pti'] is not None else None,
+                "series": player['series_name'],
+                "team": player['team_name'],
+                "club": player['club_name']
+            })
+        
+        return {
+            "series_player_ratings": formatted_ratings,
+            "series_name": user_series
+        }
+
+    except Exception as e:
+        print(f"Error getting series player ratings: {str(e)}")
+        return {
+            "series_player_ratings": [],
+            "error": str(e)
+        }
 
 
 def get_teams_players_data(user, team_id=None):
