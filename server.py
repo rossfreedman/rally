@@ -492,7 +492,7 @@ def marketing_host_redirects():
     
     # Club-specific domains always redirect to login (except for static assets and food routes)
     if host in CLUB_DOMAIN_PATTERNS:
-        # Allow static assets and food routes to be served
+        # Allow static assets, food routes, and beer routes to be served
         if not (request.path.startswith('/static/') or 
                 request.path.startswith('/css/') or 
                 request.path.startswith('/js/') or 
@@ -500,7 +500,10 @@ def marketing_host_redirects():
                 request.path == '/favicon.ico' or
                 request.path == '/food' or
                 request.path == '/food-display' or
-                request.path.startswith('/api/food')):
+                request.path.startswith('/api/food') or
+                request.path == '/beer' or
+                request.path == '/beer-display' or
+                request.path.startswith('/api/beer')):
             return redirect("/login", code=302)
     
     if host in MARKETING_HOSTS:
@@ -753,6 +756,18 @@ def serve_food_page():
 def serve_food_display_page():
     """Serve the food display page for users (no authentication required)"""
     return render_template("food_display.html")
+
+
+@app.route("/beer")
+def serve_beer_page():
+    """Serve the beer input page for club (no authentication required)"""
+    return render_template("beer.html")
+
+
+@app.route("/beer-display")
+def serve_beer_display_page():
+    """Serve the beer display page for users (no authentication required)"""
+    return render_template("beer_display.html")
 
 
 @app.route("/pro")

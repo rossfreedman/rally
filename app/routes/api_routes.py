@@ -8432,7 +8432,14 @@ def get_home_notifications():
         except Exception as e:
             logger.error(f"Error getting food notifications: {str(e)}")
         
-        # 7. My Win Streaks (priority 7)
+        # 7. Beer Notifications (priority 7)
+        try:
+            beer_notifications = get_beer_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(beer_notifications)
+        except Exception as e:
+            logger.error(f"Error getting beer notifications: {str(e)}")
+        
+        # 8. My Win Streaks (priority 8)
         try:
             win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(win_streaks_notifications)
@@ -11861,21 +11868,17 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
             return []
         
         with SessionLocal() as db_session:
-            # Get today's food items for the user's club
-            today = date.today()
-            food_records = db_session.query(Food).filter(
+            # Get the current menu for the user's club (persistent, not date-based)
+            current_menu = db_session.query(Food).filter(
                 Food.club_id == club_id,
-                Food.date == today
-            ).order_by(Food.created_at.desc()).all()
+                Food.is_current_menu == True
+            ).first()
             
-            if not food_records:
+            if not current_menu:
                 return []
             
-            # Get the most recent food item for today
-            latest_food = food_records[0]
-            
-            # Format the date as requested (e.g., "Wednesday January 12, 2025")
-            formatted_date = latest_food.date.strftime("%A %B %d, %Y")
+            # Use the current menu item
+            latest_food = current_menu
             
             # Get club name
             club = db_session.query(Club).filter(Club.id == club_id).first()
@@ -11884,8 +11887,8 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
             notification = {
                 "id": f"food_{latest_food.id}",
                 "type": "food",
-                "title": f"Today's Menu at {club_name}",
-                "message": f"{latest_food.food_text} - {formatted_date}",
+                "title": f"What's cook'in at {club_name}",
+                "message": latest_food.food_text,
                 "cta": {
                     "label": "View Full Menu",
                     "href": f"/food-display?club_id={club_id}"
@@ -11897,4 +11900,328 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
             
     except Exception as e:
         logger.error(f"Error getting food notifications: {str(e)}")
+        return []
+
+
+# ==============================
+# Beer API Routes
+# ==============================
+
+@api_bp.route("/beer", methods=["GET"])
+def get_beer():
+    """Get beer records for a specific club, with current beer prominently displayed"""
+    try:
+        from app.models.database_models import Beer
+        
+        # Get club_id from query parameter
+        club_id = request.args.get('club_id', type=int)
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id parameter is required"
+            }), 400
+        
+        with SessionLocal() as session:
+            # Get all beer records for the club, sorted by most recent first
+            beer_records = session.query(Beer).filter(
+                Beer.club_id == club_id
+            ).order_by(Beer.created_at.desc()).all()
+            
+            # Find current beer (only one per club)
+            current_beer = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            beer_data = []
+            for record in beer_records:
+                beer_data.append({
+                    "id": record.id,
+                    "beer_text": record.beer_text,
+                    "date": record.date.isoformat() if record.date else None,
+                    "club_id": record.club_id,
+                    "is_current_beer": record.is_current_beer,
+                    "created_at": record.created_at.isoformat() if record.created_at else None
+                })
+            
+            # Prepare current beer data
+            current_beer_data = None
+            if current_beer:
+                current_beer_data = {
+                    "id": current_beer.id,
+                    "beer_text": current_beer.beer_text,
+                    "date": current_beer.date.isoformat() if current_beer.date else None,
+                    "club_id": current_beer.club_id,
+                    "is_current_beer": current_beer.is_current_beer,
+                    "created_at": current_beer.created_at.isoformat() if current_beer.created_at else None
+                }
+            
+            return jsonify({
+                "success": True,
+                "beer_records": beer_data,
+                "current_beer": current_beer_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting beer records: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve beer records: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer", methods=["POST"])
+def save_beer():
+    """Save a new beer record (club input - no authentication required)"""
+    try:
+        from app.models.database_models import Beer, Club
+        
+        data = request.get_json()
+        if not data or 'beer_text' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "beer_text and club_id are required"
+            }), 400
+        
+        beer_text = data['beer_text'].strip()
+        if not beer_text:
+            return jsonify({
+                "success": False,
+                "error": "beer_text cannot be empty"
+            }), 400
+        
+        club_id = data['club_id']
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id cannot be empty"
+            }), 400
+        
+        # Check if this should be set as current beer
+        is_current_beer = data.get('is_current_beer', False)
+        
+        # Verify club exists
+        with SessionLocal() as session:
+            club = session.query(Club).filter(Club.id == club_id).first()
+            if not club:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid club_id - club not found"
+                }), 400
+        
+        # Get date from request or use today's date
+        beer_date = data.get('date')
+        if beer_date:
+            try:
+                beer_date = datetime.strptime(beer_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid date format. Use YYYY-MM-DD"
+                }), 400
+        else:
+            beer_date = date.today()
+        
+        with SessionLocal() as session:
+            # If setting as current beer, unset any existing current beer for this club
+            if is_current_beer:
+                existing_current = session.query(Beer).filter(
+                    Beer.club_id == club_id,
+                    Beer.is_current_beer == True
+                ).first()
+                if existing_current:
+                    existing_current.is_current_beer = False
+            
+            new_beer = Beer(
+                beer_text=beer_text,
+                date=beer_date,
+                club_id=club_id,
+                is_current_beer=is_current_beer
+            )
+            session.add(new_beer)
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Beer record saved successfully",
+                "beer_record": {
+                    "id": new_beer.id,
+                    "beer_text": new_beer.beer_text,
+                    "date": new_beer.date.isoformat(),
+                    "club_id": new_beer.club_id,
+                    "is_current_beer": new_beer.is_current_beer,
+                    "created_at": new_beer.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error saving beer record: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to save beer record: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer/set-current", methods=["POST"])
+def set_current_beer():
+    """Set a specific beer record as the current beer for a club"""
+    try:
+        from app.models.database_models import Beer
+        
+        data = request.get_json()
+        if not data or 'beer_id' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "beer_id and club_id are required"
+            }), 400
+        
+        beer_id = data['beer_id']
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Verify the beer record exists and belongs to the club
+            beer_record = session.query(Beer).filter(
+                Beer.id == beer_id,
+                Beer.club_id == club_id
+            ).first()
+            
+            if not beer_record:
+                return jsonify({
+                    "success": False,
+                    "error": "Beer record not found or doesn't belong to this club"
+                }), 404
+            
+            # Unset any existing current beer for this club
+            existing_current = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            if existing_current:
+                existing_current.is_current_beer = False
+            
+            # Set the specified record as current beer
+            beer_record.is_current_beer = True
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current beer updated successfully",
+                "current_beer": {
+                    "id": beer_record.id,
+                    "beer_text": beer_record.beer_text,
+                    "date": beer_record.date.isoformat(),
+                    "club_id": beer_record.club_id,
+                    "is_current_beer": beer_record.is_current_beer,
+                    "created_at": beer_record.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error setting current beer: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to set current beer: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer/unset-current", methods=["POST"])
+def unset_current_beer():
+    """Unset the current beer for a club"""
+    try:
+        from app.models.database_models import Beer
+        
+        data = request.get_json()
+        if not data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "club_id is required"
+            }), 400
+        
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Find and unset the current beer for this club
+            current_beer = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            if not current_beer:
+                return jsonify({
+                    "success": False,
+                    "error": "No current beer found for this club"
+                }), 404
+            
+            current_beer.is_current_beer = False
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current beer unset successfully"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error unsetting current beer: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to unset current beer: {str(e)}"
+        }), 500
+
+
+def get_beer_notifications(user_id, player_id, league_id, team_id):
+    """Get beer notifications for the user's club"""
+    try:
+        from app.models.database_models import Beer, Club, Player
+        
+        # Get user's club_id from the player record
+        club_id = None
+        with SessionLocal() as db_session:
+            if player_id:
+                # Get club_id from player record
+                player = db_session.query(Player).filter(Player.tenniscores_player_id == player_id).first()
+                if player:
+                    club_id = player.club_id
+                    logger.info(f"Found club_id {club_id} for player {player_id}")
+            
+            if not club_id and team_id:
+                # Fallback: get club_id from team
+                from app.models.database_models import Team
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if team:
+                    club_id = team.club_id
+                    logger.info(f"Found club_id {club_id} for team {team_id}")
+        
+        if not club_id:
+            logger.warning(f"No club_id found for user {user_id}, player_id: {player_id}, team_id: {team_id}")
+            return []
+        
+        with SessionLocal() as db_session:
+            # Get the current beer for the user's club (persistent, not date-based)
+            current_beer = db_session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            if not current_beer:
+                return []
+            
+            # Use the current beer item
+            latest_beer = current_beer
+            
+            # Get club name
+            club = db_session.query(Club).filter(Club.id == club_id).first()
+            club_name = club.name if club else "Your Club"
+            
+            notification = {
+                "id": f"beer_{latest_beer.id}",
+                "type": "beer",
+                "title": f"What's on tap at {club_name}",
+                "message": latest_beer.beer_text,
+                "priority": 6
+            }
+            
+            return [notification]
+            
+    except Exception as e:
+        logger.error(f"Error getting beer notifications: {str(e)}")
         return []
