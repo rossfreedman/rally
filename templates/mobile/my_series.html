@@ -166,12 +166,17 @@
                                                 {% endif %}
                                             </td>
                                             <td class="py-1 px-1 text-center">
-                                                <span class="px-2 py-1 text-xs font-bold rounded-full 
-                                                    {% if player.pti <= 20 %}bg-green-200 text-green-900 border border-green-400
-                                                    {% elif player.pti <= 40 %}bg-green-100 text-green-800 border border-green-300
-                                                    {% elif player.pti <= 60 %}bg-yellow-100 text-yellow-800 border border-yellow-300
-                                                    {% elif player.pti <= 80 %}bg-orange-100 text-orange-800 border border-orange-300
-                                                    {% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
+                                                <span class="px-2 py-1 text-xs font-bold rounded-full" style="
+                                                    {% if player.pti <= 10 %}background-color: #ef4444; color: white; border: 2px solid #dc2626;
+                                                    {% elif player.pti <= 20 %}background-color: #f97316; color: white; border: 2px solid #ea580c;
+                                                    {% elif player.pti <= 30 %}background-color: #eab308; color: white; border: 2px solid #ca8a04;
+                                                    {% elif player.pti <= 40 %}background-color: #10b981; color: white; border: 2px solid #059669;
+                                                    {% elif player.pti <= 50 %}background-color: #3b82f6; color: white; border: 2px solid #2563eb;
+                                                    {% elif player.pti <= 60 %}background-color: #6366f1; color: white; border: 2px solid #4f46e5;
+                                                    {% elif player.pti <= 70 %}background-color: #8b5cf6; color: white; border: 2px solid #7c3aed;
+                                                    {% elif player.pti <= 80 %}background-color: #a855f7; color: white; border: 2px solid #9333ea;
+                                                    {% elif player.pti <= 90 %}background-color: #ec4899; color: white; border: 2px solid #db2777;
+                                                    {% else %}background-color: #f43f5e; color: white; border: 2px solid #e11d48;{% endif %}">
                                                     {{ "%.1f"|format(player.pti) if player.pti else "N/A" }}
                                                 </span>
                                             </td>
@@ -194,13 +199,18 @@
                     
                     <!-- Legend -->
                     <div class="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <div class="text-xs text-gray-600 mb-2 font-medium">PTI Rating Legend (Lower = Better):</div>
-                        <div class="flex flex-wrap gap-2 text-xs">
-                            <span class="px-2 py-1 rounded-full bg-green-200 text-green-900 border border-green-400">0-20</span>
-                            <span class="px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-300">21-40</span>
-                            <span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">41-60</span>
-                            <span class="px-2 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-300">61-80</span>
-                            <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-300">81+</span>
+                        <div class="text-xs text-gray-600 mb-2 font-medium">PTI Rating Legend:</div>
+                        <div class="grid grid-cols-5 gap-2 text-xs">
+                            <span class="px-2 py-1 rounded-full" style="background-color: #ef4444; color: white; border: 2px solid #dc2626;">0-10</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #f97316; color: white; border: 2px solid #ea580c;">11-20</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #eab308; color: white; border: 2px solid #ca8a04;">21-30</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #10b981; color: white; border: 2px solid #059669;">31-40</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #3b82f6; color: white; border: 2px solid #2563eb;">41-50</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #6366f1; color: white; border: 2px solid #4f46e5;">51-60</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #8b5cf6; color: white; border: 2px solid #7c3aed;">61-70</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #a855f7; color: white; border: 2px solid #9333ea;">71-80</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #ec4899; color: white; border: 2px solid #db2777;">81-90</span>
+                            <span class="px-2 py-1 rounded-full" style="background-color: #f43f5e; color: white; border: 2px solid #e11d48;">91+</span>
                         </div>
                     </div>
                 </div>
