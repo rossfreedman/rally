@@ -671,6 +671,8 @@ async function fetchPTIDataForPlayers(playerNames) {
     // Fetch PTI data for each player
     for (const playerName of playerNames) {
         try {
+            // For now, continue using name-based lookup until we update the lineup creation
+            // TODO: Update lineup creation to store player IDs for accurate PTI lookup
             const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
             const data = await response.json();
             

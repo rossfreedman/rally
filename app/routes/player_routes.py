@@ -651,6 +651,97 @@ def get_player_history():
         return jsonify({"error": str(e)}), 500
 
 
+@player_bp.route("/api/player-history-by-id/<player_id>")
+@login_required
+def get_player_history_by_id(player_id):
+    """Get history for a specific player by player ID - FIXED: Uses player ID for accurate lookup"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Get user's league context
+        user_data = session.get("user", {})
+        league_id = user_data.get("league_id")
+        league_id_int = int(league_id) if league_id else None
+
+        # Search for player by tenniscores_player_id in database
+        if league_id_int:
+            player_search_query = """
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE p.tenniscores_player_id = %s AND p.league_id = %s
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [player_id, league_id_int])
+        else:
+            # Fallback without league filter
+            player_search_query = """
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE p.tenniscores_player_id = %s
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [player_id])
+
+        if not player_data:
+            return (
+                jsonify({"error": f"No history found for player ID: {player_id}"}),
+                404,
+            )
+
+        player_db_id = player_data["id"]
+
+        # Get PTI history from player_history table
+        pti_history_query = """
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        """
+
+        pti_records = execute_query(pti_history_query, [player_db_id])
+
+        # Get current PTI - handle None values properly
+        current_pti = player_data.get("pti")
+        if current_pti is None:
+            # If no current PTI, get the most recent from history
+            if pti_records:
+                current_pti = pti_records[-1]["end_pti"]
+            else:
+                current_pti = 0.0
+
+        # Format response
+        response_data = {
+            "player_id": player_data["tenniscores_player_id"],
+            "name": f"{player_data['first_name']} {player_data['last_name']}",
+            "current_pti": float(current_pti),
+            "history_count": player_data.get("history_count", 0),
+            "matches": []
+        }
+
+        # Add PTI history
+        for record in pti_records:
+            response_data["matches"].append({
+                "date": record["formatted_date"],
+                "end_pti": float(record["end_pti"]),
+                "series": record["series"]
+            })
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"Error getting player history by ID: {str(e)}")
+        return jsonify({"error": "Failed to get player history"}), 500
+
+
 @player_bp.route("/api/player-history/<player_name>")
 @login_required
 def get_specific_player_history(player_name):
@@ -684,19 +775,37 @@ def get_specific_player_history(player_name):
         first_name = name_parts[0]
         last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
 
-        # Search for player in database, prioritizing the one with PTI history
+        # Search for player in database, prioritizing current team context
+        user_team_id = session["user"].get("team_id")
+        
         if league_id_int:
-            player_search_query = """
-                SELECT 
-                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
-                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-                FROM players p
-                WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
-                AND p.league_id = %s
-                ORDER BY history_count DESC, p.id DESC
-                LIMIT 1
-            """
-            player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
+            if user_team_id:
+                # Prioritize player from current team first
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count,
+                        CASE WHEN p.team_id = %s THEN 1 ELSE 0 END as is_current_team
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY is_current_team DESC, history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [user_team_id, first_name, last_name, league_id_int])
+            else:
+                # Fallback: prioritize by PTI history
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
         else:
             # Fallback without league filter
             player_search_query = """

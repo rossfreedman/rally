@@ -892,9 +892,12 @@ function renderPlayersForManual() {
     
     playerDiv.className = playerCardClasses;
     playerDiv.dataset.playerName = player.name;
+    playerDiv.dataset.playerId = player.player_id || player.tenniscores_player_id; // Store player ID for accurate PTI lookup
     playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
     playerDiv.dataset.playerType = playerType;
     playerDiv.dataset.isSubstitute = isSubstitute; // Store substitute flag
+    
+    // Player ID is now correctly captured for accurate PTI lookup
     
     // Set background color based on player type
     playerDiv.style.backgroundColor = typeColor;
@@ -1062,8 +1065,12 @@ function handleTouchEnd(e) {
       
       // Update manual lineup data
       if (!manualLineup[court]) manualLineup[court] = {};
+      
+      // Player ID is now correctly captured for accurate PTI lookup
+      
       manualLineup[court][position] = {
         name: playerName,
+        player_id: touchedPlayer.dataset.playerId, // Capture player ID for accurate PTI lookup
         rating: touchedPlayer.dataset.playerRating
       };
       
@@ -1153,8 +1160,12 @@ function handleDrop(e) {
     
     // Update manual lineup data
     if (!manualLineup[court]) manualLineup[court] = {};
+    
+    // Player ID is now correctly captured for accurate PTI lookup
+    
     manualLineup[court][position] = {
       name: playerName,
+      player_id: draggedPlayer.dataset.playerId, // Capture player ID for accurate PTI lookup
       rating: draggedPlayer.dataset.playerRating
     };
     
@@ -1258,6 +1269,7 @@ function updateManualLineupSummary() {
       const p1PTI = parseFloat(player1.rating || 0);
       const p2PTI = parseFloat(player2.rating || 0);
       
+      // Display player names and PTI (player IDs are stored for backend PTI lookup but not shown in UI)
       lineupText += `  ${player1.name} (${p1PTI})<br>  ${player2.name} (${p2PTI})<br>`;
     } else if (player1) {
       const p1PTI = parseFloat(player1.rating || 0);
@@ -1395,6 +1407,13 @@ async function saveEditedLineup(lineupText) {
     sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving Changes...';
     sendButton.disabled = true;
     
+    // Create enhanced lineup data with player IDs for accurate PTI lookup
+    const enhancedLineupData = {
+      display_text: lineupText,
+      player_data: manualLineup, // Contains player IDs for accurate PTI lookup
+      version: '2.0' // Version to distinguish from old format
+    };
+    
     // Update the lineup in the database
     const response = await fetch('/api/saved-lineups', {
       method: 'PUT',
@@ -1404,7 +1423,7 @@ async function saveEditedLineup(lineupText) {
       body: JSON.stringify({
         lineup_id: parseInt(editLineupId),
         lineup_name: editLineupName,
-        lineup_data: lineupText,
+        lineup_data: JSON.stringify(enhancedLineupData), // Store as JSON string
         team_id: teamId
       })
     });
@@ -1568,6 +1587,7 @@ function handleCourtPositionTap(e) {
     if (!manualLineup[court]) manualLineup[court] = {};
     manualLineup[court][position] = {
       name: selectedPlayerForTap,
+      player_id: selectedPlayerElement.dataset.playerId, // Store player ID for accurate PTI lookup
       rating: selectedPlayerElement.dataset.playerRating
     };
     
@@ -1747,6 +1767,14 @@ async function saveCurrentLineup(e) {
         messageDiv.classList.remove('hidden');
         return;
     }
+    
+    // Create enhanced lineup data with player IDs for accurate PTI lookup
+    const enhancedLineupData = {
+        display_text: lineupText,
+        player_data: manualLineup, // Contains player IDs for accurate PTI lookup
+        version: '2.0' // Version to distinguish from old format
+    };
+    
     try {
         const res = await fetch('/api/saved-lineups', {
             method: 'POST',
@@ -1754,7 +1782,7 @@ async function saveCurrentLineup(e) {
             body: JSON.stringify({
                 team_id: teamId,
                 lineup_name: name,
-                lineup_data: lineupText
+                lineup_data: JSON.stringify(enhancedLineupData) // Store as JSON string
             })
         });
         const data = await res.json();

@@ -199,8 +199,33 @@ function createLineupCard(lineup) {
 function parseLineupData(lineupData) {
     const courts = [];
     
+    // Check if this is the new enhanced format (JSON with player IDs)
+    let enhancedData = null;
+    let displayText = lineupData;
+    
+    // Debug logging to see what format we're dealing with
+    console.log('🔧 Parsing lineup data:', lineupData.substring(0, 100) + '...');
+    
+    try {
+        enhancedData = JSON.parse(lineupData);
+        console.log('🔧 Parsed JSON successfully:', enhancedData);
+        if (enhancedData.version === '2.0' && enhancedData.display_text) {
+            displayText = enhancedData.display_text;
+            console.log('🔧 Using enhanced lineup format with player IDs');
+            console.log('🔧 Player data available:', enhancedData.player_data);
+        } else {
+            // Not the enhanced format, use as plain text
+            console.log('🔧 Not enhanced format, using as plain text');
+            enhancedData = null;
+        }
+    } catch (e) {
+        // Not JSON, use as plain text (old format)
+        console.log('🔧 Not JSON format, using as plain text (old format)');
+        enhancedData = null;
+    }
+    
     // Normalize the text by converting <br> tags to newlines and decoding HTML entities
-    let normalizedText = lineupData.replace(/<br\s*\/?>/gi, '\n');
+    let normalizedText = displayText.replace(/<br\s*\/?>/gi, '\n');
     normalizedText = normalizedText.replace(/&amp;/g, '&');
     normalizedText = normalizedText.replace(/&lt;/g, '<');
     normalizedText = normalizedText.replace(/&gt;/g, '>');
@@ -230,13 +255,41 @@ function parseLineupData(lineupData) {
             currentCourt = parseInt(courtMatch[1], 10);
             currentPlayers = [];
         } else if (trimmedLine && currentCourt) {
-            // This is a player name under the current court
-            const playerName = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
-            if (playerName && !playerName.includes('[Need Partner]')) {
-                // Extract just the player name, removing PTI values in parentheses
-                const cleanPlayerName = playerName.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
+            // This is a player line under the current court
+            const playerLine = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
+            
+            // Skip PTI summary lines like "(Avg PTI: 53.6, Total PTI: 107.2)"
+            if (playerLine.match(/^\(Avg PTI:/) || playerLine.match(/^\(Total PTI:/)) {
+                console.log(`🔧 Skipping PTI summary line: ${playerLine}`);
+                return; // Skip this line
+            }
+            
+            if (playerLine && !playerLine.includes('[Need Partner]')) {
+                // Extract just the player name (PTI values are in parentheses)
+                const cleanPlayerName = playerLine.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
                 if (cleanPlayerName) {
-                    currentPlayers.push(cleanPlayerName);
+                    // Try to find player ID from enhanced data
+                    let playerId = null;
+                    if (enhancedData && enhancedData.player_data && enhancedData.player_data[currentCourt]) {
+                        const courtData = enhancedData.player_data[currentCourt];
+                        console.log(`🔧 Looking for player ID for ${cleanPlayerName} in court ${currentCourt}:`, courtData);
+                        if (courtData['1'] && courtData['1'].name === cleanPlayerName) {
+                            playerId = courtData['1'].player_id;
+                            console.log(`🔧 Found player ID for ${cleanPlayerName}: ${playerId}`);
+                        } else if (courtData['2'] && courtData['2'].name === cleanPlayerName) {
+                            playerId = courtData['2'].player_id;
+                            console.log(`🔧 Found player ID for ${cleanPlayerName}: ${playerId}`);
+                        } else {
+                            console.log(`🔧 No player ID found for ${cleanPlayerName} in court ${currentCourt}`);
+                        }
+                    } else {
+                        console.log(`🔧 No enhanced data or court data for ${cleanPlayerName} in court ${currentCourt}`);
+                    }
+                    
+                    currentPlayers.push({
+                        name: cleanPlayerName,
+                        player_id: playerId
+                    });
                 }
             }
         }
@@ -262,11 +315,16 @@ async function loadPTIDataForLineup(lineupId, courts) {
             return;
         }
         
-        // Get all unique player names from all courts
+        // Get all unique players from all courts
         const allPlayers = [];
         courts.forEach(court => {
             court.players.forEach(player => {
-                if (!allPlayers.includes(player)) {
+                // Check if we already have this player (by name or ID)
+                const existingPlayer = allPlayers.find(p => 
+                    p.name === player.name || 
+                    (player.player_id && p.player_id === player.player_id)
+                );
+                if (!existingPlayer) {
                     allPlayers.push(player);
                 }
             });
@@ -292,23 +350,40 @@ async function loadPTIDataForLineup(lineupId, courts) {
     }
 }
 
-async function fetchPTIDataForPlayers(playerNames) {
+async function fetchPTIDataForPlayers(players) {
     const ptiData = {};
     
     // Fetch PTI data for each player
-    for (const playerName of playerNames) {
+    for (const player of players) {
         try {
-            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            let response;
+            let playerKey;
+            
+            if (player.player_id) {
+                // Use player ID-based lookup for accurate PTI data
+                console.log(`🔧 Fetching PTI for ${player.name} using player ID: ${player.player_id}`);
+                response = await fetch(`/api/player-history-by-id/${encodeURIComponent(player.player_id)}`);
+                playerKey = player.player_id;
+            } else {
+                // Fallback to name-based lookup for old lineups
+                console.log(`🔧 Fetching PTI for ${player.name} using name-based lookup (no player ID)`);
+                response = await fetch(`/api/player-history/${encodeURIComponent(player.name)}`);
+                playerKey = player.name;
+            }
+            
             const data = await response.json();
+            console.log(`🔧 PTI response for ${player.name}:`, data);
             
             if (data && data.current_pti !== undefined) {
-                ptiData[playerName] = data.current_pti;
+                ptiData[playerKey] = data.current_pti;
+                console.log(`🔧 Set PTI for ${player.name}: ${data.current_pti}`);
             } else {
-                ptiData[playerName] = null; // No PTI data available
+                ptiData[playerKey] = null; // No PTI data available
+                console.log(`🔧 No PTI data for ${player.name}`);
             }
         } catch (error) {
-            console.error(`Error fetching PTI for ${playerName}:`, error);
-            ptiData[playerName] = null;
+            console.error(`Error fetching PTI for ${player.name || player.player_id}:`, error);
+            ptiData[player.player_id || player.name] = null;
         }
     }
     
@@ -335,13 +410,14 @@ function displayLineupWithPTI(lineupId, courts, ptiData) {
         let playerPTIs = [];
         
         players.forEach(player => {
-            const pti = ptiData[player];
+            const playerKey = player.player_id || player.name;
+            const pti = ptiData[playerKey];
             if (pti !== null && pti !== undefined) {
                 combinedPTI += pti;
                 ptiCount++;
-                playerPTIs.push(`${player} (${pti})`);
+                playerPTIs.push(`${player.name} (${pti})`);
             } else {
-                playerPTIs.push(`${player}`);
+                playerPTIs.push(`${player.name}`);
             }
         });
         
