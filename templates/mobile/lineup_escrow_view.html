@@ -647,14 +647,19 @@ async function processLineupContainer(lineupContainer) {
                 const totalPTIFormatted = totalPTI.toFixed(1);
                 courtHeader.innerHTML = `${courtText}<br><span class="text-sm text-gray-600">(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})</span>`;
             } else {
-                courtHeader.innerHTML = `${courtText}<br><span class="text-sm text-gray-600">(Avg PTI: --, Total PTI: --)</span>`;
+                // Don't show PTI information if no players have PTI data
+                courtHeader.innerHTML = courtText;
             }
             
             // Update player divs with PTI scores
             playerNames.forEach((playerName, index) => {
                 const pti = ptiData[playerName];
-                const ptiDisplay = pti !== null && pti !== undefined ? pti.toFixed(1) : '--';
-                playerDivs[index].innerHTML = `${playerName} (${ptiDisplay})`;
+                if (pti !== null && pti !== undefined) {
+                    playerDivs[index].innerHTML = `${playerName} (${pti.toFixed(1)})`;
+                } else {
+                    // Just show player name without PTI if no data available
+                    playerDivs[index].innerHTML = playerName;
+                }
             });
         }
     }

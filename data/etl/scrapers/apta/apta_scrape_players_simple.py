@@ -160,11 +160,110 @@ class APTAChicagoSimpleScraper:
             print(f"⚠️ Error loading progress: {e}")
 
     def get_series_urls(self) -> List[Tuple[str, str]]:
-        """Generate URLs for APTA Chicago series (1-50 and SW variants)"""
-        series_urls = []
+        """Generate URLs for APTA Chicago series using dynamic discovery"""
+        print("🔍 Using dynamic discovery to find all available series...")
         
-        series_urls_data = [
-            # Numeric series (1-22)
+        # Use dynamic discovery to find all series
+        series_urls = self.discover_series_dynamically()
+        
+        # Filter series based on target_series parameter if specified
+        if self.target_series:
+            print(f"\n🎯 Filtering to target series: {', '.join(self.target_series)}")
+            filtered_series = []
+            for series_name, series_url in series_urls:
+                series_id = series_name.replace('Series ', '').strip()
+                if series_id in self.target_series:
+                    filtered_series.append((series_name, series_url))
+                    print(f"   ✅ Including: {series_name}")
+                else:
+                    print(f"   ⏭️ Skipping: {series_name} (not in target list)")
+            series_urls = filtered_series
+            print(f"✅ Filtered to {len(series_urls)} target series")
+        
+        return series_urls
+
+    def discover_series_dynamically(self) -> List[Tuple[str, str]]:
+        """Discover all available series by scraping any series page for the series navigation"""
+        print("🔍 Discovering all available series from series page navigation...")
+        
+        discovered_series = []
+        
+        try:
+            # Method 1: Scrape any series page to get the series navigation
+            print("   📋 Method 1: Scraping series page for navigation...")
+            
+            # Use a known working series URL to get the navigation
+            series_url = "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+            print(f"      🔍 Using series page: {series_url}")
+            
+            html_content = self.get_html_with_fallback(series_url)
+            
+            if html_content:
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Method 1a: Look for links with the specific pattern
+                series_links = soup.find_all('a', href=True, id=lambda x: x and x.startswith('dividdrop_'))
+                
+                for link in series_links:
+                    href = link.get('href', '')
+                    text = link.get_text(strip=True)
+                    link_id = link.get('id', '')
+                    
+                    # Extract the series number from the link text
+                    if text.isdigit():
+                        # Regular series (e.g., "1", "2", "3")
+                        series_num = text
+                        series_name = f"Series {series_num}"
+                        
+                        # Construct the full URL
+                        if href.startswith('/'):
+                            full_url = f"{self.base_url}{href}"
+                        else:
+                            full_url = href
+                        
+                        discovered_series.append((series_name, full_url))
+                        print(f"         📋 Found series link: {series_name} -> {full_url} (ID: {link_id})")
+                    elif ' SW' in text and any(char.isdigit() for char in text):
+                        # SW series (e.g., "7 SW", "9 SW", "11 SW")
+                        series_name = f"Series {text}"
+                        
+                        # Construct the full URL
+                        if href.startswith('/'):
+                            full_url = f"{self.base_url}{href}"
+                        else:
+                            full_url = href
+                        
+                        discovered_series.append((series_name, full_url))
+                        print(f"         📋 Found SW series link: {series_name} -> {full_url} (ID: {link_id})")
+                
+                # Method 1b: Look for the series navigation text pattern
+                if not discovered_series:
+                    print("      📋 Method 1b: Looking for series navigation text pattern...")
+                    
+                    text_elements = soup.find_all(text=True)
+                    for element in text_elements:
+                        text = element.strip()
+                        if 'Chicago' in text and any(char.isdigit() for char in text):
+                            print(f"         📋 Found navigation text: {text}")
+                            
+                            # Extract series numbers from the text
+                            series_numbers = re.findall(r'\b(\d+)\b', text)
+                            
+                            # Add regular series
+                            for series_num in series_numbers:
+                                series_name = f"Series {series_num}"
+                                series_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                                discovered_series.append((series_name, series_url))
+                                print(f"            📋 Extracted: {series_name}")
+                
+                if discovered_series:
+                    print(f"      ✅ Found {len(discovered_series)} series from navigation")
+                else:
+                    print("      ⚠️ No series found from navigation, using fallback...")
+                    
+                    # Fallback to comprehensive hardcoded series (including SW and 23+)
+                    fallback_series = [
+                        # Regular series (1-22)
             ("Series 1", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3MD0%3D"),
             ("Series 2", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3bz0%3D"),
             ("Series 3", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3az0%3D"),
@@ -172,29 +271,30 @@ class APTAChicagoSimpleScraper:
             ("Series 5", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3WT0%3D"),
             ("Series 6", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3Zz0%3D"),
             ("Series 7", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMaz0%3D"),
-            ("Series 7 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMZz0%3D"),
             ("Series 8", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMWT0%3D"),
             ("Series 9", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMYz0%3D"),
-            ("Series 9 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyZz0%3D"),
             ("Series 10", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3ND0%3D"),
             ("Series 11", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3OD0%3D"),
-            ("Series 11 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhydz0%3D"),
             ("Series 12", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
             ("Series 13", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 13 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMYz0%3D"),
             ("Series 14", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3bz0%3D"),
             ("Series 15", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3cz0%3D"),
-            ("Series 15 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3Yz0%3D"),
             ("Series 16", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
             ("Series 17", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 17 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyND0%3D"),
             ("Series 18", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 19", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 19 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyMD0%3D"),
             ("Series 20", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 21", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 21 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyOD0%3D"),
             ("Series 22", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                        # SW (Southwest) series
+                        ("Series 7 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMZz0%3D"),
+                        ("Series 9 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyZz0%3D"),
+                        ("Series 11 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhydz0%3D"),
+                        ("Series 13 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMYz0%3D"),
+                        ("Series 15 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3Yz0%3D"),
+                        ("Series 17 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyND0%3D"),
+                        ("Series 19 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyMD0%3D"),
+                        ("Series 21 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyOD0%3D"),
             # Additional series (23+)
             ("Series 23", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 23 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMWT0%3D"),
@@ -208,7 +308,6 @@ class APTAChicagoSimpleScraper:
             ("Series 29", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 29 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WkM2eHg3dz0%3D"),
             ("Series 30", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            # Additional series (31-50)
             ("Series 31", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 31 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNXK3licz0%3D"),
             ("Series 32", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
@@ -229,25 +328,101 @@ class APTAChicagoSimpleScraper:
             ("Series 47", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 48", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 49", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 50", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D")
-        ]
-        
-        # Filter series based on target_series parameter if specified
-        if self.target_series:
-            filtered_data = []
-            for series_name, series_path in series_urls_data:
-                series_id = series_name.replace('Series ', '').strip()
-                if series_id in self.target_series:
-                    filtered_data.append((series_name, series_path))
-            series_urls_data = filtered_data
-        
-        # Process series URLs
-        for series_name, series_path in series_urls_data:
-            if series_path:
+                        ("Series 50", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                    ]
+                    
+                    for series_name, series_path in fallback_series:
+                        series_url = f"{self.base_url}{series_path}"
+                        discovered_series.append((series_name, series_url))
+                        print(f"         📋 Added fallback: {series_name}")
+            
+            # Keep all series (including SW variants and series 23+)
+            print(f"\n🎯 Dynamic discovery complete!")
+            print(f"   📊 Total series discovered: {len(discovered_series)}")
+            print(f"   🏆 All series included: {len(discovered_series)}")
+            
+            return discovered_series
+            
+        except Exception as e:
+            print(f"❌ Error during dynamic discovery: {e}")
+            print("   🔄 Falling back to hardcoded series...")
+            
+            # Fallback to comprehensive hardcoded series (including SW and 23+)
+            fallback_series = [
+                # Regular series (1-22)
+                ("Series 1", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3MD0%3D"),
+                ("Series 2", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3bz0%3D"),
+                ("Series 3", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3az0%3D"),
+                ("Series 4", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3cz0%3D"),
+                ("Series 5", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3WT0%3D"),
+                ("Series 6", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3Zz0%3D"),
+                ("Series 7", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMaz0%3D"),
+                ("Series 8", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMWT0%3D"),
+                ("Series 9", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMYz0%3D"),
+                ("Series 10", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3ND0%3D"),
+                ("Series 11", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3OD0%3D"),
+                ("Series 12", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
+                ("Series 13", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 14", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3bz0%3D"),
+                ("Series 15", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3cz0%3D"),
+                ("Series 16", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
+                ("Series 17", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 18", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 19", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 20", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 21", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 22", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                # SW (Southwest) series
+                ("Series 7 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMZz0%3D"),
+                ("Series 9 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyZz0%3D"),
+                ("Series 11 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhydz0%3D"),
+                ("Series 13 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMYz0%3D"),
+                ("Series 15 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3Yz0%3D"),
+                ("Series 17 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyND0%3D"),
+                ("Series 19 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyMD0%3D"),
+                ("Series 21 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyOD0%3D"),
+                # Additional series (23+)
+                ("Series 23", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 23 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMWT0%3D"),
+                ("Series 24", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 25", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 25 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3WT0%3D"),
+                ("Series 26", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 27", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 27 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WkNHL3lMbz0%3D"),
+                ("Series 28", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 29", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 29 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WkM2eHg3dz0%3D"),
+                ("Series 30", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 31", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 31 SW", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNXK3licz0%3D"),
+                ("Series 32", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 33", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 34", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 35", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 36", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 37", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 38", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 39", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 40", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 41", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 42", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 43", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 44", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 45", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 46", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 47", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 48", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 49", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+                ("Series 50", "/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ]
+            
+            fallback_urls = []
+            for series_name, series_path in fallback_series:
                 series_url = f"{self.base_url}{series_path}"
-                series_urls.append((series_name, series_url))
+                fallback_urls.append((series_name, series_url))
         
-        return series_urls
+            return fallback_urls
 
     def get_html_with_fallback(self, url: str) -> str:
         """Get HTML content with fallback methods"""
@@ -531,6 +706,8 @@ class APTAChicagoSimpleScraper:
                 player_link = player_cell.find('a', class_='lightbox-auto iframe link')
                 
                 if player_link:
+                    # Get the full cell content to check for captain indicators outside the link
+                    full_cell_text = player_cell.get_text(strip=True)
                     player_name = player_link.get_text(strip=True)
                     
                     # Skip empty rows or headers
@@ -541,16 +718,16 @@ class APTAChicagoSimpleScraper:
                     if any(sub_indicator in player_name.lower() for sub_indicator in ['sub', 'substitute', '(sub)']):
                         continue
                     
-                    # Check for captain indicators and clean player name
+                    # Check for captain indicators in the full cell content (not just the link text)
                     is_captain = False
                     clean_player_name = player_name
                     
-                    if '(C)' in player_name:
+                    if '(C)' in full_cell_text:
                         is_captain = True
-                        clean_player_name = player_name.replace('(C)', '').strip()
-                    elif '(CC)' in player_name:
+                        clean_player_name = player_name  # Keep original name, don't modify it
+                    elif '(CC)' in full_cell_text:
                         is_captain = True
-                        clean_player_name = player_name.replace('(CC)', '').strip()
+                        clean_player_name = player_name  # Keep original name, don't modify it
                     
                     # Remove checkmark from player name
                     clean_player_name = clean_player_name.replace('✔', '').strip()
@@ -632,7 +809,7 @@ class APTAChicagoSimpleScraper:
                         'Wins': str(current_wins),
                         'Losses': str(current_losses),
                         'Win %': win_percentage,
-                        'Captain': 'Yes' if is_captain else '',
+                        'Captain': 'Yes' if is_captain else 'No',
                         'Source URL': team_url,
                         'source_league': 'APTA_CHICAGO',
                         'Scraped At': datetime.now().isoformat()
@@ -676,16 +853,17 @@ class APTAChicagoSimpleScraper:
                 player_id_match = re.search(r'p=([^&]+)', href)
                 player_id = player_id_match.group(1) if player_id_match else ""
                 
-                # Check for captain indicators and clean player name
+                # Check for captain indicators in the parent element (like the main method)
+                parent_text = link.parent.get_text(strip=True) if link.parent else text
                 is_captain = False
                 clean_player_name = text
                 
-                if '(C)' in text:
+                if '(C)' in parent_text:
                     is_captain = True
-                    clean_player_name = text.replace('(C)', '').strip()
-                elif '(CC)' in text:
+                    clean_player_name = text  # Keep original name, don't modify it
+                elif '(CC)' in parent_text:
                     is_captain = True
-                    clean_player_name = text.replace('(CC)', '').strip()
+                    clean_player_name = text  # Keep original name, don't modify it
                 
                 # Remove checkmark from player name
                 clean_player_name = clean_player_name.replace('✔', '').strip()
@@ -719,7 +897,7 @@ class APTAChicagoSimpleScraper:
                     'Wins': '0',  # Fallback method can't extract scores
                     'Losses': '0',
                     'Win %': '0.0%',
-                    'Captain': 'Yes' if is_captain else '',
+                    'Captain': 'Yes' if is_captain else 'No',
                     'Source URL': team_url,
                     'source_league': 'APTA_CHICAGO',
                     'Scraped At': datetime.now().isoformat()

@@ -3,113 +3,135 @@
 Merge career stats from player_history.json into players.json
 
 This script:
-1. Loads both players.json and player_history.json
-2. Creates a lookup dictionary from player_history.json using player_id as key
-3. Updates each player in players.json with Career Wins and Career Losses from history
-4. Preserves existing Wins/Losses (current season) and adds Career Wins/Career Losses
-5. Saves the updated players.json
+1. Loads players.json and player_history.json
+2. Matches players by Player ID
+3. Adds career_wins, career_losses, and career_win_percentage fields
+4. Updates the players.json file with the merged data
 """
 
 import json
 import os
-from datetime import datetime
+from typing import Dict, List, Any
 
-def merge_career_stats():
-    """Merge career stats from player_history.json into players.json"""
+def load_json_file(file_path: str) -> List[Dict[str, Any]]:
+    """Load JSON data from file"""
+    print(f"📂 Loading {file_path}...")
+    with open(file_path, 'r') as f:
+        data = json.load(f)
+    print(f"   ✅ Loaded {len(data):,} records")
+    return data
+
+def save_json_file(file_path: str, data: List[Dict[str, Any]]) -> None:
+    """Save JSON data to file"""
+    print(f"💾 Saving updated data to {file_path}...")
+    with open(file_path, 'w') as f:
+        json.dump(data, f, indent=2)
+    print(f"   ✅ Saved {len(data):,} records")
+
+def calculate_win_percentage(wins: int, losses: int) -> float:
+    """Calculate win percentage"""
+    total_matches = wins + losses
+    if total_matches == 0:
+        return 0.0
+    return (wins / total_matches) * 100
+
+def merge_career_stats(players: List[Dict[str, Any]], history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Merge career stats from history into players data"""
+    print("🔄 Merging career stats...")
     
-    # File paths
-    players_file = 'data/leagues/APTA_CHICAGO/players.json'
-    history_file = 'data/leagues/APTA_CHICAGO/player_history.json'
-    backup_file = f'data/leagues/APTA_CHICAGO/players_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
-    
-    print('=== MERGING CAREER STATS ===')
-    print()
-    
-    # Load players.json
-    print('Loading players.json...')
-    with open(players_file, 'r') as f:
-        players_data = json.load(f)
-    print(f'Loaded {len(players_data)} players')
-    
-    # Load player_history.json
-    print('Loading player_history.json...')
-    with open(history_file, 'r') as f:
-        history_data = json.load(f)
-    print(f'Loaded {len(history_data)} history records')
-    
-    # Create lookup dictionary from history data
-    print('Creating history lookup dictionary...')
+    # Create lookup dictionary for history data
     history_lookup = {}
-    for record in history_data:
+    for record in history:
         player_id = record.get('player_id')
         if player_id:
-            history_lookup[player_id] = {
-                'wins': record.get('wins', 0),
-                'losses': record.get('losses', 0)
-            }
+            history_lookup[player_id] = record
     
-    print(f'Created lookup for {len(history_lookup)} players')
+    print(f"   📊 Created lookup for {len(history_lookup):,} history records")
+    
+    # Track statistics
+    matched_players = 0
+    unmatched_players = 0
+    total_career_wins = 0
+    total_career_losses = 0
     
     # Update players with career stats
-    print('Updating players with career stats...')
-    updated_count = 0
-    not_found_count = 0
-    
-    for player in players_data:
+    for player in players:
         player_id = player.get('Player ID')
-        if player_id and player_id in history_lookup:
-            # Get career stats from history
-            career_wins = history_lookup[player_id]['wins']
-            career_losses = history_lookup[player_id]['losses']
+        
+        if player_id in history_lookup:
+            history_record = history_lookup[player_id]
+            
+            # Extract career stats
+            career_wins = int(history_record.get('wins', 0))
+            career_losses = int(history_record.get('losses', 0))
+            career_win_percentage = calculate_win_percentage(career_wins, career_losses)
             
             # Add career stats to player record
-            player['Career Wins'] = str(career_wins)
-            player['Career Losses'] = str(career_losses)
+            player['Career Wins'] = career_wins
+            player['Career Losses'] = career_losses
+            player['Career Win %'] = f"{career_win_percentage:.1f}%"
             
-            # Calculate career win percentage
-            total_matches = career_wins + career_losses
-            if total_matches > 0:
-                win_percentage = (career_wins / total_matches) * 100
-                player['Career Win %'] = f'{win_percentage:.1f}%'
-            else:
-                player['Career Win %'] = '0.0%'
+            matched_players += 1
+            total_career_wins += career_wins
+            total_career_losses += career_losses
             
-            updated_count += 1
         else:
-            # Player not found in history, set career stats to 0
-            player['Career Wins'] = '0'
-            player['Career Losses'] = '0'
-            player['Career Win %'] = '0.0%'
-            not_found_count += 1
+            # No history found, set to 0
+            player['Career Wins'] = 0
+            player['Career Losses'] = 0
+            player['Career Win %'] = "0.0%"
+            unmatched_players += 1
     
-    print(f'Updated {updated_count} players with career stats')
-    print(f'Set {not_found_count} players to 0 career stats (not found in history)')
+    print(f"   ✅ Matched {matched_players:,} players with history")
+    print(f"   ⚠️  {unmatched_players:,} players without history (set to 0)")
+    print(f"   📈 Total career wins: {total_career_wins:,}")
+    print(f"   📉 Total career losses: {total_career_losses:,}")
     
-    # Create backup
-    print(f'Creating backup: {backup_file}')
-    with open(backup_file, 'w') as f:
-        json.dump(players_data, f, indent=2)
-    
-    # Save updated players.json
-    print('Saving updated players.json...')
-    with open(players_file, 'w') as f:
-        json.dump(players_data, f, indent=2)
-    
-    print('✅ Career stats merge completed successfully!')
-    print(f'Backup saved to: {backup_file}')
-    
-    # Show some sample results
-    print('\nSample updated players:')
-    sample_count = 0
-    for player in players_data:
-        if player.get('Career Wins', '0') != '0' and sample_count < 5:
-            first_name = player.get('First Name', '')
-            last_name = player.get('Last Name', '')
-            career_wins = player.get('Career Wins')
-            career_losses = player.get('Career Losses')
-            career_win_pct = player.get('Career Win %')
-            print(f'  {first_name} {last_name}: {career_wins} wins, {career_losses} losses, {career_win_pct} win rate')
-            sample_count += 1
+    return players
 
-if __name__ == '__main__':
-    merge_career_stats()
+def main():
+    print("🚀 MERGING CAREER STATS INTO PLAYERS DATA")
+    print("=" * 60)
+    
+    # File paths
+    players_file = "data/leagues/APTA_CHICAGO/players.json"
+    history_file = "data/leagues/APTA_CHICAGO/player_history.json"
+    
+    # Check if files exist
+    if not os.path.exists(players_file):
+        print(f"❌ Error: {players_file} not found")
+        return
+    
+    if not os.path.exists(history_file):
+        print(f"❌ Error: {history_file} not found")
+        return
+    
+    # Load data
+    players_data = load_json_file(players_file)
+    history_data = load_json_file(history_file)
+    
+    # Merge career stats
+    updated_players = merge_career_stats(players_data, history_data)
+    
+    # Save updated data
+    save_json_file(players_file, updated_players)
+    
+    print("\n🎉 MERGE COMPLETE!")
+    print("=" * 60)
+    print("✅ Career stats successfully merged into players.json")
+    print("📊 New fields added:")
+    print("   - Career Wins")
+    print("   - Career Losses") 
+    print("   - Career Win %")
+    
+    # Show sample of updated data
+    print("\n📋 SAMPLE UPDATED RECORD:")
+    if updated_players:
+        sample = updated_players[0]
+        print(f"   Player: {sample.get('First Name')} {sample.get('Last Name')}")
+        print(f"   Player ID: {sample.get('Player ID')}")
+        print(f"   Current Season: {sample.get('Wins')}W-{sample.get('Losses')}L ({sample.get('Win %')})")
+        print(f"   Career: {sample.get('Career Wins')}W-{sample.get('Career Losses')}L ({sample.get('Career Win %')})")
+
+if __name__ == "__main__":
+    main()

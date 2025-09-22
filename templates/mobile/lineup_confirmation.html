@@ -149,10 +149,43 @@ async function addPTIInformationToLineup(lineupText) {
             const line = lines[i];
             
             if (line.trim().startsWith('Court ')) {
-                // Check if PTI information already exists in this line
+                // Check if PTI information already exists in this line or the next few lines
+                let hasPTIInfo = false;
+                let ptiLinesToSkip = 0;
+                
+                // Check current line
                 if (line.includes('Avg PTI:') || line.includes('Total PTI:')) {
-                    // PTI information already exists, use the line as-is
+                    hasPTIInfo = true;
+                }
+                
+                // Check next few lines for PTI information
+                for (let k = i + 1; k < Math.min(i + 5, lines.length); k++) {
+                    const checkLine = lines[k].trim();
+                    if (checkLine.startsWith('Court ')) break; // Stop if we hit another court
+                    
+                    if (checkLine.includes('Avg PTI:') || checkLine.includes('Total PTI:')) {
+                        hasPTIInfo = true;
+                        ptiLinesToSkip++;
+                    } else if (checkLine && !checkLine.startsWith('LINEUP:')) {
+                        // If we find a non-empty, non-PTI line, we've passed the PTI section
+                        break;
+                    }
+                }
+                
+                if (hasPTIInfo) {
+                    // PTI information already exists, use the line as-is and skip PTI lines
                     updatedLines.push(line);
+                    
+                    // Skip the PTI lines that already exist
+                    for (let k = 1; k <= ptiLinesToSkip && i + k < lines.length; k++) {
+                        const skipLine = lines[i + k].trim();
+                        if (skipLine.includes('Avg PTI:') || skipLine.includes('Total PTI:')) {
+                            updatedLines.push(lines[i + k]);
+                        }
+                    }
+                    
+                    // Skip ahead past the PTI lines we just processed
+                    i += ptiLinesToSkip;
                     continue;
                 }
                 
