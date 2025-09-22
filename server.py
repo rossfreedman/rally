@@ -1991,6 +1991,70 @@ def run_saved_lineups_migration():
         }), 500
 
 
+@app.route("/admin/run-apta-import")
+def run_apta_import():
+    """
+    Web endpoint to run APTA import on staging or production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This import endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the import"
+        }), 403
+    
+    try:
+        import subprocess
+        import sys
+        import os
+        
+        # Add project root to path
+        sys.path.append(os.getcwd())
+        
+        print(f"🚀 Running APTA import on {railway_env}")
+        print(f"Working directory: {os.getcwd()}")
+        
+        # Run the import script
+        result = subprocess.run([
+            'python3', 'data/etl/import/import_players.py', 'APTA_CHICAGO'
+        ], capture_output=True, text=True, timeout=600)
+        
+        if result.returncode == 0:
+            return jsonify({
+                "success": True,
+                "message": "APTA import completed successfully",
+                "railway_env": railway_env,
+                "output": result.stdout,
+                "timestamp": datetime.now().isoformat()
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "APTA import failed",
+                "railway_env": railway_env,
+                "error": result.stderr,
+                "output": result.stdout,
+                "timestamp": datetime.now().isoformat()
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "message": "APTA import timed out after 10 minutes",
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat()
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error running APTA import: {str(e)}",
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+
 @app.route("/admin/run-alembic-migration")
 def run_alembic_migration():
     """
