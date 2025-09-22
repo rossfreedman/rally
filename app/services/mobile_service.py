@@ -4352,34 +4352,61 @@ def get_series_player_ratings(user):
 def get_teams_players_data(user, team_id=None):
     """Get teams and players data for mobile interface - filtered by user's league and optionally by team_id"""
     try:
-        # Get user's league for filtering
+        # Get user's league for filtering - try multiple sources
         user_league_id = user.get("league_id", "")
+        user_league_db_id = user.get("league_db_id")
+        user_league_string_id = user.get("league_string_id", "")
+        
         print(f"[DEBUG] get_teams_players_data: user = {user}")
-        print(f"[DEBUG] get_teams_players_data: user_league_id = {user_league_id} (type: {type(user_league_id)})")
+        print(f"[DEBUG] get_teams_players_data: league_id = {user_league_id}, league_db_id = {user_league_db_id}, league_string_id = {user_league_string_id}")
 
-        # Convert string league_id to integer foreign key if needed
+        # Convert to integer foreign key - prioritize league_db_id if available
         league_id_int = None
-        if isinstance(user_league_id, str) and user_league_id != "":
+        
+        # First try league_db_id (most reliable)
+        if user_league_db_id:
             try:
-                # First try to convert string to integer (e.g., "4783" -> 4783)
+                league_id_int = int(user_league_db_id)
+                print(f"[DEBUG] Using league_db_id: {league_id_int}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] league_db_id is not a valid integer: {user_league_db_id}")
+        
+        # Fallback to converting league_id or league_string_id
+        if not league_id_int:
+            if isinstance(user_league_id, str) and user_league_id != "":
                 try:
-                    league_id_int = int(user_league_id)
-                    print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
-                except ValueError:
-                    # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                    # First try to convert string to integer (e.g., "4783" -> 4783)
+                    try:
+                        league_id_int = int(user_league_id)
+                        print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
+                    except ValueError:
+                        # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                        league_record = execute_query_one(
+                            "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                        )
+                        if league_record:
+                            league_id_int = league_record["id"]
+                            print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                        else:
+                            print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league_id: {e}")
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+                print(f"[DEBUG] League_id already integer: {league_id_int}")
+            elif user_league_string_id:
+                # Try league_string_id as fallback
+                try:
                     league_record = execute_query_one(
-                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_string_id]
                     )
                     if league_record:
                         league_id_int = league_record["id"]
-                        print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                        print(f"[DEBUG] Converted league_string_id '{user_league_string_id}' to integer: {league_id_int}")
                     else:
-                        print(f"[WARNING] League '{user_league_id}' not found in leagues table")
-            except Exception as e:
-                print(f"[DEBUG] Could not convert league ID: {e}")
-        elif isinstance(user_league_id, int):
-            league_id_int = user_league_id
-            print(f"[DEBUG] League_id already integer: {league_id_int}")
+                        print(f"[WARNING] League_string_id '{user_league_string_id}' not found in leagues table")
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league_string_id: {e}")
 
         # Query team stats and matches from database
         # Note: execute_query and execute_query_one are already imported at module level
@@ -4410,27 +4437,11 @@ def get_teams_players_data(user, team_id=None):
             print(f"[DEBUG] Using FILTERED query with league_id = {league_id_int}")
             all_teams_data = execute_query(teams_query, [league_id_int])
         else:
-            teams_query = """
-                SELECT DISTINCT 
-                    t.id as team_id, 
-                    t.team_name, 
-                    t.display_name,
-                    t.league_id,
-                    l.league_id as league_key,
-                    REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
-                    CAST(
-                        COALESCE(
-                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* ([0-9]+)$', '\\1'), t.team_name),
-                            '0'
-                        ) AS INTEGER
-                    ) as team_number
-                FROM teams t
-                JOIN leagues l ON t.league_id = l.id
-                WHERE t.is_active = TRUE
-                ORDER BY team_base_name, team_number
-            """
-            print(f"[DEBUG] Using ALL TEAMS query (no league filter)")
-            all_teams_data = execute_query(teams_query)
+            # CRITICAL FIX: Don't show all teams when no valid league_id is found
+            # This prevents showing women's teams to APTA users
+            print(f"[WARNING] No valid league_id found for user, returning empty teams list to prevent cross-league data mixing")
+            print(f"[WARNING] User data: league_id={user_league_id}, league_db_id={user_league_db_id}, league_string_id={user_league_string_id}")
+            all_teams_data = []
 
         # Convert to list format for backward compatibility and add team IDs
         all_teams = []

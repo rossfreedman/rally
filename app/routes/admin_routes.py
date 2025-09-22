@@ -2289,6 +2289,174 @@ def get_cockpit_system_metrics():
 
 
 
+@admin_bp.route("/api/admin/cockpit/user-counts-by-club")
+@login_required
+@admin_required
+def get_user_counts_by_club():
+    """Get user counts by club for pie chart"""
+    try:
+        from database_utils import get_db_cursor
+        
+        # Query to count users by club (handling multiple associations)
+        query = """
+        SELECT 
+            c.name as club_name,
+            COUNT(DISTINCT u.id) as user_count
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN clubs c ON p.club_id = c.id
+        WHERE u.is_admin = false
+        GROUP BY c.id, c.name
+        ORDER BY user_count DESC
+        """
+        
+        with get_db_cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            
+            # Get total unique users to avoid double-counting
+            total_query = """
+            SELECT COUNT(DISTINCT u.id) as total_users
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN clubs c ON p.club_id = c.id
+            WHERE u.is_admin = false
+            """
+            cursor.execute(total_query)
+            total_result = cursor.fetchone()
+            total_users = total_result['total_users'] if total_result else 0
+        
+        # Format data for Chart.js
+        labels = [row['club_name'] for row in results]
+        data = [row['user_count'] for row in results]
+        
+        # Generate colors
+        colors = generate_pie_chart_colors(len(labels))
+        
+        chart_data = {
+            "labels": labels,
+            "datasets": [{
+                "data": data,
+                "backgroundColor": colors,
+                "borderColor": colors,
+                "borderWidth": 2
+            }]
+        }
+        
+        return jsonify({
+            "status": "success",
+            "chart_data": chart_data,
+            "total_users": total_users
+        })
+        
+    except Exception as e:
+        print(f"Error getting user counts by club: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/cockpit/user-counts-by-league")
+@login_required
+@admin_required
+def get_user_counts_by_league():
+    """Get user counts by league for pie chart"""
+    try:
+        from database_utils import get_db_cursor
+        
+        # Simple query to count users by league
+        query = """
+        SELECT 
+            l.league_name,
+            COUNT(DISTINCT u.id) as user_count
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN leagues l ON p.league_id = l.id
+        WHERE u.is_admin = false
+        GROUP BY l.id, l.league_name
+        ORDER BY user_count DESC
+        """
+        
+        with get_db_cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            
+            # Get total unique users to avoid double-counting
+            total_query = """
+            SELECT COUNT(DISTINCT u.id) as total_users
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.is_admin = false
+            """
+            cursor.execute(total_query)
+            total_result = cursor.fetchone()
+            total_users = total_result['total_users'] if total_result else 0
+        
+        # Format data for Chart.js
+        labels = [row['league_name'] for row in results]
+        data = [row['user_count'] for row in results]
+        
+        # Generate colors
+        colors = generate_pie_chart_colors(len(labels))
+        
+        chart_data = {
+            "labels": labels,
+            "datasets": [{
+                "data": data,
+                "backgroundColor": colors,
+                "borderColor": colors,
+                "borderWidth": 2
+            }]
+        }
+        
+        return jsonify({
+            "status": "success",
+            "chart_data": chart_data,
+            "total_users": total_users
+        })
+        
+    except Exception as e:
+        print(f"Error getting user counts by league: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+def generate_pie_chart_colors(count):
+    """Generate distinct colors for pie chart segments"""
+    # Rally-themed color palette
+    base_colors = [
+        '#10645c',  # Rally primary green
+        '#0d4f47',  # Rally secondary green
+        '#1a7a6b',  # Rally accent green
+        '#059669',  # Emerald
+        '#10b981',  # Green
+        '#34d399',  # Light green
+        '#6ee7b7',  # Lighter green
+        '#a7f3d0',  # Very light green
+        '#d1fae5',  # Lightest green
+        '#f0fdf4',  # Almost white green
+        '#3b82f6',  # Blue
+        '#1d4ed8',  # Dark blue
+        '#7c3aed',  # Purple
+        '#9333ea',  # Dark purple
+        '#ec4899',  # Pink
+        '#f59e0b',  # Amber
+        '#ef4444',  # Red
+        '#84cc16',  # Lime
+        '#06b6d4',  # Cyan
+        '#8b5cf6'   # Violet
+    ]
+    
+    # If we need more colors than available, cycle through them
+    colors = []
+    for i in range(count):
+        colors.append(base_colors[i % len(base_colors)])
+    
+    return colors
+
+
 @admin_bp.route("/api/admin/cockpit/page-analytics")
 @login_required
 @admin_required
