@@ -65,6 +65,7 @@
                             <i class="fas fa-star mr-2"></i>
                             Update Current Beer
                         </button>
+                        
                     </form>
                 </div>
             </div>
@@ -213,6 +214,11 @@
                     showMessage('Current beer updated successfully!', 'success');
                     document.getElementById('beerText').value = ''; // Clear beer text
                     loadBeerHistory(clubId);
+                    
+                    // Show 2 second status message after a brief delay
+                    setTimeout(() => {
+                        showStatusMessage('Saved', 2000);
+                    }, 100);
                 } else {
                     showMessage('Error updating current beer: ' + result.error, 'error');
                 }
@@ -399,6 +405,11 @@
             if (result.success) {
                 showMessage('Current beer updated successfully!', 'success');
                 loadBeerHistory(clubId);
+                
+                // Show 2 second status message after a brief delay
+                setTimeout(() => {
+                    showStatusMessage('Saved', 2000);
+                }, 100);
             } else {
                 showMessage('Error updating current beer: ' + result.error, 'error');
             }
@@ -426,6 +437,11 @@
             if (result.success) {
                 showMessage('Current beer removed successfully!', 'success');
                 loadBeerHistory(clubId);
+                
+                // Show 2 second status message after a brief delay
+                setTimeout(() => {
+                    showStatusMessage('Saved', 2000);
+                }, 100);
             } else {
                 showMessage('Error removing current beer: ' + result.error, 'error');
             }
@@ -457,6 +473,55 @@
                 messageDiv.parentNode.removeChild(messageDiv);
             }
         }, 5000);
+    }
+
+
+    // Show status message function (for 1.5 second notifications)
+    function showStatusMessage(message, duration = 1500) {
+        console.log('showStatusMessage called:', message); // Debug log
+        
+        try {
+            const container = document.getElementById('messageContainer');
+            if (!container) {
+                console.error('messageContainer not found!');
+                return;
+            }
+            
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = 'bg-green-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center justify-center';
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '50%';
+            messageDiv.style.left = '50%';
+            messageDiv.style.transform = 'translate(-50%, -50%)';
+            messageDiv.style.zIndex = '99999';
+            messageDiv.style.minWidth = '120px';
+            messageDiv.style.fontSize = '16px';
+            messageDiv.style.fontWeight = '600';
+            messageDiv.style.textAlign = 'center';
+            messageDiv.style.letterSpacing = '0.5px';
+            messageDiv.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+            messageDiv.innerHTML = `
+                <i class="fas fa-check mr-2"></i>
+                Saved
+            `;
+            
+            // Add a unique ID for debugging
+            messageDiv.id = 'status-message-' + Date.now();
+            
+            container.appendChild(messageDiv);
+            console.log('Status message added to DOM:', messageDiv.id); // Debug log
+            
+            // Remove message after specified duration
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                    console.log('Status message removed:', messageDiv.id); // Debug log
+                }
+            }, duration);
+        } catch (error) {
+            console.error('Error in showStatusMessage:', error);
+        }
     }
 
     // Get time ago function
