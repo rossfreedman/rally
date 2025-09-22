@@ -4771,6 +4771,8 @@ def send_support_request():
             # Authenticated user
             sender_email = session['user']['email']
             sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+            # Get phone number from session data for authenticated users
+            user_phone = session['user'].get('phone_number', '').strip()
             is_authenticated = True
         else:
             # Unauthenticated user
@@ -4875,7 +4877,7 @@ def send_support_request():
                 details={
                     "user_name": user_name,
                     "email_address": sender_email,
-                    "phone_number": user_phone,
+                    "phone_number": user_phone or "Not provided",
                     "message_length": len(message),
                     "authenticated": True,
                     "user_context": user_context_info.strip(" | ") if user_context_info else "No context available"

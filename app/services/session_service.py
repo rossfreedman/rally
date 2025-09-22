@@ -30,7 +30,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
         query = """
                     SELECT DISTINCT ON (u.id)
                         u.id, u.email, u.first_name, u.last_name, u.is_admin,
-                        u.ad_deuce_preference, u.dominant_hand, u.league_context,
+                        u.phone_number, u.ad_deuce_preference, u.dominant_hand, u.league_context,
                         
                         -- Player data (prioritize UserContext active_team_id first)
                         c.name as club, c.logo_filename as club_logo,
@@ -82,6 +82,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             "first_name": result["first_name"],
             "last_name": result["last_name"],
             "is_admin": result["is_admin"],
+            "phone_number": result["phone_number"] or "",
             "ad_deuce_preference": result["ad_deuce_preference"] or "",
             "dominant_hand": result["dominant_hand"] or "",
             "league_context": result["league_context"],

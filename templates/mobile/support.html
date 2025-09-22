@@ -130,10 +130,13 @@ async function sendSupportRequest(event) {
     const userName = document.getElementById('userName').value.trim();
     const message = document.getElementById('message').value.trim();
     
-    // Get phone if user is not authenticated
+    // Get phone number - from form for unauthenticated users, from session for authenticated users
     let userPhone = '';
     {% if not session_data.authenticated %}
     userPhone = document.getElementById('userPhone').value.trim();
+    {% else %}
+    // For authenticated users, get phone from session data
+    userPhone = '{{ session_data.user.phone_number or "" }}';
     {% endif %}
     
     // Validate form
@@ -161,12 +164,9 @@ async function sendSupportRequest(event) {
     try {
         const requestBody = {
             user_name: userName,
-            message: message
+            message: message,
+            user_phone: userPhone
         };
-        
-        {% if not session_data.authenticated %}
-        requestBody.user_phone = userPhone;
-        {% endif %}
         
         const response = await fetch('/api/support', {
             method: 'POST',
