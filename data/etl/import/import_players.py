@@ -590,7 +590,8 @@ def upsert_player(cur, league_id, player_data):
             result = cur.fetchone()
             if result:
                 # After successful upsert, ensure career stats consistency across all team assignments for this player
-                ensure_career_stats_consistency(cur, external_id, league_id, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value)
+                # TEMPORARILY DISABLED FOR STAGING - CAUSING HANG
+                # ensure_career_stats_consistency(cur, external_id, league_id, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value)
                 return result[0], "upserted"
         else:
             # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
