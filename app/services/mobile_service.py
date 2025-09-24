@@ -4162,14 +4162,14 @@ def get_series_analysis_data(user):
                 t.display_name,
                 c.name as club_name,
                 COUNT(p.id) as player_count,
-                AVG(COALESCE(p.pti, 0)) as avg_pti
+                AVG(p.pti) as avg_pti
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
             WHERE t.series_id = %s AND t.league_id = %s AND t.is_active = true
             GROUP BY t.id, t.team_name, t.display_name, c.name
-            HAVING COUNT(p.id) > 0  -- Only include teams with active players
-            ORDER BY avg_pti DESC
+            HAVING COUNT(p.id) > 0 AND COUNT(p.pti) > 0  -- Only include teams with active players who have PTI values
+            ORDER BY avg_pti ASC
         """
         
         teams_result = execute_query(teams_query, [series_id, league_id_int])
@@ -4965,7 +4965,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
                 for row in name_results:
                     player_id = row["tenniscores_player_id"]
-                    full_name = f"{row['first_name']} {row['last_name']}"
+                    full_name = f"{row['last_name']}, {row['first_name']}"
                     player_id_to_name[player_id] = full_name
                     player_name_to_id[full_name] = player_id
             except Exception as e:
@@ -5434,7 +5434,7 @@ def get_player_search_data(user):
             for player in candidate_players:
                 player_id = player["tenniscores_player_id"]
                 team_id = player["team_id"]
-                player_name = f"{player['first_name']} {player['last_name']}"
+                player_name = f"{player['last_name']}, {player['first_name']}"
 
                 # Get team-specific wins and losses
                 if player_id and team_id:
@@ -5561,7 +5561,7 @@ def get_player_name_from_id(player_id):
             [player_id],
         )
         if player:
-            return f"{player['first_name']} {player['last_name']}"
+            return f"{player['last_name']}, {player['first_name']}"
         else:
             # FIXED: Return "Unknown Player" instead of truncated ID to avoid confusion
             return "Unknown Player"

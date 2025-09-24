@@ -6077,7 +6077,7 @@ def get_team_members_with_court_stats(team_id, user):
         # Transform to the expected format
         members_with_stats = []
         for member in members_data:
-            full_name = f"{member['first_name']} {member['last_name']}"
+            full_name = f"{member['last_name']}, {member['first_name']}"
             
             # Build court stats dictionary in the expected format
             court_stats = {}
