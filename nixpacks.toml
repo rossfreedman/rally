@@ -10,4 +10,5 @@ cmds = [
 
 [start]
 # Use production server for Railway deployment
+# Force deployment trigger
 cmd = "python production_server.py" 
