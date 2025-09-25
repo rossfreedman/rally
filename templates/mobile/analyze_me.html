@@ -51,7 +51,8 @@
                 <div class="text-center">
                     <div class="mb-2">
                         <span class="text-4xl font-bold text-gray-900">{{ analyze_data.current_pti }}</span>
-                        {% if analyze_data.weekly_pti_change != 0 %}
+                        {# Hide weekly PTI change display #}
+                        {% if false and analyze_data.weekly_pti_change != 0 %}
                         <span class="ml-2 text-lg font-medium
                             {% if analyze_data.weekly_pti_change > 0 %}text-red-500
                             {% else %}text-green-500
