@@ -7,7 +7,7 @@ RUN apk add --no-cache \
     zlib-dev \
     postgresql-client \
     build-base \
-    pkgconfig
+    pkg-config
 
 # Set working directory
 WORKDIR /app
