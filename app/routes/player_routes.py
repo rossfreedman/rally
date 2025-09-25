@@ -179,76 +179,10 @@ def get_players_by_series():
                     elif isinstance(user_league_id, int):
                         league_id_int = user_league_id
 
-                # Get all players who have played for this team from database (FIXED: Use team_id)
-                if league_id_int:
-                    # Try using team_id as integer first (new optimized approach)
-                    try:
-                        team_id_int = int(team_id)
-                        team_players_query = """
-                            SELECT DISTINCT 
-                                home_player_1_id as player_id FROM match_scores 
-                            WHERE home_team_id = %s AND league_id = %s AND home_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                home_player_2_id as player_id FROM match_scores 
-                            WHERE home_team_id = %s AND league_id = %s AND home_player_2_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_1_id as player_id FROM match_scores 
-                            WHERE away_team_id = %s AND league_id = %s AND away_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_2_id as player_id FROM match_scores 
-                            WHERE away_team_id = %s AND league_id = %s AND away_player_2_id IS NOT NULL
-                        """
-                        team_player_records = execute_query(team_players_query, [
-                            team_id_int, league_id_int, team_id_int, league_id_int,
-                            team_id_int, league_id_int, team_id_int, league_id_int
-                        ])
-                        print(f"[DEBUG] Using team_id optimization: Found {len(team_player_records)} players for team_id {team_id_int}")
-                    except ValueError:
-                        # Fallback to team name if team_id is not an integer
-                        team_players_query = """
-                            SELECT DISTINCT 
-                                home_player_1_id as player_id FROM match_scores 
-                            WHERE home_team = %s AND league_id = %s AND home_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                home_player_2_id as player_id FROM match_scores 
-                            WHERE home_team = %s AND league_id = %s AND home_player_2_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_1_id as player_id FROM match_scores 
-                            WHERE away_team = %s AND league_id = %s AND away_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_2_id as player_id FROM match_scores 
-                            WHERE away_team = %s AND league_id = %s AND away_player_2_id IS NOT NULL
-                        """
-                        team_player_records = execute_query(team_players_query, [
-                            team_id, league_id_int, team_id, league_id_int,
-                            team_id, league_id_int, team_id, league_id_int
-                        ])
-                        print(f"[DEBUG] Using team_name fallback: Found {len(team_player_records)} players for team_name {team_id}")
-                    
-                    # Convert player IDs to names for filtering
-                    for record in team_player_records:
-                        player_id = record['player_id']
-                        if player_id:
-                            # Get player name from database
-                            try:
-                                player_name_query = """
-                                    SELECT first_name, last_name FROM players 
-                                    WHERE tenniscores_player_id = %s
-                                """
-                                player_data = execute_query_one(player_name_query, [player_id])
-                                if player_data:
-                                    player_name = f"{player_data['first_name']} {player_data['last_name']}"
-                                    team_players.add(player_name)
-                            except Exception as e:
-                                # Fallback: use player ID as name if lookup fails
-                                team_players.add(player_id)
-                                
+                # REMOVED: Match-based team filtering logic that was causing the issue
+                # The get_players_by_league_and_series_id function already handles team filtering correctly
+                # by using the team_id parameter to get ALL registered team members, not just those who have played matches
+                
             except Exception as e:
                 print(
                     f"Warning: Error loading team players from database: {str(e)}"
@@ -257,11 +191,10 @@ def get_players_by_series():
 
         # Filter by team if specified (database stats are already included)
         final_players = []
-        if team_id and team_players:
-            # Filter players to only those on the team
-            for player in all_players:
-                if player["name"] in team_players:
-                    final_players.append(player)
+        if team_id:
+            # FIXED: Use the team filtering from get_players_by_league_and_series_id instead of match-based filtering
+            # This ensures we get ALL registered team members, not just those who have played matches
+            final_players = all_players  # all_players already contains team-filtered results from get_players_by_league_and_series_id
         else:
             # Return all players with their database stats
             final_players = all_players
