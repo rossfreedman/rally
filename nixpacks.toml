@@ -3,7 +3,7 @@ nixPkgs = ["python311", "python311Packages.pip", "postgresql.lib", "openssl", "p
 
 [phases.install]
 cmds = [
-    "pip install --upgrade pip setuptools wheel",
+    "pip install --break-system-packages --upgrade pip setuptools wheel",
     "pip install --break-system-packages --no-cache-dir --timeout=300 --retries=5 psycopg2-binary",
     "pip install --break-system-packages --no-cache-dir --timeout=300 --retries=5 -r requirements.txt"
 ]
