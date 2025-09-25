@@ -32,4 +32,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8080
 
 # Start the main Rally server directly  
-CMD ["python", "production_server.py"]
+CMD ["python", "server.py"]
