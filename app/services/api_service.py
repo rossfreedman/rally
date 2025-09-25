@@ -693,9 +693,164 @@ def log_click_data():
 
 
 def research_team_data():
-    """Research team data"""
-    # Placeholder - will be filled with actual implementation from server.py
-    return jsonify({"placeholder": "research_team"})
+    """Research team data - returns team statistics and overview"""
+    try:
+        from flask import request, session
+        from database_utils import execute_query_one, execute_query
+        
+        # Get team name from query parameter
+        team_name = request.args.get("team")
+        if not team_name:
+            return jsonify({"error": "Team name is required"}), 400
+        
+        print(f"[DEBUG] research_team_data: Looking up team '{team_name}'")
+        
+        # Get user's league context for filtering
+        user = session.get("user", {})
+        user_league_id = user.get("league_id", "")
+        
+        # Convert league_id to integer if needed
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league ID: {e}")
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+        
+        # Get team info and stats from database
+        team_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                t.display_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_id,
+                ss.points,
+                ss.matches_won,
+                ss.matches_lost,
+                ss.matches_tied,
+                ss.lines_won,
+                ss.lines_lost,
+                ss.sets_won,
+                ss.sets_lost,
+                ss.games_won,
+                ss.games_lost
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN series_stats ss ON ss.team = t.team_name AND ss.league_id = t.league_id
+            WHERE t.team_name = %s
+        """
+        
+        params = [team_name]
+        if league_id_int:
+            team_query += " AND t.league_id = %s"
+            params.append(league_id_int)
+        
+        team_data = execute_query_one(team_query, params)
+        
+        if not team_data:
+            return jsonify({"error": "Team not found"}), 404
+        
+        # Calculate additional statistics
+        total_matches = (team_data.get("matches_won", 0) + 
+                        team_data.get("matches_lost", 0) + 
+                        team_data.get("matches_tied", 0))
+        
+        win_percentage = 0
+        if total_matches > 0:
+            win_percentage = round((team_data.get("matches_won", 0) / total_matches) * 100, 1)
+        
+        # Get recent match results for form analysis
+        recent_matches_query = """
+            SELECT 
+                TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                ms.home_team,
+                ms.away_team,
+                ms.winner,
+                ms.scores,
+                CASE 
+                    WHEN ms.home_team_id = %s AND ms.winner = 'home' THEN 'W'
+                    WHEN ms.away_team_id = %s AND ms.winner = 'away' THEN 'W'
+                    ELSE 'L'
+                END as result
+            FROM match_scores ms
+            WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+            ORDER BY ms.match_date DESC
+            LIMIT 5
+        """
+        recent_matches = execute_query(recent_matches_query, [
+            team_data["team_id"], team_data["team_id"], 
+            team_data["team_id"], team_data["team_id"]
+        ])
+        
+        # Calculate additional statistics for frontend compatibility
+        total_lines = team_data.get("lines_won", 0) + team_data.get("lines_lost", 0)
+        line_win_percentage = 0
+        if total_lines > 0:
+            line_win_percentage = round((team_data.get("lines_won", 0) / total_lines) * 100, 1)
+        
+        total_sets = team_data.get("sets_won", 0) + team_data.get("sets_lost", 0)
+        set_win_percentage = 0
+        if total_sets > 0:
+            set_win_percentage = round((team_data.get("sets_won", 0) / total_sets) * 100, 1)
+        
+        total_games = team_data.get("games_won", 0) + team_data.get("games_lost", 0)
+        game_win_percentage = 0
+        if total_games > 0:
+            game_win_percentage = round((team_data.get("games_won", 0) / total_games) * 100, 1)
+        
+        # Build response with frontend-compatible field names
+        response_data = {
+            "team": {
+                "id": team_data["team_id"],
+                "name": team_data["team_name"],
+                "display_name": team_data["display_name"],
+                "club": team_data["club_name"],
+                "series": team_data["series_name"],
+                "league": team_data["league_id"]
+            },
+            "overview": {
+                "points": team_data.get("points", 0),
+                "match_record": f"{team_data.get('matches_won', 0)}-{team_data.get('matches_lost', 0)}",
+                "match_win_rate": win_percentage,
+                "line_win_rate": line_win_percentage,
+                "set_win_rate": set_win_percentage,
+                "game_win_rate": game_win_percentage,
+                # Keep original fields for backward compatibility
+                "matches_played": total_matches,
+                "matches_won": team_data.get("matches_won", 0),
+                "matches_lost": team_data.get("matches_lost", 0),
+                "matches_tied": team_data.get("matches_tied", 0),
+                "win_percentage": win_percentage,
+                "lines_won": team_data.get("lines_won", 0),
+                "lines_lost": team_data.get("lines_lost", 0),
+                "sets_won": team_data.get("sets_won", 0),
+                "sets_lost": team_data.get("sets_lost", 0),
+                "games_won": team_data.get("games_won", 0),
+                "games_lost": team_data.get("games_lost", 0)
+            },
+            "recent_form": [match["result"] for match in recent_matches],
+            "recent_matches": recent_matches
+        }
+        
+        print(f"[DEBUG] research_team_data: Returning data for team '{team_name}'")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"[ERROR] research_team_data: {str(e)}")
+        import traceback
+        print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
 
 
 def get_player_court_stats_data(player_name):

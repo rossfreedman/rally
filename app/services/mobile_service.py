@@ -5576,7 +5576,7 @@ def get_player_name_from_id(player_id):
             [player_id],
         )
         if player:
-            return f"{player['last_name']}, {player['first_name']}"
+            return f"{player['first_name']} {player['last_name']}"
         else:
             # FIXED: Return "Unknown Player" instead of truncated ID to avoid confusion
             return "Unknown Player"

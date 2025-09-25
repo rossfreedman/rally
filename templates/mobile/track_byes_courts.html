@@ -618,10 +618,13 @@ document.addEventListener('DOMContentLoaded', function() {
             player_id: playerData.player_id,
             type: type,
             value: parseInt(value),
-            team_id: {{ team_id|default('null') }}
+            team_id: {% if team_id %}{{ team_id }}{% else %}null{% endif %}
         };
         
         console.log('Sending request:', requestData);
+        console.log('🎯 team_id value:', requestData.team_id, 'type:', typeof requestData.team_id);
+        console.log('🎯 seasonTrackingData keys:', Object.keys(seasonTrackingData));
+        console.log('🎯 seasonTrackingData for player:', seasonTrackingData[playerName]);
 
         fetch('/api/player-season-tracking', {
             method: 'POST',
@@ -656,9 +659,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Editable cell functionality
     const editableCells = document.querySelectorAll('.editable-cell');
+    console.log('🎯 Found editable cells:', editableCells.length);
     
     // Add click handlers for read-only cells to provide feedback
     const readOnlyCells = document.querySelectorAll('span[title*="read-only"]');
+    console.log('🎯 Found read-only cells:', readOnlyCells.length);
+    
     readOnlyCells.forEach(cell => {
         cell.addEventListener('click', function() {
             const titleText = this.getAttribute('title');
@@ -669,8 +675,18 @@ document.addEventListener('DOMContentLoaded', function() {
         cell.style.cursor = 'not-allowed';
     });
     
-    editableCells.forEach(cell => {
+    editableCells.forEach((cell, index) => {
+        console.log(`🎯 Setting up editable cell ${index}:`, {
+            player: cell.dataset.player,
+            type: cell.dataset.type,
+            currentValue: cell.textContent
+        });
         cell.addEventListener('click', function() {
+            console.log('🎯 Cell clicked!', {
+                player: this.dataset.player,
+                type: this.dataset.type,
+                currentValue: this.textContent
+            });
             const currentValue = this.textContent;
             const player = this.dataset.player;
             const type = this.dataset.type;
@@ -691,10 +707,17 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle save on blur or enter
             function saveValue() {
+                console.log('🎯 saveValue called!', {
+                    player: player,
+                    type: type,
+                    inputValue: input.value,
+                    newValue: parseInt(input.value) || 0
+                });
                 const newValue = parseInt(input.value) || 0;
                 
                 // Validate value
                 if (newValue < 0 || newValue > 50) {
+                    console.log('🎯 Validation failed: value out of range');
                     showToast('Value must be between 0 and 50', 'error');
                     cell.textContent = currentValue;
                     return;
@@ -705,6 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Save to database (only for tracking types, not court assignments)
                 if (['bye', 'unavailable', 'injury'].includes(type)) {
+                    console.log('🎯 Saving to database for type:', type);
                     // Map frontend type names to database field names
                     const dbFieldMap = {
                         'bye': 'forced_byes',
@@ -714,8 +738,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     const dbFieldName = dbFieldMap[type];
                     if (dbFieldName) {
+                        console.log('🎯 Calling saveSeasonTrackingData with:', {
+                            player: player,
+                            dbFieldName: dbFieldName,
+                            newValue: newValue
+                        });
                         saveSeasonTrackingData(player, dbFieldName, newValue);
+                    } else {
+                        console.log('🎯 No dbFieldName found for type:', type);
                     }
+                } else {
+                    console.log('🎯 Not saving - type not in tracking types:', type);
                 }
             }
             

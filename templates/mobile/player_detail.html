@@ -1071,21 +1071,38 @@ function loadPartnerMatchesData(partnerName, courtName) {
         console.log(`[DEBUG] Extracted team_id: ${teamId} from composite player_id: ${playerId}`);
     } else {
         // Player name format: get current player name from page
-        currentPlayerName = decodeURIComponent(playerId);
-        console.log(`[DEBUG] Using player name format: ${currentPlayerName}`);
+        const decodedPlayerName = decodeURIComponent(playerId);
+        console.log(`[DEBUG] Using player name format: ${decodedPlayerName}`);
+        
+        // Convert from "Last, First" to "First Last" format for API call
+        if (decodedPlayerName.includes(', ')) {
+            const [lastName, firstName] = decodedPlayerName.split(', ');
+            currentPlayerName = `${firstName} ${lastName}`;
+        } else {
+            currentPlayerName = decodedPlayerName;
+        }
+        console.log(`[DEBUG] Converted to API format: ${currentPlayerName}`);
         
         // Try to get team_id from session or page context if available
         // For now, we'll need to pass the current player name to the API
     }
     
+    // Convert partner name from "Last, First" to "First Last" format for API call
+    let apiPartnerName = partnerName;
+    if (partnerName.includes(', ')) {
+        const [lastName, firstName] = partnerName.split(', ');
+        apiPartnerName = `${firstName} ${lastName}`;
+    }
+    console.log(`[DEBUG] Partner name - Original: ${partnerName}, API format: ${apiPartnerName}`);
+    
     // For player detail page, we need to find matches where the CURRENT player played WITH the partner
     let apiUrl;
     if (teamId) {
         // Use composite ID approach
-        apiUrl = `/api/player-matches-detail?player_id=${encodeURIComponent(playerId)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
+        apiUrl = `/api/player-matches-detail?player_id=${encodeURIComponent(playerId)}&partner_name=${encodeURIComponent(apiPartnerName)}&court=${encodeURIComponent(courtNumber)}`;
     } else {
         // Use current player name approach - need to call API differently
-        apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
+        apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(apiPartnerName)}&court=${encodeURIComponent(courtNumber)}`;
     }
     
     console.log(`[DEBUG] API URL: ${apiUrl}`);

@@ -4956,7 +4956,7 @@ def handle_player_season_tracking():
                     result.append(
                         {
                             "player_id": player_id,
-                            "name": f"{member['first_name']} {member['last_name']}",
+                            "name": f"{member['last_name']}, {member['first_name']}",
                             "forced_byes": tracking["forced_byes"],
                             "not_available": tracking["not_available"],
                             "injury": tracking["injury"],

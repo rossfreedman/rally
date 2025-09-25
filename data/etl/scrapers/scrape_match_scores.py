@@ -1130,24 +1130,9 @@ class APTAScraper(BaseLeagueScraper):
         return self._extract_apta_matches_from_series(html, series_name, current_total_processed, total_series)
     
     def _extract_apta_series_links(self, html: str) -> List[Tuple[str, str]]:
-        """Extract series links for APTA format using dynamic discovery from standings page."""
-        series_links = []
-        
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
-            
-            print(f"   🔍 Using dynamic discovery to find all available APTA series from standings page...")
-            
-            # Use dynamic discovery to find all series (same logic as apta_scrape_players_simple.py)
-            series_links = self._discover_apta_series_dynamically(soup)
-            
-            print(f"   📊 Total APTA series found: {len(series_links)}")
-            return series_links
-            
-        except Exception as e:
-            print(f"   ❌ Error extracting APTA series links: {e}")
-            return []
+        """Extract series links for APTA format using RTF file."""
+        print(f"   📋 Loading APTA series from RTF file...")
+        return self._load_apta_series_from_rtf()
     
     def _discover_apta_series_dynamically(self, soup) -> List[Tuple[str, str]]:
         """Discover all available APTA series by scraping the standings page for series navigation."""
@@ -1156,60 +1141,55 @@ class APTAScraper(BaseLeagueScraper):
         discovered_series = []
         
         try:
-            # Method 1: Look for links with the specific pattern (same as players scraper)
-            series_links = soup.find_all('a', href=True, id=lambda x: x and x.startswith('dividdrop_'))
+            # Enhanced Method: Look for all links with series navigation patterns
+            all_links = soup.find_all('a', href=True)
             
-            for link in series_links:
+            for link in all_links:
                 href = link.get('href', '')
                 text = link.get_text(strip=True)
-                link_id = link.get('id', '')
                 
-                # Extract the series number from the link text
-                if text.isdigit():
-                    # Regular series (e.g., "1", "2", "3")
-                    series_num = text
-                    series_name = f"Series {series_num}"
-                    
-                    # Construct the full URL for standings page
-                    if href.startswith('/'):
-                        full_url = f"https://aptachicago.tenniscores.com{href}"
-                    else:
-                        full_url = href
-                    
-                    discovered_series.append((series_name, full_url))
-                    print(f"         📋 Found series link: {series_name} -> {full_url} (ID: {link_id})")
-                elif ' SW' in text and any(char.isdigit() for char in text):
-                    # SW series (e.g., "7 SW", "9 SW", "11 SW")
-                    series_name = f"Series {text}"
-                    
-                    # Construct the full URL for standings page
-                    if href.startswith('/'):
-                        full_url = f"https://aptachicago.tenniscores.com{href}"
-                    else:
-                        full_url = href
-                    
-                    discovered_series.append((series_name, full_url))
-                    print(f"         📋 Found SW series link: {series_name} -> {full_url} (ID: {link_id})")
+                # Look for series-specific links with the correct URL pattern
+                if href and text and ('did=' in href and 'mod=' in href):
+                    # Check if this looks like a series navigation link
+                    if (re.search(r'\b\d+\b', text) or 
+                        'Series' in text or 
+                        'SW' in text):
+                        
+                        # Construct the full URL
+                        if href.startswith('/'):
+                            full_url = f"https://aptachicago.tenniscores.com{href}"
+                        elif href.startswith('?'):
+                            full_url = f"https://aptachicago.tenniscores.com{href}"
+                        else:
+                            full_url = href
+                        
+                        # Extract series name from text
+                        if text.isdigit():
+                            series_name = f"Series {text}"
+                        elif ' SW' in text:
+                            series_name = f"Series {text}"
+                        else:
+                            # Try to extract series number from text
+                            series_match = re.search(r'\b(\d+)\b', text)
+                            if series_match:
+                                series_num = series_match.group(1)
+                                if 'SW' in text:
+                                    series_name = f"Series {series_num} SW"
+                                else:
+                                    series_name = f"Series {series_num}"
+                            else:
+                                series_name = text
+                        
+                        # Validate the URL before adding
+                        if self._validate_series_url(full_url, series_name):
+                            discovered_series.append((series_name, full_url))
+                            print(f"         📋 Found series link: {series_name} -> {full_url}")
+                        else:
+                            print(f"         ⚠️ Skipped invalid series link: {series_name} -> {full_url}")
             
-            # Method 2: Look for series navigation text pattern if no links found
-            if not discovered_series:
-                print("      📋 Method 2: Looking for series navigation text pattern...")
-                
-                text_elements = soup.find_all(text=True)
-                for element in text_elements:
-                    text = element.strip()
-                    if 'Chicago' in text and any(char.isdigit() for char in text):
-                        print(f"         📋 Found navigation text: {text}")
-                        
-                        # Extract series numbers from the text
-                        series_numbers = re.findall(r'\b(\d+)\b', text)
-                        
-                        # Add regular series
-                        for series_num in series_numbers:
-                            series_name = f"Series {series_num}"
-                            series_url = f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
-                            discovered_series.append((series_name, series_url))
-                            print(f"            📋 Extracted: {series_name}")
+            # Remove duplicates and sort
+            discovered_series = list(set(discovered_series))
+            discovered_series.sort(key=lambda x: self._extract_series_number(x[0]))
             
             if discovered_series:
                 print(f"      ✅ Found {len(discovered_series)} series from navigation")
@@ -1218,16 +1198,81 @@ class APTAScraper(BaseLeagueScraper):
                 
                 # Fallback to comprehensive hardcoded series (same as players scraper)
                 discovered_series = self._get_fallback_apta_series()
-            
-            # Sort series by number for consistent processing
-            discovered_series.sort(key=lambda x: self._extract_series_number(x[0]))
+                
+                # Validate fallback URLs to catch any issues
+                validated_series = []
+                for series_name, series_url in discovered_series:
+                    if self._validate_series_url(series_url, series_name):
+                        validated_series.append((series_name, series_url))
+                    else:
+                        print(f"         ⚠️ Skipped invalid fallback URL for {series_name}: {series_url}")
+                discovered_series = validated_series
             
             return discovered_series
             
         except Exception as e:
             print(f"   ❌ Error during dynamic discovery: {e}")
             print("   🔄 Falling back to hardcoded series...")
-            return self._get_fallback_apta_series()
+            fallback_series = self._get_fallback_apta_series()
+            
+            # Validate fallback URLs to catch any issues
+            validated_series = []
+            for series_name, series_url in fallback_series:
+                if self._validate_series_url(series_url, series_name):
+                    validated_series.append((series_name, series_url))
+                else:
+                    print(f"         ⚠️ Skipped invalid fallback URL for {series_name}: {series_url}")
+            
+            return validated_series
+    
+    def _validate_series_url(self, url: str, series_name: str) -> bool:
+        """Validate that a series URL is correct by checking for basic URL structure."""
+        try:
+            # Basic URL validation
+            if not url or not isinstance(url, str):
+                return False
+                
+            # Must be a tenniscores.com URL
+            if 'tenniscores.com' not in url:
+                return False
+                
+            # Must have the required parameters
+            if 'mod=' not in url or 'did=' not in url:
+                return False
+                
+            # Check for suspicious patterns that might indicate wrong URLs
+            suspicious_patterns = [
+                'did=nndz-WnkrNXg3MD0%3D',  # Common wrong pattern we've seen
+                'did=nndz-WnkrNXc3MD0%3D',  # Another wrong pattern
+            ]
+            
+            for pattern in suspicious_patterns:
+                if pattern in url:
+                    print(f"         ⚠️ Detected suspicious URL pattern in {series_name}: {pattern}")
+                    return False
+                    
+            return True
+            
+        except Exception as e:
+            print(f"         ❌ Error validating URL for {series_name}: {e}")
+            return False
+    
+    def _validate_all_fallback_urls(self) -> None:
+        """Validate all fallback URLs and report any issues."""
+        print("   🔍 Validating all fallback URLs...")
+        fallback_series = self._get_fallback_apta_series()
+        
+        invalid_urls = []
+        for series_name, series_url in fallback_series:
+            if not self._validate_series_url(series_url, series_name):
+                invalid_urls.append((series_name, series_url))
+        
+        if invalid_urls:
+            print(f"   ⚠️ Found {len(invalid_urls)} invalid fallback URLs:")
+            for series_name, series_url in invalid_urls:
+                print(f"      ❌ {series_name}: {series_url}")
+        else:
+            print("   ✅ All fallback URLs are valid")
     
     def _extract_series_number(self, series_name: str) -> int:
         """Extract series number for sorting."""
@@ -1246,6 +1291,54 @@ class APTAScraper(BaseLeagueScraper):
         except:
             return 9999
     
+    def _load_apta_series_from_rtf(self) -> List[Tuple[str, str]]:
+        """Load APTA series URLs from the RTF file."""
+        import os
+        import re
+        
+        rtf_file_path = os.path.join(os.path.dirname(__file__), "apta", "apta_match_scores_series_list.rtf")
+        
+        if not os.path.exists(rtf_file_path):
+            raise FileNotFoundError(f"RTF file not found: {rtf_file_path}")
+        
+        try:
+            with open(rtf_file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Extract series lines from RTF content
+            series_lines = []
+            lines = content.split('\\')
+            
+            for line in lines:
+                # Look for lines that start with "Series" and contain a URL
+                if 'Series' in line and 'https://aptachicago.tenniscores.com' in line:
+                    # Clean up the line - remove RTF formatting
+                    clean_line = re.sub(r'\\[a-zA-Z0-9]+', '', line)  # Remove RTF commands
+                    clean_line = clean_line.strip()
+                    
+                    if clean_line and ':' in clean_line:
+                        # Split on the first colon to separate series name from URL
+                        parts = clean_line.split(':', 1)
+                        if len(parts) == 2:
+                            series_name = parts[0].strip()
+                            series_url = parts[1].strip()
+                            
+                            # Remove any trailing RTF formatting from URL (keep dots for domain names)
+                            series_url = re.sub(r'[^a-zA-Z0-9/?=&%:.-]', '', series_url)
+                            
+                            if series_name and series_url and series_url.startswith('https://'):
+                                series_lines.append((series_name, series_url))
+            
+            if not series_lines:
+                raise ValueError("No valid series found in RTF file")
+            
+            print(f"   📋 Loaded {len(series_lines)} series from RTF file")
+            return series_lines
+            
+        except Exception as e:
+            print(f"   ❌ Error loading RTF file: {e}")
+            raise
+
     def _get_fallback_apta_series(self) -> List[Tuple[str, str]]:
         """Get fallback hardcoded series list (same as players scraper)."""
         fallback_series = [
@@ -1268,7 +1361,7 @@ class APTAScraper(BaseLeagueScraper):
             ("Series 16", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
             ("Series 17", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 18", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
-            ("Series 19", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 19", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhicz0%3D"),
             ("Series 20", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 21", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
             ("Series 22", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
@@ -1839,6 +1932,12 @@ class EnhancedMatchScraper:
     
     def __init__(self, config: ScrapingConfig):
         self.config = config
+        
+        # Set environment variable for proxy testing skip if requested
+        if config.skip_proxy_test:
+            import os
+            os.environ['SKIP_PROXY_TEST'] = '1'
+        
         self.stealth_browser = create_stealth_browser(
             fast_mode=config.fast_mode or SPEED_OPTIMIZATIONS_AVAILABLE,  # Enable fast mode if optimizations available
             verbose=config.verbose,
@@ -1872,7 +1971,7 @@ class EnhancedMatchScraper:
             return NSTFScraper(self.config, league_subdomain, parent_scraper=self)
         elif league_lower in ["cnswpl", "cns"]:
             return CNSWPLScraper(self.config, league_subdomain, parent_scraper=self)
-        elif league_lower in ["aptachicago", "apta"]:
+        elif league_lower in ["aptachicago", "apta_chicago", "apta"]:
             return APTAScraper(self.config, league_subdomain, parent_scraper=self)
         else:
             raise ValueError(f"Unsupported league: {league_subdomain}")
@@ -1914,9 +2013,19 @@ class EnhancedMatchScraper:
             print(f"📋 {league_scraper.get_league_id()}: Found {len(series_links)} series")
             
             if series_filter:
-                # Filter series if specified
-                filtered_links = [(name, url) for name, url in series_links if series_filter.lower() in name.lower()]
+                # Filter series if specified - support both "19" and "Series 19" formats
+                filtered_links = []
+                for name, url in series_links:
+                    # Check if filter matches series number (e.g., "19" matches "Series 19")
+                    if (series_filter.lower() in name.lower() or 
+                        f"series {series_filter}" == name.lower() or
+                        series_filter.lower() == name.lower()):
+                        filtered_links.append((name, url))
+                
                 print(f"🔍 {league_scraper.get_league_id()}: Filtered to {len(filtered_links)} series matching '{series_filter}'")
+                if filtered_links:
+                    for name, url in filtered_links:
+                        print(f"   📋 {name}")
                 series_links = filtered_links
             
             current_total_processed = 0
@@ -2171,7 +2280,12 @@ class EnhancedMatchScraper:
         # Show filtering information
         if series_filter and series_filter != "all":
             print(f"🔍 Filtering for series: '{series_filter}'")
-            filtered_series = [s[0] for s in series_links if series_filter.lower() == s[0].lower()]
+            filtered_series = []
+            for name, url in series_links:
+                if (series_filter.lower() in name.lower() or 
+                    f"series {series_filter}" == name.lower() or
+                    series_filter.lower() == name.lower()):
+                    filtered_series.append(name)
             print(f"📊 Series matching filter: {filtered_series}")
         
         all_matches = []
@@ -2190,8 +2304,10 @@ class EnhancedMatchScraper:
         for i, (series_name, series_url) in enumerate(series_links, 1):
             # Improved series filtering logic
             if series_filter and series_filter != "all":
-                # Exact match for series names (case-insensitive)
-                if series_filter.lower() != series_name.lower():
+                # Flexible match for series names (supports "19" -> "Series 19")
+                if not (series_filter.lower() in series_name.lower() or 
+                        f"series {series_filter}" == series_name.lower() or
+                        series_filter.lower() == series_name.lower()):
                     continue
             
             processed_series += 1
@@ -2322,7 +2438,12 @@ class EnhancedMatchScraper:
             # Show filtering information
             if series_filter and series_filter != "all":
                 print(f"🔍 Filtering for series: '{series_filter}'")
-                filtered_series = [s[0] for s in series_links if series_filter.lower() == s[0].lower()]
+                filtered_series = []
+                for name, url in series_links:
+                    if (series_filter.lower() in name.lower() or 
+                        f"series {series_filter}" == name.lower() or
+                        series_filter.lower() == name.lower()):
+                        filtered_series.append(name)
                 print(f"📊 Series matching filter: {filtered_series}")
             
             all_matches = []
@@ -2331,7 +2452,9 @@ class EnhancedMatchScraper:
             processed_series = 0
             # Calculate total series with same filtering logic
             if series_filter and series_filter != "all":
-                total_series = len([s for s in series_links if series_filter.lower() == s[0].lower()])
+                total_series = len([s for s in series_links if (series_filter.lower() in s[0].lower() or 
+                                                              f"series {series_filter}" == s[0].lower() or
+                                                              series_filter.lower() == s[0].lower())])
             else:
                 total_series = len(series_links)
             
@@ -2341,8 +2464,10 @@ class EnhancedMatchScraper:
             for i, (series_name, series_url) in enumerate(series_links, 1):
                 # Improved series filtering logic
                 if series_filter and series_filter != "all":
-                    # Exact match for series names (case-insensitive)
-                    if series_filter.lower() != series_name.lower():
+                    # Flexible match for series names (supports "19" -> "Series 19")
+                    if not (series_filter.lower() in series_name.lower() or 
+                            f"series {series_filter}" == series_name.lower() or
+                            series_filter.lower() == series_name.lower()):
                         continue
                 
                 processed_series += 1

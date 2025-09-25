@@ -501,13 +501,9 @@ def serve_mobile_player_detail(player_id):
                 player_record = execute_query_one(player_query, [actual_player_id])
         
         if player_record:
-            # Format name as "Last, First" for consistency
+            # Format name as "First Last" for display
             full_name = player_record["full_name"]
-            name_parts = full_name.split(' ', 1)
-            if len(name_parts) == 2:
-                player_name = f"{name_parts[1]}, {name_parts[0]}"
-            else:
-                player_name = full_name
+            player_name = full_name
             print(f"[DEBUG] Found player record: {player_name} (ID: {actual_player_id}, Team: {team_id})")
             # Use the team_id from the database record if not explicitly provided
             if not team_id:
@@ -582,7 +578,8 @@ def serve_mobile_player_detail(player_id):
             if name_record:
                 actual_player_id = name_record["tenniscores_player_id"]
                 team_id = name_record.get("team_id")
-                # Keep the original player_name format (already "Last, First" if from URL)
+                # Convert to "First Last" format for display
+                player_name = f"{first_name} {last_name}"
                 print(f"[DEBUG] Name lookup found player_id {actual_player_id} with team_id {team_id}")
             else:
                 print(f"[DEBUG] No player record found for name: {player_name}")
@@ -6003,7 +6000,7 @@ def get_team_members_with_court_stats(team_id, user):
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
                 WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
-                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+                ORDER BY p.last_name, p.first_name
             """
             
             members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
@@ -6106,7 +6103,7 @@ def get_team_members_with_court_stats(team_id, user):
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
                 WHERE p.team_id = %s AND p.is_active = TRUE
-                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+                ORDER BY p.last_name, p.first_name
             """
             
             members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
