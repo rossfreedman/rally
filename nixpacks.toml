@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["python311", "python311Packages.pip", "postgresql.lib", "openssl", "postgresql_15", "zlib", "pkg-config"]
+
+[phases.install]
+cmds = [
+    "python -m pip install --break-system-packages --upgrade pip setuptools wheel",
+    "python -m pip install --break-system-packages --no-cache-dir --timeout=300 --retries=5 psycopg2-binary",
+    "python -m pip install --break-system-packages --no-cache-dir --timeout=300 --retries=5 -r requirements.txt"
+]
+
+[start]
+# Use production server for Railway deployment
+# Force deployment trigger
+cmd = "python server.py" 
