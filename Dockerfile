@@ -1,14 +1,13 @@
 # Use official Python runtime as base image
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
 # Install system dependencies including PostgreSQL client libraries
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    zlib1g-dev \
+RUN apk add --no-cache \
+    postgresql-dev \
+    zlib-dev \
     postgresql-client \
-    build-essential \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+    build-base \
+    pkgconfig
 
 # Set working directory
 WORKDIR /app
