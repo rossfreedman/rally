@@ -148,3 +148,4 @@ data/etl/scrapers/old/
 
 backups/*.sql
 .db.env
+rally_backup_2025_09_22_0821/
