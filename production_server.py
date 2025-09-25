@@ -92,7 +92,7 @@ try:
     # Register blueprints
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(api_bp, url_prefix='/api')
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(auth_bp)
     app.register_blueprint(mobile_bp, url_prefix='/mobile')
     app.register_blueprint(background_bp, url_prefix='/background')
     app.register_blueprint(schema_fix_bp, url_prefix='/schema-fix')
