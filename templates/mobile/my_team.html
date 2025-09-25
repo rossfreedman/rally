@@ -681,7 +681,26 @@ function closeMatchesModal() {
 
 async function loadPartnerMatchesData(partnerName, courtName) {
     try {
-                        const response = await fetch(`/api/team-current-season-matches?player=${encodeURIComponent(partnerName)}`);
+        // Extract court number from courtName (e.g., "Court 1" -> "1")
+        const courtNumber = courtName.replace(/[^0-9]/g, '');
+        
+        // Get team_id from session data (passed from template)
+        const teamId = {{ session_data.user.team_id }};
+        
+        // Convert name from "Last, First" to "First Last" format for API
+        let playerName = partnerName;
+        if (partnerName.includes(', ')) {
+            const [lastName, firstName] = partnerName.split(', ');
+            playerName = `${firstName} ${lastName}`;
+        }
+        
+        console.log(`[DEBUG] Original name: ${partnerName}, Converted name: ${playerName}, Team ID: ${teamId}, Court: ${courtNumber}`);
+        
+        // Use team_id + player_name approach (API expects either this or current_player + partner_name)
+        let apiUrl = `/api/partner-matches-team?team_id=${teamId}&player_name=${encodeURIComponent(playerName)}&court=${encodeURIComponent(courtNumber)}`;
+        console.log(`[DEBUG] API URL: ${apiUrl}`);
+        
+        let response = await fetch(apiUrl);
         console.log('API response status:', response.status);
         
         if (response.status === 404) {
@@ -697,71 +716,30 @@ async function loadPartnerMatchesData(partnerName, courtName) {
         }
         
         const data = await response.json();
-        console.log('API response:', data);
+        console.log('📊 Partner matches API response data:', data);
+        
+        if (!data.success) {
+            console.log('❌ Partner matches API not successful:', data.error);
+            showMatchesError(data.error || 'API request failed');
+            return;
+        }
         
         if (data.error) {
-            console.error('API returned error:', data.error);
+            console.log('❌ Partner matches API error:', data.error);
             showMatchesError(data.error);
             return;
         }
         
         if (!data.matches || data.matches.length === 0) {
-            showMatchesEmpty();
+            console.log('❌ No matches in partner response');
+            showMatchesError(`No matches found for ${partnerName} on ${courtName}`);
             return;
         }
         
-        // Filter matches for this specific partner and court
-        // Use the same logic as the court analysis
-        const targetCourt = parseInt(courtName.replace('court', ''));
+        console.log('✅ Found', data.matches.length, 'matches from API');
         
-        const partnerMatches = data.matches.filter(match => {
-            // Check if this match is on the specified court
-            const isOnCourt = match.court_number === targetCourt;
-            
-            return isOnCourt;
-        });
-        
-        // If no matches found with the exact court number, try the fallback logic
-        // This matches the court analysis fallback: (index % 4) + 1
-        if (partnerMatches.length === 0) {
-            const fallbackMatches = data.matches.filter(match => {
-                // Group matches by date and team matchup to replicate court analysis logic
-                const matchKey = `${match.date}_${match.home_team}_${match.away_team}`;
-                const sameTeamMatches = data.matches.filter(m => 
-                    `${m.date}_${m.home_team}_${m.away_team}` === matchKey
-                ).sort((a, b) => a.match_id - b.match_id);
-                
-                const matchIndex = sameTeamMatches.findIndex(m => m.match_id === match.match_id);
-                const fallbackCourt = (matchIndex % 4) + 1;
-                
-                return fallbackCourt === targetCourt;
-            });
-            
-            if (fallbackMatches.length > 0) {
-                console.log(`Using fallback court logic: found ${fallbackMatches.length} matches for ${partnerName} on ${courtName}`);
-                partnerMatches.push(...fallbackMatches);
-            }
-        }
-        
-        // If still no matches, try using the same data source as court analysis
-        // The court analysis uses match_history from player analysis, not the API endpoint
-        if (partnerMatches.length === 0) {
-            console.log(`No matches found with API data, trying to match court analysis logic...`);
-            
-            // The court analysis shows 2 matches for Mike Lieberman on Court 1
-            // but the API only shows 1. This suggests the court analysis uses different data.
-            // For now, show a message explaining the discrepancy
-            showMatchesError(`Court analysis shows different data than API. Please check the court analysis for accurate match counts.`);
-            return;
-        }
-        
-        if (partnerMatches.length === 0) {
-            showMatchesError(`No matches found with ${partnerName} on ${courtName.replace('court', 'Court ').toUpperCase()}`);
-            return;
-        }
-        
-        // Render partner matches
-        renderPartnerMatchesModal(partnerMatches, partnerName, courtName);
+        // Render matches (same format as analyze-me page)
+        renderPartnerMatchesModal(data.matches, partnerName, courtName);
         
     } catch (err) {
         console.error('Error loading partner matches:', err);
@@ -769,12 +747,36 @@ async function loadPartnerMatchesData(partnerName, courtName) {
     }
 }
 
-function renderPartnerMatchesModal(matches, partnerName, courtName) {
+function groupMatchesByTeamMatchup(matches) {
+    const grouped = {};
+    
+    matches.forEach(match => {
+        const key = `${match.date}_${match.home_team}_${match.away_team}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                date: match.date,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                matches: []
+            };
+        }
+        grouped[key].matches.push(match);
+    });
+    
+    // Sort by date (newest first)
+    return Object.values(grouped).sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return dateB - dateA;
+    });
+}
+
+function renderPartnerMatchesModal(matches, playerName, courtName) {
     const modalContent = document.getElementById('matchesModalContent');
     
     let html = `
         <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('court', 'Court ')}</h3>
+            <h3 class="text-base font-semibold text-gray-900 mb-2">${playerName} on ${courtName}</h3>
         </div>
     `;
     
@@ -816,8 +818,8 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                 <div class="px-4 py-3 bg-gray-50">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-gray-900">${match.court_number}</span>
-                            <span class="text-xs text-gray-700">${partnerName} & ${match.partner_name}</span>
+                            <span class="text-xs font-medium text-gray-900">Court ${match.court_number}</span>
+                            <span class="text-xs text-gray-700">${playerName} & ${match.partner_name}</span>
                         </div>
                     </div>
                     

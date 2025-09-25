@@ -8,12 +8,18 @@ Optimized for Railway deployment with proper Chrome configuration for containeri
 Enhanced with IP validation, request volume tracking, and intelligent throttling.
 """
 
-import json
+# Set environment variables BEFORE any imports to prevent proxy testing
 import os
+os.environ['SKIP_PROXY_TEST'] = '1'
+os.environ['QUICK_TEST'] = '1'
+os.environ['FAST_MODE'] = '1'
+
+import json
 import re
 import time
 import warnings
 from datetime import datetime, timedelta
+from urllib.parse import urljoin
 
 # Suppress deprecation warnings - CRITICAL for production stability
 warnings.filterwarnings("ignore", category=UserWarning, module="_distutils_hack")
@@ -289,6 +295,74 @@ def extract_series_name_from_team(team_name):
     return None
 
 
+def format_series_name(series_name):
+    """
+    Format series name to match players.json format.
+    
+    Examples:
+        "Series 1" -> "Series 1"
+        "Series 7 SW" -> "Series 7 SW"
+        "Chicago 20" -> "Series 20"
+    """
+    if not series_name:
+        return series_name
+    
+    series_name = series_name.strip()
+    
+    # Handle SW series first - preserve the SW suffix
+    if "SW" in series_name:
+        series_num_match = re.search(r'(\d+)', series_name)
+        if series_num_match:
+            series_number = series_num_match.group(1)
+            return f"Series {series_number} SW"
+    
+    # Extract series number from series name
+    series_num_match = re.search(r'(\d+)', series_name)
+    if series_num_match:
+        series_number = series_num_match.group(1)
+        
+        # Format series number
+        if series_number.isdigit():
+            formatted_series = f"Series {series_number}"
+        else:
+            formatted_series = f"Series {series_number}"
+        
+        return formatted_series
+    
+    return series_name
+
+def format_team_name_for_output(team_name, series_name):
+    """
+    Format team name to match players.json format.
+    
+    Examples:
+        "Lake Forest - 20" -> "Lake Forest 20"
+        "Evanston - 20" -> "Evanston 20"
+        "Midtown - Chicago - 8" -> "Midtown Chicago 8"
+    """
+    if not team_name:
+        return team_name
+    
+    team_name = team_name.strip()
+    
+    # Handle cases like "Midtown - Chicago - 8" -> "Midtown Chicago 8"
+    if " - " in team_name:
+        parts = team_name.split(" - ")
+        if len(parts) >= 3:
+            # Format: "Club - Location - Number" -> "Club Location Number"
+            club = parts[0].strip()
+            location = parts[1].strip()
+            number = parts[2].strip()
+            return f"{club} {location} {number}"
+        elif len(parts) == 2:
+            # Format: "Club - Number" -> "Club Number"
+            club = parts[0].strip()
+            number = parts[1].strip()
+            return f"{club} {number}"
+    
+    return team_name
+
+
 def build_league_data_dir(league_id):
     """
     Build the dynamic data directory path based on the league ID.
@@ -437,8 +511,8 @@ def scrape_series_stats(
             print(f"   📊 Processing team rows in {series_name} standings table...")
             team_count = 0
             
-            # Special handling for CNSWPL - might have different header structure
-            start_row = 2 if league_id != "CNSWPL" else 1  # CNSWPL might have only 1 header row
+            # Handle different header structures - most leagues have 2 header rows
+            start_row = 2  # Standard: skip 2 header rows (grouping + column headers)
             all_rows = table.find_all("tr")
             
             if league_id == "CNSWPL":
@@ -516,7 +590,7 @@ def scrape_series_stats(
 
                         team_stats = {
                             "series": series_name,
-                            "team": team_name,
+                            "team": format_team_name_for_output(team_name, series_name),
                             "league_id": league_id,
                             "points": points_value,
                             "matches": {
@@ -569,10 +643,191 @@ def scrape_series_stats(
     return stats
 
 
+def scrape_with_stealth_browser(stealth_browser, url, series_name, league_id, max_retries=3):
+    """
+    Scrape statistics using Enhanced Stealth Browser with all stealth features.
+    
+    Args:
+        stealth_browser: EnhancedStealthBrowser instance
+        url (str): URL to scrape
+        series_name (str): Name of the series
+        league_id (str): League identifier
+        max_retries (int): Maximum retry attempts
+
+    Returns:
+        list: List of team statistics dictionaries
+    """
+    stats = []
+    print(f"   🛡️ Starting stealth browser scraping for {series_name}")
+
+    for attempt in range(max_retries):
+        try:
+            print(f"   📡 Stealth Browser: Fetching {url} (attempt {attempt + 1}/{max_retries})")
+            
+            # Use stealth browser's get_html() method
+            html_content = stealth_browser.get_html(url)
+            if not html_content:
+                raise Exception("Stealth browser returned empty content")
+            
+            print(f"   ✅ Stealth browser request successful for {series_name}")
+            
+            # Parse with BeautifulSoup
+            soup = BeautifulSoup(html_content, "html.parser")
+            
+            # Look for Statistics link
+            print(f"   🔍 Looking for Statistics link in {series_name}...")
+            stats_link = soup.find("a", href=True, string=lambda text: text and "Statistics" in text)
+            
+            if not stats_link:
+                print(f"   ❌ No Statistics link found for {series_name}")
+                return []
+            
+            stats_url = stats_link["href"]
+            if not stats_url.startswith("http"):
+                stats_url = urljoin(url, stats_url)
+            
+            print(f"   ✅ Found Statistics link: {stats_url}")
+            
+            # Fetch the statistics page using stealth browser
+            print(f"   📡 Fetching statistics page for {series_name}...")
+            stats_html = stealth_browser.get_html(stats_url)
+            if not stats_html:
+                raise Exception("Stealth browser returned empty content for statistics page")
+            
+            print(f"   ✅ Stealth browser request successful for statistics page")
+            
+            # Parse statistics page
+            soup = BeautifulSoup(stats_html, "html.parser")
+            
+            # Find the standings table
+            print(f"   📊 Looking for standings table in {series_name}...")
+            table = soup.find("table", class_="standings-table2")
+            if not table:
+                table = soup.find("table", class_="short-standings")
+            if not table:
+                # Try finding any table with standings data
+                tables = soup.find_all("table")
+                print(f"   📋 Found {len(tables)} tables on page")
+                for t in tables:
+                    headers = t.find_all("th") or t.find_all("td")
+                    header_text = " ".join([h.get_text().lower() for h in headers[:10]])
+                    if any(
+                        keyword in header_text
+                        for keyword in [
+                            "team",
+                            "points",
+                            "won",
+                            "lost",
+                            "w",
+                            "l",
+                            "pct",
+                            "percentage",
+                        ]
+                    ):
+                        table = t
+                        print(f"   ✅ Found alternative standings table with headers: {header_text[:50]}...")
+                        break
+            
+            if not table:
+                print(f"   ❌ No standings table found for {series_name}")
+                return []
+            
+            # Process team rows
+            print(f"   📊 Processing team rows in {series_name} standings table...")
+            rows = table.find_all("tr")
+            team_count = 0
+            
+            for row in rows[2:]:  # Skip 2 header rows (grouping + column headers)
+                cells = row.find_all(["td", "th"])
+                if len(cells) < 3:
+                    continue
+                
+                team_name = cells[0].get_text().strip()
+                if not team_name or team_name.upper() == "TEAM":
+                    continue
+                
+                # Skip BYE teams
+                if "BYE" in team_name.upper():
+                    print(f"   ⏸️  Skipping BYE team: {team_name}")
+                    continue
+                
+                # Helper function to safely extract column data
+                def safe_col_int(index, default=0):
+                    if index < len(cells):
+                        text = cells[index].get_text().strip()
+                        try:
+                            return int(float(text))
+                        except (ValueError, TypeError):
+                            return default
+                    return default
+
+                def safe_col_text(index, default=""):
+                    if index < len(cells):
+                        return cells[index].get_text().strip()
+                    return default
+
+                # Extract points
+                points = safe_col_int(1)
+                
+                # Format series name to match players.json format
+                series_name_formatted = format_series_name(series_name)
+                
+                # Format team name to match players.json format
+                team_name_formatted = format_team_name_for_output(team_name, series_name_formatted)
+                
+                team_stats = {
+                    "series": series_name_formatted,
+                    "team": team_name_formatted,
+                    "league_id": league_id,
+                    "points": points,
+                    "matches": {
+                        "won": safe_col_int(2),
+                        "lost": safe_col_int(3),
+                        "tied": safe_col_int(4),
+                        "percentage": safe_col_text(5),
+                    },
+                    "lines": {
+                        "won": safe_col_int(6),
+                        "lost": safe_col_int(7),
+                        "for": safe_col_int(8),
+                        "ret": safe_col_int(9),
+                        "percentage": safe_col_text(10),
+                    },
+                    "sets": {
+                        "won": safe_col_int(11),
+                        "lost": safe_col_int(12),
+                        "percentage": safe_col_text(13),
+                    },
+                    "games": {
+                        "won": safe_col_int(14),
+                        "lost": safe_col_int(15),
+                        "percentage": safe_col_text(16),
+                    },
+                }
+                
+                stats.append(team_stats)
+                team_count += 1
+                print(f"   ✅ Processed team {team_count}: {team_name_formatted} (Points: {points}, W/L: {safe_col_int(2)}/{safe_col_int(3)})")
+            
+            print(f"   🎉 Stealth Browser: Successfully scraped stats for {team_count} teams in {series_name}")
+            return stats
+            
+        except Exception as e:
+            print(f"   ❌ Stealth browser attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print(f"   ⏳ Retrying in 2 seconds...")
+                time.sleep(2)
+            else:
+                print(f"   🚨 All stealth browser attempts failed for {series_name}")
+                return []
+
+    return stats
+
+
 def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
     """
-    Fallback scraper using ScraperAPI HTTP API instead of Selenium.
-    Enhanced with IP rotation and US-based proxy access.
+    Fallback scraper using direct HTTP requests with retry logic.
+    Uses same pattern as APTA simple scraper for reliability.
 
     Args:
         url (str): URL to scrape
@@ -584,7 +839,11 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
         list: List of team statistics dictionaries
     """
     stats = []
-    print(f"   🌐 Starting HTTP API scraping for {series_name}")
+    print(f"   🌐 Starting direct HTTP scraping for {series_name}")
+
+    # Use direct HTTP requests with retry logic (same as APTA simple scraper)
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
 
     for attempt in range(max_retries):
         try:
@@ -592,20 +851,27 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
                 f"   📡 HTTP API: Fetching {url} (attempt {attempt + 1}/{max_retries})"
             )
 
-            # Use proxy manager for HTTP requests
-            from data.etl.scrapers.proxy_manager import make_proxy_request
+            # Use direct HTTP requests with retry logic
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
             
-            response = make_proxy_request(url, timeout=30)
-            if not response:
-                print(f"   ❌ Proxy request failed for {series_name}, falling back to direct request")
-                # Fallback to direct request if proxy not available
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                }
-                response = requests.get(url, headers=headers, timeout=30)
-                print(f"   ✅ Direct request successful for {series_name}")
-            else:
-                print(f"   ✅ Proxy request successful for {series_name}")
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+            }
+            
+            response = session.get(url, headers=headers, timeout=30)
+            print(f"   ✅ Direct HTTP request successful for {series_name}")
             
             response.raise_for_status()
             print(f"   🔍 Parsing HTML content for {series_name}...")
@@ -622,14 +888,10 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
 
                 print(f"   ✅ Found Statistics link: {stats_url}")
 
-                # Fetch the statistics page using proxy
+                # Fetch the statistics page using direct HTTP
                 print(f"   📡 Fetching statistics page for {series_name}...")
-                stats_response = make_proxy_request(stats_url, timeout=30)
-                if not stats_response:
-                    print(f"   📡 Using direct request for statistics page (proxy failed)")
-                    stats_response = requests.get(stats_url, headers=headers, timeout=30)
-                else:
-                    print(f"   ✅ Proxy request successful for statistics page")
+                stats_response = session.get(stats_url, headers=headers, timeout=30)
+                print(f"   ✅ Direct HTTP request successful for statistics page")
                 
                 stats_response.raise_for_status()
                 print(f"   🔍 Parsing statistics page HTML for {series_name}...")
@@ -721,7 +983,7 @@ def scrape_with_requests_fallback(url, series_name, league_id, max_retries=3):
 
                         team_stats = {
                             "series": series_name,
-                            "team": team_name,
+                            "team": format_team_name_for_output(team_name, series_name),
                             "league_id": league_id,
                             "points": points_value,
                             "matches": {
@@ -802,10 +1064,10 @@ def check_stats_delta(league_subdomain):
             query = """
             SELECT MAX(updated_at) as latest_update
             FROM series_stats 
-            WHERE league_id = %s
+            WHERE league_id = :league_id
             """
             
-            result = conn.execute(text(query), [league_id])
+            result = conn.execute(text(query), {"league_id": league_id})
             row = result.fetchone()
             
             if not row or not row[0]:
@@ -895,12 +1157,11 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             "No filtering - comprehensive discovery and processing of all team statistics"
         )
 
-        # Use proxy HTTP API approach (skip initial connectivity test to avoid blocks)
-        print("🌐 Using proxy HTTP API approach...")
+        # Use stealth browser for both discovery and stats scraping
+        print("🛡️ Using Enhanced Stealth Browser for discovery and stats scraping...")
         
-        from data.etl.scrapers.proxy_manager import make_proxy_request
-        print("✅ Proceeding with HTTP API (skipping connectivity test)")
-        use_fallback = True  # Use HTTP API as primary method
+        print("✅ Proceeding with stealth browser (proxy testing disabled)")
+        use_fallback = False  # Use stealth browser as primary method
         driver = None
         chrome_manager = None
 
@@ -909,8 +1170,34 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
 
         print(f"🚀 Starting {config['subdomain'].upper()} Stats Scraper")
         print(f"📊 Target: All Discovered Series")
-        print(f"🎯 Method: {'ScraperAPI HTTP API' if use_fallback else 'Chrome WebDriver'}")
+        print(f"🎯 Method: {'ScraperAPI HTTP API' if use_fallback else 'Enhanced Stealth Browser'}")
         print("=" * 60)
+
+        # Initialize Enhanced Stealth Browser
+        if not use_fallback:
+            print("🛡️ Initializing Enhanced Stealth Browser...")
+            try:
+                # Use the enhanced stealth browser with all features
+                stealth_browser = create_stealth_browser(
+                    fast_mode=False, 
+                    verbose=True, 
+                    environment="production",
+                    force_browser=True  # Skip proxy testing, use browser directly
+                )
+                # Note: EnhancedStealthBrowser uses get_html() method, not get_driver()
+                driver = None  # Not used with stealth browser
+                chrome_manager = stealth_browser
+                print("✅ Enhanced Stealth Browser initialized successfully")
+                print("🛡️ All stealth features enabled:")
+                print("   - Anti-detection scripts")
+                print("   - Fingerprint evasion")
+                print("   - IP rotation via ScraperAPI")
+                print("   - Request pacing and throttling")
+                print("   - CAPTCHA detection")
+            except Exception as stealth_error:
+                print(f"❌ Stealth browser failed: {stealth_error}")
+                print("🔄 Falling back to direct HTTP requests...")
+                use_fallback = True
 
         # Discovery phase
         discovery_start_time = datetime.now()
@@ -918,78 +1205,51 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
         print(f"📄 Navigating to URL: {base_url}")
 
         if use_fallback:
-            # Decodo proxy HTTP-based series discovery (PRIMARY METHOD)
-            print("   🌐 Using Decodo proxy HTTP API for series discovery...")
+            # Direct HTTP-based series discovery (fallback method)
+            print("   🌐 Using direct HTTP for series discovery (fallback)...")
             
-            # Use the new Decodo proxy function
-            from data.etl.scrapers.proxy_manager import make_proxy_request
+            # Use the same pattern as APTA simple scraper with retry logic
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
             
-            response = make_proxy_request(base_url, timeout=30)
-            if not response:
-                print("   ❌ Decodo proxy request failed, falling back to direct request")
-                headers = {
-                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-                }
-                response = requests.get(base_url, headers=headers, timeout=30)
-            else:
-                print(f"   ✅ Decodo proxy request successful")
-                
-                # Add retry logic for Decodo proxy HTTP requests
-                max_http_retries = 3
-                http_retry_delay = 2  # Reduced delay for faster execution
-                
-                for attempt in range(max_http_retries):
-                    try:
-                        print(f"   🔄 HTTP API attempt {attempt + 1}/{max_http_retries}")
-                        # Increase timeout for each retry attempt
-                        timeout = 30 + (attempt * 15)  # 30s, 45s, 60s
-                        response = make_proxy_request(base_url, timeout=timeout)
-                        if response:
-                            print(f"   ✅ HTTP API request successful on attempt {attempt + 1}")
-                            break
-                        else:
-                            raise Exception("Proxy request returned None")
-                    except Exception as e:
-                        print(f"   ❌ HTTP API attempt {attempt + 1} failed: {str(e)}")
-                        if attempt < max_http_retries - 1:
-                            print(f"   ⏳ Waiting {http_retry_delay} seconds before retry...")
-                            time.sleep(http_retry_delay)
-                            http_retry_delay *= 2  # Exponential backoff
-                        else:
-                            print("   🚨 All HTTP API attempts failed, switching to Chrome WebDriver...")
-                            # Switch to Chrome WebDriver fallback
-                            use_fallback = False
-                            try:
-                                if not chrome_manager:
-                                    # Create stealth browser with speed optimizations
-                                    chrome_manager = create_stealth_browser(
-                                        fast_mode=SPEED_OPTIMIZATIONS_AVAILABLE,  # Enable fast mode if optimizations available
-                                        verbose=True, 
-                                        environment="production"
-                                    )
-                                    driver = chrome_manager.__enter__()
-                                print("   🚗 Using Chrome WebDriver for series discovery (fallback)...")
-                                driver.get(base_url)
-                                time.sleep(retry_delay)
-                                soup = BeautifulSoup(driver.page_source, "html.parser")
-                            except Exception as chrome_error:
-                                print(f"   ❌ Chrome WebDriver also failed: {chrome_error}")
-                                print("   🚨 All scraping methods failed!")
-                                return
-                            break
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=3,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
             
-            if use_fallback:  # Only parse with BeautifulSoup if HTTP was successful
-                soup = BeautifulSoup(response.content, "html.parser")
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+            }
+            
+            response = session.get(base_url, headers=headers, timeout=30)
+            response.raise_for_status()
+            print(f"   ✅ Direct HTTP request successful")
+            
+            # Parse with BeautifulSoup
+            soup = BeautifulSoup(response.content, "html.parser")
         else:
-            # WebDriver-based series discovery (FALLBACK METHOD)
-            print("   🚗 Using Chrome WebDriver for series discovery (fallback)...")
+            # Enhanced Stealth Browser-based series discovery (PRIMARY METHOD)
+            print("   🛡️ Using Enhanced Stealth Browser for series discovery...")
             try:
-                driver.get(base_url)
-                time.sleep(retry_delay)
-                soup = BeautifulSoup(driver.page_source, "html.parser")
-            except Exception as chrome_error:
-                print(f"   ❌ Chrome WebDriver failed: {chrome_error}")
-                print("   🔄 Attempting direct HTTP request as final fallback...")
+                # Use stealth browser's get_html() method
+                html_content = chrome_manager.get_html(base_url)
+                if not html_content:
+                    raise Exception("Stealth browser returned empty content")
+                
+                soup = BeautifulSoup(html_content, "html.parser")
+                print("   ✅ Stealth browser navigation successful")
+            except Exception as stealth_error:
+                print(f"   ❌ Stealth browser failed: {stealth_error}")
+                print("   🔄 Falling back to direct HTTP requests...")
                 try:
                     headers = {
                         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -997,9 +1257,10 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                     response = requests.get(base_url, headers=headers, timeout=30)
                     response.raise_for_status()
                     soup = BeautifulSoup(response.content, "html.parser")
-                    print("   ✅ Direct HTTP request successful")
+                    print("   ✅ Direct HTTP fallback successful")
+                    use_fallback = True
                 except Exception as direct_error:
-                    print(f"   ❌ Direct HTTP request also failed: {direct_error}")
+                    print(f"   ❌ All methods failed: {direct_error}")
                     print("   🚨 All scraping methods failed!")
                     return
 
@@ -1014,16 +1275,16 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                 if series_link and series_link.text:
                     series_number = series_link.text.strip()
 
-                    # Format the series number to auto-detect APTA vs NSTF formats
+                    # Format the series number to match players.json format
                     if series_number.isdigit():
-                        # APTA Chicago format: pure numbers
-                        formatted_series = f"Chicago {series_number}"
+                        # APTA Chicago format: "Series X" to match players.json
+                        formatted_series = f"Series {series_number}"
                     elif series_number.startswith("Series "):
                         # Series name already has "Series" prefix, use as-is
                         formatted_series = series_number
                     elif "SW" in series_number:
-                        # Handle SW series: "23 SW" -> "Chicago 23 SW"
-                        formatted_series = f"Chicago {series_number}"
+                        # Handle SW series: "23 SW" -> "Series 23 SW"
+                        formatted_series = f"Series {series_number}"
                     elif any(
                         keyword in series_number.lower()
                         for keyword in [
@@ -1105,23 +1366,22 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
 
             print(f"🏆 Processing: {series_number}")
             print(f"   📄 Series URL: {series_url}")
-            print(f"   🔄 Scraping method: {'Decodo Proxy HTTP API' if use_fallback else 'Chrome WebDriver'}")
+            print(f"   🔄 Scraping method: {'Direct HTTP API' if use_fallback else 'Enhanced Stealth Browser'}")
 
             # Choose scraping method based on availability
             if use_fallback:
-                print(f"   🌐 Using Decodo proxy HTTP API for {series_number}...")
+                print(f"   🌐 Using Direct HTTP API for {series_number}...")
                 stats = scrape_with_requests_fallback(
                     series_url, series_number, league_id, max_retries=max_retries
                 )
             else:
-                print(f"   🚗 Using Chrome WebDriver for {series_number}...")
-                stats = scrape_series_stats(
-                    driver,
+                print(f"   🛡️ Using Enhanced Stealth Browser for {series_number}...")
+                stats = scrape_with_stealth_browser(
+                    chrome_manager,
                     series_url,
                     series_number,
                     league_id,
                     max_retries=max_retries,
-                    retry_delay=retry_delay,
                 )
 
             series_end_time = datetime.now()
@@ -1211,7 +1471,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
 
         print(f"📊 PERFORMANCE METRICS")
         print(
-            f"🎯 Scraping Method: {'ScraperAPI HTTP API' if use_fallback else 'Stealth Chrome WebDriver'}"
+            f"🎯 Scraping Method: {'Direct HTTP API' if use_fallback else 'Enhanced Stealth Browser'}"
         )
         print(f"📈 Total series found: {len(series_urls)}")
         print(f"🏆 Series processed successfully: {processed_series_count}")

@@ -190,50 +190,66 @@ def validate_stat_data(stat_data):
         if not is_valid:
             errors.append(f"Team: {team_error}")
     
-    # Validate nested objects
-    matches = stat_data.get("matches", {})
-    if not isinstance(matches, dict):
-        errors.append("Invalid matches object")
+    # Validate statistics - handle both detailed and simple formats
+    if "matches" in stat_data and isinstance(stat_data.get("matches"), dict):
+        # Detailed format with nested objects
+        matches = stat_data.get("matches", {})
+        if not isinstance(matches, dict):
+            errors.append("Invalid matches object")
+        else:
+            # Validate match statistics
+            for key in ["won", "lost", "tied"]:
+                if key in matches:
+                    value = matches[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid matches.{key}: {value} (must be non-negative number)")
+        
+        lines = stat_data.get("lines", {})
+        if not isinstance(lines, dict):
+            errors.append("Invalid lines object")
+        else:
+            # Validate line statistics
+            for key in ["won", "lost"]:
+                if key in lines:
+                    value = lines[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid lines.{key}: {value} (must be non-negative number)")
+        
+        sets = stat_data.get("sets", {})
+        if not isinstance(sets, dict):
+            errors.append("Invalid sets object")
+        else:
+            # Validate set statistics
+            for key in ["won", "lost"]:
+                if key in sets:
+                    value = sets[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid sets.{key}: {value} (must be non-negative number)")
+        
+        games = stat_data.get("games", {})
+        if not isinstance(games, dict):
+            errors.append("Invalid games object")
+        else:
+            # Validate game statistics
+            for key in ["won", "lost"]:
+                if key in games:
+                    value = games[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid games.{key}: {value} (must be non-negative number)")
     else:
-        # Validate match statistics
-        for key in ["won", "lost", "tied"]:
-            if key in matches:
-                value = matches[key]
+        # Simple format with wins/losses at top level
+        for key in ["wins", "losses", "tied"]:
+            if key in stat_data:
+                value = stat_data[key]
                 if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid matches.{key}: {value} (must be non-negative number)")
-    
-    lines = stat_data.get("lines", {})
-    if not isinstance(lines, dict):
-        errors.append("Invalid lines object")
-    else:
-        # Validate line statistics
-        for key in ["won", "lost"]:
-            if key in lines:
-                value = lines[key]
+                    errors.append(f"Invalid {key}: {value} (must be non-negative number)")
+        
+        # Validate optional detailed fields if present
+        for key in ["lines_won", "lines_lost", "sets_won", "sets_lost", "games_won", "games_lost"]:
+            if key in stat_data:
+                value = stat_data[key]
                 if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid lines.{key}: {value} (must be non-negative number)")
-    
-    sets = stat_data.get("sets", {})
-    if not isinstance(sets, dict):
-        errors.append("Invalid sets object")
-    else:
-        # Validate set statistics
-        for key in ["won", "lost"]:
-            if key in sets:
-                value = sets[key]
-                if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid sets.{key}: {value} (must be non-negative number)")
-    
-    games = stat_data.get("games", {})
-    if not isinstance(games, dict):
-        errors.append("Invalid games object")
-    else:
-        # Validate game statistics
-        for key in ["won", "lost"]:
-            if key in games:
-                value = games[key]
-                if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid games.{key}: {value} (must be non-negative number)")
+                    errors.append(f"Invalid {key}: {value} (must be non-negative number)")
     
     return len(errors) == 0, errors
 
@@ -572,17 +588,32 @@ def upsert_stat(cur, league_id, stat_data):
         if not series_id:
             return None, f"series_creation_failed: could not create series '{series_name}'"
         
-        # Extract stat values
+        # Extract stat values - handle both detailed and simple formats
         points = stat_data.get("points")
-        matches_won = stat_data.get("matches", {}).get("won")
-        matches_lost = stat_data.get("matches", {}).get("lost")
-        matches_tied = stat_data.get("matches", {}).get("tied")
-        lines_won = stat_data.get("lines", {}).get("won")
-        lines_lost = stat_data.get("lines", {}).get("lost")
-        sets_won = stat_data.get("sets", {}).get("won")
-        sets_lost = stat_data.get("sets", {}).get("lost")
-        games_won = stat_data.get("games", {}).get("won")
-        games_lost = stat_data.get("games", {}).get("lost")
+        
+        # Check if we have detailed stats (nested objects) or simple stats (flat structure)
+        if "matches" in stat_data and isinstance(stat_data.get("matches"), dict):
+            # Detailed format with nested objects
+            matches_won = stat_data.get("matches", {}).get("won")
+            matches_lost = stat_data.get("matches", {}).get("lost")
+            matches_tied = stat_data.get("matches", {}).get("tied")
+            lines_won = stat_data.get("lines", {}).get("won")
+            lines_lost = stat_data.get("lines", {}).get("lost")
+            sets_won = stat_data.get("sets", {}).get("won")
+            sets_lost = stat_data.get("sets", {}).get("lost")
+            games_won = stat_data.get("games", {}).get("won")
+            games_lost = stat_data.get("games", {}).get("lost")
+        else:
+            # Simple format with wins/losses at top level
+            matches_won = stat_data.get("wins")
+            matches_lost = stat_data.get("losses")
+            matches_tied = stat_data.get("tied", 0)  # Default to 0 if not present
+            lines_won = stat_data.get("lines_won", 0)  # Default to 0 if not present
+            lines_lost = stat_data.get("lines_lost", 0)  # Default to 0 if not present
+            sets_won = stat_data.get("sets_won", 0)  # Default to 0 if not present
+            sets_lost = stat_data.get("sets_lost", 0)  # Default to 0 if not present
+            games_won = stat_data.get("games_won", 0)  # Default to 0 if not present
+            games_lost = stat_data.get("games_lost", 0)  # Default to 0 if not present
         
         # Handle None values by converting to 0 for database
         points = points if points is not None else 0

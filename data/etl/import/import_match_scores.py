@@ -676,7 +676,7 @@ def main():
     if args.file:
         json_path = args.file
     else:
-        json_path = f"data/leagues/{league_key}/match_history.json"
+        json_path = f"data/leagues/{league_key}/match_scores.json"
     
     print(f"Importing match scores for league: {league_key}")
     

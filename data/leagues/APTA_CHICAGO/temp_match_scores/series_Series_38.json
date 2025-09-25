@@ -1,0 +1,42 @@
+[
+  {
+    "league_id": "APTACHICAGO",
+    "source_league": "APTACHICAGO",
+    "match_id": "nndz-WWk2NnhydjZoUT09_Line1",
+    "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2NnhydjZoUT09&print&",
+    "Home Team": "Tennaqua 38",
+    "Away Team": "Glen View 38",
+    "Scores": "4-6, 6-1, 6-2",
+    "Line": "Line 1",
+    "Away Player 1": "Martin Podorsky",
+    "Away Player 2": "Jamie Whiteman",
+    "Away Player 1 ID": "nndz-WkNDOHg3M3hoUT09",
+    "Away Player 2 ID": "nndz-WkMreHdyZitnQT09",
+    "Home Player 1": "Marc Sher",
+    "Home Player 2": "Dan Ware",
+    "Home Player 1 ID": "nndz-WkNHeHdiZjZoUT09",
+    "Home Player 2 ID": "nndz-WkM2L3c3bjZoQT09",
+    "Winner": "away",
+    "Date": "23-Sep-25"
+  },
+  {
+    "league_id": "APTACHICAGO",
+    "source_league": "APTACHICAGO",
+    "match_id": "nndz-WWk2NnhydjZoUT09_Line2",
+    "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2NnhydjZoUT09&print&",
+    "Home Team": "Tennaqua 38",
+    "Away Team": "Glen View 38",
+    "Scores": "6-0, 1-6, 7-6",
+    "Line": "Line 2",
+    "Away Player 1": "Peter  Hulick",
+    "Away Player 2": "Wicks Barkhausen",
+    "Away Player 1 ID": "nndz-WkM2L3dyZjhnQT09",
+    "Away Player 2 ID": "nndz-WlNlN3hydi9oUT09",
+    "Home Player 1": "Brian Zambie",
+    "Home Player 2": "Jon Kochmit",
+    "Home Player 1 ID": "nndz-WlNTN3liYjVnQT09",
+    "Home Player 2 ID": "nndz-WkNDNnhyYjZnZz09",
+    "Winner": "away",
+    "Date": "23-Sep-25"
+  }
+]

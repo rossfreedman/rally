@@ -72,6 +72,7 @@ class ScrapingConfig:
     delta_mode: bool = False
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    skip_proxy_test: bool = False
 
 class BaseLeagueScraper:
     """Base class for league-specific scrapers."""
@@ -1127,6 +1128,711 @@ class APTAScraper(BaseLeagueScraper):
                                   current_total_processed: int = 0, total_series: int = 1) -> Tuple[List[Dict], int]:
         """Extract matches from APTA series page."""
         return self._extract_apta_matches_from_series(html, series_name, current_total_processed, total_series)
+    
+    def _extract_apta_series_links(self, html: str) -> List[Tuple[str, str]]:
+        """Extract series links for APTA format using dynamic discovery from standings page."""
+        series_links = []
+        
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            print(f"   🔍 Using dynamic discovery to find all available APTA series from standings page...")
+            
+            # Use dynamic discovery to find all series (same logic as apta_scrape_players_simple.py)
+            series_links = self._discover_apta_series_dynamically(soup)
+            
+            print(f"   📊 Total APTA series found: {len(series_links)}")
+            return series_links
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting APTA series links: {e}")
+            return []
+    
+    def _discover_apta_series_dynamically(self, soup) -> List[Tuple[str, str]]:
+        """Discover all available APTA series by scraping the standings page for series navigation."""
+        print("   📋 Discovering all available series from standings page navigation...")
+        
+        discovered_series = []
+        
+        try:
+            # Method 1: Look for links with the specific pattern (same as players scraper)
+            series_links = soup.find_all('a', href=True, id=lambda x: x and x.startswith('dividdrop_'))
+            
+            for link in series_links:
+                href = link.get('href', '')
+                text = link.get_text(strip=True)
+                link_id = link.get('id', '')
+                
+                # Extract the series number from the link text
+                if text.isdigit():
+                    # Regular series (e.g., "1", "2", "3")
+                    series_num = text
+                    series_name = f"Series {series_num}"
+                    
+                    # Construct the full URL for standings page
+                    if href.startswith('/'):
+                        full_url = f"https://aptachicago.tenniscores.com{href}"
+                    else:
+                        full_url = href
+                    
+                    discovered_series.append((series_name, full_url))
+                    print(f"         📋 Found series link: {series_name} -> {full_url} (ID: {link_id})")
+                elif ' SW' in text and any(char.isdigit() for char in text):
+                    # SW series (e.g., "7 SW", "9 SW", "11 SW")
+                    series_name = f"Series {text}"
+                    
+                    # Construct the full URL for standings page
+                    if href.startswith('/'):
+                        full_url = f"https://aptachicago.tenniscores.com{href}"
+                    else:
+                        full_url = href
+                    
+                    discovered_series.append((series_name, full_url))
+                    print(f"         📋 Found SW series link: {series_name} -> {full_url} (ID: {link_id})")
+            
+            # Method 2: Look for series navigation text pattern if no links found
+            if not discovered_series:
+                print("      📋 Method 2: Looking for series navigation text pattern...")
+                
+                text_elements = soup.find_all(text=True)
+                for element in text_elements:
+                    text = element.strip()
+                    if 'Chicago' in text and any(char.isdigit() for char in text):
+                        print(f"         📋 Found navigation text: {text}")
+                        
+                        # Extract series numbers from the text
+                        series_numbers = re.findall(r'\b(\d+)\b', text)
+                        
+                        # Add regular series
+                        for series_num in series_numbers:
+                            series_name = f"Series {series_num}"
+                            series_url = f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                            discovered_series.append((series_name, series_url))
+                            print(f"            📋 Extracted: {series_name}")
+            
+            if discovered_series:
+                print(f"      ✅ Found {len(discovered_series)} series from navigation")
+            else:
+                print("      ⚠️ No series found from navigation, using fallback...")
+                
+                # Fallback to comprehensive hardcoded series (same as players scraper)
+                discovered_series = self._get_fallback_apta_series()
+            
+            # Sort series by number for consistent processing
+            discovered_series.sort(key=lambda x: self._extract_series_number(x[0]))
+            
+            return discovered_series
+            
+        except Exception as e:
+            print(f"   ❌ Error during dynamic discovery: {e}")
+            print("   🔄 Falling back to hardcoded series...")
+            return self._get_fallback_apta_series()
+    
+    def _extract_series_number(self, series_name: str) -> int:
+        """Extract series number for sorting."""
+        try:
+            # Handle regular series (Series 1, Series 2, etc.)
+            if series_name.startswith("Series "):
+                series_part = series_name.replace("Series ", "").strip()
+                if series_part.isdigit():
+                    return int(series_part)
+                elif " SW" in series_part:
+                    # For SW series, extract the number part
+                    num_part = series_part.replace(" SW", "")
+                    if num_part.isdigit():
+                        return int(num_part) + 1000  # Put SW series after regular series
+            return 9999  # Default for unrecognized formats
+        except:
+            return 9999
+    
+    def _get_fallback_apta_series(self) -> List[Tuple[str, str]]:
+        """Get fallback hardcoded series list (same as players scraper)."""
+        fallback_series = [
+            # Regular series (1-22)
+            ("Series 1", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3MD0%3D"),
+            ("Series 2", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3bz0%3D"),
+            ("Series 3", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3az0%3D"),
+            ("Series 4", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3cz0%3D"),
+            ("Series 5", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3WT0%3D"),
+            ("Series 6", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXc3Zz0%3D"),
+            ("Series 7", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMaz0%3D"),
+            ("Series 8", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMWT0%3D"),
+            ("Series 9", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXhMYz0%3D"),
+            ("Series 10", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3ND0%3D"),
+            ("Series 11", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3OD0%3D"),
+            ("Series 12", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
+            ("Series 13", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 14", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3bz0%3D"),
+            ("Series 15", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3cz0%3D"),
+            ("Series 16", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3dz0%3D"),
+            ("Series 17", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 18", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 19", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 20", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 21", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 22", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            # SW (Southwest) series
+            ("Series 7 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMZz0%3D"),
+            ("Series 9 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyZz0%3D"),
+            ("Series 11 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhydz0%3D"),
+            ("Series 13 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMYz0%3D"),
+            ("Series 15 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3Yz0%3D"),
+            ("Series 17 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyND0%3D"),
+            ("Series 19 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyMD0%3D"),
+            ("Series 21 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXhyOD0%3D"),
+            # Additional series (23+)
+            ("Series 23", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 23 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrOHhMWT0%3D"),
+            ("Series 24", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 25", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 25 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WnkrNXg3WT0%3D"),
+            ("Series 26", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 27", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 27 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WkNHL3lMbz0%3D"),
+            ("Series 28", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 29", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 29 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WkM2eHg3dz0%3D"),
+            ("Series 30", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 31", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 31 SW", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNXK3licz0%3D"),
+            ("Series 32", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 33", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 34", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 35", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 36", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 37", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 38", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 39", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 40", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 41", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 42", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 43", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 44", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 45", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 46", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 47", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 48", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 49", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+            ("Series 50", "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3MD0%3D"),
+        ]
+        
+        for series_name, series_url in fallback_series:
+            print(f"         📋 Added fallback: {series_name}")
+        
+        return fallback_series
+    
+    def _extract_dates_from_standings_page(self, soup) -> dict:
+        """Extract dates from standings page th elements with data-col='col0'."""
+        dates = {}
+        
+        try:
+            # Look for th elements with data-col="col0" containing date format like "09/23"
+            date_th_elements = soup.find_all('th', {'data-col': 'col0'})
+            
+            for th in date_th_elements:
+                text = th.get_text(strip=True)
+                print(f"      🔍 Found th data-col='col0' text: '{text}'")
+                
+                # Look for MM/DD format (e.g., "09/23")
+                import re
+                date_match = re.search(r'(\d{2})/(\d{2})', text)
+                if date_match:
+                    month = date_match.group(1)
+                    day = date_match.group(2)
+                    
+                    # Convert to DD-Mon-YY format (assuming current year)
+                    try:
+                        from datetime import datetime
+                        current_year = datetime.now().year
+                        
+                        # Convert month number to abbreviation
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_int = int(month)
+                        if 1 <= month_int <= 12:
+                            month_abbr = month_names[month_int - 1]
+                            year_short = str(current_year)[-2:]
+                            formatted_date = f"{day}-{month_abbr}-{year_short}"
+                            
+                            # Use the th element's position/context as a key
+                            th_id = th.get('id', '')
+                            dates[th_id] = formatted_date
+                            print(f"      📅 Extracted date from th {th_id}: {formatted_date}")
+                    except Exception as e:
+                        print(f"      ❌ Error formatting date from th: {e}")
+                        continue
+                        
+        except Exception as e:
+            print(f"❌ Error extracting dates from standings page: {e}")
+            
+        return dates
+    
+    def _find_date_for_match_link(self, link, standings_dates: dict) -> str:
+        """Find the associated date for a match link by looking at its position relative to date th elements."""
+        try:
+            # Get the link's position in the document
+            link_parent = link.parent
+            if not link_parent:
+                return None
+                
+            # Look for the nearest th element with data-col="col0" that comes before this link
+            # This is a simplified approach - in practice, we might need more sophisticated logic
+            # to associate match links with their corresponding dates
+            
+            # For now, return the first available date as a fallback
+            if standings_dates:
+                return list(standings_dates.values())[0]
+                
+        except Exception as e:
+            print(f"❌ Error finding date for match link: {e}")
+            
+        return None
+    
+    def _extract_apta_matches_from_series(self, html: str, series_name: str, 
+                                        current_total_processed: int = 0, total_series: int = 1) -> Tuple[List[Dict], int]:
+        """Extract matches from APTA series page."""
+        matches = []
+        processed_urls = set()  # Track processed URLs to avoid duplicates
+        
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            print(f"   🔍 Extracting matches from APTA series: {series_name}")
+            
+            # First, extract all dates from th elements with data-col="col0"
+            standings_dates = self._extract_dates_from_standings_page(soup)
+            print(f"   📅 Found {len(standings_dates)} dates on standings page: {list(standings_dates.keys())}")
+            
+            # Look for standings tables
+            standings_tables = soup.find_all('table', class_='standings-table2')
+            
+            for table in standings_tables:
+                # Look for match links within the table
+                match_links = table.find_all('a', href=True)
+                
+                for link in match_links:
+                    href = link.get('href', '')
+                    text = link.get_text(strip=True)
+                    
+                    # Look for print_match.php links
+                    if 'print_match.php' in href:
+                        if href.startswith('/'):
+                            full_url = f"https://aptachicago.tenniscores.com{href}"
+                        else:
+                            full_url = href
+                        
+                        # Skip if we've already processed this URL
+                        if full_url in processed_urls:
+                            print(f"   🔄 Skipping duplicate match link: {full_url}")
+                            continue
+                        
+                        processed_urls.add(full_url)
+                        print(f"   🔗 Found match link: {full_url}")
+                        
+                        # Try to find associated date for this match
+                        match_date = self._find_date_for_match_link(link, standings_dates)
+                        if match_date:
+                            print(f"   📅 Associated date for this match: {match_date}")
+                        else:
+                            print(f"   ⚠️ No date found for this match link")
+                        
+                        # Extract match data from the link (returns list of line records)
+                        match_records = self._extract_match_data_from_url(full_url, series_name, match_date)
+                        if match_records:
+                            matches.extend(match_records)
+                            print(f"   📋 Found {len(match_records)} lines for match: {match_records[0].get('Home Team', 'Unknown')} vs {match_records[0].get('Away Team', 'Unknown')}")
+                            for i, match_data in enumerate(match_records):
+                                print(f"      🎾 Line {i+1}: {match_data.get('Line', 'Unknown')}")
+                                print(f"      📅 Date: {match_data.get('Date', 'Unknown')}")
+                                print(f"      🏆 Score: {match_data.get('Scores', 'Unknown')} (Winner: {match_data.get('Winner', 'Unknown')})")
+                                print(f"      👥 Players: {match_data.get('Home Player 1', 'Unknown')}/{match_data.get('Home Player 2', 'Unknown')} vs {match_data.get('Away Player 1', 'Unknown')}/{match_data.get('Away Player 2', 'Unknown')}")
+                                print(f"      🆔 Match ID: {match_data.get('match_id', 'Unknown')}")
+                        else:
+                            print(f"   ❌ Failed to extract data from match link")
+                        
+            print(f"   📊 Found {len(matches)} matches in {series_name}")
+            return matches, len(matches)
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting APTA matches from series {series_name}: {e}")
+            return [], 0
+    
+    def _extract_match_data_from_url(self, url: str, series_name: str, standings_date: str = None) -> List[Dict]:
+        """Extract match data from a match URL - returns list of line records."""
+        try:
+            # Ensure URL has proper scheme and domain
+            if not url.startswith('http'):
+                if url.startswith('/'):
+                    url = f"https://aptachicago.tenniscores.com{url}"
+                else:
+                    url = f"https://aptachicago.tenniscores.com/{url}"
+            
+            # Make request to get match page
+            html = self._safe_request_for_league_scraper(url, f"match page for {series_name}")
+            if not html:
+                return []
+            
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            # Extract team names and scores (common to all lines)
+            team_data = self._extract_apta_teams_and_score(soup)
+            
+            # Use standings date if provided, otherwise try to extract from match page
+            if standings_date:
+                date_data = {"Date": standings_date}
+                print(f"      📅 Using standings date: {standings_date}")
+            else:
+                date_data = self._extract_apta_date(soup)
+            
+            # Extract all lines
+            all_lines = self._extract_all_apta_lines(soup)
+            
+            # Create separate match record for each line
+            match_records = []
+            for line_data in all_lines:
+                # Extract line number from line name (e.g., "Line 3" -> "3")
+                line_name = line_data.get('Line', 'Line1')
+                line_number = line_name.replace('Line ', '') if 'Line ' in line_name else '1'
+                
+                match_record = {
+                    "league_id": "APTACHICAGO",
+                    "source_league": "APTACHICAGO",
+                    "match_id": f"{self._extract_match_id_from_url(url)}_Line{line_number}",
+                    "url": url
+                }
+                match_record.update(team_data)
+                match_record.update(line_data)
+                match_record.update(date_data)
+                match_records.append(match_record)
+            
+            return match_records
+            
+        except Exception as e:
+            print(f"   ❌ Error extracting match data from URL {url}: {e}")
+            return []
+    
+    def _extract_match_id_from_url(self, url: str) -> str:
+        """Extract match ID from URL."""
+        import re
+        # Look for sch parameter in URL (e.g., print_match.php?sch=nndz-WWk2OXdiNytoUT09)
+        sch_match = re.search(r'sch=([^&]+)', url)
+        if sch_match:
+            base_id = sch_match.group(1)
+            # Return just the base ID without line suffix - line will be added later
+            return base_id
+        return "unknown_match_id"
+    
+    def _extract_apta_teams_and_score(self, soup) -> dict:
+        """Extract team names and scores from APTA match page."""
+        try:
+            # Look for team names in datelocheader div
+            datelocheader = soup.find('div', class_='datelocheader')
+            if datelocheader:
+                text = datelocheader.get_text(strip=True)
+                print(f"      🔍 Processing datelocheader text: '{text}'")
+                # Parse "Exmoor - 20 @ Valley Lo - 20: 4 - 9"
+                # Note: Team after @ is actually the HOME team
+                if ' @ ' in text:
+                    parts = text.split(' @ ')
+                    if len(parts) >= 2:
+                        away_part = parts[0].strip()  # Team before @ is AWAY
+                        home_part = parts[1].strip()  # Team after @ is HOME
+                        
+                        # Extract team names (remove numbers and scores)
+                        import re
+                        away_team = re.sub(r'\s*-\s*\d+.*$', '', away_part).strip()
+                        home_team = re.sub(r'\s*-\s*\d+.*$', '', home_part).strip()
+                        
+                        # Add series number suffix to team names
+                        # Extract series number from the text (e.g., "Exmoor - 20 @ Valley Lo - 20")
+                        series_match = re.search(r'-\s*(\d+)', text)
+                        if series_match:
+                            series_num = series_match.group(1)
+                            home_team = f"{home_team} {series_num}"
+                            away_team = f"{away_team} {series_num}"
+                        else:
+                            # Fallback to XX if series number not found
+                            home_team = f"{home_team} XX"
+                            away_team = f"{away_team} XX"
+                        
+                        # Extract scores from the same text
+                        score_match = re.search(r':\s*(\d+)\s*-\s*(\d+)', text)
+                        if score_match:
+                            home_score = score_match.group(1)
+                            away_score = score_match.group(2)
+                            scores = f"{home_score}-{away_score}"
+                        else:
+                            scores = "Unknown Scores"
+                        
+                        result = {
+                            "Home Team": home_team,  # Team after @ is HOME
+                            "Away Team": away_team,  # Team before @ is AWAY
+                            "Scores": scores
+                        }
+                        print(f"      🏠 Teams: {home_team} vs {away_team}")
+                        print(f"      🎯 Scores: {scores}")
+                        return result
+            
+            return {
+                "Home Team": "Unknown Home Team",
+                "Away Team": "Unknown Away Team", 
+                "Scores": "Unknown Scores"
+            }
+        except Exception as e:
+            print(f"❌ APTA: Error extracting teams and score: {e}")
+            return {}
+    
+    def _extract_apta_date(self, soup) -> dict:
+        """Extract date from APTA match page using th elements with data-col='col0'."""
+        try:
+            import re
+            from datetime import datetime
+            
+            # Primary method: Look for th elements with data-col="col0" containing date format like "09/23"
+            date_th_elements = soup.find_all('th', {'data-col': 'col0'})
+            
+            for th in date_th_elements:
+                text = th.get_text(strip=True)
+                print(f"      🔍 Found th data-col='col0' text: '{text}'")
+                
+                # Look for MM/DD format (e.g., "09/23")
+                date_match = re.search(r'(\d{2})/(\d{2})', text)
+                if date_match:
+                    month = date_match.group(1)
+                    day = date_match.group(2)
+                    
+                    # Convert to DD-Mon-YY format (assuming current year)
+                    try:
+                        # Get current year or use 2025 as fallback
+                        current_year = datetime.now().year
+                        
+                        # Convert month number to abbreviation
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_int = int(month)
+                        if 1 <= month_int <= 12:
+                            month_abbr = month_names[month_int - 1]
+                            year_short = str(current_year)[-2:]
+                            formatted_date = f"{day}-{month_abbr}-{year_short}"
+                            print(f"      📅 Extracted date from th: {formatted_date}")
+                            return {"Date": formatted_date}
+                    except Exception as e:
+                        print(f"      ❌ Error formatting date from th: {e}")
+                        continue
+            
+            # Fallback method 1: Look for th elements with class containing "datacol"
+            datacol_th_elements = soup.find_all('th', class_=re.compile(r'datacol'))
+            
+            for th in datacol_th_elements:
+                text = th.get_text(strip=True)
+                print(f"      🔍 Found datacol th text: '{text}'")
+                
+                # Look for MM/DD format (e.g., "09/23")
+                date_match = re.search(r'(\d{2})/(\d{2})', text)
+                if date_match:
+                    month = date_match.group(1)
+                    day = date_match.group(2)
+                    
+                    try:
+                        current_year = datetime.now().year
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_int = int(month)
+                        if 1 <= month_int <= 12:
+                            month_abbr = month_names[month_int - 1]
+                            year_short = str(current_year)[-2:]
+                            formatted_date = f"{day}-{month_abbr}-{year_short}"
+                            print(f"      📅 Extracted date from datacol th: {formatted_date}")
+                            return {"Date": formatted_date}
+                    except Exception as e:
+                        print(f"      ❌ Error formatting date from datacol th: {e}")
+                        continue
+            
+            # Fallback method 2: Look for any th element containing date patterns
+            all_th_elements = soup.find_all('th')
+            for th in all_th_elements:
+                text = th.get_text(strip=True)
+                
+                # Look for MM/DD format
+                date_match = re.search(r'(\d{2})/(\d{2})', text)
+                if date_match:
+                    month = date_match.group(1)
+                    day = date_match.group(2)
+                    
+                    try:
+                        current_year = datetime.now().year
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_int = int(month)
+                        if 1 <= month_int <= 12:
+                            month_abbr = month_names[month_int - 1]
+                            year_short = str(current_year)[-2:]
+                            formatted_date = f"{day}-{month_abbr}-{year_short}"
+                            print(f"      📅 Extracted date from th fallback: {formatted_date}")
+                            return {"Date": formatted_date}
+                    except Exception as e:
+                        print(f"      ❌ Error formatting date from th fallback: {e}")
+                        continue
+            
+            # If no date found in th elements, return unknown
+            print(f"      ❌ No date found in any th element")
+            return {"Date": "Unknown Date"}
+        except Exception as e:
+            print(f"❌ APTA: Error extracting date: {e}")
+            return {"Date": "Unknown Date"}
+    
+    def _extract_all_apta_lines(self, soup) -> List[Dict]:
+        """Extract all line data from APTA match page - returns list of line records."""
+        try:
+            import re
+            all_lines = []
+            
+            # Look for line tables and extract ALL lines
+            line_tables = soup.find_all('table', class_='standings-table2')
+            
+            for table in line_tables:
+                # Get line name
+                line_cell = table.find('td', class_='line_desc')
+                if line_cell:
+                    line_name = line_cell.get_text(strip=True)
+                    print(f"      🎾 Processing {line_name}")
+                    
+                    # Get all player links
+                    player_links = table.find_all('a', href=re.compile(r'player\.php'))
+                    players = []
+                    
+                    for link in player_links:
+                        href = link.get('href', '')
+                        text = link.get_text(strip=True)
+                        
+                        # Extract player ID
+                        player_id_match = re.search(r'p=([^&]+)', href)
+                        if player_id_match:
+                            player_id = player_id_match.group(1)
+                            # Clean name (remove ratings)
+                            clean_name = re.sub(r'\s+\d+\.\d+.*$', '', text).strip()
+                            players.append({"name": clean_name, "id": player_id})
+                    
+                    # Extract scores from each row separately
+                    rows = table.find_all('tr')
+                    home_scores = []
+                    away_scores = []
+                    winner = "Unknown"
+                    
+                    for i, row in enumerate(rows):
+                        if i == 0:  # First row (away team)
+                            score_cells = row.find_all('td', class_='pts2')
+                            for cell in score_cells:
+                                score_text = cell.get_text(strip=True)
+                                if score_text and score_text != '&nbsp;' and score_text.isdigit():
+                                    away_scores.append(score_text)
+                        elif i == 1:  # Second row (home team)
+                            score_cells = row.find_all('td', class_='pts2')
+                            for cell in score_cells:
+                                score_text = cell.get_text(strip=True)
+                                if score_text and score_text != '&nbsp;' and score_text.isdigit():
+                                    home_scores.append(score_text)
+                    
+                    # Check for winner indicator (green checkmark) in any row
+                    for i, row in enumerate(rows):
+                        checkmark = row.find('img', src=re.compile(r'admin_captain_teams_approve_check_green\.png'))
+                        if checkmark:
+                            if i == 0:  # First row = away team wins (based on your feedback)
+                                winner = "away"
+                                print(f"      🏆 Winner detected: Away team (green checkmark in row {i+1})")
+                            elif i == 1:  # Second row = home team wins (based on your feedback)
+                                winner = "home"
+                                print(f"      🏆 Winner detected: Home team (green checkmark in row {i+1})")
+                            break
+                    
+                    print(f"      🎯 Home scores: {home_scores}")
+                    print(f"      🎯 Away scores: {away_scores}")
+                    
+                    # Process this line's data
+                    if len(players) >= 4 and home_scores and away_scores:
+                        # Format scores as "6-2, 6-3" or "6-2, 6-3, 6-4" style (away-home, away-home, away-home)
+                        if len(home_scores) >= 2 and len(away_scores) >= 2:
+                            # Handle both 2-set and 3-set matches
+                            score_pairs = []
+                            max_sets = min(len(home_scores), len(away_scores))
+                            
+                            for i in range(max_sets):
+                                score_pairs.append(f"{away_scores[i]}-{home_scores[i]}")
+                            
+                            line_scores = ', '.join(score_pairs)
+                        else:
+                            # Fallback to simple concatenation
+                            all_scores = home_scores + away_scores
+                            line_scores = ', '.join(all_scores)
+                        
+                        # If no winner detected from checkmark, try to determine from scores
+                        if winner == "Unknown":
+                            winner = self._determine_winner_from_scores(line_scores)
+                        
+                        # Create line record
+                        line_record = {
+                            "Line": line_name,
+                            "Away Player 1": players[0].get("name", "Unknown Player"),
+                            "Away Player 2": players[1].get("name", "Unknown Player"),
+                            "Away Player 1 ID": players[0].get("id", "unknown_id"),
+                            "Away Player 2 ID": players[1].get("id", "unknown_id"),
+                            "Home Player 1": players[2].get("name", "Unknown Player"),
+                            "Home Player 2": players[3].get("name", "Unknown Player"),
+                            "Home Player 1 ID": players[2].get("id", "unknown_id"),
+                            "Home Player 2 ID": players[3].get("id", "unknown_id"),
+                            "Scores": line_scores,
+                            "Winner": winner
+                        }
+                        
+                        all_lines.append(line_record)
+                        print(f"      🎾 Line: {line_name}")
+                        print(f"      👥 Players: {players[0].get('name')}/{players[1].get('name')} (Away) vs {players[2].get('name')}/{players[3].get('name')} (Home)")
+                        print(f"      🆔 Player IDs: {players[0].get('id')}/{players[1].get('id')} (Away) vs {players[2].get('id')}/{players[3].get('id')} (Home)")
+                        print(f"      🎯 Line Scores: {line_scores} (Winner: {winner})")
+            
+            return all_lines
+            
+        except Exception as e:
+            print(f"❌ APTA: Error extracting all lines: {e}")
+            return []
+    
+    def _determine_winner_from_scores(self, scores: str) -> str:
+        """Determine winner from scores string."""
+        try:
+            if scores == "Unknown Scores":
+                return "Unknown"
+            
+            # Parse scores like "6-2, 6-3" or "6-4, 6-2"
+            sets = scores.split(', ')
+            home_wins = 0
+            away_wins = 0
+            
+            for set_score in sets:
+                if '-' in set_score:
+                    parts = set_score.split('-')
+                    if len(parts) == 2:
+                        try:
+                            home_score = int(parts[0])
+                            away_score = int(parts[1])
+                            if home_score > away_score:
+                                home_wins += 1
+                            elif away_score > home_score:
+                                away_wins += 1
+                        except ValueError:
+                            continue
+            
+            if home_wins > away_wins:
+                return "home"
+            elif away_wins > home_wins:
+                return "away"
+            else:
+                return "tie"
+                
+        except Exception as e:
+            print(f"❌ Error determining winner from scores: {e}")
+            return "Unknown"
 
 class EnhancedMatchScraper:
     """Enhanced match scraper with league-specific delegation."""
@@ -1188,11 +1894,17 @@ class EnhancedMatchScraper:
         all_matches = []
         
         try:
-            # Get main page
-            base_url = f"https://{league_subdomain.lower()}.tenniscores.com"
-            print(f"🌐 {league_scraper.get_league_id()}: Fetching main page: {base_url}")
+            # Get main page or standings page for APTA Chicago
+            if league_subdomain.lower() == "aptachicago":
+                # Use standings page for APTA Chicago to get completed match results and discover all series
+                base_url = "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
+                print(f"🌐 {league_scraper.get_league_id()}: Fetching standings page: {base_url}")
+            else:
+                # Use main page for other leagues
+                base_url = f"https://{league_subdomain.lower()}.tenniscores.com"
+                print(f"🌐 {league_scraper.get_league_id()}: Fetching main page: {base_url}")
             
-            main_page_html = self._safe_request(base_url, f"{league_scraper.get_league_id()} main page")
+            main_page_html = self._safe_request(base_url, f"{league_scraper.get_league_id()} standings page")
             if not main_page_html:
                 print(f"❌ {league_scraper.get_league_id()}: Failed to get main page")
                 return []
@@ -1268,8 +1980,8 @@ class EnhancedMatchScraper:
             from data.etl.utils.league_directory_manager import get_league_file_path
             
             # Get the league directory
-            league_data_dir = os.path.dirname(get_league_file_path(league_subdomain, "match_history.json"))
-            tmp_dir = os.path.join(league_data_dir, 'tmp')
+            league_data_dir = os.path.dirname(get_league_file_path(league_subdomain, "match_scores.json"))
+            tmp_dir = os.path.join(league_data_dir, 'temp_match_scores')
             
             # Create tmp directory if it doesn't exist
             os.makedirs(tmp_dir, exist_ok=True)
@@ -1299,8 +2011,8 @@ class EnhancedMatchScraper:
             from data.etl.utils.league_directory_manager import get_league_file_path
             
             # Get the league directory
-            league_data_dir = os.path.dirname(get_league_file_path(league_subdomain, "match_history.json"))
-            tmp_dir = os.path.join(league_data_dir, 'tmp')
+            league_data_dir = os.path.dirname(get_league_file_path(league_subdomain, "match_scores.json"))
+            tmp_dir = os.path.join(league_data_dir, 'temp_match_scores')
             
             # Create tmp directory if it doesn't exist
             os.makedirs(tmp_dir, exist_ok=True)
@@ -1524,10 +2236,10 @@ class EnhancedMatchScraper:
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
         try:
             from data.etl.utils.league_directory_manager import get_league_file_path
-            final_path = get_league_file_path(league_subdomain, "match_history.json")
+            final_path = get_league_file_path(league_subdomain, "match_scores.json")
         finally:
             sys.path.pop(0)
-        tmp_dir = os.path.join(os.path.dirname(final_path), "tmp")
+        tmp_dir = os.path.join(os.path.dirname(final_path), "temp_match_scores")
         os.makedirs(tmp_dir, exist_ok=True)
         return tmp_dir
 
@@ -1550,13 +2262,13 @@ class EnhancedMatchScraper:
         return path
 
     def _save_final_matches(self, league_subdomain: str, all_matches: List[Dict]) -> str:
-        """Save final consolidated matches to the league's main match_history.json file."""
+        """Save final consolidated matches to the league's main match_scores.json file."""
         import json, os, sys
         # Resolve canonical league directory via helper
         sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
         try:
             from data.etl.utils.league_directory_manager import get_league_file_path
-            final_path = get_league_file_path(league_subdomain, "match_history.json")
+            final_path = get_league_file_path(league_subdomain, "match_scores.json")
         finally:
             sys.path.pop(0)
         
@@ -1731,78 +2443,6 @@ class EnhancedMatchScraper:
             print(f"   ❌ Error extracting CNSWPL series links: {e}")
             return []
     
-    def _extract_apta_series_links(self, html: str) -> List[Tuple[str, str]]:
-        """Extract series links for APTA Chicago format (uses Lines instead of Series)."""
-        series_links = []
-        
-        try:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(html, 'html.parser')
-            
-            # Method 1: Look for links containing "line" or "division"
-            links = soup.find_all('a', href=True)
-            for link in links:
-                href = link.get('href', '')
-                text = link.get_text(strip=True)
-                
-                # Look for line patterns
-                if any(keyword in text.lower() for keyword in ['line', 'division']):
-                    if href.startswith('/'):
-                        full_url = f"https://aptachicago.tenniscores.com{href}"
-                    else:
-                        full_url = href
-                    series_links.append((text, full_url))
-                    print(f"   📋 Added APTA line: {text}")
-            
-            # Method 2: Look for team links (APTA uses team= parameters)
-            team_links = soup.find_all("a", href=re.compile(r"team="))
-            for link in team_links:
-                href = link.get("href", "")
-                text = link.get_text(strip=True)
-                
-                # Extract team ID from URL
-                team_match = re.search(r"team=([^&]+)", href)
-                if team_match and text:
-                    team_id = team_match.group(1)
-                    team_name = text.strip()
-                    
-                    # Extract line number from team name (e.g., "Glenbrook RC - 1" -> "Line 1")
-                    line_match = re.search(r".*-\s*(\d+).*", team_name)
-                    if line_match:
-                        line_num = line_match.group(1)
-                        line_name = f"Line {line_num}"
-                        full_url = f"https://aptachicago.tenniscores.com{href}" if href.startswith('/') else href
-                        series_links.append((line_name, full_url))
-                        print(f"   📋 Added APTA team: {team_name} -> {line_name}")
-            
-            # Method 3: Construct team URLs based on APTA patterns if no links found
-            if not series_links:
-                print(f"   🔍 No team links found, constructing APTA team URLs...")
-                
-                # APTA typically has teams with line numbers
-                # Common APTA teams: Glenbrook RC - 1, Winnetka - 1, etc.
-                # We'll try to construct URLs for common teams
-                common_teams = [
-                    ("Glenbrook RC - 1", "nndz-WWlPd3dyMy9nZz09"),
-                    ("Winnetka - 1", "nndz-WWlPd3dyenhndz09"),
-                    ("Wilmette PD - 1", "nndz-WWlPd3dyMy9nZz09"),
-                ]
-                
-                for team_name, team_id in common_teams:
-                    line_match = re.search(r".*-\s*(\d+).*", team_name)
-                    if line_match:
-                        line_num = line_match.group(1)
-                        line_name = f"Line {line_num}"
-                        team_url = f"https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtOR2sxTnhI&team={team_id}"
-                        series_links.append((line_name, team_url))
-                        print(f"   📋 Added APTA team: {team_name} -> {line_name}")
-            
-            print(f"   📊 Total lines found: {len(series_links)}")
-            return series_links
-            
-        except Exception as e:
-            print(f"   ❌ Error extracting APTA series links: {e}")
-            return []
 
     def _extract_nstf_series_links(self, html: str, league_subdomain: str) -> List[Tuple[str, str]]:
         """Extract series links for NSTF format."""
@@ -2523,7 +3163,8 @@ def scrape_all_matches(league_subdomain: str,
                       end_date: str = None,
                       delta_mode: bool = False,
                       fast_mode: bool = False,
-                      verbose: bool = False) -> List[Dict]:
+                      verbose: bool = False,
+                      skip_proxy_test: bool = False) -> List[Dict]:
     """
     Enhanced scrape_all_matches function with stealth measures.
     
@@ -2561,7 +3202,8 @@ def scrape_all_matches(league_subdomain: str,
         max_delay=3.0 if fast_mode else 6.0,
         delta_mode=delta_mode,
         start_date=start_date,
-        end_date=end_date
+        end_date=end_date,
+        skip_proxy_test=skip_proxy_test
     )
     
     # Create enhanced scraper
@@ -2592,6 +3234,7 @@ def main():
     parser.add_argument("--series-filter", help="Series filter (e.g., '22', 'all')")
     parser.add_argument("--delta-mode", action="store_true", help="Enable delta scraping mode")
     parser.add_argument("--fast", action="store_true", help="Enable fast mode (reduced delays)")
+    parser.add_argument("--skip-proxy-test", action="store_true", help="Skip proxy testing")
     parser.add_argument("--quiet", action="store_true", help="Disable verbose logging (default is verbose)")
     parser.add_argument("--environment", choices=["local", "staging", "production"], 
                        default="production", help="Environment mode")
@@ -2613,8 +3256,8 @@ def main():
             import sys as _sys, os as _os, shutil as _shutil
             _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))))
             from data.etl.utils.league_directory_manager import get_league_file_path as _get_league_file_path_prerun
-            prerun_output = _get_league_file_path_prerun(args.league, "match_history.json")
-            prerun_tmp_dir = _os.path.join(_os.path.dirname(prerun_output), 'tmp')
+            prerun_output = _get_league_file_path_prerun(args.league, "match_scores.json")
+            prerun_tmp_dir = _os.path.join(_os.path.dirname(prerun_output), 'temp_match_scores')
             if _os.path.isdir(prerun_tmp_dir):
                 _shutil.rmtree(prerun_tmp_dir)
                 print(f"🧹 Cleaned previous temp directory: {prerun_tmp_dir}")
@@ -2634,7 +3277,8 @@ def main():
         end_date=args.end_date,
         delta_mode=args.delta_mode,
         fast_mode=args.fast,
-        verbose=not args.quiet  # Invert quiet to get verbose
+        verbose=not args.quiet,  # Invert quiet to get verbose
+        skip_proxy_test=args.skip_proxy_test
     )
             
             # Save results - APPEND to existing data, don't overwrite
@@ -2644,7 +3288,7 @@ def main():
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
     from data.etl.utils.league_directory_manager import get_league_file_path
     
-    output_file = get_league_file_path(args.league, "match_history.json")
+    output_file = get_league_file_path(args.league, "match_scores.json")
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
     # Create backup of existing data before scraping to prevent corruption
@@ -2698,7 +3342,7 @@ def main():
         merged_by_key[_dedupe_key(m)] = m
 
     # 2) Load per-series temp files if they exist
-    tmp_dir = os.path.join(os.path.dirname(output_file), 'tmp')
+    tmp_dir = os.path.join(os.path.dirname(output_file), 'temp_match_scores')
     if os.path.isdir(tmp_dir):
         import glob
         for path in glob.glob(os.path.join(tmp_dir, 'series_*.json')):

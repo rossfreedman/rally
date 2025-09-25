@@ -35,24 +35,6 @@
         </div>
         {% endif %}
 
-        <!-- Standings Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-list-ol text-blue-500 mr-2"></i>
-                    Series Standings
-                </h2>
-            </div>
-            
-            <div class="p-6">
-                <div class="overflow-x-auto">
-                    <table id="seriesTable" class="min-w-full text-sm text-left">
-                        <!-- Table will be populated by JS -->
-                    </table>
-                </div>
-            </div>
-        </div>
-
         <!-- Series Teams Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -81,17 +63,21 @@
                         </thead>
                         <tbody>
                             {% for team in series_analysis_teams %}
-                            <tr class="border-b border-gray-50 {% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
-                                <td class="py-3 px-2 font-semibold text-gray-900">
+                            {% set is_user_team = (session_data.user.team and team.team_name and team.team_name.lower() == session_data.user.team.lower()) or (session_data.user.club and team.club_name and team.club_name.lower() == session_data.user.club.lower()) %}
+                            <tr class="border-b border-gray-50 {% if is_user_team %}bg-yellow-50 border-l-4 border-yellow-400{% elif loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                                <td class="py-3 px-2 font-semibold {% if is_user_team %}text-yellow-800{% else %}text-gray-900{% endif %}">
                                     #{{ team.rank }}
+                                    {% if is_user_team %}
+                                    <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>
+                                    {% endif %}
                                 </td>
-                                <td class="py-3 px-2 text-gray-700">
+                                <td class="py-3 px-2 {% if is_user_team %}font-semibold text-yellow-800{% else %}text-gray-700{% endif %}">
                                     <div class="font-medium">{{ team.team_name }}</div>
                                 </td>
-                                <td class="py-3 px-2 text-right font-semibold text-gray-900">
+                                <td class="py-3 px-2 text-right font-semibold {% if is_user_team %}text-yellow-800{% else %}text-gray-900{% endif %}">
                                     {{ team.avg_pti }}
                                 </td>
-                                <td class="py-3 px-2 text-center text-gray-600">
+                                <td class="py-3 px-2 text-center {% if is_user_team %}text-yellow-700{% else %}text-gray-600{% endif %}">
                                     {{ team.player_count }}
                                 </td>
                             </tr>
@@ -111,6 +97,24 @@
                     <p class="text-gray-500">Series analysis will appear here once team data is available.</p>
                 </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Standings Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list-ol text-blue-500 mr-2"></i>
+                    Series Standings
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table id="seriesTable" class="min-w-full text-sm text-left">
+                        <!-- Table will be populated by JS -->
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -155,12 +159,13 @@
                             <tbody>
                                 {% if series_player_ratings %}
                                     {% for player in series_player_ratings %}
-                                        <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %} hover:bg-gray-100">
+                                        {% set is_user_team = (session_data.user.team and player.team and player.team.lower() == session_data.user.team.lower()) or (session_data.user.club and player.team and player.team.lower() == session_data.user.club.lower()) %}
+                                        <tr class="{% if is_user_team %}bg-yellow-50 border-l-4 border-yellow-400{% elif loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %} hover:bg-gray-100">
                                             <td class="py-1 px-1 text-center">
-                                                <span class="font-medium text-xs text-gray-600">{{ loop.index }}</span>
+                                                <span class="font-medium text-xs {% if is_user_team %}text-yellow-800{% else %}text-gray-600{% endif %}">{{ loop.index }}</span>
                                             </td>
                                             <td class="py-1 px-1">
-                                                <div class="font-medium text-xs text-gray-900">{{ player.name }}</div>
+                                                <div class="font-medium text-xs {% if is_user_team %}text-yellow-900{% else %}text-gray-900{% endif %}">{{ player.name }}</div>
                                             </td>
                                             <td class="py-1 px-1 text-center">
                                                 <span class="px-2 py-1 text-xs font-bold rounded-full" style="
@@ -178,7 +183,12 @@
                                                 </span>
                                             </td>
                                             <td class="py-1 px-1 text-left">
-                                                <span class="text-xs text-gray-600">{{ player.team or "N/A" }}</span>
+                                                <span class="text-xs {% if is_user_team %}text-yellow-700 font-semibold{% else %}text-gray-600{% endif %}">
+                                                    {{ player.team or "N/A" }}
+                                                    {% if is_user_team %}
+                                                    <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>
+                                                    {% endif %}
+                                                </span>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -325,20 +335,19 @@
                                 </thead>
                                 <tbody>
                                     {% for team_sos in sos_all_teams %}
-                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-blue-50 border-blue-200{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
-                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-blue-700{% else %}text-gray-900{% endif %}">
+                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-yellow-50 border-l-4 border-yellow-400{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
+                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-yellow-800{% else %}text-gray-900{% endif %}">
                                             #{{ team_sos.rank }}
                                             {% if team_sos.is_user_team %}
-                                            <i class="fas fa-star text-blue-500 ml-1" title="Your Team"></i>
+                                            <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>
                                             {% endif %}
                                         </td>
-                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-blue-700{% else %}text-gray-700{% endif %}">
+                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-yellow-800{% else %}text-gray-700{% endif %}">
                                             {{ team_sos.team_name }}
                                             {% if team_sos.is_user_team %}
-                                            <span class="text-xs text-blue-600 ml-1">(Your Team)</span>
                                             {% endif %}
                                         </td>
-                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-blue-700{% else %}text-gray-700{% endif %}">
+                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-yellow-800{% else %}text-gray-700{% endif %}">
                                             {{ team_sos.sos_value }}
                                         </td>
                                     </tr>
@@ -363,20 +372,19 @@
                                 </thead>
                                 <tbody>
                                     {% for team_sos in sos_all_teams_remaining %}
-                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-green-50 border-green-200{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
-                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-green-700{% else %}text-gray-900{% endif %}">
+                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-yellow-50 border-l-4 border-yellow-400{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
+                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-yellow-800{% else %}text-gray-900{% endif %}">
                                             #{{ team_sos.rank }}
                                             {% if team_sos.is_user_team %}
-                                            <i class="fas fa-star text-green-500 ml-1" title="Your Team"></i>
+                                            <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>
                                             {% endif %}
                                         </td>
-                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-green-700{% else %}text-gray-700{% endif %}">
+                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-yellow-800{% else %}text-gray-700{% endif %}">
                                             {{ team_sos.team_name }}
                                             {% if team_sos.is_user_team %}
-                                            <span class="text-xs text-green-600 ml-1">(Your Team)</span>
                                             {% endif %}
                                         </td>
-                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-green-700{% else %}text-gray-700{% endif %}">
+                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-yellow-800{% else %}text-gray-700{% endif %}">
                                             {{ team_sos.sos_value }}
                                         </td>
                                     </tr>
@@ -458,7 +466,11 @@
 <script>
 // Chart colors updated to match site theme: Purple for playoff teams, Blue for non-playoff teams - Version: {{ moment().format('YYYY-MM-DD-HH-mm-ss') if moment else '2024-01-15-14-45-00' }}
 console.log('Chart colors: Purple for playoff teams, Blue for non-playoff teams');
-const userTeam = (window.sessionData && window.sessionData.user && window.sessionData.user.team) || '';
+
+// Pass session data to JavaScript
+window.sessionData = {{ session_data | tojson }};
+
+const userTeam = (window.sessionData && window.sessionData.user && window.sessionData.user.team_name) || '';
 
 // Locked chart configuration - prevents all user interactions
 const lockedChartConfig = {
@@ -516,6 +528,7 @@ async function loadSeriesData() {
     // Sort teams by points
     stats.sort((a, b) => b.points - a.points);
 
+
     // --- Playoff Contention (LOCKED) ---
     const playoffCutoff = 8;
     const playoffTeams = stats.slice(0, playoffCutoff);
@@ -564,26 +577,27 @@ async function loadSeriesData() {
       let rowClass = 'border-b border-gray-50';
       
       if (isUserTeam) {
-        rowClass += ' bg-yellow-50 font-semibold';
+        rowClass += ' bg-yellow-50 border-l-4 border-yellow-400 font-semibold';
       } else if (idx % 2 === 0) {
         rowClass += ' bg-white';
       } else {
         rowClass += ' bg-gray-50';
       }
       
-      if (isPlayoffTeam) {
+      if (isPlayoffTeam && !isUserTeam) {
         rowClass += ' border-l-4 border-green-500';
         playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
       }
       
       const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
       const avgPoints = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '0.0';
+      const teamName = isUserTeam ? `${team.team} <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>` : team.team;
       html += `<tr class="${rowClass}">
-        <td class="py-3 px-2 font-medium text-gray-900">${playoffIcon}${team.team}</td>
-        <td class="py-3 px-2 text-right text-gray-700">${team.matches.won}-${team.matches.lost}</td>
-        <td class="py-3 px-2 text-right font-semibold text-gray-900">${team.points}</td>
-        <td class="py-3 px-2 text-right text-gray-700">${avgPoints}</td>
-        <td class="py-3 px-2 text-right text-gray-600">${firstPlacePoints - team.points}</td>
+        <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}">${playoffIcon}${teamName}</td>
+        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}">${team.matches.won}-${team.matches.lost}</td>
+        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}">${team.points}</td>
+        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}">${avgPoints}</td>
+        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-600' : 'text-gray-600'}">${firstPlacePoints - team.points}</td>
       </tr>`;
     });
     html += '</tbody>';

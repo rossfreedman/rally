@@ -613,8 +613,8 @@ class AdvancedMatchupSimulator:
         # Normalization parameters based on realistic competitive ranges
         normalization_params = {
             "average_pti": {
-                "min": 18.0,
-                "max": 38.0,
+                "min": 0.0,
+                "max": 100.0,
                 "higher_better": False,
             },  # Lower PTI = stronger player
             "individual_win_rates": {
@@ -629,10 +629,10 @@ class AdvancedMatchupSimulator:
                 "higher_better": True,
             },  # More realistic max experience
             "pti_advantage": {
-                "min": -8.0,
-                "max": 8.0,
-                "higher_better": True,
-            },  # Tighter range for more impact
+                "min": -100.0,
+                "max": 100.0,
+                "higher_better": False,  # Negative PTI advantage is better (lower PTI)
+            },  # Full PTI range for proper differentiation
             "head_to_head_record": {"min": 0.0, "max": 100.0, "higher_better": True},
             "consistency_factor": {"min": 0.0, "max": 100.0, "higher_better": True},
         }
