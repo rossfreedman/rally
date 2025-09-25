@@ -878,6 +878,21 @@ def get_player_analysis(user):
 
         # Build career stats from player_history table
         career_stats = get_career_stats_from_db(player_id)
+        
+        # Add current season stats to career stats for UI display
+        # Career stats in database are from beginning of season, so we add current season progress
+        if career_stats and current_season:
+            # Add current season wins and losses to career stats for display
+            career_stats["wins"] = career_stats.get("wins", 0) + current_season.get("wins", 0)
+            career_stats["losses"] = career_stats.get("losses", 0) + current_season.get("losses", 0)
+            career_stats["matches"] = career_stats.get("matches", 0) + current_season.get("matches", 0)
+            
+            # Recalculate win rate with updated totals
+            total_matches = career_stats["matches"]
+            if total_matches > 0:
+                career_stats["winRate"] = round((career_stats["wins"] / total_matches) * 100, 1)
+            else:
+                career_stats["winRate"] = 0.0
 
         # Calculate court analysis for individual player using ALL historical matches (not just current season)
         # Get all matches for court analysis (career performance) - don't filter by league like career stats

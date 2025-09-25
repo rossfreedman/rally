@@ -12168,6 +12168,51 @@ def unset_current_beer():
         }), 500
 
 
+def format_beer_text(beer_text):
+    """Format beer text to put each tap on its own line"""
+    if not beer_text:
+        return beer_text
+    
+    import re
+    
+    # First, fix any "Tao" typos to "Tap"
+    beer_text = re.sub(r'\bTao\s+(\d+)', r'Tap \1', beer_text)
+    
+    # Find all "Tap X" patterns and their positions
+    tap_matches = list(re.finditer(r'\bTap\s+\d+', beer_text))
+    
+    if not tap_matches:
+        # No tap patterns found, return original text
+        return beer_text
+    
+    # Build the formatted text
+    formatted_parts = []
+    last_end = 0
+    
+    for i, match in enumerate(tap_matches):
+        start = match.start()
+        end = match.end()
+        
+        # Add text before this tap (if any)
+        if start > last_end:
+            before_text = beer_text[last_end:start].strip()
+            if before_text and i == 0:  # Only add text before the first tap
+                formatted_parts.append(before_text)
+        
+        # Find the end of this tap's description (start of next tap or end of string)
+        if i < len(tap_matches) - 1:
+            next_start = tap_matches[i + 1].start()
+            tap_description = beer_text[start:next_start].strip()
+        else:
+            tap_description = beer_text[start:].strip()
+        
+        formatted_parts.append(tap_description)
+        last_end = end
+    
+    # Join with line breaks
+    return '\n'.join(formatted_parts)
+
+
 def get_beer_notifications(user_id, player_id, league_id, team_id):
     """Get beer notifications for the user's club"""
     try:
@@ -12212,12 +12257,19 @@ def get_beer_notifications(user_id, player_id, league_id, team_id):
             club = db_session.query(Club).filter(Club.id == club_id).first()
             club_name = club.name if club else "Your Club"
             
+            # Format the beer text with line breaks
+            formatted_beer_text = format_beer_text(latest_beer.beer_text)
+            
+            # Debug logging
+            logger.info(f"Beer notification debug - Original: {repr(latest_beer.beer_text)}")
+            logger.info(f"Beer notification debug - Formatted: {repr(formatted_beer_text)}")
+            
             notification = {
                 "id": f"beer_{latest_beer.id}",
                 "type": "beer",
                 "title": f"What's on tap at {club_name}",
-                "message": latest_beer.beer_text,
-                "priority": 6
+                "message": formatted_beer_text,
+                "priority": 7  # Changed to priority 7 to ensure it's included
             }
             
             return [notification]

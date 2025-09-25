@@ -1146,7 +1146,7 @@ function createNotificationCard(notification, index) {
                     <h3 class="font-semibold text-gray-900 text-sm mb-1">
                         ${notification.title}
                     </h3>
-                    <div class="text-gray-600 text-sm leading-relaxed mb-2">
+                    <div class="text-gray-600 text-sm leading-relaxed mb-2 whitespace-pre-line">
                         ${notification.type === 'schedule' ? renderScheduleWithWeather(notification) : notification.message}
                     </div>
                     ${notification.cta ? `

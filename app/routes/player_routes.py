@@ -767,13 +767,25 @@ def get_specific_player_history(player_name):
                 league_id_int = user_league_id
 
         # FIXED: Find player by name in database instead of JSON
-        # Parse the player name to first and last name
-        name_parts = player_name.strip().split()
-        if len(name_parts) < 2:
-            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+        # Parse player name to handle both "First Last" and "Last, First" formats
+        first_name = None
+        last_name = None
         
-        first_name = name_parts[0]
-        last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+        if ',' in player_name:
+            # Handle "Last, First" format
+            name_sections = player_name.split(',')
+            if len(name_sections) == 2:
+                last_name = name_sections[0].strip()
+                first_name = name_sections[1].strip()
+        else:
+            # Handle "First Last" format
+            name_parts = player_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+        
+        if not first_name or not last_name:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
 
         # Search for player in database, prioritizing current team context
         user_team_id = session["user"].get("team_id")

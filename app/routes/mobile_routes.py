@@ -501,7 +501,13 @@ def serve_mobile_player_detail(player_id):
                 player_record = execute_query_one(player_query, [actual_player_id])
         
         if player_record:
-            player_name = player_record["full_name"]
+            # Format name as "Last, First" for consistency
+            full_name = player_record["full_name"]
+            name_parts = full_name.split(' ', 1)
+            if len(name_parts) == 2:
+                player_name = f"{name_parts[1]}, {name_parts[0]}"
+            else:
+                player_name = full_name
             print(f"[DEBUG] Found player record: {player_name} (ID: {actual_player_id}, Team: {team_id})")
             # Use the team_id from the database record if not explicitly provided
             if not team_id:
@@ -528,8 +534,21 @@ def serve_mobile_player_detail(player_id):
         name_parts = player_name.strip().split()
         
         if len(name_parts) >= 2:
-            first_name = name_parts[0]
-            last_name = " ".join(name_parts[1:])
+            # Check if this is "Last, First" format (comma-separated)
+            if ',' in player_name:
+                # Handle "Last, First" format
+                name_sections = player_name.split(',')
+                if len(name_sections) == 2:
+                    last_name = name_sections[0].strip()
+                    first_name = name_sections[1].strip()
+                else:
+                    # Fallback to space splitting if comma format is malformed
+                    first_name = name_parts[0]
+                    last_name = " ".join(name_parts[1:])
+            else:
+                # Handle "First Last" format
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
             
             # For name-based lookups, prefer player in viewer's league with recent activity
             if league_id_int:
@@ -563,6 +582,7 @@ def serve_mobile_player_detail(player_id):
             if name_record:
                 actual_player_id = name_record["tenniscores_player_id"]
                 team_id = name_record.get("team_id")
+                # Keep the original player_name format (already "Last, First" if from URL)
                 print(f"[DEBUG] Name lookup found player_id {actual_player_id} with team_id {team_id}")
             else:
                 print(f"[DEBUG] No player record found for name: {player_name}")
@@ -1784,6 +1804,26 @@ def get_player_season_history(player_name):
 
         player_name = unquote(player_name)
 
+        # Parse player name to handle both "First Last" and "Last, First" formats
+        first_name = None
+        last_name = None
+        
+        if ',' in player_name:
+            # Handle "Last, First" format
+            name_sections = player_name.split(',')
+            if len(name_sections) == 2:
+                last_name = name_sections[0].strip()
+                first_name = name_sections[1].strip()
+        else:
+            # Handle "First Last" format
+            name_parts = player_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
+        
+        if not first_name or not last_name:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+
         # Find the player in the database by name, prioritizing the one with PTI history
         player_query = """
             SELECT 
@@ -1797,11 +1837,11 @@ def get_player_season_history(player_name):
                 (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
-            WHERE CONCAT(p.first_name, ' ', p.last_name) = %s
+            WHERE p.first_name = %s AND p.last_name = %s
             ORDER BY history_count DESC, p.id DESC
             LIMIT 1
         """
-        player_data = execute_query_one(player_query, [player_name])
+        player_data = execute_query_one(player_query, [first_name, last_name])
 
         if not player_data:
             print(f"[DEBUG] Player Season History - Player '{player_name}' not found in database")
