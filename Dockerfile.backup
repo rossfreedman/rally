@@ -1,33 +1,37 @@
-# Use Python 3.11 alpine image for smaller size and better reliability
+# Use official Python runtime as base image
 FROM python:3.11-alpine
+
+# Install system dependencies including PostgreSQL client libraries
+RUN apk add --no-cache \
+    postgresql-dev \
+    zlib-dev \
+    postgresql-client \
+    build-base \
+    pkgconfig
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for Alpine
-RUN apk add --no-cache gcc musl-dev libffi-dev
-
 # Copy requirements first for better caching
-COPY data/etl/database_import/requirements.txt .
+COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip first to avoid issues
+RUN pip install --upgrade pip
 
-# Copy the ETL scripts
-COPY data/etl/database_import/*.py ./
+# Install Python dependencies with improved error handling
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --timeout=300 --retries=5 psycopg2-binary
+RUN pip install --no-cache-dir --timeout=300 --retries=5 -r requirements.txt
 
-# Copy runtime.txt
-COPY data/etl/database_import/runtime.txt ./
+# Copy application code
+COPY . .
 
-# Copy required modules from project root
-COPY database_config.py ./
-COPY database_utils.py ./
-COPY config.py ./
-COPY utils/ ./utils/
-COPY app/ ./app/
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
-# Create logs directory
-RUN mkdir -p logs
+# Expose port
+EXPOSE 8080
 
-# Set default command
-CMD ["python", "master_import.py", "--league", "aptachicago"] 
+# Start the main Rally server directly  
+CMD ["python", "server.py"]
