@@ -2293,9 +2293,12 @@ def get_mobile_club_data(user):
                         }
 
                     # Calculate points for this match based on set scores
+                    # New scoring system: 1 point per set won + 1 bonus point for winning 2 sets
                     scores = match["scores"].split(", ") if match["scores"] else []
                     match_team_points = 0
                     match_opponent_points = 0
+                    team_sets_won = 0
+                    opponent_sets_won = 0
 
                     # Points for each set
                     for set_score in scores:
@@ -2315,29 +2318,18 @@ def get_mobile_club_data(user):
 
                                 if our_score > their_score:
                                     match_team_points += 1
+                                    team_sets_won += 1
                                 else:
                                     match_opponent_points += 1
+                                    opponent_sets_won += 1
                             except (ValueError, IndexError):
                                 continue
 
-                    # Bonus point for match win
-                    # NSTF league has reversed team assignments - need to reverse win/loss logic too
-                    if user_league_id == "4786":  # NSTF league (Fixed: was 4933, should be 4786)
-                        # For NSTF: if we're using away players when is_home=True, then we need to reverse the win logic
-                        if (is_home and match["winner"] == "away") or (
-                            not is_home and match["winner"] == "home"
-                        ):
-                            match_team_points += 1
-                        else:
-                            match_opponent_points += 1
-                    else:
-                        # Standard logic for other leagues (APTA, etc.)
-                        if (is_home and match["winner"] == "home") or (
-                            not is_home and match["winner"] == "away"
-                        ):
-                            match_team_points += 1
-                        else:
-                            match_opponent_points += 1
+                    # Bonus point for winning 2 sets (not for overall match win)
+                    if team_sets_won >= 2:
+                        match_team_points += 1
+                    elif opponent_sets_won >= 2:
+                        match_opponent_points += 1
 
                     # Update total points
                     team_matches[team]["team_points"] += match_team_points
@@ -2423,13 +2415,114 @@ def get_mobile_club_data(user):
                         scores_display = match["scores"]
                         won = (is_home and match["winner"] == "home") or (not is_home and match["winner"] == "away")
                     
+                    # Parse scores to extract individual sets for home and away teams
+                    # IMPORTANT: The scores are stored as "away_score-home_score" in database
+                    # But the display logic may reverse which players are shown as "home" vs "away"
+                    home_sets = []
+                    away_sets = []
+                    if scores_display:
+                        # Handle different score formats like "6-4, 6-2" or "6-4 6-2"
+                        score_parts = scores_display.replace(",", " ").split()
+                        for part in score_parts:
+                            if "-" in part:
+                                set_parts = part.split("-")
+                                if len(set_parts) == 2:
+                                    # Database stores as "away_score-home_score"
+                                    db_away_score = set_parts[0]
+                                    db_home_score = set_parts[1]
+                                    
+                                    # Check if we need to reverse the scores based on player display logic
+                                    if user_league_id == "4786":  # NSTF league
+                                        if is_home:
+                                            # When home team, we show away players as "home_players_display"
+                                            # So we need to reverse the scores
+                                            home_sets.append(db_away_score)
+                                            away_sets.append(db_home_score)
+                                        else:
+                                            # When away team, we show home players as "home_players_display"
+                                            # So we keep the original scores
+                                            home_sets.append(db_home_score)
+                                            away_sets.append(db_away_score)
+                                    else:
+                                        # Standard leagues - scores match player display
+                                        if is_home:
+                                            # User's team is displayed as "home"
+                                            home_sets.append(db_home_score)
+                                            away_sets.append(db_away_score)
+                                        else:
+                                            # User's team is displayed as "home" (away players shown as home)
+                                            home_sets.append(db_away_score)
+                                            away_sets.append(db_home_score)
+                            else:
+                                # If no dash, treat as single score
+                                home_sets.append(part)
+                                away_sets.append("0")
+                    else:
+                        # Fallback if no scores
+                        home_sets = ["0"]
+                        away_sets = ["0"]
+                    
+                    # Calculate winner from actual scores using the same parsing logic as home_sets/away_sets
+                    # The display shows: home_players_display vs away_players_display
+                    # We need to determine if the "home_players_display" team won
+                    home_team_won = False
+                    if home_sets and away_sets:
+                        # Use the same home_sets and away_sets arrays that are used for display
+                        home_sets_won = 0
+                        away_sets_won = 0
+                        
+                        for i in range(len(home_sets)):
+                            try:
+                                home_score = int(home_sets[i])
+                                away_score = int(away_sets[i])
+                                if home_score > away_score:
+                                    home_sets_won += 1
+                                else:
+                                    away_sets_won += 1
+                            except (ValueError, IndexError):
+                                continue
+                        
+                        # Determine winner based on sets won
+                        if home_sets_won > away_sets_won:
+                            home_team_won = True
+                        else:
+                            home_team_won = False
+                    
+                    # Determine team names to match the player display logic
+                    if user_league_id == "4786":  # NSTF league
+                        if is_home:
+                            # When home team, we show away players as "home_players_display"
+                            # So we need to swap the team names
+                            home_team_name_display = match.get("away_team", "Unknown")
+                            away_team_name_display = match.get("home_team", "Unknown")
+                        else:
+                            # When away team, we show home players as "home_players_display"
+                            # So we keep the original team names
+                            home_team_name_display = match.get("home_team", "Unknown")
+                            away_team_name_display = match.get("away_team", "Unknown")
+                    else:
+                        # Standard leagues - team names match player display
+                        if is_home:
+                            # User's team is displayed as "home"
+                            home_team_name_display = match.get("home_team", "Unknown")
+                            away_team_name_display = match.get("away_team", "Unknown")
+                        else:
+                            # User's team is displayed as "home" (away players shown as home)
+                            home_team_name_display = match.get("away_team", "Unknown")
+                            away_team_name_display = match.get("home_team", "Unknown")
+                    
                     team_matches[team]["matches"].append(
                         {
                             "court": court_num,
                             "home_players": home_players_display,
                             "away_players": away_players_display,
+                            "home_team_name": home_team_name_display,
+                            "away_team_name": away_team_name_display,
                             "scores": scores_display,
+                            "home_sets": home_sets,
+                            "away_sets": away_sets,
                             "won": won,
+                            "home_team_won": home_team_won,
                         }
                     )
 

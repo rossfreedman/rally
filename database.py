@@ -54,7 +54,10 @@ def execute_query(query, params=None):
     """Execute a query and return all results"""
     with get_db() as conn:
         with conn.cursor(cursor_factory=DictCursor) as cursor:
-            cursor.execute(query, params or {})
+            if params is None:
+                cursor.execute(query)
+            else:
+                cursor.execute(query, params)
             results = cursor.fetchall()
             return [dict(row) for row in results]
 
@@ -63,7 +66,10 @@ def execute_query_one(query, params=None):
     """Execute a query and return one result"""
     with get_db() as conn:
         with conn.cursor(cursor_factory=DictCursor) as cursor:
-            cursor.execute(query, params or {})
+            if params is None:
+                cursor.execute(query)
+            else:
+                cursor.execute(query, params)
             result = cursor.fetchone()
             return dict(result) if result else None
 
