@@ -304,7 +304,16 @@ class IncrementalPlayerScraper:
     def __init__(self, league_subdomain: str):
         self.league_subdomain = league_subdomain.lower()
         self.league_id = standardize_league_id(league_subdomain)
-        self.base_url = f"https://{league_subdomain}.tenniscores.com"
+        
+        # Convert league ID to proper subdomain for URL construction
+        league_to_subdomain = {
+            'apta_chicago': 'aptachicago',
+            'nstf': 'nstf', 
+            'cnswpl': 'cnswpl',
+            'apta_national': 'apta'
+        }
+        url_subdomain = league_to_subdomain.get(self.league_subdomain, self.league_subdomain)
+        self.base_url = f"https://{url_subdomain}.tenniscores.com"
         self.chrome_manager = None
         self.driver = None
         
@@ -518,6 +527,7 @@ class IncrementalPlayerScraper:
         try:
             # Parse player name
             first_name, last_name = self._extract_player_name(soup, player_id)
+            print(f"🔍 DEBUG: Name extraction returned: '{first_name}' '{last_name}'")
             
             # Extract team and series information
             team_info = self._extract_team_info(soup, player_id)
@@ -541,17 +551,22 @@ class IncrementalPlayerScraper:
                 page_title = soup.find('title')
                 if page_title:
                     title_text = page_title.get_text(strip=True)
+                    print(f"🔍 DEBUG: Page title: '{title_text}'")
                     if title_text and len(title_text) > 3:
                         # Extract name from title (e.g., "John Doe - Player Profile")
                         name_part = title_text.split('-')[0].strip()
+                        print(f"🔍 DEBUG: Name part from title: '{name_part}'")
                         if name_part:
                             name_parts = name_part.split()
+                            print(f"🔍 DEBUG: Name parts: {name_parts}")
                             if len(name_parts) >= 2:
                                 first_name = name_parts[0]
                                 last_name = ' '.join(name_parts[1:])
+                                print(f"🔍 DEBUG: Using title fallback: {first_name} {last_name}")
                             else:
                                 first_name = name_part
                                 last_name = ""
+                                print(f"🔍 DEBUG: Using title fallback (single): {first_name}")
             
             # Team info validation with fallbacks
             if not team_info:
@@ -644,7 +659,7 @@ class IncrementalPlayerScraper:
                         return team_info
 
             # Strategy 1: For APTA, extract from div structure like we did for names
-            if self.league_subdomain.lower() in ['aptachicago', 'apta']:
+            if self.league_subdomain.lower() in ['aptachicago', 'apta_chicago', 'apta']:
                 divs = soup.find_all('div')
                 for div in divs:
                     div_text = div.get_text().strip()
@@ -901,8 +916,11 @@ class IncrementalPlayerScraper:
     def _extract_player_name(self, soup: BeautifulSoup, player_id: str = None) -> tuple:
         """Extract first and last name from the player page with enhanced parsing"""
         try:
+            print(f"🔍 DEBUG: Starting name extraction for {player_id}")
+            print(f"🔍 DEBUG: League subdomain: {self.league_subdomain}")
             # Strategy 0: For CNSWPL, use stored player names from player page extraction
             if self.league_subdomain.lower() in ['cnswpl', 'cnswp'] and player_id:
+                print(f"🔍 DEBUG: Checking CNSWPL strategy for {player_id}")
                 global CNSWPL_PLAYER_NAMES
                 if 'CNSWPL_PLAYER_NAMES' in globals() and player_id in CNSWPL_PLAYER_NAMES:
                     full_name = CNSWPL_PLAYER_NAMES[player_id]
@@ -917,29 +935,44 @@ class IncrementalPlayerScraper:
                         first_name = full_name
                         last_name = ""
                     return first_name, last_name
+                else:
+                    print(f"🔍 DEBUG: No stored CNSWPL name found for {player_id}")
+            else:
+                print(f"🔍 DEBUG: Not CNSWPL league, skipping CNSWPL strategy")
 
             # Strategy 1: For APTA, look for name in div structure
-            if self.league_subdomain.lower() in ['aptachicago', 'apta']:
+            if self.league_subdomain.lower() in ['aptachicago', 'apta_chicago', 'apta']:
+                print(f"🔍 DEBUG: Executing APTA strategy for {player_id}")
                 # Look for divs containing player names
                 divs = soup.find_all('div')
                 first_name = ""
                 last_name = ""
                 
+                print(f"🔍 DEBUG: Checking {len(divs)} divs for player name...")
+                
                 # Strategy: Look for first div that contains readable text
-                for div in divs:
+                for i, div in enumerate(divs[:10]):  # Only check first 10 divs for debugging
                     div_text = div.get_text().strip()
-                    # Look for pattern like "Peter\n\nRose\n\n\n    Glen View"
+                    print(f"🔍 DEBUG: Div {i}: '{div_text[:100]}...' (len: {len(div_text)})")
+                    
+                    # Look for pattern like "Nate\n\nElsen\n\n\n    Lake Bluff"
                     if div_text and len(div_text) > 5 and len(div_text) < 200:
                         lines = [line.strip() for line in div_text.split('\n') if line.strip()]
-                        if len(lines) >= 3:  # Should have at least first name, last name, club
-                            # First line might be first name
+                        print(f"🔍 DEBUG: Div {i} lines: {lines}")
+                        
+                        # Look for pattern: first name, last name, club name
+                        if len(lines) >= 3:
                             potential_first = lines[0]
                             potential_last = lines[1] if len(lines) > 1 else ""
                             potential_club = lines[2] if len(lines) > 2 else ""
                             
-                            # Basic validation: names should be short and not contain numbers
+                            print(f"🔍 DEBUG: Potential names: '{potential_first}' '{potential_last}' '{potential_club}'")
+                            
+                            # Enhanced validation: names should be short, alphabetic, and not contain common non-name words
                             if (len(potential_first) < 20 and potential_first.isalpha() and 
-                                len(potential_last) < 20 and potential_last.isalpha()):
+                                len(potential_last) < 20 and potential_last.isalpha() and
+                                potential_first.lower() not in ['apta', 'chicago', 'tenniscores', 'player', 'profile'] and
+                                potential_last.lower() not in ['apta', 'chicago', 'tenniscores', 'player', 'profile']):
                                 first_name = potential_first
                                 last_name = potential_last
                                 print(f"🎾 APTA: Found name in div: {first_name} {last_name}")
@@ -1142,7 +1175,7 @@ class IncrementalPlayerScraper:
             page_text = soup.get_text()
             
             # For APTA, look for pattern like "-8.5    Paddle Tennis Index"
-            if self.league_subdomain.lower() in ['aptachicago', 'apta']:
+            if self.league_subdomain.lower() in ['aptachicago', 'apta_chicago', 'apta']:
                 import re
                 # Look for number followed by "Paddle Tennis Index"
                 pti_pattern = r'([-+]?\d*\.?\d+)\s+Paddle Tennis Index'

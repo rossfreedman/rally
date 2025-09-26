@@ -7,14 +7,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Birchwood",
-    "PTI": "25.4",
+    "PTI": "26.2",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011592"
+    "Scraped At": "2025-09-26T08:29:13.285874"
   },
   {
     "Player ID": "nndz-WkNDd3lMdjlodz09",
@@ -24,14 +24,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Birchwood 4",
-    "PTI": "22.1",
+    "PTI": "22.0",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011672"
+    "Scraped At": "2025-09-26T08:29:13.285946"
   },
   {
     "Player ID": "nndz-WkNPd3hMajhnZz09",
@@ -41,19 +41,53 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Birchwood 4",
-    "PTI": "30.7",
+    "PTI": "31.1",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011745"
+    "Scraped At": "2025-09-26T08:29:13.286016"
   },
   {
     "Player ID": "nndz-WkNPd3hMandqQT09",
     "First Name": "Jeff",
     "Last Name": "Feldman",
+    "Team": "Birchwood 4",
+    "Series": "Series 4",
+    "League": "APTA_CHICAGO",
+    "Club": "Birchwood 4",
+    "PTI": "25.0",
+    "Wins": "0",
+    "Losses": "1",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
+    "source_league": "APTA_CHICAGO",
+    "Scraped At": "2025-09-26T08:29:13.286077"
+  },
+  {
+    "Player ID": "nndz-WkNHeHhidi9oUT09",
+    "First Name": "Greg",
+    "Last Name": "Gilberg",
+    "Team": "Birchwood 4",
+    "Series": "Series 4",
+    "League": "APTA_CHICAGO",
+    "Club": "Birchwood 4",
+    "PTI": "23.8",
+    "Wins": "0",
+    "Losses": "1",
+    "Win %": "0.0%",
+    "Captain": "No",
+    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
+    "source_league": "APTA_CHICAGO",
+    "Scraped At": "2025-09-26T08:29:13.286135"
+  },
+  {
+    "Player ID": "nndz-WkNPd3g3ZjdoZz09",
+    "First Name": "Barry",
+    "Last Name": "Jacobs",
     "Team": "Birchwood 4",
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
@@ -65,41 +99,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011806"
-  },
-  {
-    "Player ID": "nndz-WkNHeHhidi9oUT09",
-    "First Name": "Greg",
-    "Last Name": "Gilberg",
-    "Team": "Birchwood 4",
-    "Series": "Series 4",
-    "League": "APTA_CHICAGO",
-    "Club": "Birchwood 4",
-    "PTI": "23.6",
-    "Wins": "0",
-    "Losses": "1",
-    "Win %": "0.0%",
-    "Captain": "No",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
-    "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011867"
-  },
-  {
-    "Player ID": "nndz-WkNPd3g3ZjdoZz09",
-    "First Name": "Barry",
-    "Last Name": "Jacobs",
-    "Team": "Birchwood 4",
-    "Series": "Series 4",
-    "League": "APTA_CHICAGO",
-    "Club": "Birchwood 4",
-    "PTI": "24.5",
-    "Wins": "0",
-    "Losses": "1",
-    "Win %": "0.0%",
-    "Captain": "No",
-    "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
-    "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011926"
+    "Scraped At": "2025-09-26T08:29:13.286194"
   },
   {
     "Player ID": "nndz-WkNPd3hMYjZnZz09",
@@ -109,14 +109,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Birchwood 4",
-    "PTI": "30.2",
+    "PTI": "31.0",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.011988"
+    "Scraped At": "2025-09-26T08:29:13.286257"
   },
   {
     "Player ID": "nndz-WkNPd3hMajhnQT09",
@@ -126,14 +126,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Birchwood 4",
-    "PTI": "26.7",
+    "PTI": "26.6",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.012048"
+    "Scraped At": "2025-09-26T08:29:13.286317"
   },
   {
     "Player ID": "nndz-WkMreHhMcndqQT09",
@@ -150,7 +150,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liejg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:13.012105"
+    "Scraped At": "2025-09-26T08:29:13.286376"
   },
   {
     "Player ID": "nndz-WkNDNnlMYjRodz09",
@@ -167,7 +167,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100510"
+    "Scraped At": "2025-09-26T08:29:16.520814"
   },
   {
     "Player ID": "nndz-WkNPd3hyNzRndz09",
@@ -184,7 +184,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100591"
+    "Scraped At": "2025-09-26T08:29:16.520895"
   },
   {
     "Player ID": "nndz-WkM2L3dyLy9ndz09",
@@ -194,14 +194,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Hawthorn Woods 4",
-    "PTI": "20.6",
-    "Wins": "0",
+    "PTI": "18.8",
+    "Wins": "1",
     "Losses": "0",
-    "Win %": "0.0%",
+    "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100664"
+    "Scraped At": "2025-09-26T08:29:16.520962"
   },
   {
     "Player ID": "nndz-WkNPd3hMajVqUT09",
@@ -218,7 +218,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100725"
+    "Scraped At": "2025-09-26T08:29:16.521022"
   },
   {
     "Player ID": "nndz-WkNHeHg3djhoZz09",
@@ -228,14 +228,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Hawthorn Woods 4",
-    "PTI": "16.3",
-    "Wins": "0",
+    "PTI": "15.2",
+    "Wins": "1",
     "Losses": "0",
-    "Win %": "0.0%",
+    "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100788"
+    "Scraped At": "2025-09-26T08:29:16.521083"
   },
   {
     "Player ID": "nndz-WkNDd3lMYjRnUT09",
@@ -252,7 +252,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100848"
+    "Scraped At": "2025-09-26T08:29:16.521149"
   },
   {
     "Player ID": "nndz-WlNlN3didndqUT09",
@@ -269,7 +269,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100905"
+    "Scraped At": "2025-09-26T08:29:16.521209"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjVoZz09",
@@ -286,7 +286,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.100964"
+    "Scraped At": "2025-09-26T08:29:16.521269"
   },
   {
     "Player ID": "nndz-WkNPd3liYjRoZz09",
@@ -303,7 +303,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.101023"
+    "Scraped At": "2025-09-26T08:29:16.521331"
   },
   {
     "Player ID": "nndz-WkNPd3hMcndoZz09",
@@ -320,7 +320,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.101081"
+    "Scraped At": "2025-09-26T08:29:16.521391"
   },
   {
     "Player ID": "nndz-WkMrK3hiajlodz09",
@@ -337,7 +337,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.101142"
+    "Scraped At": "2025-09-26T08:29:16.521453"
   },
   {
     "Player ID": "nndz-WlNhOXhMLy9oUT09",
@@ -354,7 +354,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.101198"
+    "Scraped At": "2025-09-26T08:29:16.521514"
   },
   {
     "Player ID": "nndz-WkNPd3hMdi9qUT09",
@@ -371,7 +371,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzg%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:17.101259"
+    "Scraped At": "2025-09-26T08:29:16.521573"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjRnUT09",
@@ -388,7 +388,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186170"
+    "Scraped At": "2025-09-26T08:29:19.541278"
   },
   {
     "Player ID": "nndz-WkNPd3hMMzdndz09",
@@ -405,7 +405,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186256"
+    "Scraped At": "2025-09-26T08:29:19.541365"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjRoUT09",
@@ -422,7 +422,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186326"
+    "Scraped At": "2025-09-26T08:29:19.541426"
   },
   {
     "Player ID": "nndz-WkNPd3hyL3hnZz09",
@@ -439,7 +439,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186388"
+    "Scraped At": "2025-09-26T08:29:19.541487"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjVnZz09",
@@ -456,7 +456,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186449"
+    "Scraped At": "2025-09-26T08:29:19.541547"
   },
   {
     "Player ID": "nndz-WkNPd3hMajRodz09",
@@ -473,7 +473,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186508"
+    "Scraped At": "2025-09-26T08:29:19.541609"
   },
   {
     "Player ID": "nndz-WkNHN3diYjlnZz09",
@@ -483,14 +483,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Indian Hill 4",
-    "PTI": "28.3",
+    "PTI": "29.5",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186569"
+    "Scraped At": "2025-09-26T08:29:19.541669"
   },
   {
     "Player ID": "nndz-WkNDNnlMbjZndz09",
@@ -507,7 +507,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186629"
+    "Scraped At": "2025-09-26T08:29:19.541729"
   },
   {
     "Player ID": "nndz-WkNDNnhyYjVndz09",
@@ -524,7 +524,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186687"
+    "Scraped At": "2025-09-26T08:29:19.541789"
   },
   {
     "Player ID": "nndz-WkNPd3g3NzdnZz09",
@@ -541,7 +541,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186745"
+    "Scraped At": "2025-09-26T08:29:19.541848"
   },
   {
     "Player ID": "nndz-WkNPd3hyejVnZz09",
@@ -558,7 +558,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186806"
+    "Scraped At": "2025-09-26T08:29:19.541907"
   },
   {
     "Player ID": "nndz-WkNPd3hMejhnZz09",
@@ -575,7 +575,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:20.186863"
+    "Scraped At": "2025-09-26T08:29:19.541965"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjdoZz09",
@@ -592,7 +592,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249648"
+    "Scraped At": "2025-09-26T08:29:23.719404"
   },
   {
     "Player ID": "nndz-WkNDNnhyMy9oUT09",
@@ -609,7 +609,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249740"
+    "Scraped At": "2025-09-26T08:29:23.719493"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjhnUT09",
@@ -626,7 +626,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249805"
+    "Scraped At": "2025-09-26T08:29:23.719556"
   },
   {
     "Player ID": "nndz-WkNPd3hMcjhnUT09",
@@ -636,14 +636,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Lake Bluff 4",
-    "PTI": "25.4",
+    "PTI": "24.7",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249866"
+    "Scraped At": "2025-09-26T08:29:23.719616"
   },
   {
     "Player ID": "nndz-WkNPd3g3LzRoZz09",
@@ -660,7 +660,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249925"
+    "Scraped At": "2025-09-26T08:29:23.719675"
   },
   {
     "Player ID": "nndz-WkNPd3g3LzloQT09",
@@ -670,14 +670,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Lake Bluff 4",
-    "PTI": "27.4",
+    "PTI": "26.6",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.249984"
+    "Scraped At": "2025-09-26T08:29:23.719736"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjdqUT09",
@@ -694,7 +694,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.250042"
+    "Scraped At": "2025-09-26T08:29:23.719797"
   },
   {
     "Player ID": "nndz-WkNPd3hMajRoQT09",
@@ -711,7 +711,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.250100"
+    "Scraped At": "2025-09-26T08:29:23.719856"
   },
   {
     "Player ID": "nndz-WkNPd3hMai9ndz09",
@@ -721,14 +721,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Lake Bluff 4",
-    "PTI": "24.5",
+    "PTI": "24.7",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.250157"
+    "Scraped At": "2025-09-26T08:29:23.719915"
   },
   {
     "Player ID": "nndz-WkNDOXhyLzZnUT09",
@@ -745,7 +745,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.250214"
+    "Scraped At": "2025-09-26T08:29:23.719975"
   },
   {
     "Player ID": "nndz-WkNPd3g3LzRnZz09",
@@ -762,7 +762,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liNys%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:23.250272"
+    "Scraped At": "2025-09-26T08:29:23.720035"
   },
   {
     "Player ID": "nndz-WkNPd3g3Nzlndz09",
@@ -779,7 +779,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682254"
+    "Scraped At": "2025-09-26T08:29:28.026199"
   },
   {
     "Player ID": "nndz-WkNHeHhiejdoUT09",
@@ -796,7 +796,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682338"
+    "Scraped At": "2025-09-26T08:29:28.026284"
   },
   {
     "Player ID": "nndz-WkNHeHdyLytnZz09",
@@ -806,14 +806,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Lake Forest 4",
-    "PTI": "20.2",
+    "PTI": "20.1",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682414"
+    "Scraped At": "2025-09-26T08:29:28.026351"
   },
   {
     "Player ID": "nndz-WkNPd3hMenhoUT09",
@@ -823,14 +823,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Lake Forest 4",
-    "PTI": "9.2",
+    "PTI": "9.0",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682479"
+    "Scraped At": "2025-09-26T08:29:28.026412"
   },
   {
     "Player ID": "nndz-WkNPd3hMMzZnZz09",
@@ -847,7 +847,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682540"
+    "Scraped At": "2025-09-26T08:29:28.026473"
   },
   {
     "Player ID": "nndz-WkNPd3g3NzlnUT09",
@@ -864,7 +864,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682599"
+    "Scraped At": "2025-09-26T08:29:28.026531"
   },
   {
     "Player ID": "nndz-WkNPd3g3Nzdndz09",
@@ -881,7 +881,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682661"
+    "Scraped At": "2025-09-26T08:29:28.026588"
   },
   {
     "Player ID": "nndz-WkNPd3g3NzhnQT09",
@@ -898,7 +898,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682717"
+    "Scraped At": "2025-09-26T08:29:28.026644"
   },
   {
     "Player ID": "nndz-WkNHeHhiejZodz09",
@@ -915,7 +915,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLd3dMZjk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:27.682777"
+    "Scraped At": "2025-09-26T08:29:28.026702"
   },
   {
     "Player ID": "nndz-WkNPd3g3ejlndz09",
@@ -932,7 +932,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434025"
+    "Scraped At": "2025-09-26T08:29:32.632900"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjhoZz09",
@@ -949,7 +949,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434112"
+    "Scraped At": "2025-09-26T08:29:32.632980"
   },
   {
     "Player ID": "nndz-WlNTN3dMNzdqQT09",
@@ -966,7 +966,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434192"
+    "Scraped At": "2025-09-26T08:29:32.633053"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjdqQT09",
@@ -983,7 +983,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434256"
+    "Scraped At": "2025-09-26T08:29:32.633109"
   },
   {
     "Player ID": "nndz-WkNDd3lMLzlnQT09",
@@ -993,14 +993,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Midtown Chicago 4",
-    "PTI": "17.5",
+    "PTI": "16.8",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434316"
+    "Scraped At": "2025-09-26T08:29:32.633169"
   },
   {
     "Player ID": "nndz-WkNPd3hMajlnZz09",
@@ -1017,7 +1017,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434380"
+    "Scraped At": "2025-09-26T08:29:32.633229"
   },
   {
     "Player ID": "nndz-WkNHNXdMcjVqUT09",
@@ -1034,7 +1034,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434440"
+    "Scraped At": "2025-09-26T08:29:32.633290"
   },
   {
     "Player ID": "nndz-WkNPd3hMM3dnZz09",
@@ -1044,14 +1044,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Midtown Chicago 4",
-    "PTI": "22.2",
+    "PTI": "22.0",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434505"
+    "Scraped At": "2025-09-26T08:29:32.633350"
   },
   {
     "Player ID": "nndz-WkNPd3hMajVodz09",
@@ -1068,7 +1068,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434564"
+    "Scraped At": "2025-09-26T08:29:32.633434"
   },
   {
     "Player ID": "nndz-WkNDNnlMandnZz09",
@@ -1085,7 +1085,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434625"
+    "Scraped At": "2025-09-26T08:29:32.633492"
   },
   {
     "Player ID": "nndz-WkNDNnhyYjVodz09",
@@ -1102,7 +1102,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434685"
+    "Scraped At": "2025-09-26T08:29:32.633554"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjdodz09",
@@ -1119,7 +1119,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434744"
+    "Scraped At": "2025-09-26T08:29:32.633614"
   },
   {
     "Player ID": "nndz-WkNPd3hyZjdoZz09",
@@ -1136,7 +1136,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liN3c%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:30.434802"
+    "Scraped At": "2025-09-26T08:29:32.633673"
   },
   {
     "Player ID": "nndz-WkNPd3hMditqUT09",
@@ -1153,7 +1153,7 @@
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954535"
+    "Scraped At": "2025-09-26T08:29:36.324641"
   },
   {
     "Player ID": "nndz-WkNPd3hMeitoZz09",
@@ -1163,14 +1163,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "North Shore 4",
-    "PTI": "1.5",
+    "PTI": "2.6",
     "Wins": "0",
-    "Losses": "0",
+    "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954621"
+    "Scraped At": "2025-09-26T08:29:36.324729"
   },
   {
     "Player ID": "nndz-WkNPd3g3LzZqQT09",
@@ -1187,7 +1187,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954680"
+    "Scraped At": "2025-09-26T08:29:36.324792"
   },
   {
     "Player ID": "nndz-WkNPd3g3cjVoQT09",
@@ -1204,7 +1204,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954739"
+    "Scraped At": "2025-09-26T08:29:36.324851"
   },
   {
     "Player ID": "nndz-WkNPd3hyai9qQT09",
@@ -1216,12 +1216,12 @@
     "Club": "North Shore 4",
     "PTI": "29.5",
     "Wins": "0",
-    "Losses": "0",
+    "Losses": "2",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954800"
+    "Scraped At": "2025-09-26T08:29:36.324910"
   },
   {
     "Player ID": "nndz-WkNPd3hMeitndz09",
@@ -1231,14 +1231,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "North Shore 4",
-    "PTI": "14.6",
+    "PTI": "16.6",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954859"
+    "Scraped At": "2025-09-26T08:29:36.324967"
   },
   {
     "Player ID": "nndz-WkNPd3hMeitnZz09",
@@ -1255,7 +1255,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954920"
+    "Scraped At": "2025-09-26T08:29:36.325027"
   },
   {
     "Player ID": "nndz-WkNPd3hMdjdoUT09",
@@ -1265,14 +1265,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "North Shore 4",
-    "PTI": "29.4",
+    "PTI": "30.6",
     "Wins": "0",
-    "Losses": "0",
+    "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.954979"
+    "Scraped At": "2025-09-26T08:29:36.325087"
   },
   {
     "Player ID": "nndz-WkNDd3lMbndoZz09",
@@ -1289,7 +1289,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.955035"
+    "Scraped At": "2025-09-26T08:29:36.325145"
   },
   {
     "Player ID": "nndz-WkNDNnhyYnhqQT09",
@@ -1299,14 +1299,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "North Shore 4",
-    "PTI": "17.9",
+    "PTI": "17.4",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.955093"
+    "Scraped At": "2025-09-26T08:29:36.325205"
   },
   {
     "Player ID": "nndz-WkNDNnhyYnhqUT09",
@@ -1323,7 +1323,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.955153"
+    "Scraped At": "2025-09-26T08:29:36.325264"
   },
   {
     "Player ID": "nndz-WkNHeHg3YjhqUT09",
@@ -1340,7 +1340,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.955210"
+    "Scraped At": "2025-09-26T08:29:36.325322"
   },
   {
     "Player ID": "nndz-WkNPd3g3YjVoUT09",
@@ -1357,7 +1357,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMy8%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:33.955268"
+    "Scraped At": "2025-09-26T08:29:36.325378"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjVoUT09",
@@ -1367,14 +1367,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD",
-    "PTI": "11.9",
+    "PTI": "12.8",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674512"
+    "Scraped At": "2025-09-26T08:29:40.687358"
   },
   {
     "Player ID": "nndz-WkNPd3g3MzRodz09",
@@ -1391,7 +1391,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674594"
+    "Scraped At": "2025-09-26T08:29:40.687444"
   },
   {
     "Player ID": "nndz-WkNPd3g3ZjdnZz09",
@@ -1401,14 +1401,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "31.1",
+    "PTI": "30.8",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674657"
+    "Scraped At": "2025-09-26T08:29:40.687509"
   },
   {
     "Player ID": "nndz-WkNDNnlMbjhnUT09",
@@ -1425,7 +1425,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674721"
+    "Scraped At": "2025-09-26T08:29:40.687570"
   },
   {
     "Player ID": "nndz-WkNHeHdML3hnUT09",
@@ -1435,14 +1435,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "24.0",
+    "PTI": "25.2",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674779"
+    "Scraped At": "2025-09-26T08:29:40.687629"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjVqQT09",
@@ -1459,7 +1459,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674837"
+    "Scraped At": "2025-09-26T08:29:40.687689"
   },
   {
     "Player ID": "nndz-WkMrK3hiajZoZz09",
@@ -1469,14 +1469,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "27.0",
+    "PTI": "27.6",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674896"
+    "Scraped At": "2025-09-26T08:29:40.687748"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjZqQT09",
@@ -1486,14 +1486,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "24.4",
+    "PTI": "24.0",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.674955"
+    "Scraped At": "2025-09-26T08:29:40.687807"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjhoQT09",
@@ -1503,14 +1503,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "21.9",
+    "PTI": "22.9",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.675016"
+    "Scraped At": "2025-09-26T08:29:40.687866"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjVoQT09",
@@ -1520,14 +1520,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "17.8",
+    "PTI": "19.0",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.675075"
+    "Scraped At": "2025-09-26T08:29:40.687926"
   },
   {
     "Player ID": "nndz-WkM2NXhyNzVoQT09",
@@ -1544,7 +1544,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.675133"
+    "Scraped At": "2025-09-26T08:29:40.687986"
   },
   {
     "Player ID": "nndz-WkNPd3g3MzdnUT09",
@@ -1561,7 +1561,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.675192"
+    "Scraped At": "2025-09-26T08:29:40.688044"
   },
   {
     "Player ID": "nndz-WkNPd3g3YjRqUT09",
@@ -1571,14 +1571,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "River Forest PD 4",
-    "PTI": "20.7",
+    "PTI": "21.3",
     "Wins": "0",
     "Losses": "1",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNld3liMzk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:37.675250"
+    "Scraped At": "2025-09-26T08:29:40.688103"
   },
   {
     "Player ID": "nndz-WkNPd3hMcjdndz09",
@@ -1588,14 +1588,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo",
-    "PTI": "16.0",
+    "PTI": "15.9",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918012"
+    "Scraped At": "2025-09-26T08:29:45.122636"
   },
   {
     "Player ID": "nndz-WkNPd3lMMzZqQT09",
@@ -1605,14 +1605,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "20.4",
+    "PTI": "20.0",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918106"
+    "Scraped At": "2025-09-26T08:29:45.122717"
   },
   {
     "Player ID": "nndz-WkNDNnhyZjRndz09",
@@ -1622,14 +1622,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "26.7",
+    "PTI": "25.9",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918176"
+    "Scraped At": "2025-09-26T08:29:45.122782"
   },
   {
     "Player ID": "nndz-WkNPd3hMZjdnZz09",
@@ -1639,14 +1639,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "25.1",
+    "PTI": "24.1",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918240"
+    "Scraped At": "2025-09-26T08:29:45.122842"
   },
   {
     "Player ID": "nndz-WkNPd3hycjZnZz09",
@@ -1663,7 +1663,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918302"
+    "Scraped At": "2025-09-26T08:29:45.122903"
   },
   {
     "Player ID": "nndz-WkNPd3hMcndnZz09",
@@ -1673,14 +1673,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "15.5",
+    "PTI": "15.6",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918362"
+    "Scraped At": "2025-09-26T08:29:45.122962"
   },
   {
     "Player ID": "nndz-WkNPd3hMMzRodz09",
@@ -1690,14 +1690,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "12.5",
+    "PTI": "12.4",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918423"
+    "Scraped At": "2025-09-26T08:29:45.123021"
   },
   {
     "Player ID": "nndz-WkNHeHdMYjVnUT09",
@@ -1714,7 +1714,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918482"
+    "Scraped At": "2025-09-26T08:29:45.123082"
   },
   {
     "Player ID": "nndz-WkNPd3hMcndnQT09",
@@ -1731,7 +1731,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918544"
+    "Scraped At": "2025-09-26T08:29:45.123141"
   },
   {
     "Player ID": "nndz-WkNPd3hMei9nUT09",
@@ -1741,14 +1741,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "3.4",
+    "PTI": "2.5",
     "Wins": "0",
     "Losses": "0",
     "Win %": "0.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918625"
+    "Scraped At": "2025-09-26T08:29:45.123201"
   },
   {
     "Player ID": "nndz-WkNDd3liZitndz09",
@@ -1758,14 +1758,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "23.1",
+    "PTI": "22.2",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918685"
+    "Scraped At": "2025-09-26T08:29:45.123260"
   },
   {
     "Player ID": "nndz-WkNPd3hycnhoQT09",
@@ -1775,14 +1775,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "23.9",
+    "PTI": "23.5",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918745"
+    "Scraped At": "2025-09-26T08:29:45.123318"
   },
   {
     "Player ID": "nndz-WkNDNnlMaitnQT09",
@@ -1792,14 +1792,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Valley Lo 4",
-    "PTI": "24.9",
+    "PTI": "25.0",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNLeHlidjY%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:41.918805"
+    "Scraped At": "2025-09-26T08:29:45.123377"
   },
   {
     "Player ID": "nndz-WkMrK3dibjVndz09",
@@ -1809,14 +1809,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka",
-    "PTI": "24.2",
+    "PTI": "23.5",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "Yes",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.979708"
+    "Scraped At": "2025-09-26T08:29:49.818682"
   },
   {
     "Player ID": "nndz-WkM2L3c3YjhnUT09",
@@ -1826,14 +1826,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "23.3",
+    "PTI": "23.7",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.979796"
+    "Scraped At": "2025-09-26T08:29:49.818773"
   },
   {
     "Player ID": "nndz-WkNPd3g3bndndz09",
@@ -1843,14 +1843,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "22.0",
+    "PTI": "20.8",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.979867"
+    "Scraped At": "2025-09-26T08:29:49.818844"
   },
   {
     "Player ID": "nndz-WkNPd3hMbjRodz09",
@@ -1860,14 +1860,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "26.0",
+    "PTI": "26.3",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.979928"
+    "Scraped At": "2025-09-26T08:29:49.818903"
   },
   {
     "Player ID": "nndz-WkNHNXdMLzZqQT09",
@@ -1877,14 +1877,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "24.4",
+    "PTI": "23.4",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.979989"
+    "Scraped At": "2025-09-26T08:29:49.818963"
   },
   {
     "Player ID": "nndz-WkNDd3lMbjlndz09",
@@ -1901,7 +1901,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980052"
+    "Scraped At": "2025-09-26T08:29:49.819015"
   },
   {
     "Player ID": "nndz-WkNPd3g3LzVnZz09",
@@ -1918,7 +1918,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980113"
+    "Scraped At": "2025-09-26T08:29:49.819071"
   },
   {
     "Player ID": "nndz-WkNDd3lMei9qQT09",
@@ -1928,14 +1928,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "19.9",
+    "PTI": "19.2",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980169"
+    "Scraped At": "2025-09-26T08:29:49.819132"
   },
   {
     "Player ID": "nndz-WkNPd3g3bjVodz09",
@@ -1952,7 +1952,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980229"
+    "Scraped At": "2025-09-26T08:29:49.819191"
   },
   {
     "Player ID": "nndz-WkMrK3dydnhnZz09",
@@ -1969,7 +1969,7 @@
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980288"
+    "Scraped At": "2025-09-26T08:29:49.819250"
   },
   {
     "Player ID": "nndz-WkNPd3g3citoUT09",
@@ -1979,14 +1979,14 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "18.2",
+    "PTI": "17.3",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980347"
+    "Scraped At": "2025-09-26T08:29:49.819310"
   },
   {
     "Player ID": "nndz-WkNDNnlMaitqUT09",
@@ -1996,13 +1996,13 @@
     "Series": "Series 4",
     "League": "APTA_CHICAGO",
     "Club": "Winnetka 4",
-    "PTI": "21.7",
+    "PTI": "20.5",
     "Wins": "1",
     "Losses": "0",
     "Win %": "100.0%",
     "Captain": "No",
     "Source URL": "https://aptachicago.tenniscores.com/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&team=nndz-WkNTL3dyajk%3D",
     "source_league": "APTA_CHICAGO",
-    "Scraped At": "2025-09-25T16:20:45.980403"
+    "Scraped At": "2025-09-26T08:29:49.819361"
   }
 ]

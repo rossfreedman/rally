@@ -539,11 +539,26 @@ def get_player_analysis(user):
         player_id = user.get("tenniscores_player_id")
 
         # Get team context if available (for multi-team players)
-        team_context = user.get("team_context")
+        team_context = user.get("team_context") or user.get("team_id")
 
         # Initialize current_series_id and current_club_id for court analysis
         current_series_id = None
         current_club_id = None
+        
+        # Get club_id and series_id for team context (needed for court analysis)
+        if team_context:
+            team_info_query = """
+                SELECT club_id, series_id 
+                FROM teams 
+                WHERE id = %s
+            """
+            team_info_result = execute_query_one(team_info_query, [team_context])
+            if team_info_result and team_info_result.get('club_id'):
+                current_club_id = team_info_result['club_id']
+                current_series_id = team_info_result['series_id']
+                print(f"[DEBUG] Team context setup: team {team_context} -> club {current_club_id}, series {current_series_id}")
+            else:
+                print(f"[WARNING] Could not find team info for team {team_context}")
 
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
@@ -586,20 +601,7 @@ def get_player_analysis(user):
         if league_id_int:
             # Show current season matches for this player in this league
             # Add CLUB-BASED filtering when team context is available - show own team + same club substitutes
-            if team_context:
-                # Get the club_id and series_id for the current team context
-                team_info_query = """
-                    SELECT club_id, series_id 
-                    FROM teams 
-                    WHERE id = %s
-                """
-                team_info_result = execute_query_one(team_info_query, [team_context])
-                if not team_info_result or not team_info_result.get('club_id'):
-                    print(f"[ERROR] Could not find team info for team {team_context}")
-                    return {"player_analysis": []}
-                
-                current_club_id = team_info_result['club_id']
-                current_series_id = team_info_result['series_id']
+            if team_context and current_club_id:
                 print(f"[DEBUG] Club-based filtering: team {team_context} -> club {current_club_id}, series {current_series_id}")
                 
                 # CLUB-BASED LOGIC: Show own team + same club different series matches
@@ -896,29 +898,62 @@ def get_player_analysis(user):
 
         # Calculate court analysis for individual player using ALL historical matches (not just current season)
         # Get all matches for court analysis (career performance) - don't filter by league like career stats
-        all_matches_query = """
-            SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
-                id,
-                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                home_team as "Home Team",
-                away_team as "Away Team",
-                home_team_id,
-                away_team_id,
-                winner as "Winner",
-                scores as "Scores",
-                home_player_1_id as "Home Player 1",
-                home_player_2_id as "Home Player 2",
-                away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2",
-                tenniscores_match_id
-            FROM match_scores
-            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-            ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
-        """
-        all_matches_params = [player_id, player_id, player_id, player_id]
+        # ENHANCED: Apply team filtering for multi-team players
+        if team_context and league_id_int:
+            # Team-filtered query for court analysis
+            all_matches_query = """
+                SELECT DISTINCT ON (ms.match_date, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id)
+                    ms.id,
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.home_team_id,
+                    ms.away_team_id,
+                    ms.winner as "Winner",
+                    ms.scores as "Scores",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                LEFT JOIN teams at ON ms.away_team_id = at.id
+                WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                AND ms.league_id = %s
+                AND (ht.club_id = %s OR at.club_id = %s OR 
+                     (ms.home_team_id IS NULL AND at.club_id = %s) OR 
+                     (ms.away_team_id IS NULL AND ht.club_id = %s))
+                ORDER BY ms.match_date DESC, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id, ms.id DESC
+            """
+            all_matches_params = [player_id, player_id, player_id, player_id, league_id_int, current_club_id, current_club_id, current_club_id, current_club_id]
+            print(f"[DEBUG] Court analysis using team-filtered historical matches: team_context={team_context}, club_id={current_club_id}")
+        else:
+            # Original query without team filtering (for single-team players or no team context)
+            all_matches_query = """
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2",
+                    tenniscores_match_id
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+            """
+            all_matches_params = [player_id, player_id, player_id, player_id]
+            print(f"[DEBUG] Court analysis using ALL historical matches (no team filtering): {len(all_matches_params)} params")
             
         all_player_matches = execute_query(all_matches_query, all_matches_params)
-        print(f"[DEBUG] Court analysis using ALL historical matches: {len(all_player_matches) if all_player_matches else 0} matches")
+        print(f"[DEBUG] Court analysis matches found: {len(all_player_matches) if all_player_matches else 0} matches")
         
         court_analysis = calculate_individual_court_analysis(all_player_matches, player_id, user, current_series_id, current_club_id, team_context)
 

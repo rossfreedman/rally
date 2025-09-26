@@ -668,39 +668,40 @@ def upsert_stat(cur, league_id, stat_data):
                 else:  # INSERT
                     return result[0], "inserted"
         else:
-            # Check for existing stat record
-            existing_id = check_existing_stat(cur, league_id, team_id, series_name)
+            # Use UPSERT with the unique constraint (league_id, series, team)
+            cur.execute("""
+                INSERT INTO series_stats (league_id, series_id, team_id, series, team, points,
+                                        matches_won, matches_lost, matches_tied, 
+                                        lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (league_id, series, team)
+                DO UPDATE SET 
+                    series_id = EXCLUDED.series_id, 
+                    team_id = EXCLUDED.team_id,
+                    points = EXCLUDED.points,
+                    matches_won = EXCLUDED.matches_won,
+                    matches_lost = EXCLUDED.matches_lost,
+                    matches_tied = EXCLUDED.matches_tied,
+                    lines_won = EXCLUDED.lines_won,
+                    lines_lost = EXCLUDED.lines_lost,
+                    sets_won = EXCLUDED.sets_won,
+                    sets_lost = EXCLUDED.sets_lost,
+                    games_won = EXCLUDED.games_won,
+                    games_lost = EXCLUDED.games_lost
+                RETURNING id
+            """, (league_id, series_id, team_id, series_name, team_name, points,
+                  matches_won, matches_lost, matches_tied,
+                  lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost))
             
-            if existing_id:
-                # Update existing record
-                cur.execute("""
-                    UPDATE series_stats 
-                    SET series_id = %s, series = %s, team = %s, points = %s, 
-                        matches_won = %s, matches_lost = %s, matches_tied = %s,
-                        lines_won = %s, lines_lost = %s, sets_won = %s, sets_lost = %s, 
-                        games_won = %s, games_lost = %s
-                    WHERE id = %s
-                    RETURNING id
-                """, (series_id, series_name, team_name, points, matches_won, matches_lost, matches_tied,
-                      lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost, existing_id))
-                return existing_id, "updated"
-            else:
-                # Insert new record
-                cur.execute("""
-                    INSERT INTO series_stats (series, team, points, matches_won, matches_lost, matches_tied,
-                                            lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost,
-                                            league_id, team_id, series_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (series_name, team_name, points, matches_won, matches_lost, matches_tied,
-                      lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost,
-                      league_id, team_id, series_id))
-                
-                result = cur.fetchone()
-                if result:
+            result = cur.fetchone()
+            if result:
+                # Check if this was an insert or update by looking at the row count
+                if cur.rowcount == 1:
                     return result[0], "inserted"
                 else:
-                    return None, "insert_failed"
+                    return result[0], "updated"
+            else:
+                return None, "upsert_failed"
         
     except Exception as e:
         raise Exception(f"Failed to upsert stat for team '{team_name}', series '{series_name}': {e}")
