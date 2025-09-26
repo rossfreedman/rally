@@ -200,7 +200,7 @@
                                         <!-- Quick win/loss summary -->
                                         {% set wins = week.results | selectattr('won') | list | length %}
                                         {% set losses = week.results | rejectattr('won') | list | length %}
-                                        <span class="text-sm font-medium {% if wins > losses %}text-green-600{% elif losses > wins %}text-red-600{% else %}text-yellow-600{% endif %}">
+                                        <span class="text-sm font-medium {% if wins > losses %}text-green-600{% elif losses > wins %}text-red-600{% else %}text-yellow-600{% endif %} hidden">
                                             {{ wins }}W-{{ losses }}L
                                         </span>
                                         <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200" id="icon-week-{{ loop.index }}"></i>
