@@ -786,62 +786,124 @@ function groupMatchesByTeamMatchup(matches) {
 function renderPartnerMatchesModal(matches, playerName, courtName) {
     const modalContent = document.getElementById('matchesModalContent');
     
-    let html = `
-        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">${playerName} on ${courtName}</h3>
-        </div>
-    `;
-    
     // Group matches by date and team matchup
     const groupedMatches = groupMatchesByTeamMatchup(matches);
     
+    let html = '';
+    
     groupedMatches.forEach(group => {
-        // Calculate team result (W or L)
-        const playerMatches = group.matches.filter(match => match.player_was_home !== null);
-        const wins = playerMatches.filter(match => match.player_won).length;
-        const losses = playerMatches.filter(match => !match.player_won).length;
-        const teamResult = wins > losses ? 'W' : 'L';
-        const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
-        
         html += `
-            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
                 <!-- Team Match Header -->
-                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-medium text-gray-900">${group.date}</span>
-                            <span class="text-xs text-gray-600">${group.home_team} (H) vs ${group.away_team} (A)</span>
-                        </div>
-                        <span class="text-base font-bold ${resultClass}">${teamResult}</span>
-                    </div>
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
+                </div>
+                
+                <!-- Team Matchup -->
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-base font-semibold" style="color: #bff863;">
+                        ${group.away_team} vs.<br>
+                        ${group.home_team}
+                    </span>
                 </div>
                 
                 <!-- Individual Matches -->
-                <div class="divide-y divide-gray-100">
+                <div class="px-0">
         `;
         
         // Sort matches by court number
-        group.matches.sort((a, b) => a.court_number - b.court_number);
+        group.matches.sort((a, b) => {
+            const aNum = typeof a.court_number === 'string' ? parseInt(a.court_number.replace(/\D/g, '')) : a.court_number;
+            const bNum = typeof b.court_number === 'string' ? parseInt(b.court_number.replace(/\D/g, '')) : b.court_number;
+            return aNum - bNum;
+        });
         
         group.matches.forEach(match => {
-            const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            // Parse scores to determine winner and create score arrays
+            const scores = match.scores ? match.scores.split(", ") : [];
+            const team1_sets = [];  // First team in database (away team)
+            const team2_sets = [];  // Second team in database (home team)
+            let team1_sets_won = 0;
+            let team2_sets_won = 0;
+            
+            scores.forEach(set_score => {
+                if (set_score && set_score.includes("-")) {
+                    const [score1, score2] = set_score.split("-");
+                    team1_sets.push(score1);
+                    team2_sets.push(score2);
+                    
+                    if (parseInt(score2) > parseInt(score1)) {
+                        team2_sets_won++;
+                    } else {
+                        team1_sets_won++;
+                    }
+                }
+            });
+            
+            // Determine which team won based on sets won
+            const team1_won = team1_sets_won > team2_sets_won;
+            
+            // Determine which team the current player is on
+            // Use the API's team context instead of partner_name
+            const current_player_on_team1 = match.player_was_home === false; // If player_was_home is false, they're on team1 (away)
+            
+            // Assign scores to the correct teams based on player position
+            let current_team_sets, opponent_team_sets, current_team_won;
+            if (current_player_on_team1) {
+                // Current player is on team1 (away team in database)
+                current_team_sets = team1_sets;
+                opponent_team_sets = team2_sets;
+                current_team_won = team1_won;
+            } else {
+                // Current player is on team2 (home team in database)
+                current_team_sets = team2_sets;
+                opponent_team_sets = team1_sets;
+                current_team_won = team2_sets_won > team1_sets_won;
+            }
             
             html += `
-                <div class="px-4 py-3 bg-gray-50">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-gray-900">Court ${match.court_number}</span>
-                            <span class="text-xs text-gray-700">${playerName} & ${match.partner_name}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <div class="text-xs text-gray-600">
-                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
-                        </div>
-                        <div class="text-xs font-medium text-gray-900">${match.scores}</div>
-                    </div>
+                <!-- Court Header Row -->
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${match.court_number}</span>
                 </div>
+                
+                <!-- Match Table -->
+                <table class="w-full border-collapse">
+                    <tbody>
+                        <!-- Current Player's Team Row -->
+                        <tr class="${current_team_won ? 'bg-green-100' : 'bg-gray-50'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.partner_name}</div>
+                                    <div>${playerName}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
+                        </tr>
+                        <!-- Opponent Team Row -->
+                        <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.home_team : group.away_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.opponent1_name}</div>
+                                    <div>${match.opponent2_name}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
             `;
         });
         

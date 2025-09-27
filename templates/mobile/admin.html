@@ -726,69 +726,154 @@ function getActionTypeColor(actionType) {
     return colorMap[actionType] || 'gray';
 }
 
-// Impersonation functions (existing code)
-async function loadUsersForImpersonation() {
-    try {
-        const response = await fetch('/api/admin/users-for-impersonation');
-        const users = await response.json();
-        
-        const select = document.getElementById('impersonation-user-select');
-        select.innerHTML = '<option value="">Select a user to impersonate...</option>';
-        
-        users.forEach(user => {
-            if (user.player_contexts && user.player_contexts.length > 0) {
-                // User has player contexts - show hierarchy
-                const userHeader = document.createElement('option');
-                userHeader.value = '';
-                userHeader.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
-                userHeader.disabled = true;
-                userHeader.style.fontWeight = 'bold';
-                userHeader.style.backgroundColor = '#f3f4f6';
-                select.appendChild(userHeader);
-                
-                // Add player contexts for this user
-                user.player_contexts.forEach(context => {
-                    const option = document.createElement('option');
-                    option.value = JSON.stringify({
-                        user_email: user.email,
-                        tenniscores_player_id: context.tenniscores_player_id
-                    });
-                    option.textContent = `  └── ${context.display_name}`;
-                    option.style.paddingLeft = '20px';
-                    select.appendChild(option);
-                });
-            } else {
-                // User has no player contexts - show directly as selectable
-                const option = document.createElement('option');
-                option.value = JSON.stringify({
-                    user_email: user.email,
-                    tenniscores_player_id: null  // No player context
-                });
-                option.textContent = `${user.first_name} ${user.last_name} (${user.email}) - No Player Context`;
-                option.style.color = '#6b7280'; // Gray color to indicate no context
-                select.appendChild(option);
+// Impersonation functions with type-ahead functionality
+let searchTimeout;
+let selectedUserData = null;
+
+// Initialize type-ahead functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('impersonation-user-input');
+    const dropdown = document.getElementById('impersonation-user-dropdown');
+    
+    if (input && dropdown) {
+        // Handle input changes with debouncing
+        input.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
             
-            // Add separator (except for last user)
-            if (users.indexOf(user) < users.length - 1) {
-                const separator = document.createElement('option');
-                separator.value = '';
-                separator.textContent = '────────────────────────';
-                separator.disabled = true;
-                separator.style.color = '#9ca3af';
-                select.appendChild(separator);
+            // Hide dropdown if query is too short
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                selectedUserData = null;
+                document.getElementById('impersonation-user-data').value = '';
+                return;
+            }
+            
+            // Debounce the search
+            searchTimeout = setTimeout(() => {
+                searchUsers(query);
+            }, 300);
+        });
+        
+        // Handle input focus
+        input.addEventListener('focus', function(e) {
+            const query = e.target.value.trim();
+            if (query.length >= 2 && dropdown.innerHTML.trim() !== '') {
+                dropdown.classList.remove('hidden');
             }
         });
+        
+        // Handle clicks outside to close dropdown
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
+});
+
+// Search users function
+async function searchUsers(query) {
+    try {
+        const response = await fetch(`/api/admin/search-users-for-impersonation?q=${encodeURIComponent(query)}`);
+        const users = await response.json();
+        
+        const dropdown = document.getElementById('impersonation-user-dropdown');
+        
+        if (users.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm">No users found</div>';
+        } else {
+            dropdown.innerHTML = '';
+            
+            users.forEach(user => {
+                // Create user header
+                const userDiv = document.createElement('div');
+                userDiv.className = 'px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
+                userDiv.innerHTML = `
+                    <div class="font-medium text-gray-900">${user.first_name} ${user.last_name}</div>
+                    <div class="text-sm text-gray-600">${user.email}</div>
+                `;
+                
+                // Handle user selection (no player context)
+                userDiv.addEventListener('click', function() {
+                    selectUser(user, null);
+                });
+                
+                dropdown.appendChild(userDiv);
+                
+                // Add player contexts if they exist
+                if (user.player_contexts && user.player_contexts.length > 0) {
+                    user.player_contexts.forEach(context => {
+                        const contextDiv = document.createElement('div');
+                        contextDiv.className = 'px-3 py-2 pl-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-sm';
+                        contextDiv.innerHTML = `
+                            <div class="text-gray-700">${context.display_name}</div>
+                            <div class="text-xs text-gray-500">${context.player_name}</div>
+                        `;
+                        
+                        // Handle context selection
+                        contextDiv.addEventListener('click', function() {
+                            selectUser(user, context);
+                        });
+                        
+                        dropdown.appendChild(contextDiv);
+                    });
+                }
+            });
+        }
+        
+        dropdown.classList.remove('hidden');
     } catch (error) {
-        console.error('Error loading users:', error);
-        document.getElementById('impersonation-user-select').innerHTML = '<option value="">Error loading users</option>';
+        console.error('Error searching users:', error);
+        const dropdown = document.getElementById('impersonation-user-dropdown');
+        dropdown.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Error searching users</div>';
+        dropdown.classList.remove('hidden');
     }
 }
 
+// Select user function
+function selectUser(user, context) {
+    selectedUserData = {
+        user: user,
+        context: context
+    };
+    
+    const input = document.getElementById('impersonation-user-input');
+    const dropdown = document.getElementById('impersonation-user-dropdown');
+    const dataInput = document.getElementById('impersonation-user-data');
+    
+    // Update input display
+    if (context) {
+        input.value = `${user.first_name} ${user.last_name} - ${context.display_name}`;
+    } else {
+        input.value = `${user.first_name} ${user.last_name} (${user.email}) - No Player Context`;
+    }
+    
+    // Store data in hidden input
+    dataInput.value = JSON.stringify({
+        user_email: user.email,
+        tenniscores_player_id: context ? context.tenniscores_player_id : null
+    });
+    
+    // Hide dropdown
+    dropdown.classList.add('hidden');
+}
+
 async function startImpersonation() {
-    const selectedValue = document.getElementById('impersonation-user-select').value;
-    if (!selectedValue) {
-        alert('Please select a user to impersonate');
+    const selectedValue = document.getElementById('impersonation-user-data').value;
+    if (!selectedValue || !selectedUserData) {
+        alert('Please search and select a user to impersonate');
         return;
     }
     
@@ -798,11 +883,14 @@ async function startImpersonation() {
         userEmail = selection.user_email;
         playerId = selection.tenniscores_player_id; // Can be null for users without player contexts
         
-        // Get display text from the selected option
-        const select = document.getElementById('impersonation-user-select');
-        displayText = select.options[select.selectedIndex].textContent.trim();
+        // Get display text from the selected user data
+        if (selectedUserData.context) {
+            displayText = selectedUserData.context.display_name;
+        } else {
+            displayText = `${selectedUserData.user.first_name} ${selectedUserData.user.last_name} (${selectedUserData.user.email})`;
+        }
     } catch (error) {
-        alert('Invalid selection. Please choose a user to impersonate.');
+        alert('Invalid selection. Please search and select a user to impersonate.');
         return;
     }
     
