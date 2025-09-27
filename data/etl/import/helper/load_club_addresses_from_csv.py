@@ -4,7 +4,7 @@
 Standalone script to load club addresses from CSV file and update the database.
 This script isolates the address loading functionality from the ETL process.
 
-Usage: python scripts/load_club_addresses_from_csv.py [--csv-file <CSV_FILE>] [--dry-run]
+Usage: python data/etl/import/helper/load_club_addresses_from_csv.py [--csv-file <CSV_FILE>] [--dry-run]
 """
 
 import argparse
@@ -16,7 +16,7 @@ from typing import Dict, Optional, Set
 from difflib import SequenceMatcher
 
 # Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
 
 from database_utils import execute_query, execute_update, get_db
 
