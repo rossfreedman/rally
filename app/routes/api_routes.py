@@ -744,6 +744,9 @@ def get_last_3_matches():
                 )
 
             partner_name = get_player_name(partner_id) if partner_id else "No Partner"
+            
+            # Get current player's name
+            current_player_name = get_player_name(player_id)
 
             # Get opponent names
             if is_home:
@@ -803,17 +806,17 @@ def get_last_3_matches():
                     # If anything goes wrong, return original scores
                     return raw_scores
 
-            formatted_scores = format_scores_for_player_team(
-                match.get("Scores"), is_home
-            )
+            # Return raw scores (same as modal) instead of formatted scores
+            raw_scores = match.get("Scores", "")
 
             processed_match = {
                 "date": match.get("Date"),
                 "home_team": match.get("Home Team"),
                 "away_team": match.get("Away Team"),
-                "scores": formatted_scores,
+                "scores": raw_scores,
                 "player_was_home": is_home,
                 "player_won": player_won,
+                "current_player_name": current_player_name,
                 "partner_name": partner_name,
                 "opponent1_name": opponent1_name,
                 "opponent2_name": opponent2_name,

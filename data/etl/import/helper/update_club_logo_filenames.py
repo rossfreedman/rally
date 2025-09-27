@@ -44,13 +44,25 @@ def main():
         print("Club logo filename updates:")
         print("=" * 50)
         
-        # Generate UPDATE statements for each club
+        # Execute UPDATE statements for each club
+        updated_count = 0
         for club_id, name in clubs:
             logo_filename = generate_logo_filename(name)
-            print(f"UPDATE clubs SET logo_filename = '{logo_filename}' WHERE id = {club_id};")
+            try:
+                cursor.execute(
+                    "UPDATE clubs SET logo_filename = %s WHERE id = %s",
+                    (logo_filename, club_id)
+                )
+                updated_count += 1
+                print(f"✅ Updated: {name} -> {logo_filename}")
+            except Exception as e:
+                print(f"❌ Failed to update {name}: {e}")
+        
+        # Commit the changes
+        conn.commit()
         
         print("\n" + "=" * 50)
-        print(f"Generated {len(clubs)} UPDATE statements")
+        print(f"Successfully updated {updated_count} clubs with logo filenames")
         
     finally:
         cursor.close()

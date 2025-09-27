@@ -2926,6 +2926,25 @@ def get_users_for_impersonation():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/search-users-for-impersonation")
+@login_required
+@admin_required
+def search_users_for_impersonation():
+    """Search users by name or email for impersonation type-ahead"""
+    try:
+        from app.services.admin_service import search_users_for_impersonation_service
+        query = request.args.get('q', '').strip()
+        
+        if len(query) < 2:
+            return jsonify([])
+            
+        users = search_users_for_impersonation_service(query)
+        return jsonify(users)
+    except Exception as e:
+        print(f"Error searching users for impersonation: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/start-impersonation", methods=["POST"])
 @login_required
 @admin_required

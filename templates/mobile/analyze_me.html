@@ -831,7 +831,7 @@ async function loadLast3Matches() {
     // Build matches list
     let matchesHTML = '';
     data.matches.forEach(match => {
-      // Parse scores to determine winner and create score arrays
+      // Parse scores to determine winner and create score arrays (same logic as modal)
       const scores = match.scores ? match.scores.split(", ") : [];
       const team1_sets = [];  // First team in database (away team)
       const team2_sets = [];  // Second team in database (home team)
@@ -903,7 +903,7 @@ async function loadLast3Matches() {
                     <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? match.away_team : match.home_team}</div>
                     <div class="text-sm font-medium text-black">
                       <div class="mb-1">${match.partner_name || 'No Partner'}</div>
-                      <div>Current Player</div>
+                      <div>${match.current_player_name || 'Current Player'}</div>
                     </div>
                   </td>
                   <td class="w-12 px-2 py-3 text-center">
