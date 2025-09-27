@@ -2292,6 +2292,35 @@
   },
   {
     "series": "Series 9",
+    "team": "Winnetka II 9",
+    "league_id": "APTA_CHICAGO",
+    "points": 10,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 7,
+      "lost": 3,
+      "percentage": "70.0%"
+    },
+    "games": {
+      "won": 54,
+      "lost": 41,
+      "percentage": "56.8%"
+    }
+  },
+  {
+    "series": "Series 9",
     "team": "Westmoreland 9",
     "league_id": "APTA_CHICAGO",
     "points": 10,
@@ -2408,35 +2437,6 @@
   },
   {
     "series": "Series 9",
-    "team": "Winnetka II 9",
-    "league_id": "APTA_CHICAGO",
-    "points": 7,
-    "matches": {
-      "won": 1,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
-    },
-    "lines": {
-      "won": 2,
-      "lost": 1,
-      "for": 0,
-      "ret": 0,
-      "percentage": "66.7%"
-    },
-    "sets": {
-      "won": 5,
-      "lost": 3,
-      "percentage": "62.5%"
-    },
-    "games": {
-      "won": 42,
-      "lost": 36,
-      "percentage": "53.8%"
-    }
-  },
-  {
-    "series": "Series 9",
     "team": "Winter Club 9",
     "league_id": "APTA_CHICAGO",
     "points": 7,
@@ -2495,6 +2495,35 @@
   },
   {
     "series": "Series 9",
+    "team": "Winnetka I 9",
+    "league_id": "APTA_CHICAGO",
+    "points": 4,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 3,
+      "lost": 7,
+      "percentage": "30.0%"
+    },
+    "games": {
+      "won": 41,
+      "lost": 54,
+      "percentage": "43.2%"
+    }
+  },
+  {
+    "series": "Series 9",
     "team": "Indian Hill 9",
     "league_id": "APTA_CHICAGO",
     "points": 4,
@@ -2549,35 +2578,6 @@
       "won": 37,
       "lost": 46,
       "percentage": "44.6%"
-    }
-  },
-  {
-    "series": "Series 9",
-    "team": "Winnetka I 9",
-    "league_id": "APTA_CHICAGO",
-    "points": 4,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 1,
-      "lost": 2,
-      "for": 0,
-      "ret": 0,
-      "percentage": "33.3%"
-    },
-    "sets": {
-      "won": 3,
-      "lost": 5,
-      "percentage": "37.5%"
-    },
-    "games": {
-      "won": 36,
-      "lost": 42,
-      "percentage": "46.2%"
     }
   },
   {
@@ -2820,7 +2820,7 @@
     "matches": {
       "won": 0,
       "lost": 0,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -2849,7 +2849,7 @@
     "matches": {
       "won": 0,
       "lost": 0,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -3423,6 +3423,35 @@
   },
   {
     "series": "Series 11 SW",
+    "team": "Hinsdale PC I 11 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 10,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 7,
+      "lost": 3,
+      "percentage": "70.0%"
+    },
+    "games": {
+      "won": 57,
+      "lost": 36,
+      "percentage": "61.3%"
+    }
+  },
+  {
+    "series": "Series 11 SW",
     "team": "LaGrange CC 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 10,
@@ -3539,6 +3568,35 @@
   },
   {
     "series": "Series 11 SW",
+    "team": "River Forest PD II 11 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 4,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 3,
+      "lost": 7,
+      "percentage": "30.0%"
+    },
+    "games": {
+      "won": 36,
+      "lost": 57,
+      "percentage": "38.7%"
+    }
+  },
+  {
+    "series": "Series 11 SW",
     "team": "Glen Ellyn 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 2,
@@ -3564,64 +3622,6 @@
       "won": 40,
       "lost": 57,
       "percentage": "41.2%"
-    }
-  },
-  {
-    "series": "Series 11 SW",
-    "team": "Hinsdale PC I 11 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 11 SW",
-    "team": "River Forest PD II 11 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     }
   },
   {
@@ -5279,6 +5279,122 @@
   },
   {
     "series": "Series 15 SW",
+    "team": "Hinsdale PC II 15 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 9,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 6,
+      "lost": 3,
+      "percentage": "66.7%"
+    },
+    "games": {
+      "won": 47,
+      "lost": 33,
+      "percentage": "58.8%"
+    }
+  },
+  {
+    "series": "Series 15 SW",
+    "team": "Oak Park CC 15 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 9,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 6,
+      "lost": 3,
+      "percentage": "66.7%"
+    },
+    "games": {
+      "won": 45,
+      "lost": 37,
+      "percentage": "54.9%"
+    }
+  },
+  {
+    "series": "Series 15 SW",
+    "team": "Glen Ellyn 15 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 4,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 3,
+      "lost": 6,
+      "percentage": "33.3%"
+    },
+    "games": {
+      "won": 37,
+      "lost": 45,
+      "percentage": "45.1%"
+    }
+  },
+  {
+    "series": "Series 15 SW",
+    "team": "Hinsdale PC I 15 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 4,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 3,
+      "lost": 6,
+      "percentage": "33.3%"
+    },
+    "games": {
+      "won": 33,
+      "lost": 47,
+      "percentage": "41.2%"
+    }
+  },
+  {
+    "series": "Series 15 SW",
     "team": "Chicago Highlands 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 3,
@@ -5367,122 +5483,6 @@
   {
     "series": "Series 15 SW",
     "team": "Dunham Woods 15 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 15 SW",
-    "team": "Glen Ellyn 15 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 15 SW",
-    "team": "Hinsdale PC I 15 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 15 SW",
-    "team": "Hinsdale PC II 15 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 15 SW",
-    "team": "Oak Park CC 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 0,
     "matches": {
@@ -5853,8 +5853,8 @@
     },
     "games": {
       "won": 58,
-      "lost": 49,
-      "percentage": "54.2%"
+      "lost": 50,
+      "percentage": "53.7%"
     }
   },
   {
@@ -5968,9 +5968,9 @@
       "percentage": "30.0%"
     },
     "games": {
-      "won": 49,
+      "won": 50,
       "lost": 58,
-      "percentage": "45.8%"
+      "percentage": "46.3%"
     }
   },
   {
@@ -6468,6 +6468,35 @@
   },
   {
     "series": "Series 18",
+    "team": "Midtown Chicago 18",
+    "league_id": "APTA_CHICAGO",
+    "points": 9,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 6,
+      "lost": 3,
+      "percentage": "66.7%"
+    },
+    "games": {
+      "won": 49,
+      "lost": 43,
+      "percentage": "53.3%"
+    }
+  },
+  {
+    "series": "Series 18",
     "team": "Glenbrook RC 18",
     "league_id": "APTA_CHICAGO",
     "points": 9,
@@ -6584,6 +6613,35 @@
   },
   {
     "series": "Series 18",
+    "team": "Tennaqua 18",
+    "league_id": "APTA_CHICAGO",
+    "points": 4,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 3,
+      "lost": 6,
+      "percentage": "33.3%"
+    },
+    "games": {
+      "won": 43,
+      "lost": 49,
+      "percentage": "46.7%"
+    }
+  },
+  {
+    "series": "Series 18",
     "team": "Wilmette PD 18",
     "league_id": "APTA_CHICAGO",
     "points": 4,
@@ -6638,64 +6696,6 @@
       "won": 36,
       "lost": 43,
       "percentage": "45.6%"
-    }
-  },
-  {
-    "series": "Series 18",
-    "team": "Midtown Chicago 18",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 18",
-    "team": "Tennaqua 18",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     }
   },
   {
@@ -7512,6 +7512,35 @@
   },
   {
     "series": "Series 21",
+    "team": "Winnetka 21",
+    "league_id": "APTA_CHICAGO",
+    "points": 12,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 4,
+      "lost": 0,
+      "for": 0,
+      "ret": 0,
+      "percentage": "100.0%"
+    },
+    "sets": {
+      "won": 8,
+      "lost": 1,
+      "percentage": "88.9%"
+    },
+    "games": {
+      "won": 56,
+      "lost": 35,
+      "percentage": "61.5%"
+    }
+  },
+  {
+    "series": "Series 21",
     "team": "Lake Bluff 21",
     "league_id": "APTA_CHICAGO",
     "points": 9,
@@ -7595,6 +7624,35 @@
       "won": 46,
       "lost": 42,
       "percentage": "52.3%"
+    }
+  },
+  {
+    "series": "Series 21",
+    "team": "Sunset Ridge 21",
+    "league_id": "APTA_CHICAGO",
+    "points": 9,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 2,
+      "lost": 2,
+      "percentage": "50.0%"
+    },
+    "games": {
+      "won": 15,
+      "lost": 15,
+      "percentage": "50.0%"
     }
   },
   {
@@ -7686,118 +7744,60 @@
   },
   {
     "series": "Series 21",
-    "team": "Biltmore CC 21",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 21",
     "team": "Knollwood 21",
     "league_id": "APTA_CHICAGO",
-    "points": 0,
+    "points": 3,
     "matches": {
       "won": 0,
-      "lost": 0,
-      "tied": 1,
+      "lost": 1,
+      "tied": 0,
       "percentage": "0.0%"
     },
     "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
+      "won": 1,
+      "lost": 1,
+      "for": 2,
       "ret": 0,
-      "percentage": "0.0%"
+      "percentage": "25.0%"
     },
     "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
+      "won": 2,
+      "lost": 2,
+      "percentage": "50.0%"
     },
     "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
+      "won": 15,
+      "lost": 15,
+      "percentage": "50.0%"
     }
   },
   {
     "series": "Series 21",
-    "team": "Sunset Ridge 21",
+    "team": "Biltmore CC 21",
     "league_id": "APTA_CHICAGO",
-    "points": 0,
+    "points": 1,
     "matches": {
       "won": 0,
-      "lost": 0,
-      "tied": 1,
+      "lost": 1,
+      "tied": 0,
       "percentage": "0.0%"
     },
     "lines": {
       "won": 0,
-      "lost": 0,
+      "lost": 4,
       "for": 0,
       "ret": 0,
       "percentage": "0.0%"
     },
     "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
+      "won": 1,
+      "lost": 8,
+      "percentage": "11.1%"
     },
     "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 21",
-    "team": "Winnetka 21",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
+      "won": 35,
+      "lost": 56,
+      "percentage": "38.5%"
     }
   },
   {
@@ -9107,6 +9107,64 @@
   },
   {
     "series": "Series 24",
+    "team": "Michigan Shores 24",
+    "league_id": "APTA_CHICAGO",
+    "points": 7,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 2,
+      "lost": 2,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 5,
+      "lost": 5,
+      "percentage": "50.0%"
+    },
+    "games": {
+      "won": 40,
+      "lost": 38,
+      "percentage": "51.3%"
+    }
+  },
+  {
+    "series": "Series 24",
+    "team": "Park Ridge CC 24",
+    "league_id": "APTA_CHICAGO",
+    "points": 7,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 2,
+      "lost": 2,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 5,
+      "lost": 5,
+      "percentage": "50.0%"
+    },
+    "games": {
+      "won": 38,
+      "lost": 40,
+      "percentage": "48.7%"
+    }
+  },
+  {
+    "series": "Series 24",
     "team": "Tennaqua 24",
     "league_id": "APTA_CHICAGO",
     "points": 6,
@@ -9248,64 +9306,6 @@
       "won": 36,
       "lost": 51,
       "percentage": "41.4%"
-    }
-  },
-  {
-    "series": "Series 24",
-    "team": "Michigan Shores 24",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 24",
-    "team": "Park Ridge CC 24",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     }
   },
   {
@@ -9745,6 +9745,64 @@
   },
   {
     "series": "Series 25 SW",
+    "team": "Edgewood Valley 25 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 7,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 2,
+      "lost": 2,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 5,
+      "lost": 4,
+      "percentage": "55.6%"
+    },
+    "games": {
+      "won": 39,
+      "lost": 34,
+      "percentage": "53.4%"
+    }
+  },
+  {
+    "series": "Series 25 SW",
+    "team": "Oak Park CC 25 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 6,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 2,
+      "lost": 2,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 4,
+      "lost": 5,
+      "percentage": "44.4%"
+    },
+    "games": {
+      "won": 34,
+      "lost": 39,
+      "percentage": "46.6%"
+    }
+  },
+  {
+    "series": "Series 25 SW",
     "team": "LaGrange CC 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 4,
@@ -9828,35 +9886,6 @@
       "won": 27,
       "lost": 36,
       "percentage": "42.9%"
-    }
-  },
-  {
-    "series": "Series 25 SW",
-    "team": "Edgewood Valley 25 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     }
   },
   {
@@ -9955,35 +9984,6 @@
       "won": 0,
       "lost": 0,
       "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 25 SW",
-    "team": "Oak Park CC 25 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
       "percentage": "0.0%"
     },
     "lines": {
@@ -10638,8 +10638,8 @@
     },
     "games": {
       "won": 48,
-      "lost": 8,
-      "percentage": "85.7%"
+      "lost": 9,
+      "percentage": "84.2%"
     }
   },
   {
@@ -10811,9 +10811,9 @@
       "percentage": "0.0%"
     },
     "games": {
-      "won": 8,
+      "won": 9,
       "lost": 48,
-      "percentage": "14.3%"
+      "percentage": "15.8%"
     }
   },
   {
@@ -12384,6 +12384,35 @@
   },
   {
     "series": "Series 31 SW",
+    "team": "White Eagle 31 SW",
+    "league_id": "APTA_CHICAGO",
+    "points": 12,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 4,
+      "lost": 0,
+      "for": 0,
+      "ret": 0,
+      "percentage": "100.0%"
+    },
+    "sets": {
+      "won": 7,
+      "lost": 0,
+      "percentage": "100.0%"
+    },
+    "games": {
+      "won": 42,
+      "lost": 10,
+      "percentage": "80.8%"
+    }
+  },
+  {
+    "series": "Series 31 SW",
     "team": "Hinsdale PC 31 SW",
     "league_id": "APTA_CHICAGO",
     "points": 10,
@@ -12500,35 +12529,6 @@
   },
   {
     "series": "Series 31 SW",
-    "team": "White Eagle 31 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 6,
-    "matches": {
-      "won": 1,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
-    },
-    "lines": {
-      "won": 2,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "100.0%"
-    },
-    "sets": {
-      "won": 3,
-      "lost": 0,
-      "percentage": "100.0%"
-    },
-    "games": {
-      "won": 18,
-      "lost": 2,
-      "percentage": "90.0%"
-    }
-  },
-  {
-    "series": "Series 31 SW",
     "team": "Hinsdale GC 31 SW",
     "league_id": "APTA_CHICAGO",
     "points": 4,
@@ -12598,20 +12598,20 @@
     },
     "lines": {
       "won": 0,
-      "lost": 1,
+      "lost": 3,
       "for": 0,
       "ret": 1,
       "percentage": "0.0%"
     },
     "sets": {
       "won": 0,
-      "lost": 3,
+      "lost": 7,
       "percentage": "0.0%"
     },
     "games": {
-      "won": 2,
-      "lost": 18,
-      "percentage": "10.0%"
+      "won": 10,
+      "lost": 42,
+      "percentage": "19.2%"
     }
   },
   {
@@ -14733,6 +14733,35 @@
   },
   {
     "series": "Series 39",
+    "team": "South Barrington 39",
+    "league_id": "APTA_CHICAGO",
+    "points": 9,
+    "matches": {
+      "won": 1,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 1,
+      "for": 0,
+      "ret": 0,
+      "percentage": "75.0%"
+    },
+    "sets": {
+      "won": 2,
+      "lost": 2,
+      "percentage": "50.0%"
+    },
+    "games": {
+      "won": 16,
+      "lost": 16,
+      "percentage": "50.0%"
+    }
+  },
+  {
+    "series": "Series 39",
     "team": "Skokie 39",
     "league_id": "APTA_CHICAGO",
     "points": 3,
@@ -14758,6 +14787,35 @@
       "won": 26,
       "lost": 50,
       "percentage": "34.2%"
+    }
+  },
+  {
+    "series": "Series 39",
+    "team": "Indian Hill 39",
+    "league_id": "APTA_CHICAGO",
+    "points": 3,
+    "matches": {
+      "won": 0,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 1,
+      "lost": 1,
+      "for": 2,
+      "ret": 0,
+      "percentage": "25.0%"
+    },
+    "sets": {
+      "won": 2,
+      "lost": 2,
+      "percentage": "50.0%"
+    },
+    "games": {
+      "won": 16,
+      "lost": 16,
+      "percentage": "50.0%"
     }
   },
   {
@@ -14845,64 +14903,6 @@
       "won": 12,
       "lost": 48,
       "percentage": "20.0%"
-    }
-  },
-  {
-    "series": "Series 39",
-    "team": "Indian Hill 39",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    }
-  },
-  {
-    "series": "Series 39",
-    "team": "South Barrington 39",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     }
   },
   {

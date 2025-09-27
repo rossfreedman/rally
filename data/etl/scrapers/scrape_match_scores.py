@@ -1590,8 +1590,8 @@ class APTAScraper(BaseLeagueScraper):
                 line_number = line_name.replace('Line ', '') if 'Line ' in line_name else '1'
                 
                 match_record = {
-                    "league_id": "APTACHICAGO",
-                    "source_league": "APTACHICAGO",
+                    "league_id": "APTA_CHICAGO",
+                    "source_league": "APTA_CHICAGO",
                     "match_id": f"{self._extract_match_id_from_url(url)}_Line{line_number}",
                     "url": url
                 }
