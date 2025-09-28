@@ -81,40 +81,68 @@ def _get_project_root_path() -> str:
 
 
 def _load_directory_contact_from_csv(user_ctx: dict, first: str, last: str) -> dict:
-    """Lookup contact info from Tennaqua directory CSV as a fallback.
-
+    """Lookup contact info from directory CSV files as a fallback.
+    
+    Searches in order: Tennaqua directory → APTA directory.
     Returns dict with keys: phone, email if found; otherwise empty dict.
     """
     try:
         import csv
 
-        league_string_id = (user_ctx or {}).get("league_string_id") or ""
-        # For non-APTA leagues, prefer league-specific directory; else use shared "all"
-        sub_dir = league_string_id if (league_string_id and not league_string_id.startswith("APTA")) else "all"
+        norm_first = _normalize_name_for_match(first)
+        norm_last = _normalize_name_for_match(last)
 
-        csv_path = os.path.join(
+        # First try: Tennaqua directory CSV
+        tennaqua_csv_path = os.path.join(
             _get_project_root_path(),
             "data",
             "tennaqua_directory.csv",
         )
 
-        if not os.path.exists(csv_path):
-            return {}
+        if os.path.exists(tennaqua_csv_path):
+            with open(tennaqua_csv_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row_first = _normalize_name_for_match(row.get("First"))
+                    row_last = _normalize_name_for_match(row.get("Last"))
+                    if row_first == norm_first and row_last == norm_last:
+                        return {
+                            "phone": (row.get("Phone") or "").strip(),
+                            "email": (row.get("Email") or "").strip(),
+                            "series": "",  # CSV doesn't have series column
+                        }
 
-        norm_first = _normalize_name_for_match(first)
-        norm_last = _normalize_name_for_match(last)
+        # Second try: APTA directory CSV
+        apta_csv_path = os.path.join(
+            _get_project_root_path(),
+            "data",
+            "apta_directory.csv",
+        )
 
-        with open(csv_path, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                row_first = _normalize_name_for_match(row.get("First"))
-                row_last = _normalize_name_for_match(row.get("Last"))
-                if row_first == norm_first and row_last == norm_last:
-                    return {
-                        "phone": (row.get("Phone") or "").strip(),
-                        "email": (row.get("Email") or "").strip(),
-                        "series": "",  # CSV doesn't have series column
-                    }
+        if os.path.exists(apta_csv_path):
+            with open(apta_csv_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # APTA CSV has columns: name, email, phone, cell_phone
+                    full_name = row.get("name", "").strip()
+                    if not full_name:
+                        continue
+                    
+                    # Split the full name into first and last
+                    name_parts = full_name.split()
+                    if len(name_parts) >= 2:
+                        row_first = _normalize_name_for_match(name_parts[0])
+                        row_last = _normalize_name_for_match(name_parts[-1])  # Last name is the last part
+                        
+                        if row_first == norm_first and row_last == norm_last:
+                            # Prefer cell_phone over phone if available
+                            phone = (row.get("cell_phone") or row.get("phone") or "").strip()
+                            return {
+                                "phone": phone,
+                                "email": (row.get("email") or "").strip(),
+                                "series": "",  # CSV doesn't have series column
+                            }
+        
         return {}
     except Exception as e:
         logger.error(f"CSV fallback load error: {str(e)}")
