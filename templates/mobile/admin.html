@@ -73,11 +73,100 @@
         <i class="fas fa-envelope text-3xl mb-3" style="color: #10645c !important;"></i>
         <span class="icon-label text-center font-semibold">Test Email</span>
       </a>
+    </div>
+  </div>
+
+  <!-- 3. Club Management Section -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Club Management
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+    </div>
+    
+    <!-- Club Search -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center mb-3">
+          <i class="fas fa-search mr-2 text-blue-600"></i>
+          Search Club
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Search for a club to view all users associated with it
+        </p>
+    </div>
+    
+      <div class="relative">
+        <input 
+          type="text" 
+          id="club-search-input" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+          placeholder="Type club name to search..."
+          autocomplete="off"
+        />
+        <div id="club-search-dropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
+          <!-- Search results will be populated here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Club Users Display -->
+    <div id="club-users-section" class="hidden bg-white rounded-lg shadow">
+      <div class="p-6 border-b border-gray-200">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+              <i class="fas fa-users mr-2 text-green-600"></i>
+              <span id="club-users-title">Club Users</span>
+          </h3>
+            <p class="text-sm text-gray-600 mt-1" id="club-users-subtitle">
+              Users associated with this club
+          </p>
+        </div>
+          <div class="text-right">
+            <p class="text-sm text-gray-500">
+              <span id="club-users-count">0</span> users found
+            </p>
+          </div>
         </div>
       </div>
       
+      <div class="p-6">
+        <div id="club-users-loading" class="hidden flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span class="ml-2 text-gray-600">Loading users...</span>
+          </div>
+        
+        <div id="club-users-table-container" class="hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activities</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                </tr>
+              </thead>
+              <tbody id="club-users-table-body" class="bg-white divide-y divide-gray-200">
+                <!-- Users will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="club-users-empty" class="hidden text-center py-8">
+          <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
+          <p class="text-gray-500">No users found for this club</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  <!-- 3. User Impersonation Section -->
+  <!-- 4. User Impersonation Section -->
   <div class="icon-section mb-8">
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
@@ -170,10 +259,17 @@
 let searchTimeout;
 let selectedUserData = null;
 
+// Club Management JavaScript
+let clubSearchTimeout;
+let selectedClubData = null;
+
 // Initialize type-ahead functionality
 document.addEventListener('DOMContentLoaded', function() {
     const input = document.getElementById('impersonation-user-input');
     const dropdown = document.getElementById('impersonation-user-dropdown');
+    
+    // Initialize club search functionality
+    initializeClubSearch();
     
     if (input && dropdown) {
         // Handle input changes with debouncing
@@ -427,6 +523,209 @@ async function checkImpersonationStatus() {
         }
     } catch (error) {
         console.error('Error checking impersonation status:', error);
+    }
+}
+
+// Club Management Functions
+function initializeClubSearch() {
+    const input = document.getElementById('club-search-input');
+    const dropdown = document.getElementById('club-search-dropdown');
+    
+    if (input && dropdown) {
+        // Handle input changes with debouncing
+        input.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (clubSearchTimeout) {
+                clearTimeout(clubSearchTimeout);
+            }
+            
+            // Hide dropdown if query is too short
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                selectedClubData = null;
+                return;
+            }
+            
+            // Debounce the search
+            clubSearchTimeout = setTimeout(() => {
+                searchClubs(query);
+            }, 300);
+        });
+        
+        // Handle input focus
+        input.addEventListener('focus', function(e) {
+            const query = e.target.value.trim();
+            if (query.length >= 2 && dropdown.innerHTML.trim() !== '') {
+                dropdown.classList.remove('hidden');
+            }
+        });
+        
+        // Handle clicks outside to close dropdown
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
+            }
+        });
+    }
+}
+
+async function searchClubs(query) {
+    try {
+        const response = await fetch(`/api/admin/club-search?q=${encodeURIComponent(query)}`);
+        const clubs = await response.json();
+        
+        const dropdown = document.getElementById('club-search-dropdown');
+        
+        if (clubs.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm">No clubs found</div>';
+        } else {
+            dropdown.innerHTML = '';
+            
+            clubs.forEach(club => {
+                const clubDiv = document.createElement('div');
+                clubDiv.className = 'px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
+                clubDiv.innerHTML = `
+                    <div class="font-medium text-gray-900">${club.name}</div>
+                    <div class="text-sm text-gray-600">${club.address || 'No address'}</div>
+                `;
+                
+                clubDiv.addEventListener('click', function() {
+                    selectClub(club);
+                });
+                
+                dropdown.appendChild(clubDiv);
+            });
+        }
+        
+        dropdown.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error searching clubs:', error);
+        const dropdown = document.getElementById('club-search-dropdown');
+        dropdown.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Error searching clubs</div>';
+        dropdown.classList.remove('hidden');
+    }
+}
+
+function selectClub(club) {
+    selectedClubData = club;
+    
+    const input = document.getElementById('club-search-input');
+    const dropdown = document.getElementById('club-search-dropdown');
+    
+    // Update input display
+    input.value = club.name;
+    
+    // Hide dropdown
+    dropdown.classList.add('hidden');
+    
+    // Load club users
+    loadClubUsers(club.id);
+}
+
+async function loadClubUsers(clubId) {
+    try {
+        // Show loading state
+        document.getElementById('club-users-section').classList.remove('hidden');
+        document.getElementById('club-users-loading').classList.remove('hidden');
+        document.getElementById('club-users-table-container').classList.add('hidden');
+        document.getElementById('club-users-empty').classList.add('hidden');
+        
+        const response = await fetch(`/api/admin/club/${clubId}/users`);
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Update club information
+        document.getElementById('club-users-title').textContent = `${data.club.name} Users`;
+        document.getElementById('club-users-subtitle').textContent = data.club.address || 'Users associated with this club';
+        document.getElementById('club-users-count').textContent = data.users.length;
+        
+        // Hide loading state
+        document.getElementById('club-users-loading').classList.add('hidden');
+        
+        if (data.users.length === 0) {
+            document.getElementById('club-users-empty').classList.remove('hidden');
+        } else {
+            document.getElementById('club-users-table-container').classList.remove('hidden');
+            renderClubUsers(data.users);
+        }
+        
+    } catch (error) {
+        console.error('Error loading club users:', error);
+        
+        // Hide loading state
+        document.getElementById('club-users-loading').classList.add('hidden');
+        
+        // Show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-center py-8';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-red-300 text-4xl mb-4"></i>
+            <p class="text-red-500">Error loading club users: ${error.message}</p>
+        `;
+        
+        const container = document.getElementById('club-users-section').querySelector('.p-6');
+        container.innerHTML = '';
+        container.appendChild(errorDiv);
+    }
+}
+
+function renderClubUsers(users) {
+    const tbody = document.getElementById('club-users-table-body');
+    
+    const html = users.map(user => {
+        const lastLogin = user.last_login ? formatDate(user.last_login) : 'Never';
+        const phone = user.phone || 'Not provided';
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${user.name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${user.email}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${phone}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${user.activity_count}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${lastLogin}</div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = html;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return 'Today';
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else {
+        return date.toLocaleDateString();
     }
 }
 

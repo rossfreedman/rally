@@ -1609,6 +1609,102 @@ def get_admin_leagues():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/club-search")
+@login_required
+def search_clubs():
+    """Search clubs by name for type-ahead functionality"""
+    try:
+        query = request.args.get('q', '').strip()
+        
+        if len(query) < 2:
+            return jsonify([])
+        
+        # Search clubs by name (case-insensitive)
+        clubs = execute_query(
+            """
+            SELECT c.id, c.name, c.club_address
+            FROM clubs c
+            WHERE LOWER(c.name) LIKE LOWER(%s)
+            ORDER BY c.name
+            LIMIT 10
+            """,
+            [f"%{query}%"]
+        )
+        
+        return jsonify([
+            {
+                "id": club["id"],
+                "name": club["name"],
+                "address": club["club_address"] or ""
+            }
+            for club in clubs
+        ])
+        
+    except Exception as e:
+        print(f"Error searching clubs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/club/<int:club_id>/users")
+@login_required
+def get_club_users(club_id):
+    """Get all users associated with a specific club"""
+    try:
+        # Get club information first
+        club = execute_query_one(
+            "SELECT id, name, club_address FROM clubs WHERE id = %s",
+            [club_id]
+        )
+        
+        if not club:
+            return jsonify({"error": "Club not found"}), 404
+        
+        # Get all users associated with this club through player associations
+        users = execute_query(
+            """
+            SELECT DISTINCT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.phone_number,
+                u.last_login,
+                COUNT(DISTINCT al.id) as activity_count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN activity_log al ON u.id = al.user_id
+            WHERE p.club_id = %s
+            GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone_number, u.last_login
+            ORDER BY u.last_name, u.first_name
+            """,
+            [club_id]
+        )
+        
+        return jsonify({
+            "club": {
+                "id": club["id"],
+                "name": club["name"],
+                "address": club["club_address"] or ""
+            },
+            "users": [
+                {
+                    "id": user["id"],
+                    "name": f"{user['first_name']} {user['last_name']}",
+                    "email": user["email"],
+                    "phone": user["phone_number"] or "",
+                    "activity_count": user["activity_count"] or 0,
+                    "last_login": user["last_login"].isoformat() if user["last_login"] else None
+                }
+                for user in users
+            ]
+        })
+        
+    except Exception as e:
+        print(f"Error getting club users: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/update-user", methods=["POST"])
 @login_required
 def update_user():
