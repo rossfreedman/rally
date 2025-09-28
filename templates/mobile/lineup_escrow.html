@@ -746,11 +746,15 @@ function selectCaptainFromTypeahead(team, index) {
     // Hide dropdown
     hideTypeaheadDropdown();
     
-    // Auto-populate captain phone if we have it (you can extend this)
+    // Auto-populate captain phone if we have it
     const captainPhoneInput = document.getElementById('captain-contact');
-    if (captainPhoneInput && !captainPhoneInput.value.trim()) {
-        // You could lookup phone number here or have it in the team data
-        captainPhoneInput.placeholder = 'Enter captain\'s phone number';
+    if (captainPhoneInput) {
+        if (team.phone_number && team.phone_number.trim()) {
+            captainPhoneInput.value = team.phone_number;
+            captainPhoneInput.placeholder = 'Captain\'s phone number';
+        } else if (!captainPhoneInput.value.trim()) {
+            captainPhoneInput.placeholder = 'Enter captain\'s phone number';
+        }
     }
     
     // Store selected team data for later use
