@@ -769,8 +769,29 @@ class CNSWPLRosterScraper:
                 f" {series_value}1" in team_name or 
                 f" {series_value}2" in team_name):
                 return True
+        elif series_value == 'SN':
+            # Special case for Series SN (Sunday Night League)
+            # Teams have "SN" suffix (e.g., "Michigan Shores SN", "Prairie Club SN (3)")
+            if team_name.endswith(' SN') or ' SN (' in team_name:
+                return True
         
         return False
+
+    def _construct_team_name(self, club_name: str, team_series: str) -> str:
+        """
+        Construct team name, avoiding duplicate series suffixes.
+        
+        For Series SN teams that already have 'SN' in their name,
+        don't add it again.
+        """
+        series_suffix = team_series.replace('Series ', '')
+        
+        # Special handling for Series SN - don't add SN if already present
+        if series_suffix == 'SN' and (' SN' in club_name or club_name.endswith('SN')):
+            return club_name
+        
+        # For other series, add the suffix
+        return f"{club_name} {series_suffix}"
 
     def _parse_player_name(self, full_name: str) -> Tuple[str, str]:
         """
@@ -991,7 +1012,7 @@ class CNSWPLRosterScraper:
                 text = link.get_text(strip=True)
                 
                 # Look for team links (they contain 'team=' parameter)
-                if 'team=' in href and text and any(keyword.lower() in text.lower() for keyword in ['Tennaqua', 'Winter Club', 'Lake Forest', 'Evanston', 'Prairie Club', 'Wilmette', 'North Shore', 'Valley Lo', 'Westmoreland', 'Indian Hill', 'Birchwood', 'Exmoor', 'Glen View', 'Glenbrook', 'Park Ridge', 'Skokie', 'Michigan Shores', 'Midtown', 'Hinsdale', 'Knollwood', 'Sunset Ridge', 'Briarwood', 'Biltmore', 'Barrington Hills', 'Bryn Mawr', 'Saddle & Cycle', 'Onwentsia', 'Lake Bluff', 'Lake Shore', 'Northmoor', 'Butterfield', 'River Forest', 'LifeSport', 'Winnetka']):
+                if 'team=' in href and text and any(keyword.lower() in text.lower() for keyword in ['Tennaqua', 'Winter Club', 'Lake Forest', 'Evanston', 'Prairie Club', 'Prarie Club', 'Wilmette', 'North Shore', 'Valley Lo', 'Westmoreland', 'Indian Hill', 'Birchwood', 'Exmoor', 'Glen View', 'Glenbrook', 'Park Ridge', 'Skokie', 'Michigan Shores', 'Midtown', 'Hinsdale', 'Knollwood', 'Sunset Ridge', 'Briarwood', 'Biltmore', 'Barrington Hills', 'Bryn Mawr', 'Saddle & Cycle', 'Onwentsia', 'Lake Bluff', 'Lake Shore', 'Northmoor', 'Butterfield', 'River Forest', 'LifeSport', 'Winnetka']):
                     
                     # Filter teams to only include those belonging to this specific series
                     if self._team_belongs_to_series(text, series_identifier):
@@ -1257,7 +1278,7 @@ class CNSWPLRosterScraper:
                         'League': 'CNSWPL',
                         'Club': club_name,
                         'Series': team_series,
-                        'Team': f"{club_name} {team_series.replace('Series ', '')}",
+                        'Team': self._construct_team_name(club_name, team_series),
                         'Player ID': cnswpl_player_id,
                         'First Name': first_name,
                         'Last Name': last_name,
@@ -1363,7 +1384,7 @@ class CNSWPLRosterScraper:
                     'League': 'CNSWPL',
                     'Club': club_name,
                     'Series': team_series,
-                    'Team': f"{club_name} {team_series.replace('Series ', '')}",
+                    'Team': self._construct_team_name(club_name, team_series),
                     'Player ID': cnswpl_player_id,
                     'First Name': first_name,
                     'Last Name': last_name,

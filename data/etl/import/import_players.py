@@ -191,7 +191,7 @@ def validate_player_data(player_data):
 def parse_team_name(team_name):
     """
     Parse team name to extract club, series, and team number/letter.
-    Handles both numeric and letter-based series, including SW (Summer/Winter) series.
+    Handles both numeric and letter-based series, including SW (Summer/Winter) series and SN (Sunday Night) series.
     
     Examples:
     - "Birchwood 12" -> ("Birchwood", "Series 12", "12")
@@ -201,9 +201,28 @@ def parse_team_name(team_name):
     - "Michigan Shores 3b" -> ("Michigan Shores", "Series 3b", "3b")
     - "Glen Ellyn 9 SW" -> ("Glen Ellyn", "Series 9 SW", "9 SW")
     - "Hinsdale PC II 11 SW" -> ("Hinsdale PC II", "Series 11 SW", "11 SW")
+    - "Michigan Shores SN" -> ("Michigan Shores", "Series SN", "SN")
+    - "Prairie Club SN (3)" -> ("Prairie Club", "Series SN", "SN (3)")
+    - "Wilmette SN (1)" -> ("Wilmette", "Series SN", "SN (1)")
     """
     if not team_name:
         return None, None, None
+    
+    # Try to extract SN (Sunday Night) series with numbered variants (e.g., "SN (3)", "SN (1)")
+    sn_numbered_match = re.search(r'\sSN\s*\((\d+)\)\s*$', team_name)
+    if sn_numbered_match:
+        team_number = sn_numbered_match.group(1)
+        base_club_name = team_name[:sn_numbered_match.start()].strip()
+        club_name = f"{base_club_name} SN-{team_number}"  # Create unique club names to avoid UNIQUE constraint
+        series_name = "Series SN"
+        return club_name, series_name, f"SN ({team_number})"
+    
+    # Try to extract SN (Sunday Night) series (e.g., "SN")
+    sn_match = re.search(r'\sSN\s*$', team_name)
+    if sn_match:
+        club_name = team_name[:sn_match.start()].strip()
+        series_name = "Series SN"
+        return club_name, series_name, "SN"
     
     # Try to extract SW (Summer/Winter) series first (e.g., "9 SW", "11 SW", "7 SW")
     sw_match = re.search(r'(\d+)\s+SW\s*$', team_name)
@@ -355,7 +374,7 @@ def upsert_team(cur, league_id, team_name, club_name, series_name):
 
 def find_existing_team(cur, league_id, team_name: str, club_id: int, series_id: int) -> Optional[int]:
     """Find existing team using multiple strategies."""
-    # Strategy 1: Exact team name match
+    # Strategy 1: Exact team name match (most reliable)
     cur.execute("""
         SELECT id FROM teams 
         WHERE team_name = %s AND league_id = %s
@@ -364,7 +383,30 @@ def find_existing_team(cur, league_id, team_name: str, club_id: int, series_id: 
     if result:
         return result[0]
     
-    # Strategy 2: Match by club_id and series_id (for teams with same club/series)
+    # Strategy 2: For Series SN teams, be more specific about matching
+    # Parse the team name to get the team identifier
+    club_name, series_name, team_number = parse_team_name(team_name)
+    if series_name == "Series SN" and team_number:
+        # For Series SN teams, match by club_id, series_id, AND team number pattern
+        cur.execute("""
+            SELECT id, team_name FROM teams 
+            WHERE club_id = %s AND series_id = %s AND league_id = %s
+        """, (club_id, series_id, league_id))
+        results = cur.fetchall()
+        
+        if len(results) > 0:
+            # Look for exact team name match first
+            for team_id, existing_team_name in results:
+                if existing_team_name == team_name:
+                    return team_id
+            
+            # If no exact match, try to match by team number pattern
+            for team_id, existing_team_name in results:
+                _, _, existing_team_number = parse_team_name(existing_team_name)
+                if existing_team_number == team_number:
+                    return team_id
+    
+    # Strategy 3: Match by club_id and series_id (for teams with same club/series)
     cur.execute("""
         SELECT id, team_name FROM teams 
         WHERE club_id = %s AND series_id = %s AND league_id = %s
