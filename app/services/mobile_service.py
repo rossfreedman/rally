@@ -4311,8 +4311,7 @@ def get_series_analysis_data(user):
             LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
             WHERE t.series_id = %s AND t.league_id = %s AND t.is_active = true
             GROUP BY t.id, t.team_name, t.display_name, c.name
-            HAVING COUNT(p.id) > 0 AND COUNT(p.pti) > 0  -- Only include teams with active players who have PTI values
-            ORDER BY avg_pti ASC
+            ORDER BY COALESCE(AVG(p.pti), 999) ASC, c.name, t.team_name  -- Show all teams, put those without PTI at end
         """
         
         teams_result = execute_query(teams_query, [series_id, league_id_int])
@@ -4323,13 +4322,20 @@ def get_series_analysis_data(user):
         # Format the results
         teams_analysis = []
         for i, team in enumerate(teams_result, 1):
+            avg_pti = team["avg_pti"]
+            # Handle teams without PTI data
+            if avg_pti is None:
+                avg_pti_display = "N/A"
+            else:
+                avg_pti_display = round(float(avg_pti), 1)
+            
             teams_analysis.append({
                 "rank": i,
                 "team_id": team["team_id"],
                 "team_name": team["display_name"] or team["team_name"],
                 "club_name": team["club_name"],
                 "player_count": team["player_count"],
-                "avg_pti": round(float(team["avg_pti"]), 1)
+                "avg_pti": avg_pti_display
             })
         
         return {

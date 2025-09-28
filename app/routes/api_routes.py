@@ -4357,6 +4357,44 @@ def get_teams():
         teams = sorted(
             {s["team"] for s in league_filtered_stats if "BYE" not in s["team"].upper()}
         )
+        
+        # Fallback: If no teams found in JSON stats, query database directly
+        if not teams:
+            print(f"[DEBUG] No teams found in JSON stats, falling back to database query")
+            from database_utils import execute_query
+            
+            # Get user's series_id for database query
+            user_series_id = user.get("series_id")
+            user_league_id = user.get("league_id")
+            
+            if user_series_id:
+                # Query teams table directly for the user's series
+                teams_query = """
+                    SELECT DISTINCT t.team_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE s.id = %s
+                    AND t.team_name NOT LIKE '%BYE%'
+                    ORDER BY c.name, t.team_name
+                """
+                db_teams_result = execute_query(teams_query, [user_series_id])
+                teams = [row["team_name"] for row in db_teams_result]
+                print(f"[DEBUG] Database fallback found {len(teams)} teams for series_id {user_series_id}")
+            elif user_league_id:
+                # Fallback to league-wide query if no series_id
+                teams_query = """
+                    SELECT DISTINCT t.team_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.league_id = %s
+                    AND t.team_name NOT LIKE '%BYE%'
+                    ORDER BY c.name, t.team_name
+                """
+                db_teams_result = execute_query(teams_query, [user_league_id])
+                teams = [row["team_name"] for row in db_teams_result]
+                print(f"[DEBUG] Database fallback found {len(teams)} teams for league_id {user_league_id}")
 
         return jsonify({"teams": teams})
 

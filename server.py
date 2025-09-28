@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Rally Flask Application
+Rally Flask Application 
 
 This is the main server file for the Rally platform tennis management application.
 Most routes have been moved to blueprints for better organization.

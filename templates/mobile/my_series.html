@@ -51,13 +51,16 @@
                     <p class="text-sm">{{ series_analysis_error }}</p>
                 </div>
                 {% elif series_analysis_teams %}
+                {% set has_pti_data = series_analysis_teams | selectattr('avg_pti', 'ne', 'N/A') | list | length > 0 %}
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm text-left">
                         <thead>
                             <tr class="border-b border-gray-100">
                                 <th class="text-left py-3 px-2 font-semibold text-gray-700">Rank</th>
                                 <th class="text-left py-3 px-2 font-semibold text-gray-700">Team</th>
+                                {% if has_pti_data %}
                                 <th class="text-right py-3 px-2 font-semibold text-gray-700">Avg PTI</th>
+                                {% endif %}
                                 <th class="text-center py-3 px-2 font-semibold text-gray-700">Players</th>
                             </tr>
                         </thead>
@@ -74,9 +77,11 @@
                                 <td class="py-3 px-2 {% if is_user_team %}font-semibold text-yellow-800{% else %}text-gray-700{% endif %}">
                                     <div class="font-medium">{{ team.team_name }}</div>
                                 </td>
+                                {% if has_pti_data %}
                                 <td class="py-3 px-2 text-right font-semibold {% if is_user_team %}text-yellow-800{% else %}text-gray-900{% endif %}">
                                     {{ team.avg_pti }}
                                 </td>
+                                {% endif %}
                                 <td class="py-3 px-2 text-center {% if is_user_team %}text-yellow-700{% else %}text-gray-600{% endif %}">
                                     {{ team.player_count }}
                                 </td>
@@ -85,9 +90,15 @@
                         </tbody>
                     </table>
                 </div>
+                {% if has_pti_data %}
                 <div class="mt-4 text-xs text-gray-500 text-center">
                     Teams ranked by average PTI (average of all player PTI values)
                 </div>
+                {% else %}
+                <div class="mt-4 text-xs text-gray-500 text-center">
+                    Teams ranked alphabetically by club name
+                </div>
+                {% endif %}
                 {% else %}
                 <div class="text-center text-gray-500 p-8">
                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -133,7 +144,8 @@
                 </div>
             </div>
 
-            <!-- Series Player Ratings Card -->
+            <!-- Series Player Ratings Card (only show if there are ratings) -->
+            {% if series_player_ratings %}
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-50">
                      <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -192,13 +204,6 @@
                                             </td>
                                         </tr>
                                     {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="4" class="py-4 text-center text-gray-500">
-                                            <div class="text-base">No player ratings available</div>
-                                            <div class="text-xs mt-1">Player PTI ratings will appear here</div>
-                                        </td>
-                                    </tr>
                                 {% endif %}
                             </tbody>
                         </table>
@@ -222,6 +227,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         {% if sos_value and not sos_error %}

@@ -483,6 +483,71 @@ def get_series_stats_data():
             }
             teams.append(team_data)
 
+        # Strategy 3: Fallback to teams table if no series_stats found
+        if not teams:
+            print(f"[DEBUG] No series_stats found, falling back to teams table")
+            teams_query = """
+                SELECT 
+                    t.team_name as team,
+                    t.display_name,
+                    c.name as club_name,
+                    s.name as series_name,
+                    t.league_id,
+                    0 as points,
+                    0 as matches_won,
+                    0 as matches_lost,
+                    0 as matches_tied,
+                    0 as lines_won,
+                    0 as lines_lost,
+                    0 as lines_for,
+                    0 as lines_ret,
+                    0 as sets_won,
+                    0 as sets_lost,
+                    0 as games_won,
+                    0 as games_lost
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                WHERE s.id = %s
+                ORDER BY c.name, t.team_name
+            """
+            teams_results = execute_query(teams_query, [user_series_id])
+            print(f"[DEBUG] Teams table fallback found {len(teams_results)} teams")
+            
+            # Process teams results with default stats
+            for row in teams_results:
+                team_data = {
+                    "series": row["series_name"],
+                    "team": row["team"],
+                    "display_name": row.get("display_name", row["team"]),
+                    "league_id": row.get("league_id", user_league_id),
+                    "points": 0,  # Default stats
+                    "matches": {
+                        "won": 0,
+                        "lost": 0,
+                        "tied": 0,
+                        "percentage": "0%",
+                    },
+                    "lines": {
+                        "won": 0,
+                        "lost": 0,
+                        "for": 0,
+                        "ret": 0,
+                        "percentage": "0%",
+                    },
+                    "sets": {
+                        "won": 0,
+                        "lost": 0,
+                        "percentage": "0%",
+                    },
+                    "games": {
+                        "won": 0,
+                        "lost": 0,
+                        "percentage": "0%",
+                    },
+                }
+                teams.append(team_data)
+
         print(f"[DEBUG] Returning {len(teams)} teams for series standings")
 
         # Return the teams data (points progression can be added later if needed)
