@@ -10589,6 +10589,7 @@ def get_partner_matches_team():
                         ms.winner,
                         ms.scores,
                         ms.id,
+                        ms.tenniscores_match_id,
                         CASE 
                             WHEN ms.home_team_id = %s THEN TRUE
                             WHEN ms.away_team_id = %s THEN FALSE
@@ -11012,22 +11013,23 @@ def get_partner_matches_team():
             home_team = match["home_team"]
             away_team = match["away_team"]
             
-            # Get all matches for this team matchup on this date to determine court assignment
-            matchup_query = """
-                SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                FROM match_scores
-                WHERE match_date = %s AND home_team = %s AND away_team = %s
-                ORDER BY id
-            """
-            
-            matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
-            
-            # Find court number based on position in sorted list
+            # Determine court assignment from tenniscores_match_id (consistent with team analysis)
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
             court_number = "Court 1"  # default
-            for idx, matchup_match in enumerate(matchup_matches):
-                if matchup_match["id"] == match["id"]:
-                    court_number = f"Court {idx + 1}"
-                    break
+            
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                try:
+                    # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                    line_parts = tenniscores_match_id.split("_Line")
+                    if len(line_parts) > 1:
+                        court_num = int(line_parts[-1])
+                        court_number = f"Court {court_num}"
+                except (ValueError, IndexError):
+                    # Fallback to court 1 if parsing fails
+                    court_number = "Court 1"
+            else:
+                # Fallback to court 1 if no tenniscores_match_id
+                court_number = "Court 1"
             
             # Apply court filter if specified
             if court_filter and court_filter != "All Courts":
@@ -11148,6 +11150,7 @@ def get_partner_matches_team():
                     ms.winner,
                     ms.scores,
                     ms.id,
+                    ms.tenniscores_match_id,
                     CASE 
                         WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
                         WHEN ms.away_player_1_id = %s OR ms.away_player_2_id = %s THEN FALSE
@@ -11302,27 +11305,23 @@ def get_partner_matches_team():
                         else:
                             opponent2_name = "Unknown"
                     
-                    # ✅ FIXED: Extract court number using same logic as team-specific search
-                    home_team = match["home_team"]
-                    away_team = match["away_team"]
-                    match_date = match["match_date"]
-                    
-                    # Get all matches for this team matchup on this date to determine court assignment
-                    matchup_query = """
-                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                        FROM match_scores
-                        WHERE match_date = %s AND home_team = %s AND away_team = %s
-                        ORDER BY id
-                    """
-                    
-                    matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
-                    
-                    # Find court number based on position in sorted list
+                    # Determine court assignment from tenniscores_match_id (consistent with team analysis)
+                    tenniscores_match_id = match.get("tenniscores_match_id", "")
                     court_number = "Court 1"  # default
-                    for idx, matchup_match in enumerate(matchup_matches):
-                        if matchup_match["id"] == match["id"]:
-                            court_number = f"Court {idx + 1}"
-                            break
+                    
+                    if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                        try:
+                            # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                            line_parts = tenniscores_match_id.split("_Line")
+                            if len(line_parts) > 1:
+                                court_num = int(line_parts[-1])
+                                court_number = f"Court {court_num}"
+                        except (ValueError, IndexError):
+                            # Fallback to court 1 if parsing fails
+                            court_number = "Court 1"
+                    else:
+                        # Fallback to court 1 if no tenniscores_match_id
+                        court_number = "Court 1"
                     
                     # Apply court filter if specified (using same logic as team-specific search)
                     if court_filter and court_filter != "All Courts":
