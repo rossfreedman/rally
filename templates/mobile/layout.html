@@ -299,6 +299,11 @@
         }
         
         /* Hamburger Menu Styles (matching home_submenu) */
+        .category-section {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
         .category-button {
             background: #fff !important;
             border-radius: 1.5rem !important;
@@ -539,6 +544,16 @@
         
         /* Desktop responsive constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 768px) {
+            .space-y-4 {
+                max-width: 500px !important;
+                margin: 0 auto !important;
+            }
+            
+            .category-section {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
             .category-button {
                 max-width: 100% !important;
                 margin: 0 !important;
@@ -586,11 +601,6 @@
                 margin: 0 0 0.5rem 0 !important;
             }
             
-            .space-y-4 {
-                max-width: 100% !important;
-                margin: 0 !important;
-            }
-            
             #navDrawer .px-4 {
                 padding-left: 2rem !important;
                 padding-right: 2rem !important;
@@ -599,6 +609,16 @@
         
         /* Large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1024px) {
+            .space-y-4 {
+                max-width: 500px !important;
+                margin: 0 auto !important;
+            }
+            
+            .category-section {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
             .category-button {
                 max-width: 100% !important;
             }
@@ -643,14 +663,20 @@
             .submenu-item {
                 max-width: 100% !important;
             }
-            
-            .space-y-4 {
-                max-width: 100% !important;
-            }
         }
         
         /* Extra large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1280px) {
+            .space-y-4 {
+                max-width: 500px !important;
+                margin: 0 auto !important;
+            }
+            
+            .category-section {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            
             .category-button {
                 max-width: 100% !important;
             }
@@ -693,10 +719,6 @@
             }
             
             .submenu-item {
-                max-width: 100% !important;
-            }
-            
-            .space-y-4 {
                 max-width: 100% !important;
             }
         }
