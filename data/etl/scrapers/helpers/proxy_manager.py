@@ -640,8 +640,8 @@ class EnhancedProxyRotator:
                 self.proxies[port].success_count = 1
         else:
             logger.info("🧪 Testing all proxies...")
-            # Test first 150 proxies to get a larger pool (was 50)
-            test_ports = list(self.ports)[:150]
+            # Test first 20 proxies for quick testing (was 150 for production)
+            test_ports = list(self.ports)[:20]
             logger.info(f"🧪 Testing first {len(test_ports)} proxies (to build healthy pool)")
             self._test_proxy_subset(test_ports)
     

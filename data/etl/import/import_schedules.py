@@ -218,11 +218,15 @@ class SchedulesETL:
         Rules:
         1. Trim and normalize internal whitespace
         2. If name contains " - " segments, keep only the first segment
-        3. Drop trailing parenthetical segments
-        4. Strip trailing team/series suffix tokens
+        3. Drop trailing parenthetical segments (EXCEPT for CNSWPL)
+        4. Strip trailing team/series suffix tokens (EXCEPT for CNSWPL)
         5. Remove stray punctuation other than & and spaces
         6. Collapse multiple spaces and strip ends
         7. Title-case the result
+        
+        Special handling for CNSWPL:
+        - Preserves a/b subdivisions (e.g., "Wilmette 4a", "Wilmette 4b")
+        - Preserves parenthetical numbers (e.g., "Evanston H(1)", "Evanston H(2)")
         """
         if not raw:
             return ""
@@ -234,10 +238,16 @@ class SchedulesETL:
         if " - " in text:
             text = text.split(" - ")[0]
         
-        # Step 3: Drop trailing parenthetical segments
+        # For CNSWPL, preserve subdivisions - skip normalization steps 3 and 4
+        if self.league_key == 'CNSWPL':
+            # Just clean up whitespace and return
+            text = re.sub(r'\s+', ' ', text).strip()
+            return text
+        
+        # Step 3: Drop trailing parenthetical segments (for non-CNSWPL leagues)
         text = re.sub(r'\s*\([^)]*\)\s*$', '', text)
         
-        # Step 4: Strip trailing team/series suffix tokens
+        # Step 4: Strip trailing team/series suffix tokens (for non-CNSWPL leagues)
         tokens = text.split()
         tokens = self._strip_trailing_suffix_tokens(tokens)
         
@@ -289,10 +299,53 @@ class SchedulesETL:
         return tokens
     
     def parse_team_name(self, team_name: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        """Parse team name to extract club, series, and team identifier."""
+        """
+        Parse team name to extract club, series, and team identifier.
+        
+        For CNSWPL, preserves full team name with subdivisions (a/b or parentheticals).
+        """
         if not team_name:
             return None, None, None
         
+        # For CNSWPL, preserve the full team name including subdivisions
+        if self.league_key == 'CNSWPL':
+            # Extract series from numeric or letter pattern while keeping full team name
+            # Pattern 1: Numeric with optional a/b (e.g., "Wilmette 4a", "Birchwood 13b")
+            numeric_match = re.search(r'(\d+[a-z]?)$', team_name)
+            if numeric_match:
+                team_number = numeric_match.group(1)
+                # Extract just the base series number for series_name
+                series_num = re.sub(r'[a-z]$', '', team_number)
+                series_name = f"Series {series_num}"
+                # For club name, keep everything except the final number/letter
+                club_name = team_name[:numeric_match.start()].strip()
+                return club_name, series_name, team_number
+            
+            # Pattern 2: Letter series with optional parentheticals (e.g., "Evanston H(1)", "Wilmette C(2)")
+            paren_match = re.search(r'\s([A-Z])\((\d+)\)\s*$', team_name)
+            if paren_match:
+                team_letter = paren_match.group(1)
+                series_name = f"Series {team_letter}"
+                club_name = team_name[:paren_match.start()].strip()
+                return club_name, series_name, team_letter
+            
+            # Pattern 3: Single letter series (e.g., "Tennaqua A", "Skokie D")
+            letter_match = re.search(r'\s([A-Z])\s*$', team_name)
+            if letter_match:
+                team_letter = letter_match.group(1)
+                club_name = team_name[:letter_match.start()].strip()
+                series_name = f"Series {team_letter}"
+                return club_name, series_name, team_letter
+            
+            # Pattern 4: Multi-letter series like "SN"
+            multi_letter_match = re.search(r'\s([A-Z]{2,})\s*$', team_name)
+            if multi_letter_match:
+                team_letters = multi_letter_match.group(1)
+                club_name = team_name[:multi_letter_match.start()].strip()
+                series_name = f"Series {team_letters}"
+                return club_name, series_name, team_letters
+        
+        # For non-CNSWPL leagues (original logic)
         # Handle special cases with dashes and complex names
         if " - " in team_name:
             parts = team_name.split(" - ")

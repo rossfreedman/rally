@@ -713,58 +713,64 @@ def scrape_player_history_optimized(league_subdomain, max_workers=4, use_cache=T
             raise Exception("Failed to create discovery browser")
 
         try:
-            # Phase 1: Optimized Discovery
-            print("\n🔍 PHASE 1: Optimized Team Discovery")
-            discovery_start = datetime.now()
-
-            # Track request and add throttling before discovery
-            scraper_enhancements.track_request("discovery_phase")
-            add_throttling_to_loop()
-
-            discovery_results = discover_teams_optimized(discovery_browser, config)
-
-            discovery_duration = datetime.now() - discovery_start
-            print(
-                f"✅ Discovery completed in {discovery_duration.total_seconds():.1f}s"
-            )
-
-            # Phase 2: Concurrent Team Processing
-            print(f"\n⚡ PHASE 2: Concurrent Team Processing ({max_workers} workers)")
-            mapping_start = datetime.now()
-
-            # Track request and add throttling before team processing
-            scraper_enhancements.track_request("team_processing_phase")
-            add_throttling_to_loop()
-
+            # Skip team discovery in test mode to avoid root domain access
             player_to_team_map = {}
-            teams_list = list(discovery_results["teams"].items())
+            
+            if test_mode:
+                print("\n⚠️  SKIPPING Team Discovery (Test Mode - avoiding root domain access)")
+                print("   Players will have 'Unknown' series/club assignments")
+            else:
+                # Phase 1: Optimized Discovery
+                print("\n🔍 PHASE 1: Optimized Team Discovery")
+                discovery_start = datetime.now()
 
-            # Process teams concurrently
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                future_to_team = {
-                    executor.submit(
-                        process_team_page_concurrent, team_info, config, stealth_manager
-                    ): team_info[0]
-                    for team_info in teams_list
-                }
+                # Track request and add throttling before discovery
+                scraper_enhancements.track_request("discovery_phase")
+                add_throttling_to_loop()
 
-                completed = 0
-                for future in as_completed(future_to_team):
-                    completed += 1
-                    team_name, team_mappings = future.result()
-                    player_to_team_map.update(team_mappings)
+                discovery_results = discover_teams_optimized(discovery_browser, config)
 
-                    if completed % 10 == 0 or completed == len(teams_list):
-                        progress = (completed / len(teams_list)) * 100
-                        print(
-                            f"   📊 Team processing: {completed}/{len(teams_list)} ({progress:.1f}%)"
-                        )
+                discovery_duration = datetime.now() - discovery_start
+                print(
+                    f"✅ Discovery completed in {discovery_duration.total_seconds():.1f}s"
+                )
 
-            mapping_duration = datetime.now() - mapping_start
-            print(
-                f"✅ Team mapping completed in {mapping_duration.total_seconds():.1f}s"
-            )
-            print(f"🔗 Mapped {len(player_to_team_map)} players to teams")
+                # Phase 2: Concurrent Team Processing
+                print(f"\n⚡ PHASE 2: Concurrent Team Processing ({max_workers} workers)")
+                mapping_start = datetime.now()
+
+                # Track request and add throttling before team processing
+                scraper_enhancements.track_request("team_processing_phase")
+                add_throttling_to_loop()
+
+                teams_list = list(discovery_results["teams"].items())
+
+                # Process teams concurrently
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    future_to_team = {
+                        executor.submit(
+                            process_team_page_concurrent, team_info, config, stealth_manager
+                        ): team_info[0]
+                        for team_info in teams_list
+                    }
+
+                    completed = 0
+                    for future in as_completed(future_to_team):
+                        completed += 1
+                        team_name, team_mappings = future.result()
+                        player_to_team_map.update(team_mappings)
+
+                        if completed % 10 == 0 or completed == len(teams_list):
+                            progress = (completed / len(teams_list)) * 100
+                            print(
+                                f"   📊 Team processing: {completed}/{len(teams_list)} ({progress:.1f}%)"
+                            )
+
+                mapping_duration = datetime.now() - mapping_start
+                print(
+                    f"✅ Team mapping completed in {mapping_duration.total_seconds():.1f}s"
+                )
+                print(f"🔗 Mapped {len(player_to_team_map)} players to teams")
 
             # Phase 3: Player Data Collection
             print(f"\n👥 PHASE 3: Player Data Collection")

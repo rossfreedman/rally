@@ -4785,6 +4785,27 @@ def serve_mobile_support():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/swag")
+def serve_mobile_swag():
+    """Serve the mobile SWAG (merchandise) page - accessible to both authenticated and unauthenticated users"""
+    try:
+        # Check if user is authenticated
+        if "user" in session:
+            session_data = {"user": session["user"], "authenticated": True}
+            log_user_activity(
+                session["user"]["email"], "page_visit", page="mobile_swag"
+            )
+        else:
+            # For unauthenticated users, create minimal session data
+            session_data = {"user": None, "authenticated": False}
+
+        return render_template("mobile/swag.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving swag page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/api/support", methods=["POST"])
 def send_support_request():
     """Send support request SMS to admin - accessible to both authenticated and unauthenticated users"""
@@ -4945,6 +4966,89 @@ def send_support_request():
     except Exception as e:
         print(f"Error sending support request: {str(e)}")
         return jsonify({"success": False, "error": "An error occurred while sending the support request"}), 500
+
+
+@mobile_bp.route("/api/swag-request", methods=["POST"])
+def send_swag_request():
+    """Send swag/merchandise request SMS to admin - accessible to both authenticated and unauthenticated users"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        user_name = data.get("user_name", "").strip()
+        product = data.get("product", "").strip()
+        price = data.get("price", "").strip()
+        notes = data.get("notes", "").strip()
+        user_phone = data.get("user_phone", "").strip()  # For unauthenticated users
+        
+        # Validate required fields
+        if not user_name:
+            return jsonify({"success": False, "error": "Your name is required"}), 400
+        
+        if not product:
+            return jsonify({"success": False, "error": "Product selection is required"}), 400
+        
+        # Determine user email and authentication status
+        if "user" in session:
+            # Authenticated user
+            sender_email = session['user']['email']
+            sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+            # Get phone number from session data for authenticated users
+            user_phone = session['user'].get('phone_number', '').strip()
+            is_authenticated = True
+        else:
+            # Unauthenticated user
+            if not user_phone:
+                return jsonify({"success": False, "error": "Phone number is required"}), 400
+            sender_email = "No email provided"
+            sender_name = user_name
+            is_authenticated = False
+        
+        # Create the swag request SMS content
+        auth_status = "Authenticated User" if is_authenticated else "Unauthenticated User"
+        phone_info = f" | Phone: {user_phone}" if user_phone else ""
+        notes_info = f" | Notes: {notes}" if notes else ""
+        sms_message = f"Rally SWAG Request from {user_name} ({sender_email}){phone_info} [{auth_status}]: Product: {product} ({price}){notes_info}"
+        
+        # Log the swag request (only if we have session data for authenticated users)
+        if is_authenticated:
+            log_user_activity(
+                session["user"]["email"], 
+                "swag_request",
+                metadata={
+                    "user_name": user_name,
+                    "product": product,
+                    "price": price,
+                    "notes": notes,
+                    "phone": user_phone,
+                    "authenticated": True
+                }
+            )
+        else:
+            # For unauthenticated users, just log to console
+            print(f"SWAG request from unauthenticated user: {user_name} | Phone: {user_phone} | Product: {product}")
+        
+        # Send the swag request SMS to admin
+        result = send_sms_notification(
+            to_number="7732138911",  # Admin phone number
+            message=sms_message,
+            test_mode=False
+        )
+        
+        if result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Your {product} request has been sent! We'll reach out shortly to complete your order."
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Failed to send swag request")
+            }), 400
+    
+    except Exception as e:
+        print(f"Error sending swag request: {str(e)}")
+        return jsonify({"success": False, "error": "An error occurred while sending the swag request"}), 500
 
 
 @mobile_bp.route("/mobile/create-team")
