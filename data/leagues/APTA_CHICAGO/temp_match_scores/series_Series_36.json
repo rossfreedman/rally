@@ -1,7 +1,7 @@
 [
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyNytnZz09_Line1",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytnZz09&print&",
     "Home Team": "Evanston 36",
@@ -20,8 +20,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyNytnZz09_Line2",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytnZz09&print&",
     "Home Team": "Evanston 36",
@@ -40,8 +40,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyNytnZz09_Line3",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytnZz09&print&",
     "Home Team": "Evanston 36",
@@ -60,8 +60,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyNytnZz09_Line4",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytnZz09&print&",
     "Home Team": "Evanston 36",
@@ -80,8 +80,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzRnUT09_Line1",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzRnUT09&print&",
     "Home Team": "North Shore 36",
@@ -100,8 +100,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzRnUT09_Line2",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzRnUT09&print&",
     "Home Team": "North Shore 36",
@@ -120,8 +120,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzRnUT09_Line3",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzRnUT09&print&",
     "Home Team": "North Shore 36",
@@ -140,8 +140,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzVndz09_Line1",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzVndz09&print&",
     "Home Team": "Lake Shore CC 36",
@@ -160,8 +160,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzVndz09_Line2",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzVndz09&print&",
     "Home Team": "Lake Shore CC 36",
@@ -180,8 +180,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzVndz09_Line3",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzVndz09&print&",
     "Home Team": "Lake Shore CC 36",
@@ -200,8 +200,68 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
+    "match_id": "nndz-WWk2OXdyNytqUT09_Line1",
+    "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytqUT09&print&",
+    "Home Team": "Exmoor 36",
+    "Away Team": "Prairie Club 36",
+    "Scores": "6-2, 6-2",
+    "Line": "Line 1",
+    "Away Player 1": "Tim Wolf",
+    "Away Player 2": "David  Cades",
+    "Away Player 1 ID": "nndz-WkNPd3liYndnZz09",
+    "Away Player 2 ID": "nndz-WkM2L3dyei9oZz09",
+    "Home Player 1": "Dominik Ellena",
+    "Home Player 2": "Jim Utts",
+    "Home Player 1 ID": "nndz-WkMrK3liNy9oQT09",
+    "Home Player 2 ID": "nndz-WlNhNnliMytndz09",
+    "Winner": "away",
+    "Date": "25-Sep-25"
+  },
+  {
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
+    "match_id": "nndz-WWk2OXdyNytqUT09_Line2",
+    "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytqUT09&print&",
+    "Home Team": "Exmoor 36",
+    "Away Team": "Prairie Club 36",
+    "Scores": "3-6, 3-6",
+    "Line": "Line 2",
+    "Away Player 1": "John Leuer",
+    "Away Player 2": "Nick Vassilos",
+    "Away Player 1 ID": "nndz-WkM2K3liYitnUT09",
+    "Away Player 2 ID": "nndz-WkMreHhiNzVnZz09",
+    "Home Player 1": "Jeremy Morton",
+    "Home Player 2": "Dillon Reid",
+    "Home Player 1 ID": "nndz-WkM2OHg3aitnUT09",
+    "Home Player 2 ID": "nndz-WkMrK3liLzhodz09",
+    "Winner": "home",
+    "Date": "25-Sep-25"
+  },
+  {
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
+    "match_id": "nndz-WWk2OXdyNytqUT09_Line3",
+    "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyNytqUT09&print&",
+    "Home Team": "Exmoor 36",
+    "Away Team": "Prairie Club 36",
+    "Scores": "2-6, 6-4, 7-5",
+    "Line": "Line 3",
+    "Away Player 1": "David Levy",
+    "Away Player 2": "Paul Fischl",
+    "Away Player 1 ID": "nndz-WkNPd3lidi9nQT09",
+    "Away Player 2 ID": "nndz-WkNPd3lidi9oZz09",
+    "Home Player 1": "Jeremy Alland",
+    "Home Player 2": "Brian Buttron",
+    "Home Player 1 ID": "nndz-WlNlOHlibjdqQT09",
+    "Home Player 2 ID": "nndz-WkM2L3dydjloQT09",
+    "Winner": "away",
+    "Date": "25-Sep-25"
+  },
+  {
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzlodz09_Line1",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzlodz09&print&",
     "Home Team": "Valley Lo 36",
@@ -220,8 +280,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzlodz09_Line2",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzlodz09&print&",
     "Home Team": "Valley Lo 36",
@@ -240,8 +300,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzlodz09_Line3",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzlodz09&print&",
     "Home Team": "Valley Lo 36",
@@ -260,8 +320,8 @@
     "Date": "25-Sep-25"
   },
   {
-    "league_id": "APTACHICAGO",
-    "source_league": "APTACHICAGO",
+    "league_id": "APTA_CHICAGO",
+    "source_league": "APTA_CHICAGO",
     "match_id": "nndz-WWk2OXdyLzlodz09_Line4",
     "url": "https://aptachicago.tenniscores.com/print_match.php?sch=nndz-WWk2OXdyLzlodz09&print&",
     "Home Team": "Valley Lo 36",

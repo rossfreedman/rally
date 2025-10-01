@@ -213,6 +213,12 @@ class APTAChicagoSimpleScraper:
                     if text.isdigit():
                         # Regular series (e.g., "1", "2", "3")
                         series_num = text
+                        
+                        # EXCLUDE Series 99 as it contains invalid/test data
+                        if series_num == "99":
+                            print(f"         ⏭️ Skipping Series 99 (excluded due to invalid/test data)")
+                            continue
+                        
                         series_name = f"Series {series_num}"
                         
                         # Construct the full URL
@@ -251,6 +257,11 @@ class APTAChicagoSimpleScraper:
                             
                             # Add regular series
                             for series_num in series_numbers:
+                                # EXCLUDE Series 99 as it contains invalid/test data
+                                if series_num == "99":
+                                    print(f"            ⏭️ Skipping Series 99 (excluded due to invalid/test data)")
+                                    continue
+                                
                                 series_name = f"Series {series_num}"
                                 series_url = f"{self.base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhMcz0%3D"
                                 discovered_series.append((series_name, series_url))

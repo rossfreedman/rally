@@ -1277,6 +1277,11 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
 
                     # Format the series number to match players.json format
                     if series_number.isdigit():
+                        # EXCLUDE Series 99 as it contains invalid/test data
+                        if series_number == "99":
+                            print(f"         ⏭️ Skipping Series 99 (excluded due to invalid/test data)")
+                            continue
+                        
                         # APTA Chicago format: "Series X" to match players.json
                         formatted_series = f"Series {series_number}"
                     elif series_number.startswith("Series "):

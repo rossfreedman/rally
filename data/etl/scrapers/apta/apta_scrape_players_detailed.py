@@ -9,11 +9,12 @@ series.
 Unlike the match-based scraper, this goes directly to team/roster pages to find
 ALL registered players, not just those who have played matches.
 
-The scraper uses dynamic discovery to find all available series (1-99+ and SW variants)
-and can target specific series or scrape all available series.
+The scraper uses dynamic discovery to find all available series (1-98 and SW variants)
+and can target specific series or scrape all available series. Series 99 is excluded
+as it contains invalid/test data.
 
 Usage:
-    python3 apta_scrape_players.py [--series 1,2,3,23,99] [--force-restart]
+    python3 apta_scrape_players.py [--series 1,2,3,23] [--force-restart]
 """
 
 import sys
@@ -1423,6 +1424,12 @@ class APTAChicagoRosterScraper:
                     # Extract the series number from the link text
                     if text.isdigit():
                         series_num = text
+                        
+                        # EXCLUDE Series 99 as it contains invalid/test data
+                        if series_num == "99":
+                            print(f"         ⏭️ Skipping Series 99 (excluded due to invalid/test data)")
+                            continue
+                        
                         series_name = f"Series {series_num}"
                         
                         # Construct the full URL
@@ -1475,6 +1482,11 @@ class APTAChicagoRosterScraper:
                             
                             # Add regular series
                             for series_num in series_numbers:
+                                # EXCLUDE Series 99 as it contains invalid/test data
+                                if series_num == "99":
+                                    print(f"            ⏭️ Skipping Series 99 (excluded due to invalid/test data)")
+                                    continue
+                                
                                 series_name = f"Series {series_num}"
                                 
                                 # Try to construct the series URL using the known pattern
@@ -2162,7 +2174,6 @@ def main():
         print("\nExamples:")
         print("  python apta_scrape_players.py --series 23        # Scrape only Series 23")
         print("  python apta_scrape_players.py --series 1,2,3     # Scrape series 1, 2, 3")
-        print("  python apta_scrape_players.py --series 99        # Scrape only Series 99")
         return
     
     # Parse command line arguments
@@ -2184,13 +2195,14 @@ def main():
     
     # Validate target_series if specified (allow any numeric series since dynamic discovery can find them)
     if target_series:
-        # Allow any numeric series (1-99) and letter series (A-K)
+        # Allow any numeric series (1-98, excluding 99) and letter series (A-K)
+        # Series 99 is excluded as it contains invalid/test data
         # Dynamic discovery will determine what actually exists
-        valid_series = [str(i) for i in range(1, 100)] + list('ABCDEFGHIJK')
+        valid_series = [str(i) for i in range(1, 99)] + list('ABCDEFGHIJK')
         invalid_series = [s for s in target_series if s not in valid_series]
         if invalid_series:
             print(f"❌ Error: Invalid series specified: {', '.join(invalid_series)}")
-            print(f"   Valid series are: 1-99 and A-K")
+            print(f"   Valid series are: 1-98 and A-K (Series 99 is excluded)")
             return
         print(f"✅ Valid series specified: {', '.join(target_series)}")
     
