@@ -23,9 +23,9 @@
         {% if team_data and team_data.team %}
         <!-- Team Overview Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-trophy mr-2" style="color: #bff863;"></i>
                     Team Stats
                 </h2>
             </div>
@@ -116,9 +116,9 @@
         {% if top_players %}
         <!-- Team Roster Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-star mr-2" style="color: #bff863;"></i>
                     Team Roster
                 </h2>
             </div>
@@ -188,9 +188,9 @@
         {% if court_analysis %}
         <!-- Court Analysis Header -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="width: 100% !important; display: flex; flex-direction: column;">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-chart-bar mr-2" style="color: #bff863;"></i>
                     Court Analysis
                 </h2>
             </div>
@@ -203,15 +203,15 @@
             {% set court_num = court_key.replace('court', '') %}
             <!-- Individual Court Card -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden analyze-me-court-card" style="width: 100% !important; max-width: 100% !important; min-width: 100% !important; box-sizing: border-box !important; display: block !important;">
-                <div class="px-6 py-4 border-b border-gray-50">
+                <div class="px-6 py-4" style="background-color: #045454;">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
+                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                            <i class="fas fa-table-tennis mr-2" style="color: #bff863;"></i>
                             Court {{ court_num }}
                         </h2>
                         <div class="flex items-center gap-3">
                             <!-- Record -->
-                            <span class="text-sm font-medium text-gray-700">{{ court.record or '0-0' }}</span>
+                            <span class="text-sm font-medium" style="color: #bff863;">{{ court.record or '0-0' }}</span>
                             <!-- Win Rate Badge -->
                             {% if court.record != '0-0' %}
                             <div class="px-3 py-1 rounded-full text-sm font-medium
@@ -338,9 +338,9 @@
 
         <!-- Team Last 3 Matches Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-history text-green-500 mr-2"></i>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-history mr-2" style="color: #bff863;"></i>
                     Last 3 Team Matches
                 </h2>
             </div>
