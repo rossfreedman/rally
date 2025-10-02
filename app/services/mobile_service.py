@@ -4222,9 +4222,9 @@ def get_mobile_team_data(user):
             scores = match.get("Scores", "")
             sets_won, sets_lost = parse_scores_for_team(scores, is_home)
             
-            # Format scores so user's team score appears first
-            def format_scores_for_user_team(raw_scores, user_team_won, user_team_was_home):
-                """Format scores so the user's team score appears first in each set"""
+            # Format scores from user's perspective - always show user's score first
+            def format_scores_for_user_team(raw_scores, user_team_was_home):
+                """Format scores so user's team score appears first in each set"""
                 if not raw_scores:
                     return raw_scores
                 
@@ -4248,27 +4248,14 @@ def get_mobile_team_data(user):
                             home_score = int(scores[0])
                             away_score = int(scores[1])
                             
-                            # Determine if user's team won this set
+                            # Always show user's team score first
                             if user_team_was_home:
-                                user_won_set = home_score > away_score
+                                # User's team was home - show home score first
+                                formatted_sets.append(f"{home_score}-{away_score}")
                             else:
-                                user_won_set = away_score > home_score
-                            
-                            # Show user's team score first
-                            if user_team_was_home:
-                                if user_won_set:
-                                    # User's team (home) won this set - show home score first
-                                    formatted_sets.append(f"{home_score}-{away_score}")
-                                else:
-                                    # User's team (home) lost this set - show home score first (already correct)
-                                    formatted_sets.append(f"{home_score}-{away_score}")
-                            else:
-                                if user_won_set:
-                                    # User's team (away) won this set - show away score first
-                                    formatted_sets.append(f"{away_score}-{home_score}")
-                                else:
-                                    # User's team (away) lost this set - show away score first
-                                    formatted_sets.append(f"{away_score}-{home_score}")
+                                # User's team was away - show away score first (reverse)
+                                formatted_sets.append(f"{away_score}-{home_score}")
+                                
                         except (ValueError, IndexError):
                             # If we can't parse scores, keep original
                             formatted_sets.append(set_score)
@@ -4279,7 +4266,7 @@ def get_mobile_team_data(user):
                     # If anything goes wrong, return original scores
                     return raw_scores
             
-            formatted_scores = format_scores_for_user_team(scores, team_won, is_home)
+            formatted_scores = format_scores_for_user_team(scores, is_home)
             
             individual_match = {
                 "result": "W" if team_won else "L",
