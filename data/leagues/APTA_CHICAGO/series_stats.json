@@ -842,6 +842,35 @@
   },
   {
     "series": "Series 4",
+    "team": "Valley Lo 4",
+    "league_id": "APTA_CHICAGO",
+    "points": 16,
+    "matches": {
+      "won": 1,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "50.0%"
+    },
+    "lines": {
+      "won": 5,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "62.5%"
+    },
+    "sets": {
+      "won": 11,
+      "lost": 7,
+      "percentage": "61.1%"
+    },
+    "games": {
+      "won": 90,
+      "lost": 74,
+      "percentage": "54.9%"
+    }
+  },
+  {
+    "series": "Series 4",
     "team": "Hawthorn Woods 4",
     "league_id": "APTA_CHICAGO",
     "points": 15,
@@ -871,31 +900,31 @@
   },
   {
     "series": "Series 4",
-    "team": "Valley Lo 4",
+    "team": "North Shore 4",
     "league_id": "APTA_CHICAGO",
-    "points": 12,
+    "points": 13,
     "matches": {
       "won": 1,
-      "lost": 0,
+      "lost": 1,
       "tied": 0,
-      "percentage": "100.0%"
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 4,
-      "lost": 0,
+      "lost": 4,
       "for": 0,
       "ret": 0,
-      "percentage": "100.0%"
+      "percentage": "50.0%"
     },
     "sets": {
-      "won": 8,
-      "lost": 1,
-      "percentage": "88.9%"
+      "won": 9,
+      "lost": 10,
+      "percentage": "47.4%"
     },
     "games": {
-      "won": 52,
-      "lost": 27,
-      "percentage": "65.8%"
+      "won": 93,
+      "lost": 95,
+      "percentage": "49.5%"
     }
   },
   {
@@ -983,35 +1012,6 @@
       "won": 50,
       "lost": 94,
       "percentage": "34.7%"
-    }
-  },
-  {
-    "series": "Series 4",
-    "team": "North Shore 4",
-    "league_id": "APTA_CHICAGO",
-    "points": 4,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 1,
-      "lost": 3,
-      "for": 0,
-      "ret": 0,
-      "percentage": "25.0%"
-    },
-    "sets": {
-      "won": 3,
-      "lost": 7,
-      "percentage": "30.0%"
-    },
-    "games": {
-      "won": 46,
-      "lost": 57,
-      "percentage": "44.7%"
     }
   },
   {
@@ -3017,6 +3017,64 @@
   },
   {
     "series": "Series 10",
+    "team": "Wilmette PD II 10",
+    "league_id": "APTA_CHICAGO",
+    "points": 11,
+    "matches": {
+      "won": 1,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "50.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 5,
+      "for": 0,
+      "ret": 0,
+      "percentage": "37.5%"
+    },
+    "sets": {
+      "won": 8,
+      "lost": 11,
+      "percentage": "42.1%"
+    },
+    "games": {
+      "won": 69,
+      "lost": 94,
+      "percentage": "42.3%"
+    }
+  },
+  {
+    "series": "Series 10",
+    "team": "Westmoreland 10",
+    "league_id": "APTA_CHICAGO",
+    "points": 10,
+    "matches": {
+      "won": 0,
+      "lost": 2,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 3,
+      "lost": 5,
+      "for": 0,
+      "ret": 0,
+      "percentage": "37.5%"
+    },
+    "sets": {
+      "won": 7,
+      "lost": 11,
+      "percentage": "38.9%"
+    },
+    "games": {
+      "won": 80,
+      "lost": 90,
+      "percentage": "47.1%"
+    }
+  },
+  {
+    "series": "Series 10",
     "team": "Knollwood 10",
     "league_id": "APTA_CHICAGO",
     "points": 9,
@@ -3042,64 +3100,6 @@
       "won": 73,
       "lost": 103,
       "percentage": "41.5%"
-    }
-  },
-  {
-    "series": "Series 10",
-    "team": "Westmoreland 10",
-    "league_id": "APTA_CHICAGO",
-    "points": 4,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 1,
-      "lost": 3,
-      "for": 0,
-      "ret": 0,
-      "percentage": "25.0%"
-    },
-    "sets": {
-      "won": 3,
-      "lost": 6,
-      "percentage": "33.3%"
-    },
-    "games": {
-      "won": 44,
-      "lost": 53,
-      "percentage": "45.4%"
-    }
-  },
-  {
-    "series": "Series 10",
-    "team": "Wilmette PD II 10",
-    "league_id": "APTA_CHICAGO",
-    "points": 4,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 1,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 1,
-      "lost": 3,
-      "for": 0,
-      "ret": 0,
-      "percentage": "25.0%"
-    },
-    "sets": {
-      "won": 3,
-      "lost": 7,
-      "percentage": "30.0%"
-    },
-    "games": {
-      "won": 32,
-      "lost": 58,
-      "percentage": "35.6%"
     }
   },
   {
@@ -3690,8 +3690,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 2,
@@ -3748,7 +3748,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -3806,7 +3806,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -3893,7 +3893,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -5198,8 +5198,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 4,
@@ -5459,7 +5459,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -7518,8 +7518,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 4,
@@ -7692,7 +7692,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -7837,8 +7837,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 3,
@@ -8098,7 +8098,7 @@
     "matches": {
       "won": 0,
       "lost": 0,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -11868,7 +11868,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -12013,7 +12013,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -13254,6 +13254,35 @@
   },
   {
     "series": "Series 34",
+    "team": "Wilmette PD 34",
+    "league_id": "APTA_CHICAGO",
+    "points": 13,
+    "matches": {
+      "won": 1,
+      "lost": 1,
+      "tied": 0,
+      "percentage": "50.0%"
+    },
+    "lines": {
+      "won": 4,
+      "lost": 4,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 9,
+      "lost": 10,
+      "percentage": "47.4%"
+    },
+    "games": {
+      "won": 79,
+      "lost": 80,
+      "percentage": "49.7%"
+    }
+  },
+  {
+    "series": "Series 34",
     "team": "Park Ridge CC 34",
     "league_id": "APTA_CHICAGO",
     "points": 13,
@@ -13341,31 +13370,31 @@
   },
   {
     "series": "Series 34",
-    "team": "Wilmette PD 34",
+    "team": "Skokie 34",
     "league_id": "APTA_CHICAGO",
     "points": 7,
     "matches": {
       "won": 1,
-      "lost": 0,
+      "lost": 1,
       "tied": 0,
-      "percentage": "100.0%"
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 2,
-      "lost": 2,
-      "for": 0,
+      "lost": 5,
+      "for": 1,
       "ret": 0,
-      "percentage": "50.0%"
+      "percentage": "25.0%"
     },
     "sets": {
       "won": 5,
-      "lost": 5,
-      "percentage": "50.0%"
+      "lost": 10,
+      "percentage": "33.3%"
     },
     "games": {
-      "won": 45,
-      "lost": 42,
-      "percentage": "51.7%"
+      "won": 53,
+      "lost": 70,
+      "percentage": "43.1%"
     }
   },
   {
@@ -13395,35 +13424,6 @@
       "won": 57,
       "lost": 94,
       "percentage": "37.7%"
-    }
-  },
-  {
-    "series": "Series 34",
-    "team": "Skokie 34",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 3,
-      "for": 1,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 6,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 15,
-      "lost": 36,
-      "percentage": "29.4%"
     }
   },
   {
@@ -13753,8 +13753,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 3,
@@ -13985,7 +13985,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -14681,8 +14681,8 @@
     "matches": {
       "won": 1,
       "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
+      "tied": 1,
+      "percentage": "50.0%"
     },
     "lines": {
       "won": 4,
@@ -14768,7 +14768,7 @@
     "matches": {
       "won": 0,
       "lost": 1,
-      "tied": 0,
+      "tied": 1,
       "percentage": "0.0%"
     },
     "lines": {
@@ -14965,6 +14965,35 @@
   },
   {
     "series": "Series 40",
+    "team": "Prairie Club 40",
+    "league_id": "APTA_CHICAGO",
+    "points": 15,
+    "matches": {
+      "won": 2,
+      "lost": 0,
+      "tied": 0,
+      "percentage": "100.0%"
+    },
+    "lines": {
+      "won": 5,
+      "lost": 3,
+      "for": 0,
+      "ret": 0,
+      "percentage": "62.5%"
+    },
+    "sets": {
+      "won": 10,
+      "lost": 7,
+      "percentage": "58.8%"
+    },
+    "games": {
+      "won": 84,
+      "lost": 63,
+      "percentage": "57.1%"
+    }
+  },
+  {
+    "series": "Series 40",
     "team": "Westmoreland 40",
     "league_id": "APTA_CHICAGO",
     "points": 13,
@@ -15019,6 +15048,35 @@
       "won": 87,
       "lost": 95,
       "percentage": "47.8%"
+    }
+  },
+  {
+    "series": "Series 40",
+    "team": "Lake Forest 40",
+    "league_id": "APTA_CHICAGO",
+    "points": 12,
+    "matches": {
+      "won": 0,
+      "lost": 2,
+      "tied": 0,
+      "percentage": "0.0%"
+    },
+    "lines": {
+      "won": 4,
+      "lost": 4,
+      "for": 0,
+      "ret": 0,
+      "percentage": "50.0%"
+    },
+    "sets": {
+      "won": 8,
+      "lost": 10,
+      "percentage": "44.4%"
+    },
+    "games": {
+      "won": 69,
+      "lost": 85,
+      "percentage": "44.8%"
     }
   },
   {
@@ -15081,35 +15139,6 @@
   },
   {
     "series": "Series 40",
-    "team": "Prairie Club 40",
-    "league_id": "APTA_CHICAGO",
-    "points": 9,
-    "matches": {
-      "won": 1,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "100.0%"
-    },
-    "lines": {
-      "won": 3,
-      "lost": 1,
-      "for": 0,
-      "ret": 0,
-      "percentage": "75.0%"
-    },
-    "sets": {
-      "won": 6,
-      "lost": 3,
-      "percentage": "66.7%"
-    },
-    "games": {
-      "won": 46,
-      "lost": 34,
-      "percentage": "57.5%"
-    }
-  },
-  {
-    "series": "Series 40",
     "team": "Tennaqua 40",
     "league_id": "APTA_CHICAGO",
     "points": 8,
@@ -15135,35 +15164,6 @@
       "won": 47,
       "lost": 40,
       "percentage": "54.0%"
-    }
-  },
-  {
-    "series": "Series 40",
-    "team": "Lake Forest 40",
-    "league_id": "APTA_CHICAGO",
-    "points": 6,
-    "matches": {
-      "won": 0,
-      "lost": 1,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 2,
-      "lost": 2,
-      "for": 0,
-      "ret": 0,
-      "percentage": "50.0%"
-    },
-    "sets": {
-      "won": 4,
-      "lost": 6,
-      "percentage": "40.0%"
-    },
-    "games": {
-      "won": 40,
-      "lost": 47,
-      "percentage": "46.0%"
     }
   },
   {
