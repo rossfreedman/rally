@@ -529,10 +529,13 @@ def get_player_analysis(user):
                 "videos": {"match": [], "practice": []},
                 "trends": {},
                 "career_pti_change": "N/A",
-                "current_pti": None,
-                "weekly_pti_change": None,
-                "pti_data_available": False,
-                "error": "Invalid user data format"
+            "current_pti": None,
+            "weekly_pti_change": None,
+            "pti_data_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
+            "error": "Invalid user data format"
             }
 
         # Get player ID from user data
@@ -719,6 +722,9 @@ def get_player_analysis(user):
             "current_pti": None,
             "pti_change": None,
             "pti_data_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
         }
         season_pti_change = "N/A"
 
@@ -851,10 +857,17 @@ def get_player_analysis(user):
                         return float(value)
                     return value
 
+                # Calculate PTI delta from beginning of season
+                from utils.starting_pti_lookup import get_pti_delta_for_user
+                pti_delta_info = get_pti_delta_for_user(user, decimal_to_float(current_pti))
+                
                 pti_data = {
                     "current_pti": decimal_to_float(current_pti),
                     "pti_change": decimal_to_float(pti_change),
                     "pti_data_available": True,
+                    "starting_pti": pti_delta_info.get('starting_pti'),
+                    "pti_delta": pti_delta_info.get('pti_delta'),
+                    "delta_available": pti_delta_info.get('delta_available', False),
                 }
 
         except Exception as pti_error:
@@ -973,6 +986,9 @@ def get_player_analysis(user):
             "current_pti": decimal_to_float_season(pti_data.get("current_pti", 0.0)),
             "weekly_pti_change": decimal_to_float_season(pti_data.get("pti_change", 0.0)),
             "pti_data_available": pti_data.get("pti_data_available", False),
+            "starting_pti": decimal_to_float_season(pti_data.get("starting_pti")),
+            "pti_delta": decimal_to_float_season(pti_data.get("pti_delta")),
+            "delta_available": pti_data.get("delta_available", False),
             "error": None
         }
 
@@ -993,6 +1009,9 @@ def get_player_analysis(user):
             "current_pti": None,
             "weekly_pti_change": None,
             "pti_data_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
             "error": str(e)
         }
 
