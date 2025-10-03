@@ -4332,3 +4332,336 @@ def get_average_response_time():
         return "Unknown"
 
 
+# Scraper Management Routes
+@admin_bp.route("/admin/scrape-import")
+@login_required
+@admin_required
+def scrape_import_page():
+    """Serve the scrape and import page"""
+    return render_template("mobile/scrape_import.html")
+
+
+@admin_bp.route("/api/admin/start-scraper", methods=["POST"])
+@login_required
+@admin_required
+def start_scraper():
+    """Start the scraper runner process"""
+    try:
+        # Layer 1: Check if scraper is already running in memory
+        if active_processes.get("scraping") and active_processes["scraping"].poll() is None:
+            return jsonify({
+                "success": False,
+                "error": "Scraper is already running (Process ID: {})".format(active_processes["scraping"].pid)
+            }), 400
+        
+        # Layer 2: Check for any running scraper processes by name
+        import psutil
+        running_scrapers = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['cmdline'] and any('scraper_runner.py' in arg for arg in proc.info['cmdline']):
+                    running_scrapers.append(proc.info['pid'])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        if running_scrapers:
+            return jsonify({
+                "success": False,
+                "error": "Found {} existing scraper process(es) running: {}".format(
+                    len(running_scrapers), 
+                    ", ".join(map(str, running_scrapers))
+                )
+            }), 400
+        
+        # Layer 3: Check for lock file (optional additional protection)
+        import os
+        lock_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scraper.lock")
+        if os.path.exists(lock_file):
+            return jsonify({
+                "success": False,
+                "error": "Scraper lock file exists - another process may be running"
+            }), 400
+        
+        # Start the scraper process
+        import os
+        import subprocess
+        from datetime import datetime
+        
+        # Get the project root directory (rally directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        scraper_path = os.path.join(project_root, "data", "cron", "scraper_runner.py")
+        
+        # Create lock file
+        with open(lock_file, 'w') as f:
+            f.write(f"Scraper started at {datetime.now().isoformat()}\n")
+            f.write(f"Process will be started shortly\n")
+        
+        # Start the process
+        process = subprocess.Popen(
+            ["python3", scraper_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            bufsize=1,
+            cwd=project_root
+        )
+        
+        # Store the process
+        active_processes["scraping"] = process
+        
+        # Update lock file with actual process ID
+        with open(lock_file, 'w') as f:
+            f.write(f"Scraper started at {datetime.now().isoformat()}\n")
+            f.write(f"Process ID: {process.pid}\n")
+            f.write(f"Status: Running\n")
+        
+        start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify({
+            "success": True,
+            "process_id": process.pid,
+            "start_time": start_time
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/stop-scraper", methods=["POST"])
+@login_required
+@admin_required
+def stop_scraper():
+    """Stop the scraper runner process"""
+    try:
+        process = active_processes.get("scraping")
+        
+        if not process or process.poll() is not None:
+            return jsonify({
+                "success": False,
+                "error": "No scraper process is currently running"
+            }), 400
+        
+        # Terminate the process
+        process.terminate()
+        
+        # Wait a bit for graceful termination
+        import time
+        time.sleep(2)
+        
+        # Force kill if still running
+        if process.poll() is None:
+            process.kill()
+        
+        # Clear the process reference
+        active_processes["scraping"] = None
+        
+        # Clean up lock file
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        lock_file = os.path.join(project_root, "scraper.lock")
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+        
+        return jsonify({
+            "success": True,
+            "message": "Scraper process stopped"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/scraper-status")
+@login_required
+@admin_required
+def scraper_status():
+    """Get the current status of the scraper process"""
+    try:
+        process = active_processes.get("scraping")
+        
+        if process and process.poll() is None:
+            # Process is running
+            return jsonify({
+                "running": True,
+                "process_id": process.pid,
+                "start_time": "Unknown"  # We could track this if needed
+            })
+        else:
+            # Process is not running - clean up
+            active_processes["scraping"] = None
+            
+            # Clean up lock file if it exists
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            lock_file = os.path.join(project_root, "scraper.lock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+            
+            return jsonify({
+                "running": False,
+                "process_id": None,
+                "start_time": None
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "running": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/scraper-output")
+@login_required
+@admin_required
+def scraper_output():
+    """Stream the output from the scraper process"""
+    def generate():
+        process = active_processes.get("scraping")
+        
+        if not process or process.poll() is not None:
+            yield f"data: {json.dumps({'line': 'No scraper process is currently running'})}\n\n"
+            return
+        
+        try:
+            # Read output line by line
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    yield f"data: {json.dumps({'line': line.rstrip()})}\n\n"
+                else:
+                    break
+        except Exception as e:
+            yield f"data: {json.dumps({'line': f'Error reading output: {str(e)}'})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
+
+
+@admin_bp.route("/api/admin/scraper-logs")
+@login_required
+@admin_required
+def scraper_logs():
+    """Get the current scraper logs as a downloadable file"""
+    try:
+        # Create a simple log content for now
+        # In a real implementation, you'd read from a log file
+        log_content = "Scraper logs would be here\n"
+        log_content += f"Process status: {active_processes.get('scraping')}\n"
+        log_content += f"Timestamp: {datetime.now().isoformat()}\n"
+        
+        return Response(
+            log_content,
+            mimetype='text/plain',
+            headers={
+                'Content-Disposition': f'attachment; filename=scraper-logs-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt'
+            }
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/cleanup-scraper", methods=["POST"])
+@login_required
+@admin_required
+def cleanup_scraper():
+    """Clean up any orphaned scraper processes and lock files"""
+    try:
+        import os
+        import psutil
+        
+        # Clean up lock file
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        lock_file = os.path.join(project_root, "scraper.lock")
+        lock_removed = False
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+            lock_removed = True
+        
+        # Find and kill any orphaned scraper processes
+        killed_processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['cmdline'] and any('scraper_runner.py' in arg for arg in proc.info['cmdline']):
+                    proc.terminate()
+                    killed_processes.append(proc.info['pid'])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        # Clear memory reference
+        active_processes["scraping"] = None
+        
+        return jsonify({
+            "success": True,
+            "message": "Cleanup completed",
+            "lock_file_removed": lock_removed,
+            "processes_killed": killed_processes
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/scraper-status")
+def scraper_status_page():
+    """Public status page to check if scraper is running (no auth required)"""
+    process = active_processes.get("scraping")
+    is_running = process and process.poll() is None
+    
+    status_html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Scraper Status - Rally</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }}
+            .status {{ padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .running {{ background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }}
+            .stopped {{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }}
+            .info {{ background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }}
+            .refresh {{ margin-top: 20px; }}
+            .refresh a {{ color: #007bff; text-decoration: none; }}
+            .refresh a:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔄 Rally Scraper Status</h1>
+        
+        <div class="status {'running' if is_running else 'stopped'}">
+            <h2>{'✅ Running' if is_running else '❌ Stopped'}</h2>
+            <p>The scraper process is currently {'running' if is_running else 'not running'}.</p>
+        </div>
+        
+        <div class="info">
+            <h3>📊 Process Information</h3>
+            <p><strong>Status:</strong> {'Running' if is_running else 'Stopped'}</p>
+            <p><strong>Process ID:</strong> {process.pid if is_running else 'N/A'}</p>
+            <p><strong>Last Checked:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        
+        <div class="refresh">
+            <p><a href="/scraper-status">🔄 Refresh Status</a></p>
+            <p><a href="/admin/scrape-import">⚙️ Go to Admin Panel</a></p>
+        </div>
+        
+        <script>
+            // Auto-refresh every 30 seconds
+            setTimeout(() => {{
+                window.location.reload();
+            }}, 30000);
+        </script>
+    </body>
+    </html>
+    """
+    
+    return status_html
+
+

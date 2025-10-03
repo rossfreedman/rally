@@ -1,0 +1,655 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Scrape & Import | Rally{% endblock %}
+
+{% block content %}
+<style>
+/* Ensure buttons are always visible and properly styled */
+.action-buttons {
+    display: flex !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+}
+
+.action-buttons button {
+    min-height: 48px !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex: 1 !important;
+    color: white !important;
+    font-weight: 500 !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+}
+
+.action-buttons button:disabled {
+    background-color: #9ca3af !important;
+    cursor: not-allowed !important;
+}
+
+.action-buttons button:disabled:hover {
+    background-color: #9ca3af !important;
+}
+
+/* Specific button styling */
+#start-scraper-btn {
+    background-color: #10b981 !important; /* Green */
+}
+
+#start-scraper-btn:hover:not(:disabled) {
+    background-color: #059669 !important; /* Darker green on hover */
+}
+
+#stop-scraper-btn {
+    background-color: #ef4444 !important; /* Red */
+}
+
+#stop-scraper-btn:hover:not(:disabled) {
+    background-color: #dc2626 !important; /* Darker red on hover */
+}
+
+#clear-output-btn {
+    background-color: #6b7280 !important; /* Gray */
+}
+
+#clear-output-btn:hover:not(:disabled) {
+    background-color: #4b5563 !important; /* Darker gray on hover */
+}
+</style>
+
+<div class="container mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="welcome-section text-center mb-8">
+    <h1 class="text-2xl font-bold text-gray-800">
+      Scrape & Import
+    </h1>
+    <p class="text-sm text-gray-500 mt-2">
+      Run data scraping and import processes with real-time monitoring
+    </p>
+  </div>
+
+  <!-- Control Panel -->
+  <div class="bg-white rounded-lg shadow p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-cogs text-blue-600 mr-2"></i>
+          Scraper Control
+        </h3>
+        <p class="text-sm text-gray-600 mt-1">
+          Execute the scraper runner script and monitor progress
+        </p>
+      </div>
+      <div class="text-right">
+        <div id="status-indicator" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+          <i class="fas fa-circle text-gray-400 mr-2"></i>
+          Ready
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons flex gap-3 mb-4">
+      <button 
+        id="start-scraper-btn" 
+        onclick="startScraper()" 
+        class="flex-1 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+      >
+        <i class="fas fa-play mr-2"></i>
+        Start Scraper
+      </button>
+      <button 
+        id="stop-scraper-btn" 
+        onclick="stopScraper()" 
+        class="flex-1 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+        disabled
+      >
+        <i class="fas fa-stop mr-2"></i>
+        Stop Scraper
+      </button>
+      <button 
+        id="clear-output-btn"
+        onclick="clearOutput()" 
+        class="flex-1 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+      >
+        <i class="fas fa-trash mr-2"></i>
+        Clear Output
+      </button>
+    </div>
+    
+    <!-- Cleanup Section -->
+    <div class="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 class="text-sm font-medium text-red-800">Emergency Cleanup</h4>
+          <p class="text-xs text-red-600 mt-1">Use this if you suspect orphaned processes or lock files</p>
+        </div>
+        <button 
+          onclick="cleanupScraper()" 
+          class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center"
+        >
+          <i class="fas fa-broom mr-2"></i>
+          Cleanup
+        </button>
+      </div>
+    </div>
+
+    <!-- Process Info -->
+    <div id="process-info" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+          <div class="text-sm text-blue-700">
+            <strong>Process ID:</strong> <span id="process-id">-</span> | 
+            <strong>Started:</strong> <span id="process-start-time">-</span>
+          </div>
+        </div>
+        <div class="text-sm text-blue-600">
+          <i class="fas fa-clock mr-1"></i>
+          <span id="process-duration">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Output Display -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-terminal text-green-600 mr-2"></i>
+          Live Output
+        </h3>
+        <div class="flex items-center space-x-2">
+          <button 
+            onclick="toggleAutoScroll()" 
+            id="auto-scroll-btn"
+            class="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+          >
+            <i class="fas fa-arrow-down mr-1"></i>
+            Auto-scroll: ON
+          </button>
+          <button 
+            onclick="downloadLogs()" 
+            class="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+          >
+            <i class="fas fa-download mr-1"></i>
+            Download Logs
+          </button>
+          <span class="text-sm text-gray-500">
+            <span id="line-count">0</span> lines (showing last <span id="max-lines-display">1000</span>)
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div 
+        id="output-container" 
+        class="bg-black text-green-400 font-mono text-sm rounded-lg p-4 h-96 overflow-y-auto border"
+        style="font-family: 'Courier New', monospace;"
+      >
+        <div class="text-gray-500">Waiting for output...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Process Status Check -->
+  <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-start">
+      <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
+      <div class="text-sm">
+        <p class="font-medium text-blue-700 mb-2">How to Check if Scraper is Running:</p>
+        <ul class="text-blue-700 space-y-1 list-disc list-inside">
+          <li><strong>Refresh this page</strong> - Status indicator will show "Running" or "Ready"</li>
+          <li><strong>Check Process ID</strong> - If running, you'll see the process ID and start time</li>
+          <li><strong>Look for output</strong> - If running, new output lines will appear in the terminal</li>
+          <li><strong>Button states</strong> - "Start" will be disabled, "Stop" will be enabled if running</li>
+          <li><strong>Public status page</strong> - Visit <a href="/scraper-status" class="underline">/scraper-status</a> (no login required)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+    <div class="flex items-start">
+      <i class="fas fa-lightbulb text-yellow-500 mt-0.5 mr-3"></i>
+      <div class="text-sm">
+        <p class="font-medium text-yellow-700 mb-2">Important Notes:</p>
+        <ul class="text-yellow-700 space-y-1 list-disc list-inside">
+          <li>The scraper will continue running even if you close this page</li>
+          <li>You can monitor progress by refreshing this page</li>
+          <li>Output is streamed in real-time as the process runs</li>
+          <li>Use the stop button to terminate the process if needed</li>
+          <li>Process status is maintained across page refreshes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let autoScroll = true;
+let outputContainer = null;
+let lineCount = 0;
+let processId = null;
+let eventSource = null;
+let maxLines = 1000; // Maximum lines to keep in memory
+let outputBuffer = []; // Buffer for output lines
+let processStartTime = null; // Track when process started
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Scraper interface initializing...');
+    outputContainer = document.getElementById('output-container');
+    
+    // Initialize button states
+    updateStatus('ready');
+    updateMaxLinesDisplay();
+    
+    // Ensure all buttons are properly initialized
+    setTimeout(() => {
+        const startBtn = document.getElementById('start-scraper-btn');
+        const stopBtn = document.getElementById('stop-scraper-btn');
+        const clearBtn = document.getElementById('clear-output-btn');
+        
+        console.log('Scraper interface buttons initialized:', {
+            start: !!startBtn,
+            stop: !!stopBtn,
+            clear: !!clearBtn
+        });
+    }, 1000);
+    
+    checkScraperStatus();
+    
+    // Check status every 5 seconds
+    setInterval(checkScraperStatus, 5000);
+    
+    // Update process duration every second if running
+    setInterval(updateProcessDuration, 1000);
+    
+    console.log('Scraper interface initialized');
+});
+
+function toggleAutoScroll() {
+    autoScroll = !autoScroll;
+    const btn = document.getElementById('auto-scroll-btn');
+    btn.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+    btn.className = autoScroll 
+        ? 'text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors'
+        : 'text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors';
+}
+
+function addOutputLine(text) {
+    // Add to buffer
+    outputBuffer.push(text);
+    
+    // Remove old lines if buffer is too large
+    if (outputBuffer.length > maxLines) {
+        outputBuffer.shift(); // Remove oldest line
+    }
+    
+    // Rebuild the output container with only recent lines
+    rebuildOutputContainer();
+    
+    lineCount++;
+    document.getElementById('line-count').textContent = lineCount;
+    
+    if (autoScroll) {
+        outputContainer.scrollTop = outputContainer.scrollHeight;
+    }
+}
+
+function rebuildOutputContainer() {
+    // Clear container
+    outputContainer.innerHTML = '';
+    
+    // Add all lines from buffer
+    outputBuffer.forEach(text => {
+        const line = document.createElement('div');
+        line.textContent = text;
+        line.className = 'mb-1';
+        outputContainer.appendChild(line);
+    });
+}
+
+function clearOutput() {
+    console.log('Clear output button clicked');
+    outputBuffer = []; // Clear the buffer
+    outputContainer.innerHTML = '<div class="text-gray-500">Output cleared...</div>';
+    lineCount = 0;
+    document.getElementById('line-count').textContent = lineCount;
+}
+
+async function cleanupScraper() {
+    if (!confirm('This will clean up any orphaned scraper processes and lock files. Continue?')) {
+        return;
+    }
+    
+    try {
+        addOutputLine('🧹 Starting cleanup...');
+        const response = await fetch('/api/admin/cleanup-scraper', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.status === 401) {
+            addOutputLine('❌ Authentication required. Please log in first.');
+            return;
+        }
+        
+        if (!response.ok) {
+            addOutputLine(`❌ Server error: ${response.status} ${response.statusText}`);
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            addOutputLine('✅ Cleanup completed successfully');
+            if (result.lock_file_removed) {
+                addOutputLine('🗑️ Lock file removed');
+            }
+            if (result.processes_killed && result.processes_killed.length > 0) {
+                addOutputLine(`🛑 Killed ${result.processes_killed.length} orphaned process(es): ${result.processes_killed.join(', ')}`);
+            } else {
+                addOutputLine('ℹ️ No orphaned processes found');
+            }
+            
+            // Update status
+            updateStatus('ready');
+            
+            // Stop output stream if running
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        } else {
+            addOutputLine(`❌ Cleanup failed: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error during cleanup:', error);
+        addOutputLine(`❌ Error during cleanup: ${error.message}`);
+    }
+}
+
+// Test function to verify JavaScript is working
+function testButtons() {
+    console.log('Testing button functionality...');
+    addOutputLine('🧪 Testing button functionality...');
+    addOutputLine('✅ JavaScript is working correctly');
+    addOutputLine('✅ Buttons should be clickable now');
+}
+
+function downloadLogs() {
+    console.log('Download logs requested');
+    
+    // Create a blob with all output lines
+    const logContent = outputBuffer.join('\n');
+    const blob = new Blob([logContent], { type: 'text/plain' });
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scraper-output-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    addOutputLine('📥 Logs downloaded successfully');
+}
+
+function updateMaxLinesDisplay() {
+    document.getElementById('max-lines-display').textContent = maxLines;
+}
+
+function updateProcessDuration() {
+    if (processStartTime) {
+        const now = new Date();
+        const duration = Math.floor((now - processStartTime) / 1000);
+        const hours = Math.floor(duration / 3600);
+        const minutes = Math.floor((duration % 3600) / 60);
+        const seconds = duration % 60;
+        
+        let durationText = '';
+        if (hours > 0) {
+            durationText = `${hours}h ${minutes}m ${seconds}s`;
+        } else if (minutes > 0) {
+            durationText = `${minutes}m ${seconds}s`;
+        } else {
+            durationText = `${seconds}s`;
+        }
+        
+        document.getElementById('process-duration').textContent = durationText;
+    }
+}
+
+function updateStatus(status, processId = null, startTime = null) {
+    const indicator = document.getElementById('status-indicator');
+    const processInfo = document.getElementById('process-info');
+    const startBtn = document.getElementById('start-scraper-btn');
+    const stopBtn = document.getElementById('stop-scraper-btn');
+    
+    if (status === 'running') {
+        indicator.innerHTML = '<i class="fas fa-circle text-green-400 mr-2"></i>Running';
+        indicator.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800';
+        
+        if (processId) {
+            document.getElementById('process-id').textContent = processId;
+            const startTimeStr = startTime || new Date().toLocaleTimeString();
+            document.getElementById('process-start-time').textContent = startTimeStr;
+            processInfo.classList.remove('hidden');
+            
+            // Track start time for duration calculation
+            processStartTime = new Date();
+        }
+        
+        startBtn.disabled = true;
+        startBtn.className = 'flex-1 bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center cursor-not-allowed disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+        stopBtn.disabled = false;
+        stopBtn.className = 'flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+    } else if (status === 'stopped') {
+        indicator.innerHTML = '<i class="fas fa-circle text-red-400 mr-2"></i>Stopped';
+        indicator.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800';
+        
+        startBtn.disabled = false;
+        startBtn.className = 'flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+        stopBtn.disabled = true;
+        stopBtn.className = 'flex-1 bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center cursor-not-allowed disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+        processInfo.classList.add('hidden');
+        
+        // Clear process tracking
+        processStartTime = null;
+    } else {
+        indicator.innerHTML = '<i class="fas fa-circle text-gray-400 mr-2"></i>Ready';
+        indicator.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800';
+        
+        startBtn.disabled = false;
+        startBtn.className = 'flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+        stopBtn.disabled = true;
+        stopBtn.className = 'flex-1 bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center cursor-not-allowed disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400';
+        processInfo.classList.add('hidden');
+        
+        // Clear process tracking
+        processStartTime = null;
+    }
+}
+
+async function startScraper() {
+    console.log('Start scraper button clicked');
+    try {
+        addOutputLine('🚀 Starting scraper...');
+        const response = await fetch('/api/admin/start-scraper', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.status === 401) {
+            addOutputLine('❌ Authentication required. Please log in first.');
+            return;
+        }
+        
+        if (!response.ok) {
+            addOutputLine(`❌ Server error: ${response.status} ${response.statusText}`);
+            return;
+        }
+        
+        const result = await response.json();
+        console.log('Start scraper response:', result);
+        
+        if (result.success) {
+            updateStatus('running', result.process_id, result.start_time);
+            addOutputLine(`🚀 Scraper started at ${result.start_time}`);
+            addOutputLine(`Process ID: ${result.process_id}`);
+            addOutputLine('─'.repeat(50));
+            
+            // Start listening for output
+            startOutputStream();
+        } else {
+            addOutputLine(`❌ Failed to start scraper: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error starting scraper:', error);
+        addOutputLine(`❌ Error starting scraper: ${error.message}`);
+    }
+}
+
+async function stopScraper() {
+    try {
+        const response = await fetch('/api/admin/stop-scraper', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.status === 401) {
+            addOutputLine('❌ Authentication required. Please log in first.');
+            return;
+        }
+        
+        if (!response.ok) {
+            addOutputLine(`❌ Server error: ${response.status} ${response.statusText}`);
+            return;
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateStatus('stopped');
+            addOutputLine('🛑 Scraper stopped by user');
+            
+            // Stop listening for output
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        } else {
+            addOutputLine(`❌ Failed to stop scraper: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error stopping scraper:', error);
+        addOutputLine(`❌ Error stopping scraper: ${error.message}`);
+    }
+}
+
+async function checkScraperStatus() {
+    try {
+        const response = await fetch('/api/admin/scraper-status');
+        
+        if (response.status === 401) {
+            console.log('Not authenticated, skipping status check');
+            return;
+        }
+        
+        if (!response.ok) {
+            console.error('Error checking scraper status:', response.status, response.statusText);
+            return;
+        }
+        
+        const status = await response.json();
+        
+        if (status.running) {
+            updateStatus('running', status.process_id, status.start_time);
+            
+            // Start output stream if not already running
+            if (!eventSource) {
+                startOutputStream();
+            }
+        } else {
+            updateStatus('stopped');
+            
+            // Stop output stream if running
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+    } catch (error) {
+        console.error('Error checking scraper status:', error);
+    }
+}
+
+function startOutputStream() {
+    if (eventSource) {
+        eventSource.close();
+    }
+    
+    eventSource = new EventSource('/api/admin/scraper-output');
+    
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        addOutputLine(data.line);
+    };
+    
+    eventSource.onerror = function(event) {
+        console.error('EventSource failed:', event);
+        if (eventSource.readyState === EventSource.CLOSED) {
+            addOutputLine('❌ Connection to output stream lost');
+        } else if (eventSource.readyState === EventSource.CONNECTING) {
+            addOutputLine('🔄 Reconnecting to output stream...');
+        }
+    };
+}
+
+// Clean up on page unload
+window.addEventListener('beforeunload', function() {
+    if (eventSource) {
+        eventSource.close();
+    }
+});
+</script>
+
+<style>
+/* Custom styles for the output container */
+#output-container {
+    scrollbar-width: thin;
+    scrollbar-color: #4a5568 #2d3748;
+}
+
+#output-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+#output-container::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 4px;
+}
+
+#output-container::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 4px;
+}
+
+#output-container::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+}
+</style>
+{% endblock %}
