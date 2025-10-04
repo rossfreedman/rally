@@ -491,16 +491,21 @@ class EnhancedStealthBrowser:
             from selenium import webdriver
             from selenium.webdriver.chrome.service import Service
             
-            # Use the working ChromeDriver we know has permissions
-            working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
-            if os.path.exists(working_driver_path):
-                service = Service(executable_path=working_driver_path)
-                return webdriver.Chrome(service=service, options=options)
+            # Check if we're running on Railway (Linux) or locally (macOS)
+            if os.path.exists('/app'):  # Railway environment
+                # Use system Chrome on Railway
+                return uc.Chrome(options=options)
             else:
-                # Fallback to version-based approach
-                chrome_version = get_installed_chrome_version()
-                version_main = int(chrome_version.split('.')[0])
-                return uc.Chrome(options=options, version_main=version_main)
+                # Local development - use the working ChromeDriver we know has permissions
+                working_driver_path = "/Users/rossfreedman/.wdm/drivers/chromedriver/mac64/139.0.7258.138/chromedriver-mac-arm64/chromedriver"
+                if os.path.exists(working_driver_path):
+                    service = Service(executable_path=working_driver_path)
+                    return webdriver.Chrome(service=service, options=options)
+                else:
+                    # Fallback to version-based approach
+                    chrome_version = get_installed_chrome_version()
+                    version_main = int(chrome_version.split('.')[0])
+                    return uc.Chrome(options=options, version_main=version_main)
         except Exception as e:
             raise Exception(f"Undetected ChromeDriver failed: {e}")
     
