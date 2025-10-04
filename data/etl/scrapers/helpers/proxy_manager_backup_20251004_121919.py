@@ -696,42 +696,149 @@ class EnhancedProxyRotator:
         return session_names
     
     def _test_proxy(self, proxy_info: ProxyInfo) -> bool:
-        """Test if a proxy is working with Decodo authentication validation."""
-        test_url = "https://api.ipify.org?format=json"
+        """Test if a proxy is working with multiple fallback URLs and better error handling."""
         try:
-            # Get Decodo credentials from environment variables
-            DECODO_USERNAME = os.getenv("DECODO_USERNAME", "sp2lv5ti3g")
-            DECODO_PASSWORD = os.getenv("DECODO_PASSWORD", "zU0Pdl~7rcGqgxuM69")
+            # Import settings for proxy testing
+            try:
+                from .settings_stealth import PROXY_TEST_TARGET
+            except ImportError:
+                from settings_stealth import PROXY_TEST_TARGET
             
-            # Create proxy URL with Decodo authentication
+            # Create proxy URL with authentication (session names not supported by Decodo)
+            if proxy_info.username and proxy_info.password:
+                proxy_url = f"http://{proxy_info.username}:{proxy_info.password}@{proxy_info.host}:{proxy_info.port}"
+            else:
+                # Use working credentials as fallback
+                proxy_url = f"http://sp2lv5ti3g:zU0Pdl~7rcGqgxuM69@{proxy_info.host}:{proxy_info.port}"
+            
             proxies = {
-                "http": f"http://{DECODO_USERNAME}:{DECODO_PASSWORD}@{proxy_info.host}:{proxy_info.port}",
-                "https": f"http://{DECODO_USERNAME}:{DECODO_PASSWORD}@{proxy_info.host}:{proxy_info.port}",
+                "http": proxy_url,
+                "https": proxy_url
             }
             
-            response = requests.get(test_url, proxies=proxies, timeout=8)
-
-            if response.status_code == 200:
+            # Use a single, reliable test URL to avoid rate limiting
+            test_urls = [
+                "https://api.ipify.org?format=json"  # More reliable than httpbin.org
+            ]
+            
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json,text/html,*/*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive"
+            }
+            
+            # Try each test URL until one works
+            for i, test_url in enumerate(test_urls):
                 try:
-                    data = response.json()
-                    if "ip" in data and data["ip"]:
-                        logger.info(f"✅ Proxy {proxy_info.port} authenticated successfully via Decodo")
-                        proxy_info.status = ProxyStatus.ACTIVE
-                        proxy_info.success_count += 1
-                        proxy_info.consecutive_failures = 0
-                        return True
-                    else:
-                        logger.warning(f"⚠️ Proxy {proxy_info.port} returned 200 but missing IP field.")
-                except Exception:
-                    logger.warning(f"⚠️ Proxy {proxy_info.port} returned 200 but invalid JSON: {response.text[:60]}...")
-            else:
-                logger.warning(f"⚠️ Proxy {proxy_info.port} returned unexpected status: {response.status_code}")
-
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"❌ Proxy {proxy_info.port} request failed: {e}")
-
-        proxy_info.consecutive_failures += 1
-        return False
+                    logger.debug(f"🧪 Testing proxy {proxy_info.port} with URL {i+1}/{len(test_urls)}: {test_url}")
+                    
+                    response = requests.get(
+                        test_url,
+                        proxies=proxies,
+                        timeout=20,  # Increased timeout for reliability
+                        headers=headers,
+                        allow_redirects=True
+                    )
+                    
+                    # Log the specific status code for debugging
+                    if response.status_code != 200:
+                        logger.warning(f"⚠️ Proxy {proxy_info.port} returned status {response.status_code} for {test_url}")
+                        
+                        # If it's a 503, try the next URL
+                        if response.status_code == 503:
+                            logger.info(f"🔄 Proxy {proxy_info.port} got 503 from {test_url}, trying next URL...")
+                            proxy_info.last_failure_type = '503'
+                            continue
+                        
+                        # If it's a 522 (Cloudflare timeout), try the next URL but don't mark as failed
+                        if response.status_code == 522:
+                            logger.info(f"🔄 Proxy {proxy_info.port} got 522 from {test_url} (Cloudflare timeout), trying next URL...")
+                            proxy_info.last_failure_type = '522'
+                            continue
+                        
+                        # For other status codes, mark as failed
+                        proxy_info.failure_count += 1
+                        proxy_info.consecutive_failures += 1
+                        proxy_info.last_failure_type = f'status_{response.status_code}'
+                        return False
+                    
+                    # Success! Verify we got a valid response
+                    try:
+                        if test_url == "https://httpbin.org/user-agent":
+                            # This endpoint returns HTML, not JSON
+                            if "user-agent" in response.text.lower():
+                                proxy_info.status = ProxyStatus.ACTIVE
+                                proxy_info.success_count += 1
+                                proxy_info.consecutive_failures = 0
+                                logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
+                                return True
+                        else:
+                            # JSON endpoints
+                            data = response.json()
+                            # Check for expected fields in different APIs
+                            if any(field in data for field in ['origin', 'ip', 'user-agent']):
+                                # Basic test passed, now test target homepage if enabled
+                                if PROXY_TEST_TARGET:
+                                    if _test_target_home(proxy_url):
+                                        proxy_info.status = ProxyStatus.ACTIVE
+                                        proxy_info.success_count += 1
+                                        proxy_info.consecutive_failures = 0
+                                        logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url} + homepage)")
+                                        return True
+                                    else:
+                                        logger.warning(f"⚠️ Proxy {proxy_info.port} failed homepage test")
+                                        continue  # Try next URL
+                                else:
+                                    proxy_info.status = ProxyStatus.ACTIVE
+                                    proxy_info.success_count += 1
+                                    proxy_info.consecutive_failures = 0
+                                    logger.info(f"✅ Proxy {proxy_info.port} is healthy (tested with {test_url})")
+                                    return True
+                            else:
+                                logger.warning(f"⚠️ Proxy {proxy_info.port} returned invalid JSON from {test_url}")
+                                continue  # Try next URL
+                                
+                    except ValueError:
+                        # Non-JSON response, but might still be valid
+                        if len(response.text) > 100:  # Substantial response
+                            proxy_info.status = ProxyStatus.ACTIVE
+                            proxy_info.success_count += 1
+                            proxy_info.consecutive_failures = 0
+                            logger.info(f"✅ Proxy {proxy_info.port} is healthy (non-JSON response from {test_url})")
+                            return True
+                        else:
+                            logger.warning(f"⚠️ Proxy {proxy_info.port} returned short response from {test_url}")
+                            continue  # Try next URL
+                            
+                except requests.exceptions.Timeout:
+                    logger.warning(f"⏰ Proxy {proxy_info.port} timed out on {test_url}")
+                    proxy_info.last_failure_type = 'timeout'
+                    continue  # Try next URL
+                except requests.exceptions.ConnectionError:
+                    logger.warning(f"🔌 Proxy {proxy_info.port} connection error on {test_url}")
+                    proxy_info.last_failure_type = 'connection'
+                    continue  # Try next URL
+                except Exception as e:
+                    logger.warning(f"❌ Proxy {proxy_info.port} failed on {test_url}: {e}")
+                    proxy_info.last_failure_type = 'exception'
+                    continue  # Try next URL
+            
+            # If we get here, all test URLs failed
+            logger.warning(f"❌ Proxy {proxy_info.port} failed all test URLs")
+            proxy_info.failure_count += 1
+            proxy_info.consecutive_failures += 1
+            return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error testing proxy {proxy_info.port}: {e}")
+            proxy_info.failure_count += 1
+            proxy_info.consecutive_failures += 1
+            return False
+        finally:
+            proxy_info.last_tested = datetime.now()
+            proxy_info.total_requests += 1
     
     def _test_proxy_subset(self, ports_to_test: List[int]):
         """Test a subset of proxies to avoid overwhelming the service."""
