@@ -732,6 +732,9 @@ class EnhancedProxyRotator:
 
         proxy_info.consecutive_failures += 1
         return False
+        finally:
+            proxy_info.last_tested = datetime.now()
+            proxy_info.total_requests += 1
     
     def _test_proxy_subset(self, ports_to_test: List[int]):
         """Test a subset of proxies to avoid overwhelming the service."""
