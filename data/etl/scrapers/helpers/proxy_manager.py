@@ -729,12 +729,12 @@ class EnhancedProxyRotator:
 
         except requests.exceptions.RequestException as e:
             logger.warning(f"❌ Proxy {proxy_info.port} request failed: {e}")
-
-        proxy_info.consecutive_failures += 1
-        return False
         finally:
             proxy_info.last_tested = datetime.now()
             proxy_info.total_requests += 1
+
+        proxy_info.consecutive_failures += 1
+        return False
     
     def _test_proxy_subset(self, ports_to_test: List[int]):
         """Test a subset of proxies to avoid overwhelming the service."""
