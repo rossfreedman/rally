@@ -952,7 +952,7 @@ def import_players(league_key, file_path=None, limit=None):
         players_data = players_data[:limit]
         print(f"Limited to {limit} records for testing")
     
-        # Get database connection using our database configuration
+    # Get database connection using our database configuration
     with get_db() as conn:
         cur = conn.cursor()
         
