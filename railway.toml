@@ -28,6 +28,11 @@ command = "CRON_JOB_MODE=true FLASK_APP='' python data/etl/database_import/maste
 schedule = "0 8 * * *"  # Daily at 8 AM UTC instead of every 6 hours
 command = "CRON_JOB_MODE=true FLASK_APP='' python data/etl/database_import/master_import.py"
 
+# CNSWPL Scraper Runner - Full scrape and import for CNSWPL league
+[deploy.cronJobs.cnswpl_scraper]
+schedule = "0 6 * * *"  # Daily at 6 AM UTC
+command = "cd /app && python data/cron/cnswpl_scraper_runner.py"
+
 [env]
 FLASK_ENV = "production"
 DISABLE_SELENIUM = "true"
