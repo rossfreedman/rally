@@ -459,10 +459,13 @@ class CNSWPLScraper(BaseLeagueScraper):
                             line_text = line_cells[0].get_text(strip=True)
                             print(f"🔍 CNSWPL: Line text: '{line_text}'")
                             
-                            # Extract line number from "Line 1", "Line 2", etc.
-                            line_match = re.search(r'Line\s+(\d+)', line_text)
+                            # Extract line number from "Line 1", "Line 2", "Court 1", "Court 2", etc.
+                            line_match = re.search(r'(?:Line|Court)\s+(\d+)', line_text)
                             if line_match:
                                 line_num = int(line_match.group(1))
+                                # Determine which pattern was matched for better logging
+                                pattern_type = "Court" if "Court" in line_text else "Line"
+                                print(f"🔍 CNSWPL: Matched {pattern_type} pattern: '{line_text}' -> {pattern_type} {line_num}")
                                 
                                 # Extract winning team data (first row)
                                 winning_cells = winning_row.find_all('td')
@@ -1897,9 +1900,14 @@ class APTAScraper(BaseLeagueScraper):
             # Create separate match record for each line
             match_records = []
             for line_data in all_lines:
-                # Extract line number from line name (e.g., "Line 3" -> "3")
+                # Extract line number from line name (e.g., "Line 3" or "Court 3" -> "3")
                 line_name = line_data.get('Line', 'Line1')
-                line_number = line_name.replace('Line ', '') if 'Line ' in line_name else '1'
+                if 'Line ' in line_name:
+                    line_number = line_name.replace('Line ', '')
+                elif 'Court ' in line_name:
+                    line_number = line_name.replace('Court ', '')
+                else:
+                    line_number = '1'
                 
                 match_record = {
                     "league_id": "APTA_CHICAGO",

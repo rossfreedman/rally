@@ -1078,6 +1078,7 @@ def scrape_cnswpl_all_stats(max_retries=3, retry_delay=5):
         
         # Use the same hardcoded URLs that the CNSWPL player scraper uses successfully
         # CRITICAL: Include Series SN which has actual stats data (season has started)
+        # FIXED: Added missing letter series (A-K) that were causing missing series_stats
         series_urls = [
             # Series SN - HAS ACTUAL STATS DATA (season started)
             ("Series SN", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WlNlN3lMcz0%3D"),
@@ -1103,6 +1104,18 @@ def scrape_cnswpl_all_stats(max_retries=3, retry_delay=5):
             ("Series 16", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrOHg3WT0%3D"),
             # Updated Series 17 URL to correct one from website
             ("Series 17", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhidz0%3D"),
+            # ADDED: Missing letter series (A-K) that were causing missing series_stats
+            ("Series A", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3dz0%3D"),
+            ("Series B", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3MD0%3D"),
+            ("Series C", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3bz0%3D"),
+            ("Series D", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3cz0%3D"),
+            ("Series E", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3Zz0%3D"),
+            ("Series F", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3az0%3D"),
+            ("Series G", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkNHeHg3WT0%3D"),
+            ("Series H", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhiMD0%3D"),
+            ("Series I", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhibz0%3D"),
+            ("Series J", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhicz0%3D"),
+            ("Series K", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WlNhN3dibz0%3D"),
         ]
         
         print(f"🏆 Using {len(series_urls)} hardcoded CNSWPL series URLs")
