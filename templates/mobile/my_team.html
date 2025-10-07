@@ -151,7 +151,6 @@
                                             <div class="flex items-center gap-2">
                                                 <span>{{ player.name.replace(' (Sub)', '') }}</span>
                                                 <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">SUB</span>
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: #045454; color: #bff863;">C</span>
                                                 <a href="/mobile/player-detail/{{ player.name.replace(' (Sub)', '') | urlencode }}" 
                                                    class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                                    title="View {{ player.name.replace(' (Sub)', '') }}'s profile">
@@ -161,7 +160,6 @@
                                         {% else %}
                                             <div class="flex items-center gap-2">
                                                 <span>{{ player.name }}</span>
-                                                <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: #045454; color: #bff863;">C</span>
                                                 <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                                    class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                                    title="View {{ player.name }}'s profile">
