@@ -1101,7 +1101,8 @@ def scrape_cnswpl_all_stats(max_retries=3, retry_delay=5):
             # This caused Series 16 to show Series 12 data and Series 17 to show Series 13 data
             # Updated Series 16 URL to correct one from website
             ("Series 16", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrOHg3WT0%3D"),
-            ("Series 17", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WnkrNXg3ND0%3D"),
+            # Updated Series 17 URL to correct one from website
+            ("Series 17", f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did=nndz-WkM2eHhidz0%3D"),
         ]
         
         print(f"🏆 Using {len(series_urls)} hardcoded CNSWPL series URLs")
