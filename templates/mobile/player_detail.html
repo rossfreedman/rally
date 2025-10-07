@@ -81,8 +81,8 @@
         </div>
         {% endif %}
         
-        <!-- PTI History Chart (only show when PTI data is available) -->
-        {% if analyze_data.pti_data_available %}
+        <!-- PTI History Chart (only show when PTI history data is available) -->
+        {% if analyze_data.pti_history_available %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
@@ -394,8 +394,8 @@
         </div>
         {% endif %}
 
-        <!-- Previous Season History (only show when PTI data is available) -->
-        {% if analyze_data.pti_data_available %}
+        <!-- Previous Season History (only show when PTI history data is available) -->
+        {% if analyze_data.pti_history_available %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
@@ -697,8 +697,8 @@
 }
 </style>
 
-<!-- PTI Chart JavaScript (only load when PTI data is available) -->
-{% if analyze_data.pti_data_available %}
+<!-- PTI Chart JavaScript (only load when PTI history data is available) -->
+{% if analyze_data.pti_history_available %}
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
