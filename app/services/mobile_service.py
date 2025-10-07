@@ -5884,12 +5884,12 @@ def calculate_strength_of_schedule(user):
             series_num = m.group(1) if m else ""
             team = f"{club} {series_num}"
         else:
-            # APTA and other leagues use "Club - Number" format
+            # APTA and other leagues use "Club Number" format (no hyphen)
             import re
 
             m = re.search(r"(\d+)", series)
             series_num = m.group(1) if m else ""
-            team = f"{club} - {series_num}"
+            team = f"{club} {series_num}"
 
         print(
             f"[DEBUG] calculate_strength_of_schedule: Calculating comprehensive SoS for team '{team}'"
@@ -6049,7 +6049,7 @@ def calculate_strength_of_schedule(user):
         schedule_comparison = _analyze_schedule_comparison(
             historical_sos_value, remaining_sos_value, 
             user_historical_rank, user_remaining_rank,
-            len(all_teams), has_remaining_schedule
+            len(all_teams), has_remaining_schedule, len(historical_opponents)
         )
 
         print(f"[DEBUG] Team '{team}' - Historical SOS: {historical_sos_value} (#{user_historical_rank}), Remaining SOS: {remaining_sos_value} (#{user_remaining_rank})")
@@ -6409,7 +6409,7 @@ def _calculate_team_remaining_sos(team_name, league_id_int, user_historical_oppo
         return None
 
 
-def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank, remaining_rank, total_teams, has_remaining_schedule):
+def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank, remaining_rank, total_teams, has_remaining_schedule, opponents_count=0):
     """Analyze the comparison between historical and remaining schedule difficulty"""
     try:
         # If no remaining schedule exists, provide appropriate messaging
@@ -6423,8 +6423,8 @@ def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank,
                 "difficulty_text": "no remaining matches scheduled",
                 "historical_percentile": historical_percentile,
                 "remaining_percentile": None,
-                "summary": "Your season schedule is complete. No remaining matches are currently scheduled.",
-                "recommendation": "Season analysis shows your team faced opponents with an average strength rating. Focus on reviewing completed matches for insights."
+                "summary": "Your season schedule is complete. No remaining matches are currently scheduled." if opponents_count > 0 else "No matches have been played yet this season. No remaining matches are currently scheduled.",
+                "recommendation": "Focus on preparing for upcoming matches and reviewing team strategies." if opponents_count == 0 else "Season analysis shows your team faced opponents with an average strength rating. Focus on reviewing completed matches for insights."
             }
         
         # Calculate difference only if remaining schedule exists

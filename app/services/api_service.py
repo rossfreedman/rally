@@ -8,6 +8,7 @@ Functions handle data processing, database queries, and response formatting for 
 import json
 import os
 import traceback
+from datetime import datetime
 
 from flask import jsonify, request, session
 
@@ -286,11 +287,17 @@ def get_series_stats_data():
                         s.games_won,
                         s.games_lost,
                         l.league_id,
-                        t.display_name
+                        t.display_name,
+                        t.id as team_id,
+                        AVG(p.pti) as avg_pti
                     FROM series_stats s
                     LEFT JOIN leagues l ON s.league_id = l.id
                     LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
+                    LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
                     WHERE s.series_id = %s AND s.league_id = %s
+                    GROUP BY s.series, s.team, s.points, s.matches_won, s.matches_lost, s.matches_tied,
+                             s.lines_won, s.lines_lost, s.lines_for, s.lines_ret, s.sets_won, s.sets_lost,
+                             s.games_won, s.games_lost, l.league_id, t.display_name, t.id
                     ORDER BY s.points DESC, s.team ASC
                 """
                 db_results = execute_query(series_stats_query, [user_series_id, user_league_db_id])
@@ -354,12 +361,9 @@ def get_series_stats_data():
                     normalized_series_name = resolved_series_name
                     print(f"[DEBUG] CNSWPL series name kept as-is: '{resolved_series_name}'")
                 else:
-                    # APTA/NSTF use "S2B" format 
-                    series_parts = resolved_series_name.split(" ", 1)
-                    if len(series_parts) > 1:
-                        series_number = series_parts[1]
-                        normalized_series_name = f"S{series_number}"
-                        print(f"[DEBUG] Normalized series name: '{resolved_series_name}' -> '{normalized_series_name}'")
+                    # APTA/NSTF use full "Series X" format in database
+                    normalized_series_name = resolved_series_name
+                    print(f"[DEBUG] APTA/NSTF series name kept as-is: '{resolved_series_name}'")
 
             # Query series stats using normalized series name
             if user_league_db_id:
@@ -380,12 +384,17 @@ def get_series_stats_data():
                         s.games_won,
                         s.games_lost,
                         l.league_id,
-                        t.display_name
+                        t.display_name,
+                        AVG(p.pti) as avg_pti
                     FROM series_stats s
                     LEFT JOIN leagues l ON s.league_id = l.id
                     LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
-                                    WHERE s.series = %s AND s.league_id = %s
-                ORDER BY s.points DESC, s.team ASC
+                    LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
+                    WHERE s.series = %s AND s.league_id = %s
+                    GROUP BY s.series, s.team, s.points, s.matches_won, s.matches_lost, s.matches_tied,
+                             s.lines_won, s.lines_lost, s.lines_for, s.lines_ret, s.sets_won, s.sets_lost,
+                             s.games_won, s.games_lost, l.league_id, t.display_name
+                    ORDER BY s.points DESC, s.team ASC
                 """
                 db_results = execute_query(series_stats_query, [normalized_series_name, user_league_db_id])
             else:
@@ -405,11 +414,16 @@ def get_series_stats_data():
                         s.sets_lost,
                         s.games_won,
                         s.games_lost,
-                        t.display_name
+                        t.display_name,
+                        AVG(p.pti) as avg_pti
                     FROM series_stats s
                     LEFT JOIN teams t ON s.team = t.team_name
-                                    WHERE s.series = %s
-                ORDER BY s.points DESC, s.team ASC
+                    LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
+                    WHERE s.series = %s
+                    GROUP BY s.series, s.team, s.points, s.matches_won, s.matches_lost, s.matches_tied,
+                             s.lines_won, s.lines_lost, s.lines_for, s.lines_ret, s.sets_won, s.sets_lost,
+                             s.games_won, s.games_lost, t.display_name
+                    ORDER BY s.points DESC, s.team ASC
                 """
                 db_results = execute_query(series_stats_query, [normalized_series_name])
             
@@ -451,12 +465,21 @@ def get_series_stats_data():
                 else "0%"
             )
 
+            # Format avg_pti
+            avg_pti = row.get("avg_pti")
+            if avg_pti is not None:
+                avg_pti_display = round(float(avg_pti), 1)
+            else:
+                avg_pti_display = "N/A"
+            
             team_data = {
                 "series": row["series"],
                 "team": row["team"],
                 "display_name": row.get("display_name", row["team"]),  # Use display_name if available
                 "league_id": row.get("league_id", user_league_id),
+                "team_id": row.get("team_id"),
                 "points": row["points"],
+                "avg_pti": avg_pti_display,
                 "matches": {
                     "won": row["matches_won"],
                     "lost": row["matches_lost"],
@@ -1719,6 +1742,311 @@ def get_team_schedule_data_data():
 
     except Exception as e:
         print(f"❌ Error in get_team_schedule_data: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": "Internal server error"}), 500
+
+
+def get_team_schedule_grid_data_data():
+    """Get team schedule grid data - all players and their availability"""
+    try:
+        import json
+        import os
+        import traceback
+        from datetime import datetime, timedelta
+
+        from flask import jsonify, session
+
+        from database_utils import execute_query, execute_query_one
+
+        print("\n=== TEAM SCHEDULE GRID DATA API REQUEST ===")
+        # Get the team from user's session data
+        user = session.get("user")
+        if not user:
+            print("❌ No user in session")
+            return jsonify({"error": "Not authenticated"}), 401
+
+        user_email = user.get("email")
+        print(f"User: {user_email}")
+
+        # PRIORITY-BASED TEAM DETECTION (same as other team pages)
+        user_team_id = None
+        user_team_name = None
+        club_name = None
+        series = None
+        
+        # PRIORITY 1: Use team_id from session if available
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Team-schedule-grid: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                session_team_id = int(session_team_id)
+                team_query = """
+                    SELECT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, 
+                           s.display_name as series_display_name, l.league_id, c.name as club_name
+                    FROM teams t
+                    LEFT JOIN series s ON t.series_id = s.id
+                    LEFT JOIN leagues l ON t.league_id = l.id
+                    LEFT JOIN clubs c ON t.club_id = c.id
+                    WHERE t.id = %s
+                """
+                team_info = execute_query_one(team_query, [session_team_id])
+                
+                if team_info:
+                    user_team_id = team_info["id"]
+                    user_team_name = team_info["team_name"]
+                    club_name = team_info["club_name"]
+                    series = team_info["series_display_name"] or team_info["series_name"]
+                    print(f"✅ Found team via session team_id: {user_team_name} ({club_name} - {series})")
+                else:
+                    print(f"❌ Team not found for session team_id: {session_team_id}")
+            except (ValueError, TypeError) as e:
+                print(f"❌ Invalid session team_id: {session_team_id}, error: {e}")
+
+        # PRIORITY 2: Use team_context from session if available
+        if not user_team_id and user.get("team_context"):
+            team_context = user.get("team_context")
+            if isinstance(team_context, dict) and team_context.get("team_id"):
+                try:
+                    context_team_id = int(team_context["team_id"])
+                    team_query = """
+                        SELECT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, 
+                               s.display_name as series_display_name, l.league_id, c.name as club_name
+                        FROM teams t
+                        LEFT JOIN series s ON t.series_id = s.id
+                        LEFT JOIN leagues l ON t.league_id = l.id
+                        LEFT JOIN clubs c ON t.club_id = c.id
+                        WHERE t.id = %s
+                    """
+                    team_info = execute_query_one(team_query, [context_team_id])
+                    
+                    if team_info:
+                        user_team_id = team_info["id"]
+                        user_team_name = team_info["team_name"]
+                        club_name = team_info["club_name"]
+                        series = team_info["series_display_name"] or team_info["series_name"]
+                        print(f"✅ Found team via team_context: {user_team_name} ({club_name} - {series})")
+                except (ValueError, TypeError) as e:
+                    print(f"❌ Invalid team_context team_id: {team_context.get('team_id')}, error: {e}")
+
+        # PRIORITY 3: Use club and series from session
+        if not user_team_id:
+            club_name = user.get("club")
+            series = user.get("series")
+            
+            if club_name and series:
+                print(f"[DEBUG] Looking up team by club: {club_name}, series: {series}")
+                
+                # Convert series display format for database lookup
+                if series and series.startswith("Chicago "):
+                    series_db = series.replace("Chicago ", "S")
+                elif series and series.startswith("Series "):
+                    series_db = series.replace("Series ", "S")
+                elif series and series.startswith("Division "):
+                    series_db = series.replace("Division ", "S")
+                else:
+                    series_db = series
+                
+                team_query = """
+                    SELECT t.id, t.team_name, t.display_name, t.series_id, s.name as series_name, 
+                           s.display_name as series_display_name, l.league_id, c.name as club_name
+                    FROM teams t
+                    LEFT JOIN series s ON t.series_id = s.id
+                    LEFT JOIN leagues l ON t.league_id = l.id
+                    LEFT JOIN clubs c ON t.club_id = c.id
+                    WHERE c.name = %s AND s.name = %s
+                """
+                team_info = execute_query_one(team_query, [club_name, series_db])
+                
+                if team_info:
+                    user_team_id = team_info["id"]
+                    user_team_name = team_info["team_name"]
+                    club_name = team_info["club_name"]
+                    series = team_info["series_display_name"] or team_info["series_name"]
+                    print(f"✅ Found team via club/series: {user_team_name} ({club_name} - {series})")
+                else:
+                    print(f"❌ Team not found for club: {club_name}, series: {series_db}")
+
+        if not user_team_id:
+            return jsonify({
+                "error": "Team not found",
+                "message": "Unable to determine your team. Please check your profile settings.",
+                "team_status": "not_found"
+            }), 404
+
+        print(f"✅ Using team: {user_team_name} (ID: {user_team_id})")
+
+        # Get players for this specific team (same logic as mobile service)
+        players_query = """
+            SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
+                   c.name as club_name, s.name as series_name, t.id as team_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN teams t ON (p.club_id = t.club_id AND p.series_id = t.series_id AND p.league_id = t.league_id)
+            WHERE c.name = %s AND s.name = %s AND p.league_id = %s AND t.id = %s AND p.is_active = true
+            ORDER BY p.first_name, p.last_name
+        """
+        
+        # Get team details for the query
+        team_query = "SELECT club_id, series_id, league_id FROM teams WHERE id = %s"
+        team_details = execute_query_one(team_query, [user_team_id])
+        
+        if not team_details:
+            return jsonify({
+                "error": "Team details not found",
+                "message": f"Unable to get team details for team {user_team_id}",
+                "team_status": "team_details_not_found"
+            }), 404
+        
+        # Get club and series names
+        club_query = "SELECT name FROM clubs WHERE id = %s"
+        series_query = "SELECT name FROM series WHERE id = %s"
+        
+        club_name = execute_query_one(club_query, [team_details["club_id"]])["name"]
+        series_name = execute_query_one(series_query, [team_details["series_id"]])["name"]
+        
+        players = execute_query(players_query, (club_name, series_name, team_details["league_id"], user_team_id))
+        print(f"Found {len(players)} players for team {user_team_id}")
+
+        if not players:
+            return jsonify({
+                "error": "No players found",
+                "message": f"No players found for team {user_team_name}",
+                "team_status": "no_players"
+            }), 404
+
+        # Get upcoming matches/practices for this team from schedule table
+        matches_query = """
+            SELECT DISTINCT 
+                DATE(s.match_date) as match_date,
+                CASE 
+                    WHEN s.home_team_id = %s AND s.away_team_id IS NULL THEN 'Practice'
+                    WHEN s.home_team_id = %s AND s.away_team_id IS NOT NULL THEN 'Match'
+                    WHEN s.away_team_id = %s THEN 'Match'
+                    ELSE 'Unknown'
+                END as event_type,
+                s.home_team,
+                s.away_team,
+                CASE 
+                    WHEN s.home_team_id = %s THEN s.away_team
+                    WHEN s.away_team_id = %s THEN s.home_team
+                    ELSE NULL
+                END as opponent,
+                s.match_time as time
+            FROM schedule s
+            WHERE (s.home_team_id = %s OR s.away_team_id = %s)
+            ORDER BY s.match_date
+        """
+        
+        matches = execute_query(matches_query, [user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id])
+        print(f"Found {len(matches)} total matches/practices for the season")
+
+        # Get availability data for all players and dates
+        availability_data = {}
+        
+        if matches:
+            # Get all player IDs
+            player_ids = [p["id"] for p in players]
+            
+            # Get all match dates
+            match_dates = [m["match_date"] for m in matches]
+            
+            # Query availability for all players and dates at once (same logic as team-schedule page)
+            availability_query = """
+                SELECT 
+                    pa.player_id,
+                    pa.player_name,
+                    DATE(pa.match_date AT TIME ZONE 'UTC') as match_date,
+                    pa.availability_status,
+                    pa.notes
+                FROM player_availability pa
+                JOIN players p ON pa.player_id = p.id
+                WHERE pa.series_id = p.series_id 
+                AND (
+                    pa.player_id = ANY(%(player_ids)s) 
+                    OR pa.player_name = ANY(%(player_names)s)
+                )
+                AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
+            """
+            
+            # Prepare parameters (convert dates to date objects)
+            player_names = [f"{p['first_name']} {p['last_name']}" for p in players]
+            date_objects = []
+            for match_date in match_dates:
+                try:
+                    if isinstance(match_date, str):
+                        date_obj = datetime.strptime(match_date, "%Y-%m-%d").date()
+                    else:
+                        date_obj = match_date
+                    date_objects.append(date_obj)
+                except ValueError:
+                    continue
+            
+            availability_params = {
+                "player_ids": player_ids,
+                "player_names": player_names,
+                "dates": date_objects,
+            }
+            
+            print(f"✓ Executing availability query for {len(player_ids)} players and {len(date_objects)} dates")
+            availability_records = execute_query(availability_query, availability_params)
+            print(f"Found {len(availability_records)} availability records")
+            
+            # Organize availability data by player and date
+            for record in availability_records:
+                player_name = record["player_name"]
+                match_date = str(record["match_date"])
+                status = record["availability_status"]
+                notes = record.get("notes", "") or ""
+                
+                if player_name not in availability_data:
+                    availability_data[player_name] = {}
+                
+                availability_data[player_name][match_date] = {
+                    "status": status,
+                    "notes": notes,
+                    "user_email": record.get("user_email")
+                }
+
+        # Build response data
+        response_data = {
+            "team_info": {
+                "id": user_team_id,
+                "name": user_team_name,
+                "display_name": f"{club_name} - {series}",
+                "club": club_name,
+                "series": series
+            },
+            "players": [
+                {
+                    "id": p["id"],
+                    "name": f"{p['first_name']} {p['last_name']}",
+                    "first_name": p["first_name"],
+                    "last_name": p["last_name"],
+                    "tenniscores_player_id": p["tenniscores_player_id"]
+                }
+                for p in players
+            ],
+            "matches": [
+                {
+                    "date": str(m["match_date"]),
+                    "type": m["event_type"],
+                    "home_team": m["home_team"],
+                    "away_team": m["away_team"],
+                    "opponent": m["opponent"],
+                    "time": str(m["time"]) if m["time"] else None
+                }
+                for m in matches
+            ],
+            "availability": availability_data
+        }
+
+        print(f"✅ Returning grid data for {len(players)} players and {len(matches)} total season events")
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"❌ Error in get_team_schedule_grid_data_data: {str(e)}")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
 

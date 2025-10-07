@@ -4339,6 +4339,51 @@ def serve_mobile_team_schedule():
         )
 
 
+@mobile_bp.route("/mobile/team-schedule-grid")
+@login_required
+def serve_mobile_team_schedule_grid():
+    """Serve the team schedule grid page showing all players and their availability"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        club_name = user.get("club")
+        series = user.get("series")
+
+        if not club_name or not series:
+            return render_template(
+                "mobile/team_schedule_grid.html",
+                session_data={"user": user},
+                error="Please set your club and series in your profile settings",
+            )
+
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_team_schedule_grid"
+        )
+
+        return render_template(
+            "mobile/team_schedule_grid.html", team=team_name, session_data={"user": user}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_team_schedule_grid: {str(e)}")
+        import traceback
+
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/team_schedule_grid.html",
+            session_data=session_data,
+            error="An error occurred while loading the team schedule grid",
+        )
+
+
 @mobile_bp.route("/mobile/pros")
 @login_required
 def serve_mobile_pros():

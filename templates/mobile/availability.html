@@ -84,31 +84,17 @@
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
 
-        <!-- Calendar Download Banner -->
-        <div class="bg-green-700 rounded-xl shadow-sm border border-green-600 overflow-hidden" style="background-color: #10645c !important;">
-            <div class="px-6 py-4">
-                <table class="w-full" style="border-collapse: separate; border-spacing: 5px;">
-                    <tr>
-                        <td class="align-middle" style="width: auto; padding: 10px;">
-                            <i class="fas fa-calendar-plus text-white text-xl"></i>
-                        </td>
-                        <td class="align-middle" style="width: auto;">
-                            <div>
-                                <h3 class="text-white font-semibold text-base">Download Your Schedule</h3>
-                                <p class="text-white text-xs">Get your matches and practices into your personal calendar</p>
-                            </div>
-                        </td>
-                        <td class="align-middle" style="width: auto;">
-                            <a href="{{ url_for('download.calendar_download_page') }}" 
-                               class="download-btn-fixed bg-white text-green-700 rounded-lg font-medium hover:bg-green-50 transition-colors duration-200 flex items-center"
-                               onclick="console.log('Download button clicked, going to: {{ url_for('download.calendar_download_page') }}')">
-                                <i class="fas fa-download mr-2"></i>
-                                Download
-                            </a>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+        <!-- Calendar Download Chip -->
+        <div class="flex justify-end">
+            <a href="{{ url_for('download.calendar_download_page') }}" 
+               class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-200 shadow-sm"
+               style="background-color: #045454 !important; color: #bff863 !important;"
+               onmouseover="this.style.backgroundColor='#034343'"
+               onmouseout="this.style.backgroundColor='#045454'"
+               onclick="console.log('Download button clicked, going to: {{ url_for('download.calendar_download_page') }}')">
+                <i class="fas fa-calendar-plus mr-1 text-xs"></i>
+                Download to calendar
+            </a>
         </div>
 
         <!-- Filter Section -->
@@ -940,7 +926,104 @@ document.addEventListener('DOMContentLoaded', function() {
       const visibleCards = Array.from(group.querySelectorAll('.schedule-card')).some(card => card.style.display !== 'none');
       group.style.display = visibleCards ? '' : 'none';
     });
+    
+    // Past Events Accordion Functionality
+    initializePastEventsAccordion();
   });
+  
+  function initializePastEventsAccordion() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+    
+    const dateGroups = document.querySelectorAll('.schedule-date-group');
+    const pastGroups = [];
+    
+    // Identify past event groups
+    dateGroups.forEach(group => {
+      const dateStr = group.getAttribute('data-date');
+      if (dateStr) {
+        // Parse date string (MM/DD/YYYY format)
+        const [month, day, year] = dateStr.split('/');
+        const groupDate = new Date(year, month - 1, day);
+        
+        if (groupDate < today) {
+          pastGroups.push(group);
+        }
+      }
+    });
+    
+    // If we have past events, create accordion
+    if (pastGroups.length > 0) {
+      createPastEventsAccordion(pastGroups);
+    }
+  }
+  
+  function createPastEventsAccordion(pastGroups) {
+    // Create accordion container
+    const accordionContainer = document.createElement('div');
+    accordionContainer.className = 'past-events-accordion';
+    
+    // Create accordion header
+    const accordionHeader = document.createElement('div');
+    accordionHeader.className = 'past-events-header';
+    accordionHeader.innerHTML = `
+      <div class="flex items-center justify-between p-4 bg-gray-100 rounded-xl cursor-pointer hover:bg-gray-200 transition-colors border-2" style="border-color: #045454 !important;" onclick="togglePastEvents()">
+        <div class="flex items-center gap-3">
+          <i class="fas fa-history text-gray-600"></i>
+          <span class="font-semibold text-gray-700">Past Events (${pastGroups.length} date${pastGroups.length !== 1 ? 's' : ''})</span>
+        </div>
+        <i class="fas fa-chevron-down text-gray-600 transition-transform duration-200" id="past-events-chevron"></i>
+      </div>
+    `;
+    
+    // Create accordion content container
+    const accordionContent = document.createElement('div');
+    accordionContent.className = 'past-events-content';
+    accordionContent.style.display = 'none'; // Initially collapsed
+    
+    // Move past groups into accordion content
+    pastGroups.forEach(group => {
+      accordionContent.appendChild(group);
+    });
+    
+    // Assemble accordion
+    accordionContainer.appendChild(accordionHeader);
+    accordionContainer.appendChild(accordionContent);
+    
+    // Insert accordion before the first future event
+    const availabilityList = document.getElementById('availability-list');
+    const firstFutureGroup = Array.from(availabilityList.querySelectorAll('.schedule-date-group')).find(group => {
+      const dateStr = group.getAttribute('data-date');
+      if (dateStr) {
+        const [month, day, year] = dateStr.split('/');
+        const groupDate = new Date(year, month - 1, day);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return groupDate >= today;
+      }
+      return false;
+    });
+    
+    if (firstFutureGroup) {
+      availabilityList.insertBefore(accordionContainer, firstFutureGroup);
+    } else {
+      // If no future events, append at the end
+      availabilityList.appendChild(accordionContainer);
+    }
+  }
+  
+  function togglePastEvents() {
+    const content = document.querySelector('.past-events-content');
+    const chevron = document.getElementById('past-events-chevron');
+    
+    if (content.style.display === 'none') {
+      content.style.display = 'block';
+      chevron.style.transform = 'rotate(180deg)';
+    } else {
+      content.style.display = 'none';
+      chevron.style.transform = 'rotate(0deg)';
+    }
+  }
 </script>
 
 <style>
@@ -1484,20 +1567,44 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: #2563eb;
 }
 
-/* Download button - prevent size increase */
-.download-btn-fixed {
-    width: 140px !important;
-    height: 44px !important;
-    flex: none !important;
-    flex-grow: 0 !important;
-    flex-shrink: 0 !important;
-    flex-basis: 140px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 10px !important;
-    box-sizing: border-box !important;
-    gap: 8px !important;
+
+/* Past Events Accordion Styles */
+.past-events-accordion {
+    margin-bottom: 1.5rem;
+}
+
+.past-events-header {
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.past-events-content {
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.past-events-content .schedule-date-group {
+    margin-bottom: 1rem;
+}
+
+.past-events-content .schedule-date-group:last-child {
+    margin-bottom: 0;
+}
+
+/* Smooth transitions for accordion */
+.past-events-content {
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.past-events-content[style*="display: none"] {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.past-events-content[style*="display: block"] {
+    max-height: none;
+    opacity: 1;
 }
 </style>
 {% endblock %} 

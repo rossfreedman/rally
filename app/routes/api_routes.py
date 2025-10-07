@@ -2591,6 +2591,13 @@ def get_team_schedule_data():
     return get_team_schedule_data_data()
 
 
+@api_bp.route("/team-schedule-grid-data")
+@login_required
+def get_team_schedule_grid_data():
+    """Get team schedule grid data - all players and their availability"""
+    return get_team_schedule_grid_data_data()
+
+
 @api_bp.route("/availability", methods=["POST"])
 @login_required
 def update_availability():
