@@ -1,0 +1,12 @@
+Hi Mary Clare,
+
+I've fixed the issue with your account - your user profile wasn't properly linked to your player record, which prevented you from accessing the availability feature.
+
+**Your account is now working!** ✅
+
+You should now be able to log in and access the availability feature for your Tennaqua 7 team practices and drills.
+
+If you still have issues, try logging out and back in.
+
+Thanks,
+Rally Support

@@ -3929,7 +3929,9 @@ def get_pros_team_details():
                    CONCAT(p.first_name, ' ', p.last_name) as full_name
             FROM players p
             WHERE p.team_id = %s AND p.is_active = true
-            ORDER BY p.last_name, p.first_name
+            ORDER BY 
+                CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                p.last_name, p.first_name
         """
         
         players = execute_query(players_query, [team_id])
@@ -5137,7 +5139,9 @@ def serve_mobile_register_my_team():
                     LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
                     LEFT JOIN users u ON upa.user_id = u.id
                     WHERE p.team_id = %s AND p.is_active = true
-                    ORDER BY p.first_name, p.last_name
+                    ORDER BY 
+                        CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                        p.first_name, p.last_name
                 """
                 players_data = execute_query(players_query, [team_id])
 
@@ -5380,7 +5384,9 @@ def get_team_players(team_id):
                     p.tenniscores_player_id
                 FROM players p
                 WHERE p.team_id = %s AND p.is_active = true
-                ORDER BY p.first_name, p.last_name
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.first_name, p.last_name
             """
             players_data = execute_query(players_query, [team_id])
 
@@ -6092,6 +6098,7 @@ def get_team_members_with_court_stats(team_id, user):
                     p.last_name,
                     p.pti,
                     p.tenniscores_player_id,
+                    p.captain_status,
                     COALESCE(pms.match_count, 0) as match_count,
                     COALESCE(pms.wins, 0) as wins,
                     COALESCE(pms.losses, 0) as losses,
@@ -6104,7 +6111,9 @@ def get_team_members_with_court_stats(team_id, user):
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
                 WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
-                ORDER BY p.last_name, p.first_name
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.last_name, p.first_name
             """
             
             members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
@@ -6195,6 +6204,7 @@ def get_team_members_with_court_stats(team_id, user):
                     p.last_name,
                     p.pti,
                     p.tenniscores_player_id,
+                    p.captain_status,
                     COALESCE(pms.match_count, 0) as match_count,
                     COALESCE(pms.wins, 0) as wins,
                     COALESCE(pms.losses, 0) as losses,
@@ -6207,7 +6217,9 @@ def get_team_members_with_court_stats(team_id, user):
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
                 WHERE p.team_id = %s AND p.is_active = TRUE
-                ORDER BY p.last_name, p.first_name
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.last_name, p.first_name
             """
             
             members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
@@ -6235,6 +6247,7 @@ def get_team_members_with_court_stats(team_id, user):
                 "last_name": member["last_name"],
                 "pti": member.get("pti", 0),
                 "tenniscores_player_id": member["tenniscores_player_id"],
+                "captain_status": member.get("captain_status"),
                 "court_stats": court_stats,
                 "match_count": member.get("match_count", 0),
                 "wins": member.get("wins", 0),  # Include wins from optimized query

@@ -100,7 +100,7 @@ def main():
     print("1. Test the proxy: python3 scripts/test_decodo_proxy.py")
     print("2. Test scraper logic: python3 scripts/test_decodo_scraper.py")
     print("3. Update Railway environment variables")
-    print("4. Test a scraper: python3 data/etl/scrapers/scrape_match_scores.py aptachicago")
+    print("4. Test a scraper: python3 data/etl/scrapers/apta_scrape_match_scores.py aptachicago")
     
     return 0
 

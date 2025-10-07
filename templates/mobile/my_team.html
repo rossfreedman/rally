@@ -135,7 +135,80 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for player in top_players %}
+                            <!-- Captains Section -->
+                            {% set captains = top_players | selectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if captains %}
+                                <!-- Captains Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-crown mr-2"></i>Captains
+                                    </td>
+                                </tr>
+                                {% for player in captains %}
+                                <tr class="border-b border-gray-50 {% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                                    <td class="py-3 px-2 font-semibold text-gray-900">
+                                        {% if player.is_substitute %}
+                                            <div class="flex items-center gap-2">
+                                                <span>{{ player.name.replace(' (Sub)', '') }}</span>
+                                                <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">SUB</span>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: #045454; color: #bff863;">C</span>
+                                                <a href="/mobile/player-detail/{{ player.name.replace(' (Sub)', '') | urlencode }}" 
+                                                   class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                                   title="View {{ player.name.replace(' (Sub)', '') }}'s profile">
+                                                    <i class="fas fa-search text-sm"></i>
+                                                </a>
+                                            </div>
+                                        {% else %}
+                                            <div class="flex items-center gap-2">
+                                                <span>{{ player.name }}</span>
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full" style="background-color: #045454; color: #bff863;">C</span>
+                                                <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                                   class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                                   title="View {{ player.name }}'s profile">
+                                                    <i class="fas fa-search text-sm"></i>
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-2 text-center text-gray-700">{{ player.matches }}</td>
+                                    <td class="py-3 px-2 text-center">
+                                        <span class="px-2 py-1 rounded-full text-xs font-medium
+                                            {% if player.winRate >= 60 %}bg-green-100 text-green-700
+                                            {% elif player.winRate >= 45 %}bg-yellow-100 text-yellow-700
+                                            {% else %}bg-red-100 text-red-700
+                                            {% endif %}">
+                                            {{ player.winRate }}%
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-2 text-center text-gray-700">
+                                        {% if player.pti %}
+                                            <span class="font-medium">{{ "%.1f"|format(player.pti) }}</span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-400">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                <!-- Visual Separator -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-0">
+                                        <div class="border-t border-gray-200 mx-4"></div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            
+                            <!-- Players Section -->
+                            {% set regular_players = top_players | rejectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if regular_players %}
+                                <!-- Players Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-users mr-2"></i>Players
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            {% for player in regular_players %}
                             <tr class="border-b border-gray-50 {% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
                                 <td class="py-3 px-2 font-semibold text-gray-900">
                                     {% if player.is_substitute %}

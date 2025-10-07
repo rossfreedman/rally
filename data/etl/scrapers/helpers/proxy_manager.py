@@ -358,13 +358,14 @@ def backoff_proxy(proxy: str):
     logger.info(f"⏸️ Backing off proxy: {proxy}")
     return True
 
-def _test_target_home(proxy: str, url: str = "https://aptachicago.tenniscores.com/") -> bool:
+def _test_target_home(proxy: str, url: str = "https://aptachicago.tenniscores.com/?mod=nndz-SkhmOW1PQ3V4Zz09") -> bool:
     """
-    Test proxy against target homepage to verify it can access tenniscores.com sites.
+    Test proxy against deep link (not root domain) to verify it can access tenniscores.com sites.
+    CRITICAL: Never test against root domains as they trigger CAPTCHA/blocks.
     
     Args:
         proxy: Proxy URL string
-        url: Target homepage URL to test
+        url: Target deep link URL to test (NOT root domain)
         
     Returns:
         bool: True if proxy can access the target site successfully
@@ -1014,7 +1015,7 @@ class EnhancedProxyRotator:
                 try:
                     start_time = time.time()
                     response = requests.get(
-                        "https://tenniscores.com/",
+                        "https://aptachicago.tenniscores.com/?mod=nndz-SkhmOW1PQ3V4Zz09",
                         proxies=proxies,
                         timeout=10,  # Optimized for speed
                         headers=get_random_headers()

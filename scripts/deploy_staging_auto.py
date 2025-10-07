@@ -145,7 +145,7 @@ class AutomatedStagingDeployment:
         # Check new scraper files
         scraper_scripts = [
             "data/etl/scrapers/scrape_players.py",
-            "data/etl/scrapers/scrape_match_scores.py",
+            "data/etl/scrapers/apta_scrape_match_scores.py",
             "data/etl/scrapers/scrape_match_scores_incremental.py"
         ]
         

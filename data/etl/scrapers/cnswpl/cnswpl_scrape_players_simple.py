@@ -149,7 +149,8 @@ class CNSWPLSimpleScraper:
             ("Series H", None),
             ("Series I", None),
             ("Series J", None),
-            ("Series K", None)
+            ("Series K", None),
+            ("Series SN", "/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&did=nndz-WlNlN3lMcz0%3D")
         ]
         
         # Filter series based on target_series parameter if specified
@@ -167,7 +168,9 @@ class CNSWPLSimpleScraper:
                 series_url = f"{self.base_url}{series_path}"
                 series_urls.append((series_name, series_url))
             else:
-                series_urls.append((series_name, "DISCOVER"))
+                # Skip series without URLs for now (they need dynamic discovery)
+                print(f"⚠️ Skipping {series_name} - no URL available (requires dynamic discovery)")
+                continue
         
         return series_urls
 
@@ -277,6 +280,9 @@ class CNSWPLSimpleScraper:
                     self.completed_series.add(series_name)
                     successful_series += 1
                     print(f"✅ Successfully processed {series_name}: {len(players)} players")
+                    
+                    # Save individual series file to temp directory
+                    self.save_series_completion(series_name, players)
                 else:
                     failed_series.append(series_name)
                     print(f"⚠️ No players found for {series_name}")
@@ -475,7 +481,11 @@ class CNSWPLSimpleScraper:
                     # Extract player ID from URL and change prefix
                     player_id_match = re.search(r'p=([^&]+)', href)
                     if player_id_match:
-                        player_id = f"cnswpl_{player_id_match.group(1)}"
+                        raw_id = player_id_match.group(1)
+                        # Remove nndz- prefix if present
+                        if raw_id.startswith('nndz-'):
+                            raw_id = raw_id[5:]  # Remove 'nndz-' prefix
+                        player_id = f"cnswpl_{raw_id}"
                 
                 # Extract current season wins and losses from table cells
                 current_wins = 0
@@ -556,7 +566,14 @@ class CNSWPLSimpleScraper:
                 
                 # Extract player ID from URL and change prefix
                 player_id_match = re.search(r'p=([^&]+)', href)
-                player_id = f"cnswpl_{player_id_match.group(1)}" if player_id_match else ""
+                if player_id_match:
+                    raw_id = player_id_match.group(1)
+                    # Remove nndz- prefix if present
+                    if raw_id.startswith('nndz-'):
+                        raw_id = raw_id[5:]  # Remove 'nndz-' prefix
+                    player_id = f"cnswpl_{raw_id}"
+                else:
+                    player_id = ""
                 
                 # Check for captain indicators and clean player name
                 is_captain = False
@@ -613,10 +630,43 @@ class CNSWPLSimpleScraper:
         return players
 
     def _team_belongs_to_series(self, team_name: str, series_identifier: str) -> bool:
-        """Check if a team belongs to a specific series"""
-        # This is a simplified version - in practice you might need more sophisticated logic
-        # For now, we'll include all teams and let the series page filtering handle it
-        return True
+        """Check if a team belongs to a specific series in CNSWPL"""
+        if not team_name or not series_identifier:
+            return False
+        
+        # Extract series number from series identifier
+        if series_identifier.startswith("Series "):
+            series_value = series_identifier.replace("Series ", "").strip()
+        else:
+            series_value = series_identifier.strip()
+        
+        # For numeric series (1-17), look for teams ending with that number
+        if series_value.isdigit():
+            # Teams should end with the series number (e.g., "Team Name 1" for Series 1)
+            if team_name.endswith(f" {series_value}"):
+                return True
+            # Also check for teams ending with " - {series}" pattern
+            if team_name.endswith(f" - {series_value}"):
+                return True
+        
+        # For letter series (A-K), look for teams ending with that letter
+        elif len(series_value) == 1 and series_value.isalpha():
+            # Teams should end with the series letter (e.g., "Team Name A" for Series A)
+            if team_name.endswith(f" {series_value}"):
+                return True
+            # Also check for teams ending with " - {series}" pattern
+            if team_name.endswith(f" - {series_value}"):
+                return True
+        
+        # Special case for Series SN - teams should end with "SN"
+        elif series_value == "SN":
+            if team_name.endswith(" SN"):
+                return True
+            # Also check for teams with SN in parentheses like "Team Name SN (1)"
+            if " SN" in team_name:
+                return True
+        
+        return False
 
     def _extract_club_from_team_name(self, team_name: str) -> str:
         """Extract club name from team name"""
@@ -635,6 +685,51 @@ class CNSWPLSimpleScraper:
         
         return team_name  # Fallback to team name if no club found
 
+    def save_series_completion(self, series_name: str, series_players: List[Dict]):
+        """Save individual series file and progress after each completed series"""
+        try:
+            # Create data/leagues/CNSWPL/temp_players directory if it doesn't exist
+            series_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL', 'temp_players')
+            os.makedirs(series_dir, exist_ok=True)
+            
+            # Save individual series file
+            series_filename = series_name.replace(" ", "_").lower()  # "Series 1" -> "series_1"
+            series_file = f"{series_dir}/{series_filename}.json"
+            
+            # Prepare data for saving with metadata
+            series_data = {
+                'metadata': {
+                    'scraper': 'CNSWPL Simple Player Scraper',
+                    'version': '1.0',
+                    'scraped_at': datetime.now().isoformat(),
+                    'series_name': series_name,
+                    'total_players': len(series_players),
+                    'description': 'Simplified scraper - only current season player data (no career stats)'
+                },
+                'players': series_players
+            }
+            
+            with open(series_file, 'w', encoding='utf-8') as f:
+                json.dump(series_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"📁 Saved {series_name} to: {series_file} ({len(series_players)} players)")
+            
+            # Save progress tracking
+            progress_file = os.path.join(series_dir, 'scrape_progress.json')
+            progress_data = {
+                'completed_series': list(self.completed_series),
+                'last_update': datetime.now().isoformat(),
+                'total_players': len(self.all_players),
+                'series_files_created': len(self.completed_series),
+                'scraper_mode': 'simple'
+            }
+            with open(progress_file, 'w', encoding='utf-8') as f:
+                json.dump(progress_data, f, indent=2)
+                
+            print(f"💾 Progress saved: {series_name} complete - individual file + aggregate updated")
+        except Exception as e:
+            print(f"⚠️ Error saving series completion for {series_name}: {e}")
+
     def save_results(self, is_final: bool = False):
         """Save scraping results to JSON file"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -643,11 +738,8 @@ class CNSWPLSimpleScraper:
         results_dir = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'data', 'leagues', 'CNSWPL')
         os.makedirs(results_dir, exist_ok=True)
         
-        # Save to special file for Series 17 test, otherwise use players_simple.json
-        if '17' in str(self.target_series) and len(self.target_series) == 1:
-            output_file = os.path.join(results_dir, 'series17_simple.json')
-        else:
-            output_file = os.path.join(results_dir, 'players_simple.json')
+        # Save to standard players.json file
+        output_file = os.path.join(results_dir, 'players.json')
         
         # Create backup if file exists
         if os.path.exists(output_file):
@@ -656,25 +748,9 @@ class CNSWPLSimpleScraper:
             shutil.copy2(output_file, backup_file)
             print(f"📁 Created backup: {backup_file}")
         
-        # Prepare data for saving with metadata
-        results_data = {
-            'metadata': {
-                'scraper': 'CNSWPL Simple Player Scraper',
-                'version': '1.0',
-                'scraped_at': datetime.now().isoformat(),
-                'is_final': is_final,
-                'total_players': len(self.all_players),
-                'completed_series': list(self.completed_series),
-                'target_series': self.target_series,
-                'scraping_duration_minutes': (time.time() - self.start_time) / 60,
-                'description': 'Simplified scraper - only current season player data (no career stats)'
-            },
-            'players': self.all_players
-        }
-        
-        # Save to file
+        # Save players data directly as a list (standard format for import scripts)
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(results_data, f, indent=2, ensure_ascii=False)
+            json.dump(self.all_players, f, indent=2, ensure_ascii=False)
         
         print(f"💾 Results saved to: {output_file}")
         print(f"   👥 Total players: {len(self.all_players)}")
@@ -688,7 +764,7 @@ def main():
     # Show help if requested
     if "--help" in sys.argv or "-h" in sys.argv:
         print("CNSWPL Simple Player Scraper - Usage:")
-        print("  python cnswpl_scrape_players_simple.py                    # Scrape all series (1-17 and A-K)")
+        print("  python cnswpl_scrape_players_simple.py                    # Scrape all series (1-17, A-K, and SN)")
         print("  python cnswpl_scrape_players_simple.py --series A,B,C     # Scrape specific series (A, B, C)")
         print("  python cnswpl_scrape_players_simple.py --series=1,2,3     # Scrape specific series (1, 2, 3)")
         print("  python cnswpl_scrape_players_simple.py --help             # Show this help message")
@@ -715,11 +791,11 @@ def main():
     
     # Validate target_series if specified
     if target_series:
-        valid_series = [str(i) for i in range(1, 18)] + list('ABCDEFGHIJK')
+        valid_series = [str(i) for i in range(1, 18)] + list('ABCDEFGHIJK') + ['SN']
         invalid_series = [s for s in target_series if s not in valid_series]
         if invalid_series:
             print(f"❌ Error: Invalid series specified: {', '.join(invalid_series)}")
-            print(f"   Valid series are: 1-17 and A-K")
+            print(f"   Valid series are: 1-17, A-K, and SN")
             return
         print(f"✅ Valid series specified: {', '.join(target_series)}")
     

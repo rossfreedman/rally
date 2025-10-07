@@ -1240,8 +1240,10 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
             # Enhanced Stealth Browser-based series discovery (PRIMARY METHOD)
             print("   🛡️ Using Enhanced Stealth Browser for series discovery...")
             try:
-                # Use stealth browser's get_html() method
-                html_content = chrome_manager.get_html(base_url)
+                # Use stealth browser's get_html() method with deep link to avoid CAPTCHA
+                # CRITICAL: Never test proxies against root domains as they trigger CAPTCHA
+                discovery_url = f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx"
+                html_content = chrome_manager.get_html(discovery_url)
                 if not html_content:
                     raise Exception("Stealth browser returned empty content")
                 

@@ -4133,7 +4133,8 @@ def get_mobile_team_data(user):
                 "matches": player_matches,
                 "winRate": win_rate,
                 "pti": member.get("pti", 0),  # Include PTI data from member
-                "is_substitute": member.get("is_substitute", False)
+                "is_substitute": member.get("is_substitute", False),
+                "captain_status": member.get("captain_status")
             }
             top_players.append(player_data)
 
@@ -5419,6 +5420,18 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     print(f"[DEBUG] Error checking substitute status for {player_name}: {e}")
                     is_substitute = False
             
+            # Get captain status for this player
+            captain_status = None
+            if team_id and player_id:
+                try:
+                    captain_query = "SELECT captain_status FROM players WHERE tenniscores_player_id = %s AND team_id = %s"
+                    captain_result = execute_query_one(captain_query, [player_id, team_id])
+                    if captain_result:
+                        captain_status = captain_result.get("captain_status")
+                except Exception as e:
+                    print(f"[DEBUG] Error getting captain status for {player_name}: {e}")
+                    captain_status = None
+            
             top_players.append(
                 {
                     "name": player_name,
@@ -5428,6 +5441,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "best_partner": best_partner if best_partner else "Threshold not met",
                     "pti": player_pti,  # Add PTI data for template
                     "isSubstitute": is_substitute,  # Add substitute status
+                    "captain_status": captain_status,  # Add captain status
                 }
             )
 

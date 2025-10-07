@@ -948,6 +948,18 @@ def import_players(league_key, file_path=None, limit=None):
     players_data = load_json_file(input_file)
     print(f"Loaded {len(players_data)} player records")
     
+    # Validation: Check for reasonable number of players
+    if len(players_data) < 100:
+        print(f"⚠️ WARNING: Only {len(players_data)} players found. This seems low for CNSWPL.")
+        print(f"   Expected: 1000+ players, Got: {len(players_data)}")
+        print(f"   This might indicate a file path issue or incomplete scraping.")
+        
+        # For CNSWPL specifically, warn if we have very few players
+        if league_key == "CNSWPL" and len(players_data) < 500:
+            print(f"🚨 CRITICAL: CNSWPL should have 1000+ players, but only {len(players_data)} found!")
+            print(f"   This suggests the wrong file was used or scraping was incomplete.")
+            print(f"   Please verify the file path and scraping results.")
+    
     if limit:
         players_data = players_data[:limit]
         print(f"Limited to {limit} records for testing")

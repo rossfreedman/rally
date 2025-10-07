@@ -64,7 +64,7 @@ def main():
         run_step("Import Players", ["python3", "data/etl/import/import_players.py", "APTA_CHICAGO"])
 
         # Scores
-        run_step("Scrape Match Scores", ["python3", "data/etl/scrapers/scrape_match_scores.py", "APTA_CHICAGO"])
+        run_step("Scrape Match Scores", ["python3", "data/etl/scrapers/apta_scrape_match_scores.py", "APTA_CHICAGO"])
         run_step("Import Match Scores", ["python3", "data/etl/import/import_match_scores.py", "APTA_CHICAGO"])
 
         # Stats

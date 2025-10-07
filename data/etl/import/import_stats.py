@@ -560,14 +560,15 @@ def upsert_stat(cur, league_id, stat_data):
     series_name = stat_data.get("series", "").strip()
     team_name = stat_data.get("team", "").strip()
     
-    # Parse team name to get club and series
+    # Parse team name to get club and team identifier
     club_name, parsed_series_name, team_number = parse_team_name(team_name)
-    if not all([club_name, parsed_series_name]):
-        return None, f"team_parsing_failed: could not extract club/series from '{team_name}'"
+    if not club_name:
+        return None, f"team_parsing_failed: could not extract club from '{team_name}'"
     
-    # Use the series from the data, not the parsed one
+    # For CNSWPL and other leagues, always use the series from JSON data, not parsed from team name
+    # The team name parsing is used only to extract the club name and team identifier
     if series_name != parsed_series_name:
-        print(f"  ⚠️ Series mismatch: data has '{series_name}', parsed '{parsed_series_name}' from team '{team_name}'")
+        print(f"  ⚠️ Series mismatch: data has '{series_name}', parsed '{parsed_series_name}' from team '{team_name}' - using data series")
     
     try:
         # Ensure team exists (create if needed)
