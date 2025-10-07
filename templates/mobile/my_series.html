@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 async function loadSeriesData() {
-  // Cache-busting: Added white-space nowrap and increased Team column width to 30%
+  // Cache-busting: Fixed playoff trophy icon for user's team
   try {
     const response = await fetch(`/api/series-stats?t=${Date.now()}`);
     if (!response.ok) {
@@ -611,7 +611,7 @@ async function loadSeriesData() {
         rowClass += ' bg-gray-50';
       }
       
-      if (isPlayoffTeam && !isUserTeam) {
+      if (isPlayoffTeam) {
         rowClass += ' border-l-4 border-green-500';
         playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
       }
