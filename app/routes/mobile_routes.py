@@ -613,24 +613,6 @@ def serve_mobile_player_detail(player_id):
                 player_league_id = fallback_record["league_id"]
                 print(f"[DEBUG] Using fallback player league: {player_league_id}")
         
-        # Import the direct player analysis function
-        from app.services.mobile_service import get_player_analysis
-        
-        # DEBUG: Print court analysis data for Joel Braunstein specifically
-        if analyze_data and 'court_analysis' in analyze_data:
-            court_analysis = analyze_data['court_analysis']
-            print(f"\n🔍 DEBUG PLAYER DETAIL: Court analysis for {actual_player_id}")
-            for court_name, court_data in court_analysis.items():
-                partners = court_data.get('topPartners', [])
-                print(f"  {court_name}: {len(partners)} partners")
-                for partner in partners:
-                    if 'Joel' in partner.get('name', '') and 'Braunstein' in partner.get('name', ''):
-                        print(f"    >>> JOEL FOUND: {partner}")
-                        print(f"        matches: {partner.get('matches')}")
-                        print(f"        wins: {partner.get('wins')}")
-                        print(f"        losses: {partner.get('losses')}")
-                        print(f"        winRate: {partner.get('winRate')}")
-            print("🔍 DEBUG PLAYER DETAIL: End court analysis\n")
     else:
         # Final fallback to name-based analysis
         from app.services.mobile_service import get_player_analysis_by_name
@@ -711,6 +693,32 @@ def serve_mobile_player_detail(player_id):
                 "series": formatted_series, 
                 "team_name": player_record["team_name"]
             }
+
+    # Create a user dict with the specific player ID and team context for PTI delta calculation
+    player_user_dict = {
+        "first_name": player_name.split()[0] if player_name else "",
+        "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
+        "tenniscores_player_id": actual_player_id,
+        "league_id": player_league_id,  # Use target player's league, not viewing user's
+        "email": viewing_user.get("email", "")
+    }
+    
+    # Add team context for filtering and substitute detection
+    if team_id:
+        player_user_dict["team_context"] = team_id
+        player_user_dict["team_id"] = str(team_id)  # Add team_id for substitute detection
+        print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
+    else:
+        print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
+    
+    # Add club and series information for PTI delta calculation
+    if 'player_info' in locals() and player_info:
+        player_user_dict["club"] = player_info.get("club", "")
+        player_user_dict["series"] = player_info.get("series", "")
+        print(f"[DEBUG] Player detail - Added club '{player_user_dict['club']}' and series '{player_user_dict['series']}' for PTI delta calculation")
+    
+    # Get player analysis data with PTI delta calculation
+    analyze_data = get_player_analysis(player_user_dict)
 
     # PTI data is now handled within the service function with proper league filtering
 
