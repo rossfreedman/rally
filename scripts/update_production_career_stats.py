@@ -46,13 +46,16 @@ def get_db_connection(environment):
         
         parsed = urlparse(db_url)
         
+        # Determine SSL mode based on environment
+        sslmode = 'prefer' if environment == 'local' else 'require'
+        
         conn = psycopg2.connect(
             dbname=parsed.path[1:],
             user=parsed.username,
             password=parsed.password,
             host=parsed.hostname,
             port=parsed.port or 5432,
-            sslmode='require',
+            sslmode=sslmode,
             connect_timeout=30
         )
         
@@ -92,11 +95,25 @@ def update_career_stats(environment):
     print("=" * 60)
     
     # Load the career stats JSON file
-    json_path = 'data/leagues/APTA_CHICAGO/players_career_stats.json'
+    # Try multiple paths: current directory, project root, or full path
+    possible_paths = [
+        'players_career_stats.json',  # Current directory (for SSH runs)
+        'data/leagues/APTA_CHICAGO/players_career_stats.json',  # Project root
+        os.path.join(os.path.dirname(__file__), '..', 'data/leagues/APTA_CHICAGO/players_career_stats.json')  # Relative to script
+    ]
     
-    if not os.path.exists(json_path):
-        print(f"❌ File not found: {json_path}")
-        print(f"   Make sure you're running this from the project root directory")
+    json_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            json_path = path
+            break
+    
+    if not json_path:
+        print(f"❌ File not found: players_career_stats.json")
+        print(f"   Tried locations:")
+        for path in possible_paths:
+            print(f"     - {path}")
+        print(f"   Make sure the JSON file is in one of these locations")
         sys.exit(1)
     
     print(f"📂 Loading career stats from: {json_path}")
@@ -106,15 +123,7 @@ def update_career_stats(environment):
     
     print(f"✅ Loaded {len(career_stats_data)} player records")
     
-    # Ask for confirmation
-    print(f"\n⚠️  Ready to update {environment} database. Continue? (yes/no): ", end='')
-    confirmation = input().strip().lower()
-    
-    if confirmation != 'yes':
-        print("❌ Update cancelled by user")
-        sys.exit(0)
-    
-    print("\n🚀 Starting update...\n")
+    print(f"\n🚀 Starting update to {environment} database...\n")
     
     # Statistics
     stats = {
