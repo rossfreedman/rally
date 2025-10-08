@@ -40,54 +40,65 @@
     }
     
     .pro-button {
-        background: #045454;
-        color: #bff863;
-        border: none;
-        padding: 1.5rem;
-        border-radius: 1rem;
-        font-size: 1.2rem;
-        font-weight: 600;
+        background: #fff !important;
+        border-radius: 1.5rem !important;
+        border: 1px solid #E0E0E0 !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+        color: #045454 !important;
+        font-weight: 500 !important;
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        padding: 1.5rem !important;
+        position: relative;
+        z-index: 1;
         width: 100%;
         margin-bottom: 1rem;
-        box-shadow: 0 4px 16px rgba(4, 84, 84, 0.2);
-        transition: all 0.3s ease;
         text-decoration: none;
         display: block;
     }
     
     .pro-button:hover {
-        background: #034343;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(4, 84, 84, 0.3);
-        color: #bff863;
+        background: #f2f2f7 !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+        color: #045454 !important;
+        border-color: #E0E0E0 !important;
         text-decoration: none;
+    }
+    
+    .pro-button:active {
+        transform: scale(0.97);
+        background: #f2f2f7 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
     }
     
     .pro-button i {
         font-size: 2rem;
-        margin-bottom: 0.5rem;
-        display: block;
+        margin-bottom: 1rem;
+        opacity: 0.9;
+        font-weight: 300;
+        -webkit-font-smoothing: antialiased;
+        color: #045454 !important;
     }
     
     .pro-button-text {
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 500;
         margin-bottom: 0.25rem;
+        color: #045454 !important;
     }
     
     .pro-button-desc {
         font-size: 0.9rem;
         opacity: 0.8;
+        color: #045454 !important;
+    }
+    
+    .pro-button:hover i,
+    .pro-button:hover .pro-button-text,
+    .pro-button:hover .pro-button-desc {
+        color: #045454 !important;
     }
     
     
-    .welcome-message {
-        text-align: center;
-        color: #6b7280;
-        margin-bottom: 2rem;
-        font-size: 1.1rem;
-        padding: 0 1rem;
-    }
     
     @media (max-width: 600px) {
         .pro-title { font-size: 2rem; }
@@ -104,13 +115,9 @@
             <i class="fas fa-user-tie"></i>
         </div>
         <div class="pro-title">Pro Dashboard</div>
-        <div class="pro-subtitle">Manage your professional tennis services</div>
+        <div class="pro-subtitle">Manage practice times and lesson requests</div>
     </div>
 
-    <!-- Welcome Message -->
-    <div class="welcome-message">
-        Welcome back {{ session_data.user.first_name or session_data.user.name.split()[0] if session_data.user.name else 'there' }}!
-    </div>
 
     <!-- Action Buttons -->
     <div class="space-y-4">
@@ -123,7 +130,7 @@
 
         <!-- Lesson Requests Button -->
         <a href="/mobile/lesson-requests" class="pro-button">
-            <i class="fas fa-chalkboard-teacher"></i>
+            <i class="fas fa-envelope"></i>
             <div class="pro-button-text">Lesson Requests</div>
             <div class="pro-button-desc">Review and respond to lesson requests</div>
         </a>

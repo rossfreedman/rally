@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Rally</title>
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
+    <link rel="apple-touch-icon" href="/static/img/apple-touch-icon-green-small.png?v=2025">
+    
+    <!-- Basic Meta Tags -->
+    <meta name="description" content="Contact Rally - Get in touch with our team for support, partnerships, or general inquiries.">
+    <meta name="author" content="Rally">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Contact Us - Rally">
+    <meta property="og:description" content="Contact Rally - Get in touch with our team for support, partnerships, or general inquiries.">
+    <meta property="og:image" content="https://www.lovetorally.com/preview.png?v=3">
+    <meta property="og:image:secure_url" content="https://www.lovetorally.com/preview.png?v=3">
+    <meta property="og:image:alt" content="Rally - Platform Tennis Management">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:url" content="https://www.lovetorally.com/contact">
+    <meta property="og:site_name" content="Rally">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:updated_time" content="2025-01-15T00:00:00Z">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Contact Us - Rally">
+    <meta name="twitter:description" content="Contact Rally - Get in touch with our team for support, partnerships, or general inquiries.">
+    <meta name="twitter:image" content="https://www.lovetorally.com/preview.png?v=3">
+    <meta name="twitter:image:alt" content="Rally - Platform Tennis Management">
+    <meta name="twitter:site" content="@rally">
+    <meta name="twitter:creator" content="@rally">
+    
+    <!-- Additional Meta for Better Link Previews -->
+    <meta name="msapplication-TileColor" content="#000000">
+    <meta name="msapplication-TileImage" content="https://www.lovetorally.com/preview.png?v=3">
+    
+    <!-- Additional Social Media Tags -->
+    <meta property="fb:app_id" content="">
+    <meta name="application-name" content="Rally">
+    <meta name="apple-mobile-web-app-title" content="Rally">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.lovetorally.com/contact">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-teal': '#0d4f4c',
+                        'rally-teal-dark': '#0a3d3a',
+                        'rally-green': '#84cc16',
+                        'rally-lime': '#a3e635',
+                        'rally-bright-green': '#bff863',
+                        'rally-cream': '#f7f3e9',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+        }
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+        }
+        .hero-section {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .nav-transparent {
+            background: rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .nav-solid {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .nav-solid .nav-links a {
+            color: #ffffff;
+        }
+        .nav-solid .nav-links a:hover {
+            color: #bff863;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav id="main-nav" class="fixed top-0 w-full z-50 nav-transparent">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <!-- Centered Logo -->
+            <div class="logo-container flex justify-center items-center py-3">
+                <a href="index.html" class="flex items-center">
+                    <img class="logo-image h-28 w-auto drop-shadow-lg" src="images/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
+                </a>
+            </div>
+            
+            <!-- Navigation Links -->
+            <div class="nav-links flex justify-center items-center pb-8">
+                <div class="flex items-center space-x-8">
+                    <a href="index.html#get-to-know-rally" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Features</a>
+                    <a href="index.html#leagues" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Leagues</a>
+                    <a href="index.html#pricing" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Pricing</a>
+                    <a href="/login" class="text-white hover:text-rally-bright-green transition duration-300 font-medium drop-shadow-md">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section relative min-h-screen flex items-center justify-center overflow-hidden">
+        <!-- Background Image -->
+        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('images/paddle_love.jpeg');"></div>
+        <!-- Dark Overlay -->
+        <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+        
+        <!-- Content -->
+        <div class="relative z-10 text-center px-8 sm:px-12 lg:px-16 max-w-6xl mx-auto">
+            <h1 class="text-5xl md:text-6xl font-bold mb-8 drop-shadow-lg text-rally-green">
+                Contact Us
+            </h1>
+            <p class="text-xl text-white/90 mb-8 max-w-2xl mx-auto drop-shadow">
+                We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            </p>
+            
+            <!-- Scroll Down Arrow -->
+            <div class="mt-12">
+                <button onclick="scrollToContactForm()" 
+                        class="inline-flex items-center justify-center w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full transition-all duration-300 transform hover:scale-110 group">
+                    <i class="fas fa-chevron-down text-white text-xl group-hover:text-rally-lime transition-colors duration-300"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section id="contact-form" class="py-20 bg-white">
+        <div class="max-w-2xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                <div class="px-8 py-6 bg-gradient-to-r from-rally-teal to-rally-teal-dark">
+                    <h2 class="text-2xl font-bold text-white">Get in Touch</h2>
+                    <p class="text-white/90 mt-2">We're here to help with any questions or concerns you may have.</p>
+                </div>
+                
+                <div class="p-8">
+                    <form id="contactForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                                <input type="text" id="firstName" name="firstName" required 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200">
+                            </div>
+                            
+                            <div>
+                                <label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                                <input type="text" id="lastName" name="lastName" required 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                            <input type="email" id="email" name="email" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200">
+                        </div>
+                        
+                        <div>
+                            <label for="requestType" class="block text-sm font-medium text-gray-700 mb-2">Type of Request *</label>
+                            <select id="requestType" name="requestType" required 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200">
+                                <option value="">Select request type</option>
+                                <option value="General">General</option>
+                                <option value="Support">Support</option>
+                                <option value="Partnership">Partnership</option>
+                                <option value="Sponsorships">Sponsorships</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
+                            <input type="text" id="subject" name="subject" required 
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200">
+                        </div>
+                        
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message *</label>
+                            <textarea id="message" name="message" rows="6" required 
+                                      placeholder="Please provide details about your request..."
+                                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-transparent transition duration-200 resize-vertical"></textarea>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="newsletter" name="newsletter" type="checkbox" 
+                                       class="focus:ring-rally-teal h-4 w-4 text-rally-teal border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="newsletter" class="text-gray-600">
+                                    I'd like to receive updates about Rally features and news
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="pt-4">
+                            <button type="submit" id="submitButton"
+                                    class="w-full bg-rally-green hover:bg-rally-lime text-black py-4 px-6 rounded-lg font-semibold text-lg transition duration-300 shadow-lg transform hover:scale-105 flex items-center justify-center">
+                                <span id="submitText">Send Message</span>
+                                <div id="submitSpinner" class="hidden ml-2">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-black"></div>
+                                </div>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer -->
+    <footer class="bg-rally-teal-dark text-white pt-16 pb-32 relative overflow-hidden">
+        <!-- Footer Logo -->
+        <div class="absolute bottom-0 right-0">
+            <img src="images/footer_logo.png" alt="Rally Footer Logo" class="h-auto max-h-[200px] opacity-80">
+        </div>
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 relative z-10">
+            <div class="flex items-center justify-center mb-8">
+                <a href="index.html" class="flex items-center">
+                    <img class="h-[82px] w-auto mr-2" src="images/rallylogobug.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xl font-bold">🏓 Rally</div>
+                </a>
+            </div>
+            <p class="text-gray-400 text-center mb-12">The ultimate club racquet sports app.</p>
+            
+            <div class="grid grid-cols-2 gap-16 mb-12 max-w-2xl mx-auto">
+                <!-- Column 1: Product -->
+                <div class="text-center">
+                    <h4 class="text-lg font-semibold mb-4 text-white">Product</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="index.html#features" class="hover:text-white transition">Features</a></li>
+                        <li><a href="index.html#pricing" class="hover:text-white transition">Pricing</a></li>
+                        <li><a href="#" class="hover:text-white transition">Updates</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Column 2: Support -->
+                <div class="text-center">
+                    <h4 class="text-lg font-semibold mb-4 text-white">Support</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="contact.html" class="hover:text-white transition">Contact Us</a></li>
+                        <li><a href="/terms" class="hover:text-white transition">Terms of Service</a></li>
+                        <li><a href="/privacy" class="hover:text-white transition">Privacy Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Connect Section - Full Width Below Columns -->
+            <div class="text-center">
+                
+                <div class="flex space-x-4 justify-center mb-8">
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition text-2xl">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+                <div class="text-gray-400">
+                    <h3 class="text-lg font-bold mb-6 text-center">Made for players who ❤️<br>racquet sports.</h3>
+                </div>
+                
+                <!-- Copyright moved above logo area -->
+                <div class="mt-12 mb-16 text-center text-gray-400">
+                    <p>&copy; 2025 Rally LLC. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Handle form submission
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Show loading state
+            const submitButton = document.getElementById('submitButton');
+            const submitText = document.getElementById('submitText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            
+            submitText.textContent = 'Sending...';
+            submitSpinner.classList.remove('hidden');
+            submitButton.disabled = true;
+            
+            // Submit to our API endpoint
+            fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    submitText.textContent = 'Message Sent!';
+                    submitSpinner.classList.add('hidden');
+                    submitButton.classList.remove('bg-rally-green', 'hover:bg-green-600');
+                    submitButton.classList.add('bg-green-600');
+                    
+                    // Reset form
+                    document.getElementById('contactForm').reset();
+                    
+                    // Show success notification
+                    showNotification('Thank you! Your message has been sent successfully.', 'success');
+                    
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        submitText.textContent = 'Send Message';
+                        submitButton.classList.remove('bg-green-600');
+                        submitButton.classList.add('bg-rally-green', 'hover:bg-green-600');
+                        submitButton.disabled = false;
+                    }, 3000);
+                } else {
+                    throw new Error(data.error || 'Failed to send message');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('Sorry, there was an error sending your message. Please try again.', 'error');
+                
+                // Reset button
+                submitText.textContent = 'Send Message';
+                submitSpinner.classList.add('hidden');
+                submitButton.disabled = false;
+            });
+        });
+        
+        // Show notification function
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+            
+            notification.className = `fixed top-4 right-4 ${bgColor} text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 max-w-sm transform transition-all duration-300 z-50`;
+            notification.innerHTML = `
+                <i class="fas ${icon} text-xl"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+    </script>
+
+    <!-- Navigation Shrink on Scroll Script -->
+    <script>
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('main-nav');
+            const scrollPosition = window.scrollY;
+            
+            // Handle background color change only - no logo shrinking
+            if (scrollPosition >= 50) {
+                nav.classList.remove('nav-transparent');
+                nav.classList.add('nav-solid');
+            } else {
+                nav.classList.remove('nav-solid');
+                nav.classList.add('nav-transparent');
+            }
+        });
+
+        // Smooth scroll to contact form
+        function scrollToContactForm() {
+            const contactForm = document.getElementById('contact-form');
+            if (contactForm) {
+                contactForm.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        }
+    </script>
+</body>
+</html>

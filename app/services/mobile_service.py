@@ -59,12 +59,11 @@ def _load_players_data():
 
 def get_career_stats_from_db(player_id):
     """
-    Get career stats from player_history.json file.
-    This contains the true career statistics across all seasons.
+    Get career stats from database instead of JSON file.
+    This queries the players table for career statistics.
     """
     try:
-        import json
-        import os
+        from database_utils import execute_query_one
         
         # Helper function to convert Decimal to float for template compatibility
         def decimal_to_float(value):
@@ -76,35 +75,34 @@ def get_career_stats_from_db(player_id):
                 return float(value)
             return value
 
-        # Load player history data from JSON file
-        player_history_path = "data/leagues/APTA_CHICAGO/player_history.json"
+        # Query database for career stats
+        player_record = execute_query_one(
+            """
+            SELECT career_wins, career_losses, career_matches, career_win_percentage, pti
+            FROM players 
+            WHERE tenniscores_player_id = %s
+            """,
+            [player_id]
+        )
         
-        if not os.path.exists(player_history_path):
-            print(f"[ERROR] Player history file not found: {player_history_path}")
-            return None
-            
-        with open(player_history_path, 'r') as f:
-            player_history_data = json.load(f)
-        
-        # Find the player in the history data
-        player_data = None
-        for player in player_history_data:
-            if player.get("player_id") == player_id:
-                player_data = player
-                break
-        
-        if not player_data:
-            print(f"[DEBUG] get_career_stats_from_db: No player found in history for tenniscores_player_id {player_id}")
+        if not player_record:
+            print(f"[DEBUG] get_career_stats_from_db: No player found in database for tenniscores_player_id {player_id}")
             return None
         
-        # Extract career stats from the JSON data
-        career_wins = player_data.get("wins", 0)
-        career_losses = player_data.get("losses", 0)
-        career_matches = career_wins + career_losses
-        current_pti = player_data.get("rating", "N/A")
+        # Extract career stats from database
+        career_wins = player_record.get('career_wins', 0) or 0
+        career_losses = player_record.get('career_losses', 0) or 0
+        career_matches = player_record.get('career_matches', 0) or 0
+        career_win_percentage = player_record.get('career_win_percentage', 0) or 0
+        current_pti = player_record.get('pti', 'N/A')
         
-        # Calculate win rate
-        win_rate = (career_wins / career_matches * 100) if career_matches > 0 else 0.0
+        # Calculate win rate from database percentage or calculate if missing
+        if career_win_percentage > 0:
+            win_rate = float(career_win_percentage)
+        elif career_matches > 0:
+            win_rate = (career_wins / career_matches * 100)
+        else:
+            win_rate = 0.0
 
         career_stats = {
             "winRate": round(win_rate, 1),
@@ -115,7 +113,7 @@ def get_career_stats_from_db(player_id):
         }
 
         print(
-            f"[DEBUG] get_career_stats_from_db: Found career stats in player_history.json for player {player_id}: {career_matches} matches, {career_wins} wins, {career_losses} losses, {win_rate:.1f}% win rate"
+            f"[DEBUG] get_career_stats_from_db: Found career stats in database for player {player_id}: {career_matches} matches, {career_wins} wins, {career_losses} losses, {win_rate:.1f}% win rate"
         )
         return career_stats
 
@@ -531,21 +529,39 @@ def get_player_analysis(user):
                 "videos": {"match": [], "practice": []},
                 "trends": {},
                 "career_pti_change": "N/A",
-                "current_pti": None,
-                "weekly_pti_change": None,
-                "pti_data_available": False,
-                "error": "Invalid user data format"
+            "current_pti": None,
+            "weekly_pti_change": None,
+            "pti_data_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
+            "error": "Invalid user data format"
             }
 
         # Get player ID from user data
         player_id = user.get("tenniscores_player_id")
 
         # Get team context if available (for multi-team players)
-        team_context = user.get("team_context")
+        team_context = user.get("team_context") or user.get("team_id")
 
         # Initialize current_series_id and current_club_id for court analysis
         current_series_id = None
         current_club_id = None
+        
+        # Get club_id and series_id for team context (needed for court analysis)
+        if team_context:
+            team_info_query = """
+                SELECT club_id, series_id 
+                FROM teams 
+                WHERE id = %s
+            """
+            team_info_result = execute_query_one(team_info_query, [team_context])
+            if team_info_result and team_info_result.get('club_id'):
+                current_club_id = team_info_result['club_id']
+                current_series_id = team_info_result['series_id']
+                print(f"[DEBUG] Team context setup: team {team_context} -> club {current_club_id}, series {current_series_id}")
+            else:
+                print(f"[WARNING] Could not find team info for team {team_context}")
 
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
@@ -588,20 +604,7 @@ def get_player_analysis(user):
         if league_id_int:
             # Show current season matches for this player in this league
             # Add CLUB-BASED filtering when team context is available - show own team + same club substitutes
-            if team_context:
-                # Get the club_id and series_id for the current team context
-                team_info_query = """
-                    SELECT club_id, series_id 
-                    FROM teams 
-                    WHERE id = %s
-                """
-                team_info_result = execute_query_one(team_info_query, [team_context])
-                if not team_info_result or not team_info_result.get('club_id'):
-                    print(f"[ERROR] Could not find team info for team {team_context}")
-                    return {"player_analysis": []}
-                
-                current_club_id = team_info_result['club_id']
-                current_series_id = team_info_result['series_id']
+            if team_context and current_club_id:
                 print(f"[DEBUG] Club-based filtering: team {team_context} -> club {current_club_id}, series {current_series_id}")
                 
                 # CLUB-BASED LOGIC: Show own team + same club different series matches
@@ -719,6 +722,9 @@ def get_player_analysis(user):
             "current_pti": None,
             "pti_change": None,
             "pti_data_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
         }
         season_pti_change = "N/A"
 
@@ -851,10 +857,29 @@ def get_player_analysis(user):
                         return float(value)
                     return value
 
+                # Calculate PTI delta from beginning of season
+                from utils.starting_pti_lookup import get_pti_delta_for_user
+                pti_delta_info = get_pti_delta_for_user(user, decimal_to_float(current_pti))
+                
+                # Check if there's actual PTI history data available
+                pti_history_available = False
+                try:
+                    history_count = execute_query_one(
+                        "SELECT COUNT(*) as count FROM player_history WHERE tenniscores_player_id = %s AND end_pti IS NOT NULL",
+                        [player_id]
+                    )
+                    pti_history_available = history_count and history_count.get('count', 0) > 0
+                except Exception as history_error:
+                    print(f"Error checking PTI history availability: {history_error}")
+                
                 pti_data = {
                     "current_pti": decimal_to_float(current_pti),
                     "pti_change": decimal_to_float(pti_change),
                     "pti_data_available": True,
+                    "pti_history_available": pti_history_available,
+                    "starting_pti": pti_delta_info.get('starting_pti'),
+                    "pti_delta": pti_delta_info.get('pti_delta'),
+                    "delta_available": pti_delta_info.get('delta_available', False),
                 }
 
         except Exception as pti_error:
@@ -880,32 +905,80 @@ def get_player_analysis(user):
 
         # Build career stats from player_history table
         career_stats = get_career_stats_from_db(player_id)
+        
+        # Add current season stats to career stats for UI display
+        # Career stats in database are from beginning of season, so we add current season progress
+        if career_stats and current_season:
+            # Add current season wins and losses to career stats for display
+            career_stats["wins"] = career_stats.get("wins", 0) + current_season.get("wins", 0)
+            career_stats["losses"] = career_stats.get("losses", 0) + current_season.get("losses", 0)
+            career_stats["matches"] = career_stats.get("matches", 0) + current_season.get("matches", 0)
+            
+            # Recalculate win rate with updated totals
+            total_matches = career_stats["matches"]
+            if total_matches > 0:
+                career_stats["winRate"] = round((career_stats["wins"] / total_matches) * 100, 1)
+            else:
+                career_stats["winRate"] = 0.0
 
         # Calculate court analysis for individual player using ALL historical matches (not just current season)
         # Get all matches for court analysis (career performance) - don't filter by league like career stats
-        all_matches_query = """
-            SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
-                id,
-                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                home_team as "Home Team",
-                away_team as "Away Team",
-                home_team_id,
-                away_team_id,
-                winner as "Winner",
-                scores as "Scores",
-                home_player_1_id as "Home Player 1",
-                home_player_2_id as "Home Player 2",
-                away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2",
-                tenniscores_match_id
-            FROM match_scores
-            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-            ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
-        """
-        all_matches_params = [player_id, player_id, player_id, player_id]
+        # ENHANCED: Apply team filtering for multi-team players
+        if team_context and league_id_int:
+            # Team-filtered query for court analysis
+            all_matches_query = """
+                SELECT DISTINCT ON (ms.match_date, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id)
+                    ms.id,
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.home_team_id,
+                    ms.away_team_id,
+                    ms.winner as "Winner",
+                    ms.scores as "Scores",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2",
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.tenniscores_match_id
+                FROM match_scores ms
+                LEFT JOIN teams ht ON ms.home_team_id = ht.id
+                LEFT JOIN teams at ON ms.away_team_id = at.id
+                WHERE (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+                AND ms.league_id = %s
+                AND (ht.club_id = %s OR at.club_id = %s OR 
+                     (ms.home_team_id IS NULL AND at.club_id = %s) OR 
+                     (ms.away_team_id IS NULL AND ht.club_id = %s))
+                ORDER BY ms.match_date DESC, ms.home_team, ms.away_team, ms.winner, ms.scores, ms.tenniscores_match_id, ms.id DESC
+            """
+            all_matches_params = [player_id, player_id, player_id, player_id, league_id_int, current_club_id, current_club_id, current_club_id, current_club_id]
+            print(f"[DEBUG] Court analysis using team-filtered historical matches: team_context={team_context}, club_id={current_club_id}")
+        else:
+            # Original query without team filtering (for single-team players or no team context)
+            all_matches_query = """
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2",
+                    tenniscores_match_id
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+            """
+            all_matches_params = [player_id, player_id, player_id, player_id]
+            print(f"[DEBUG] Court analysis using ALL historical matches (no team filtering): {len(all_matches_params)} params")
             
         all_player_matches = execute_query(all_matches_query, all_matches_params)
-        print(f"[DEBUG] Court analysis using ALL historical matches: {len(all_player_matches) if all_player_matches else 0} matches")
+        print(f"[DEBUG] Court analysis matches found: {len(all_player_matches) if all_player_matches else 0} matches")
         
         court_analysis = calculate_individual_court_analysis(all_player_matches, player_id, user, current_series_id, current_club_id, team_context)
 
@@ -925,6 +998,10 @@ def get_player_analysis(user):
             "current_pti": decimal_to_float_season(pti_data.get("current_pti", 0.0)),
             "weekly_pti_change": decimal_to_float_season(pti_data.get("pti_change", 0.0)),
             "pti_data_available": pti_data.get("pti_data_available", False),
+            "pti_history_available": pti_data.get("pti_history_available", False),
+            "starting_pti": decimal_to_float_season(pti_data.get("starting_pti")),
+            "pti_delta": decimal_to_float_season(pti_data.get("pti_delta")),
+            "delta_available": pti_data.get("delta_available", False),
             "error": None
         }
 
@@ -945,6 +1022,10 @@ def get_player_analysis(user):
             "current_pti": None,
             "weekly_pti_change": None,
             "pti_data_available": False,
+            "pti_history_available": False,
+            "starting_pti": None,
+            "pti_delta": None,
+            "delta_available": False,
             "error": str(e)
         }
 
@@ -2245,9 +2326,12 @@ def get_mobile_club_data(user):
                         }
 
                     # Calculate points for this match based on set scores
+                    # New scoring system: 1 point per set won + 1 bonus point for winning 2 sets
                     scores = match["scores"].split(", ") if match["scores"] else []
                     match_team_points = 0
                     match_opponent_points = 0
+                    team_sets_won = 0
+                    opponent_sets_won = 0
 
                     # Points for each set
                     for set_score in scores:
@@ -2267,29 +2351,18 @@ def get_mobile_club_data(user):
 
                                 if our_score > their_score:
                                     match_team_points += 1
+                                    team_sets_won += 1
                                 else:
                                     match_opponent_points += 1
+                                    opponent_sets_won += 1
                             except (ValueError, IndexError):
                                 continue
 
-                    # Bonus point for match win
-                    # NSTF league has reversed team assignments - need to reverse win/loss logic too
-                    if user_league_id == "4786":  # NSTF league (Fixed: was 4933, should be 4786)
-                        # For NSTF: if we're using away players when is_home=True, then we need to reverse the win logic
-                        if (is_home and match["winner"] == "away") or (
-                            not is_home and match["winner"] == "home"
-                        ):
-                            match_team_points += 1
-                        else:
-                            match_opponent_points += 1
-                    else:
-                        # Standard logic for other leagues (APTA, etc.)
-                        if (is_home and match["winner"] == "home") or (
-                            not is_home and match["winner"] == "away"
-                        ):
-                            match_team_points += 1
-                        else:
-                            match_opponent_points += 1
+                    # Bonus point for winning 2 sets (not for overall match win)
+                    if team_sets_won >= 2:
+                        match_team_points += 1
+                    elif opponent_sets_won >= 2:
+                        match_opponent_points += 1
 
                     # Update total points
                     team_matches[team]["team_points"] += match_team_points
@@ -2375,13 +2448,114 @@ def get_mobile_club_data(user):
                         scores_display = match["scores"]
                         won = (is_home and match["winner"] == "home") or (not is_home and match["winner"] == "away")
                     
+                    # Parse scores to extract individual sets for home and away teams
+                    # IMPORTANT: The scores are stored as "away_score-home_score" in database
+                    # But the display logic may reverse which players are shown as "home" vs "away"
+                    home_sets = []
+                    away_sets = []
+                    if scores_display:
+                        # Handle different score formats like "6-4, 6-2" or "6-4 6-2"
+                        score_parts = scores_display.replace(",", " ").split()
+                        for part in score_parts:
+                            if "-" in part:
+                                set_parts = part.split("-")
+                                if len(set_parts) == 2:
+                                    # Database stores as "away_score-home_score"
+                                    db_away_score = set_parts[0]
+                                    db_home_score = set_parts[1]
+                                    
+                                    # Check if we need to reverse the scores based on player display logic
+                                    if user_league_id == "4786":  # NSTF league
+                                        if is_home:
+                                            # When home team, we show away players as "home_players_display"
+                                            # So we need to reverse the scores
+                                            home_sets.append(db_away_score)
+                                            away_sets.append(db_home_score)
+                                        else:
+                                            # When away team, we show home players as "home_players_display"
+                                            # So we keep the original scores
+                                            home_sets.append(db_home_score)
+                                            away_sets.append(db_away_score)
+                                    else:
+                                        # Standard leagues - scores match player display
+                                        if is_home:
+                                            # User's team is displayed as "home"
+                                            home_sets.append(db_home_score)
+                                            away_sets.append(db_away_score)
+                                        else:
+                                            # User's team is displayed as "home" (away players shown as home)
+                                            home_sets.append(db_away_score)
+                                            away_sets.append(db_home_score)
+                            else:
+                                # If no dash, treat as single score
+                                home_sets.append(part)
+                                away_sets.append("0")
+                    else:
+                        # Fallback if no scores
+                        home_sets = ["0"]
+                        away_sets = ["0"]
+                    
+                    # Calculate winner from actual scores using the same parsing logic as home_sets/away_sets
+                    # The display shows: home_players_display vs away_players_display
+                    # We need to determine if the "home_players_display" team won
+                    home_team_won = False
+                    if home_sets and away_sets:
+                        # Use the same home_sets and away_sets arrays that are used for display
+                        home_sets_won = 0
+                        away_sets_won = 0
+                        
+                        for i in range(len(home_sets)):
+                            try:
+                                home_score = int(home_sets[i])
+                                away_score = int(away_sets[i])
+                                if home_score > away_score:
+                                    home_sets_won += 1
+                                else:
+                                    away_sets_won += 1
+                            except (ValueError, IndexError):
+                                continue
+                        
+                        # Determine winner based on sets won
+                        if home_sets_won > away_sets_won:
+                            home_team_won = True
+                        else:
+                            home_team_won = False
+                    
+                    # Determine team names to match the player display logic
+                    if user_league_id == "4786":  # NSTF league
+                        if is_home:
+                            # When home team, we show away players as "home_players_display"
+                            # So we need to swap the team names
+                            home_team_name_display = match.get("away_team", "Unknown")
+                            away_team_name_display = match.get("home_team", "Unknown")
+                        else:
+                            # When away team, we show home players as "home_players_display"
+                            # So we keep the original team names
+                            home_team_name_display = match.get("home_team", "Unknown")
+                            away_team_name_display = match.get("away_team", "Unknown")
+                    else:
+                        # Standard leagues - team names match player display
+                        if is_home:
+                            # User's team is displayed as "home"
+                            home_team_name_display = match.get("home_team", "Unknown")
+                            away_team_name_display = match.get("away_team", "Unknown")
+                        else:
+                            # User's team is displayed as "home" (away players shown as home)
+                            home_team_name_display = match.get("away_team", "Unknown")
+                            away_team_name_display = match.get("home_team", "Unknown")
+                    
                     team_matches[team]["matches"].append(
                         {
                             "court": court_num,
                             "home_players": home_players_display,
                             "away_players": away_players_display,
+                            "home_team_name": home_team_name_display,
+                            "away_team_name": away_team_name_display,
                             "scores": scores_display,
+                            "home_sets": home_sets,
+                            "away_sets": away_sets,
                             "won": won,
+                            "home_team_won": home_team_won,
                         }
                     )
 
@@ -2548,11 +2722,17 @@ def get_mobile_club_data(user):
         print(f"[DEBUG] Calling calculate_player_streaks with club_name='{club_name}', user_league_db_id={user_league_db_id}")
         player_streaks = calculate_player_streaks(club_name, user_league_db_id)
 
+        # Get club player ratings (ranked by PTI)
+        print(f"[DEBUG] Getting club player ratings for club_name='{club_name}'")
+        club_ratings_data = get_club_player_ratings(user)
+
         return {
             "team_name": club_name,
             "weekly_results": weekly_results,
             "tennaqua_standings": tennaqua_standings,
             "player_streaks": player_streaks,
+            "club_player_ratings": club_ratings_data.get("club_player_ratings", []),
+            "club_name": club_ratings_data.get("club_name", club_name),
         }
 
     except Exception as e:
@@ -2565,6 +2745,8 @@ def get_mobile_club_data(user):
             "weekly_results": [],
             "tennaqua_standings": [],
             "player_streaks": [],
+            "club_player_ratings": [],
+            "club_name": user.get("club", "Unknown"),
             "error": str(e),
         }
 
@@ -2606,6 +2788,106 @@ def get_practice_times_data(user):
             "practice_times": [],
             "user_preferences": {},
             "error": str(e),
+        }
+
+
+def get_club_player_ratings(user):
+    """Get all players at user's club ranked by PTI (low to high)"""
+    try:
+        from database_utils import execute_query
+        
+        # Get user's club and league information
+        user_club = user.get("club", "")
+        user_league_id = user.get("league_id", "")
+        user_league_context = user.get("league_context")  # This should be the integer DB ID
+
+        print(f"[DEBUG] get_club_player_ratings called with user: {user}")
+        print(f"[DEBUG] club: '{user_club}', league_id: '{user_league_id}', league_context: '{user_league_context}'")
+
+        if not user_club:
+            print(f"[DEBUG] No club name found, returning error")
+            return {
+                "club_player_ratings": [],
+                "error": "User club not found"
+            }
+
+        # Get the correct league database ID
+        user_league_db_id = None
+        
+        # First try league_context (should be integer DB ID)
+        if user_league_context:
+            try:
+                user_league_db_id = int(user_league_context)
+                print(f"Using league_context as DB ID: {user_league_db_id}")
+            except (ValueError, TypeError):
+                print(f"league_context is not a valid integer: {user_league_context}")
+
+        # Fallback: convert string league_id to DB ID
+        if not user_league_db_id and user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+                    print(f"Converted league_id '{user_league_id}' to DB ID: {user_league_db_id}")
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+
+        if not user_league_db_id:
+            print(f"[DEBUG] Could not determine league DB ID, returning error")
+            return {
+                "club_player_ratings": [],
+                "error": "Could not determine user's league"
+            }
+
+        # Query to get all players at the user's club, ranked by PTI (low to high)
+        club_ratings_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti,
+                s.name as series_name,
+                t.team_name
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN teams t ON p.team_id = t.id
+            WHERE c.name = %s
+            AND p.league_id = %s
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.pti ASC
+        """
+        
+        print(f"[DEBUG] Executing club ratings query for club: '{user_club}', league_id: {user_league_db_id}")
+        club_players = execute_query(club_ratings_query, [user_club, user_league_db_id])
+        
+        print(f"[DEBUG] Found {len(club_players)} players at club '{user_club}'")
+        
+        # Format the results
+        formatted_ratings = []
+        for player in club_players:
+            formatted_ratings.append({
+                "name": f"{player['first_name']} {player['last_name']}",
+                "pti": float(player['pti']) if player['pti'] is not None else None,
+                "series": player['series_name'],
+                "team": player['team_name']
+            })
+        
+        return {
+            "club_player_ratings": formatted_ratings,
+            "club_name": user_club
+        }
+
+    except Exception as e:
+        print(f"Error getting club player ratings: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {
+            "club_player_ratings": [],
+            "club_name": user.get("club", "Unknown"),
+            "error": str(e)
         }
 
 
@@ -2701,29 +2983,73 @@ def get_all_team_availability_data(user, selected_date=None):
 
         # FIXED: Use database to get team players instead of JSON files
         # Get all players for this club and series from the database
+        # CRITICAL FIX: Filter by both league_id AND team_id to prevent cross-league data mixing
         try:
-            team_players_query = """
-                SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
-                       c.name as club_name, s.name as series_name
-                FROM players p
-                JOIN clubs c ON p.club_id = c.id
-                JOIN series s ON p.series_id = s.id
-                WHERE c.name = %s AND s.name = %s AND p.is_active = true
-                ORDER BY p.first_name, p.last_name
-            """
-
-            team_players_data = execute_query(team_players_query, (club_name, series))
-
-            if not team_players_data:
-                print(f"❌ No players found in database for {club_name} - {series}")
+            # Get user's league_id and team_id for proper filtering
+            user_league_id = user.get("league_id")
+            user_team_id = user.get("team_id")
+            
+            print(f"🔍 DEBUG: User league_id: {user_league_id}, team_id: {user_team_id}")
+            
+            # Convert string league_id to integer if needed
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"🔍 DEBUG: Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"❌ League '{user_league_id}' not found in leagues table")
+                        return {
+                            "players_schedule": {},
+                            "selected_date": selected_date,
+                            "error": f"League '{user_league_id}' not found in database",
+                        }
+                except Exception as e:
+                    print(f"❌ Error converting league ID: {e}")
+                    return {
+                        "players_schedule": {},
+                        "selected_date": selected_date,
+                        "error": f"Error processing league ID: {e}",
+                    }
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+                print(f"🔍 DEBUG: League_id already integer: {league_id_int}")
+            else:
+                print(f"❌ No valid league_id found in user session")
                 return {
                     "players_schedule": {},
                     "selected_date": selected_date,
-                    "error": f"No players found for {club_name} - {series}",
+                    "error": "No valid league context found. Please check your profile settings.",
+                }
+            
+            # Enhanced query with both league_id and team_id filtering
+            team_players_query = """
+                SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
+                       c.name as club_name, s.name as series_name, t.id as team_id
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN teams t ON (p.club_id = t.club_id AND p.series_id = t.series_id AND p.league_id = t.league_id)
+                WHERE c.name = %s AND s.name = %s AND p.league_id = %s AND t.id = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+
+            team_players_data = execute_query(team_players_query, (club_name, series, league_id_int, user_team_id))
+
+            if not team_players_data:
+                print(f"❌ No players found in database for {club_name} - {series} (league_id: {league_id_int}, team_id: {user_team_id})")
+                return {
+                    "players_schedule": {},
+                    "selected_date": selected_date,
+                    "error": f"No players found for {club_name} - {series} in your current league and team context",
                 }
 
             print(
-                f"Found {len(team_players_data)} players in database for {club_name} - {series}"
+                f"Found {len(team_players_data)} players in database for {club_name} - {series} (league_id: {league_id_int}, team_id: {user_team_id})"
             )
 
             # Create lookup structures for efficient processing
@@ -2852,7 +3178,9 @@ def get_all_team_availability_data(user, selected_date=None):
             "availability_found": len(availability_lookup) if 'availability_lookup' in locals() else 0,
             "date_converted": str(selected_date_utc) if 'selected_date_utc' in locals() else "None",
             "session_series": series,
-            "session_club": club_name
+            "session_club": club_name,
+            "league_id_filtered": league_id_int if 'league_id_int' in locals() else "None",
+            "team_id_filtered": user_team_id if 'user_team_id' in locals() else "None"
         }
         
         return {
@@ -3819,7 +4147,8 @@ def get_mobile_team_data(user):
                 "matches": player_matches,
                 "winRate": win_rate,
                 "pti": member.get("pti", 0),  # Include PTI data from member
-                "is_substitute": member.get("is_substitute", False)
+                "is_substitute": member.get("is_substitute", False),
+                "captain_status": member.get("captain_status")
             }
             top_players.append(player_data)
 
@@ -3927,9 +4256,55 @@ def get_mobile_team_data(user):
             scores = match.get("Scores", "")
             sets_won, sets_lost = parse_scores_for_team(scores, is_home)
             
+            # Format scores from user's perspective - always show user's score first
+            def format_scores_for_user_team(raw_scores, user_team_was_home):
+                """Format scores so user's team score appears first in each set"""
+                if not raw_scores:
+                    return raw_scores
+                
+                try:
+                    # Split by sets (comma-separated)
+                    sets = raw_scores.split(", ")
+                    formatted_sets = []
+                    
+                    for set_score in sets:
+                        if "-" not in set_score:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        # Split individual set score
+                        scores = set_score.split("-")
+                        if len(scores) != 2:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        try:
+                            home_score = int(scores[0])
+                            away_score = int(scores[1])
+                            
+                            # Always show user's team score first
+                            if user_team_was_home:
+                                # User's team was home - show home score first
+                                formatted_sets.append(f"{home_score}-{away_score}")
+                            else:
+                                # User's team was away - show away score first (reverse)
+                                formatted_sets.append(f"{away_score}-{home_score}")
+                                
+                        except (ValueError, IndexError):
+                            # If we can't parse scores, keep original
+                            formatted_sets.append(set_score)
+                    
+                    return ", ".join(formatted_sets)
+                    
+                except Exception:
+                    # If anything goes wrong, return original scores
+                    return raw_scores
+            
+            formatted_scores = format_scores_for_user_team(scores, is_home)
+            
             individual_match = {
                 "result": "W" if team_won else "L",
-                "scores": scores,
+                "scores": formatted_scores,
                 "home_players": f"{home_player_1} & {home_player_2}",
                 "away_players": f"{away_player_1} & {away_player_2}",
                 "sets_won": sets_won,
@@ -3989,6 +4364,71 @@ def get_mobile_team_data(user):
         }
 
 
+def get_series_analysis_data(user):
+    """Get series analysis data showing all teams in the user's series ranked by total PTI"""
+    try:
+        # Get user's series and league info
+        series_id = user.get("series_id")
+        league_id = user.get("league_id")
+        
+        if not series_id or not league_id:
+            return {"error": "Missing series or league information"}
+        
+        # Convert league_id to integer if it's a string
+        league_id_int = int(league_id) if isinstance(league_id, str) else league_id
+        
+        # Get all teams in the user's series with their PTI data
+        teams_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                t.display_name,
+                c.name as club_name,
+                COUNT(p.id) as player_count,
+                AVG(p.pti) as avg_pti
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            LEFT JOIN players p ON t.id = p.team_id AND p.is_active = true
+            WHERE t.series_id = %s AND t.league_id = %s AND t.is_active = true
+            GROUP BY t.id, t.team_name, t.display_name, c.name
+            ORDER BY COALESCE(AVG(p.pti), 999) ASC, c.name, t.team_name  -- Show all teams, put those without PTI at end
+        """
+        
+        teams_result = execute_query(teams_query, [series_id, league_id_int])
+        
+        if not teams_result:
+            return {"error": "No teams found in this series"}
+        
+        # Format the results
+        teams_analysis = []
+        for i, team in enumerate(teams_result, 1):
+            avg_pti = team["avg_pti"]
+            # Handle teams without PTI data
+            if avg_pti is None:
+                avg_pti_display = "N/A"
+            else:
+                avg_pti_display = round(float(avg_pti), 1)
+            
+            teams_analysis.append({
+                "rank": i,
+                "team_id": team["team_id"],
+                "team_name": team["display_name"] or team["team_name"],
+                "club_name": team["club_name"],
+                "player_count": team["player_count"],
+                "avg_pti": avg_pti_display
+            })
+        
+        return {
+            "teams_analysis": teams_analysis,
+            "total_teams": len(teams_analysis),
+            "success": True
+        }
+        
+    except Exception as e:
+        print(f"Error getting series analysis data: {str(e)}")
+        return {"error": str(e)}
+
+
 def get_mobile_series_data(user):
     """Get series data for mobile my series page"""
     try:
@@ -3998,6 +4438,12 @@ def get_mobile_series_data(user):
 
         # Calculate comprehensive Strength of Schedule data
         sos_data = calculate_strength_of_schedule(user)
+        
+        # Get series analysis data
+        series_analysis = get_series_analysis_data(user)
+        
+        # Get series player ratings
+        series_ratings = get_series_player_ratings(user)
 
         return {
             "user_series": user_series,
@@ -4020,81 +4466,211 @@ def get_mobile_series_data(user):
             "sos_total_teams": sos_data.get("total_teams"),
             "sos_user_team_name": sos_data.get("user_team_name"),
             "sos_error": sos_data.get("error"),
+            # Series analysis data
+            "series_analysis_teams": series_analysis.get("teams_analysis", []),
+            "series_analysis_total_teams": series_analysis.get("total_teams", 0),
+            "series_analysis_error": series_analysis.get("error"),
+            # Series player ratings data
+            "series_player_ratings": series_ratings.get("series_player_ratings", []),
+            "series_ratings_error": series_ratings.get("error"),
         }
     except Exception as e:
         print(f"Error getting mobile series data: {str(e)}")
         return {"error": str(e)}
 
 
+def get_series_player_ratings(user):
+    """Get all players in user's series ranked by PTI (low to high)"""
+    try:
+        from database_utils import execute_query
+        
+        # Get user's series and league information
+        user_series = user.get("series", "")
+        user_league_id = user.get("league_id", "")
+        user_league_context = user.get("league_context")  # This should be the integer DB ID
+
+        print(f"[DEBUG] get_series_player_ratings called with user: {user}")
+        print(f"[DEBUG] series: '{user_series}', league_id: '{user_league_id}', league_context: '{user_league_context}'")
+
+        if not user_series:
+            print(f"[DEBUG] No series name found, returning error")
+            return {
+                "series_player_ratings": [],
+                "error": "User series not found"
+            }
+
+        # Get the correct league database ID
+        user_league_db_id = None
+        
+        # First try league_context (should be integer DB ID)
+        if user_league_context:
+            try:
+                user_league_db_id = int(user_league_context)
+                print(f"Using league_context as DB ID: {user_league_db_id}")
+            except (ValueError, TypeError):
+                print(f"league_context is not a valid integer: {user_league_context}")
+
+        # Fallback: convert string league_id to DB ID
+        if not user_league_db_id and user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+                    print(f"Converted league_id '{user_league_id}' to DB ID: {user_league_db_id}")
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+
+        if not user_league_db_id:
+            print(f"[DEBUG] Could not determine league DB ID, returning error")
+            return {
+                "series_player_ratings": [],
+                "error": "Could not determine user's league"
+            }
+
+        # Query to get all players in the user's series, ranked by PTI (low to high)
+        series_ratings_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti,
+                s.name as series_name,
+                t.team_name,
+                c.name as club_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN teams t ON p.team_id = t.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            WHERE s.name = %s
+            AND p.league_id = %s
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.pti ASC
+        """
+        
+        print(f"[DEBUG] Executing series ratings query for series: '{user_series}', league_id: {user_league_db_id}")
+        series_players = execute_query(series_ratings_query, [user_series, user_league_db_id])
+        
+        print(f"[DEBUG] Found {len(series_players)} players in series '{user_series}'")
+        
+        # Format the results
+        formatted_ratings = []
+        for player in series_players:
+            formatted_ratings.append({
+                "name": f"{player['first_name']} {player['last_name']}",
+                "pti": float(player['pti']) if player['pti'] is not None else None,
+                "series": player['series_name'],
+                "team": player['team_name'],
+                "club": player['club_name']
+            })
+        
+        return {
+            "series_player_ratings": formatted_ratings,
+            "series_name": user_series
+        }
+
+    except Exception as e:
+        print(f"Error getting series player ratings: {str(e)}")
+        return {
+            "series_player_ratings": [],
+            "error": str(e)
+        }
+
+
 def get_teams_players_data(user, team_id=None):
     """Get teams and players data for mobile interface - filtered by user's league and optionally by team_id"""
     try:
-        # Get user's league for filtering
+        # Get user's league for filtering - try multiple sources
         user_league_id = user.get("league_id", "")
+        user_league_db_id = user.get("league_db_id")
+        user_league_string_id = user.get("league_string_id", "")
+        
+        print(f"[DEBUG] get_teams_players_data: user = {user}")
+        print(f"[DEBUG] get_teams_players_data: league_id = {user_league_id}, league_db_id = {user_league_db_id}, league_string_id = {user_league_string_id}")
 
-        # Convert string league_id to integer foreign key if needed
+        # Convert to integer foreign key - prioritize league_db_id if available
         league_id_int = None
-        if isinstance(user_league_id, str) and user_league_id != "":
+        
+        # First try league_db_id (most reliable)
+        if user_league_db_id:
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                league_id_int = int(user_league_db_id)
+                print(f"[DEBUG] Using league_db_id: {league_id_int}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] league_db_id is not a valid integer: {user_league_db_id}")
+        
+        # Fallback to converting league_id or league_string_id
+        if not league_id_int:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    # First try to convert string to integer (e.g., "4783" -> 4783)
+                    try:
+                        league_id_int = int(user_league_id)
+                        print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
+                    except ValueError:
+                        # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                        league_record = execute_query_one(
+                            "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                        )
+                        if league_record:
+                            league_id_int = league_record["id"]
+                            print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                        else:
+                            print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league_id: {e}")
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+                print(f"[DEBUG] League_id already integer: {league_id_int}")
+            elif user_league_string_id:
+                # Try league_string_id as fallback
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_string_id]
                     )
-                else:
-                    print(
-                        f"[WARNING] League '{user_league_id}' not found in leagues table"
-                    )
-            except Exception as e:
-                print(f"[DEBUG] Could not convert league ID: {e}")
-        elif isinstance(user_league_id, int):
-            league_id_int = user_league_id
-            print(f"[DEBUG] League_id already integer: {league_id_int}")
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"[DEBUG] Converted league_string_id '{user_league_string_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"[WARNING] League_string_id '{user_league_string_id}' not found in leagues table")
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league_string_id: {e}")
 
         # Query team stats and matches from database
         # Note: execute_query and execute_query_one are already imported at module level
 
         # Get all teams in user's league with their IDs - only filter if we have a valid league_id
+        print(f"[DEBUG] get_teams_players_data: league_id_int = {league_id_int} (truthy: {bool(league_id_int)})")
+        
         if league_id_int:
             teams_query = """
                 SELECT DISTINCT 
                     t.id as team_id, 
                     t.team_name, 
                     t.display_name,
-                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
+                    t.league_id,
+                    l.league_id as league_key,
+                    REGEXP_REPLACE(t.team_name, ' [0-9]+$', '') as team_base_name,
                     CAST(
                         COALESCE(
-                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
+                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* ([0-9]+)$', '\\1'), t.team_name),
                             '0'
                         ) AS INTEGER
                     ) as team_number
                 FROM teams t
-                JOIN series_stats ss ON t.team_name = ss.team
-                WHERE ss.league_id = %s AND t.league_id = %s
+                JOIN leagues l ON t.league_id = l.id
+                WHERE t.league_id = %s AND t.is_active = TRUE
                 ORDER BY team_base_name, team_number
             """
-            all_teams_data = execute_query(teams_query, [league_id_int, league_id_int])
+            print(f"[DEBUG] Using FILTERED query with league_id = {league_id_int}")
+            all_teams_data = execute_query(teams_query, [league_id_int])
         else:
-            teams_query = """
-                SELECT DISTINCT 
-                    t.id as team_id, 
-                    t.team_name, 
-                    t.display_name,
-                    REGEXP_REPLACE(t.team_name, ' - [0-9]+$', '') as team_base_name,
-                    CAST(
-                        COALESCE(
-                            NULLIF(REGEXP_REPLACE(t.team_name, '^.* - ([0-9]+)$', '\\1'), t.team_name),
-                            '0'
-                        ) AS INTEGER
-                    ) as team_number
-                FROM teams t
-                JOIN series_stats ss ON t.team_name = ss.team
-                ORDER BY team_base_name, team_number
-            """
-            all_teams_data = execute_query(teams_query)
+            # CRITICAL FIX: Don't show all teams when no valid league_id is found
+            # This prevents showing women's teams to APTA users
+            print(f"[WARNING] No valid league_id found for user, returning empty teams list to prevent cross-league data mixing")
+            print(f"[WARNING] User data: league_id={user_league_id}, league_db_id={user_league_db_id}, league_string_id={user_league_string_id}")
+            all_teams_data = []
 
         # Convert to list format for backward compatibility and add team IDs
         all_teams = []
@@ -4109,8 +4685,23 @@ def get_teams_players_data(user, team_id=None):
             team_id_to_name[tid] = team_name
             team_name_to_id[team_name] = tid
 
-        print(f"[DEBUG] Found {len(all_teams)} teams in league {league_id_int}")
+        print(f"[DEBUG] Found {len(all_teams_data)} teams in league {league_id_int}")
         print(f"[DEBUG] Sample teams_data: {all_teams_data[:3] if all_teams_data else 'None'}")
+        
+        # Debug: Show league distribution
+        if all_teams_data:
+            league_counts = {}
+            for team in all_teams_data:
+                league_key = team.get('league_key', 'Unknown')
+                league_counts[league_key] = league_counts.get(league_key, 0) + 1
+            print(f"[DEBUG] League distribution: {league_counts}")
+            
+            # Show any CNSWPL teams
+            cnswpl_teams = [t for t in all_teams_data if t.get('league_key') == 'CNSWPL']
+            if cnswpl_teams:
+                print(f"[DEBUG] ❌ FOUND CNSWPL TEAMS: {[t['team_name'] for t in cnswpl_teams[:5]]}")
+            else:
+                print(f"[DEBUG] ✅ No CNSWPL teams found")
 
         # If team_id is provided, validate it and get team name
         selected_team = None
@@ -4199,8 +4790,19 @@ def get_teams_players_data(user, team_id=None):
             team_stats, team_matches, selected_team, league_id_int, team_id
         )
 
+        # Get team roster/players data even if no series_stats exists
+        team_roster = []
+        try:
+            from app.routes.mobile_routes import get_team_members_with_court_stats
+            team_roster = get_team_members_with_court_stats(team_id, user)
+            print(f"[DEBUG] Found {len(team_roster)} team members for team_id {team_id}")
+        except Exception as e:
+            print(f"[DEBUG] Error getting team roster: {e}")
+            team_roster = []
+
         return {
             "team_analysis_data": team_analysis_data,
+            "team_roster": team_roster,  # Add team roster data
             "all_teams": all_teams,
             "all_teams_data": all_teams_data,  # Include team IDs for frontend
             "selected_team": selected_team,
@@ -4585,10 +5187,14 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     FROM players 
                     WHERE tenniscores_player_id = ANY(%s) AND is_active = true
                 """
-                name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
+                if team_id and league_id_int:
+                    name_lookup_query += " AND team_id = %s AND league_id = %s"
+                    name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches), team_id, league_id_int])
+                else:
+                    name_results = execute_query(name_lookup_query, [list(all_player_ids_in_matches)])
                 for row in name_results:
                     player_id = row["tenniscores_player_id"]
-                    full_name = f"{row['first_name']} {row['last_name']}"
+                    full_name = f"{row['last_name']}, {row['first_name']}"
                     player_id_to_name[player_id] = full_name
                     player_name_to_id[full_name] = player_id
             except Exception as e:
@@ -4828,6 +5434,18 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     print(f"[DEBUG] Error checking substitute status for {player_name}: {e}")
                     is_substitute = False
             
+            # Get captain status for this player
+            captain_status = None
+            if team_id and player_id:
+                try:
+                    captain_query = "SELECT captain_status FROM players WHERE tenniscores_player_id = %s AND team_id = %s"
+                    captain_result = execute_query_one(captain_query, [player_id, team_id])
+                    if captain_result:
+                        captain_status = captain_result.get("captain_status")
+                except Exception as e:
+                    print(f"[DEBUG] Error getting captain status for {player_name}: {e}")
+                    captain_status = None
+            
             top_players.append(
                 {
                     "name": player_name,
@@ -4837,6 +5455,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "best_partner": best_partner if best_partner else "Threshold not met",
                     "pti": player_pti,  # Add PTI data for template
                     "isSubstitute": is_substitute,  # Add substitute status
+                    "captain_status": captain_status,  # Add captain status
                 }
             )
 
@@ -5057,7 +5676,7 @@ def get_player_search_data(user):
             for player in candidate_players:
                 player_id = player["tenniscores_player_id"]
                 team_id = player["team_id"]
-                player_name = f"{player['first_name']} {player['last_name']}"
+                player_name = f"{player['last_name']}, {player['first_name']}"
 
                 # Get team-specific wins and losses
                 if player_id and team_id:
@@ -5279,12 +5898,12 @@ def calculate_strength_of_schedule(user):
             series_num = m.group(1) if m else ""
             team = f"{club} {series_num}"
         else:
-            # APTA and other leagues use "Club - Number" format
+            # APTA and other leagues use "Club Number" format (no hyphen)
             import re
 
             m = re.search(r"(\d+)", series)
             series_num = m.group(1) if m else ""
-            team = f"{club} - {series_num}"
+            team = f"{club} {series_num}"
 
         print(
             f"[DEBUG] calculate_strength_of_schedule: Calculating comprehensive SoS for team '{team}'"
@@ -5444,7 +6063,7 @@ def calculate_strength_of_schedule(user):
         schedule_comparison = _analyze_schedule_comparison(
             historical_sos_value, remaining_sos_value, 
             user_historical_rank, user_remaining_rank,
-            len(all_teams), has_remaining_schedule
+            len(all_teams), has_remaining_schedule, len(historical_opponents)
         )
 
         print(f"[DEBUG] Team '{team}' - Historical SOS: {historical_sos_value} (#{user_historical_rank}), Remaining SOS: {remaining_sos_value} (#{user_remaining_rank})")
@@ -5804,7 +6423,7 @@ def _calculate_team_remaining_sos(team_name, league_id_int, user_historical_oppo
         return None
 
 
-def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank, remaining_rank, total_teams, has_remaining_schedule):
+def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank, remaining_rank, total_teams, has_remaining_schedule, opponents_count=0):
     """Analyze the comparison between historical and remaining schedule difficulty"""
     try:
         # If no remaining schedule exists, provide appropriate messaging
@@ -5818,8 +6437,8 @@ def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank,
                 "difficulty_text": "no remaining matches scheduled",
                 "historical_percentile": historical_percentile,
                 "remaining_percentile": None,
-                "summary": "Your season schedule is complete. No remaining matches are currently scheduled.",
-                "recommendation": "Season analysis shows your team faced opponents with an average strength rating. Focus on reviewing completed matches for insights."
+                "summary": "Your season schedule is complete. No remaining matches are currently scheduled." if opponents_count > 0 else "No matches have been played yet this season. No remaining matches are currently scheduled.",
+                "recommendation": "Focus on preparing for upcoming matches and reviewing team strategies." if opponents_count == 0 else "Season analysis shows your team faced opponents with an average strength rating. Focus on reviewing completed matches for insights."
             }
         
         # Calculate difference only if remaining schedule exists

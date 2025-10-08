@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const h2hAdvantage = getAdvantageIndicator(favoriteMetrics.head_to_head_record || 0, underdogMetrics.head_to_head_record || 0);
         const expAdvantage = getAdvantageIndicator(favoriteMetrics.experience_level || 0, underdogMetrics.experience_level || 0);
         const consistencyAdvantage = getAdvantageIndicator(favoriteMetrics.consistency_factor || 0, underdogMetrics.consistency_factor || 0);
-        const gapAdvantage = getAdvantageIndicator(favoriteMetrics.pti_advantage || 0, underdogMetrics.pti_advantage || 0);
+        const gapAdvantage = getAdvantageIndicator(favoriteMetrics.pti_advantage || 0, underdogMetrics.pti_advantage || 0, false); // Lower PTI gap is better
         
         tableDisplay.innerHTML = `
             <div class="space-y-2">

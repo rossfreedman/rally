@@ -114,46 +114,48 @@
             <div class="p-6">
                 <div class="lineup-blur-container blurred-lineup mb-6">
                     {% if escrow_data.initiator_lineup %}
-                        <div class="lineup-display text-gray-800 text-base">
-                            {% for line in escrow_data.initiator_lineup.split('\n') %}
-                                {% if line.strip() %}
-                                    {% if line.startswith('LINEUP:') %}
-                                        <div class="font-semibold text-lg mb-2">{{ line }}</div>
-                                    {% elif line.startswith('Court ') %}
-                                        <div class="font-semibold mt-4 mb-2">{{ line }}</div>
-                                    {% elif '(Ad)' in line or '(Deuce)' in line %}
-                                        {# Parse new format but remove position labels #}
-                                        {% if '(Ad)' in line %}
-                                            {% set player_name = line.split('(Ad)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                        {% if '(Deuce)' in line %}
-                                            {% set player_name = line.split('(Deuce)')[0].strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                    {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
-                                        {# Parse old format with "Ad:" and "Deuce:" labels #}
-                                        {% if line.startswith('  Ad:') %}
-                                            {% set player_name = line.replace('  Ad:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% elif line.startswith('  Deuce:') %}
-                                            {% set player_name = line.replace('  Deuce:', '').strip() %}
-                                            <div class="ml-4 mb-1">{{ player_name }}</div>
-                                        {% endif %}
-                                    {% elif '&' in line %}
-                                        {# Fallback for old format - don't assume positions #}
-                                        {% set players = line.split('&') %}
-                                        {% if players|length == 2 %}
-                                            <div class="ml-4 mb-1">{{ players[0].strip() }}</div>
-                                            <div class="ml-4 mb-1">{{ players[1].strip() }}</div>
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 shadow-sm">
+                            <div class="lineup-display text-gray-800 text-base leading-relaxed">
+                                {% for line in escrow_data.initiator_lineup.split('\n') %}
+                                    {% if line.strip() %}
+                                        {% if line.startswith('LINEUP:') %}
+                                            <div class="font-semibold text-lg mb-2">{{ line }}</div>
+                                        {% elif line.startswith('Court ') %}
+                                            <div class="font-semibold mt-4 mb-2">{{ line }}</div>
+                                        {% elif '(Ad)' in line or '(Deuce)' in line %}
+                                            {# Parse new format but remove position labels #}
+                                            {% if '(Ad)' in line %}
+                                                {% set player_name = line.split('(Ad)')[0].strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                            {% if '(Deuce)' in line %}
+                                                {% set player_name = line.split('(Deuce)')[0].strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                        {% elif line.startswith('  Ad:') or line.startswith('  Deuce:') %}
+                                            {# Parse old format with "Ad:" and "Deuce:" labels #}
+                                            {% if line.startswith('  Ad:') %}
+                                                {% set player_name = line.replace('  Ad:', '').strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% elif line.startswith('  Deuce:') %}
+                                                {% set player_name = line.replace('  Deuce:', '').strip() %}
+                                                <div class="ml-4 mb-1">{{ player_name }}</div>
+                                            {% endif %}
+                                        {% elif '&' in line %}
+                                            {# Fallback for old format - don't assume positions #}
+                                            {% set players = line.split('&') %}
+                                            {% if players|length == 2 %}
+                                                <div class="ml-4 mb-1">{{ players[0].strip() }}</div>
+                                                <div class="ml-4 mb-1">{{ players[1].strip() }}</div>
+                                            {% else %}
+                                                <div class="ml-4 mb-1">{{ line }}</div>
+                                            {% endif %}
                                         {% else %}
                                             <div class="ml-4 mb-1">{{ line }}</div>
                                         {% endif %}
-                                    {% else %}
-                                        <div class="ml-4 mb-1">{{ line }}</div>
                                     {% endif %}
-                                {% endif %}
-                            {% endfor %}
+                                {% endfor %}
+                            </div>
                         </div>
                     {% endif %}
                 </div>
@@ -202,6 +204,13 @@
                     <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: 200px; -webkit-overflow-scrolling: touch; padding-bottom: 0.75rem;">
                         <div class="text-gray-400 text-center text-sm" id="loading-players">Loading your team players...</div>
                     </div>
+
+                    <!-- Add Subs Link -->
+                    <div class="mt-3 text-center">
+                        <button id="add-subs-btn" class="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                            <i class="fas fa-plus mr-1"></i>Add Subs
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Selected Player Indicator (for tap mode) -->
@@ -224,9 +233,12 @@
                     
                     <!-- Court 1 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 1
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 1
+                            </div>
+                            <div id="court-1-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -246,9 +258,12 @@
 
                     <!-- Court 2 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 2
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 2
+                            </div>
+                            <div id="court-2-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -268,9 +283,12 @@
 
                     <!-- Court 3 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 3
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 3
+                            </div>
+                            <div id="court-3-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -290,9 +308,12 @@
 
                     <!-- Court 4 -->
                     <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
-                        <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
-                            <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                            Court 4
+                        <h4 class="font-medium text-gray-800 mb-2 flex items-center justify-between text-sm">
+                            <div class="flex items-center">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
+                                Court 4
+                            </div>
+                            <div id="court-4-pti" class="text-xs text-gray-600 font-medium">(Avg PTI: --, Total PTI: --)</div>
                         </h4>
                         <div class="grid grid-cols-2 gap-2">
                             <div class="flex flex-col">
@@ -339,6 +360,82 @@
             </p>
         </div>
     </div>
+
+    <!-- Subs Selection Modal -->
+    <div id="subs-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4" style="flex-shrink: 0; background-color: #045454; border-bottom: 1px solid #033333;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold" style="color: #bff863;">Select Substitute Players</h2>
+                    <p class="text-sm mt-1" style="color: #bff863; opacity: 0.8;">Choose subs to add to your lineup from higher series at {{ escrow_data.recipient_club_name }}</p>
+                </div>
+                <button id="close-subs-modal" style="color: #bff863; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6" style="height: calc(80vh - 140px); overflow-y: scroll; flex: 1;">
+                    <!-- Loading State -->
+                    <div id="subs-modal-loading" class="text-center py-8">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div class="loading loading-spinner loading-lg text-blue-600"></div>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Finding Available Subs</h3>
+                        <p class="text-gray-500">Searching for players in higher series...</p>
+                    </div>
+                    <!-- Error State -->
+                    <div id="subs-modal-error" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Subs</h3>
+                        <p id="subs-modal-error-message" class="text-gray-500"></p>
+                    </div>
+                    <!-- No Results State -->
+                    <div id="subs-modal-no-results" class="hidden text-center py-8">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-user-slash text-blue-500 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Subs Available</h3>
+                        <p class="text-gray-500">No subs found in higher series at {{ escrow_data.recipient_club_name }}.</p>
+                    </div>
+                    <!-- Algorithm Header -->
+                    <div id="subs-modal-algorithm-header" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-robot text-blue-500 mr-2"></i>
+                            <div>
+                                <h4 class="font-semibold text-blue-900">Rally's Recommendation Algorithm</h4>
+                                <p class="text-sm text-blue-700">Weighted by PTI (70%), win rate (20%), and series level (10%)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Subs List -->
+                    <div id="subs-modal-list" class="hidden space-y-4"></div>
+                </div>
+                <!-- Modal Footer -->
+                <div class="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div id="selected-count" class="text-sm text-gray-600">
+                            <span id="selected-subs-count">0</span> subs selected
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="cancel-subs-modal" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                Cancel
+                            </button>
+                            <button id="add-selected-subs" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                                Add Selected Subs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -349,23 +446,81 @@
 
 /* Lineup display styling */
 .lineup-display {
-    font-family: 'Courier New', monospace;
-    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.8;
+    font-size: 0.95rem;
 }
 
+/* Court headers */
 .lineup-display .font-semibold {
     color: #1f2937;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 1.5rem 0 0.75rem 0;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 0.5rem;
+    border-left: 4px solid #3b82f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Player names styling */
 .lineup-display .mb-1 {
-    padding: 0.25rem 0;
-    border-radius: 0.25rem;
-    background-color: #f9fafb;
-    padding-left: 0.5rem;
-    margin-bottom: 0.25rem;
+    color: #374151;
+    font-weight: 500;
+    margin: 0.25rem 0 0.25rem 1.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 0.375rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Court sections spacing */
+.lineup-display {
+    padding: 0.5rem 0;
+}
+
+/* First court header spacing */
+.lineup-display .font-semibold:first-child {
+    margin-top: 0.5rem;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+    .lineup-display {
+        font-size: 0.9rem;
+        line-height: 1.7;
+    }
+    
+    .lineup-display .font-semibold {
+        font-size: 1rem;
+        padding: 0.625rem 0.875rem;
+        margin: 1.25rem 0 0.625rem 0;
+    }
+    
+    .lineup-display .mb-1 {
+        padding: 0.375rem 0.625rem;
+        margin: 0.25rem 0 0.25rem 1.25rem;
+    }
+}
+
+/* Hover effects for better interactivity */
+.lineup-display .mb-1:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+/* Court number highlighting */
+.lineup-display .font-semibold {
+    position: relative;
+}
+
+.lineup-display .font-semibold::before {
+    content: "🏆";
+    margin-right: 0.5rem;
+    font-size: 0.9em;
 }
 
 /* iOS-style card enhancements */
@@ -528,6 +683,11 @@
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
+
+/* Substitute player styling */
+.border-red-400 { 
+    border-color: #f87171; 
+}
 </style>
 
 <script>
@@ -637,9 +797,17 @@ function renderPlayers() {
             typeColor = playerTypeColors[positionPreference];
         }
         
-        playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+        // Apply red border for substitute players
+        const isSubstitute = player.isSubstitute;
+        const borderClass = isSubstitute ? 'border-red-400' : 'border-gray-300';
+        const substituteLabel = isSubstitute ? '<div class="text-xs text-red-600 font-semibold mb-1">SUB</div>' : '';
+        
+        // Get PTI value, default to 0 if not available
+        const ptiValue = player.pti || player.rating || 0;
+        
+        playerDiv.className = `player-card border ${borderClass} rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center`;
         playerDiv.dataset.playerName = player.name;
-        playerDiv.dataset.playerRating = player.rating;
+        playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
         playerDiv.dataset.playerType = playerType;
         
         // Set background color based on player type
@@ -657,10 +825,8 @@ function renderPlayers() {
         // Extract last name from full name
         const lastName = player.name.split(' ').pop();
         
-        // Get PTI value, default to 0 if not available
-        const ptiValue = player.pti || player.rating || 0;
-        
         playerDiv.innerHTML = `
+            ${substituteLabel}
             <div class="font-medium text-gray-900 text-sm">${lastName}</div>
             <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
         `;
@@ -804,6 +970,7 @@ function handleTouchEnd(e) {
             };
             
             updateManualLineupSummary();
+            updateCourtPTIAverages();
             
             // Auto scroll up 400px when player is added to court via touch drag and drop
             window.scrollBy({
@@ -871,6 +1038,7 @@ function handleDrop(e) {
         };
         
         updateManualLineupSummary();
+        updateCourtPTIAverages();
         
         // Auto scroll up 400px when player is added to court via drag and drop
         window.scrollBy({
@@ -926,6 +1094,7 @@ function movePlayerToPool(playerElement) {
     document.getElementById('available-players-pool').appendChild(playerElement);
     
     updateManualLineupSummary();
+    updateCourtPTIAverages();
 }
 
 function updateManualLineupSummary() {
@@ -980,6 +1149,56 @@ function updateManualLineupSummary() {
         submitBtn.classList.remove('bg-green-600', 'cursor-pointer');
         console.log(`❌ Submit button DISABLED - only ${totalPlayers}/8 players assigned`);
     }
+}
+
+function updateCourtPTIAverages() {
+  // Calculate PTI for each court
+  for (let courtNum = 1; courtNum <= 4; courtNum++) {
+    const courtElement = document.getElementById(`court-${courtNum}-pti`);
+    if (!courtElement) continue;
+    
+    const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+    if (!courtContainer) continue;
+    
+    const adPosition = courtContainer.querySelector('[data-position="1"]');
+    const deucePosition = courtContainer.querySelector('[data-position="2"]');
+    
+    let totalPTI = 0;
+    let playerCount = 0;
+    
+    // Check Ad position
+    if (adPosition && adPosition.querySelector('.player-card')) {
+      const playerElement = adPosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Check Deuce position
+    if (deucePosition && deucePosition.querySelector('.player-card')) {
+      const playerElement = deucePosition.querySelector('.player-card');
+      const playerName = playerElement.dataset.playerName;
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const pti = parseFloat(player.pti || player.rating || 0);
+        totalPTI += pti;
+        playerCount++;
+      }
+    }
+    
+    // Update the display
+    if (playerCount > 0) {
+      const avgPTI = (totalPTI / playerCount).toFixed(1);
+      const totalPTIFormatted = totalPTI.toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`;
+    } else {
+      courtElement.textContent = `(Avg PTI: --, Total PTI: --)`;
+    }
+  }
 }
 
 // Mode switching and tap functionality
@@ -1110,6 +1329,7 @@ function handleCourtPositionTap(e) {
     clearPlayerSelection();
     
     updateManualLineupSummary();
+    updateCourtPTIAverages();
     
     // Auto scroll up 400px when player is added to court
     window.scrollBy({
@@ -1229,6 +1449,375 @@ async function submitLineup() {
         submitBtn.disabled = false;
     }
 }
+
+// Modal-based Subs functionality
+let selectedSubs = new Set();
+
+function openSubsModal() {
+  console.log('🔍 Opening subs modal...');
+  
+  // Add scrollbar styling for webkit browsers (same pattern as analyze-me modal)
+  const style = document.createElement('style');
+  style.id = 'subs-modal-scrollbar-style';
+  style.textContent = `
+    #subs-modal .overflow-y-scroll {
+      scrollbar-width: thin !important;
+      scrollbar-color: #888 #f1f1f1 !important;
+      min-height: 200px !important;
+      max-height: calc(80vh - 140px) !important;
+      overflow-y: scroll !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar {
+      width: 12px !important;
+      height: 12px !important;
+      display: block !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb {
+      background: #888 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb:hover {
+      background: #555 !important;
+    }
+  `;
+  
+  // Only add style if not already added
+  if (!document.getElementById('subs-modal-scrollbar-style')) {
+    document.head.appendChild(style);
+  }
+  
+  // Reset modal state
+  selectedSubs.clear();
+  document.getElementById('subs-modal').classList.remove('hidden');
+  
+  // Show loading state
+  showModalLoading();
+  
+  // Load and display subs
+  loadAndDisplaySubs();
+}
+
+function showModalLoading() {
+  document.getElementById('subs-modal-loading').classList.remove('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+}
+
+function showModalError(message) {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.remove('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+  document.getElementById('subs-modal-error-message').textContent = message;
+}
+
+function showModalNoResults() {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.remove('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+}
+
+function showModalResults() {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.remove('hidden');
+  document.getElementById('subs-modal-list').classList.remove('hidden');
+}
+
+function closeSubsModal() {
+  document.getElementById('subs-modal').classList.add('hidden');
+  selectedSubs.clear();
+  updateSelectedSubsCount();
+}
+
+function updateSelectedSubsCount() {
+  const count = selectedSubs.size;
+  document.getElementById('selected-subs-count').textContent = count;
+  document.getElementById('add-selected-subs').disabled = count === 0;
+}
+
+async function loadAndDisplaySubs() {
+  try {
+    // Debug: Log all available escrow data
+    console.log('🔍 Available escrow data:', window.escrowData);
+    
+    // Get the recipient's team series from the team ID
+    const recipientTeamId = window.escrowData.recipient_team_id;
+    console.log('🔍 Getting series for team ID:', recipientTeamId);
+    
+    const seriesResponse = await fetch(`/api/get-team-series/${recipientTeamId}`);
+    const seriesData = await seriesResponse.json();
+    
+    if (!seriesData.success) {
+      throw new Error(`Failed to get team series: ${seriesData.error}`);
+    }
+    
+    const currentSeries = seriesData.series_name;
+    const currentClub = window.escrowData.recipient_club_name;
+    
+    console.log('🔍 Finding subs for series:', currentSeries, 'club:', currentClub);
+    
+    // Find subs using the same logic as find-subs page
+    const subsData = await findSubsForUser(currentSeries, currentClub);
+    
+    if (subsData.length === 0) {
+      showModalNoResults();
+      return;
+    }
+    
+    // Show results
+    showModalResults();
+    renderSubsInModal(subsData);
+    
+  } catch (error) {
+    console.error('Error loading subs:', error);
+    showModalError('Failed to load substitute players. Please try again.');
+  }
+}
+
+async function findSubsForUser(userSeries, userClub) {
+  try {
+    console.log('Finding subs for user series:', userSeries, 'at club:', userClub);
+    
+    // Call the escrow-subs endpoint which handles all the series filtering logic
+    const response = await fetch(`/api/escrow-subs?club_name=${encodeURIComponent(userClub)}&user_series=${encodeURIComponent(userSeries)}`);
+    const playersData = await response.json();
+    
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    
+    console.log(`Found ${playersData.length} substitute players at ${userClub}`);
+    
+    // Add substitute flag to all players
+    const subsData = playersData.map(player => ({
+      ...player,
+      isSubstitute: true
+    }));
+    
+    // Backend already calculates composite scores and sorts correctly
+    // No need to recalculate or resort on frontend
+    
+    return subsData;
+    
+  } catch (error) {
+    console.error('Error in findSubsForUser:', error);
+    throw error;
+  }
+}
+
+function getSeriesComparisonValue(seriesName) {
+  if (!seriesName) return null;
+  
+  // Handle numeric series (e.g., "Series 1", "Series 2", "Chicago 22")
+  const numericMatch = seriesName.match(/(?:Series\s+)?(\d+)/i);
+  if (numericMatch) {
+    return { type: 'numeric', value: parseInt(numericMatch[1], 10) };
+  }
+  
+  // Handle letter series (e.g., "Series A", "Series B", "Division G")
+  const letterMatch = seriesName.match(/(?:Series\s+|Division\s+)?([A-Z])/i);
+  if (letterMatch) {
+    const letter = letterMatch[1].toUpperCase();
+    const precedence = letter.charCodeAt(0) - 64; // A=1, B=2, etc.
+    return { type: 'letter', value: precedence };
+  }
+  
+  return null;
+}
+
+function calculateCompositeScore(player) {
+  const pti = parseFloat(player.pti || player.rating || 0);
+  const winRate = parseFloat(player.winRate || 0);
+  const seriesLevel = getSeriesComparisonValue(player.series);
+  
+  // Weight: PTI 70%, win rate 20%, series level 10%
+  let score = 0;
+  
+  // PTI component (70%)
+  score += pti * 0.7;
+  
+  // Win rate component (20%)
+  score += winRate * 0.2;
+  
+  // Series level component (10%) - higher series (lower numbers) get higher scores
+  if (seriesLevel) {
+    if (seriesLevel.type === 'numeric') {
+      // For numeric series, lower numbers are higher series
+      score += (30 - seriesLevel.value) * 0.1; // Invert so Series 1 > Series 22
+    } else if (seriesLevel.type === 'letter') {
+      // For letter series, lower letters are higher series
+      score += (26 - seriesLevel.value) * 0.1; // Invert so A > Z
+    }
+  }
+  
+  return score;
+}
+
+function renderSubsInModal(subsData) {
+  const subsList = document.getElementById('subs-modal-list');
+  subsList.innerHTML = '';
+  
+  subsData.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'bg-white border border-gray-200 rounded-lg p-3 mb-2 hover:bg-gray-50 transition-colors max-w-md mx-auto';
+    
+    const playerTypeColors = {
+      'Ad': '#70e6bb',
+      'Deuce': '#6f90d6',
+      'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    const positionPreference = player.position_preference;
+    const typeColor = positionPreference && playerTypeColors[positionPreference] ? playerTypeColors[positionPreference] : grayColor;
+    
+    playerDiv.innerHTML = `
+      <div class="flex items-start gap-4">
+        <!-- Checkbox Column -->
+        <div class="flex items-center pt-1 flex-shrink-0">
+          <input type="checkbox" class="sub-checkbox" data-player-name="${player.name}" 
+                 data-player-data='${JSON.stringify(player)}' style="accent-color: #3b82f6;">
+        </div>
+        
+        <!-- Player Content Column -->
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center space-x-2 mb-2">
+            <h4 class="font-semibold text-gray-900 truncate">${player.name}</h4>
+            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${typeColor};" title="${positionPreference || 'No preference'}"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">PTI:</span>
+              <span class="font-medium text-blue-600">${player.pti || player.rating || 'N/A'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Series:</span>
+              <span class="font-medium text-gray-900">${player.series}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Record:</span>
+              <span class="font-medium text-gray-900">${player.wins || 0}W-${player.losses || 0}L</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Win Rate:</span>
+              <span class="font-medium" style="color: ${(parseFloat(player.winRate) || 0) >= 60 ? '#bff863' : (parseFloat(player.winRate) || 0) >= 50 ? '#fbbf24' : '#ef4444'}">${player.winRate || 0}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    // Add checkbox event listener
+    const checkbox = playerDiv.querySelector('.sub-checkbox');
+    checkbox.addEventListener('change', function() {
+      if (this.checked) {
+        selectedSubs.add(player.name);
+      } else {
+        selectedSubs.delete(player.name);
+      }
+      updateSelectedSubsCount();
+    });
+    
+    subsList.appendChild(playerDiv);
+  });
+}
+
+function addSelectedSubs() {
+  const selectedPlayerNames = Array.from(selectedSubs);
+  
+  if (selectedPlayerNames.length === 0) {
+    alert('Please select at least one substitute player.');
+    return;
+  }
+  
+  // Add selected subs to the players array
+  selectedPlayerNames.forEach(playerName => {
+    // Find the checkbox for this player to get the stored player data
+    const checkbox = Array.from(document.querySelectorAll('.sub-checkbox'))
+      .find(cb => cb.dataset.playerName === playerName);
+    
+    if (checkbox) {
+      // Get the player data from the modal's stored data
+      const playerData = JSON.parse(checkbox.dataset.playerData || '{}');
+      
+      // Create a new player object for the subs with actual data
+      const subPlayer = {
+        name: playerName,
+        pti: playerData.pti || playerData.rating || 0,
+        rating: playerData.rating || playerData.pti || 0,
+        position_preference: playerData.position_preference || 'Either',
+        isSubstitute: true,
+        wins: playerData.wins || 0,
+        losses: playerData.losses || 0,
+        winRate: playerData.winRate || '0%',
+        series: playerData.series,
+        club: playerData.club
+      };
+      
+      // Add to players array
+      players.push(subPlayer);
+    }
+  });
+  
+  // Re-render the available players pool
+  renderPlayers();
+  
+  // Close modal
+  closeSubsModal();
+  
+  // Show success message
+  alert(`Added ${selectedPlayerNames.length} substitute player(s) to your lineup.`);
+}
+
+// Setup modal event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  // Add Subs button
+  const addSubsBtn = document.getElementById('add-subs-btn');
+  if (addSubsBtn) {
+    addSubsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSubsModal();
+    });
+  }
+  
+  // Modal event handlers
+  const closeSubsModalBtn = document.getElementById('close-subs-modal');
+  const cancelSubsModalBtn = document.getElementById('cancel-subs-modal');
+  const addSelectedSubsBtn = document.getElementById('add-selected-subs');
+  
+  if (closeSubsModalBtn) {
+    closeSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (cancelSubsModalBtn) {
+    cancelSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (addSelectedSubsBtn) {
+    addSelectedSubsBtn.addEventListener('click', addSelectedSubs);
+  }
+  
+  // Close modal when clicking outside
+  const subsModal = document.getElementById('subs-modal');
+  if (subsModal) {
+    subsModal.addEventListener('click', (e) => {
+      if (e.target === subsModal) {
+        closeSubsModal();
+      }
+    });
+  }
+});
 </script>
 
 {% endblock %}

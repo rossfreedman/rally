@@ -1609,6 +1609,102 @@ def get_admin_leagues():
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/club-search")
+@login_required
+def search_clubs():
+    """Search clubs by name for type-ahead functionality"""
+    try:
+        query = request.args.get('q', '').strip()
+        
+        if len(query) < 2:
+            return jsonify([])
+        
+        # Search clubs by name (case-insensitive)
+        clubs = execute_query(
+            """
+            SELECT c.id, c.name, c.club_address
+            FROM clubs c
+            WHERE LOWER(c.name) LIKE LOWER(%s)
+            ORDER BY c.name
+            LIMIT 10
+            """,
+            [f"%{query}%"]
+        )
+        
+        return jsonify([
+            {
+                "id": club["id"],
+                "name": club["name"],
+                "address": club["club_address"] or ""
+            }
+            for club in clubs
+        ])
+        
+    except Exception as e:
+        print(f"Error searching clubs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/club/<int:club_id>/users")
+@login_required
+def get_club_users(club_id):
+    """Get all users associated with a specific club"""
+    try:
+        # Get club information first
+        club = execute_query_one(
+            "SELECT id, name, club_address FROM clubs WHERE id = %s",
+            [club_id]
+        )
+        
+        if not club:
+            return jsonify({"error": "Club not found"}), 404
+        
+        # Get all users associated with this club through player associations
+        users = execute_query(
+            """
+            SELECT DISTINCT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.phone_number,
+                u.last_login,
+                COUNT(DISTINCT al.id) as activity_count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN activity_log al ON u.id = al.user_id
+            WHERE p.club_id = %s
+            GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone_number, u.last_login
+            ORDER BY u.last_name, u.first_name
+            """,
+            [club_id]
+        )
+        
+        return jsonify({
+            "club": {
+                "id": club["id"],
+                "name": club["name"],
+                "address": club["club_address"] or ""
+            },
+            "users": [
+                {
+                    "id": user["id"],
+                    "name": f"{user['first_name']} {user['last_name']}",
+                    "email": user["email"],
+                    "phone": user["phone_number"] or "",
+                    "activity_count": user["activity_count"] or 0,
+                    "last_login": user["last_login"].isoformat() if user["last_login"] else None
+                }
+                for user in users
+            ]
+        })
+        
+    except Exception as e:
+        print(f"Error getting club users: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @admin_bp.route("/api/admin/update-user", methods=["POST"])
 @login_required
 def update_user():
@@ -2289,6 +2385,174 @@ def get_cockpit_system_metrics():
 
 
 
+@admin_bp.route("/api/admin/cockpit/user-counts-by-club")
+@login_required
+@admin_required
+def get_user_counts_by_club():
+    """Get user counts by club for pie chart"""
+    try:
+        from database_utils import get_db_cursor
+        
+        # Query to count users by club (handling multiple associations)
+        query = """
+        SELECT 
+            c.name as club_name,
+            COUNT(DISTINCT u.id) as user_count
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN clubs c ON p.club_id = c.id
+        WHERE u.is_admin = false
+        GROUP BY c.id, c.name
+        ORDER BY user_count DESC
+        """
+        
+        with get_db_cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            
+            # Get total unique users to avoid double-counting
+            total_query = """
+            SELECT COUNT(DISTINCT u.id) as total_users
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN clubs c ON p.club_id = c.id
+            WHERE u.is_admin = false
+            """
+            cursor.execute(total_query)
+            total_result = cursor.fetchone()
+            total_users = total_result['total_users'] if total_result else 0
+        
+        # Format data for Chart.js
+        labels = [row['club_name'] for row in results]
+        data = [row['user_count'] for row in results]
+        
+        # Generate colors
+        colors = generate_pie_chart_colors(len(labels))
+        
+        chart_data = {
+            "labels": labels,
+            "datasets": [{
+                "data": data,
+                "backgroundColor": colors,
+                "borderColor": colors,
+                "borderWidth": 2
+            }]
+        }
+        
+        return jsonify({
+            "status": "success",
+            "chart_data": chart_data,
+            "total_users": total_users
+        })
+        
+    except Exception as e:
+        print(f"Error getting user counts by club: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/cockpit/user-counts-by-league")
+@login_required
+@admin_required
+def get_user_counts_by_league():
+    """Get user counts by league for pie chart"""
+    try:
+        from database_utils import get_db_cursor
+        
+        # Simple query to count users by league
+        query = """
+        SELECT 
+            l.league_name,
+            COUNT(DISTINCT u.id) as user_count
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN leagues l ON p.league_id = l.id
+        WHERE u.is_admin = false
+        GROUP BY l.id, l.league_name
+        ORDER BY user_count DESC
+        """
+        
+        with get_db_cursor() as cursor:
+            cursor.execute(query)
+            results = cursor.fetchall()
+            
+            # Get total unique users to avoid double-counting
+            total_query = """
+            SELECT COUNT(DISTINCT u.id) as total_users
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.is_admin = false
+            """
+            cursor.execute(total_query)
+            total_result = cursor.fetchone()
+            total_users = total_result['total_users'] if total_result else 0
+        
+        # Format data for Chart.js
+        labels = [row['league_name'] for row in results]
+        data = [row['user_count'] for row in results]
+        
+        # Generate colors
+        colors = generate_pie_chart_colors(len(labels))
+        
+        chart_data = {
+            "labels": labels,
+            "datasets": [{
+                "data": data,
+                "backgroundColor": colors,
+                "borderColor": colors,
+                "borderWidth": 2
+            }]
+        }
+        
+        return jsonify({
+            "status": "success",
+            "chart_data": chart_data,
+            "total_users": total_users
+        })
+        
+    except Exception as e:
+        print(f"Error getting user counts by league: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+def generate_pie_chart_colors(count):
+    """Generate distinct colors for pie chart segments"""
+    # Rally-themed color palette
+    base_colors = [
+        '#10645c',  # Rally primary green
+        '#0d4f47',  # Rally secondary green
+        '#1a7a6b',  # Rally accent green
+        '#059669',  # Emerald
+        '#10b981',  # Green
+        '#34d399',  # Light green
+        '#6ee7b7',  # Lighter green
+        '#a7f3d0',  # Very light green
+        '#d1fae5',  # Lightest green
+        '#f0fdf4',  # Almost white green
+        '#3b82f6',  # Blue
+        '#1d4ed8',  # Dark blue
+        '#7c3aed',  # Purple
+        '#9333ea',  # Dark purple
+        '#ec4899',  # Pink
+        '#f59e0b',  # Amber
+        '#ef4444',  # Red
+        '#84cc16',  # Lime
+        '#06b6d4',  # Cyan
+        '#8b5cf6'   # Violet
+    ]
+    
+    # If we need more colors than available, cycle through them
+    colors = []
+    for i in range(count):
+        colors.append(base_colors[i % len(base_colors)])
+    
+    return colors
+
+
 @admin_bp.route("/api/admin/cockpit/page-analytics")
 @login_required
 @admin_required
@@ -2755,6 +3019,25 @@ def get_users_for_impersonation():
         return jsonify(users)
     except Exception as e:
         print(f"Error getting users for impersonation: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/search-users-for-impersonation")
+@login_required
+@admin_required
+def search_users_for_impersonation():
+    """Search users by name or email for impersonation type-ahead"""
+    try:
+        from app.services.admin_service import search_users_for_impersonation_service
+        query = request.args.get('q', '').strip()
+        
+        if len(query) < 2:
+            return jsonify([])
+            
+        users = search_users_for_impersonation_service(query)
+        return jsonify(users)
+    except Exception as e:
+        print(f"Error searching users for impersonation: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -4047,5 +4330,338 @@ def get_average_response_time():
         return "120ms"  # Simulated value
     except:
         return "Unknown"
+
+
+# Scraper Management Routes
+@admin_bp.route("/admin/scrape-import")
+@login_required
+@admin_required
+def scrape_import_page():
+    """Serve the scrape and import page"""
+    return render_template("mobile/scrape_import.html")
+
+
+@admin_bp.route("/api/admin/start-scraper", methods=["POST"])
+@login_required
+@admin_required
+def start_scraper():
+    """Start the scraper runner process"""
+    try:
+        # Layer 1: Check if scraper is already running in memory
+        if active_processes.get("scraping") and active_processes["scraping"].poll() is None:
+            return jsonify({
+                "success": False,
+                "error": "Scraper is already running (Process ID: {})".format(active_processes["scraping"].pid)
+            }), 400
+        
+        # Layer 2: Check for any running scraper processes by name
+        import psutil
+        running_scrapers = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['cmdline'] and any('scraper_runner.py' in arg for arg in proc.info['cmdline']):
+                    running_scrapers.append(proc.info['pid'])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        if running_scrapers:
+            return jsonify({
+                "success": False,
+                "error": "Found {} existing scraper process(es) running: {}".format(
+                    len(running_scrapers), 
+                    ", ".join(map(str, running_scrapers))
+                )
+            }), 400
+        
+        # Layer 3: Check for lock file (optional additional protection)
+        import os
+        lock_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scraper.lock")
+        if os.path.exists(lock_file):
+            return jsonify({
+                "success": False,
+                "error": "Scraper lock file exists - another process may be running"
+            }), 400
+        
+        # Start the scraper process
+        import os
+        import subprocess
+        from datetime import datetime
+        
+        # Get the project root directory (rally directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        scraper_path = os.path.join(project_root, "data", "cron", "scraper_runner.py")
+        
+        # Create lock file
+        with open(lock_file, 'w') as f:
+            f.write(f"Scraper started at {datetime.now().isoformat()}\n")
+            f.write(f"Process will be started shortly\n")
+        
+        # Start the process
+        process = subprocess.Popen(
+            ["python3", scraper_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            universal_newlines=True,
+            bufsize=1,
+            cwd=project_root
+        )
+        
+        # Store the process
+        active_processes["scraping"] = process
+        
+        # Update lock file with actual process ID
+        with open(lock_file, 'w') as f:
+            f.write(f"Scraper started at {datetime.now().isoformat()}\n")
+            f.write(f"Process ID: {process.pid}\n")
+            f.write(f"Status: Running\n")
+        
+        start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        return jsonify({
+            "success": True,
+            "process_id": process.pid,
+            "start_time": start_time
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/stop-scraper", methods=["POST"])
+@login_required
+@admin_required
+def stop_scraper():
+    """Stop the scraper runner process"""
+    try:
+        process = active_processes.get("scraping")
+        
+        if not process or process.poll() is not None:
+            return jsonify({
+                "success": False,
+                "error": "No scraper process is currently running"
+            }), 400
+        
+        # Terminate the process
+        process.terminate()
+        
+        # Wait a bit for graceful termination
+        import time
+        time.sleep(2)
+        
+        # Force kill if still running
+        if process.poll() is None:
+            process.kill()
+        
+        # Clear the process reference
+        active_processes["scraping"] = None
+        
+        # Clean up lock file
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        lock_file = os.path.join(project_root, "scraper.lock")
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+        
+        return jsonify({
+            "success": True,
+            "message": "Scraper process stopped"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/scraper-status")
+@login_required
+@admin_required
+def scraper_status():
+    """Get the current status of the scraper process"""
+    try:
+        process = active_processes.get("scraping")
+        
+        if process and process.poll() is None:
+            # Process is running
+            return jsonify({
+                "running": True,
+                "process_id": process.pid,
+                "start_time": "Unknown"  # We could track this if needed
+            })
+        else:
+            # Process is not running - clean up
+            active_processes["scraping"] = None
+            
+            # Clean up lock file if it exists
+            import os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            lock_file = os.path.join(project_root, "scraper.lock")
+            if os.path.exists(lock_file):
+                os.remove(lock_file)
+            
+            return jsonify({
+                "running": False,
+                "process_id": None,
+                "start_time": None
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "running": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/scraper-output")
+@login_required
+@admin_required
+def scraper_output():
+    """Stream the output from the scraper process"""
+    def generate():
+        process = active_processes.get("scraping")
+        
+        if not process or process.poll() is not None:
+            yield f"data: {json.dumps({'line': 'No scraper process is currently running'})}\n\n"
+            return
+        
+        try:
+            # Read output line by line
+            for line in iter(process.stdout.readline, ''):
+                if line:
+                    yield f"data: {json.dumps({'line': line.rstrip()})}\n\n"
+                else:
+                    break
+        except Exception as e:
+            yield f"data: {json.dumps({'line': f'Error reading output: {str(e)}'})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
+
+
+@admin_bp.route("/api/admin/scraper-logs")
+@login_required
+@admin_required
+def scraper_logs():
+    """Get the current scraper logs as a downloadable file"""
+    try:
+        # Create a simple log content for now
+        # In a real implementation, you'd read from a log file
+        log_content = "Scraper logs would be here\n"
+        log_content += f"Process status: {active_processes.get('scraping')}\n"
+        log_content += f"Timestamp: {datetime.now().isoformat()}\n"
+        
+        return Response(
+            log_content,
+            mimetype='text/plain',
+            headers={
+                'Content-Disposition': f'attachment; filename=scraper-logs-{datetime.now().strftime("%Y%m%d-%H%M%S")}.txt'
+            }
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/cleanup-scraper", methods=["POST"])
+@login_required
+@admin_required
+def cleanup_scraper():
+    """Clean up any orphaned scraper processes and lock files"""
+    try:
+        import os
+        import psutil
+        
+        # Clean up lock file
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        lock_file = os.path.join(project_root, "scraper.lock")
+        lock_removed = False
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+            lock_removed = True
+        
+        # Find and kill any orphaned scraper processes
+        killed_processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if proc.info['cmdline'] and any('scraper_runner.py' in arg for arg in proc.info['cmdline']):
+                    proc.terminate()
+                    killed_processes.append(proc.info['pid'])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+        
+        # Clear memory reference
+        active_processes["scraping"] = None
+        
+        return jsonify({
+            "success": True,
+            "message": "Cleanup completed",
+            "lock_file_removed": lock_removed,
+            "processes_killed": killed_processes
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@admin_bp.route("/scraper-status")
+def scraper_status_page():
+    """Public status page to check if scraper is running (no auth required)"""
+    process = active_processes.get("scraping")
+    is_running = process and process.poll() is None
+    
+    status_html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Scraper Status - Rally</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }}
+            .status {{ padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .running {{ background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }}
+            .stopped {{ background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }}
+            .info {{ background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }}
+            .refresh {{ margin-top: 20px; }}
+            .refresh a {{ color: #007bff; text-decoration: none; }}
+            .refresh a:hover {{ text-decoration: underline; }}
+        </style>
+    </head>
+    <body>
+        <h1>🔄 Rally Scraper Status</h1>
+        
+        <div class="status {'running' if is_running else 'stopped'}">
+            <h2>{'✅ Running' if is_running else '❌ Stopped'}</h2>
+            <p>The scraper process is currently {'running' if is_running else 'not running'}.</p>
+        </div>
+        
+        <div class="info">
+            <h3>📊 Process Information</h3>
+            <p><strong>Status:</strong> {'Running' if is_running else 'Stopped'}</p>
+            <p><strong>Process ID:</strong> {process.pid if is_running else 'N/A'}</p>
+            <p><strong>Last Checked:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        </div>
+        
+        <div class="refresh">
+            <p><a href="/scraper-status">🔄 Refresh Status</a></p>
+            <p><a href="/admin/scrape-import">⚙️ Go to Admin Panel</a></p>
+        </div>
+        
+        <script>
+            // Auto-refresh every 30 seconds
+            setTimeout(() => {{
+                window.location.reload();
+            }}, 30000);
+        </script>
+    </body>
+    </html>
+    """
+    
+    return status_html
 
 

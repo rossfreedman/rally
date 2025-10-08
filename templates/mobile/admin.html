@@ -34,144 +34,6 @@
     </p>
   </div>
 
-  <!-- 1. Activity Dashboard Section (Embedded) -->
-  <div class="icon-section mb-8">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Activity Dashboard
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    
-    
-    <!-- Stats Overview Cards -->
-    <div class="stats-section mb-6">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-          <div class="flex items-center">
-            <div class="p-2 bg-blue-100 rounded-lg">
-              <i class="fas fa-chart-line text-blue-600 text-xl"></i>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Total Activities</p>
-              <p class="text-xl font-bold text-gray-900" id="total-activities">-</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-          <div class="flex items-center">
-            <div class="p-2 bg-green-100 rounded-lg">
-              <i class="fas fa-calendar-day text-green-600 text-xl"></i>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Today</p>
-              <p class="text-xl font-bold text-gray-900" id="today-activities">-</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-          <div class="flex items-center">
-            <div class="p-2 bg-purple-100 rounded-lg">
-              <i class="fas fa-users text-purple-600 text-xl"></i>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Active Users</p>
-              <p class="text-xl font-bold text-gray-900" id="active-users">-</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
-          <div class="flex items-center">
-            <div class="p-2 bg-orange-100 rounded-lg">
-              <i class="fas fa-bolt text-orange-600 text-xl"></i>
-            </div>
-            <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">Activity Rate</p>
-              <p class="text-lg font-bold text-gray-900" id="activity-rate">-</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Dashboard Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-      
-      <!-- Activity Timeline - Left Column -->
-      <div class="lg:col-span-2">
-        <!-- Activity Timeline -->
-        <div class="timeline-section bg-white rounded-lg shadow">
-          <div class="p-4 border-b border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center">
-                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm mr-3" style="background-color: #10645c !important;">
-                  <i class="fas fa-clock text-white text-lg"></i>
-                </div>
-                <h2 class="text-lg font-semibold text-gray-900">Recent Activity</h2>
-              </div>
-              <div class="flex items-center space-x-2">
-                <button id="refresh-timeline" class="text-gray-500 hover:text-blue-600 transition-colors">
-                  <i class="fas fa-sync-alt"></i>
-                </button>
-                <span class="text-sm text-gray-500" id="timeline-status">Loading...</span>
-              </div>
-            </div>
-            
-            <!-- Activity Filter Buttons -->
-            <div class="flex space-x-2">
-              <button onclick="setActivityFilter('day')" id="filter-day" class="activity-filter-btn active px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-blue-600 text-white">
-                Day
-              </button>
-              <button onclick="setActivityFilter('week')" id="filter-week" class="activity-filter-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
-                Week
-              </button>
-              <button onclick="setActivityFilter('month')" id="filter-month" class="activity-filter-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
-                Month
-              </button>
-            </div>
-          </div>
-          
-          <div class="timeline-container p-4" style="max-height: 400px; overflow-y: auto;">
-            <div id="timeline-content">
-              <!-- Timeline items will be loaded here -->
-              <div class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span class="ml-2 text-gray-600">Loading activities...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Sidebar -->
-      <div class="space-y-4">
-        
-        <!-- Top Active Users -->
-        <div class="top-players-section bg-white rounded-lg shadow">
-          <div class="p-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">
-              <i class="fas fa-star mr-2 text-yellow-600"></i>Most Active Users
-            </h2>
-            <p class="text-sm text-gray-600 mt-1">Top performers with recent activity</p>
-          </div>
-          <div class="p-4">
-            <div id="top-players-content">
-              <div class="flex items-center justify-center py-4">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600"></div>
-                <span class="ml-2 text-gray-600 text-sm">Loading users...</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-      </div>
-    </div>
-  </div>
 
   <!-- 2. Rally Data Management Section -->
   <div class="icon-section mb-8">
@@ -182,7 +44,7 @@
       </div>
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
-    <div class="icon-grid grid grid-cols-2 md:grid-cols-5 gap-4" aria-label="Rally Data Management">
+    <div class="icon-grid grid grid-cols-2 md:grid-cols-7 gap-4" aria-label="Rally Data Management">
       <a href="/admin/leagues" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
         <i class="fas fa-trophy text-3xl mb-3" style="color: #10645c !important;"></i>
         <span class="icon-label text-center font-semibold">Leagues</span>
@@ -199,67 +61,110 @@
         <i class="fas fa-users text-3xl mb-3" style="color: #10645c !important;"></i>
         <span class="icon-label text-center font-semibold">Users</span>
       </a>
+      <a href="/admin/add-player" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-user-plus text-3xl mb-3" style="color: #10645c !important;"></i>
+        <span class="icon-label text-center font-semibold">Add Player</span>
+      </a>
       <a href="/admin/etl" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
         <i class="fas fa-database text-3xl mb-3" style="color: #10645c !important;"></i>
         <span class="icon-label text-center font-semibold">ETL</span>
       </a>
-    </div>
-  </div>
-
-  <!-- 3. Testing & Debug Section -->
-  <div class="icon-section mb-8">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Testing & Debug
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    <div class="icon-grid grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="Testing & Debug">
       <a href="/admin/test-notifications" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
         <i class="fas fa-envelope text-3xl mb-3" style="color: #10645c !important;"></i>
         <span class="icon-label text-center font-semibold">Test Email</span>
       </a>
+      <a href="/admin/scrape-import" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-download text-3xl mb-3" style="color: #10645c !important;"></i>
+        <span class="icon-label text-center font-semibold">Scrape & Import</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 3. Club Management Section -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Club Management
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     
-    <!-- Detailed Logging Notifications Section -->
-    <div class="mt-6 bg-white rounded-lg shadow p-6">
+    <!-- Club Search -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 flex items-center mb-3">
+          <i class="fas fa-search mr-2 text-blue-600"></i>
+          Search Club
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Search for a club to view all users associated with it
+        </p>
+    </div>
+    
+      <div class="relative">
+        <input 
+          type="text" 
+          id="club-search-input" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+          placeholder="Type club name to search..."
+          autocomplete="off"
+        />
+        <div id="club-search-dropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
+          <!-- Search results will be populated here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Club Users Display -->
+    <div id="club-users-section" class="hidden bg-white rounded-lg shadow">
+      <div class="p-6 border-b border-gray-200">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-            <i class="fas fa-envelope text-red-600 mr-2"></i>
-            Detailed Logging Notifications
+              <i class="fas fa-users mr-2 text-green-600"></i>
+              <span id="club-users-title">Club Users</span>
           </h3>
-          <p class="text-sm text-gray-600 mt-1">
-            Send email notifications to admin (rossfreedman@gmail.com) for every user activity when enabled
+            <p class="text-sm text-gray-600 mt-1" id="club-users-subtitle">
+              Users associated with this club
           </p>
         </div>
-        <div class="flex items-center space-x-3">
-          <span id="logging-status" class="text-sm text-gray-500">Loading...</span>
-          <!-- Toggle Button -->
-          <button 
-            id="detailed-logging-toggle-btn" 
-            onclick="handleToggleClick()"
-            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 bg-gray-200 text-gray-700"
-          >
-            <span id="toggle-btn-text">Loading...</span>
-          </button>
+          <div class="text-right">
+            <p class="text-sm text-gray-500">
+              <span id="club-users-count">0</span> users found
+            </p>
+          </div>
         </div>
       </div>
       
-      <!-- Status Information -->
-      <div id="logging-notifications-info" class="border-t border-gray-100 pt-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <span class="font-medium text-gray-700">Admin Email:</span>
-            <span class="text-gray-600 ml-2">rossfreedman@gmail.com</span>
+      <div class="p-6">
+        <div id="club-users-loading" class="hidden flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span class="ml-2 text-gray-600">Loading users...</span>
           </div>
-          <div>
-            <span class="font-medium text-gray-700">Current Status:</span>
-            <span id="logging-current-status" class="ml-2">
-              <i class="fas fa-spinner fa-spin text-gray-400"></i> Loading...
-            </span>
+        
+        <div id="club-users-table-container" class="hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activities</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                </tr>
+              </thead>
+              <tbody id="club-users-table-body" class="bg-white divide-y divide-gray-200">
+                <!-- Users will be populated here -->
+              </tbody>
+            </table>
           </div>
+        </div>
+        
+        <div id="club-users-empty" class="hidden text-center py-8">
+          <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
+          <p class="text-gray-500">No users found for this club</p>
         </div>
       </div>
     </div>
@@ -291,17 +196,25 @@
 
       <!-- Impersonation Controls -->
       <div class="space-y-4">
-        <!-- User Selection Dropdown -->
+        <!-- User Selection Type-ahead -->
         <div>
-          <label for="impersonation-user-select" class="block text-sm font-medium text-gray-700 mb-2">
-            Select User to Impersonate:
+          <label for="impersonation-user-input" class="block text-sm font-medium text-gray-700 mb-2">
+            Search User to Impersonate:
           </label>
-          <select 
-            id="impersonation-user-select" 
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm"
-          >
-            <option value="">Loading users...</option>
-          </select>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="impersonation-user-input" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm"
+              placeholder="Type name or email to search..."
+              autocomplete="off"
+            />
+            <div id="impersonation-user-dropdown" class="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto">
+              <!-- Type-ahead results will be populated here -->
+            </div>
+          </div>
+          <!-- Hidden input to store selected user data -->
+          <input type="hidden" id="impersonation-user-data" />
         </div>
 
         <!-- Action Buttons -->
@@ -342,441 +255,165 @@
   </div>
 </div>
 
-<style>
-/* Custom styles for activity filter buttons */
-.activity-filter-btn {
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-}
-
-.activity-filter-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.activity-filter-btn.active {
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
-}
-</style>
 
 <script>
-// Dashboard and Impersonation JavaScript
-let dashboardData = {
-  activities: [],
-  stats: {},
-  topPlayers: [],
-  currentFilter: 'day',
-  emptyText: 'No activities today'
-};
+// Impersonation JavaScript
 
-// Load users for impersonation dropdown and initialize dashboard
+// Impersonation functions with type-ahead functionality
+let searchTimeout;
+let selectedUserData = null;
+
+// Club Management JavaScript
+let clubSearchTimeout;
+let selectedClubData = null;
+
+// Initialize type-ahead functionality
 document.addEventListener('DOMContentLoaded', function() {
-    loadUsersForImpersonation();
-    checkImpersonationStatus();
-    initializeDashboard();
-    loadDetailedLoggingStatus();
-});
-
-// Dashboard initialization
-function initializeDashboard() {
-  loadDashboardStats();
-  loadTimelineActivities();
-  loadTopPlayers();
-  
-  // Set up auto-refresh
-  setInterval(refreshDashboardData, 30000); // Refresh every 30 seconds
-}
-
-async function loadDashboardStats() {
-  try {
-    // Include admin filtering - default to exclude admin activities for cleaner overview
-    const response = await fetch('/api/admin/dashboard/stats?exclude_admin=true&exclude_impersonated=false');
-    const data = await response.json();
+    const input = document.getElementById('impersonation-user-input');
+    const dropdown = document.getElementById('impersonation-user-dropdown');
     
-    if (data.status === 'success') {
-      dashboardData.stats = data.stats;
-      updateStatsDisplay();
-    }
-  } catch (error) {
-    console.error('Error loading dashboard stats:', error);
-  }
-}
-
-async function loadTimelineActivities(filter = null) {
-  try {
-    document.getElementById('timeline-status').textContent = 'Loading...';
+    // Initialize club search functionality
+    initializeClubSearch();
     
-    // Use provided filter or current filter
-    const activeFilter = filter || dashboardData.currentFilter;
-    
-    // Calculate date range based on filter
-    const { dateFrom, dateTo } = getDateRangeForFilter(activeFilter);
-    
-    // Build query parameters
-    const params = new URLSearchParams({
-      limit: '15',
-      exclude_admin: 'true',
-      exclude_impersonated: 'false'
-    });
-    
-    if (dateFrom) {
-      params.append('date_from', dateFrom);
-    }
-    if (dateTo) {
-      params.append('date_to', dateTo);
-    }
-    
-    const response = await fetch(`/api/admin/dashboard/activities?${params}`);
-    const data = await response.json();
-    
-    if (data.status === 'success') {
-      dashboardData.activities = data.activities;
-      renderTimeline();
-      const filterText = {
-        'day': 'today',
-        'week': 'this week', 
-        'month': 'this month'
-      };
-      const period = filterText[activeFilter] || 'selected period';
-      const count = data.activities.length;
-      document.getElementById('timeline-status').textContent = `${count} activities ${period}`;
-    }
-  } catch (error) {
-    console.error('Error loading timeline activities:', error);
-    document.getElementById('timeline-status').textContent = 'Error loading';
-  }
-}
-
-async function loadTopPlayers() {
-  try {
-    // Include admin filtering - default to exclude admin activities for cleaner overview
-    const response = await fetch('/api/admin/dashboard/top-players?limit=5&exclude_admin=true&exclude_impersonated=false');
-    const data = await response.json();
-    
-    if (data.status === 'success') {
-      dashboardData.topPlayers = data.top_players;
-      renderTopPlayers();
-    }
-  } catch (error) {
-    console.error('Error loading top users:', error);
-  }
-}
-
-function updateStatsDisplay() {
-  const stats = dashboardData.stats;
-  document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
-  document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
-  document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
-  
-  // Calculate activity rate (activities per hour today)
-  const currentHour = new Date().getHours();
-  const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
-  document.getElementById('activity-rate').textContent = `${rate}/hr`;
-}
-
-function renderTimeline() {
-  const container = document.getElementById('timeline-content');
-  const activities = dashboardData.activities;
-  
-  if (activities.length === 0) {
-    const filterText = {
-      'day': 'today',
-      'week': 'this week',
-      'month': 'this month'
-    };
-    const emptyMessage = `No activities ${filterText[dashboardData.currentFilter] || 'in selected period'}`;
-    container.innerHTML = `<p class="text-gray-500 text-center py-4">${emptyMessage}</p>`;
-    return;
-  }
-  
-  const html = activities.map(activity => {
-    const timeAgo = getTimeAgo(activity.timestamp);
-    const actionIcon = getActionTypeIcon(activity.action_type);
-    const actionColor = getActionTypeColor(activity.action_type);
-    
-    return `
-      <div class="timeline-item ${activity.action_type} mb-4">
-        <div class="flex items-start space-x-3">
-          <div class="flex-shrink-0">
-            <div class="w-8 h-8 bg-${actionColor}-100 rounded-full flex items-center justify-center">
-              <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
-            </div>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-900">
-                ${activity.action_description}
-              </p>
-              <p class="text-xs text-gray-500">${timeAgo}</p>
-            </div>
+    if (input && dropdown) {
+        // Handle input changes with debouncing
+        input.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
             
-            ${activity.user ? `
-              <p class="text-xs text-gray-600 mt-1">
-                <i class="fas fa-user mr-1"></i>
-                ${activity.user.first_name} ${activity.user.last_name}
-              </p>
-            ` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-  
-  container.innerHTML = html;
-}
-
-function renderTopPlayers() {
-  const container = document.getElementById('top-players-content');
-  const players = dashboardData.topPlayers;
-  
-  if (players.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No user activity data</p>';
-    return;
-  }
-  
-  const html = players.map((player, index) => {
-    const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
-    const lastActivity = player.last_activity ? getTimeAgo(player.last_activity) : 'Unknown';
-    
-    return `
-      <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-        <div class="flex items-center space-x-3">
-          <span class="text-sm font-bold" style="min-width: 30px;">${rankIcon}</span>
-          <div>
-            <p class="text-sm font-medium text-gray-900">
-              ${player.first_name} ${player.last_name}
-            </p>
-            <p class="text-xs text-gray-600">
-              ${player.club_name || 'Unknown Club'}
-            </p>
-            <p class="text-xs text-gray-500">
-              <i class="fas fa-clock mr-1"></i>Last activity: ${lastActivity}
-            </p>
-          </div>
-        </div>
-        <div class="text-right">
-          <p class="text-sm font-bold text-gray-900">${formatNumber(player.activity_count)}</p>
-          <p class="text-xs text-gray-600">activities</p>
-        </div>
-      </div>
-    `;
-  }).join('');
-  
-  container.innerHTML = html;
-}
-
-function refreshDashboardData() {
-  loadDashboardStats();
-  loadTimelineActivities(dashboardData.currentFilter);
-  loadTopPlayers();
-}
-
-// Activity filter functions
-function setActivityFilter(filter) {
-  // Update current filter
-  dashboardData.currentFilter = filter;
-  
-  // Update button states
-  document.querySelectorAll('.activity-filter-btn').forEach(btn => {
-    btn.classList.remove('active', 'bg-blue-600', 'text-white');
-    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-  });
-  
-  const activeBtn = document.getElementById(`filter-${filter}`);
-  activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
-  activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
-  
-  // Load activities with new filter
-  loadTimelineActivities(filter);
-}
-
-function getDateRangeForFilter(filter) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  switch (filter) {
-    case 'day':
-      return {
-        dateFrom: today.toISOString().split('T')[0],
-        dateTo: null // No end date for today - include all of today
-      };
-    case 'week':
-      const weekAgo = new Date(today);
-      weekAgo.setDate(today.getDate() - 7);
-      return {
-        dateFrom: weekAgo.toISOString().split('T')[0],
-        dateTo: null
-      };
-    case 'month':
-      const monthAgo = new Date(today);
-      monthAgo.setDate(today.getDate() - 30);
-      return {
-        dateFrom: monthAgo.toISOString().split('T')[0],
-        dateTo: null
-      };
-    default:
-      return {
-        dateFrom: today.toISOString().split('T')[0],
-        dateTo: null
-      };
-  }
-}
-
-// Event handlers
-document.addEventListener('click', function(e) {
-  if (e.target.id === 'refresh-timeline' || e.target.parentElement.id === 'refresh-timeline') {
-    refreshDashboardData();
-  }
-});
-
-// Activity filter change handler
-document.addEventListener('change', function(e) {
-  if (e.target.id === 'activity-filter') {
-    const selectedFilter = e.target.value;
-    loadTimelineActivities(selectedFilter);
-  }
-});
-
-// Utility functions
-function formatNumber(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K';
-  }
-  return num.toString();
-}
-
-function getTimeAgo(timestamp) {
-  const now = new Date();
-  const time = new Date(timestamp);
-  const diffMs = now - time;
-  const diffMins = Math.floor(diffMs / 60000);
-  
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
-}
-
-function getActionTypeIcon(actionType) {
-    const iconMap = {
-        'page_visit': 'fas fa-eye',
-        'login': 'fas fa-sign-in-alt',
-        'logout': 'fas fa-sign-out-alt',
-        'registration_successful': 'fas fa-user-plus',
-        'registration_failed': 'fas fa-user-times',
-        'player_search': 'fas fa-search',
-        'team_switch': 'fas fa-exchange-alt',
-        'settings_update': 'fas fa-cog',
-        'poll_voted': 'fas fa-vote-yea',
-        'poll_created': 'fas fa-poll',
-        'availability_update': 'fas fa-calendar-check',
-        'ai_chat': 'fas fa-robot',
-        'simulation_run': 'fas fa-dice',
-        'score_submitted': 'fas fa-trophy',
-        'team_email': 'fas fa-envelope',
-        'court_reservation': 'fas fa-calendar-plus',
-        'admin_action': 'fas fa-shield-alt',
-        'user_action': 'fas fa-user-cog'
-    };
-    
-    return iconMap[actionType] || 'fas fa-info-circle';
-}
-
-function getActionTypeColor(actionType) {
-    const colorMap = {
-        'page_visit': 'blue',
-        'login': 'green',
-        'logout': 'gray',
-        'registration_successful': 'green',
-        'registration_failed': 'red',
-        'player_search': 'blue',
-        'team_switch': 'purple',
-        'settings_update': 'orange',
-        'poll_voted': 'green',
-        'poll_created': 'blue',
-        'availability_update': 'green',
-        'ai_chat': 'purple',
-        'simulation_run': 'yellow',
-        'score_submitted': 'gold',
-        'team_email': 'blue',
-        'court_reservation': 'green',
-        'admin_action': 'red',
-        'user_action': 'gray'
-    };
-    
-    return colorMap[actionType] || 'gray';
-}
-
-// Impersonation functions (existing code)
-async function loadUsersForImpersonation() {
-    try {
-        const response = await fetch('/api/admin/users-for-impersonation');
-        const users = await response.json();
-        
-        const select = document.getElementById('impersonation-user-select');
-        select.innerHTML = '<option value="">Select a user to impersonate...</option>';
-        
-        users.forEach(user => {
-            if (user.player_contexts && user.player_contexts.length > 0) {
-                // User has player contexts - show hierarchy
-                const userHeader = document.createElement('option');
-                userHeader.value = '';
-                userHeader.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
-                userHeader.disabled = true;
-                userHeader.style.fontWeight = 'bold';
-                userHeader.style.backgroundColor = '#f3f4f6';
-                select.appendChild(userHeader);
-                
-                // Add player contexts for this user
-                user.player_contexts.forEach(context => {
-                    const option = document.createElement('option');
-                    option.value = JSON.stringify({
-                        user_email: user.email,
-                        tenniscores_player_id: context.tenniscores_player_id
-                    });
-                    option.textContent = `  └── ${context.display_name}`;
-                    option.style.paddingLeft = '20px';
-                    select.appendChild(option);
-                });
-            } else {
-                // User has no player contexts - show directly as selectable
-                const option = document.createElement('option');
-                option.value = JSON.stringify({
-                    user_email: user.email,
-                    tenniscores_player_id: null  // No player context
-                });
-                option.textContent = `${user.first_name} ${user.last_name} (${user.email}) - No Player Context`;
-                option.style.color = '#6b7280'; // Gray color to indicate no context
-                select.appendChild(option);
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
             }
             
-            // Add separator (except for last user)
-            if (users.indexOf(user) < users.length - 1) {
-                const separator = document.createElement('option');
-                separator.value = '';
-                separator.textContent = '────────────────────────';
-                separator.disabled = true;
-                separator.style.color = '#9ca3af';
-                select.appendChild(separator);
+            // Hide dropdown if query is too short
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                selectedUserData = null;
+                document.getElementById('impersonation-user-data').value = '';
+                return;
+            }
+            
+            // Debounce the search
+            searchTimeout = setTimeout(() => {
+                searchUsers(query);
+            }, 300);
+        });
+        
+        // Handle input focus
+        input.addEventListener('focus', function(e) {
+            const query = e.target.value.trim();
+            if (query.length >= 2 && dropdown.innerHTML.trim() !== '') {
+                dropdown.classList.remove('hidden');
             }
         });
-    } catch (error) {
-        console.error('Error loading users:', error);
-        document.getElementById('impersonation-user-select').innerHTML = '<option value="">Error loading users</option>';
+        
+        // Handle clicks outside to close dropdown
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
+            }
+        });
     }
+});
+
+// Search users function
+async function searchUsers(query) {
+    try {
+        const response = await fetch(`/api/admin/search-users-for-impersonation?q=${encodeURIComponent(query)}`);
+        const users = await response.json();
+        
+        const dropdown = document.getElementById('impersonation-user-dropdown');
+        
+        if (users.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm">No users found</div>';
+        } else {
+            dropdown.innerHTML = '';
+            
+            users.forEach(user => {
+                // Create user header
+                const userDiv = document.createElement('div');
+                userDiv.className = 'px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
+                userDiv.innerHTML = `
+                    <div class="font-medium text-gray-900">${user.first_name} ${user.last_name}</div>
+                    <div class="text-sm text-gray-600">${user.email}</div>
+                `;
+                
+                // Handle user selection (no player context)
+                userDiv.addEventListener('click', function() {
+                    selectUser(user, null);
+                });
+                
+                dropdown.appendChild(userDiv);
+                
+                // Add player contexts if they exist
+                if (user.player_contexts && user.player_contexts.length > 0) {
+                    user.player_contexts.forEach(context => {
+                        const contextDiv = document.createElement('div');
+                        contextDiv.className = 'px-3 py-2 pl-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-sm';
+                        contextDiv.innerHTML = `
+                            <div class="text-gray-700">${context.display_name}</div>
+                            <div class="text-xs text-gray-500">${context.player_name}</div>
+                        `;
+                        
+                        // Handle context selection
+                        contextDiv.addEventListener('click', function() {
+                            selectUser(user, context);
+                        });
+                        
+                        dropdown.appendChild(contextDiv);
+                    });
+                }
+            });
+        }
+        
+        dropdown.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error searching users:', error);
+        const dropdown = document.getElementById('impersonation-user-dropdown');
+        dropdown.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Error searching users</div>';
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Select user function
+function selectUser(user, context) {
+    selectedUserData = {
+        user: user,
+        context: context
+    };
+    
+    const input = document.getElementById('impersonation-user-input');
+    const dropdown = document.getElementById('impersonation-user-dropdown');
+    const dataInput = document.getElementById('impersonation-user-data');
+    
+    // Update input display
+    if (context) {
+        input.value = `${user.first_name} ${user.last_name} - ${context.display_name}`;
+    } else {
+        input.value = `${user.first_name} ${user.last_name} (${user.email}) - No Player Context`;
+    }
+    
+    // Store data in hidden input
+    dataInput.value = JSON.stringify({
+        user_email: user.email,
+        tenniscores_player_id: context ? context.tenniscores_player_id : null
+    });
+    
+    // Hide dropdown
+    dropdown.classList.add('hidden');
 }
 
 async function startImpersonation() {
-    const selectedValue = document.getElementById('impersonation-user-select').value;
-    if (!selectedValue) {
-        alert('Please select a user to impersonate');
+    const selectedValue = document.getElementById('impersonation-user-data').value;
+    if (!selectedValue || !selectedUserData) {
+        alert('Please search and select a user to impersonate');
         return;
     }
     
@@ -786,11 +423,14 @@ async function startImpersonation() {
         userEmail = selection.user_email;
         playerId = selection.tenniscores_player_id; // Can be null for users without player contexts
         
-        // Get display text from the selected option
-        const select = document.getElementById('impersonation-user-select');
-        displayText = select.options[select.selectedIndex].textContent.trim();
+        // Get display text from the selected user data
+        if (selectedUserData.context) {
+            displayText = selectedUserData.context.display_name;
+        } else {
+            displayText = `${selectedUserData.user.first_name} ${selectedUserData.user.last_name} (${selectedUserData.user.email})`;
+        }
     } catch (error) {
-        alert('Invalid selection. Please choose a user to impersonate.');
+        alert('Invalid selection. Please search and select a user to impersonate.');
         return;
     }
     
@@ -890,116 +530,212 @@ async function checkImpersonationStatus() {
     }
 }
 
-// Detailed Logging Notifications Functions
-let loggingNotificationsEnabled = false; // Track current state
-
-async function loadDetailedLoggingStatus() {
-    try {
-        const response = await fetch('/api/admin/detailed-logging-notifications/status');
-        const data = await response.json();
-        
-        if (data.success) {
-            loggingNotificationsEnabled = data.enabled;
-            updateLoggingUI(data.enabled);
-        } else {
-            console.error('Error loading detailed logging status:', data.error);
-            document.getElementById('logging-current-status').innerHTML = '<span class="text-red-600">Error loading status</span>';
-        }
-    } catch (error) {
-        console.error('Error loading detailed logging status:', error);
-        document.getElementById('logging-current-status').innerHTML = '<span class="text-red-600">Error loading status</span>';
-    }
-}
-
-function updateLoggingUI(isEnabled) {
-    const toggleBtn = document.getElementById('detailed-logging-toggle-btn');
-    const toggleBtnText = document.getElementById('toggle-btn-text');
-    const loggingStatus = document.getElementById('logging-status');
-    const loggingCurrentStatus = document.getElementById('logging-current-status');
+// Club Management Functions
+function initializeClubSearch() {
+    const input = document.getElementById('club-search-input');
+    const dropdown = document.getElementById('club-search-dropdown');
     
-    if (isEnabled) {
-        toggleBtn.className = 'px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 bg-red-600 text-white hover:bg-red-700';
-        toggleBtnText.textContent = 'Disable';
-        loggingStatus.textContent = 'Enabled';
-        loggingStatus.className = 'text-sm text-red-600 font-medium';
-        loggingCurrentStatus.innerHTML = '<span class="text-red-600 font-medium">🔔 Active</span>';
-    } else {
-        toggleBtn.className = 'px-4 py-2 rounded-lg font-medium text-sm transition-colors duration-200 bg-gray-200 text-gray-700 hover:bg-gray-300';
-        toggleBtnText.textContent = 'Enable';
-        loggingStatus.textContent = 'Disabled';
-        loggingStatus.className = 'text-sm text-gray-500';
-        loggingCurrentStatus.innerHTML = '<span class="text-gray-500">🔇 Inactive</span>';
-    }
-}
-
-async function handleToggleClick() {
-    const newState = !loggingNotificationsEnabled;
-    
-    try {
-        // Show loading state
-        document.getElementById('toggle-btn-text').textContent = 'Loading...';
-        document.getElementById('detailed-logging-toggle-btn').disabled = true;
-        document.getElementById('logging-current-status').innerHTML = '<i class="fas fa-spinner fa-spin text-gray-400"></i> Updating...';
-        
-        const response = await fetch('/api/admin/detailed-logging-notifications/toggle', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: newState })
+    if (input && dropdown) {
+        // Handle input changes with debouncing
+        input.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            
+            // Clear previous timeout
+            if (clubSearchTimeout) {
+                clearTimeout(clubSearchTimeout);
+            }
+            
+            // Hide dropdown if query is too short
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                selectedClubData = null;
+                return;
+            }
+            
+            // Debounce the search
+            clubSearchTimeout = setTimeout(() => {
+                searchClubs(query);
+            }, 300);
         });
         
-        const result = await response.json();
+        // Handle input focus
+        input.addEventListener('focus', function(e) {
+            const query = e.target.value.trim();
+            if (query.length >= 2 && dropdown.innerHTML.trim() !== '') {
+                dropdown.classList.remove('hidden');
+            }
+        });
         
-        if (result.success) {
-            loggingNotificationsEnabled = newState;
-            updateLoggingUI(newState);
-            
-            // Show success message
-            const action = newState ? 'enabled' : 'disabled';
-            const alertClass = newState ? 'bg-red-500' : 'bg-green-500';
-            
-            // Create temporary success notification
-            const notification = document.createElement('div');
-            notification.className = `fixed top-16 right-4 ${alertClass} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-300`;
-            notification.innerHTML = `✅ Detailed logging notifications ${action}!`;
-            document.body.appendChild(notification);
-            
-            // Remove notification after 3 seconds
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                setTimeout(() => document.body.removeChild(notification), 300);
-            }, 3000);
-            
-        } else {
-            // Revert to original state on error
-            updateLoggingUI(loggingNotificationsEnabled);
-            alert(`Failed to ${newState ? 'enable' : 'disable'} detailed logging: ${result.error}`);
-        }
-    } catch (error) {
-        console.error('Error toggling detailed logging:', error);
-        // Revert to original state on error
-        updateLoggingUI(loggingNotificationsEnabled);
-        alert('Error toggling detailed logging');
-    } finally {
-        // Re-enable button
-        document.getElementById('detailed-logging-toggle-btn').disabled = false;
+        // Handle clicks outside to close dropdown
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+        
+        // Handle keyboard navigation
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                dropdown.classList.add('hidden');
+            }
+        });
     }
 }
+
+async function searchClubs(query) {
+    try {
+        const response = await fetch(`/api/admin/club-search?q=${encodeURIComponent(query)}`);
+        const clubs = await response.json();
+        
+        const dropdown = document.getElementById('club-search-dropdown');
+        
+        if (clubs.length === 0) {
+            dropdown.innerHTML = '<div class="px-3 py-2 text-gray-500 text-sm">No clubs found</div>';
+        } else {
+            dropdown.innerHTML = '';
+            
+            clubs.forEach(club => {
+                const clubDiv = document.createElement('div');
+                clubDiv.className = 'px-3 py-2 border-b border-gray-100 cursor-pointer hover:bg-gray-50';
+                clubDiv.innerHTML = `
+                    <div class="font-medium text-gray-900">${club.name}</div>
+                    <div class="text-sm text-gray-600">${club.address || 'No address'}</div>
+                `;
+                
+                clubDiv.addEventListener('click', function() {
+                    selectClub(club);
+                });
+                
+                dropdown.appendChild(clubDiv);
+            });
+        }
+        
+        dropdown.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error searching clubs:', error);
+        const dropdown = document.getElementById('club-search-dropdown');
+        dropdown.innerHTML = '<div class="px-3 py-2 text-red-500 text-sm">Error searching clubs</div>';
+        dropdown.classList.remove('hidden');
+    }
+}
+
+function selectClub(club) {
+    selectedClubData = club;
+    
+    const input = document.getElementById('club-search-input');
+    const dropdown = document.getElementById('club-search-dropdown');
+    
+    // Update input display
+    input.value = club.name;
+    
+    // Hide dropdown
+    dropdown.classList.add('hidden');
+    
+    // Load club users
+    loadClubUsers(club.id);
+}
+
+async function loadClubUsers(clubId) {
+    try {
+        // Show loading state
+        document.getElementById('club-users-section').classList.remove('hidden');
+        document.getElementById('club-users-loading').classList.remove('hidden');
+        document.getElementById('club-users-table-container').classList.add('hidden');
+        document.getElementById('club-users-empty').classList.add('hidden');
+        
+        const response = await fetch(`/api/admin/club/${clubId}/users`);
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Update club information
+        document.getElementById('club-users-title').textContent = `${data.club.name} Users`;
+        document.getElementById('club-users-subtitle').textContent = data.club.address || 'Users associated with this club';
+        document.getElementById('club-users-count').textContent = data.users.length;
+        
+        // Hide loading state
+        document.getElementById('club-users-loading').classList.add('hidden');
+        
+        if (data.users.length === 0) {
+            document.getElementById('club-users-empty').classList.remove('hidden');
+        } else {
+            document.getElementById('club-users-table-container').classList.remove('hidden');
+            renderClubUsers(data.users);
+        }
+        
+    } catch (error) {
+        console.error('Error loading club users:', error);
+        
+        // Hide loading state
+        document.getElementById('club-users-loading').classList.add('hidden');
+        
+        // Show error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'text-center py-8';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-triangle text-red-300 text-4xl mb-4"></i>
+            <p class="text-red-500">Error loading club users: ${error.message}</p>
+        `;
+        
+        const container = document.getElementById('club-users-section').querySelector('.p-6');
+        container.innerHTML = '';
+        container.appendChild(errorDiv);
+    }
+}
+
+function renderClubUsers(users) {
+    const tbody = document.getElementById('club-users-table-body');
+    
+    const html = users.map(user => {
+        const lastLogin = user.last_login ? formatDate(user.last_login) : 'Never';
+        const phone = user.phone || 'Not provided';
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${user.name}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${user.email}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${phone}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${user.activity_count}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${lastLogin}</div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    tbody.innerHTML = html;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return 'Today';
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else {
+        return date.toLocaleDateString();
+    }
+}
+
 </script>
 
 <style>
-/* Dashboard Styles */
-.stat-card {
-  transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.timeline-item {
-  position: relative;
-}
-
 /* Custom styles for various elements */
 .bg-yellow-100 { background-color: #fef3c7; }
 .border-yellow-500 { border-color: #f59e0b; }
@@ -1018,54 +754,6 @@ async function handleToggleClick() {
 .border-amber-200 { border-color: #fde68a; }
 .text-amber-500 { color: #f59e0b; }
 .text-amber-700 { color: #b45309; }
-
-/* Background color utilities */
-.bg-blue-100 { background-color: #dbeafe; }
-.bg-green-100 { background-color: #dcfce7; }
-.bg-purple-100 { background-color: #e9d5ff; }
-.bg-orange-100 { background-color: #fed7aa; }
-.bg-gray-100 { background-color: #f3f4f6; }
-
-/* Text color utilities */
-.text-blue-600 { color: #2563eb; }
-.text-green-600 { color: #16a34a; }
-.text-purple-600 { color: #9333ea; }
-.text-orange-600 { color: #ea580c; }
-.text-gray-600 { color: #4b5563; }
-.text-yellow-600 { color: #d97706; }
-
-/* Loading states */
-.loading {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .stats-section .grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-  
-  .stat-card {
-    padding: 0.75rem;
-  }
-  
-  .stat-card .text-xl {
-    font-size: 1.125rem;
-  }
-}
-
-@media (max-width: 640px) {
-  .stats-section .grid {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
-  .stat-card {
-    padding: 1rem;
-  }
-}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

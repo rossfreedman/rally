@@ -51,7 +51,7 @@ Successfully implemented an intelligent delta-based incremental match scraping s
   - Integrated with master scraper parameters
 
 ### Configuration
-- `data/etl/scrapers/delta_scraper_config.json`
+- `data/etl/scrapers/helpers/delta_scraper_config.json`
   - Smart date range settings
   - Performance optimization parameters
 

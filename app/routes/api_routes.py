@@ -81,40 +81,68 @@ def _get_project_root_path() -> str:
 
 
 def _load_directory_contact_from_csv(user_ctx: dict, first: str, last: str) -> dict:
-    """Lookup contact info from Tennaqua directory CSV as a fallback.
-
+    """Lookup contact info from directory CSV files as a fallback.
+    
+    Searches in order: Tennaqua directory → APTA directory.
     Returns dict with keys: phone, email if found; otherwise empty dict.
     """
     try:
         import csv
 
-        league_string_id = (user_ctx or {}).get("league_string_id") or ""
-        # For non-APTA leagues, prefer league-specific directory; else use shared "all"
-        sub_dir = league_string_id if (league_string_id and not league_string_id.startswith("APTA")) else "all"
+        norm_first = _normalize_name_for_match(first)
+        norm_last = _normalize_name_for_match(last)
 
-        csv_path = os.path.join(
+        # First try: Tennaqua directory CSV
+        tennaqua_csv_path = os.path.join(
             _get_project_root_path(),
             "data",
             "tennaqua_directory.csv",
         )
 
-        if not os.path.exists(csv_path):
-            return {}
+        if os.path.exists(tennaqua_csv_path):
+            with open(tennaqua_csv_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    row_first = _normalize_name_for_match(row.get("First"))
+                    row_last = _normalize_name_for_match(row.get("Last"))
+                    if row_first == norm_first and row_last == norm_last:
+                        return {
+                            "phone": (row.get("Phone") or "").strip(),
+                            "email": (row.get("Email") or "").strip(),
+                            "series": "",  # CSV doesn't have series column
+                        }
 
-        norm_first = _normalize_name_for_match(first)
-        norm_last = _normalize_name_for_match(last)
+        # Second try: APTA directory CSV
+        apta_csv_path = os.path.join(
+            _get_project_root_path(),
+            "data",
+            "apta_directory.csv",
+        )
 
-        with open(csv_path, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                row_first = _normalize_name_for_match(row.get("First"))
-                row_last = _normalize_name_for_match(row.get("Last"))
-                if row_first == norm_first and row_last == norm_last:
-                    return {
-                        "phone": (row.get("Phone") or "").strip(),
-                        "email": (row.get("Email") or "").strip(),
-                        "series": "",  # CSV doesn't have series column
-                    }
+        if os.path.exists(apta_csv_path):
+            with open(apta_csv_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # APTA CSV has columns: name, email, phone, cell_phone
+                    full_name = row.get("name", "").strip()
+                    if not full_name:
+                        continue
+                    
+                    # Split the full name into first and last
+                    name_parts = full_name.split()
+                    if len(name_parts) >= 2:
+                        row_first = _normalize_name_for_match(name_parts[0])
+                        row_last = _normalize_name_for_match(name_parts[-1])  # Last name is the last part
+                        
+                        if row_first == norm_first and row_last == norm_last:
+                            # Prefer cell_phone over phone if available
+                            phone = (row.get("cell_phone") or row.get("phone") or "").strip()
+                            return {
+                                "phone": phone,
+                                "email": (row.get("email") or "").strip(),
+                                "series": "",  # CSV doesn't have series column
+                            }
+        
         return {}
     except Exception as e:
         logger.error(f"CSV fallback load error: {str(e)}")
@@ -744,6 +772,9 @@ def get_last_3_matches():
                 )
 
             partner_name = get_player_name(partner_id) if partner_id else "No Partner"
+            
+            # Get current player's name
+            current_player_name = get_player_name(player_id)
 
             # Get opponent names
             if is_home:
@@ -803,17 +834,17 @@ def get_last_3_matches():
                     # If anything goes wrong, return original scores
                     return raw_scores
 
-            formatted_scores = format_scores_for_player_team(
-                match.get("Scores"), is_home
-            )
+            # Return raw scores (same as modal) instead of formatted scores
+            raw_scores = match.get("Scores", "")
 
             processed_match = {
                 "date": match.get("Date"),
                 "home_team": match.get("Home Team"),
                 "away_team": match.get("Away Team"),
-                "scores": formatted_scores,
+                "scores": raw_scores,
                 "player_was_home": is_home,
                 "player_won": player_won,
+                "current_player_name": current_player_name,
                 "partner_name": partner_name,
                 "opponent1_name": opponent1_name,
                 "opponent2_name": opponent2_name,
@@ -2558,6 +2589,13 @@ def remove_practice_times():
 def get_team_schedule_data():
     """Get team schedule data"""
     return get_team_schedule_data_data()
+
+
+@api_bp.route("/team-schedule-grid-data")
+@login_required
+def get_team_schedule_grid_data():
+    """Get team schedule grid data - all players and their availability"""
+    return get_team_schedule_grid_data_data()
 
 
 @api_bp.route("/availability", methods=["POST"])
@@ -4354,6 +4392,44 @@ def get_teams():
         teams = sorted(
             {s["team"] for s in league_filtered_stats if "BYE" not in s["team"].upper()}
         )
+        
+        # Fallback: If no teams found in JSON stats, query database directly
+        if not teams:
+            print(f"[DEBUG] No teams found in JSON stats, falling back to database query")
+            from database_utils import execute_query
+            
+            # Get user's series_id for database query
+            user_series_id = user.get("series_id")
+            user_league_id = user.get("league_id")
+            
+            if user_series_id:
+                # Query teams table directly for the user's series
+                teams_query = """
+                    SELECT DISTINCT t.team_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE s.id = %s
+                    AND t.team_name NOT LIKE '%BYE%'
+                    ORDER BY c.name, t.team_name
+                """
+                db_teams_result = execute_query(teams_query, [user_series_id])
+                teams = [row["team_name"] for row in db_teams_result]
+                print(f"[DEBUG] Database fallback found {len(teams)} teams for series_id {user_series_id}")
+            elif user_league_id:
+                # Fallback to league-wide query if no series_id
+                teams_query = """
+                    SELECT DISTINCT t.team_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.league_id = %s
+                    AND t.team_name NOT LIKE '%BYE%'
+                    ORDER BY c.name, t.team_name
+                """
+                db_teams_result = execute_query(teams_query, [user_league_id])
+                teams = [row["team_name"] for row in db_teams_result]
+                print(f"[DEBUG] Database fallback found {len(teams)} teams for league_id {user_league_id}")
 
         return jsonify({"teams": teams})
 
@@ -4380,14 +4456,20 @@ def get_teams_with_ids():
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != "":
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
-                else:
-                    print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+                # First try to convert string to integer (e.g., "4783" -> 4783)
+                try:
+                    league_id_int = int(user_league_id)
+                    print(f"[DEBUG] Converted string league_id '{user_league_id}' to integer: {league_id_int}")
+                except ValueError:
+                    # If not a number, try to look up by league_id string (e.g., "APTA_CHICAGO")
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                    else:
+                        print(f"[WARNING] League '{user_league_id}' not found in leagues table")
             except Exception as e:
                 print(f"[DEBUG] Could not convert league ID: {e}")
         elif isinstance(user_league_id, int):
@@ -4395,6 +4477,8 @@ def get_teams_with_ids():
             print(f"[DEBUG] League_id already integer: {league_id_int}")
 
         # Get teams from database with IDs
+        print(f"[DEBUG] teams-with-ids: league_id_int = {league_id_int} (truthy: {bool(league_id_int)})")
+        
         if league_id_int:
             teams_query = """
                 SELECT DISTINCT 
@@ -4445,6 +4529,32 @@ def get_teams_with_ids():
 
         print(f"[DEBUG] teams-with-ids: Found {len(teams)} teams with IDs for league {league_id_int}")
         print(f"[DEBUG] teams-with-ids: Sample teams: {teams[:3] if teams else 'None'}")
+        
+        # Debug: Show league distribution
+        if teams:
+            # Get league info for debug
+            team_ids = [str(t['team_id']) for t in teams[:10]]  # Sample first 10
+            if team_ids:
+                debug_query = """
+                    SELECT t.id, t.team_name, l.league_id as league_key
+                    FROM teams t
+                    JOIN leagues l ON t.league_id = l.id
+                    WHERE t.id = ANY(%s)
+                    ORDER BY t.team_name
+                """
+                debug_teams = execute_query(debug_query, [team_ids])
+                league_counts = {}
+                for team in debug_teams:
+                    league_key = team['league_key']
+                    league_counts[league_key] = league_counts.get(league_key, 0) + 1
+                print(f"[DEBUG] teams-with-ids: League distribution: {league_counts}")
+                
+                # Show any CNSWPL teams
+                cnswpl_teams = [t for t in debug_teams if t['league_key'] == 'CNSWPL']
+                if cnswpl_teams:
+                    print(f"[DEBUG] ❌ FOUND CNSWPL TEAMS: {[t['team_name'] for t in cnswpl_teams[:5]]}")
+                else:
+                    print(f"[DEBUG] ✅ No CNSWPL teams found")
 
         return jsonify({"teams": teams})
 
@@ -4922,7 +5032,7 @@ def handle_player_season_tracking():
                     result.append(
                         {
                             "player_id": player_id,
-                            "name": f"{member['first_name']} {member['last_name']}",
+                            "name": f"{member['last_name']}, {member['first_name']}",
                             "forced_byes": tracking["forced_byes"],
                             "not_available": tracking["not_available"],
                             "injury": tracking["injury"],
@@ -8125,6 +8235,146 @@ def search_players_for_groups():
         return jsonify({"error": "Search failed"}), 500
 
 
+@api_bp.route("/search-players", methods=["GET"])
+@login_required
+def search_players_typeahead():
+    """Search for players by name for typeahead functionality"""
+    try:
+        user = session["user"]
+        query = request.args.get("query", "").strip()
+        
+        if len(query) < 2:
+            return jsonify({"success": True, "players": []})
+        
+        # Get user's league for filtering
+        user_league_id = user.get("league_id", "")
+        league_id_int = None
+        
+        if user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Error converting league ID: {e}")
+        
+        # Search for players in the database
+        search_query = """
+            SELECT 
+                p.tenniscores_player_id as player_id,
+                p.first_name,
+                p.last_name,
+                p.pti as current_pti,
+                c.name as club,
+                s.name as series,
+                p.team_id,
+                l.league_id as league
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN leagues l ON p.league_id = l.id
+            WHERE p.is_active = true
+            AND p.tenniscores_player_id IS NOT NULL
+            AND (
+                LOWER(p.first_name || ' ' || p.last_name) LIKE LOWER(%s)
+                OR LOWER(p.last_name || ' ' || p.first_name) LIKE LOWER(%s)
+                OR LOWER(p.first_name) LIKE LOWER(%s)
+                OR LOWER(p.last_name) LIKE LOWER(%s)
+            )
+        """
+        
+        params = [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"]
+        
+        # Add league filtering if available
+        if league_id_int:
+            search_query += " AND p.league_id = %s"
+            params.append(league_id_int)
+        
+        search_query += " ORDER BY p.last_name, p.first_name LIMIT 20"
+        
+        players = execute_query(search_query, params)
+        
+        # Calculate wins/losses for each player
+        player_results = []
+        for player in players:
+            player_id = player.get("player_id")
+            team_id = player.get("team_id")
+            
+            # Get win/loss record from match_scores - don't filter by user's league
+            # since the player might have matches in different leagues
+            if player_id:
+                record_query = """
+                    SELECT 
+                        COUNT(*) FILTER (WHERE 
+                            (ms.winner = 'home' AND (ms.home_player_1_id = %s OR ms.home_player_2_id = %s))
+                            OR (ms.winner = 'away' AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+                        ) as wins,
+                        COUNT(*) FILTER (WHERE 
+                            (ms.winner = 'away' AND (ms.home_player_1_id = %s OR ms.home_player_2_id = %s))
+                            OR (ms.winner = 'home' AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+                        ) as losses
+                    FROM match_scores ms
+                    WHERE (
+                        ms.home_player_1_id = %s OR ms.home_player_2_id = %s
+                        OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s
+                    )
+                    AND ms.winner IN ('home', 'away')
+                """
+                record_params = [
+                    player_id, player_id, player_id, player_id,  # wins
+                    player_id, player_id, player_id, player_id,  # losses
+                    player_id, player_id, player_id, player_id  # overall filter
+                ]
+                
+                if team_id:
+                    record_query += " AND (ms.home_team_id = %s OR ms.away_team_id = %s)"
+                    record_params.extend([team_id, team_id])
+                
+                record = execute_query_one(record_query, record_params)
+                wins = record.get("wins", 0) if record else 0
+                losses = record.get("losses", 0) if record else 0
+            else:
+                wins = 0
+                losses = 0
+            
+            player_results.append({
+                "player_id": player_id,
+                "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+                "club": player.get("club", ""),
+                "series": player.get("series", ""),
+                "current_pti": player.get("current_pti"),
+                "team_id": team_id,
+                "wins": wins,
+                "losses": losses,
+                "league": player.get("league", "")
+            })
+        
+        # Log the search activity
+        log_user_activity(
+            user["email"],
+            "player_search",
+            action="typeahead_search",
+            details={
+                "search_query": query,
+                "results_count": len(player_results),
+                "user_league": user_league_id
+            }
+        )
+        
+        return jsonify({
+            "success": True,
+            "players": player_results
+        })
+        
+    except Exception as e:
+        print(f"Error in search_players_typeahead: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Search failed"}), 500
+
+
 @api_bp.route("/groups/<int:group_id>/members", methods=["POST"])
 @login_required
 def add_group_member(group_id):
@@ -8391,7 +8641,21 @@ def get_home_notifications():
         except Exception as e:
             logger.error(f"Error getting pickup games notifications: {str(e)}")
         
-        # 6. My Win Streaks (priority 6)
+        # 6. Food Notifications (priority 6)
+        try:
+            food_notifications = get_food_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(food_notifications)
+        except Exception as e:
+            logger.error(f"Error getting food notifications: {str(e)}")
+        
+        # 7. Beer Notifications (priority 7)
+        try:
+            beer_notifications = get_beer_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(beer_notifications)
+        except Exception as e:
+            logger.error(f"Error getting beer notifications: {str(e)}")
+        
+        # 8. My Win Streaks (priority 8)
         try:
             win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
             notifications.extend(win_streaks_notifications)
@@ -8979,6 +9243,7 @@ def remove_captain_message():
             }), 400
         
         # Get the most recent captain message for the team
+        logger.info(f"Looking for captain message for team_id: {team_id}")
         message_query = """
             SELECT id, message, captain_user_id
             FROM captain_messages 
@@ -8988,6 +9253,7 @@ def remove_captain_message():
         """
         
         current_message = execute_query_one(message_query, [team_id])
+        logger.info(f"Found captain message: {current_message}")
         
         if not current_message:
             return jsonify({"error": "No captain message found to remove"}), 404
@@ -9002,7 +9268,9 @@ def remove_captain_message():
             WHERE id = %s
         """
         
-        result = execute_query(delete_query, [current_message["id"]])
+        logger.info(f"Attempting to delete captain message with ID: {current_message['id']}")
+        result = execute_update(delete_query, [current_message["id"]])
+        logger.info(f"Delete query result: {result}")
         
         if result:
             # Log the activity
@@ -9022,6 +9290,124 @@ def remove_captain_message():
     except Exception as e:
         logger.error(f"Error removing captain message: {str(e)}")
         return jsonify({"error": "Failed to remove captain message"}), 500
+
+
+@api_bp.route("/captain-messages", methods=["GET"])
+@login_required
+def get_captain_message():
+    """Get the current captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT id, message, captain_user_id, created_at
+            FROM captain_messages 
+            WHERE team_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        current_message = execute_query_one(message_query, [team_id])
+        
+        if current_message:
+            return jsonify({
+                "status": "success",
+                "message": {
+                    "id": current_message["id"],
+                    "message": current_message["message"],
+                    "captain_user_id": current_message["captain_user_id"],
+                    "created_at": current_message["created_at"].isoformat() if current_message["created_at"] else None
+                }
+            }), 200
+        else:
+            return jsonify({
+                "status": "success",
+                "message": None
+            }), 200
+            
+    except Exception as e:
+        logger.error(f"Error getting captain message: {str(e)}")
+        return jsonify({"error": "Failed to get captain message"}), 500
+
+
+@api_bp.route("/captain-messages", methods=["PUT"])
+@login_required
+def update_captain_message():
+    """Update the current captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        data = request.get_json()
+        message = data.get("message", "").strip()
+        
+        if not message:
+            return jsonify({"error": "Message content is required"}), 400
+        
+        if len(message) > 1000:
+            return jsonify({"error": "Message too long (max 1000 characters)"}), 400
+        
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT id, captain_user_id
+            FROM captain_messages 
+            WHERE team_id = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        
+        current_message = execute_query_one(message_query, [team_id])
+        
+        if not current_message:
+            return jsonify({"error": "No captain message found to update"}), 404
+        
+        # Check if the user is the captain who created the message
+        if current_message["captain_user_id"] != user_id:
+            return jsonify({"error": "Only the captain who created the message can update it"}), 403
+        
+        # Update the captain message
+        update_query = """
+            UPDATE captain_messages 
+            SET message = %s, created_at = NOW()
+            WHERE id = %s
+        """
+        
+        result = execute_update(update_query, [message, current_message["id"]])
+        
+        if result:
+            # Log the activity
+            log_user_activity(
+                user.get("email"),
+                "captain_message_updated",
+                details=f"Updated captain message for team {team_id}: {message[:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "Captain message updated successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to update captain message"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error updating captain message: {str(e)}")
+        return jsonify({"error": "Failed to update captain message"}), 500
 
 
 @api_bp.route("/register-team-players", methods=["POST"])
@@ -9443,7 +9829,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
             if days_until_practice <= 30:
                 practice_date_str = practice_date.strftime("%b %d")
                 practice_time = next_practice["match_time"].strftime("%I:%M %p").lstrip("0") if next_practice["match_time"] else ""
-                practice_text = f"Practice: {practice_date_str}"
+                practice_text = f"Practice:\n{practice_date_str}"
                 if practice_time:
                     practice_text += f" at {practice_time}"
                 logger.info(f"Schedule notification: Showing practice on {practice_date_str} ({days_until_practice} days away)")
@@ -9458,7 +9844,7 @@ def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
                 opponent = next_match["away_team"]
             else:
                 opponent = next_match["home_team"]
-            match_text = f"Match: {match_date}"
+            match_text = f"Match:\n{match_date}"
             if match_time:
                 match_text += f" at {match_time}"
             if opponent:
@@ -9824,7 +10210,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Great job {user_name}, you're on a {current_streak_length}-match win streak! Keep the momentum going.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
             elif best_win_streak_length >= 3:
                 # Show best season streak message
@@ -9846,7 +10232,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"Your best win streak this season was {best_win_streak_length}, which ended on {date_str}.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
             else:
                 # Show no streaks message
@@ -9857,7 +10243,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                     "message": f"You don't have any winning streaks this season.",
                     "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                     "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                    "priority": 6
+                    "priority": 7
                 })
         else:
             # No match data available
@@ -9868,7 +10254,7 @@ def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
                 "message": f"You don't have any winning streaks this season.",
                 "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
                 "detail_link": {"label": "View My Stats", "href": "/mobile/analyze-me"},
-                "priority": 6
+                "priority": 7
             })
             
     except Exception as e:
@@ -10350,6 +10736,7 @@ def get_partner_matches_team():
                         ms.winner,
                         ms.scores,
                         ms.id,
+                        ms.tenniscores_match_id,
                         CASE 
                             WHEN ms.home_team_id = %s THEN TRUE
                             WHEN ms.away_team_id = %s THEN FALSE
@@ -10773,22 +11160,23 @@ def get_partner_matches_team():
             home_team = match["home_team"]
             away_team = match["away_team"]
             
-            # Get all matches for this team matchup on this date to determine court assignment
-            matchup_query = """
-                SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                FROM match_scores
-                WHERE match_date = %s AND home_team = %s AND away_team = %s
-                ORDER BY id
-            """
-            
-            matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
-            
-            # Find court number based on position in sorted list
+            # Determine court assignment from tenniscores_match_id (consistent with team analysis)
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
             court_number = "Court 1"  # default
-            for idx, matchup_match in enumerate(matchup_matches):
-                if matchup_match["id"] == match["id"]:
-                    court_number = f"Court {idx + 1}"
-                    break
+            
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                try:
+                    # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                    line_parts = tenniscores_match_id.split("_Line")
+                    if len(line_parts) > 1:
+                        court_num = int(line_parts[-1])
+                        court_number = f"Court {court_num}"
+                except (ValueError, IndexError):
+                    # Fallback to court 1 if parsing fails
+                    court_number = "Court 1"
+            else:
+                # Fallback to court 1 if no tenniscores_match_id
+                court_number = "Court 1"
             
             # Apply court filter if specified
             if court_filter and court_filter != "All Courts":
@@ -10909,6 +11297,7 @@ def get_partner_matches_team():
                     ms.winner,
                     ms.scores,
                     ms.id,
+                    ms.tenniscores_match_id,
                     CASE 
                         WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
                         WHEN ms.away_player_1_id = %s OR ms.away_player_2_id = %s THEN FALSE
@@ -11063,27 +11452,23 @@ def get_partner_matches_team():
                         else:
                             opponent2_name = "Unknown"
                     
-                    # ✅ FIXED: Extract court number using same logic as team-specific search
-                    home_team = match["home_team"]
-                    away_team = match["away_team"]
-                    match_date = match["match_date"]
-                    
-                    # Get all matches for this team matchup on this date to determine court assignment
-                    matchup_query = """
-                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                        FROM match_scores
-                        WHERE match_date = %s AND home_team = %s AND away_team = %s
-                        ORDER BY id
-                    """
-                    
-                    matchup_matches = execute_query(matchup_query, [match_date, home_team, away_team])
-                    
-                    # Find court number based on position in sorted list
+                    # Determine court assignment from tenniscores_match_id (consistent with team analysis)
+                    tenniscores_match_id = match.get("tenniscores_match_id", "")
                     court_number = "Court 1"  # default
-                    for idx, matchup_match in enumerate(matchup_matches):
-                        if matchup_match["id"] == match["id"]:
-                            court_number = f"Court {idx + 1}"
-                            break
+                    
+                    if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                        try:
+                            # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                            line_parts = tenniscores_match_id.split("_Line")
+                            if len(line_parts) > 1:
+                                court_num = int(line_parts[-1])
+                                court_number = f"Court {court_num}"
+                        except (ValueError, IndexError):
+                            # Fallback to court 1 if parsing fails
+                            court_number = "Court 1"
+                    else:
+                        # Fallback to court 1 if no tenniscores_match_id
+                        court_number = "Court 1"
                     
                     # Apply court filter if specified (using same logic as team-specific search)
                     if court_filter and court_filter != "All Courts":
@@ -11210,7 +11595,7 @@ def get_player_matches_detail():
         # Build match query for the specific player
         base_query = """
             SELECT
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
                 ms.match_date,
                 ms.home_team,
                 ms.away_team,
@@ -11255,10 +11640,9 @@ def get_player_matches_detail():
             base_query += " AND ms.league_id = %s"
             query_params.append(league_id_int)
             
-        # Add team filtering if available 
-        if team_id:
-            base_query += " AND (ms.home_team_id = %s OR ms.away_team_id = %s)"
-            query_params.extend([team_id, team_id])
+        # Note: Removed team filtering to allow substitute players to see matches from all teams they've played for
+        # The team_id parameter is still extracted for context but not used for filtering matches
+        # This ensures substitute players can see their matches regardless of which team they were playing for
             
         base_query += " ORDER BY ms.match_date DESC, ms.id DESC"
         
@@ -11374,3 +11758,736 @@ def get_player_matches_detail():
             "success": False,
             "error": f"Failed to retrieve player matches: {str(e)}"
         }), 500
+
+
+# ==============================
+# Food API Routes
+# ==============================
+
+@api_bp.route("/food", methods=["GET"])
+def get_food():
+    """Get food records for a specific club, with current menu prominently displayed"""
+    try:
+        from app.models.database_models import Food
+        
+        # Get club_id from query parameter
+        club_id = request.args.get('club_id', type=int)
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id parameter is required"
+            }), 400
+        
+        with SessionLocal() as session:
+            # Get all food records for the club, sorted by most recent first
+            food_records = session.query(Food).filter(
+                Food.club_id == club_id
+            ).order_by(Food.created_at.desc()).all()
+            
+            # Find current menu (only one per club)
+            current_menu = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            
+            food_data = []
+            for record in food_records:
+                food_data.append({
+                    "id": record.id,
+                    "food_text": record.food_text,
+                    "date": record.date.isoformat() if record.date else None,
+                    "club_id": record.club_id,
+                    "is_current_menu": record.is_current_menu,
+                    "created_at": record.created_at.isoformat() if record.created_at else None
+                })
+            
+            # Prepare current menu data
+            current_menu_data = None
+            if current_menu:
+                current_menu_data = {
+                    "id": current_menu.id,
+                    "food_text": current_menu.food_text,
+                    "date": current_menu.date.isoformat() if current_menu.date else None,
+                    "club_id": current_menu.club_id,
+                    "is_current_menu": current_menu.is_current_menu,
+                    "created_at": current_menu.created_at.isoformat() if current_menu.created_at else None
+                }
+            
+            return jsonify({
+                "success": True,
+                "food_records": food_data,
+                "current_menu": current_menu_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting food records: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve food records: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food", methods=["POST"])
+def save_food():
+    """Save a new food record (chef input - no authentication required)"""
+    try:
+        from app.models.database_models import Food, Club
+        
+        data = request.get_json()
+        if not data or 'food_text' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "food_text and club_id are required"
+            }), 400
+        
+        food_text = data['food_text'].strip()
+        if not food_text:
+            return jsonify({
+                "success": False,
+                "error": "food_text cannot be empty"
+            }), 400
+        
+        club_id = data['club_id']
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id cannot be empty"
+            }), 400
+        
+        # Check if this should be set as current menu
+        is_current_menu = data.get('is_current_menu', False)
+        
+        # Verify club exists
+        with SessionLocal() as session:
+            club = session.query(Club).filter(Club.id == club_id).first()
+            if not club:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid club_id - club not found"
+                }), 400
+        
+        # Get date from request or use today's date
+        food_date = data.get('date')
+        if food_date:
+            try:
+                food_date = datetime.strptime(food_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid date format. Use YYYY-MM-DD"
+                }), 400
+        else:
+            food_date = date.today()
+        
+        with SessionLocal() as session:
+            # If setting as current menu, unset any existing current menu for this club
+            if is_current_menu:
+                existing_current = session.query(Food).filter(
+                    Food.club_id == club_id,
+                    Food.is_current_menu == True
+                ).first()
+                if existing_current:
+                    existing_current.is_current_menu = False
+            
+            new_food = Food(
+                food_text=food_text,
+                date=food_date,
+                club_id=club_id,
+                is_current_menu=is_current_menu
+            )
+            session.add(new_food)
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Food record saved successfully",
+                "food_record": {
+                    "id": new_food.id,
+                    "food_text": new_food.food_text,
+                    "date": new_food.date.isoformat(),
+                    "club_id": new_food.club_id,
+                    "is_current_menu": new_food.is_current_menu,
+                    "created_at": new_food.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error saving food record: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to save food record: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food/set-current", methods=["POST"])
+def set_current_menu():
+    """Set a specific food record as the current menu for a club"""
+    try:
+        from app.models.database_models import Food
+        
+        data = request.get_json()
+        if not data or 'food_id' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "food_id and club_id are required"
+            }), 400
+        
+        food_id = data['food_id']
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Verify the food record exists and belongs to the club
+            food_record = session.query(Food).filter(
+                Food.id == food_id,
+                Food.club_id == club_id
+            ).first()
+            
+            if not food_record:
+                return jsonify({
+                    "success": False,
+                    "error": "Food record not found or doesn't belong to this club"
+                }), 404
+            
+            # Unset any existing current menu for this club
+            existing_current = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            if existing_current:
+                existing_current.is_current_menu = False
+            
+            # Set the specified record as current menu
+            food_record.is_current_menu = True
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current menu updated successfully",
+                "current_menu": {
+                    "id": food_record.id,
+                    "food_text": food_record.food_text,
+                    "date": food_record.date.isoformat(),
+                    "club_id": food_record.club_id,
+                    "is_current_menu": food_record.is_current_menu,
+                    "created_at": food_record.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error setting current menu: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to set current menu: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/food/unset-current", methods=["POST"])
+def unset_current_menu():
+    """Unset the current menu for a club"""
+    try:
+        from app.models.database_models import Food
+        
+        data = request.get_json()
+        if not data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "club_id is required"
+            }), 400
+        
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Find and unset the current menu for this club
+            current_menu = session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            
+            if not current_menu:
+                return jsonify({
+                    "success": False,
+                    "error": "No current menu found for this club"
+                }), 404
+            
+            current_menu.is_current_menu = False
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current menu unset successfully"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error unsetting current menu: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to unset current menu: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/clubs", methods=["GET"])
+def get_clubs():
+    """Get all available clubs for food input"""
+    try:
+        from app.models.database_models import Club
+        
+        with SessionLocal() as session:
+            clubs = session.query(Club).order_by(Club.name).all()
+            
+            club_data = []
+            for club in clubs:
+                club_data.append({
+                    "id": club.id,
+                    "name": club.name
+                })
+            
+            return jsonify({
+                "success": True,
+                "clubs": club_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting clubs: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve clubs: {str(e)}"
+        }), 500
+
+
+def get_food_notifications(user_id, player_id, league_id, team_id):
+    """Get food notifications for the user's club"""
+    try:
+        from app.models.database_models import Food, Club, Player
+        
+        # Get user's club_id from the player record
+        club_id = None
+        with SessionLocal() as db_session:
+            if player_id:
+                # Get club_id from player record
+                player = db_session.query(Player).filter(Player.tenniscores_player_id == player_id).first()
+                if player:
+                    club_id = player.club_id
+                    logger.info(f"Found club_id {club_id} for player {player_id}")
+            
+            if not club_id and team_id:
+                # Fallback: get club_id from team
+                from app.models.database_models import Team
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if team:
+                    club_id = team.club_id
+                    logger.info(f"Found club_id {club_id} for team {team_id}")
+        
+        if not club_id:
+            logger.warning(f"No club_id found for user {user_id}, player_id: {player_id}, team_id: {team_id}")
+            return []
+        
+        with SessionLocal() as db_session:
+            # Get the current menu for the user's club (persistent, not date-based)
+            current_menu = db_session.query(Food).filter(
+                Food.club_id == club_id,
+                Food.is_current_menu == True
+            ).first()
+            
+            if not current_menu:
+                return []
+            
+            # Use the current menu item
+            latest_food = current_menu
+            
+            # Get club name
+            club = db_session.query(Club).filter(Club.id == club_id).first()
+            club_name = club.name if club else "Your Club"
+            
+            notification = {
+                "id": f"food_{latest_food.id}",
+                "type": "food",
+                "title": f"What's cook'in at {club_name}",
+                "message": latest_food.food_text,
+                "cta": {
+                    "label": "View Full Menu",
+                    "href": f"/food-display?club_id={club_id}"
+                },
+                "priority": 6
+            }
+            
+            return [notification]
+            
+    except Exception as e:
+        logger.error(f"Error getting food notifications: {str(e)}")
+        return []
+
+
+# ==============================
+# Beer API Routes
+# ==============================
+
+@api_bp.route("/beer", methods=["GET"])
+def get_beer():
+    """Get beer records for a specific club, with current beer prominently displayed"""
+    try:
+        from app.models.database_models import Beer
+        
+        # Get club_id from query parameter
+        club_id = request.args.get('club_id', type=int)
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id parameter is required"
+            }), 400
+        
+        with SessionLocal() as session:
+            # Get all beer records for the club, sorted by most recent first
+            beer_records = session.query(Beer).filter(
+                Beer.club_id == club_id
+            ).order_by(Beer.created_at.desc()).all()
+            
+            # Find current beer (only one per club)
+            current_beer = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            beer_data = []
+            for record in beer_records:
+                beer_data.append({
+                    "id": record.id,
+                    "beer_text": record.beer_text,
+                    "date": record.date.isoformat() if record.date else None,
+                    "club_id": record.club_id,
+                    "is_current_beer": record.is_current_beer,
+                    "created_at": record.created_at.isoformat() if record.created_at else None
+                })
+            
+            # Prepare current beer data
+            current_beer_data = None
+            if current_beer:
+                current_beer_data = {
+                    "id": current_beer.id,
+                    "beer_text": current_beer.beer_text,
+                    "date": current_beer.date.isoformat() if current_beer.date else None,
+                    "club_id": current_beer.club_id,
+                    "is_current_beer": current_beer.is_current_beer,
+                    "created_at": current_beer.created_at.isoformat() if current_beer.created_at else None
+                }
+            
+            return jsonify({
+                "success": True,
+                "beer_records": beer_data,
+                "current_beer": current_beer_data
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting beer records: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve beer records: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer", methods=["POST"])
+def save_beer():
+    """Save a new beer record (club input - no authentication required)"""
+    try:
+        from app.models.database_models import Beer, Club
+        
+        data = request.get_json()
+        if not data or 'beer_text' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "beer_text and club_id are required"
+            }), 400
+        
+        beer_text = data['beer_text'].strip()
+        if not beer_text:
+            return jsonify({
+                "success": False,
+                "error": "beer_text cannot be empty"
+            }), 400
+        
+        club_id = data['club_id']
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": "club_id cannot be empty"
+            }), 400
+        
+        # Check if this should be set as current beer
+        is_current_beer = data.get('is_current_beer', False)
+        
+        # Verify club exists
+        with SessionLocal() as session:
+            club = session.query(Club).filter(Club.id == club_id).first()
+            if not club:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid club_id - club not found"
+                }), 400
+        
+        # Get date from request or use today's date
+        beer_date = data.get('date')
+        if beer_date:
+            try:
+                beer_date = datetime.strptime(beer_date, '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid date format. Use YYYY-MM-DD"
+                }), 400
+        else:
+            beer_date = date.today()
+        
+        with SessionLocal() as session:
+            # If setting as current beer, unset any existing current beer for this club
+            if is_current_beer:
+                existing_current = session.query(Beer).filter(
+                    Beer.club_id == club_id,
+                    Beer.is_current_beer == True
+                ).first()
+                if existing_current:
+                    existing_current.is_current_beer = False
+            
+            new_beer = Beer(
+                beer_text=beer_text,
+                date=beer_date,
+                club_id=club_id,
+                is_current_beer=is_current_beer
+            )
+            session.add(new_beer)
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Beer record saved successfully",
+                "beer_record": {
+                    "id": new_beer.id,
+                    "beer_text": new_beer.beer_text,
+                    "date": new_beer.date.isoformat(),
+                    "club_id": new_beer.club_id,
+                    "is_current_beer": new_beer.is_current_beer,
+                    "created_at": new_beer.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error saving beer record: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to save beer record: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer/set-current", methods=["POST"])
+def set_current_beer():
+    """Set a specific beer record as the current beer for a club"""
+    try:
+        from app.models.database_models import Beer
+        
+        data = request.get_json()
+        if not data or 'beer_id' not in data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "beer_id and club_id are required"
+            }), 400
+        
+        beer_id = data['beer_id']
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Verify the beer record exists and belongs to the club
+            beer_record = session.query(Beer).filter(
+                Beer.id == beer_id,
+                Beer.club_id == club_id
+            ).first()
+            
+            if not beer_record:
+                return jsonify({
+                    "success": False,
+                    "error": "Beer record not found or doesn't belong to this club"
+                }), 404
+            
+            # Unset any existing current beer for this club
+            existing_current = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            if existing_current:
+                existing_current.is_current_beer = False
+            
+            # Set the specified record as current beer
+            beer_record.is_current_beer = True
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current beer updated successfully",
+                "current_beer": {
+                    "id": beer_record.id,
+                    "beer_text": beer_record.beer_text,
+                    "date": beer_record.date.isoformat(),
+                    "club_id": beer_record.club_id,
+                    "is_current_beer": beer_record.is_current_beer,
+                    "created_at": beer_record.created_at.isoformat()
+                }
+            })
+            
+    except Exception as e:
+        logger.error(f"Error setting current beer: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to set current beer: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/beer/unset-current", methods=["POST"])
+def unset_current_beer():
+    """Unset the current beer for a club"""
+    try:
+        from app.models.database_models import Beer
+        
+        data = request.get_json()
+        if not data or 'club_id' not in data:
+            return jsonify({
+                "success": False,
+                "error": "club_id is required"
+            }), 400
+        
+        club_id = data['club_id']
+        
+        with SessionLocal() as session:
+            # Find and unset the current beer for this club
+            current_beer = session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            if not current_beer:
+                return jsonify({
+                    "success": False,
+                    "error": "No current beer found for this club"
+                }), 404
+            
+            current_beer.is_current_beer = False
+            session.commit()
+            
+            return jsonify({
+                "success": True,
+                "message": "Current beer unset successfully"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error unsetting current beer: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to unset current beer: {str(e)}"
+        }), 500
+
+
+def format_beer_text(beer_text):
+    """Format beer text to put each tap on its own line"""
+    if not beer_text:
+        return beer_text
+    
+    import re
+    
+    # First, fix any "Tao" typos to "Tap"
+    beer_text = re.sub(r'\bTao\s+(\d+)', r'Tap \1', beer_text)
+    
+    # Find all "Tap X" patterns and their positions
+    tap_matches = list(re.finditer(r'\bTap\s+\d+', beer_text))
+    
+    if not tap_matches:
+        # No tap patterns found, return original text
+        return beer_text
+    
+    # Build the formatted text
+    formatted_parts = []
+    last_end = 0
+    
+    for i, match in enumerate(tap_matches):
+        start = match.start()
+        end = match.end()
+        
+        # Add text before this tap (if any)
+        if start > last_end:
+            before_text = beer_text[last_end:start].strip()
+            if before_text and i == 0:  # Only add text before the first tap
+                formatted_parts.append(before_text)
+        
+        # Find the end of this tap's description (start of next tap or end of string)
+        if i < len(tap_matches) - 1:
+            next_start = tap_matches[i + 1].start()
+            tap_description = beer_text[start:next_start].strip()
+        else:
+            tap_description = beer_text[start:].strip()
+        
+        formatted_parts.append(tap_description)
+        last_end = end
+    
+    # Join with line breaks
+    return '\n'.join(formatted_parts)
+
+
+def get_beer_notifications(user_id, player_id, league_id, team_id):
+    """Get beer notifications for the user's club"""
+    try:
+        from app.models.database_models import Beer, Club, Player
+        
+        # Get user's club_id from the player record
+        club_id = None
+        with SessionLocal() as db_session:
+            if player_id:
+                # Get club_id from player record
+                player = db_session.query(Player).filter(Player.tenniscores_player_id == player_id).first()
+                if player:
+                    club_id = player.club_id
+                    logger.info(f"Found club_id {club_id} for player {player_id}")
+            
+            if not club_id and team_id:
+                # Fallback: get club_id from team
+                from app.models.database_models import Team
+                team = db_session.query(Team).filter(Team.id == team_id).first()
+                if team:
+                    club_id = team.club_id
+                    logger.info(f"Found club_id {club_id} for team {team_id}")
+        
+        if not club_id:
+            logger.warning(f"No club_id found for user {user_id}, player_id: {player_id}, team_id: {team_id}")
+            return []
+        
+        with SessionLocal() as db_session:
+            # Get the current beer for the user's club (persistent, not date-based)
+            current_beer = db_session.query(Beer).filter(
+                Beer.club_id == club_id,
+                Beer.is_current_beer == True
+            ).first()
+            
+            if not current_beer:
+                return []
+            
+            # Use the current beer item
+            latest_beer = current_beer
+            
+            # Get club name
+            club = db_session.query(Club).filter(Club.id == club_id).first()
+            club_name = club.name if club else "Your Club"
+            
+            # Format the beer text with line breaks
+            formatted_beer_text = format_beer_text(latest_beer.beer_text)
+            
+            # Debug logging
+            logger.info(f"Beer notification debug - Original: {repr(latest_beer.beer_text)}")
+            logger.info(f"Beer notification debug - Formatted: {repr(formatted_beer_text)}")
+            
+            notification = {
+                "id": f"beer_{latest_beer.id}",
+                "type": "beer",
+                "title": f"What's on tap at {club_name}",
+                "message": formatted_beer_text,
+                "priority": 7  # Changed to priority 7 to ensure it's included
+            }
+            
+            return [notification]
+            
+    except Exception as e:
+        logger.error(f"Error getting beer notifications: {str(e)}")
+        return []

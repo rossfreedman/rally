@@ -292,6 +292,39 @@
                 </div>
 
             </div>
+
+            <!-- Pie Charts Section - Added at bottom -->
+            <div class="grid gap-6 mt-6" style="display: grid; grid-template-columns: 1fr 1fr;">
+                <!-- Users by Club Pie Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-building text-rally-primary mr-2"></i>
+                        Users by Club
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Distribution of users across clubs</p>
+                    <div class="chart-container" style="height: 300px; position: relative;">
+                        <canvas id="users-by-club-chart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <span id="club-total-users" class="text-sm text-gray-600">Total: -</span>
+                    </div>
+                </div>
+
+                <!-- Users by League Pie Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-trophy text-rally-primary mr-2"></i>
+                        Users by League
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Distribution of users across leagues</p>
+                    <div class="chart-container" style="height: 300px; position: relative;">
+                        <canvas id="users-by-league-chart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <span id="league-total-users" class="text-sm text-gray-600">Total: -</span>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -345,7 +378,8 @@
                     loadActivityData(),
                     loadTopUsers(),
                     loadActivityTrends(),
-                    loadUserCountTrends()
+                    loadUserCountTrends(),
+                    loadPieCharts()
                 ]);
                 updateLastUpdated();
             } catch (error) {
@@ -514,6 +548,69 @@
                 }
             } catch (error) {
                 console.error('Error loading user count trends:', error);
+            }
+        }
+
+        async function loadPieCharts() {
+            try {
+                await Promise.all([
+                    loadUsersByClubChart(),
+                    loadUsersByLeagueChart()
+                ]);
+            } catch (error) {
+                console.error('Error loading pie charts:', error);
+            }
+        }
+
+        async function loadUsersByClubChart() {
+            try {
+                const response = await fetch('/api/admin/cockpit/user-counts-by-club', {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error(`Users by club API error: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateUsersByClubChart(data);
+                } else {
+                    console.error('Users by club API returned error:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading users by club chart:', error);
+            }
+        }
+
+        async function loadUsersByLeagueChart() {
+            try {
+                const response = await fetch('/api/admin/cockpit/user-counts-by-league', {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error(`Users by league API error: ${response.status} ${response.statusText}`);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    updateUsersByLeagueChart(data);
+                } else {
+                    console.error('Users by league API returned error:', data.error);
+                }
+            } catch (error) {
+                console.error('Error loading users by league chart:', error);
             }
         }
 
@@ -829,6 +926,84 @@
                     }
                 }
             });
+
+            // Users by Club pie chart
+            const clubCtx = document.getElementById('users-by-club-chart').getContext('2d');
+            dashboardState.charts.usersByClub = new Chart(clubCtx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} users (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Users by League pie chart
+            const leagueCtx = document.getElementById('users-by-league-chart').getContext('2d');
+            dashboardState.charts.usersByLeague = new Chart(leagueCtx, {
+                type: 'pie',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderColor: [],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${label}: ${value} users (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         function startRealTimeUpdates() {
@@ -960,6 +1135,40 @@
             if (growthEl) {
                 const growthText = data.growth_rate >= 0 ? `+${data.growth_rate}%` : `${data.growth_rate}%`;
                 growthEl.textContent = `Growth: ${growthText}`;
+            }
+        }
+
+        function updateUsersByClubChart(data) {
+            if (!dashboardState.charts.usersByClub) return;
+            
+            const chart = dashboardState.charts.usersByClub;
+            chart.data.labels = data.chart_data.labels;
+            chart.data.datasets[0].data = data.chart_data.datasets[0].data;
+            chart.data.datasets[0].backgroundColor = data.chart_data.datasets[0].backgroundColor;
+            chart.data.datasets[0].borderColor = data.chart_data.datasets[0].borderColor;
+            chart.update();
+            
+            // Update total users count
+            const totalEl = document.getElementById('club-total-users');
+            if (totalEl) {
+                totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
+            }
+        }
+
+        function updateUsersByLeagueChart(data) {
+            if (!dashboardState.charts.usersByLeague) return;
+            
+            const chart = dashboardState.charts.usersByLeague;
+            chart.data.labels = data.chart_data.labels;
+            chart.data.datasets[0].data = data.chart_data.datasets[0].data;
+            chart.data.datasets[0].backgroundColor = data.chart_data.datasets[0].backgroundColor;
+            chart.data.datasets[0].borderColor = data.chart_data.datasets[0].borderColor;
+            chart.update();
+            
+            // Update total users count
+            const totalEl = document.getElementById('league-total-users');
+            if (totalEl) {
+                totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
             }
         }
 
@@ -1158,7 +1367,7 @@
                 'mobile_availability': 'Availability',
                 'mobile_availability_calendar': 'Availability Calendar',
                 'mobile_all_team_availability': 'Team Availability',
-                'mobile_team_schedule': 'Team Schedule',
+                'mobile_team_schedule': 'Team Availability',
                 'mobile_matchup_simulator': 'Matchup Simulator',
                 'mobile_polls': 'Team Polls',
                 'mobile_poll_vote': 'Poll Vote',
@@ -1194,7 +1403,7 @@
                 'email_team': 'Email Team',
                 'practice_times': 'Practice Times',
                 'availability': 'Availability',
-                'team_schedule': 'Team Schedule',
+                'team_schedule': 'Team Availability',
                 'player_search': 'Player Search',
                 'player_stats': 'Player Stats',
                 'my_series': 'My Series',
@@ -1289,6 +1498,20 @@
             if (userAgent.includes('Edge')) return 'Edge';
             return 'Other';
         }
+
+        // Auto-refresh every minute
+        function startAutoRefresh() {
+            // Refresh the page every 60 seconds (60000 milliseconds)
+            setInterval(function() {
+                console.log('Auto-refreshing cockpit page...');
+                window.location.reload();
+            }, 60000);
+        }
+
+        // Start auto-refresh when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startAutoRefresh();
+        });
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', function() {

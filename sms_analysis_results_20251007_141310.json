@@ -1,0 +1,454 @@
+{
+  "analysis_date": "2025-10-07T14:13:10.818464",
+  "activity_data": [
+    {
+      "activity_type": "page_visit",
+      "action": null,
+      "count": 25700,
+      "unique_users": 415,
+      "first_activity": "2025-09-07 14:42:27.120662-05:00",
+      "last_activity": "2025-10-07 13:51:51.823192-05:00"
+    },
+    {
+      "activity_type": "availability_update",
+      "action": "availability_update",
+      "count": 6041,
+      "unique_users": 372,
+      "first_activity": "2025-09-07 15:32:04.852095-05:00",
+      "last_activity": "2025-10-07 09:02:50.943126-05:00"
+    },
+    {
+      "activity_type": "login",
+      "action": null,
+      "count": 2488,
+      "unique_users": 370,
+      "first_activity": "2025-09-07 14:42:30.547658-05:00",
+      "last_activity": "2025-10-07 13:51:19.697685-05:00"
+    },
+    {
+      "activity_type": "player_search",
+      "action": "find_people_to_play",
+      "count": 507,
+      "unique_users": 61,
+      "first_activity": "2025-09-07 14:42:56.880383-05:00",
+      "last_activity": "2025-10-07 08:25:12.492138-05:00"
+    },
+    {
+      "activity_type": "registration_successful",
+      "action": "id_based_player_linking_successful",
+      "count": 288,
+      "unique_users": 288,
+      "first_activity": "2025-09-07 14:49:41.939797-05:00",
+      "last_activity": "2025-10-05 18:38:07.042584-05:00"
+    },
+    {
+      "activity_type": "password_reset",
+      "action": null,
+      "count": 260,
+      "unique_users": 79,
+      "first_activity": "2025-09-07 15:30:39.006206-05:00",
+      "last_activity": "2025-10-05 17:32:54.616185-05:00"
+    },
+    {
+      "activity_type": "player_search",
+      "action": "search_executed",
+      "count": 240,
+      "unique_users": 42,
+      "first_activity": "2025-09-07 15:42:05.997870-05:00",
+      "last_activity": "2025-10-06 19:13:28.801063-05:00"
+    },
+    {
+      "activity_type": "simulation_run",
+      "action": null,
+      "count": 163,
+      "unique_users": 46,
+      "first_activity": "2025-09-07 16:52:25.273515-05:00",
+      "last_activity": "2025-10-06 22:53:35.647697-05:00"
+    },
+    {
+      "activity_type": "practice_times_added",
+      "action": null,
+      "count": 88,
+      "unique_users": 38,
+      "first_activity": "2025-09-08 14:06:09.142571-05:00",
+      "last_activity": "2025-10-05 10:31:19.393317-05:00"
+    },
+    {
+      "activity_type": "admin_action",
+      "action": "start_impersonation",
+      "count": 84,
+      "unique_users": 4,
+      "first_activity": "2025-09-08 20:16:43.168495-05:00",
+      "last_activity": "2025-10-07 13:51:38.809153-05:00"
+    },
+    {
+      "activity_type": "password_changed",
+      "action": null,
+      "count": 61,
+      "unique_users": 51,
+      "first_activity": "2025-09-08 10:16:00.971036-05:00",
+      "last_activity": "2025-10-05 17:34:16.763071-05:00"
+    },
+    {
+      "activity_type": "poll_voted",
+      "action": null,
+      "count": 56,
+      "unique_users": 54,
+      "first_activity": "2025-09-07 15:40:45.503547-05:00",
+      "last_activity": "2025-09-30 09:20:03.376196-05:00"
+    },
+    {
+      "activity_type": "registration_failed",
+      "action": "id_based_player_lookup_failed",
+      "count": 56,
+      "unique_users": 20,
+      "first_activity": "2025-09-07 15:27:49.203888-05:00",
+      "last_activity": "2025-09-30 12:42:12.093154-05:00"
+    },
+    {
+      "activity_type": "pickup_game_joined",
+      "action": null,
+      "count": 42,
+      "unique_users": 27,
+      "first_activity": "2025-09-08 10:13:28.886592-05:00",
+      "last_activity": "2025-10-05 18:43:02.530677-05:00"
+    },
+    {
+      "activity_type": "team_notification_sent",
+      "action": "send_team_notification",
+      "count": 30,
+      "unique_users": 11,
+      "first_activity": "2025-09-10 08:38:00.350469-05:00",
+      "last_activity": "2025-10-06 21:51:37.283505-05:00"
+    },
+    {
+      "activity_type": "team_impersonation",
+      "action": "start_impersonation",
+      "count": 22,
+      "unique_users": 9,
+      "first_activity": "2025-09-13 16:32:52.265857-05:00",
+      "last_activity": "2025-09-26 10:34:32.425827-05:00"
+    },
+    {
+      "activity_type": "registration_failed",
+      "action": "player_already_associated",
+      "count": 19,
+      "unique_users": 10,
+      "first_activity": "2025-09-07 15:29:49.196811-05:00",
+      "last_activity": "2025-09-23 15:12:40.274096-05:00"
+    },
+    {
+      "activity_type": "lineup_escrow_created",
+      "action": null,
+      "count": 15,
+      "unique_users": 8,
+      "first_activity": "2025-09-17 09:53:46.289263-05:00",
+      "last_activity": "2025-10-07 09:47:44.030552-05:00"
+    },
+    {
+      "activity_type": "ai_chat",
+      "action": null,
+      "count": 12,
+      "unique_users": 9,
+      "first_activity": "2025-09-07 15:44:46.981916-05:00",
+      "last_activity": "2025-10-05 12:05:27.325445-05:00"
+    },
+    {
+      "activity_type": "support_request",
+      "action": null,
+      "count": 11,
+      "unique_users": 8,
+      "first_activity": "2025-09-19 15:10:29.687292-05:00",
+      "last_activity": "2025-09-29 09:29:57.544224-05:00"
+    },
+    {
+      "activity_type": "pickup_game_created",
+      "action": null,
+      "count": 11,
+      "unique_users": 7,
+      "first_activity": "2025-09-08 10:09:38.979298-05:00",
+      "last_activity": "2025-10-05 18:42:54.425415-05:00"
+    },
+    {
+      "activity_type": "admin_action",
+      "action": "delete_user",
+      "count": 10,
+      "unique_users": 1,
+      "first_activity": "2025-09-08 18:24:29.553079-05:00",
+      "last_activity": "2025-09-28 13:27:22.045012-05:00"
+    },
+    {
+      "activity_type": "practice_times_removed",
+      "action": null,
+      "count": 8,
+      "unique_users": 6,
+      "first_activity": "2025-09-10 19:54:52.613314-05:00",
+      "last_activity": "2025-09-30 11:55:00.636478-05:00"
+    },
+    {
+      "activity_type": "pickup_game_updated",
+      "action": null,
+      "count": 7,
+      "unique_users": 3,
+      "first_activity": "2025-09-22 17:23:28.970602-05:00",
+      "last_activity": "2025-09-28 17:33:35.201097-05:00"
+    },
+    {
+      "activity_type": "team_impersonation",
+      "action": "stop_impersonation",
+      "count": 6,
+      "unique_users": 3,
+      "first_activity": "2025-09-17 09:10:45.456798-05:00",
+      "last_activity": "2025-09-20 16:05:06.621760-05:00"
+    },
+    {
+      "activity_type": "poll_created",
+      "action": null,
+      "count": 6,
+      "unique_users": 6,
+      "first_activity": "2025-09-07 15:39:49.498243-05:00",
+      "last_activity": "2025-09-29 17:21:14.574397-05:00"
+    },
+    {
+      "activity_type": "pickup_game_deleted",
+      "action": null,
+      "count": 5,
+      "unique_users": 4,
+      "first_activity": "2025-09-22 21:32:47.580271-05:00",
+      "last_activity": "2025-10-01 18:45:37.737823-05:00"
+    },
+    {
+      "activity_type": "pickup_game_left",
+      "action": null,
+      "count": 5,
+      "unique_users": 5,
+      "first_activity": "2025-09-10 10:17:39.215423-05:00",
+      "last_activity": "2025-09-25 07:43:06.607539-05:00"
+    },
+    {
+      "activity_type": "swag_request",
+      "action": null,
+      "count": 2,
+      "unique_users": 2,
+      "first_activity": "2025-09-29 22:12:31.682626-05:00",
+      "last_activity": "2025-10-05 09:16:47.379655-05:00"
+    },
+    {
+      "activity_type": "captain_message_created",
+      "action": null,
+      "count": 2,
+      "unique_users": 2,
+      "first_activity": "2025-09-20 11:25:19.910128-05:00",
+      "last_activity": "2025-09-29 09:18:50.597390-05:00"
+    },
+    {
+      "activity_type": "share_rally_mms",
+      "action": null,
+      "count": 2,
+      "unique_users": 2,
+      "first_activity": "2025-09-17 09:15:32.219535-05:00",
+      "last_activity": "2025-09-25 10:46:46.390706-05:00"
+    },
+    {
+      "activity_type": "lesson_request",
+      "action": null,
+      "count": 1,
+      "unique_users": 1,
+      "first_activity": "2025-10-05 21:36:43.573538-05:00",
+      "last_activity": "2025-10-05 21:36:43.573538-05:00"
+    },
+    {
+      "activity_type": "admin_action",
+      "action": "send_test_sms",
+      "count": 1,
+      "unique_users": 1,
+      "first_activity": "2025-09-28 13:28:50.078727-05:00",
+      "last_activity": "2025-09-28 13:28:50.078727-05:00"
+    }
+  ],
+  "team_data": null,
+  "user_data": [
+    {
+      "email": "caseypierson515@gmail.com",
+      "first_name": "Casey",
+      "last_name": "Pierson",
+      "activity_count": 149,
+      "activity_types": 1,
+      "first_activity": "2025-09-11 22:01:05.748684-05:00",
+      "last_activity": "2025-10-06 19:18:27.198873-05:00"
+    },
+    {
+      "email": "eric.kalman@gmail.com",
+      "first_name": "Eric",
+      "last_name": "Kalman",
+      "activity_count": 55,
+      "activity_types": 1,
+      "first_activity": "2025-09-19 09:34:51.578177-05:00",
+      "last_activity": "2025-10-03 03:44:14.343404-05:00"
+    },
+    {
+      "email": "rossfreedman@gmail.com",
+      "first_name": "Ross",
+      "last_name": "Freedman",
+      "activity_count": 54,
+      "activity_types": 2,
+      "first_activity": "2025-09-09 23:38:45.413785-05:00",
+      "last_activity": "2025-10-05 20:41:30.363995-05:00"
+    },
+    {
+      "email": "ryanskale@gmail.com",
+      "first_name": "Ryan",
+      "last_name": "Skale",
+      "activity_count": 38,
+      "activity_types": 2,
+      "first_activity": "2025-09-09 23:05:16.367171-05:00",
+      "last_activity": "2025-10-06 19:18:05.877267-05:00"
+    },
+    {
+      "email": "david.israel@mesirow.com",
+      "first_name": "David",
+      "last_name": "Israel",
+      "activity_count": 33,
+      "activity_types": 1,
+      "first_activity": "2025-09-10 09:40:02.348750-05:00",
+      "last_activity": "2025-10-03 08:05:27.567058-05:00"
+    },
+    {
+      "email": "e.soderlindmoreno@gmail.com",
+      "first_name": "Elise",
+      "last_name": "Soderlind-Moreno",
+      "activity_count": 29,
+      "activity_types": 1,
+      "first_activity": "2025-09-11 08:42:59.563239-05:00",
+      "last_activity": "2025-09-30 19:11:03.369847-05:00"
+    },
+    {
+      "email": "timschotke@gmail.com",
+      "first_name": "Tim",
+      "last_name": "Schotke",
+      "activity_count": 28,
+      "activity_types": 2,
+      "first_activity": "2025-09-08 17:40:20.777340-05:00",
+      "last_activity": "2025-10-04 09:04:40.090333-05:00"
+    },
+    {
+      "email": "wluv3@aol.com",
+      "first_name": "William",
+      "last_name": "Love",
+      "activity_count": 21,
+      "activity_types": 2,
+      "first_activity": "2025-09-17 08:26:24.666609-05:00",
+      "last_activity": "2025-10-03 09:33:39.383106-05:00"
+    },
+    {
+      "email": "kennethleare@gmail.com",
+      "first_name": "Kenny",
+      "last_name": "Eagle",
+      "activity_count": 21,
+      "activity_types": 2,
+      "first_activity": "2025-09-07 14:49:41.939797-05:00",
+      "last_activity": "2025-09-29 08:41:19.211510-05:00"
+    },
+    {
+      "email": "walshaaron@gmail.com",
+      "first_name": "Aaron",
+      "last_name": "Walsh",
+      "activity_count": 21,
+      "activity_types": 2,
+      "first_activity": "2025-09-15 12:45:58.964570-05:00",
+      "last_activity": "2025-10-05 13:26:45.899583-05:00"
+    },
+    {
+      "email": "anl888@aol.com",
+      "first_name": "Audrey",
+      "last_name": "Love",
+      "activity_count": 20,
+      "activity_types": 1,
+      "first_activity": "2025-09-09 11:41:38.676171-05:00",
+      "last_activity": "2025-09-30 07:28:12.976339-05:00"
+    },
+    {
+      "email": "vicforman@yahoo.com",
+      "first_name": "Victor",
+      "last_name": "Forman",
+      "activity_count": 17,
+      "activity_types": 1,
+      "first_activity": "2025-09-16 10:48:49.421650-05:00",
+      "last_activity": "2025-09-23 10:53:00.849183-05:00"
+    },
+    {
+      "email": "johnstonelynn@gmail.com",
+      "first_name": "LYNN",
+      "last_name": "JOHNSTONE",
+      "activity_count": 13,
+      "activity_types": 1,
+      "first_activity": "2025-10-01 12:52:04.504717-05:00",
+      "last_activity": "2025-10-01 12:58:27.494146-05:00"
+    },
+    {
+      "email": "weston.maher@gmail.com",
+      "first_name": "Wes",
+      "last_name": "Maher",
+      "activity_count": 13,
+      "activity_types": 2,
+      "first_activity": "2025-09-18 13:44:40.011424-05:00",
+      "last_activity": "2025-09-29 14:16:20.279210-05:00"
+    },
+    {
+      "email": "ericwhite1@gmail.com",
+      "first_name": "Eric",
+      "last_name": "White",
+      "activity_count": 12,
+      "activity_types": 2,
+      "first_activity": "2025-09-29 13:11:18.187835-05:00",
+      "last_activity": "2025-10-06 13:15:11.435584-05:00"
+    },
+    {
+      "email": "matt.rush37@gmail.com",
+      "first_name": "Matt",
+      "last_name": "Rush",
+      "activity_count": 12,
+      "activity_types": 3,
+      "first_activity": "2025-09-10 16:59:29.126302-05:00",
+      "last_activity": "2025-10-06 21:51:37.283505-05:00"
+    },
+    {
+      "email": "brian.crane@gcgfinancial.com",
+      "first_name": null,
+      "last_name": null,
+      "activity_count": 12,
+      "activity_types": 2,
+      "first_activity": "2025-09-15 09:00:17.770431-05:00",
+      "last_activity": "2025-09-17 11:52:46.473040-05:00"
+    },
+    {
+      "email": "msabath@bergerschatz.com",
+      "first_name": "Michael",
+      "last_name": "Sabath",
+      "activity_count": 12,
+      "activity_types": 2,
+      "first_activity": "2025-09-09 21:00:23.731823-05:00",
+      "last_activity": "2025-10-01 19:54:26.129950-05:00"
+    },
+    {
+      "email": "mschallman@gmail.com",
+      "first_name": "Michael",
+      "last_name": "Schallman",
+      "activity_count": 12,
+      "activity_types": 2,
+      "first_activity": "2025-09-07 19:00:19.229028-05:00",
+      "last_activity": "2025-10-01 14:33:03.893475-05:00"
+    },
+    {
+      "email": "jackwhipple63@gmail.com",
+      "first_name": "Jack",
+      "last_name": "Whipple",
+      "activity_count": 11,
+      "activity_types": 2,
+      "first_activity": "2025-09-18 22:52:49.696500-05:00",
+      "last_activity": "2025-10-05 18:21:58.811610-05:00"
+    }
+  ],
+  "trends_data": {
+    "daily_totals": {
+      

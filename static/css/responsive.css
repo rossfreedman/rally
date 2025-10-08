@@ -805,3 +805,31 @@ button.category-button[onclick*="captain"].active svg {
     max-width: 100% !important;
   }
 }
+
+/* Mobile Navigation Drawer Scrolling Fix */
+#navDrawer {
+  /* Ensure proper height calculation */
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+#navContent {
+  /* Ensure proper scrolling behavior */
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important; /* iOS smooth scrolling */
+  flex: 1 !important;
+  min-height: 0 !important;
+  /* Add extra bottom padding to ensure last items are fully visible */
+  padding-bottom: 2rem !important;
+}
+
+/* Ensure submenu items have proper spacing */
+.submenu-item {
+  /* Add margin bottom to prevent cutoff */
+  margin-bottom: 0.5rem !important;
+}
+
+/* Last submenu item gets extra bottom margin */
+.submenu-item:last-child {
+  margin-bottom: 1rem !important;
+}

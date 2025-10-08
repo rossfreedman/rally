@@ -294,6 +294,54 @@
       </div>
     </div>
   </div>
+
+  <!-- Users by Club Pie Chart -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-building text-blue-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Users by Club</h2>
+          <p class="text-sm text-gray-600">Distribution of users across clubs</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div class="chart-container" style="height: 300px; position: relative;">
+        <canvas id="mobile-users-by-club-chart"></canvas>
+      </div>
+      <div class="mt-4 text-center">
+        <span id="mobile-club-total-users" class="text-sm text-gray-600">Total: -</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users by League Pie Chart -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center mr-3">
+          <i class="fas fa-trophy text-yellow-600 text-lg"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Users by League</h2>
+          <p class="text-sm text-gray-600">Distribution of users across leagues</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div class="chart-container" style="height: 300px; position: relative;">
+        <canvas id="mobile-users-by-league-chart"></canvas>
+      </div>
+      <div class="mt-4 text-center">
+        <span id="mobile-league-total-users" class="text-sm text-gray-600">Total: -</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -426,7 +474,8 @@ async function loadAllData() {
       loadTopUsers(),
       loadSystemStatus(),
       loadMostActivePages(),
-      loadUserCountTrends()
+      loadUserCountTrends(),
+      loadPieCharts()
     ]);
     updateLastUpdated();
   } catch (error) {
@@ -732,6 +781,187 @@ function updateUserCountChart(data) {
   if (growthEl) {
     const growthText = data.growth_rate >= 0 ? `+${data.growth_rate}%` : `${data.growth_rate}%`;
     growthEl.textContent = `Growth: ${growthText}`;
+  }
+}
+
+async function loadPieCharts() {
+  try {
+    await Promise.all([
+      loadMobileUsersByClubChart(),
+      loadMobileUsersByLeagueChart()
+    ]);
+  } catch (error) {
+    console.error('Error loading pie charts:', error);
+  }
+}
+
+async function loadMobileUsersByClubChart() {
+  try {
+    const response = await fetch('/api/admin/cockpit/user-counts-by-club', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Users by club API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateMobileUsersByClubChart(data);
+    } else {
+      console.error('Users by club API returned error:', data.error);
+    }
+  } catch (error) {
+    console.error('Error loading users by club chart:', error);
+  }
+}
+
+async function loadMobileUsersByLeagueChart() {
+  try {
+    const response = await fetch('/api/admin/cockpit/user-counts-by-league', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Users by league API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      updateMobileUsersByLeagueChart(data);
+    } else {
+      console.error('Users by league API returned error:', data.error);
+    }
+  } catch (error) {
+    console.error('Error loading users by league chart:', error);
+  }
+}
+
+function updateMobileUsersByClubChart(data) {
+  // Initialize chart if it doesn't exist
+  if (!window.mobileUsersByClubChart) {
+    const ctx = document.getElementById('mobile-users-by-club-chart').getContext('2d');
+    window.mobileUsersByClubChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: [],
+          borderColor: [],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true,
+              font: {
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: ${value} users (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  const chart = window.mobileUsersByClubChart;
+  chart.data.labels = data.chart_data.labels;
+  chart.data.datasets[0].data = data.chart_data.datasets[0].data;
+  chart.data.datasets[0].backgroundColor = data.chart_data.datasets[0].backgroundColor;
+  chart.data.datasets[0].borderColor = data.chart_data.datasets[0].borderColor;
+  chart.update();
+  
+  // Update total users count
+  const totalEl = document.getElementById('mobile-club-total-users');
+  if (totalEl) {
+    totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
+  }
+}
+
+function updateMobileUsersByLeagueChart(data) {
+  // Initialize chart if it doesn't exist
+  if (!window.mobileUsersByLeagueChart) {
+    const ctx = document.getElementById('mobile-users-by-league-chart').getContext('2d');
+    window.mobileUsersByLeagueChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: [],
+          borderColor: [],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true,
+              font: {
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = context.parsed;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: ${value} users (${percentage}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  const chart = window.mobileUsersByLeagueChart;
+  chart.data.labels = data.chart_data.labels;
+  chart.data.datasets[0].data = data.chart_data.datasets[0].data;
+  chart.data.datasets[0].backgroundColor = data.chart_data.datasets[0].backgroundColor;
+  chart.data.datasets[0].borderColor = data.chart_data.datasets[0].borderColor;
+  chart.update();
+  
+  // Update total users count
+  const totalEl = document.getElementById('mobile-league-total-users');
+  if (totalEl) {
+    totalEl.textContent = `Total: ${formatNumber(data.total_users)}`;
   }
 }
 
@@ -1261,7 +1491,7 @@ function formatPageName(page) {
     'mobile_availability': 'Availability',
     'mobile_availability_calendar': 'Availability Calendar',
     'mobile_all_team_availability': 'Team Availability',
-    'mobile_team_schedule': 'Team Schedule',
+    'mobile_team_schedule': 'Team Availability',
     'mobile_matchup_simulator': 'Matchup Simulator',
     'mobile_polls': 'Team Polls',
     'mobile_poll_vote': 'Poll Vote',

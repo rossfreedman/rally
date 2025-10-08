@@ -1,0 +1,1080 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Team Availability - {{ team }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Loading Screen (shown initially) -->
+        <div id="loadingScreen" class="flex flex-col items-center justify-center min-h-screen">
+            <div class="text-center mb-8">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4" style="background-color: #2563eb !important;">
+                    <i class="fas fa-table text-white text-lg"></i>
+                </div>
+                <div class="text-xl font-bold text-gray-900 mb-2">Loading Team Grid</div>
+                <div class="text-sm text-gray-500">{{ team }}</div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="w-80 max-w-full mb-6">
+                <div class="bg-gray-200 rounded-full h-3">
+                    <div id="progressBar" class="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <div id="progressText" class="text-sm text-gray-600 mt-2 text-center">Initializing...</div>
+            </div>
+            
+            <!-- Loading Steps -->
+            <div class="space-y-2 text-sm text-gray-600">
+                <div id="step1" class="flex items-center">
+                    <i id="step1-icon" class="fas fa-circle-notch fa-spin text-blue-500 mr-2"></i>
+                    <span>Loading team information...</span>
+                </div>
+                <div id="step2" class="flex items-center opacity-50">
+                    <i id="step2-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                    <span>Loading player data...</span>
+                </div>
+                <div id="step3" class="flex items-center opacity-50">
+                    <i id="step3-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                    <span>Loading availability data...</span>
+                </div>
+                <div id="step4" class="flex items-center opacity-50">
+                    <i id="step4-icon" class="fas fa-circle text-gray-400 mr-2"></i>
+                    <span>Building grid...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content (hidden initially) -->
+        <div id="mainContent" style="display: none;">
+            <!-- Header -->
+            <div class="bg-white border-b border-gray-100">
+                <div class="flex items-center px-4 py-6">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454 !important;">
+                        <i class="fas fa-table text-white text-lg" style="color: #bff863 !important;"></i>
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h1 class="text-xl font-bold text-gray-900">Team Availability Grid</h1>
+                        <p class="text-sm text-gray-500" id="teamDisplayName">{{ team }}</p>
+                    </div>
+                    <div class="ml-4">
+                        <a href="/mobile/team-schedule" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200" style="background-color: #045454 !important; color: #bff863 !important;" onmouseover="this.style.backgroundColor='#034343'" onmouseout="this.style.backgroundColor='#045454'" onfocus="this.style.outline='2px solid #bff863'" onblur="this.style.outline='none'">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            List View
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="px-4 py-6 space-y-6">
+                <!-- Filter Buttons -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4" style="background-color: #045454;">
+                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                            <i class="fas fa-filter mr-2" style="color: #bff863;"></i>
+                            Filter Events
+                        </h2>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <!-- Event Type Filter Row -->
+                        <div class="flex space-x-2">
+                            <button id="filterAll" class="filter-btn active flex-1 px-6.5 py-3.5 rounded-md text-lg font-medium transition-colors duration-200 rally-green-dark rally-green-bright">
+                                <i class="fas fa-calendar-alt mr-2"></i>
+                                All
+                            </button>
+                            <button id="filterPractices" class="filter-btn flex-1 px-6.5 py-3.5 rounded-md text-lg font-medium transition-colors duration-200 bg-gray-100 text-gray-700 hover:rally-green-dark hover:rally-green-bright">
+                                <i class="fas fa-dumbbell mr-2"></i>
+                                Practices
+                            </button>
+                            <button id="filterMatches" class="filter-btn flex-1 px-6.5 py-3.5 rounded-md text-lg font-medium transition-colors duration-200 bg-gray-100 text-gray-700 hover:rally-green-dark hover:rally-green-bright">
+                                <i class="fas fa-trophy mr-2"></i>
+                                Matches
+                            </button>
+                        </div>
+                        
+                        <!-- Player and Date Filter Row -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- Player Filter -->
+                            <div>
+                                <label for="playerFilter" class="block text-xs font-medium text-gray-700 mb-1">Filter by Player</label>
+                                <select id="playerFilter" class="w-full p-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                    <option value="all">All Players</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Date Filter -->
+                            <div>
+                                <label for="dateFilter" class="block text-xs font-medium text-gray-700 mb-1">Filter by Date</label>
+                                <select id="dateFilter" class="w-full p-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm">
+                                    <option value="all">All Dates</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Clear Filters Button -->
+                        <div class="flex justify-end pt-2">
+                            <button id="clearFiltersBtn" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">
+                                <i class="fas fa-times mr-2"></i>
+                                Clear All Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grid Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-6 py-4" style="background-color: #045454;">
+                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                            <i class="fas fa-users mr-2" style="color: #bff863;"></i>
+                            Team Availability
+                        </h2>
+                    </div>
+                    
+                    <div class="overflow-x-auto" id="tableContainer">
+                        <table class="min-w-full table-auto" id="availabilityGrid">
+                            <thead>
+                                <tr class="bg-gray-50">
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10 min-w-[150px]">Player</th>
+                                    <!-- Date headers will be dynamically inserted here -->
+                                </tr>
+                            </thead>
+                            <tbody id="gridBody">
+                                <!-- Player rows will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div id="errorMessage" class="bg-yellow-50 border border-yellow-100 rounded-xl p-4" style="display: none;">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                        <p class="text-yellow-700 font-medium">No availability data found for this team.</p>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-sm text-gray-600">Please verify:</p>
+                        <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                            <li>Your club ({{ session_data.user.club if session_data.user.club else 'Not set' }}) is correct</li>
+                            <li>Your series (<span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span>) is correct</li>
+                        </ul>
+                        <p class="text-sm text-gray-600 mt-2">
+                            You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let gridData = null;
+    let currentFilter = 'all'; // 'all', 'practices', 'matches'
+    let currentPlayerFilter = 'all';
+    let currentDateFilter = 'all';
+    
+    // UI Elements
+    const loadingScreen = document.getElementById('loadingScreen');
+    const mainContent = document.getElementById('mainContent');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const availabilityGrid = document.getElementById('availabilityGrid');
+    const gridBody = document.getElementById('gridBody');
+    const errorMessage = document.getElementById('errorMessage');
+    const playerFilter = document.getElementById('playerFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+
+    // Progress tracking
+    function updateProgress(step, percentage, text) {
+        progressBar.style.width = percentage + '%';
+        progressText.textContent = text;
+        
+        // Update step icons
+        for (let i = 1; i <= 4; i++) {
+            const stepElement = document.getElementById(`step${i}`);
+            const stepIcon = document.getElementById(`step${i}-icon`);
+            
+            if (i < step) {
+                // Completed step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-check-circle text-green-500 mr-2';
+            } else if (i === step) {
+                // Current step
+                stepElement.classList.remove('opacity-50');
+                stepElement.classList.add('opacity-100');
+                stepIcon.className = 'fas fa-circle-notch fa-spin text-blue-500 mr-2';
+            } else {
+                // Future step
+                stepElement.classList.add('opacity-50');
+                stepIcon.className = 'fas fa-circle text-gray-400 mr-2';
+            }
+        }
+    }
+
+    // Show error message
+    function showErrorMessage(message, teamStatus) {
+        updateProgress(4, 100, 'Error loading data');
+        
+        const errorMessage = document.getElementById('errorMessage');
+        
+        let iconClass = 'fas fa-exclamation-triangle text-yellow-500';
+        let headerText = 'No availability data found';
+        let bgClass = 'bg-yellow-50 border-yellow-100';
+        let textClass = 'text-yellow-700';
+        
+        if (teamStatus === 'no_players') {
+            iconClass = 'fas fa-users text-blue-500';
+            headerText = 'No players found for this team';
+            bgClass = 'bg-blue-50 border-blue-100';
+            textClass = 'text-blue-700';
+        } else if (teamStatus === 'not_found') {
+            iconClass = 'fas fa-search text-gray-500';
+            headerText = 'Team not found';
+            bgClass = 'bg-gray-50 border-gray-100';
+            textClass = 'text-gray-700';
+        }
+        
+        errorMessage.className = `${bgClass} border rounded-xl p-4`;
+        errorMessage.innerHTML = `
+            <div class="flex items-center mb-3">
+                <i class="${iconClass} mr-3"></i>
+                <p class="${textClass} font-medium">${headerText}</p>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm ${textClass.replace('-700', '-600')}">${message}</p>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Your current settings:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                        <li>Club: {{ session_data.user.club if session_data.user.club else 'Not set' }}</li>
+                        <li>Series: <span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span></li>
+                    </ul>
+                    <p class="text-sm text-gray-600 mt-2">
+                        You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        // Show error after loading screen
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            errorMessage.style.display = 'block';
+        }, 1000);
+    }
+
+    // Load data via AJAX
+    async function loadTeamScheduleGridData() {
+        try {
+            updateProgress(1, 10, 'Loading team information...');
+            
+            const response = await fetch('/api/team-schedule-grid-data', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            updateProgress(2, 30, 'Processing player data...');
+            
+            const data = await response.json();
+            
+            // Handle API responses
+            if (!response.ok) {
+                if (data.message) {
+                    showErrorMessage(data.message, data.team_status || 'error');
+                    return;
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Handle case where API returns 200 but with empty data
+            if (data.message && (!data.players || data.players.length === 0)) {
+                showErrorMessage(data.message, data.team_status || 'no_players');
+                return;
+            }
+            
+            updateProgress(3, 60, 'Loading availability data...');
+            
+            // Store the data
+            gridData = data;
+            
+            updateProgress(4, 80, 'Building grid...');
+            
+            // Update page header with team display name
+            const teamNameElement = document.getElementById('teamDisplayName');
+            if (teamNameElement && data.team_info && data.team_info.display_name) {
+                teamNameElement.textContent = data.team_info.display_name;
+            }
+            
+            // Build the grid
+            buildAvailabilityGrid();
+            
+            // Populate filter dropdowns
+            populateFilters();
+            
+            // Auto-scroll to closest date
+            autoScrollToClosestDate();
+            
+            updateProgress(4, 100, 'Complete!');
+            
+            // Show main content after a brief delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error loading team schedule grid data:', error);
+            progressText.textContent = 'Error loading data: ' + error.message;
+            progressBar.style.width = '100%';
+            progressBar.classList.add('bg-red-500');
+            
+            // Show error after a delay
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                mainContent.style.display = 'block';
+                errorMessage.style.display = 'block';
+            }, 2000);
+        }
+    }
+
+    // Build the availability grid
+    function buildAvailabilityGrid() {
+        if (!gridData || !gridData.players || !gridData.matches) {
+            console.error('No grid data available');
+            return;
+        }
+
+        let players = gridData.players;
+        let matches = gridData.matches;
+        const availability = gridData.availability || {};
+        
+        // Filter matches based on current event type filter
+        if (currentFilter === 'practices') {
+            matches = matches.filter(match => match.type === 'Practice');
+        } else if (currentFilter === 'matches') {
+            matches = matches.filter(match => match.type === 'Match');
+        }
+        // 'all' shows all matches (no filtering)
+        
+        // Filter players based on player filter
+        if (currentPlayerFilter !== 'all') {
+            players = players.filter(player => player.name === currentPlayerFilter);
+        }
+        
+        // Filter matches based on date filter
+        if (currentDateFilter !== 'all') {
+            matches = matches.filter(match => match.date === currentDateFilter);
+        }
+
+        // Clear existing content
+        gridBody.innerHTML = '';
+        
+        // Get table header row
+        const headerRow = availabilityGrid.querySelector('thead tr');
+        
+        // Clear existing date headers (keep Player column)
+        const playerHeader = headerRow.querySelector('th');
+        headerRow.innerHTML = '';
+        headerRow.appendChild(playerHeader);
+
+        // No separate summary column header needed - summary will be under player names
+
+        // Add date headers
+        matches.forEach(match => {
+            const dateHeader = document.createElement('th');
+            dateHeader.className = 'px-4 py-3 text-center font-semibold text-gray-700 min-w-[120px]';
+            
+            const dateStr = formatDateString(match.date);
+            const eventType = match.type === 'Practice' ? 'P' : 'M';
+            const eventInfo = match.type === 'Practice' ? 
+                '<div class="text-xs text-blue-600 mt-1">Practice</div>' :
+                '<div class="text-xs text-green-600 mt-1">Match</div>';
+            
+            dateHeader.innerHTML = `
+                <div class="text-sm font-medium">${dateStr}</div>
+                ${eventInfo}
+            `;
+            
+            headerRow.appendChild(dateHeader);
+        });
+
+        // Add player rows
+        players.forEach(player => {
+            const row = document.createElement('tr');
+            row.className = 'border-t border-gray-50';
+            
+            // Player name cell (sticky)
+            const playerCell = document.createElement('td');
+            playerCell.className = 'px-4 py-3 font-medium text-gray-900 sticky left-0 bg-white z-10';
+            
+            // Create player name container
+            const playerContainer = document.createElement('div');
+            playerContainer.className = 'space-y-2';
+            
+            // Player name
+            const playerNameDiv = document.createElement('div');
+            playerNameDiv.className = 'text-base font-medium text-gray-900';
+            playerNameDiv.textContent = player.name;
+            playerContainer.appendChild(playerNameDiv);
+            
+            playerCell.appendChild(playerContainer);
+            row.appendChild(playerCell);
+            
+            // Availability cells
+            matches.forEach(match => {
+                const cell = document.createElement('td');
+                cell.className = 'px-2 py-3 text-center';
+                
+                const playerAvailability = availability[player.name] || {};
+                const matchDate = match.date;
+                const availabilityData = playerAvailability[matchDate];
+                
+                if (availabilityData) {
+                    const status = availabilityData.status;
+                    const notes = availabilityData.notes || '';
+                    
+                    // Create availability indicator
+                    const indicator = document.createElement('div');
+                    indicator.className = 'w-8 h-8 mx-auto rounded-full flex items-center justify-center border-2';
+                    
+                    let statusClass = '';
+                    let iconClass = '';
+                    
+                    switch (status) {
+                        case 1: // Available
+                            statusClass = 'bg-green-100 border-green-500';
+                            iconClass = 'fas fa-check text-green-600 text-xs';
+                            break;
+                        case 2: // Not Available
+                            statusClass = 'bg-red-100 border-red-500';
+                            iconClass = 'fas fa-times text-red-600 text-xs';
+                            break;
+                        case 3: // Not Sure
+                            statusClass = 'bg-yellow-100 border-yellow-500';
+                            iconClass = 'fas fa-question text-yellow-600 text-xs';
+                            break;
+                        default:
+                            statusClass = 'bg-gray-100 border-gray-300';
+                            iconClass = 'fas fa-minus text-gray-500 text-xs';
+                    }
+                    
+                    indicator.className += ` ${statusClass}`;
+                    indicator.innerHTML = `<i class="${iconClass}"></i>`;
+                    
+                    // Add tooltip with notes if available
+                    if (notes) {
+                        indicator.title = notes;
+                        indicator.className += ' cursor-help';
+                    }
+                    
+                    cell.appendChild(indicator);
+                } else {
+                    // No availability data
+                    const indicator = document.createElement('div');
+                    indicator.className = 'w-8 h-8 mx-auto rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center';
+                    indicator.innerHTML = '<i class="fas fa-minus text-gray-500 text-xs"></i>';
+                    cell.appendChild(indicator);
+                }
+                
+                row.appendChild(cell);
+            });
+            
+            gridBody.appendChild(row);
+        });
+    }
+
+    // Helper to format YYYY-MM-DD as MM/DD
+    function formatDateString(dateStr) {
+        try {
+            if (!dateStr) return '';
+            
+            const [year, month, day] = dateStr.split('-').map(Number);
+            return `${month}/${day}`;
+            
+        } catch (error) {
+            console.error('Error in formatDateString:', error);
+            return dateStr;
+        }
+    }
+
+    // Filter functionality
+    function setupFilterButtons() {
+        const filterAll = document.getElementById('filterAll');
+        const filterPractices = document.getElementById('filterPractices');
+        const filterMatches = document.getElementById('filterMatches');
+        
+        filterAll.addEventListener('click', () => setFilter('all'));
+        filterPractices.addEventListener('click', () => setFilter('practices'));
+        filterMatches.addEventListener('click', () => setFilter('matches'));
+        
+        // Setup dropdown filters
+        playerFilter.addEventListener('change', (e) => {
+            currentPlayerFilter = e.target.value;
+            if (gridData) {
+                buildAvailabilityGrid();
+            }
+        });
+        
+        dateFilter.addEventListener('change', (e) => {
+            currentDateFilter = e.target.value;
+            if (gridData) {
+                buildAvailabilityGrid();
+            }
+        });
+        
+        // Setup clear filters button
+        clearFiltersBtn.addEventListener('click', clearAllFilters);
+    }
+    
+    // Clear all filters function
+    function clearAllFilters() {
+        // Reset all filter variables
+        currentFilter = 'all';
+        currentPlayerFilter = 'all';
+        currentDateFilter = 'all';
+        
+        // Reset UI elements
+        playerFilter.value = 'all';
+        dateFilter.value = 'all';
+        
+        // Reset event type buttons
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            btn.classList.remove('active', 'rally-green-dark', 'rally-green-bright');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        
+        // Set "All" button as active
+        const filterAll = document.getElementById('filterAll');
+        if (filterAll) {
+            filterAll.classList.remove('bg-gray-100', 'text-gray-700');
+            filterAll.classList.add('active', 'rally-green-dark', 'rally-green-bright');
+        }
+        
+        // Rebuild grid with no filters
+        if (gridData) {
+            buildAvailabilityGrid();
+        }
+    }
+    
+    // Auto-scroll to closest date function
+    function autoScrollToClosestDate() {
+        if (!gridData || !gridData.matches || gridData.matches.length === 0) {
+            console.log('No grid data available for auto-scroll');
+            return;
+        }
+        
+        const tableContainer = document.getElementById('tableContainer');
+        if (!tableContainer) {
+            console.log('Table container not found');
+            return;
+        }
+        
+        console.log('Table container found:', tableContainer);
+        console.log('Table container scrollWidth:', tableContainer.scrollWidth);
+        console.log('Table container clientWidth:', tableContainer.clientWidth);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+        
+        // Find the closest date to today
+        let closestDate = null;
+        let smallestDiff = Infinity;
+        
+        gridData.matches.forEach(match => {
+            const matchDate = new Date(match.date);
+            matchDate.setHours(0, 0, 0, 0); // Reset time to start of day
+            
+            const diff = Math.abs(matchDate - today);
+            if (diff < smallestDiff) {
+                smallestDiff = diff;
+                closestDate = match.date;
+            }
+        });
+        
+        if (closestDate) {
+            console.log('Closest date found:', closestDate);
+            
+            // Wait a bit for the grid to be fully rendered, then scroll
+            setTimeout(() => {
+                // Find the column header for the closest date
+                const headerRow = availabilityGrid.querySelector('thead tr');
+                if (headerRow) {
+                    const headers = headerRow.querySelectorAll('th');
+                    console.log('Found', headers.length, 'headers');
+                    let targetColumnIndex = -1;
+                    
+                    headers.forEach((header, index) => {
+                        if (index > 0) { // Skip the first column (Player names)
+                            const headerText = header.textContent;
+                            console.log('Header', index, ':', headerText);
+                            if (headerText.includes(formatDateString(closestDate))) {
+                                targetColumnIndex = index;
+                                console.log('Found target column at index:', targetColumnIndex);
+                            }
+                        }
+                    });
+                    
+                    if (targetColumnIndex > 0) {
+                        // Calculate scroll position to center the target column
+                        const columnWidth = 120; // min-w-[120px] from CSS
+                        const containerWidth = tableContainer.clientWidth;
+                        const scrollPosition = (targetColumnIndex - 1) * columnWidth - (containerWidth / 2) + (columnWidth / 2);
+                        
+                        console.log('Scrolling to position:', scrollPosition);
+                        console.log('Container width:', containerWidth);
+                        console.log('Column width:', columnWidth);
+                        
+                        // Smooth scroll to the target position - ONLY horizontal scroll
+                        tableContainer.scrollLeft = Math.max(0, scrollPosition);
+                        
+                        // Also try the scrollTo method as backup
+                        setTimeout(() => {
+                            tableContainer.scrollTo({
+                                left: Math.max(0, scrollPosition),
+                                behavior: 'smooth'
+                            });
+                        }, 100);
+                        
+                    } else {
+                        console.log('Target column not found, scrolling to middle');
+                        // Fallback: scroll to middle of the table
+                        const totalWidth = headers.length * 120;
+                        const scrollPosition = totalWidth / 4;
+                        console.log('Fallback scroll to position:', scrollPosition);
+                        
+                        tableContainer.scrollLeft = scrollPosition;
+                        setTimeout(() => {
+                            tableContainer.scrollTo({
+                                left: scrollPosition,
+                                behavior: 'smooth'
+                            });
+                        }, 100);
+                    }
+                } else {
+                    console.log('Header row not found');
+                }
+            }, 1000); // Increased delay to ensure grid is fully rendered
+        } else {
+            console.log('No closest date found');
+        }
+    }
+    
+    // Populate filter dropdowns
+    function populateFilters() {
+        if (!gridData) return;
+        
+        // Populate player filter
+        playerFilter.innerHTML = '<option value="all">All Players</option>';
+        gridData.players.forEach(player => {
+            const option = document.createElement('option');
+            option.value = player.name;
+            option.textContent = player.name;
+            playerFilter.appendChild(option);
+        });
+        
+        // Populate date filter
+        dateFilter.innerHTML = '<option value="all">All Dates</option>';
+        gridData.matches.forEach(match => {
+            const option = document.createElement('option');
+            option.value = match.date;
+            const dateStr = formatDateString(match.date);
+            
+            let displayText;
+            if (match.type === 'Practice') {
+                displayText = `${dateStr} - Practice`;
+            } else if (match.type === 'Match' && match.opponent) {
+                displayText = `${dateStr} - Match (${match.opponent})`;
+            } else {
+                displayText = `${dateStr} - Match`;
+            }
+            
+            option.textContent = displayText;
+            dateFilter.appendChild(option);
+        });
+    }
+    
+    function setFilter(filter) {
+        currentFilter = filter;
+        
+        // Update button styles
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            btn.classList.remove('active', 'rally-green-dark', 'rally-green-bright');
+            btn.classList.add('bg-gray-100', 'text-gray-700');
+        });
+        
+        // Set active button
+        const activeButton = document.getElementById(`filter${filter.charAt(0).toUpperCase() + filter.slice(1)}`);
+        if (activeButton) {
+            activeButton.classList.remove('bg-gray-100', 'text-gray-700');
+            activeButton.classList.add('active', 'rally-green-dark', 'rally-green-bright');
+        }
+        
+        // Rebuild grid with new filter
+        if (gridData) {
+            buildAvailabilityGrid();
+        }
+    }
+    
+    function getFilteredMatchesCount() {
+        if (!gridData || !gridData.matches) return 0;
+        
+        if (currentFilter === 'practices') {
+            return gridData.matches.filter(match => match.type === 'Practice').length;
+        } else if (currentFilter === 'matches') {
+            return gridData.matches.filter(match => match.type === 'Match').length;
+        }
+        return gridData.matches.length;
+    }
+
+    // Transform series display from "Chicago XX" to "Series XX"
+    const seriesElements = document.querySelectorAll('.user-series');
+    seriesElements.forEach(element => {
+        const seriesText = element.textContent;
+        if (seriesText && seriesText !== 'Not set') {
+            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+        }
+    });
+
+    // Setup filter buttons
+    setupFilterButtons();
+
+    // Start loading data
+    loadTeamScheduleGridData();
+});
+</script>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-yellow-100 { border-color: #fef3c7; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-yellow-50 { background-color: #fffbeb; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-green-600 { background-color: #16a34a; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-yellow-100 { background-color: #fef3c7; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-green-500 { color: #10b981; }
+.text-green-600 { color: #059669; }
+.text-green-700 { color: #15803d; }
+.text-red-500 { color: #ef4444; }
+.text-red-600 { color: #dc2626; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-600 { color: #d97706; }
+.text-yellow-700 { color: #b91c1c; }
+.text-white { color: #ffffff; }
+
+/* Border colors */
+.border-green-500 { border-color: #10b981; }
+.border-red-500 { border-color: #ef4444; }
+.border-yellow-500 { border-color: #f59e0b; }
+.border-gray-300 { border-color: #d1d5db; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Sticky positioning */
+.sticky {
+    position: sticky;
+}
+
+.left-0 {
+    left: 0;
+}
+
+.z-10 {
+    z-index: 10;
+}
+
+/* Grid utilities */
+.grid {
+    display: grid;
+}
+
+.grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.gap-3 {
+    gap: 0.75rem;
+}
+
+/* Filter button styles */
+.filter-btn {
+    border: 2px solid transparent;
+    cursor: pointer;
+    user-select: none;
+}
+
+.filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-btn.active {
+    box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+}
+
+.filter-btn:active {
+    transform: translateY(0);
+}
+
+/* Flex utilities for filter buttons */
+.flex {
+    display: flex;
+}
+
+.flex-1 {
+    flex: 1 1 0%;
+}
+
+.space-x-2 > * + * {
+    margin-left: 0.5rem;
+}
+
+.space-x-3 > * + * {
+    margin-left: 0.75rem;
+}
+
+/* Padding utilities */
+.p-4 {
+    padding: 1rem;
+}
+
+.px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.px-5 {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+
+.py-1\.5 {
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+}
+
+.py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.py-2\.5 {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+}
+
+.px-6\.5 {
+    padding-left: 1.625rem;
+    padding-right: 1.625rem;
+}
+
+.py-3\.5 {
+    padding-top: 0.875rem;
+    padding-bottom: 0.875rem;
+}
+
+/* Text size utilities */
+.text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.text-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+}
+
+.text-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+}
+
+/* Border radius utilities */
+.rounded-md {
+    border-radius: 0.375rem;
+}
+
+/* Margin utilities */
+.mr-1 {
+    margin-right: 0.25rem;
+}
+
+.mr-1\.5 {
+    margin-right: 0.375rem;
+}
+
+.mr-2 {
+    margin-right: 0.5rem;
+}
+
+/* Spacing utilities */
+.space-y-1 > * + * {
+    margin-top: 0.25rem;
+}
+
+.space-y-2 > * + * {
+    margin-top: 0.5rem;
+}
+
+/* Flex utilities */
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.gap-1 {
+    gap: 0.25rem;
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+
+/* Positioning utilities */
+.left-\[150px\] {
+    left: 150px;
+}
+
+/* Width utilities */
+.min-w-\[100px\] {
+    min-width: 100px;
+}
+
+.min-w-\[120px\] {
+    min-width: 120px;
+}
+
+.min-w-\[150px\] {
+    min-width: 150px;
+}
+
+/* Size utilities */
+.w-3 {
+    width: 0.75rem;
+}
+
+.h-3 {
+    height: 0.75rem;
+}
+
+.w-4 {
+    width: 1rem;
+}
+
+.h-4 {
+    height: 1rem;
+}
+
+/* Rally Green Colors */
+.rally-green-dark {
+    background-color: #045454 !important;
+}
+
+.rally-green-bright {
+    color: #bff863 !important;
+}
+
+/* Hover states for Rally colors */
+.hover\:rally-green-dark:hover {
+    background-color: #045454 !important;
+}
+
+.hover\:rally-green-bright:hover {
+    color: #bff863 !important;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    
+    /* Keep filter buttons on same line, maintain larger size on mobile */
+    .filter-btn {
+        padding: 0.375rem 0.75rem !important;
+        font-size: 0.75rem !important;
+    }
+    
+    .space-x-2 > * + * {
+        margin-left: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

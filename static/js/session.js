@@ -8,8 +8,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Only check auth if we're not on the login page
-        if (!window.location.pathname.includes('/login')) {
+        // Only check auth if we're not on a public page
+        const publicRoutes = ['/login', '/register', '/forgot-password', '/mobile/support'];
+        const isPublicRoute = publicRoutes.some(route => window.location.pathname.includes(route));
+        
+        if (!isPublicRoute) {
             const authResponse = await fetch('/api/check-auth', {
                 credentials: 'include',
                 headers: {

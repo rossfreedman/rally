@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Impersonation - Rally</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-blue': '#1e40af',
+                        'rally-light-blue': '#3b82f6',
+                        'rally-dark-blue': '#1e3a8a',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="/mobile" class="flex items-center">
+                        <i class="fas fa-arrow-left text-gray-600 mr-3"></i>
+                        <h1 class="text-xl font-semibold text-gray-900">Team Impersonation</h1>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/mobile" class="text-gray-600 hover:text-gray-900">
+                        <i class="fas fa-home text-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impersonation Banner (hidden by default) -->
+    <div id="impersonation-banner" class="hidden bg-orange-500 text-white p-4 text-center">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-user-secret mr-2"></i>
+                    <span>Currently impersonating: <span id="impersonated-user-name"></span></span>
+                </div>
+                <button onclick="stopTeamImpersonation()" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-sm font-medium">
+                    <i class="fas fa-stop mr-1"></i>Stop
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Team Impersonation Section -->
+        <div class="icon-section mb-8">
+            <div class="flex items-center justify-center mb-6">
+                <div class="flex-grow border-t-2 border-gray-400"></div>
+                <div class="section-header text-xl font-bold px-4 text-center">
+                    Team Impersonation
+                </div>
+                <div class="flex-grow border-t-2 border-gray-400"></div>
+            </div>
+            
+            <!-- Team Impersonation Controls -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-users text-indigo-600 mr-2"></i>
+                            Impersonate Team Member
+                        </h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Temporarily view the app as another member of your team
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                {% if error %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-red-500 mt-0.5 mr-3"></i>
+                        <div class="text-sm">
+                            <p class="font-medium text-red-700 mb-1">Error:</p>
+                            <p class="text-red-700">{{ error }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Team Member Selection -->
+                <div class="space-y-4">
+                    {% if team_members %}
+                    <div>
+                        <label for="team-member-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            Select Team Member to Impersonate:
+                        </label>
+                        <select 
+                            id="team-member-select" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white text-sm"
+                        >
+                            <option value="">Choose a team member...</option>
+                            {% for member in team_members %}
+                            <option value="{{ member.email }}" data-player-id="{{ member.tenniscores_player_id }}" data-display-name="{{ member.display_name }}">
+                                {{ member.display_name }} - {{ member.club_name }}, {{ member.series_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3">
+                        <button 
+                            onclick="startTeamImpersonation()" 
+                            class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                        >
+                            <i class="fas fa-play mr-2"></i>
+                            Start Impersonation
+                        </button>
+                        <button 
+                            onclick="stopTeamImpersonation()" 
+                            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                        >
+                            <i class="fas fa-stop mr-2"></i>
+                            Stop Impersonation
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No Team Members Found</h3>
+                        <p class="text-gray-600">There are no other team members available for impersonation.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Security Notice -->
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-shield-alt text-amber-500 mt-0.5 mr-3"></i>
+                            <div class="text-sm">
+                                <p class="font-medium text-amber-700 mb-1">Security Notice:</p>
+                                <ul class="text-amber-700 space-y-1 list-disc list-inside">
+                                    <li>You can only impersonate members of your current team</li>
+                                    <li>Your original session is safely backed up</li>
+                                    <li>All impersonation actions are logged for audit purposes</li>
+                                    <li>Stop impersonation when finished testing</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Information -->
+        {% if team_members %}
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                Team Information
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Team Members Available:</p>
+                    <p class="text-lg text-gray-900">{{ team_members|length }}</p>
+                </div>
+                <div>
+                    <p class="text-sm font-medium text-gray-700">Current User:</p>
+                    <p class="text-lg text-gray-900">{{ current_user_email }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Check impersonation status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkTeamImpersonationStatus();
+        });
+
+        async function startTeamImpersonation() {
+            const selectedEmail = document.getElementById('team-member-select').value;
+            if (!selectedEmail) {
+                alert('Please select a team member to impersonate');
+                return;
+            }
+            
+            const select = document.getElementById('team-member-select');
+            const selectedOption = select.options[select.selectedIndex];
+            const playerId = selectedOption.getAttribute('data-player-id');
+            const displayName = selectedOption.getAttribute('data-display-name');
+            
+            if (!confirm(`Are you sure you want to impersonate:\n${displayName}\n\nThis will temporarily replace your session with theirs.`)) {
+                return;
+            }
+            
+            try {
+                // Show loading state
+                const button = document.querySelector('button[onclick="startTeamImpersonation()"]');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Starting Impersonation...';
+                button.disabled = true;
+                
+                const response = await fetch('/api/team-impersonation/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        user_email: selectedEmail,
+                        tenniscores_player_id: playerId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Show brief success message and redirect to mobile home
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'fixed top-0 left-0 right-0 bg-green-500 text-white p-4 text-center z-50';
+                    successDiv.innerHTML = `✅ Successfully started impersonating ${result.impersonated_user.first_name} ${result.impersonated_user.last_name}<br/>Redirecting to their view...`;
+                    document.body.appendChild(successDiv);
+                    
+                    // Redirect to mobile home after brief delay
+                    setTimeout(() => {
+                        window.location.href = '/mobile';
+                    }, 1500);
+                } else {
+                    // Restore button state on error
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    alert(`Failed to start impersonation: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error starting impersonation:', error);
+                // Restore button state on error
+                const button = document.querySelector('button[onclick="startTeamImpersonation()"]');
+                button.innerHTML = '<i class="fas fa-play mr-2"></i>Start Impersonation';
+                button.disabled = false;
+                alert('Error starting impersonation');
+            }
+        }
+
+        async function stopTeamImpersonation() {
+            if (!confirm('Stop impersonation and return to your original session?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/team-impersonation/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Impersonation stopped. Returning to your original session.');
+                    window.location.reload();
+                } else {
+                    alert(`Failed to stop impersonation: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error stopping impersonation:', error);
+                alert('Error stopping impersonation');
+            }
+        }
+
+        async function checkTeamImpersonationStatus() {
+            try {
+                const response = await fetch('/api/team-impersonation/status');
+                const status = await response.json();
+                
+                if (status.is_impersonating && status.impersonation_type === 'team') {
+                    document.getElementById('impersonation-banner').classList.remove('hidden');
+                    const user = status.impersonated_user;
+                    const displayText = `${user.first_name} ${user.last_name} (${user.email}) - ${user.club_name}, ${user.series_name}`;
+                    document.getElementById('impersonated-user-name').textContent = displayText;
+                }
+            } catch (error) {
+                console.error('Error checking impersonation status:', error);
+            }
+        }
+    </script>
+</body>
+</html>

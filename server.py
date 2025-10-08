@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Rally Flask Application
+Rally Flask Application 
 
 This is the main server file for the Rally platform tennis management application.
 Most routes have been moved to blueprints for better organization.
@@ -24,7 +24,7 @@ import json
 import logging
 import secrets
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime , timedelta
 
 from flask import (
     Flask,
@@ -490,14 +490,20 @@ def log_request_info():
 def marketing_host_redirects():
     host = request.host.split(":")[0].lower()
     
-    # Club-specific domains always redirect to login (except for static assets)
+    # Club-specific domains always redirect to login (except for static assets and food routes)
     if host in CLUB_DOMAIN_PATTERNS:
-        # Allow static assets to be served
+        # Allow static assets, food routes, and beer routes to be served
         if not (request.path.startswith('/static/') or 
                 request.path.startswith('/css/') or 
                 request.path.startswith('/js/') or 
                 request.path.startswith('/images/') or
-                request.path == '/favicon.ico'):
+                request.path == '/favicon.ico' or
+                request.path == '/food' or
+                request.path == '/food-display' or
+                request.path.startswith('/api/food') or
+                request.path == '/beer' or
+                request.path == '/beer-display' or
+                request.path.startswith('/api/beer')):
             return redirect("/login", code=302)
     
     if host in MARKETING_HOSTS:
@@ -664,6 +670,19 @@ def serve_interstitial():
     return render_template("interstitial.html", session_data=session_data)
 
 
+@app.route("/contact")
+def serve_contact():
+    """Serve the marketing contact page"""
+    host = request.host.split(":")[0].lower()
+    
+    # Only serve on marketing hosts
+    if host in MARKETING_HOSTS:
+        return send_from_directory(WEBSITE_DIR, "contact.html")
+    
+    # For other hosts, redirect to login
+    return redirect("/login")
+
+
 @app.route("/contact-sub")
 @login_required
 def serve_contact_sub():
@@ -725,6 +744,30 @@ def serve_create_team_page():
     )
     
     return render_template("mobile/create_team.html", session_data=session_data)
+
+
+@app.route("/food")
+def serve_food_page():
+    """Serve the food input page for chef (no authentication required)"""
+    return render_template("food.html")
+
+
+@app.route("/food-display")
+def serve_food_display_page():
+    """Serve the food display page for users (no authentication required)"""
+    return render_template("food_display.html")
+
+
+@app.route("/beer")
+def serve_beer_page():
+    """Serve the beer input page for club (no authentication required)"""
+    return render_template("beer.html")
+
+
+@app.route("/beer-display")
+def serve_beer_display_page():
+    """Serve the beer display page for users (no authentication required)"""
+    return render_template("beer_display.html")
 
 
 @app.route("/pro")
@@ -812,6 +855,13 @@ def serve_static(path):
         "signup.css",
         "preview.png",  # Allow public access for social media link previews
     }
+    
+    # Public routes that don't require authentication
+    public_routes = {
+        "/food",
+        "/food-display",
+        "/api/food"
+    }
 
     def is_public_file(file_path):
         filename = os.path.basename(file_path)
@@ -829,6 +879,11 @@ def serve_static(path):
         if path == "index.html":
             return send_from_directory("website", path)
         return send_from_directory(".", path)
+
+    # Check if this is a public route
+    if path in public_routes:
+        # Let Flask handle the route normally (no redirect)
+        return None
 
     # Require authentication for all other files
     if "user" not in session:
@@ -1538,6 +1593,63 @@ def fix_series_dropdown():
 
 
 # ==========================================
+# API ENDPOINTS
+# ==========================================
+
+@app.route("/api/contact", methods=["POST"])
+def handle_contact_form():
+    """Handle contact form submissions from marketing website"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['firstName', 'lastName', 'email', 'requestType', 'subject', 'message']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'Missing required field: {field}'
+                }), 400
+        
+        # Extract form data
+        contact_data = {
+            'first_name': data.get('firstName'),
+            'last_name': data.get('lastName'),
+            'email': data.get('email'),
+            'request_type': data.get('requestType'),
+            'subject': data.get('subject'),
+            'message': data.get('message'),
+            'newsletter_opt_in': data.get('newsletter', False),
+            'submitted_at': datetime.now().isoformat(),
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent', '')
+        }
+        
+        # Log the contact form submission
+        print(f"📧 Contact form submission received:")
+        print(f"   Name: {contact_data['first_name']} {contact_data['last_name']}")
+        print(f"   Email: {contact_data['email']}")
+        print(f"   Type: {contact_data['request_type']}")
+        print(f"   Subject: {contact_data['subject']}")
+        print(f"   Newsletter: {contact_data['newsletter_opt_in']}")
+        
+        # Here you could add database storage, email sending, etc.
+        # For now, we'll just log it and return success
+        
+        return jsonify({
+            'success': True,
+            'message': 'Thank you for your message! We\'ll get back to you soon.'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error handling contact form: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'An error occurred while processing your request. Please try again.'
+        }), 500
+
+
+# ==========================================
 # ERROR HANDLERS
 # ==========================================
 
@@ -1876,6 +1988,70 @@ def run_saved_lineups_migration():
             "error": str(e),
             "traceback": traceback.format_exc(),
             "railway_env": railway_env
+        }), 500
+
+
+@app.route("/admin/run-apta-import")
+def run_apta_import():
+    """
+    Web endpoint to run APTA import on staging or production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This import endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the import"
+        }), 403
+    
+    try:
+        import subprocess
+        import sys
+        import os
+        
+        # Add project root to path
+        sys.path.append(os.getcwd())
+        
+        print(f"🚀 Running APTA import on {railway_env}")
+        print(f"Working directory: {os.getcwd()}")
+        
+        # Run the import script
+        result = subprocess.run([
+            'python3', 'data/etl/import/import_players.py', 'APTA_CHICAGO'
+        ], capture_output=True, text=True, timeout=600)
+        
+        if result.returncode == 0:
+            return jsonify({
+                "success": True,
+                "message": "APTA import completed successfully",
+                "railway_env": railway_env,
+                "output": result.stdout,
+                "timestamp": datetime.now().isoformat()
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "APTA import failed",
+                "railway_env": railway_env,
+                "error": result.stderr,
+                "output": result.stdout,
+                "timestamp": datetime.now().isoformat()
+            }), 500
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "message": "APTA import timed out after 10 minutes",
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat()
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Error running APTA import: {str(e)}",
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat()
         }), 500
 
 

@@ -140,31 +140,25 @@ def delete_league_data(cur, league_id):
         raise
     
     try:
-        # First, clear team references in schedule table to avoid foreign key constraints
-        print("  Clearing team references in schedule table...")
-        cur.execute("""
-            UPDATE schedule 
-            SET home_team_id = NULL 
-            WHERE home_team_id IN (SELECT id FROM teams WHERE league_id = %s)
-        """, (league_id,))
-        home_cleared = cur.rowcount
-        if home_cleared > 0:
-            print(f"    Cleared {home_cleared} home_team_id references")
-        
-        cur.execute("""
-            UPDATE schedule 
-            SET away_team_id = NULL 
-            WHERE away_team_id IN (SELECT id FROM teams WHERE league_id = %s)
-        """, (league_id,))
-        away_cleared = cur.rowcount
-        if away_cleared > 0:
-            print(f"    Cleared {away_cleared} away_team_id references")
-        
-        # Now delete schedule records by league_id
+        # Delete schedule records first (they reference teams)
+        # Delete by league_id first
         cur.execute("DELETE FROM schedule WHERE league_id = %s", (league_id,))
-        deleted_count = cur.rowcount
-        print(f"  schedule: {deleted_count} rows deleted")
-        total_deleted += deleted_count
+        deleted_by_league = cur.rowcount
+        
+        # Also delete any schedule records that reference teams from this league
+        # (in case league_id is NULL but team references exist)
+        cur.execute("""
+            DELETE FROM schedule 
+            WHERE home_team_id IN (SELECT id FROM teams WHERE league_id = %s)
+               OR away_team_id IN (SELECT id FROM teams WHERE league_id = %s)
+        """, (league_id, league_id))
+        deleted_by_team_ref = cur.rowcount
+        
+        total_schedule_deleted = deleted_by_league + deleted_by_team_ref
+        print(f"  schedule: {total_schedule_deleted} rows deleted")
+        print(f"    - By league_id: {deleted_by_league}")
+        print(f"    - By team references: {deleted_by_team_ref}")
+        total_deleted += total_schedule_deleted
     except Exception as e:
         print(f"  schedule: ERROR - {e}")
         raise

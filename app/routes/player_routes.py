@@ -179,76 +179,10 @@ def get_players_by_series():
                     elif isinstance(user_league_id, int):
                         league_id_int = user_league_id
 
-                # Get all players who have played for this team from database (FIXED: Use team_id)
-                if league_id_int:
-                    # Try using team_id as integer first (new optimized approach)
-                    try:
-                        team_id_int = int(team_id)
-                        team_players_query = """
-                            SELECT DISTINCT 
-                                home_player_1_id as player_id FROM match_scores 
-                            WHERE home_team_id = %s AND league_id = %s AND home_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                home_player_2_id as player_id FROM match_scores 
-                            WHERE home_team_id = %s AND league_id = %s AND home_player_2_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_1_id as player_id FROM match_scores 
-                            WHERE away_team_id = %s AND league_id = %s AND away_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_2_id as player_id FROM match_scores 
-                            WHERE away_team_id = %s AND league_id = %s AND away_player_2_id IS NOT NULL
-                        """
-                        team_player_records = execute_query(team_players_query, [
-                            team_id_int, league_id_int, team_id_int, league_id_int,
-                            team_id_int, league_id_int, team_id_int, league_id_int
-                        ])
-                        print(f"[DEBUG] Using team_id optimization: Found {len(team_player_records)} players for team_id {team_id_int}")
-                    except ValueError:
-                        # Fallback to team name if team_id is not an integer
-                        team_players_query = """
-                            SELECT DISTINCT 
-                                home_player_1_id as player_id FROM match_scores 
-                            WHERE home_team = %s AND league_id = %s AND home_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                home_player_2_id as player_id FROM match_scores 
-                            WHERE home_team = %s AND league_id = %s AND home_player_2_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_1_id as player_id FROM match_scores 
-                            WHERE away_team = %s AND league_id = %s AND away_player_1_id IS NOT NULL
-                            UNION
-                            SELECT DISTINCT 
-                                away_player_2_id as player_id FROM match_scores 
-                            WHERE away_team = %s AND league_id = %s AND away_player_2_id IS NOT NULL
-                        """
-                        team_player_records = execute_query(team_players_query, [
-                            team_id, league_id_int, team_id, league_id_int,
-                            team_id, league_id_int, team_id, league_id_int
-                        ])
-                        print(f"[DEBUG] Using team_name fallback: Found {len(team_player_records)} players for team_name {team_id}")
-                    
-                    # Convert player IDs to names for filtering
-                    for record in team_player_records:
-                        player_id = record['player_id']
-                        if player_id:
-                            # Get player name from database
-                            try:
-                                player_name_query = """
-                                    SELECT first_name, last_name FROM players 
-                                    WHERE tenniscores_player_id = %s
-                                """
-                                player_data = execute_query_one(player_name_query, [player_id])
-                                if player_data:
-                                    player_name = f"{player_data['first_name']} {player_data['last_name']}"
-                                    team_players.add(player_name)
-                            except Exception as e:
-                                # Fallback: use player ID as name if lookup fails
-                                team_players.add(player_id)
-                                
+                # REMOVED: Match-based team filtering logic that was causing the issue
+                # The get_players_by_league_and_series_id function already handles team filtering correctly
+                # by using the team_id parameter to get ALL registered team members, not just those who have played matches
+                
             except Exception as e:
                 print(
                     f"Warning: Error loading team players from database: {str(e)}"
@@ -257,11 +191,10 @@ def get_players_by_series():
 
         # Filter by team if specified (database stats are already included)
         final_players = []
-        if team_id and team_players:
-            # Filter players to only those on the team
-            for player in all_players:
-                if player["name"] in team_players:
-                    final_players.append(player)
+        if team_id:
+            # FIXED: Use the team filtering from get_players_by_league_and_series_id instead of match-based filtering
+            # This ensures we get ALL registered team members, not just those who have played matches
+            final_players = all_players  # all_players already contains team-filtered results from get_players_by_league_and_series_id
         else:
             # Return all players with their database stats
             final_players = all_players
@@ -651,6 +584,97 @@ def get_player_history():
         return jsonify({"error": str(e)}), 500
 
 
+@player_bp.route("/api/player-history-by-id/<player_id>")
+@login_required
+def get_player_history_by_id(player_id):
+    """Get history for a specific player by player ID - FIXED: Uses player ID for accurate lookup"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Get user's league context
+        user_data = session.get("user", {})
+        league_id = user_data.get("league_id")
+        league_id_int = int(league_id) if league_id else None
+
+        # Search for player by tenniscores_player_id in database
+        if league_id_int:
+            player_search_query = """
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE p.tenniscores_player_id = %s AND p.league_id = %s
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [player_id, league_id_int])
+        else:
+            # Fallback without league filter
+            player_search_query = """
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE p.tenniscores_player_id = %s
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [player_id])
+
+        if not player_data:
+            return (
+                jsonify({"error": f"No history found for player ID: {player_id}"}),
+                404,
+            )
+
+        player_db_id = player_data["id"]
+
+        # Get PTI history from player_history table
+        pti_history_query = """
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        """
+
+        pti_records = execute_query(pti_history_query, [player_db_id])
+
+        # Get current PTI - handle None values properly
+        current_pti = player_data.get("pti")
+        if current_pti is None:
+            # If no current PTI, get the most recent from history
+            if pti_records:
+                current_pti = pti_records[-1]["end_pti"]
+            else:
+                current_pti = 0.0
+
+        # Format response
+        response_data = {
+            "player_id": player_data["tenniscores_player_id"],
+            "name": f"{player_data['first_name']} {player_data['last_name']}",
+            "current_pti": float(current_pti),
+            "history_count": player_data.get("history_count", 0),
+            "matches": []
+        }
+
+        # Add PTI history
+        for record in pti_records:
+            response_data["matches"].append({
+                "date": record["formatted_date"],
+                "end_pti": float(record["end_pti"]),
+                "series": record["series"]
+            })
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        print(f"Error getting player history by ID: {str(e)}")
+        return jsonify({"error": "Failed to get player history"}), 500
+
+
 @player_bp.route("/api/player-history/<player_name>")
 @login_required
 def get_specific_player_history(player_name):
@@ -676,27 +700,57 @@ def get_specific_player_history(player_name):
                 league_id_int = user_league_id
 
         # FIXED: Find player by name in database instead of JSON
-        # Parse the player name to first and last name
-        name_parts = player_name.strip().split()
-        if len(name_parts) < 2:
-            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+        # Parse player name to handle both "First Last" and "Last, First" formats
+        first_name = None
+        last_name = None
         
-        first_name = name_parts[0]
-        last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+        if ',' in player_name:
+            # Handle "Last, First" format
+            name_sections = player_name.split(',')
+            if len(name_sections) == 2:
+                last_name = name_sections[0].strip()
+                first_name = name_sections[1].strip()
+        else:
+            # Handle "First Last" format
+            name_parts = player_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+        
+        if not first_name or not last_name:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
 
-        # Search for player in database, prioritizing the one with PTI history
+        # Search for player in database, prioritizing current team context
+        user_team_id = session["user"].get("team_id")
+        
         if league_id_int:
-            player_search_query = """
-                SELECT 
-                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
-                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-                FROM players p
-                WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
-                AND p.league_id = %s
-                ORDER BY history_count DESC, p.id DESC
-                LIMIT 1
-            """
-            player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
+            if user_team_id:
+                # Prioritize player from current team first
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count,
+                        CASE WHEN p.team_id = %s THEN 1 ELSE 0 END as is_current_team
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY is_current_team DESC, history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [user_team_id, first_name, last_name, league_id_int])
+            else:
+                # Fallback: prioritize by PTI history
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
         else:
             # Fallback without league filter
             player_search_query = """

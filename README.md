@@ -35,3 +35,6 @@ Replaced complex multi-context system with a simple, unified approach:
 - URL parameters like `?league_id=APTA_CHICAGO` still work
 
 ## Architecture
+# Force deployment Sat Sep 13 17:25:58 EDT 2025
+# Trigger production deployment for Lake Forest Series 20 players
+# Force deployment Wed Sep 24 20:44:21 CDT 2025

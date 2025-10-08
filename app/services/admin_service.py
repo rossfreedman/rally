@@ -689,6 +689,102 @@ def get_all_users_with_player_contexts():
         raise e
 
 
+def search_users_for_impersonation_service(query):
+    """Search users by name or email for impersonation type-ahead"""
+    try:
+        # Search users by first name, last name, or email
+        search_users = execute_query(
+            """
+            SELECT u.id as user_id, u.first_name, u.last_name, u.email, u.last_login
+            FROM users u
+            WHERE u.is_admin = false 
+            AND (
+                LOWER(u.first_name) LIKE %s OR
+                LOWER(u.last_name) LIKE %s OR
+                LOWER(u.email) LIKE %s OR
+                LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE %s
+            )
+            ORDER BY 
+                CASE 
+                    WHEN LOWER(u.first_name) LIKE %s THEN 1
+                    WHEN LOWER(u.last_name) LIKE %s THEN 2
+                    WHEN LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE %s THEN 3
+                    WHEN LOWER(u.email) LIKE %s THEN 4
+                    ELSE 5
+                END,
+                u.last_name, u.first_name
+            LIMIT 20
+        """,
+            (f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%", f"%{query.lower()}%",
+             f"{query.lower()}%", f"{query.lower()}%", f"{query.lower()}%", f"{query.lower()}%")
+        )
+        
+        if not search_users:
+            return []
+        
+        # Get player contexts for these users
+        user_ids = [str(user['user_id']) for user in search_users]
+        user_ids_str = ','.join(user_ids)
+        
+        associations = execute_query(
+            f"""
+            SELECT u.id as user_id, u.first_name, u.last_name, u.email, u.last_login,
+                   upa.tenniscores_player_id,
+                   p.first_name as player_first_name, p.last_name as player_last_name,
+                   c.name as club_name, s.name as series_name, l.league_name,
+                   l.league_id as league_id
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.id IN ({user_ids_str})
+            ORDER BY u.last_name, u.first_name, c.name, s.name
+        """
+        )
+        
+        # Build users dictionary
+        users_dict = {}
+        for user in search_users:
+            user_id = user['user_id']
+            users_dict[user_id] = {
+                'id': user_id,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'email': user['email'],
+                'last_login': user['last_login'],
+                'player_contexts': [],
+                'display_name': f"{user['first_name']} {user['last_name']} ({user['email']})"
+            }
+        
+        # Add player contexts
+        for assoc in associations:
+            user_id = assoc['user_id']
+            if user_id in users_dict:
+                users_dict[user_id]['player_contexts'].append({
+                    'tenniscores_player_id': assoc['tenniscores_player_id'],
+                    'player_name': f"{assoc['player_first_name']} {assoc['player_last_name']}",
+                    'club_name': assoc['club_name'],
+                    'series_name': assoc['series_name'],
+                    'league_name': assoc['league_name'],
+                    'league_id': assoc['league_id'],
+                    'display_name': f"{assoc['club_name']}, {assoc['series_name']} ({assoc['league_name']})"
+                })
+        
+        # Convert to list and maintain search order
+        users_list = []
+        for user in search_users:
+            if user['user_id'] in users_dict:
+                users_list.append(users_dict[user['user_id']])
+        
+        return users_list
+        
+    except Exception as e:
+        print(f"Error searching users for impersonation: {str(e)}")
+        raise e
+
+
 def get_detailed_logging_notifications_setting():
     """Get the current status of detailed logging notifications"""
     try:

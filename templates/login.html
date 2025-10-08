@@ -356,6 +356,7 @@
             color: var(--primary-color);
             text-decoration: underline;
         }
+
     </style>
 </head>
 <body>
@@ -365,6 +366,8 @@
                                 <img src="/static/rallylogo.png" alt="Rally" class="logo-img rally-logo">
         </div>
         <div style="height:87.5px;"></div>
+        
+        
         <div class="auth-container">
             <div class="auth-content">
                 <div class="auth-error-container" id="authErrorContainer">
@@ -394,10 +397,49 @@
                         <i class="fas fa-sign-in-alt me-2"></i>Let's go!
                     </button>
                     
-                    <!-- Forgot Password Link - Centered below button -->
-                    <div style="text-align: center; margin-top: 20px;">
-                        <a href="/forgot-password" class="forgot-password-link">
-                            <i class="fas fa-key me-1"></i>Forgot Password?
+                    <!-- Separator Line -->
+                    <div style="margin: 24px 0; text-align: center;">
+                        <div style="height: 1px; background-color: #e5e7eb; width: 100%;"></div>
+                    </div>
+                    
+                    <!-- Forgot Password and Support Chips -->
+                    <div style="display: flex; flex-direction: row; justify-content: center; gap: 12px; margin-top: 20px;">
+                        <a href="/forgot-password" style="
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center;
+                            width: 180px;
+                            padding: 8px 12px; 
+                            border-radius: 25px; 
+                            background: #045454; 
+                            color: white; 
+                            text-decoration: none;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                            font-size: 10px;
+                            font-weight: 600;
+                            transition: all 0.2s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <i class="fas fa-key" style="margin-right: 6px; font-size: 12px; color: white;"></i>
+                            <span style="color: white; font-size: 10px; font-weight: 600;">Forgot Password?</span>
+                        </a>
+                        
+                        <a href="/mobile/support" style="
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center;
+                            width: 180px;
+                            padding: 8px 12px; 
+                            border-radius: 25px; 
+                            background: #045454; 
+                            color: white; 
+                            text-decoration: none;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                            font-size: 10px;
+                            font-weight: 600;
+                            transition: all 0.2s ease;
+                        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                            <i class="fas fa-question-circle" style="margin-right: 6px; font-size: 12px; color: white;"></i>
+                            <span style="color: white; font-size: 10px; font-weight: 600;">Get support</span>
                         </a>
                     </div>
                 </form>
@@ -949,7 +991,7 @@
                 } else {
                     resetButtonState(loginButton);
                     if (response.status === 401) {
-                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it.';
+                        authErrorMessage.innerHTML = 'Your email or password is incorrect. If you forgot your password, no worries … click <a href="/forgot-password">here</a> to reset it. Or click <a href="/mobile/support">here</a> for support.';
                     } else {
                         authErrorMessage.textContent = data.error || 'An error occurred. Please try again.';
                     }

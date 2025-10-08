@@ -1,0 +1,401 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #c4ff60 0%, #a8e550 100%) !important;">
+                <i class="fas fa-life-ring text-white text-lg" style="color: #085454 !important;"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Rally Support</h1>
+                <p class="text-sm text-gray-500">Get help with your Rally account</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Message -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mx-4 mt-4 rounded-r-lg">
+        <p class="text-sm text-blue-700">
+            Have a question, or an idea to make Rally better? Please shoot us a message and we'll get back to you ASAP.
+        </p>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6">
+        <!-- Support Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <form id="supportForm" onsubmit="sendSupportRequest(event)">
+                    <!-- Your Name -->
+                    <div class="mb-6">
+                        <label for="userName" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Name <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="userName" 
+                            name="userName" 
+                            {% if session_data.authenticated %}readonly class="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-600"{% else %}class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"{% endif %}
+                            value="{% if session_data.authenticated %}{{ session_data.user.first_name }} {{ session_data.user.last_name }}{% endif %}"
+                            {% if not session_data.authenticated %}required{% endif %}
+                            placeholder="{% if not session_data.authenticated %}Enter your full name{% endif %}"
+                        >
+                    </div>
+
+                    <!-- Phone Number (for unauthenticated users) -->
+                    {% if not session_data.authenticated %}
+                    <div class="mb-6">
+                        <label for="userPhone" class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="userPhone" 
+                            name="userPhone" 
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors"
+                            placeholder="Enter your phone number"
+                        >
+                    </div>
+                    {% endif %}
+
+                    <!-- Message -->
+                    <div class="mb-6">
+                        <label for="message" class="block text-sm font-medium text-gray-700 mb-2">
+                            Message <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            id="message" 
+                            name="message" 
+                            rows="4" 
+                            required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors resize-none"
+                            placeholder="Please describe your issue in detail. Include any error messages, steps to reproduce the problem, and any other relevant information."
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Please provide as much detail as possible to help us assist you quickly.</p>
+                    </div>
+
+                    <!-- Send Button -->
+                    <button 
+                        type="submit" 
+                        id="sendButton"
+                        class="w-full py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        style="background: linear-gradient(135deg, #085454 0%, #10645c 100%);"
+                    >
+                        Message Rally
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Enhanced Success/Error Messages -->
+<div id="messageContainer" class="fixed top-20 left-4 right-4 z-50 hidden transform transition-all duration-300 ease-in-out">
+    <div id="messageBox" class="p-4 rounded-xl shadow-lg"></div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-xl max-w-md w-full shadow-xl transform transition-all duration-300">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-slow">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Support Request Sent!</h3>
+            <p id="successModalMessage" class="text-gray-600 mb-6"></p>
+            <button 
+                id="closeSuccessModal" 
+                class="w-full py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200"
+                style="background: linear-gradient(135deg, #085454 0%, #10645c 100%);">
+                <i class="fas fa-thumbs-up mr-2"></i>
+                Great!
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Send support request
+async function sendSupportRequest(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('supportForm');
+    const button = document.getElementById('sendButton');
+    const userName = document.getElementById('userName').value.trim();
+    const message = document.getElementById('message').value.trim();
+    
+    // Get phone number - from form for unauthenticated users, from session for authenticated users
+    let userPhone = '';
+    {% if not session_data.authenticated %}
+    userPhone = document.getElementById('userPhone').value.trim();
+    {% else %}
+    // For authenticated users, get phone from session data
+    userPhone = '{{ session_data.user.phone_number or "" }}';
+    {% endif %}
+    
+    // Validate form
+    if (!userName) {
+        showMessage('Please enter your name', 'error');
+        return;
+    }
+    
+    {% if not session_data.authenticated %}
+    if (!userPhone) {
+        showMessage('Please enter your phone number', 'error');
+        return;
+    }
+    {% endif %}
+    
+    if (!message) {
+        showMessage('Please enter a message', 'error');
+        return;
+    }
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending Request...';
+    
+    try {
+        const requestBody = {
+            user_name: userName,
+            message: message,
+            user_phone: userPhone
+        };
+        
+        const response = await fetch('/api/support', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Show both the top notification and success modal
+            showMessage(data.message, 'success');
+            showSuccessModal(data.message);
+            form.reset();
+            {% if session_data.authenticated %}
+            // Reset the name field to the user's name for authenticated users
+            document.getElementById('userName').value = '{{ session_data.user.first_name }} {{ session_data.user.last_name }}';
+            {% endif %}
+            button.innerHTML = 'Message Rally'; // Reset button text
+        } else {
+            showMessage(data.error || 'Failed to send support request', 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error sending support request:', error);
+        showMessage('Network error. Please try again.', 'error');
+    } finally {
+        // Reset button state
+        button.disabled = false;
+        button.innerHTML = 'Message Rally'; // Reset button text
+    }
+}
+
+// Show success/error messages (top notification)
+function showMessage(message, type) {
+    const container = document.getElementById('messageContainer');
+    const messageBox = document.getElementById('messageBox');
+    
+    // Enhanced styling with icons and better colors
+    const iconClass = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
+    const bgColor = type === 'success' ? 'bg-green-100' : 'bg-red-100';
+    const textColor = type === 'success' ? 'text-green-800' : 'text-red-800';
+    const borderColor = type === 'success' ? 'border-green-200' : 'border-red-200';
+    
+    messageBox.innerHTML = `
+        <div class="flex items-center">
+            <i class="${iconClass} mr-3 text-lg"></i>
+            <span class="font-medium">${message}</span>
+            <button onclick="hideMessage()" class="ml-auto text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    messageBox.className = `p-4 rounded-xl shadow-lg ${bgColor} ${textColor} border ${borderColor}`;
+    
+    container.classList.remove('hidden');
+    container.style.transform = 'translateY(-10px)';
+    container.style.opacity = '0';
+    
+    // Animate in
+    setTimeout(() => {
+        container.style.transform = 'translateY(0)';
+        container.style.opacity = '1';
+    }, 10);
+    
+    // Auto-hide after 4 seconds (shorter for better UX)
+    setTimeout(() => {
+        hideMessage();
+    }, 4000);
+}
+
+// Hide top notification message
+function hideMessage() {
+    const container = document.getElementById('messageContainer');
+    container.style.transform = 'translateY(-10px)';
+    container.style.opacity = '0';
+    
+    setTimeout(() => {
+        container.classList.add('hidden');
+    }, 300);
+}
+
+// Show success modal
+function showSuccessModal(message) {
+    const modal = document.getElementById('successModal');
+    const modalMessage = document.getElementById('successModalMessage');
+    
+    modalMessage.textContent = message;
+    modal.classList.remove('hidden');
+    
+    // Animate modal in
+    setTimeout(() => {
+        modal.querySelector('.bg-white').style.transform = 'scale(1)';
+        modal.querySelector('.bg-white').style.opacity = '1';
+    }, 10);
+}
+
+// Close success modal
+function closeSuccessModal() {
+    const modal = document.getElementById('successModal');
+    modal.querySelector('.bg-white').style.transform = 'scale(0.9)';
+    modal.querySelector('.bg-white').style.opacity = '0';
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// Add event listeners for modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Close modal button
+    document.getElementById('closeSuccessModal').addEventListener('click', closeSuccessModal);
+    
+    // Close modal on backdrop click
+    document.getElementById('successModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSuccessModal();
+        }
+    });
+    
+    // Initialize modal transform
+    const modal = document.getElementById('successModal');
+    const modalContent = modal.querySelector('.bg-white');
+    modalContent.style.transform = 'scale(0.9)';
+    modalContent.style.opacity = '0';
+});
+</script>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-300 { border-color: #d1d5db; }
+.border-blue-100 { border-color: #dbeafe; }
+.border-green-200 { border-color: #bbf7d0; }
+.border-red-200 { border-color: #fecaca; }
+
+/* Enhanced notification and modal styling */
+#messageContainer {
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+#successModal {
+    backdrop-filter: blur(4px);
+}
+
+#successModal .bg-white {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease-in-out;
+}
+
+/* Hover effects for buttons */
+button:hover {
+    transform: translateY(-1px);
+}
+
+/* Pulse animation for success icon */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-red-100 { background-color: #fee2e2; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+.text-blue-800 { color: #1e40af; }
+.text-green-500 { color: #10b981; }
+.text-green-800 { color: #166534; }
+.text-red-500 { color: #ef4444; }
+.text-red-800 { color: #991b1b; }
+.text-white { color: #ffffff; }
+
+/* Focus states */
+.focus\:ring-2:focus { --tw-ring-width: 2px; }
+.focus\:ring-teal-500:focus { --tw-ring-color: #14b8a6; }
+.focus\:border-teal-500:focus { border-color: #14b8a6; }
+
+/* Spacing utilities */
+.space-y-2 > * + * { margin-top: 0.5rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Utility classes */
+.flex-shrink-0 { flex-shrink: 0; }
+.resize-none { resize: none; }
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+}
+</style>
+{% endblock %}

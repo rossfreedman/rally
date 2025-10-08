@@ -500,7 +500,7 @@ def get_team_notification_templates() -> Dict[str, Dict[str, str]]:
         "availability_update": {
             "title": "Update Availability",
             "description": "Ask team to update their availability",
-            "message": "Hi Team! Please update your availability in Rally for this week's practice and match if you haven't done so already. Just go to: /mobile/availability-calendar"
+            "message": "Hi Team! Please update your availability in Rally for this week's practice and match if you haven't done so already. Just go to: https://www.lovetorally.com/mobile/availability-calendar"
         },
         "team_poll": {
             "title": "Send a Poll",

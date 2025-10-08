@@ -1,0 +1,546 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-rally-teal rounded-full flex items-center justify-center shadow-sm">
+                    <i class="fas fa-beer text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">Current Beer Update</h1>
+                    <p class="text-base font-semibold text-gray-700">Replace Current Beer</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+            <!-- Beer Input Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Update Current Beer
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <form id="beerForm" class="space-y-6">
+                        <!-- Club Selection -->
+                        <div>
+                            <label for="clubSelect" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-building mr-1"></i>
+                                Club
+                            </label>
+                            <select id="clubSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal">
+                                <option value="">Select a club...</option>
+                            </select>
+                        </div>
+
+                        <!-- Beer Description -->
+                        <div>
+                            <label for="beerText" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-beer mr-1"></i>
+                                Beer Description
+                            </label>
+                            <textarea 
+                                id="beerText" 
+                                rows="4" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal resize-none"
+                                placeholder="Enter the beer information (e.g., Bud Light, Miller Lite, Local IPA on tap)"
+                                required
+                            ></textarea>
+                        </div>
+
+
+                        <!-- Submit Button -->
+                        <button 
+                            type="submit" 
+                            class="w-full bg-rally-teal text-white py-3 px-4 rounded-lg font-medium hover:bg-rally-teal-dark transition-colors duration-200 flex items-center justify-center"
+                        >
+                            <i class="fas fa-star mr-2"></i>
+                            Update Current Beer
+                        </button>
+                        
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current Beer Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        Current Beer
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="currentBeer" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-beer text-4xl mb-4"></i>
+                            <p>Select a club to view current beer</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beer History Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        Recent Beer Items
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="beerHistory" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-beer text-4xl mb-4"></i>
+                            <p>Select a club to view recent beer items</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Messages -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+<script>
+    // Load clubs and set up form on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadClubs();
+        setupForm();
+    });
+
+    // Load clubs function
+    async function loadClubs() {
+        try {
+            const response = await fetch('/api/clubs');
+            const result = await response.json();
+            
+            if (result.success) {
+                const clubSelect = document.getElementById('clubSelect');
+                clubSelect.innerHTML = '<option value="">Select a club...</option>';
+                
+                result.clubs.forEach(club => {
+                    const option = document.createElement('option');
+                    option.value = club.id;
+                    option.textContent = club.name;
+                    clubSelect.appendChild(option);
+                });
+                
+                // Auto-select Tennaqua if it exists
+                const tennaquaOption = Array.from(clubSelect.options).find(option => 
+                    option.textContent.toLowerCase().includes('tennaqua')
+                );
+                if (tennaquaOption) {
+                    clubSelect.value = tennaquaOption.value;
+                    // Trigger the change event to load beer history
+                    clubSelect.dispatchEvent(new Event('change'));
+                }
+            } else {
+                showMessage('Error loading clubs: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading clubs:', error);
+            showMessage('Error loading clubs: ' + error.message, 'error');
+        }
+    }
+
+    // Setup form function
+    function setupForm() {
+        const form = document.getElementById('beerForm');
+        const clubSelect = document.getElementById('clubSelect');
+        
+        // Handle club selection change
+        clubSelect.addEventListener('change', function() {
+            const clubId = this.value;
+            if (clubId) {
+                loadBeerHistory(clubId);
+            } else {
+                document.getElementById('beerHistory').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-beer text-4xl mb-4"></i>
+                        <p>Select a club to view recent beer items</p>
+                    </div>
+                `;
+                document.getElementById('currentBeer').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-beer text-4xl mb-4"></i>
+                        <p>Select a club to view current beer</p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const clubId = clubSelect.value;
+            const beerText = document.getElementById('beerText').value.trim();
+            
+            if (!clubId || !beerText) {
+                showMessage('Please select a club and enter beer description', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/beer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        beer_text: beerText,
+                        date: new Date().toISOString().split('T')[0], // Use today's date
+                        club_id: parseInt(clubId),
+                        is_current_beer: true // Always set as current beer
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Current beer updated successfully!', 'success');
+                    document.getElementById('beerText').value = ''; // Clear beer text
+                    loadBeerHistory(clubId);
+                    
+                    // Show 2 second status message after a brief delay
+                    setTimeout(() => {
+                        showStatusMessage('Saved', 2000);
+                    }, 100);
+                } else {
+                    showMessage('Error updating current beer: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error updating current beer:', error);
+                showMessage('Error updating current beer: ' + error.message, 'error');
+            }
+        });
+    }
+
+    // Load beer history function
+    async function loadBeerHistory(clubId) {
+        try {
+            const response = await fetch(`/api/beer?club_id=${clubId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                displayBeerHistory(result.beer_records);
+                displayCurrentBeer(result.beer_records);
+            } else {
+                showMessage('Error loading beer history: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading beer history:', error);
+            showMessage('Error loading beer history: ' + error.message, 'error');
+        }
+    }
+
+    // Display beer history function
+    function displayBeerHistory(beerRecords) {
+        const container = document.getElementById('beerHistory');
+        
+        if (beerRecords.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-beer text-4xl mb-4"></i>
+                    <p>No beer items found for this club</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Records are already sorted by API (most recent first)
+        const sortedRecords = beerRecords;
+        
+        const html = sortedRecords.map(record => {
+            const date = new Date(record.date);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const createdDate = new Date(record.created_at);
+            const timeAgo = getTimeAgo(createdDate);
+            
+            // Check if this is today's item
+            const today = new Date().toISOString().split('T')[0];
+            const isToday = record.date === today;
+
+            return `
+                <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${record.is_current_beer ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center">
+                            ${record.is_current_beer ? '<i class="fas fa-star text-yellow-500 mr-2"></i>' : ''}
+                            <h3 class="font-semibold text-gray-900">
+                                ${record.beer_text}
+                            </h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            ${record.is_current_beer ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Current Beer</span>' : ''}
+                            <span class="text-sm text-gray-500">${timeAgo}</span>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-3">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        ${formattedDate}
+                    </div>
+                    ${!record.is_current_beer ? `
+                        <div class="flex space-x-2">
+                            <button 
+                                onclick="setAsCurrentBeer(${record.id}, ${record.club_id})"
+                                class="text-xs bg-rally-teal text-white px-3 py-1 rounded hover:bg-rally-teal-dark transition-colors"
+                            >
+                                <i class="fas fa-star mr-1"></i>
+                                Set as Current
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="flex space-x-2">
+                            <button 
+                                onclick="unsetCurrentBeer(${record.club_id})"
+                                class="text-xs bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+                            >
+                                <i class="fas fa-times mr-1"></i>
+                                Remove Current
+                            </button>
+                        </div>
+                    `}
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = html;
+    }
+
+    // Display current beer function
+    function displayCurrentBeer(beerRecords) {
+        const container = document.getElementById('currentBeer');
+        
+        // Find the current beer item (is_current_beer = true)
+        const currentBeerItem = beerRecords.find(record => record.is_current_beer);
+        
+        if (currentBeerItem) {
+            const date = new Date(currentBeerItem.date);
+            const formattedDate = date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const createdDate = new Date(currentBeerItem.created_at);
+            const timeAgo = getTimeAgo(createdDate);
+            
+            container.innerHTML = `
+                <div class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-star text-yellow-500 text-xl mr-3"></i>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    ${currentBeerItem.beer_text}
+                                </h3>
+                                <div class="flex items-center mt-1">
+                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">Current Beer</span>
+                                    <span class="text-sm text-gray-500">${timeAgo}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600 mb-4">
+                        <i class="fas fa-calendar-alt mr-1"></i>
+                        ${formattedDate}
+                    </div>
+                    <div class="flex space-x-2">
+                        <button 
+                            onclick="unsetCurrentBeer(${currentBeerItem.club_id})"
+                            class="text-sm bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors flex items-center"
+                        >
+                            <i class="fas fa-times mr-2"></i>
+                            Remove Current Beer
+                        </button>
+                    </div>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-beer text-4xl mb-4"></i>
+                    <p>No current beer set for this club</p>
+                </div>
+            `;
+        }
+    }
+
+    // Set as current beer function
+    async function setAsCurrentBeer(beerId, clubId) {
+        try {
+            const response = await fetch('/api/beer/set-current', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    beer_id: beerId,
+                    club_id: clubId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('Current beer updated successfully!', 'success');
+                loadBeerHistory(clubId);
+                
+                // Show 2 second status message after a brief delay
+                setTimeout(() => {
+                    showStatusMessage('Saved', 2000);
+                }, 100);
+            } else {
+                showMessage('Error updating current beer: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error setting current beer:', error);
+            showMessage('Error updating current beer: ' + error.message, 'error');
+        }
+    }
+
+    // Unset current beer function
+    async function unsetCurrentBeer(clubId) {
+        try {
+            const response = await fetch('/api/beer/unset-current', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    club_id: clubId
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('Current beer removed successfully!', 'success');
+                loadBeerHistory(clubId);
+                
+                // Show 2 second status message after a brief delay
+                setTimeout(() => {
+                    showStatusMessage('Saved', 2000);
+                }, 100);
+            } else {
+                showMessage('Error removing current beer: ' + result.error, 'error');
+            }
+        } catch (error) {
+            console.error('Error unsetting current beer:', error);
+            showMessage('Error removing current beer: ' + error.message, 'error');
+        }
+    }
+
+    // Show message function
+    function showMessage(message, type) {
+        const container = document.getElementById('messageContainer');
+        const messageDiv = document.createElement('div');
+        
+        const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+        const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+        
+        messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center`;
+        messageDiv.innerHTML = `
+            <i class="${icon} mr-2"></i>
+            ${message}
+        `;
+        
+        container.appendChild(messageDiv);
+        
+        // Remove message after 5 seconds
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 5000);
+    }
+
+
+    // Show status message function (for 1.5 second notifications)
+    function showStatusMessage(message, duration = 1500) {
+        console.log('showStatusMessage called:', message); // Debug log
+        
+        try {
+            const container = document.getElementById('messageContainer');
+            if (!container) {
+                console.error('messageContainer not found!');
+                return;
+            }
+            
+            const messageDiv = document.createElement('div');
+            
+            messageDiv.className = 'bg-green-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center justify-center';
+            messageDiv.style.position = 'fixed';
+            messageDiv.style.top = '50%';
+            messageDiv.style.left = '50%';
+            messageDiv.style.transform = 'translate(-50%, -50%)';
+            messageDiv.style.zIndex = '99999';
+            messageDiv.style.minWidth = '120px';
+            messageDiv.style.fontSize = '16px';
+            messageDiv.style.fontWeight = '600';
+            messageDiv.style.textAlign = 'center';
+            messageDiv.style.letterSpacing = '0.5px';
+            messageDiv.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.3)';
+            messageDiv.innerHTML = `
+                <i class="fas fa-check mr-2"></i>
+                Saved
+            `;
+            
+            // Add a unique ID for debugging
+            messageDiv.id = 'status-message-' + Date.now();
+            
+            container.appendChild(messageDiv);
+            console.log('Status message added to DOM:', messageDiv.id); // Debug log
+            
+            // Remove message after specified duration
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                    console.log('Status message removed:', messageDiv.id); // Debug log
+                }
+            }, duration);
+        } catch (error) {
+            console.error('Error in showStatusMessage:', error);
+        }
+    }
+
+    // Get time ago function
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) {
+            return 'Just now';
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+        } else {
+            const days = Math.floor(diffInSeconds / 86400);
+            return `${days} day${days > 1 ? 's' : ''} ago`;
+        }
+    }
+</script>
+{% endblock %}

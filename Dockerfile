@@ -1,14 +1,27 @@
 # Use official Python runtime as base image
 FROM python:3.11-slim
 
-# Install system dependencies including PostgreSQL client libraries
+# Install system dependencies including PostgreSQL client libraries and Chrome
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     zlib1g-dev \
     postgresql-client \
     build-essential \
     pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    ca-certificates \
+    apt-transport-https \
+    && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && ln -sf /usr/bin/google-chrome-stable /usr/bin/google-chrome \
+    && ln -sf /usr/bin/google-chrome-stable /usr/bin/chromium-browser \
+    && rm -rf /var/lib/apt/lists/* \
+    && google-chrome --version
 
 # Set working directory
 WORKDIR /app
@@ -16,9 +29,10 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies with psycopg2-binary first
-RUN pip install --no-cache-dir psycopg2-binary
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with improved error handling
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --timeout=300 --retries=5 psycopg2-binary
+RUN pip install --no-cache-dir --timeout=300 --retries=5 -r requirements.txt
 
 # Copy application code
 COPY . .

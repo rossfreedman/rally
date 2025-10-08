@@ -1,0 +1,370 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="container">
+        <!-- Header -->
+        <div class="bg-white border-b border-gray-100">
+            <div class="flex items-center px-4 py-6">
+                <div class="w-12 h-12 bg-rally-teal rounded-full flex items-center justify-center shadow-sm">
+                    <i class="fas fa-beer text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">Club Beer Menu</h1>
+                    <p class="text-base font-semibold text-gray-700">What's on Tap</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="px-4 py-6 space-y-6">
+            <!-- What's on Tap Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-star text-yellow-500 mr-2"></i>
+                        What's on Tap
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="currentBeer" class="text-center py-8">
+                        <div class="text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading current beer...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Beer Items Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        Recent Beer Items
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div id="beerHistory" class="space-y-4">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Loading beer history...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Error Messages -->
+    <div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+    <script>
+        // Load beer data on page load - wait for Rally mobile to initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Beer display page loaded, starting beer data load...');
+            // Add a small delay to ensure Rally mobile JS has initialized
+            setTimeout(loadBeerData, 100);
+        });
+
+        // Load beer data function
+        async function loadBeerData() {
+            console.log('loadBeerData function called');
+            try {
+                // Get club_id from URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                const clubId = urlParams.get('club_id');
+                
+                console.log('URL params:', window.location.search);
+                console.log('Club ID:', clubId);
+                console.log('Current beer element:', document.getElementById('currentBeer'));
+                console.log('Beer history element:', document.getElementById('beerHistory'));
+                
+                if (!clubId) {
+                    document.getElementById('currentBeer').innerHTML = `
+                        <div class="text-center text-red-500 py-8">
+                            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                            <p class="text-lg font-semibold">Club ID Required</p>
+                            <p class="text-sm mt-2">Please access this page with a club_id parameter</p>
+                            <p class="text-xs mt-1">Example: /beer-display?club_id=8556</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('beerHistory').innerHTML = `
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-beer text-4xl mb-4"></i>
+                            <p>No club selected</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const response = await fetch(`/api/beer?club_id=${clubId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayBeerData(result.beer_records, result.current_beer);
+                } else {
+                    showMessage('Error loading beer menu: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading beer data:', error);
+                showMessage('Error loading beer menu: ' + error.message, 'error');
+            }
+        }
+
+        // Display beer data function
+        function displayBeerData(beerRecords, currentBeer) {
+            if (beerRecords.length === 0) {
+                document.getElementById('currentBeer').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-beer text-4xl mb-4"></i>
+                        <p>No beer items available.</p>
+                    </div>
+                `;
+                
+                document.getElementById('beerHistory').innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-beer text-4xl mb-4"></i>
+                        <p>No beer items have been added yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Records are already sorted by API (most recent first)
+            const sortedBeerRecords = beerRecords;
+            
+            // Display current beer (if exists) or fallback to today's items
+            displayCurrentBeer(currentBeer, sortedBeerRecords);
+            
+            // Display beer history (all items sorted by most recent first)
+            displayBeerHistory(sortedBeerRecords);
+        }
+
+        // Display current beer function
+        function displayCurrentBeer(currentBeer, allBeerRecords) {
+            const container = document.getElementById('currentBeer');
+            
+            // If there's a current beer, show it prominently
+            if (currentBeer) {
+                const formattedDate = new Date(currentBeer.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                container.innerHTML = `
+                    <div class="text-center">
+                        <div class="mb-4">
+                            <div class="flex items-center justify-center mb-2">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                <span class="text-sm font-semibold text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">Current Beer</span>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900 mb-2 whitespace-pre-line">${formatBeerText(currentBeer.beer_text)}</h3>
+                            <p class="text-lg text-gray-600">${formattedDate}</p>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-clock mr-1"></i>
+                            Updated ${getTimeAgo(new Date(currentBeer.created_at))}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Fallback: Show today's items if no current beer
+            const today = new Date().toISOString().split('T')[0];
+            const todayBeer = allBeerRecords.filter(record => record.date === today);
+            
+            if (todayBeer.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-8">
+                        <i class="fas fa-beer text-4xl mb-4"></i>
+                        <p class="text-lg font-medium">No current beer set.</p>
+                        <p class="text-sm mt-2 text-gray-400">Check recent beer items below or ask the club to set a current beer.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Show the most recent item for today
+            const latestItem = todayBeer[0];
+            const formattedDate = new Date(latestItem.date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            container.innerHTML = `
+                <div class="text-center">
+                    <div class="mb-4">
+                        <div class="flex items-center justify-center mb-2">
+                            <i class="fas fa-calendar-day text-blue-500 mr-2"></i>
+                            <span class="text-sm font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">Today's Special</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-2 whitespace-pre-line">${formatBeerText(latestItem.beer_text)}</h3>
+                        <p class="text-lg text-gray-600">${formattedDate}</p>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-clock mr-1"></i>
+                        Updated ${getTimeAgo(new Date(latestItem.created_at))}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Display beer history function
+        function displayBeerHistory(beerRecords) {
+            const container = document.getElementById('beerHistory');
+            
+            const html = beerRecords.map(record => {
+                const date = new Date(record.date);
+                const formattedDate = date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                const createdDate = new Date(record.created_at);
+                const timeAgo = getTimeAgo(createdDate);
+                
+                // Check if this is today's item
+                const today = new Date().toISOString().split('T')[0];
+                const isToday = record.date === today;
+
+                return `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${record.is_current_beer ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center">
+                                ${record.is_current_beer ? '<i class="fas fa-star text-yellow-500 mr-2"></i>' : ''}
+                                <h3 class="font-semibold text-gray-900 whitespace-pre-line">
+                                    ${formatBeerText(record.beer_text)}
+                                </h3>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                ${record.is_current_beer ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Current Beer</span>' : ''}
+                                <span class="text-sm text-gray-500">${timeAgo}</span>
+                            </div>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            ${formattedDate}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Show message function
+        function showMessage(message, type) {
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+            
+            messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 flex items-center`;
+            messageDiv.innerHTML = `
+                <i class="${icon} mr-2"></i>
+                ${message}
+            `;
+            
+            container.appendChild(messageDiv);
+            
+            // Remove message after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        }
+
+        // Format beer text function
+        function formatBeerText(beerText) {
+            if (!beerText) {
+                return beerText;
+            }
+            
+            // First, fix any "Tao" typos to "Tap"
+            beerText = beerText.replace(/\bTao\s+(\d+)/g, 'Tap $1');
+            
+            // Find all "Tap X" patterns and their positions
+            const tapMatches = [];
+            const tapRegex = /\bTap\s+\d+/g;
+            let match;
+            while ((match = tapRegex.exec(beerText)) !== null) {
+                tapMatches.push({
+                    start: match.index,
+                    end: match.index + match[0].length
+                });
+            }
+            
+            if (tapMatches.length === 0) {
+                // No tap patterns found, return original text
+                return beerText;
+            }
+            
+            // Build the formatted text
+            const formattedParts = [];
+            let lastEnd = 0;
+            
+            for (let i = 0; i < tapMatches.length; i++) {
+                const tapMatch = tapMatches[i];
+                const start = tapMatch.start;
+                const end = tapMatch.end;
+                
+                // Add text before this tap (if any)
+                if (start > lastEnd) {
+                    const beforeText = beerText.substring(lastEnd, start).trim();
+                    if (beforeText && i === 0) {  // Only add text before the first tap
+                        formattedParts.push(beforeText);
+                    }
+                }
+                
+                // Find the end of this tap's description (start of next tap or end of string)
+                let tapDescription;
+                if (i < tapMatches.length - 1) {
+                    const nextStart = tapMatches[i + 1].start;
+                    tapDescription = beerText.substring(start, nextStart).trim();
+                } else {
+                    tapDescription = beerText.substring(start).trim();
+                }
+                
+                formattedParts.push(tapDescription);
+                lastEnd = end;
+            }
+            
+            // Join with line breaks
+            return formattedParts.join('\n');
+        }
+
+        // Get time ago function
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+            
+            if (diffInSeconds < 60) {
+                return 'Just now';
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else if (diffInSeconds < 86400) {
+                const hours = Math.floor(diffInSeconds / 3600);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else {
+                const days = Math.floor(diffInSeconds / 86400);
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            }
+        }
+    </script>
+{% endblock %}

@@ -25,7 +25,12 @@ def get_matches_for_user_club(user):
         if user_team_id:
             print(f"Using team_id-based query for team_id: {user_team_id}")
             
+            # Get user's league_id for filtering
+            user_league_id = user.get("league_id")
+            print(f"Filtering by league_id: {user_league_id}")
+            
             # Query using team_id (more reliable than string matching)
+            # FIXED: Add league filtering to prevent cross-league practice contamination
             matches_query = """
                 SELECT 
                     s.match_date,
@@ -43,6 +48,8 @@ def get_matches_for_user_club(user):
                 LEFT JOIN leagues l ON s.league_id = l.id
                 LEFT JOIN clubs c ON s.location = c.name
                 WHERE (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
+                AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
+                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 ORDER BY s.match_date, s.match_time
             """
             
@@ -63,7 +70,7 @@ def get_matches_for_user_club(user):
             print(f"Practice pattern search: {practice_search}")
             
             matches = execute_query(
-                matches_query, [practice_search, user_team_id, user_team_id, practice_search]
+                matches_query, [practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
             )
             
             print(f"Found {len(matches)} matches using team_id {user_team_id}")
@@ -92,6 +99,7 @@ def get_matches_for_user_club(user):
                 print(f"Trying string pattern: {user_team_pattern}")
                 
                 # Try legacy string pattern matching
+                # FIXED: Add league filtering to prevent cross-league practice contamination
                 legacy_matches_query = """
                     SELECT 
                         s.match_date,
@@ -109,6 +117,8 @@ def get_matches_for_user_club(user):
                     LEFT JOIN leagues l ON s.league_id = l.id
                     LEFT JOIN clubs c ON s.location = c.name
                     WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
+                    AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
+                    AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                     ORDER BY s.match_date, s.match_time
                 """
                 
@@ -127,7 +137,7 @@ def get_matches_for_user_club(user):
                 team_search = f"%{user_team_pattern}%"
                 
                 matches = execute_query(
-                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search]
+                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search_legacy]
                 )
                 
                 if matches:
@@ -136,6 +146,10 @@ def get_matches_for_user_club(user):
         else:
             # FALLBACK: Use legacy string pattern matching when team_id not available
             print(f"No team_id available, falling back to pattern matching")
+            
+            # Get user's league_id for filtering
+            user_league_id = user.get("league_id")
+            print(f"Filtering by league_id: {user_league_id}")
             
             # Handle different series name formats
             # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
@@ -170,6 +184,7 @@ def get_matches_for_user_club(user):
             # Query the database for matches where user's team is playing
             # Include both regular matches and practice entries
             # JOIN with clubs table to get club address for Google Maps links
+            # FIXED: Add league filtering to prevent cross-league practice contamination
             matches_query = """
                 SELECT 
                     s.match_date,
@@ -187,6 +202,8 @@ def get_matches_for_user_club(user):
                 LEFT JOIN leagues l ON s.league_id = l.id
                 LEFT JOIN clubs c ON s.location = c.name
                 WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
+                AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
+                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 ORDER BY s.match_date, s.match_time
             """
 
@@ -197,7 +214,7 @@ def get_matches_for_user_club(user):
             team_search = f"%{user_team_pattern}%"
 
             matches = execute_query(
-                matches_query, [practice_search, practice_search, team_search, team_search]
+                matches_query, [practice_search, practice_search, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
             )
             
             # Debug: Log the types of matches found

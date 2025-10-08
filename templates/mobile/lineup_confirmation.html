@@ -108,7 +108,7 @@
 window.sessionData = {{ session_data | tojson | safe }};
 
 // Load and display the lineup from sessionStorage
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const createdLineup = sessionStorage.getItem('createdLineup');
     const lineupPreview = document.getElementById('lineup-preview');
     
@@ -122,7 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/&gt;/g, '>')
             .replace(/&quot;/g, '"');
         
-        lineupPreview.textContent = plainTextLineup;
+        // Add PTI information to the lineup
+        const lineupWithPTI = await addPTIInformationToLineup(plainTextLineup);
+        lineupPreview.textContent = lineupWithPTI;
     } else {
         // If no lineup found, redirect back to lineup creation
         window.location.href = '/mobile/lineup';
@@ -135,6 +137,149 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('send-via-escrow-btn').onclick = sendViaEscrow;
     document.getElementById('back-to-edit-btn').onclick = backToEdit;
 });
+
+async function addPTIInformationToLineup(lineupText) {
+    console.log('Adding PTI information to lineup...');
+    
+    try {
+        const lines = lineupText.split('\n');
+        const updatedLines = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.trim().startsWith('Court ')) {
+                // Check if PTI information already exists in this line or the next few lines
+                let hasPTIInfo = false;
+                let ptiLinesToSkip = 0;
+                
+                // Check current line
+                if (line.includes('Avg PTI:') || line.includes('Total PTI:')) {
+                    hasPTIInfo = true;
+                }
+                
+                // Check next few lines for PTI information
+                for (let k = i + 1; k < Math.min(i + 5, lines.length); k++) {
+                    const checkLine = lines[k].trim();
+                    if (checkLine.startsWith('Court ')) break; // Stop if we hit another court
+                    
+                    if (checkLine.includes('Avg PTI:') || checkLine.includes('Total PTI:')) {
+                        hasPTIInfo = true;
+                        ptiLinesToSkip++;
+                    } else if (checkLine && !checkLine.startsWith('LINEUP:')) {
+                        // If we find a non-empty, non-PTI line, we've passed the PTI section
+                        break;
+                    }
+                }
+                
+                if (hasPTIInfo) {
+                    // PTI information already exists, use the line as-is and skip PTI lines
+                    updatedLines.push(line);
+                    
+                    // Skip the PTI lines that already exist
+                    for (let k = 1; k <= ptiLinesToSkip && i + k < lines.length; k++) {
+                        const skipLine = lines[i + k].trim();
+                        if (skipLine.includes('Avg PTI:') || skipLine.includes('Total PTI:')) {
+                            updatedLines.push(lines[i + k]);
+                        }
+                    }
+                    
+                    // Skip ahead past the PTI lines we just processed
+                    i += ptiLinesToSkip;
+                    continue;
+                }
+                
+                // Find the court number
+                const courtMatch = line.trim().match(/Court (\d+)/);
+                if (!courtMatch) {
+                    updatedLines.push(line);
+                    continue;
+                }
+                
+                const courtNum = courtMatch[1];
+                
+                // Find players for this court (next few lines until next court or end)
+                const players = [];
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    
+                    // Stop if we hit another court header
+                    if (nextLine.startsWith('Court ')) break;
+                    
+                    // Skip empty lines and non-player lines
+                    if (nextLine && !nextLine.startsWith('LINEUP:')) {
+                        // Clean player name (remove position indicators, extra spaces)
+                        const cleanName = nextLine.replace(/\(Ad\)|\(Deuce\)|\(Either\)/g, '').trim();
+                        if (cleanName) {
+                            players.push(cleanName);
+                        }
+                    }
+                }
+                
+                if (players.length > 0) {
+                    // Fetch PTI data for these players
+                    const ptiData = await fetchPTIDataForPlayers(players);
+                    
+                    // Calculate court PTI
+                    let totalPTI = 0;
+                    let playerCount = 0;
+                    
+                    players.forEach(playerName => {
+                        const pti = ptiData[playerName];
+                        if (pti !== null && pti !== undefined) {
+                            totalPTI += pti;
+                            playerCount++;
+                        }
+                    });
+                    
+                    // Update court header with PTI information
+                    if (playerCount > 0) {
+                        const avgPTI = (totalPTI / playerCount).toFixed(1);
+                        const totalPTIFormatted = totalPTI.toFixed(1);
+                        updatedLines.push(`${line}\n(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`);
+                    } else {
+                        updatedLines.push(`${line}\n(Avg PTI: --, Total PTI: --)`);
+                    }
+                } else {
+                    updatedLines.push(line);
+                }
+            } else {
+                updatedLines.push(line);
+            }
+        }
+        
+        return updatedLines.join('\n');
+        
+    } catch (error) {
+        console.error('Error adding PTI information:', error);
+        return lineupText; // Return original text if error occurs
+    }
+}
+
+async function fetchPTIDataForPlayers(playerNames) {
+    const ptiData = {};
+    
+    // Fetch PTI data for each player
+    for (const playerName of playerNames) {
+        try {
+            // For now, continue using name-based lookup until we update the lineup creation
+            // TODO: Update lineup creation to store player IDs for accurate PTI lookup
+            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            const data = await response.json();
+            
+            if (data && data.current_pti !== undefined) {
+                ptiData[playerName] = data.current_pti;
+            } else {
+                ptiData[playerName] = null; // No PTI data available
+            }
+        } catch (error) {
+            console.error(`Error fetching PTI for ${playerName}:`, error);
+            ptiData[playerName] = null;
+        }
+    }
+    
+    return ptiData;
+}
 
 async function saveLineup() {
     // Show loading state

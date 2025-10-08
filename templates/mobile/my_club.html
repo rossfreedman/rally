@@ -200,7 +200,7 @@
                                         <!-- Quick win/loss summary -->
                                         {% set wins = week.results | selectattr('won') | list | length %}
                                         {% set losses = week.results | rejectattr('won') | list | length %}
-                                        <span class="text-sm font-medium {% if wins > losses %}text-green-600{% elif losses > wins %}text-red-600{% else %}text-yellow-600{% endif %}">
+                                        <span class="text-sm font-medium {% if wins > losses %}text-green-600{% elif losses > wins %}text-red-600{% else %}text-yellow-600{% endif %} hidden">
                                             {{ wins }}W-{{ losses }}L
                                         </span>
                                         <i class="fas fa-chevron-down text-gray-400 transition-transform duration-200" id="icon-week-{{ loop.index }}"></i>
@@ -214,50 +214,73 @@
                                     {% for result in week.results %}
                                     <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                         <!-- Match Header -->
-                                        <div class="flex items-center justify-between mb-3">
-                                            <div class="flex items-center space-x-3">
-                                                <span class="text-sm font-semibold text-gray-900">
-                                                    {{ result.series }}
-                                                </span>
-                                                <span class="text-sm font-semibold text-gray-900">vs {{ result.opponent }}</span>
-                                                <span class="px-3 py-1 text-sm font-bold rounded-full 
-                                                    {% if result.won %}bg-green-100 text-green-800 border border-green-300
-                                                    {% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
-                                                    {{ result.score }}
+                                        <div class="space-y-2 mb-3">
+                                            {% set away_points = result.score.split('-')[0] %}
+                                            {% set home_points = result.score.split('-')[1] %}
+                                            {% set away_won = away_points|int > home_points|int %}
+                                            {% set home_won = home_points|int > away_points|int %}
+                                            
+                                            <div class="px-3 py-2" style="background-color: #045454;">
+                                                <span class="text-base font-semibold" style="color: #bff863;">
+                                                    {% if away_won %}<i class="fas fa-trophy text-yellow-500 mr-1"></i>{% endif %}{{ result.opponent }} - {{ away_points }} points<br>
+                                                    {% if home_won %}<i class="fas fa-trophy text-yellow-500 mr-1"></i>{% endif %}{{ result.series }} - {{ home_points }} points
                                                 </span>
                                             </div>
                                         </div>
                                         
                                         <!-- Court Details -->
-                                        <div class="space-y-2">
+                                        <div class="space-y-1">
                                             {% for match_detail in result.match_details %}
-                                            <div class="bg-white p-3 rounded border border-gray-100">
-                                                <div class="flex items-start justify-between">
-                                                    <div class="flex-1">
-                                                        <div class="font-medium text-gray-700 mb-1">
-                                                            Court {{ match_detail.court }}
-                                                        </div>
-                                                        <div class="text-sm text-gray-600 space-y-1">
-                                                            <div class="flex items-center">
-                                                                <span class="font-medium text-blue-600 min-w-0 flex-1">
-                                                                    {{ match_detail.home_players }}
-                                                                </span>
-                                                            </div>
-                                                            <div class="text-center text-xs text-gray-400 font-medium">vs</div>
-                                                            <div class="flex items-center">
-                                                                <span class="font-medium text-purple-600 min-w-0 flex-1">
-                                                                    {{ match_detail.away_players }}
-                                                                </span>
-                                                            </div>
+                                            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                                <!-- Line Header Row -->
+                                                <div class="px-3 py-2" style="background-color: #045454;">
+                                                    <span class="text-sm font-bold" style="color: #bff863;">Line {{ match_detail.court }}</span>
+                                                </div>
+                                                <!-- Away Team Row -->
+                                                <div class="flex items-center {% if not match_detail.home_team_won %}bg-green-100{% else %}bg-gray-50{% endif %} px-3 py-2 border-b border-gray-300">
+                                                    <div class="w-40 text-left">
+                                                        <div class="text-xs text-gray-500 mb-1">{{ match_detail.away_team_name }}</div>
+                                                        <div class="text-sm font-medium text-black">
+                                                            {% set away_players_list = match_detail.away_players.split('/') %}
+                                                            {% for player in away_players_list %}
+                                                            <div>{{ player.strip() }}</div>
+                                                            {% endfor %}
                                                         </div>
                                                     </div>
-                                                    <div class="ml-3 text-right">
-                                                        <span class="inline-block px-2 py-1 text-sm font-medium rounded 
-                                                            {% if match_detail.won %}bg-green-100 text-green-700 border border-green-200
-                                                            {% else %}bg-red-100 text-red-700 border border-red-200{% endif %}">
-                                                            {{ match_detail.scores }}
-                                                        </span>
+                                                    <div class="w-12 flex items-center justify-center">
+                                                        {% if not match_detail.home_team_won %}
+                                                        <i class="fas fa-trophy text-yellow-500 text-sm"></i>
+                                                        {% endif %}
                                                     </div>
+                                                    <!-- Set Scores for Away Team -->
+                                                    {% for set_score in match_detail.away_sets %}
+                                                    <div class="w-12 text-center">
+                                                        <span class="text-sm font-medium text-gray-700">{{ set_score }}</span>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <!-- Home Team Row -->
+                                                <div class="flex items-center {% if match_detail.home_team_won %}bg-green-100{% else %}bg-white{% endif %} px-3 py-2">
+                                                    <div class="w-40 text-left">
+                                                        <div class="text-xs text-gray-500 mb-1">{{ match_detail.home_team_name }}</div>
+                                                        <div class="text-sm font-medium text-black">
+                                                            {% set home_players_list = match_detail.home_players.split('/') %}
+                                                            {% for player in home_players_list %}
+                                                            <div>{{ player.strip() }}</div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    </div>
+                                                    <div class="w-12 flex items-center justify-center">
+                                                        {% if match_detail.home_team_won %}
+                                                        <i class="fas fa-trophy text-yellow-500 text-sm"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <!-- Set Scores for Home Team -->
+                                                    {% for set_score in match_detail.home_sets %}
+                                                    <div class="w-12 text-center">
+                                                        <span class="text-sm font-medium text-gray-700">{{ set_score }}</span>
+                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                             {% endfor %}
@@ -278,6 +301,83 @@
                         <p class="text-gray-500">Recent match results will appear here once matches are played.</p>
                     </div>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Club Player Ratings Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-sm mr-3">
+                        <i class="fas fa-star text-white text-sm"></i>
+                    </div>
+                    Club Player Ratings
+                    <span class="text-xs text-gray-500 ml-2 font-normal">(PTI Rankings)</span>
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="py-1 px-1 text-left text-xs">Rank</th>
+                                <th class="py-1 px-1 text-left text-xs">Player</th>
+                                <th class="py-1 px-1 text-center text-xs">PTI</th>
+                                <th class="py-1 px-1 text-center text-xs">Series</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if club_player_ratings %}
+                                {% for player in club_player_ratings %}
+                                    <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %} hover:bg-gray-100">
+                                        <td class="py-1 px-1 text-center">
+                                            <span class="font-medium text-xs text-gray-600">{{ loop.index }}</span>
+                                        </td>
+                                        <td class="py-1 px-1">
+                                            <div class="font-medium text-xs text-gray-900">{{ player.name }}</div>
+                                            {% if player.team %}
+                                                <div class="text-xs text-gray-500">{{ player.team }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-1 px-1 text-center">
+                                            <span class="px-2 py-1 text-xs font-bold rounded-full 
+                                                {% if player.pti <= 20 %}bg-green-200 text-green-900 border border-green-400
+                                                {% elif player.pti <= 40 %}bg-green-100 text-green-800 border border-green-300
+                                                {% elif player.pti <= 60 %}bg-yellow-100 text-yellow-800 border border-yellow-300
+                                                {% elif player.pti <= 80 %}bg-orange-100 text-orange-800 border border-orange-300
+                                                {% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
+                                                {{ "%.1f"|format(player.pti) if player.pti else "N/A" }}
+                                            </span>
+                                        </td>
+                                        <td class="py-1 px-1 text-center">
+                                            <span class="text-xs text-gray-600">{{ player.series or "N/A" }}</span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="py-4 text-center text-gray-500">
+                                        <div class="text-base">No player ratings available</div>
+                                        <div class="text-xs mt-1">Player PTI ratings will appear here</div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Legend -->
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div class="text-xs text-gray-600 mb-2 font-medium">PTI Rating Legend (Lower = Better):</div>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="px-2 py-1 rounded-full bg-green-200 text-green-900 border border-green-400">0-20</span>
+                        <span class="px-2 py-1 rounded-full bg-green-100 text-green-800 border border-green-300">21-40</span>
+                        <span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 border border-yellow-300">41-60</span>
+                        <span class="px-2 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-300">61-80</span>
+                        <span class="px-2 py-1 rounded-full bg-red-100 text-red-800 border border-red-300">81+</span>
+                    </div>
+                </div>
             </div>
         </div>
 

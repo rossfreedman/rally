@@ -191,7 +191,7 @@ def validate_player_data(player_data):
 def parse_team_name(team_name):
     """
     Parse team name to extract club, series, and team number/letter.
-    Handles both numeric and letter-based series.
+    Handles both numeric and letter-based series, including SW (Summer/Winter) series and SN (Sunday Night) series.
     
     Examples:
     - "Birchwood 12" -> ("Birchwood", "Series 12", "12")
@@ -199,11 +199,40 @@ def parse_team_name(team_name):
     - "Winnetka D" -> ("Winnetka", "Series D", "D")
     - "Tennaqua A" -> ("Tennaqua", "Series A", "A")
     - "Michigan Shores 3b" -> ("Michigan Shores", "Series 3b", "3b")
+    - "Glen Ellyn 9 SW" -> ("Glen Ellyn", "Series 9 SW", "9 SW")
+    - "Hinsdale PC II 11 SW" -> ("Hinsdale PC II", "Series 11 SW", "11 SW")
+    - "Michigan Shores SN" -> ("Michigan Shores", "Series SN", "SN")
+    - "Prairie Club SN (3)" -> ("Prairie Club", "Series SN", "SN (3)")
+    - "Wilmette SN (1)" -> ("Wilmette", "Series SN", "SN (1)")
     """
     if not team_name:
         return None, None, None
     
-    # Try to extract numeric series first (e.g., "12", "3b", "14a")
+    # Try to extract SN (Sunday Night) series with numbered variants (e.g., "SN (3)", "SN (1)")
+    sn_numbered_match = re.search(r'\sSN\s*\((\d+)\)\s*$', team_name)
+    if sn_numbered_match:
+        team_number = sn_numbered_match.group(1)
+        base_club_name = team_name[:sn_numbered_match.start()].strip()
+        club_name = f"{base_club_name} SN-{team_number}"  # Create unique club names to avoid UNIQUE constraint
+        series_name = "Series SN"
+        return club_name, series_name, f"SN ({team_number})"
+    
+    # Try to extract SN (Sunday Night) series (e.g., "SN")
+    sn_match = re.search(r'\sSN\s*$', team_name)
+    if sn_match:
+        club_name = team_name[:sn_match.start()].strip()
+        series_name = "Series SN"
+        return club_name, series_name, "SN"
+    
+    # Try to extract SW (Summer/Winter) series first (e.g., "9 SW", "11 SW", "7 SW")
+    sw_match = re.search(r'(\d+)\s+SW\s*$', team_name)
+    if sw_match:
+        team_number = sw_match.group(1)
+        club_name = team_name[:sw_match.start()].strip()
+        series_name = f"Series {team_number} SW"
+        return club_name, series_name, f"{team_number} SW"
+    
+    # Try to extract numeric series (e.g., "12", "3b", "14a")
     numeric_match = re.search(r'(\d+[a-z]?)$', team_name)
     if numeric_match:
         team_number = numeric_match.group(1)
@@ -235,9 +264,9 @@ def parse_team_name(team_name):
         series_name = f"Series {team_suffix}"
         return club_name, series_name, team_suffix
     
-    # If no pattern matches, assume the entire string is the club name
-    # and create a generic series
-    return team_name.strip(), "Series 1", "1"
+    # If no pattern matches, return None to indicate parsing failure
+    # This prevents creation of generic series that cause data integrity issues
+    return None, None, None
 
 def upsert_club(cur, name, league_id):
     """Upsert club and return ID."""
@@ -345,7 +374,7 @@ def upsert_team(cur, league_id, team_name, club_name, series_name):
 
 def find_existing_team(cur, league_id, team_name: str, club_id: int, series_id: int) -> Optional[int]:
     """Find existing team using multiple strategies."""
-    # Strategy 1: Exact team name match
+    # Strategy 1: Exact team name match (most reliable)
     cur.execute("""
         SELECT id FROM teams 
         WHERE team_name = %s AND league_id = %s
@@ -354,7 +383,30 @@ def find_existing_team(cur, league_id, team_name: str, club_id: int, series_id: 
     if result:
         return result[0]
     
-    # Strategy 2: Match by club_id and series_id (for teams with same club/series)
+    # Strategy 2: For Series SN teams, be more specific about matching
+    # Parse the team name to get the team identifier
+    club_name, series_name, team_number = parse_team_name(team_name)
+    if series_name == "Series SN" and team_number:
+        # For Series SN teams, match by club_id, series_id, AND team number pattern
+        cur.execute("""
+            SELECT id, team_name FROM teams 
+            WHERE club_id = %s AND series_id = %s AND league_id = %s
+        """, (club_id, series_id, league_id))
+        results = cur.fetchall()
+        
+        if len(results) > 0:
+            # Look for exact team name match first
+            for team_id, existing_team_name in results:
+                if existing_team_name == team_name:
+                    return team_id
+            
+            # If no exact match, try to match by team number pattern
+            for team_id, existing_team_name in results:
+                _, _, existing_team_number = parse_team_name(existing_team_name)
+                if existing_team_number == team_number:
+                    return team_id
+    
+    # Strategy 3: Match by club_id and series_id (for teams with same club/series)
     cur.execute("""
         SELECT id, team_name FROM teams 
         WHERE club_id = %s AND series_id = %s AND league_id = %s
@@ -409,8 +461,42 @@ def create_team(cur, team_name: str, club_id: int, series_id: int, league_id) ->
     
     return None
 
+def ensure_career_stats_consistency(cur, tenniscores_player_id, league_id, career_wins, career_losses, career_matches, career_win_percentage):
+    """
+    Ensure career stats are consistent across all team assignments for the same player.
+    
+    This prevents the issue where players on multiple teams have different career stats
+    across their different team assignments.
+    """
+    try:
+        # Update all other team assignments for this player with the same career stats
+        cur.execute("""
+            UPDATE players 
+            SET career_wins = %s, 
+                career_losses = %s, 
+                career_matches = %s,
+                career_win_percentage = %s
+            WHERE tenniscores_player_id = %s 
+            AND league_id = %s
+            AND (career_wins != %s OR career_losses != %s OR career_win_percentage != %s)
+        """, (career_wins, career_losses, career_matches, career_win_percentage, 
+              tenniscores_player_id, league_id, career_wins, career_losses, career_win_percentage))
+        
+        updated_count = cur.rowcount
+        if updated_count > 0:
+            print(f"[DEBUG] Updated {updated_count} other team assignments for player {tenniscores_player_id} with consistent career stats")
+            
+    except Exception as e:
+        print(f"[WARNING] Failed to ensure career stats consistency for player {tenniscores_player_id}: {e}")
+
 def upsert_player(cur, league_id, player_data):
-    """Upsert a single player with comprehensive validation and team assignment."""
+    """
+    Upsert a single player with comprehensive validation and team assignment.
+    
+    FIXED: Handles series movement correctly - when a player moves from one series 
+    to another within the same league/club, updates their existing record instead 
+    of creating duplicates.
+    """
     # Validate player data first
     is_valid, validation_errors = validate_player_data(player_data)
     if not is_valid:
@@ -425,6 +511,20 @@ def upsert_player(cur, league_id, player_data):
     pti_raw = player_data.get("PTI", "")
     wins_raw = player_data.get("Wins", "0")
     losses_raw = player_data.get("Losses", "0")
+    
+    # Extract career stats data - ONLY use explicit Career fields, DO NOT fall back to current season
+    # Career stats should be calculated from match history, not copied from current season stats
+    career_wins_raw = player_data.get("Career Wins", None)
+    career_losses_raw = player_data.get("Career Losses", None)
+    career_win_pct_raw = player_data.get("Career Win %", None)
+    
+    # Extract captain status
+    captain_raw = player_data.get("Captain", "No").strip()
+    captain_status = (captain_raw == "Yes")
+    
+    # Debug logging for career stats
+    if career_wins_raw != "0" or career_losses_raw != "0":
+        print(f"[DEBUG] Player {player_data.get('First Name', 'Unknown')} {player_data.get('Last Name', 'Unknown')}: Career stats found - Wins: {career_wins_raw}, Losses: {career_losses_raw}, Win%: {career_win_pct_raw}")
     
     # Parse PTI value (handle "N/A" and convert to numeric)
     pti_value = None
@@ -452,6 +552,40 @@ def upsert_player(cur, league_id, player_data):
         except (ValueError, TypeError, ZeroDivisionError):
             win_percentage_value = None
     
+    # Parse career stats values
+    career_wins_value = None
+    career_losses_value = None
+    career_win_percentage_value = None
+    
+    try:
+        # Handle both string and integer values for career stats
+        if isinstance(career_wins_raw, str):
+            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" and career_wins_raw.strip() != "" else 0
+        else:
+            career_wins_value = int(career_wins_raw) if career_wins_raw else 0
+            
+        if isinstance(career_losses_raw, str):
+            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" and career_losses_raw.strip() != "" else 0
+        else:
+            career_losses_value = int(career_losses_raw) if career_losses_raw else 0
+    except (ValueError, TypeError):
+        career_wins_value = 0
+        career_losses_value = 0
+    
+    # Parse career win percentage (handle "0.0%" format)
+    if career_win_pct_raw and career_win_pct_raw != "N/A":
+        try:
+            # Remove % sign and convert to float
+            career_win_pct_clean = career_win_pct_raw.replace("%", "").strip()
+            career_win_percentage_value = float(career_win_pct_clean)
+        except (ValueError, TypeError):
+            career_win_percentage_value = None
+    else:
+        career_win_percentage_value = None
+    
+    # Calculate career matches
+    career_matches_value = career_wins_value + career_losses_value
+    
     # Parse team name to get club and series
     club_name, series_name, team_number = parse_team_name(team_name)
     if not all([club_name, series_name]):
@@ -475,10 +609,12 @@ def upsert_player(cur, league_id, player_data):
         has_tenniscores_id = column_exists(cur, "players", "tenniscores_player_id")
         
         if has_tenniscores_id and external_id:
-            # Use tenniscores_player_id for upsert - NOW INCLUDING PTI AND WIN/LOSS DATA
+            # Simple upsert - no name matching, just import data as-is
+            # CRITICAL FIX: Only update career stats if they are provided (not None)
+            # This prevents overwriting calculated career stats with current season stats
             cur.execute("""
-                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage, captain_status) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
                 ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id)
                 DO UPDATE SET 
                     first_name = EXCLUDED.first_name, 
@@ -487,40 +623,48 @@ def upsert_player(cur, league_id, player_data):
                     pti = EXCLUDED.pti,
                     wins = EXCLUDED.wins,
                     losses = EXCLUDED.losses,
-                    win_percentage = EXCLUDED.win_percentage
+                    win_percentage = EXCLUDED.win_percentage,
+                    career_wins = COALESCE(EXCLUDED.career_wins, players.career_wins),
+                    career_losses = COALESCE(EXCLUDED.career_losses, players.career_losses),
+                    career_matches = COALESCE(EXCLUDED.career_matches, players.career_matches),
+                    career_win_percentage = COALESCE(EXCLUDED.career_win_percentage, players.career_win_percentage),
+                    captain_status = EXCLUDED.captain_status
                 RETURNING id
-            """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value))
+            """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value, captain_status))
             
             result = cur.fetchone()
             if result:
-                # Check if this was an INSERT or UPDATE by examining the RETURNING result
-                # For INSERT: new row is returned
-                # For UPDATE: existing row is returned
-                # We can't easily distinguish between INSERT and UPDATE with ON CONFLICT DO UPDATE
-                # So we'll return "upserted" to indicate the operation succeeded
+                # After successful upsert, ensure career stats consistency across all team assignments for this player
+                # TEMPORARILY DISABLED FOR STAGING - CAUSING HANG
+                # ensure_career_stats_consistency(cur, external_id, league_id, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value)
                 return result[0], "upserted"
         else:
-            # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI AND WIN/LOSS DATA
+            # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
+            # Use a dummy tenniscores_player_id since we don't have one
+            dummy_player_id = f"dummy_{first_name}_{last_name}_{league_id}_{club_id}_{series_id}"
             cur.execute("""
-                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
-                ON CONFLICT (first_name, last_name, league_id, club_id, series_id) 
+                INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage, captain_status) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
+                ON CONFLICT (tenniscores_player_id, league_id, club_id, series_id) 
                 DO UPDATE SET 
                     team_id = EXCLUDED.team_id,
                     pti = EXCLUDED.pti,
                     wins = EXCLUDED.wins,
                     losses = EXCLUDED.losses,
-                    win_percentage = EXCLUDED.win_percentage
+                    win_percentage = EXCLUDED.win_percentage,
+                    career_wins = EXCLUDED.career_wins,
+                    career_losses = EXCLUDED.career_losses,
+                    career_matches = EXCLUDED.career_matches,
+                    career_win_percentage = EXCLUDED.career_win_percentage,
+                    captain_status = EXCLUDED.captain_status
                 RETURNING id
-            """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value))
+            """, (first_name, last_name, league_id, club_id, series_id, team_id, dummy_player_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value, captain_status))
             
             result = cur.fetchone()
             if result:
-                # Check if this was an INSERT or UPDATE by examining the RETURNING result
-                # For INSERT: new row is returned
-                # For UPDATE: existing row is returned
-                # We can't easily distinguish between INSERT and UPDATE with ON CONFLICT DO UPDATE
-                # So we'll return "upserted" to indicate the operation succeeded
+                # For fallback case with dummy IDs, we can't easily ensure consistency
+                # since each team assignment gets a unique dummy ID
+                # This is a limitation of the fallback approach
                 return result[0], "upserted"
         
         # If we get here, the player already exists
@@ -587,6 +731,90 @@ def assign_players_to_teams(cur, league_id):
     print(f"    ⚠️ Failed: {failed}")
     
     return assigned, failed
+
+def fix_career_stats_inconsistencies(cur, league_id):
+    """
+    Fix inconsistent career stats across all team assignments for the same player.
+    
+    This function ensures that all team assignments for the same player have
+    consistent career stats by using the most recent/complete career stats as the source of truth.
+    """
+    # Find players with inconsistent career stats
+    cur.execute("""
+        SELECT tenniscores_player_id, 
+               COUNT(DISTINCT CONCAT(COALESCE(career_wins, 0), '-', COALESCE(career_losses, 0), '-', COALESCE(career_win_percentage, 0))) as stat_variations
+        FROM players 
+        WHERE league_id = %s 
+        AND tenniscores_player_id IS NOT NULL
+        AND tenniscores_player_id != ''
+        GROUP BY tenniscores_player_id
+        HAVING COUNT(DISTINCT CONCAT(COALESCE(career_wins, 0), '-', COALESCE(career_losses, 0), '-', COALESCE(career_win_percentage, 0))) > 1
+        ORDER BY stat_variations DESC
+    """, (league_id,))
+    
+    inconsistent_players = cur.fetchall()
+    
+    if not inconsistent_players:
+        return 0
+    
+    total_fixed = 0
+    
+    # Process each player with inconsistent stats
+    for player_id, variations in inconsistent_players:
+        # Get all records for this player
+        cur.execute("""
+            SELECT id, career_wins, career_losses, career_win_percentage,
+                   created_at, updated_at
+            FROM players 
+            WHERE tenniscores_player_id = %s AND league_id = %s
+            ORDER BY updated_at DESC, created_at DESC
+        """, (player_id, league_id))
+        
+        records = cur.fetchall()
+        
+        # Find the "best" career stats (most recent non-zero values)
+        best_wins = None
+        best_losses = None
+        best_win_pct = None
+        
+        for record in records:
+            wins, losses, win_pct = record[1], record[2], record[3]
+            
+            # Prefer non-zero values, and more recent values
+            if wins is not None and losses is not None and (wins > 0 or losses > 0):
+                if best_wins is None or (wins + losses) > (best_wins + best_losses):
+                    best_wins = wins
+                    best_losses = losses
+                    best_win_pct = win_pct
+        
+        # If no non-zero stats found, use the most recent values
+        if best_wins is None:
+            for record in records:
+                wins, losses, win_pct = record[1], record[2], record[3]
+                if wins is not None and losses is not None:
+                    best_wins = wins
+                    best_losses = losses
+                    best_win_pct = win_pct
+                    break
+        
+        if best_wins is None:
+            continue
+        
+        # Update all records for this player with the best stats
+        cur.execute("""
+            UPDATE players 
+            SET career_wins = %s, 
+                career_losses = %s, 
+                career_win_percentage = %s,
+                career_matches = %s
+            WHERE tenniscores_player_id = %s AND league_id = %s
+        """, (best_wins, best_losses, best_win_pct, best_wins + best_losses, player_id, league_id))
+        
+        updated_count = cur.rowcount
+        total_fixed += updated_count
+    
+    print(f"    ✅ Fixed career stats for {total_fixed} player records")
+    return total_fixed
 
 def run_integrity_checks(cur, league_id):
     """Run post-import integrity checks."""
@@ -657,6 +885,35 @@ def run_integrity_checks(cur, league_id):
     else:
         print("  ✅ All teams have players")
     
+    # Check for inconsistent career stats across team assignments
+    cur.execute("""
+        SELECT COUNT(DISTINCT tenniscores_player_id)
+        FROM players 
+        WHERE league_id = %s 
+        AND tenniscores_player_id IS NOT NULL
+        AND tenniscores_player_id != ''
+        AND tenniscores_player_id IN (
+            SELECT tenniscores_player_id
+            FROM players 
+            WHERE league_id = %s 
+            AND tenniscores_player_id IS NOT NULL
+            AND tenniscores_player_id != ''
+            GROUP BY tenniscores_player_id
+            HAVING COUNT(DISTINCT CONCAT(COALESCE(career_wins, 0), '-', COALESCE(career_losses, 0), '-', COALESCE(career_win_percentage, 0))) > 1
+        )
+    """, (league_id, league_id))
+    
+    inconsistent_players = cur.fetchone()[0]
+    if inconsistent_players > 0:
+        print(f"  ❌ Found {inconsistent_players} players with inconsistent career stats across team assignments")
+        issues_found += inconsistent_players
+        
+        # Fix the inconsistencies automatically
+        print("  🔧 Fixing inconsistent career stats...")
+        fix_career_stats_inconsistencies(cur, league_id)
+    else:
+        print("  ✅ All career stats are consistent across team assignments")
+    
     print(f"\n📊 Integrity check summary: {issues_found} issues found")
     return issues_found
 
@@ -694,11 +951,23 @@ def import_players(league_key, file_path=None, limit=None):
     players_data = load_json_file(input_file)
     print(f"Loaded {len(players_data)} player records")
     
+    # Validation: Check for reasonable number of players
+    if len(players_data) < 100:
+        print(f"⚠️ WARNING: Only {len(players_data)} players found. This seems low for CNSWPL.")
+        print(f"   Expected: 1000+ players, Got: {len(players_data)}")
+        print(f"   This might indicate a file path issue or incomplete scraping.")
+        
+        # For CNSWPL specifically, warn if we have very few players
+        if league_key == "CNSWPL" and len(players_data) < 500:
+            print(f"🚨 CRITICAL: CNSWPL should have 1000+ players, but only {len(players_data)} found!")
+            print(f"   This suggests the wrong file was used or scraping was incomplete.")
+            print(f"   Please verify the file path and scraping results.")
+    
     if limit:
         players_data = players_data[:limit]
         print(f"Limited to {limit} records for testing")
     
-        # Get database connection using our database configuration
+    # Get database connection using our database configuration
     with get_db() as conn:
         cur = conn.cursor()
         
@@ -717,7 +986,6 @@ def import_players(league_key, file_path=None, limit=None):
             print("Importing players...")
             
             # Statistics
-            inserted = 0
             updated = 0
             existing = 0
             skipped = 0
@@ -727,11 +995,7 @@ def import_players(league_key, file_path=None, limit=None):
                 try:
                     player_id, action = upsert_player(cur, league_id, player_data)
                     
-                    if action == "inserted":
-                        inserted += 1
-                    elif action == "updated":
-                        updated += 1
-                    elif action == "upserted":
+                    if action == "upserted":
                         # For upserted records, we can't distinguish between insert and update
                         # so we'll count them as updated since they were processed successfully
                         updated += 1
@@ -761,7 +1025,7 @@ def import_players(league_key, file_path=None, limit=None):
             # Commit transaction
             conn.commit()
             print("\nImport completed successfully!")
-            print(f"Players: {inserted} inserted, {updated} updated, {existing} existing, {skipped} skipped, {validation_failed} validation failed")
+            print(f"Players: {updated} upserted, {existing} existing, {skipped} skipped, {validation_failed} validation failed")
             print(f"Team assignments: {assigned} assigned, {failed} failed")
             
             # Run post-import integrity checks

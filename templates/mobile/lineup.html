@@ -96,7 +96,95 @@
                         <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: 200px; -webkit-overflow-scrolling: touch; padding-bottom: 0.75rem;">
                             <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                         </div>
+                        
+                        <!-- Add Subs Link -->
+                        <div class="mt-3 text-center">
+                            <button id="add-subs-btn" class="text-blue-600 hover:text-blue-800 text-sm font-medium underline">
+                                <i class="fas fa-plus mr-1"></i>Add Subs
+                            </button>
+                        </div>
 
+                    </div>
+
+                    <!-- Subs Selection Modal -->
+                    <div id="subs-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+                        <div class="flex items-center justify-center min-h-screen p-4">
+                            <div class="bg-white rounded-xl shadow-xl max-w-2xl w-full" style="height: 80vh; display: flex; flex-direction: column;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4" style="flex-shrink: 0; background-color: #045454; border-bottom: 1px solid #033333;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold" style="color: #bff863;">Select Substitute Players</h2>
+                    <p class="text-sm mt-1" style="color: #bff863; opacity: 0.8;">Choose subs to add to your lineup from higher series at {{ session_data.user.club }}</p>
+                </div>
+                <button id="close-subs-modal" style="color: #bff863; opacity: 0.8;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+                                
+                                <!-- Modal Body -->
+                                <div class="p-6" style="height: calc(80vh - 140px); overflow-y: scroll; flex: 1;">
+                                    <!-- Loading State -->
+                                    <div id="subs-modal-loading" class="text-center py-8">
+                                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <div class="loading loading-spinner loading-lg text-blue-600"></div>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Finding Available Subs</h3>
+                                        <p class="text-gray-500">Searching for players in higher series...</p>
+                                    </div>
+                                    
+                                    <!-- Error State -->
+                                    <div id="subs-modal-error" class="hidden text-center py-8">
+                                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Subs</h3>
+                                        <p id="subs-modal-error-message" class="text-gray-500"></p>
+                                    </div>
+                                    
+                                    <!-- No Results State -->
+                                    <div id="subs-modal-no-results" class="hidden text-center py-8">
+                                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <i class="fas fa-user-slash text-blue-500 text-2xl"></i>
+                                        </div>
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Subs Available</h3>
+                                        <p class="text-gray-500">No subs found in higher series at {{ session_data.user.club }}.</p>
+                                    </div>
+                                    
+                                    <!-- Algorithm Header -->
+                                    <div id="subs-modal-algorithm-header" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-robot text-blue-500 mr-2"></i>
+                                            <div>
+                                                <h4 class="font-semibold text-blue-900">Rally's Recommendation Algorithm</h4>
+                                                <p class="text-sm text-blue-700">Weighted by PTI (70%), win rate (20%), and series level (10%)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Subs List -->
+                                    <div id="subs-modal-list" class="hidden space-y-4"></div>
+                                </div>
+                                
+                                <!-- Modal Footer -->
+                                <div class="bg-gray-50 border-t border-gray-200 px-6 py-4">
+                                    <div class="flex items-center justify-between">
+                                        <div id="selected-count" class="text-sm text-gray-600">
+                                            <span id="selected-subs-count">0</span> subs selected
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <button id="cancel-subs-modal" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                                                Cancel
+                                            </button>
+                                            <button id="add-selected-subs" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                                                Add Selected Subs
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Selected Player Indicator (for tap mode) -->
@@ -121,7 +209,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 1 <span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
+                                Court 1<br><span class="text-xs text-gray-500 ml-2" id="court-1-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -143,7 +231,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 2 <span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
+                                Court 2<br><span class="text-xs text-gray-500 ml-2" id="court-2-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -165,7 +253,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 3 <span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
+                                Court 3<br><span class="text-xs text-gray-500 ml-2" id="court-3-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -187,7 +275,7 @@
                         <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
                             <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
                                 <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
-                                Court 4 <span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
+                                Court 4<br><span class="text-xs text-gray-500 ml-2" id="court-4-pti">(Avg PTI: --)</span>
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="flex flex-col">
@@ -359,6 +447,406 @@ function loadPlayersForManual() {
     });
 }
 
+// Modal-based Subs functionality
+let selectedSubs = new Set();
+
+function openSubsModal() {
+  console.log('🔍 Opening subs modal...');
+  
+  // Add scrollbar styling for webkit browsers (same pattern as analyze-me modal)
+  const style = document.createElement('style');
+  style.id = 'subs-modal-scrollbar-style';
+  style.textContent = `
+    #subs-modal .overflow-y-scroll {
+      scrollbar-width: thin !important;
+      scrollbar-color: #888 #f1f1f1 !important;
+      min-height: 200px !important;
+      max-height: calc(80vh - 140px) !important;
+      overflow-y: scroll !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar {
+      width: 12px !important;
+      height: 12px !important;
+      display: block !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb {
+      background: #888 !important;
+      border-radius: 4px !important;
+    }
+    #subs-modal .overflow-y-scroll::-webkit-scrollbar-thumb:hover {
+      background: #555 !important;
+    }
+  `;
+  
+  // Only add style if not already added
+  if (!document.getElementById('subs-modal-scrollbar-style')) {
+    document.head.appendChild(style);
+  }
+  
+  // Reset modal state
+  selectedSubs.clear();
+  document.getElementById('subs-modal').classList.remove('hidden');
+  
+  // Show loading state
+  showModalLoading();
+  
+  // Load and display subs
+  loadAndDisplaySubs();
+}
+
+function showModalLoading() {
+  document.getElementById('subs-modal-loading').classList.remove('hidden');
+  document.getElementById('subs-modal-error').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.add('hidden');
+  document.getElementById('subs-modal-list').classList.add('hidden');
+}
+
+function showModalError(message) {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-error').classList.remove('hidden');
+  document.getElementById('subs-modal-error-message').textContent = message;
+}
+
+function showModalNoResults() {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-no-results').classList.remove('hidden');
+}
+
+function showModalResults(subsData) {
+  document.getElementById('subs-modal-loading').classList.add('hidden');
+  document.getElementById('subs-modal-algorithm-header').classList.remove('hidden');
+  document.getElementById('subs-modal-list').classList.remove('hidden');
+  
+  // Render subs list
+  renderSubsInModal(subsData);
+}
+
+async function loadAndDisplaySubs() {
+  try {
+    // Get user's current series and club from session
+    const user = window.sessionData?.user || {};
+    const userSeries = user.series;
+    const userClub = user.club;
+    
+    if (!userSeries || !userClub) {
+      throw new Error('Unable to determine your series or club');
+    }
+    
+    console.log(`🔍 Finding subs for series: ${userSeries}, club: ${userClub}`);
+    
+    // Use the exact same logic as find-subs page
+    const subsData = await findSubsForUser(userSeries, userClub);
+    
+    if (!subsData || subsData.length === 0) {
+      showModalNoResults();
+      return;
+    }
+    
+    showModalResults(subsData);
+    
+  } catch (error) {
+    console.error('Error loading subs:', error);
+    showModalError(error.message);
+  }
+}
+
+async function findSubsForUser(userSeries, userClub) {
+  // This uses the exact same logic as the find-subs page
+  const seriesResp = await fetch('/api/get-series');
+  if (!seriesResp.ok) throw new Error('Failed to fetch series');
+  const seriesData = await seriesResp.json();
+  const currentSeries = seriesData.series;
+  const allSeriesObjects = seriesData.all_series_objects;
+  const allSeries = seriesData.all_series;
+  
+  console.log('Current series:', currentSeries, 'Type:', typeof currentSeries);
+  console.log('All series objects:', allSeriesObjects);
+  console.log('All series (fallback):', allSeries);
+  
+  // Check if user has a series set
+  if (!currentSeries || currentSeries === null || currentSeries === '') {
+    throw new Error('Current series is not available. Please set your series in settings.');
+  }
+  
+  // Find current series object
+  let currentSeriesObject = null;
+  let currentSeriesValue = null;
+  
+  if (allSeriesObjects && allSeriesObjects.length > 0) {
+    currentSeriesObject = allSeriesObjects.find(s => s.name === currentSeries);
+    if (currentSeriesObject) {
+      currentSeriesValue = getSeriesComparisonValue(currentSeriesObject.name);
+    }
+  } else {
+    currentSeriesValue = getSeriesComparisonValue(currentSeries);
+  }
+  
+  if (!currentSeriesValue) {
+    throw new Error(`Unable to determine series value from "${currentSeries}". Please contact support.`);
+  }
+  
+  console.log('Current series value:', currentSeriesValue);
+  
+  // Find higher series
+  let higherSeriesObjects = [];
+  if (allSeriesObjects && allSeriesObjects.length > 0) {
+    higherSeriesObjects = allSeriesObjects.filter(seriesObj => {
+      const seriesValue = getSeriesComparisonValue(seriesObj.name);
+      if (!seriesValue) return false;
+      
+      let isHigher = false;
+      
+      if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'numeric') {
+        // Both are numeric: higher numbers are higher series (Series 23 > Series 22)
+        isHigher = seriesValue.value > currentSeriesValue.value;
+        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'numeric' && seriesValue.type === 'letter') {
+        // Current is numeric, comparing to letter: letter series are higher
+        isHigher = true;
+        console.log(`Comparing ${seriesObj.name} (letter) vs ${currentSeries} (numeric): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'letter') {
+        // Both are letter: higher letters are higher series (B > A)
+        isHigher = seriesValue.value > currentSeriesValue.value;
+        console.log(`Comparing ${seriesObj.name} (${seriesValue.value}) vs ${currentSeries} (${currentSeriesValue.value}): isHigher = ${isHigher}`);
+      } else if (currentSeriesValue.type === 'letter' && seriesValue.type === 'numeric') {
+        // Current is letter, comparing to numeric: letter series are higher
+        isHigher = false;
+        console.log(`Comparing ${seriesObj.name} (numeric) vs ${currentSeries} (letter): isHigher = ${isHigher}`);
+      }
+      
+      return isHigher;
+    });
+  }
+  
+  console.log('Higher series objects found:', higherSeriesObjects.map(s => s.name));
+  
+  if (higherSeriesObjects.length === 0) {
+    return [];
+  }
+  
+  // Fetch players for each higher series
+  const promises = higherSeriesObjects.map(seriesObj =>
+    seriesObj.id 
+      ? fetch(`/api/players?series_id=${seriesObj.id}&series=${encodeURIComponent(seriesObj.name)}`)
+          .then(resp => {
+            if (!resp.ok) {
+              return fetch(`/api/players?series=${encodeURIComponent(seriesObj.name)}`)
+                .then(fallbackResp => {
+                  if (!fallbackResp.ok) {
+                    throw new Error('Both series_id and series name queries failed for ' + seriesObj.name);
+                  }
+                  return fallbackResp.json();
+                });
+            }
+            return resp.json();
+          })
+          .then(players => ({ series: seriesObj.name, series_id: seriesObj.id, players }))
+          .catch(error => {
+            console.error(`Failed to fetch players for ${seriesObj.name}:`, error);
+            return { series: seriesObj.name, series_id: seriesObj.id, players: [] };
+          })
+      : fetch(`/api/players?series=${encodeURIComponent(seriesObj.name)}`)
+          .then(resp => {
+            if (!resp.ok) {
+              throw new Error('Failed to fetch players for ' + seriesObj.name);
+            }
+            return resp.json();
+          })
+          .then(players => ({ series: seriesObj.name, series_id: null, players }))
+          .catch(error => {
+            console.error(`Failed to fetch players for ${seriesObj.name}:`, error);
+            return { series: seriesObj.name, series_id: null, players: [] };
+          })
+  );
+  
+  const results = await Promise.all(promises);
+  const successfulResults = results.filter(result => result.players && result.players.length > 0);
+  
+  // Get all players from the same club
+  const allPlayers = successfulResults.flatMap(result =>
+    result.players.map(player => ({
+      ...player,
+      series: result.series
+    }))
+  );
+  
+  const sameClubPlayers = allPlayers.filter(player => 
+    player.club && player.club.toLowerCase() === userClub.toLowerCase()
+  );
+  
+  // Calculate composite scores and sort
+  const playersWithScores = sameClubPlayers.map(player => ({
+    ...player,
+    compositeScore: calculateCompositeScore(player.pti || player.rating, player.winRate, player.series),
+    isSubstitute: true
+  }));
+  
+  playersWithScores.sort((a, b) => b.compositeScore - a.compositeScore);
+  
+  return playersWithScores;
+}
+
+function renderSubsInModal(subsData) {
+  const subsList = document.getElementById('subs-modal-list');
+  subsList.innerHTML = '';
+  
+  subsData.forEach((player, idx) => {
+    const isTopThree = idx < 3;
+    const card = document.createElement('div');
+    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2 hover:shadow-md transition-shadow duration-200 max-w-md mx-auto';
+    card.dataset.playerId = player.name; // Use name as unique identifier
+    
+    // Determine win rate color using Rally brand colors
+    const winRateNum = parseFloat((player.winRate || '0%').replace('%', ''));
+    let winRateColor = 'text-gray-600';
+    if (winRateNum >= 60) {
+      winRateColor = 'color: #bff863;'; // Rally Bright Green
+    } else if (winRateNum >= 45) {
+      winRateColor = 'color: #fbbf24;'; // Yellow
+    } else if (winRateNum > 0) {
+      winRateColor = 'color: #ef4444;'; // Red
+    }
+    
+    card.innerHTML = `
+      <div class="flex items-start gap-4">
+        <!-- Checkbox Column -->
+        <div class="flex items-center pt-1 flex-shrink-0">
+          <input type="checkbox" class="sub-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
+                 data-player-name="${player.name}" data-player-data='${JSON.stringify(player)}'>
+        </div>
+        
+        <!-- Player Content Column -->
+        <div class="flex-1 min-w-0">
+          <!-- TOP PICK Badge (if applicable) -->
+          ${isTopThree ? `
+            <div class="mb-2">
+              <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+                <i class="fas fa-star text-xs"></i>TOP PICK
+              </span>
+            </div>
+          ` : ''}
+          
+          <!-- Player Name -->
+          <div class="flex items-center space-x-2 mb-2">
+            <h4 class="font-semibold text-gray-900 truncate">${player.name}</h4>
+          </div>
+          
+          <!-- Stats Grid -->
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">PTI:</span>
+              <span class="font-medium text-blue-600">${player.pti || player.rating || 'N/A'}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Series:</span>
+              <span class="font-medium text-gray-900">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Record:</span>
+              <span class="font-medium text-gray-900">${player.wins || 0}W-${player.losses || 0}L</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Win Rate:</span>
+              <span class="font-medium" style="${winRateColor}">${player.winRate || '0%'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    subsList.appendChild(card);
+  });
+  
+  // Add event listeners to checkboxes
+  document.querySelectorAll('.sub-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+  });
+}
+
+function updateSelectedCount() {
+  const checkboxes = document.querySelectorAll('.sub-checkbox:checked');
+  selectedSubs.clear();
+  
+  checkboxes.forEach(checkbox => {
+    const playerData = JSON.parse(checkbox.dataset.playerData);
+    selectedSubs.add(playerData);
+  });
+  
+  document.getElementById('selected-subs-count').textContent = selectedSubs.size;
+  document.getElementById('add-selected-subs').disabled = selectedSubs.size === 0;
+}
+
+function closeSubsModal() {
+  document.getElementById('subs-modal').classList.add('hidden');
+  selectedSubs.clear();
+}
+
+function addSelectedSubs() {
+  if (selectedSubs.size === 0) return;
+  
+  // Add selected subs to the existing players array
+  selectedSubs.forEach(sub => {
+    // Check if this sub is already in the players array
+    const existingPlayer = players.find(p => p.name === sub.name);
+    if (!existingPlayer) {
+      players.push(sub);
+    }
+  });
+  
+  // Re-render the players pool to include subs
+  renderPlayersForManual();
+  
+  console.log(`✅ Added ${selectedSubs.size} substitute players to lineup`);
+  
+  // Close modal
+  closeSubsModal();
+}
+
+// Helper function to get series comparison value (same as find-subs)
+function getSeriesComparisonValue(seriesName) {
+  if (!seriesName) return null;
+  
+  // Handle numeric series (e.g., "Series 1", "Series 2", "Chicago 22")
+  const numericMatch = seriesName.match(/(?:Series\s+)?(\d+)/i);
+  if (numericMatch) {
+    return { type: 'numeric', value: parseInt(numericMatch[1], 10) };
+  }
+  
+  // Handle letter series (e.g., "Series A", "Series B", "Division G")
+  const letterMatch = seriesName.match(/(?:Series\s+|Division\s+)?([A-Z])/i);
+  if (letterMatch) {
+    const letter = letterMatch[1].toUpperCase();
+    const precedence = letter.charCodeAt(0) - 64; // A=1, B=2, etc.
+    return { type: 'letter', value: precedence };
+  }
+  
+  return null;
+}
+
+// Helper function to calculate composite score (same as find-subs)
+function calculateCompositeScore(pti, winRate, series) {
+  const winRateDecimal = parseFloat((winRate + '').replace('%', '')) / 100;
+  const normalizedPTI = (100 - parseFloat(pti || 50)) / 100;
+  
+  let normalizedSeries = 0.5; // Default middle score
+  
+  const seriesValue = getSeriesComparisonValue(series);
+  if (seriesValue) {
+    if (seriesValue.type === 'numeric') {
+      normalizedSeries = Math.max(0, (40 - seriesValue.value) / 40);
+    } else if (seriesValue.type === 'letter') {
+      normalizedSeries = Math.max(0, (12 - seriesValue.value) / 12);
+    }
+  }
+  
+  return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
+}
+
 function renderPlayersForManual() {
   const pool = document.getElementById('available-players-pool');
   pool.innerHTML = '';
@@ -389,10 +877,27 @@ function renderPlayersForManual() {
     // Get PTI value, default to 0 if not available
     const ptiValue = player.pti || player.rating || 0;
     
-    playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+    // Check if this is a substitute player
+    const isSubstitute = player.isSubstitute || false;
+    
+    // Base classes for player card
+    let playerCardClasses = 'player-card border rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+    
+    // Add red border for substitute players
+    if (isSubstitute) {
+      playerCardClasses += ' border-red-400 border-2'; // Red border for subs
+    } else {
+      playerCardClasses += ' border-gray-300'; // Normal gray border
+    }
+    
+    playerDiv.className = playerCardClasses;
     playerDiv.dataset.playerName = player.name;
+    playerDiv.dataset.playerId = player.player_id || player.tenniscores_player_id; // Store player ID for accurate PTI lookup
     playerDiv.dataset.playerRating = ptiValue; // Store PTI value instead of just rating
     playerDiv.dataset.playerType = playerType;
+    playerDiv.dataset.isSubstitute = isSubstitute; // Store substitute flag
+    
+    // Player ID is now correctly captured for accurate PTI lookup
     
     // Set background color based on player type
     playerDiv.style.backgroundColor = typeColor;
@@ -409,9 +914,13 @@ function renderPlayersForManual() {
     // Extract last name from full name
     const lastName = player.name.split(' ').pop();
     
+    // Add substitute indicator if applicable
+    const subIndicator = isSubstitute ? '<div class="text-xs text-red-600 font-semibold">SUB</div>' : '';
+    
     playerDiv.innerHTML = `
       <div class="font-medium text-gray-900 text-sm">${lastName}</div>
       <div class="text-xs text-gray-600 mt-1">${ptiValue}${playerType ? ', ' + playerType : ''}</div>
+      ${subIndicator}
     `;
     
     // Debug: Log the player card HTML to console
@@ -556,8 +1065,12 @@ function handleTouchEnd(e) {
       
       // Update manual lineup data
       if (!manualLineup[court]) manualLineup[court] = {};
+      
+      // Player ID is now correctly captured for accurate PTI lookup
+      
       manualLineup[court][position] = {
         name: playerName,
+        player_id: touchedPlayer.dataset.playerId, // Capture player ID for accurate PTI lookup
         rating: touchedPlayer.dataset.playerRating
       };
       
@@ -647,8 +1160,12 @@ function handleDrop(e) {
     
     // Update manual lineup data
     if (!manualLineup[court]) manualLineup[court] = {};
+    
+    // Player ID is now correctly captured for accurate PTI lookup
+    
     manualLineup[court][position] = {
       name: playerName,
+      player_id: draggedPlayer.dataset.playerId, // Capture player ID for accurate PTI lookup
       rating: draggedPlayer.dataset.playerRating
     };
     
@@ -743,14 +1260,16 @@ function updateManualLineupSummary() {
     }
     
     const avgPTI = playerCount > 0 ? (totalPTI / playerCount).toFixed(1) : '--';
+    const totalPTIFormatted = playerCount > 0 ? totalPTI.toFixed(1) : '--';
     
     // Add court header with PTI information
-    lineupText += `Court ${court}: (Avg PTI: ${avgPTI})<br>`;
+    lineupText += `Court ${court}:<br>(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})<br>`;
     
     if (player1 && player2) {
       const p1PTI = parseFloat(player1.rating || 0);
       const p2PTI = parseFloat(player2.rating || 0);
       
+      // Display player names and PTI (player IDs are stored for backend PTI lookup but not shown in UI)
       lineupText += `  ${player1.name} (${p1PTI})<br>  ${player2.name} (${p2PTI})<br>`;
     } else if (player1) {
       const p1PTI = parseFloat(player1.rating || 0);
@@ -832,9 +1351,10 @@ function updateCourtPTIAverages() {
     // Update the display
     if (playerCount > 0) {
       const avgPTI = (totalPTI / playerCount).toFixed(1);
-      courtElement.textContent = `(Avg PTI: ${avgPTI})`;
+      const totalPTIFormatted = totalPTI.toFixed(1);
+      courtElement.textContent = `(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`;
     } else {
-      courtElement.textContent = `(Avg PTI: --)`;
+      courtElement.textContent = `(Avg PTI: --, Total PTI: --)`;
     }
   }
 }
@@ -887,6 +1407,13 @@ async function saveEditedLineup(lineupText) {
     sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving Changes...';
     sendButton.disabled = true;
     
+    // Create enhanced lineup data with player IDs for accurate PTI lookup
+    const enhancedLineupData = {
+      display_text: lineupText,
+      player_data: manualLineup, // Contains player IDs for accurate PTI lookup
+      version: '2.0' // Version to distinguish from old format
+    };
+    
     // Update the lineup in the database
     const response = await fetch('/api/saved-lineups', {
       method: 'PUT',
@@ -896,7 +1423,7 @@ async function saveEditedLineup(lineupText) {
       body: JSON.stringify({
         lineup_id: parseInt(editLineupId),
         lineup_name: editLineupName,
-        lineup_data: lineupText,
+        lineup_data: JSON.stringify(enhancedLineupData), // Store as JSON string
         team_id: teamId
       })
     });
@@ -1060,6 +1587,7 @@ function handleCourtPositionTap(e) {
     if (!manualLineup[court]) manualLineup[court] = {};
     manualLineup[court][position] = {
       name: selectedPlayerForTap,
+      player_id: selectedPlayerElement.dataset.playerId, // Store player ID for accurate PTI lookup
       rating: selectedPlayerElement.dataset.playerRating
     };
     
@@ -1123,6 +1651,43 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Manual mode navigation
   document.getElementById('manual-send').onclick = sendManualLineup;
+  
+  // Add subs button event handler
+  const addSubsBtn = document.getElementById('add-subs-btn');
+  if (addSubsBtn) {
+    addSubsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openSubsModal();
+    });
+  }
+  
+  // Modal event handlers
+  const closeSubsModalBtn = document.getElementById('close-subs-modal');
+  const cancelSubsModalBtn = document.getElementById('cancel-subs-modal');
+  const addSelectedSubsBtn = document.getElementById('add-selected-subs');
+  
+  if (closeSubsModalBtn) {
+    closeSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (cancelSubsModalBtn) {
+    cancelSubsModalBtn.addEventListener('click', closeSubsModal);
+  }
+  
+  if (addSelectedSubsBtn) {
+    addSelectedSubsBtn.addEventListener('click', addSelectedSubs);
+  }
+  
+  // Close modal when clicking outside
+  const subsModal = document.getElementById('subs-modal');
+  if (subsModal) {
+    subsModal.addEventListener('click', (e) => {
+      if (e.target === subsModal) {
+        closeSubsModal();
+      }
+    });
+  }
   
   // Clear selection button event handler
   const clearButton = document.getElementById('clear-selection');
@@ -1202,6 +1767,14 @@ async function saveCurrentLineup(e) {
         messageDiv.classList.remove('hidden');
         return;
     }
+    
+    // Create enhanced lineup data with player IDs for accurate PTI lookup
+    const enhancedLineupData = {
+        display_text: lineupText,
+        player_data: manualLineup, // Contains player IDs for accurate PTI lookup
+        version: '2.0' // Version to distinguish from old format
+    };
+    
     try {
         const res = await fetch('/api/saved-lineups', {
             method: 'POST',
@@ -1209,7 +1782,7 @@ async function saveCurrentLineup(e) {
             body: JSON.stringify({
                 team_id: teamId,
                 lineup_name: name,
-                lineup_data: lineupText
+                lineup_data: JSON.stringify(enhancedLineupData) // Store as JSON string
             })
         });
         const data = await res.json();
@@ -1625,6 +2198,7 @@ function assignPlayerToCourt(playerName, courtNum, position) {
 .border-gray-200 { border-color: #e5e7eb; }
 .border-gray-300 { border-color: #d1d5db; }
 .border-green-200 { border-color: #bbf7d0; }
+.border-red-400 { border-color: #f87171; }
 
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }

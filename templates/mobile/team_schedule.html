@@ -50,12 +50,18 @@
         <!-- Header -->
         <div class="bg-white border-b border-gray-100">
             <div class="flex items-center px-4 py-6">
-                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #4f46e5 !important;">
-                    <i class="fas fa-calendar-alt text-white text-lg"></i>
+                <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454 !important;">
+                    <i class="fas fa-calendar-alt text-lg" style="color: #bff863 !important;"></i>
+                </div>
+                <div class="ml-4 flex-1">
+                    <h1 class="text-xl font-bold text-gray-900">Team Availability</h1>
+                    <p class="text-sm text-gray-500">{{ current_team_info.display_name if current_team_info else 'Schedule Analysis' }}</p>
                 </div>
                 <div class="ml-4">
-                    <h1 class="text-xl font-bold text-gray-900">Team Schedule</h1>
-                    <p class="text-sm text-gray-500">{{ current_team_info.display_name if current_team_info else 'Schedule Analysis' }}</p>
+                    <a href="/mobile/team-schedule-grid" class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-colors duration-200" style="background-color: #045454 !important; color: #bff863 !important;" onmouseover="this.style.backgroundColor='#034343'" onmouseout="this.style.backgroundColor='#045454'" onfocus="this.style.outline='2px solid #bff863'" onblur="this.style.outline='none'">
+                        <i class="fas fa-table mr-2"></i>
+                        Grid View
+                    </a>
                 </div>
             </div>
         </div>
@@ -68,7 +74,7 @@
                 <div class="px-6 py-4 border-b border-gray-50 relative">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-filter text-blue-500 mr-2"></i>
-                        Filter Team Schedule
+                        Filter Team Availability
                     </h2>
                 </div>
                 

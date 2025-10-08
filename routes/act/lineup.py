@@ -975,6 +975,16 @@ def init_lineup_routes(app):
                                 if match:
                                     series_number = match.group(1)
                             series_display = f"Series {series_number}" if series_number else series_name
+                            # Look up phone number using our CSV fallback system
+                            from app.routes.api_routes import _load_directory_contact_from_csv
+                            phone_number = ""
+                            try:
+                                contact_info = _load_directory_contact_from_csv(session["user"], player.first_name, player.last_name)
+                                phone_number = contact_info.get("phone", "").strip()
+                            except Exception as e:
+                                print(f"Error looking up phone for {player.first_name} {player.last_name}: {e}")
+                                phone_number = ""
+                            
                             team_data.append({
                                 "team_id": team.id,
                                 "team_name": team.display_name,
@@ -982,7 +992,8 @@ def init_lineup_routes(app):
                                 "club_name": club.name if club else "Unknown Club",
                                 "series_name": series_display,  # Fixed: was series_display, should be series_name
                                 "player_name": f"{player.first_name} {player.last_name}",
-                                "player_id": player.id
+                                "player_id": player.id,
+                                "phone_number": phone_number
                             })
                             seen_teams.add(team.id)
                 return jsonify({
@@ -1032,7 +1043,8 @@ def init_lineup_routes(app):
                         "name": f"{player.first_name} {player.last_name}",
                         "first_name": player.first_name,
                         "last_name": player.last_name,
-                        "rating": player.pti or 0,
+                        "pti": player.pti or 0,  # Add PTI field for frontend compatibility
+                        "rating": player.pti or 0,  # Keep rating for backward compatibility
                         "position_preference": position_preference,
                         "tenniscores_player_id": player.tenniscores_player_id
                     })

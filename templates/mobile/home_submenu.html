@@ -369,6 +369,55 @@
       margin-top: 12px !important;
     }
   }
+  
+  /* Progress bar animation for notifications loading */
+  @keyframes progressBar {
+    0% { width: 0%; }
+    50% { width: 75%; }
+    100% { width: 100%; }
+  }
+  
+  .progress-bar-animated {
+    animation: progressBar 1.5s ease-out forwards;
+    animation-fill-mode: forwards;
+    animation-delay: 0.2s;
+  }
+  
+  /* iOS-style notification badge */
+  .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff3b30;
+    color: white;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+    max-width: 34px;
+    max-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    border: 2px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    z-index: 30;
+    animation: badgePulse 2s infinite;
+    flex-shrink: 0;
+  }
+  
+  .notification-badge.hidden {
+    display: none;
+  }
+  
+  @keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
 </style>
 
 <div class="container mx-auto px-4 py-6" style="padding-bottom: 300px;">
@@ -531,11 +580,13 @@
   <!-- Notifications Button Container -->
   <div id="notifications-button-container" class="flex justify-center mb-6 mt-1">
     <button id="notifications-button" onclick="toggleNotifications()" 
-            class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+            class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V4a2 2 0 10-4 0v1.341C7.67 7.165 6 9.388 6 12v2.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
       <div class="font-semibold text-lg">Notifications</div>
+      <!-- iOS-style notification badge -->
+      <div id="notification-badge" class="notification-badge hidden">0</div>
     </button>
   </div>
 
@@ -547,10 +598,23 @@
     </div>
     
     <!-- Loading State -->
-    <div id="notifications-loading" class="text-center py-8">
-      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div>
-      <p class="-mt-1 text-gray-600">I'm loading your personalized recommendations.</p>
+    <div id="notifications-loading" class="text-center py-12">
+      <!-- Large, simple spinning circle -->
+      <div class="flex justify-center mb-6">
+        <div class="w-16 h-16 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+      </div>
+      
+      <!-- Simple progress bar -->
+      <div class="w-full max-w-sm mx-auto mb-6">
+        <div class="bg-gray-200 rounded-full h-2 border border-gray-300">
+          <div id="notification-progress-bar" class="bg-rally-teal h-2 rounded-full transition-all duration-100" style="width: 0%;"></div>
+        </div>
+      </div>
+      
+      <!-- Loading text -->
+      <p class="text-lg font-semibold text-gray-700">Loading your notifications...</p>
     </div>
+    
     
     <!-- Empty State (Hidden - we always show notifications) -->
     <div id="notifications-empty" class="text-center py-8 hidden" style="display: none;">
@@ -600,8 +664,7 @@
         <div class="font-semibold text-lg">Prepare</div>
       </button>
       <div id="prepare-submenu" class="submenu">
-        <a href="/mobile/player-search" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16.65" y1="16.65" x2="21" y2="21" stroke="currentColor" stroke-width="2"/></svg><span class="text">Scout Competition</span><span class="arrow">→</span></a>
-        <a href="/mobile/teams-players" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Research Teams</span><span class="arrow">→</span></a>
+        <a href="/mobile/teams-players" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Scout Competition</span><span class="arrow">→</span></a>
         <a href="/mobile/matchup-simulator" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20l16-16" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 16v5h-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Matchup Simulator</span><span class="arrow">→</span></a>
         <!-- PTI Calculator button hidden -->
       </div>
@@ -628,6 +691,28 @@
         <a href="/mobile/schedule-lesson" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 14v7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 19c0-1.657 2.686-3 6-3s6 1.343 6 3" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="text">Schedule Lesson</span><span class="arrow">→</span></a>
       </div>
     </div>
+    <!-- Rally Support Button -->
+    <div class="category-section">
+      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/support'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="font-semibold text-lg">Rally Support</div>
+      </button>
+    </div>
+    
+    <!-- Rally Merch Button -->
+    <div class="category-section">
+      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/swag'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="font-semibold text-lg">Rally Merch</div>
+      </button>
+    </div>
+    
     <!-- Captain's Corner Category -->
     <div class="category-section">
       <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" id="captain-corner-button" onclick="event.stopPropagation(); toggleSubmenu('captain-submenu');">
@@ -635,7 +720,7 @@
         <div class="font-semibold text-lg">Captain's Corner</div>
       </button>
       <div id="captain-submenu" class="submenu">
-        <a href="/mobile/team-schedule" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg><span class="text">Team Schedule</span><span class="arrow">→</span></a>
+        <a href="/mobile/team-schedule-grid" class="submenu-item"><svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg><span class="text">Team Availability</span><span class="arrow">→</span></a>
 
         <a href="/mobile/team-notifications" class="submenu-item">
           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -932,6 +1017,19 @@ async function initializeHomePageNotifications() {
     }
 }
 
+// Update notification badge count
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
+    
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count.toString();
+        badge.classList.remove('hidden');
+    } else {
+        badge.classList.add('hidden');
+    }
+}
+
 function showEmptyState() {
     const container = document.getElementById('notifications-container');
     const empty = document.getElementById('notifications-empty');
@@ -1010,6 +1108,11 @@ function renderNotifications(notifications) {
         notifications.push(installNotification);
     }
     
+    // Update notification badge count AFTER all notifications are added
+    console.log('Total notifications count:', notifications.length);
+    console.log('Notification types:', notifications.map(n => n.type));
+    updateNotificationBadge(notifications.length);
+    
     // Render each notification as detailed card
     console.log('About to render', notifications.length, 'notifications as detailed cards');
     notifications.forEach((notification, index) => {
@@ -1064,7 +1167,7 @@ function createNotificationCard(notification, index) {
                     <h3 class="font-semibold text-gray-900 text-sm mb-1">
                         ${notification.title}
                     </h3>
-                    <div class="text-gray-600 text-sm leading-relaxed mb-2">
+                    <div class="text-gray-600 text-sm leading-relaxed mb-2 whitespace-pre-line">
                         ${notification.type === 'schedule' ? renderScheduleWithWeather(notification) : notification.message}
                     </div>
                     ${notification.cta ? `
@@ -1111,25 +1214,34 @@ function renderScheduleWithWeather(notification) {
     const lines = notification.message.split('\n');
     let html = '';
     
-    lines.forEach(line => {
+    // Process lines in pairs: label line + date line
+    for (let i = 0; i < lines.length; i += 2) {
+        const labelLine = lines[i];
+        const dateLine = lines[i + 1] || '';
+        
         if (notification.weather && typeof notification.weather === 'object') {
-            console.log('🌦️ Processing weather for line:', line);
-            // Extract date and time from the line
+            console.log('🌦️ Processing weather for lines:', labelLine, dateLine);
+            
+            // Extract date and time from the date line
             let eventDate = null;
             let eventType = null;
             
-            // Parse practice line: "Practice: Jul 19 at 6:00 AM"
-            const practiceMatch = line.match(/Practice: (\w+ \d+) at (\d+:\d+ \w+)/);
-            if (practiceMatch) {
-                eventDate = practiceMatch[1]; // "Jul 19"
+            // Parse practice line: "Practice:" + "Jul 19 at 6:00 AM"
+            if (labelLine.match(/Practice:/)) {
                 eventType = 'practice';
+                const practiceDateMatch = dateLine.match(/(\w+ \d+) at (\d+:\d+ \w+)/);
+                if (practiceDateMatch) {
+                    eventDate = practiceDateMatch[1]; // "Jul 19"
+                }
             }
             
-            // Parse match line: "Match: Jul 17 at 6:00 PM vs Winnetka S2B - Series 2B"
-            const matchMatch = line.match(/Match: (\w+ \d+) at (\d+:\d+ \w+)/);
-            if (matchMatch) {
-                eventDate = matchMatch[1]; // "Jul 17"
+            // Parse match line: "Match:" + "Jul 17 at 6:00 PM vs Winnetka S2B"
+            if (labelLine.match(/Match:/)) {
                 eventType = 'match';
+                const matchDateMatch = dateLine.match(/(\w+ \d+) at (\d+:\d+ \w+)/);
+                if (matchDateMatch) {
+                    eventDate = matchDateMatch[1]; // "Jul 17"
+                }
             }
             
             // Find matching weather data by event type and date
@@ -1198,12 +1310,12 @@ function renderScheduleWithWeather(notification) {
                         console.log('🌦️ Creating weather card for:', weatherEntry);
                         // Create horizontal layout with event and weather side by side
                         // Make "Practice:" and "Match:" labels bold
-                        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
-                        html += `<div class="flex items-center gap-3 mb-2">`;
-                        html += `<div class="text-sm flex-1">${boldLine}</div>`;
+                        const boldLabelLine = labelLine.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+                        html += `<div class="flex items-center gap-3 mb-3">`;
+                        html += `<div class="text-sm flex-1"><div class="mb-1">${boldLabelLine}</div><div>${dateLine}</div></div>`;
                         html += generateCompactHorizontalWeatherCard(weatherEntry);
                         html += `</div>`;
-                        return; // Skip the default line rendering below
+                        continue; // Skip the default line rendering below
                     }
                 } else {
                     console.log('🌦️ No matching weather key found for event date:', eventDate);
@@ -1213,9 +1325,14 @@ function renderScheduleWithWeather(notification) {
         
         // Default rendering for lines without weather or non-matching lines
         // Make "Practice:" and "Match:" labels bold
-        const boldLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
-        html += `<div class="text-sm mb-2">${boldLine}</div>`;
-    });
+        const boldLabelLine = labelLine.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
+        html += `<div class="text-sm mb-3">`;
+        html += `<div class="mb-1">${boldLabelLine}</div>`;
+        if (dateLine) {
+            html += `<div>${dateLine}</div>`;
+        }
+        html += `</div>`;
+    }
     
     console.log('🌦️ Final HTML output:', html);
     return html;
@@ -1481,7 +1598,7 @@ function generateCompactHorizontalWeatherCard(forecast) {
     }
 
                 const weatherCardHtml = `
-                <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1 h-[80px]" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; background-color: #797979 !important;">
+                <div class="flex items-center gap-2 border ${borderColor} rounded-lg px-2 py-1" style="width: 120px !important; min-width: 120px !important; max-width: 120px !important; height: 80px !important; min-height: 80px !important; max-height: 80px !important; background-color: #797979 !important;">
                     <!-- Weather Icon -->
                     <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" style="${iconStyle}" onerror="this.style.display='none'">
                     
@@ -1493,10 +1610,10 @@ function generateCompactHorizontalWeatherCard(forecast) {
                         </div>
                         
                         <!-- Condition and Rain on same line -->
-                        <div class="text-xs text-white capitalize flex items-center gap-1">
-                            <span>${forecast.condition}</span>
+                        <div class="text-xs text-white capitalize flex items-center gap-1 whitespace-nowrap overflow-hidden">
+                            <span class="truncate">${forecast.condition}</span>
                             ${precip > 0 ? `
-                                <span>💧 ${precip}%</span>
+                                <span class="flex-shrink-0">💧 ${precip}%</span>
                             ` : ''}
                         </div>
                     </div>
@@ -1569,6 +1686,8 @@ function getNotificationIcon(type) {
         'team': trophyIcon,            // Team notifications (position) use trophy icon
         'schedule': scheduleIcon,      // Schedule notifications use calendar with clock icon
         'poll': teamPollIcon,          // Team poll notifications use survey icon
+        'food': `<i class="fas fa-utensils text-gray-700" style="font-size: 20px;"></i>`,  // Food notifications use FontAwesome utensils icon
+        'beer': `<i class="fas fa-beer text-gray-700" style="font-size: 20px;"></i>`,  // Beer notifications use FontAwesome beer icon
         'install': `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2"/>
         </svg>`  // Install notifications use download/install icon
@@ -1584,7 +1703,8 @@ function getNotificationBgColor(type) {
         'result': 'bg-green-500',
         'personal': 'bg-orange-500',
         'team': 'bg-indigo-500',
-        'schedule': 'bg-teal-500'
+        'schedule': 'bg-teal-500',
+        'food': 'bg-amber-500'
     };
     
     return colors[type] || 'bg-gray-500';
@@ -2060,5 +2180,40 @@ function switchToColumnLayout() {
     // Navigate to column layout (current page - primary layout)
     window.location.href = '/mobile';
 }
+
+// Simple progress bar animation - always runs on page load
+function animateProgressBar() {
+    const progressBar = document.getElementById('notification-progress-bar');
+    if (!progressBar) {
+        console.log('Progress bar element not found');
+        return;
+    }
+    
+    console.log('Starting progress bar animation');
+    progressBar.style.width = '0%';
+    progressBar.style.backgroundColor = '#14b8a6'; // Rally teal color
+    progressBar.style.boxShadow = '0 0 8px rgba(20, 184, 166, 0.4)'; // Teal glow
+    
+    let width = 0;
+    const interval = setInterval(() => {
+        if (width >= 100) {
+            clearInterval(interval);
+            console.log('Progress bar animation completed');
+            return;
+        }
+        width += 2; // Faster animation
+        progressBar.style.width = width + '%';
+        console.log('Progress bar width:', width + '%');
+    }, 30); // 30ms * 50 = 1500ms = 1.5 seconds
+}
+
+// Start animation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, starting progress bar animation');
+    setTimeout(animateProgressBar, 500); // Start after 500ms delay
+    
+    // Load notifications on page load to show badge
+    initializeHomePageNotifications();
+});
 </script>
 {% endblock %} 

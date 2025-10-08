@@ -190,50 +190,66 @@ def validate_stat_data(stat_data):
         if not is_valid:
             errors.append(f"Team: {team_error}")
     
-    # Validate nested objects
-    matches = stat_data.get("matches", {})
-    if not isinstance(matches, dict):
-        errors.append("Invalid matches object")
+    # Validate statistics - handle both detailed and simple formats
+    if "matches" in stat_data and isinstance(stat_data.get("matches"), dict):
+        # Detailed format with nested objects
+        matches = stat_data.get("matches", {})
+        if not isinstance(matches, dict):
+            errors.append("Invalid matches object")
+        else:
+            # Validate match statistics
+            for key in ["won", "lost", "tied"]:
+                if key in matches:
+                    value = matches[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid matches.{key}: {value} (must be non-negative number)")
+        
+        lines = stat_data.get("lines", {})
+        if not isinstance(lines, dict):
+            errors.append("Invalid lines object")
+        else:
+            # Validate line statistics
+            for key in ["won", "lost"]:
+                if key in lines:
+                    value = lines[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid lines.{key}: {value} (must be non-negative number)")
+        
+        sets = stat_data.get("sets", {})
+        if not isinstance(sets, dict):
+            errors.append("Invalid sets object")
+        else:
+            # Validate set statistics
+            for key in ["won", "lost"]:
+                if key in sets:
+                    value = sets[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid sets.{key}: {value} (must be non-negative number)")
+        
+        games = stat_data.get("games", {})
+        if not isinstance(games, dict):
+            errors.append("Invalid games object")
+        else:
+            # Validate game statistics
+            for key in ["won", "lost"]:
+                if key in games:
+                    value = games[key]
+                    if not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"Invalid games.{key}: {value} (must be non-negative number)")
     else:
-        # Validate match statistics
-        for key in ["won", "lost", "tied"]:
-            if key in matches:
-                value = matches[key]
+        # Simple format with wins/losses at top level
+        for key in ["wins", "losses", "tied"]:
+            if key in stat_data:
+                value = stat_data[key]
                 if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid matches.{key}: {value} (must be non-negative number)")
-    
-    lines = stat_data.get("lines", {})
-    if not isinstance(lines, dict):
-        errors.append("Invalid lines object")
-    else:
-        # Validate line statistics
-        for key in ["won", "lost"]:
-            if key in lines:
-                value = lines[key]
+                    errors.append(f"Invalid {key}: {value} (must be non-negative number)")
+        
+        # Validate optional detailed fields if present
+        for key in ["lines_won", "lines_lost", "sets_won", "sets_lost", "games_won", "games_lost"]:
+            if key in stat_data:
+                value = stat_data[key]
                 if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid lines.{key}: {value} (must be non-negative number)")
-    
-    sets = stat_data.get("sets", {})
-    if not isinstance(sets, dict):
-        errors.append("Invalid sets object")
-    else:
-        # Validate set statistics
-        for key in ["won", "lost"]:
-            if key in sets:
-                value = sets[key]
-                if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid sets.{key}: {value} (must be non-negative number)")
-    
-    games = stat_data.get("games", {})
-    if not isinstance(games, dict):
-        errors.append("Invalid games object")
-    else:
-        # Validate game statistics
-        for key in ["won", "lost"]:
-            if key in games:
-                value = games[key]
-                if not isinstance(value, (int, float)) or value < 0:
-                    errors.append(f"Invalid games.{key}: {value} (must be non-negative number)")
+                    errors.append(f"Invalid {key}: {value} (must be non-negative number)")
     
     return len(errors) == 0, errors
 
@@ -544,14 +560,15 @@ def upsert_stat(cur, league_id, stat_data):
     series_name = stat_data.get("series", "").strip()
     team_name = stat_data.get("team", "").strip()
     
-    # Parse team name to get club and series
+    # Parse team name to get club and team identifier
     club_name, parsed_series_name, team_number = parse_team_name(team_name)
-    if not all([club_name, parsed_series_name]):
-        return None, f"team_parsing_failed: could not extract club/series from '{team_name}'"
+    if not club_name:
+        return None, f"team_parsing_failed: could not extract club from '{team_name}'"
     
-    # Use the series from the data, not the parsed one
+    # For CNSWPL and other leagues, always use the series from JSON data, not parsed from team name
+    # The team name parsing is used only to extract the club name and team identifier
     if series_name != parsed_series_name:
-        print(f"  ⚠️ Series mismatch: data has '{series_name}', parsed '{parsed_series_name}' from team '{team_name}'")
+        print(f"  ⚠️ Series mismatch: data has '{series_name}', parsed '{parsed_series_name}' from team '{team_name}' - using data series")
     
     try:
         # Ensure team exists (create if needed)
@@ -572,17 +589,32 @@ def upsert_stat(cur, league_id, stat_data):
         if not series_id:
             return None, f"series_creation_failed: could not create series '{series_name}'"
         
-        # Extract stat values
+        # Extract stat values - handle both detailed and simple formats
         points = stat_data.get("points")
-        matches_won = stat_data.get("matches", {}).get("won")
-        matches_lost = stat_data.get("matches", {}).get("lost")
-        matches_tied = stat_data.get("matches", {}).get("tied")
-        lines_won = stat_data.get("lines", {}).get("won")
-        lines_lost = stat_data.get("lines", {}).get("lost")
-        sets_won = stat_data.get("sets", {}).get("won")
-        sets_lost = stat_data.get("sets", {}).get("lost")
-        games_won = stat_data.get("games", {}).get("won")
-        games_lost = stat_data.get("games", {}).get("lost")
+        
+        # Check if we have detailed stats (nested objects) or simple stats (flat structure)
+        if "matches" in stat_data and isinstance(stat_data.get("matches"), dict):
+            # Detailed format with nested objects
+            matches_won = stat_data.get("matches", {}).get("won")
+            matches_lost = stat_data.get("matches", {}).get("lost")
+            matches_tied = stat_data.get("matches", {}).get("tied")
+            lines_won = stat_data.get("lines", {}).get("won")
+            lines_lost = stat_data.get("lines", {}).get("lost")
+            sets_won = stat_data.get("sets", {}).get("won")
+            sets_lost = stat_data.get("sets", {}).get("lost")
+            games_won = stat_data.get("games", {}).get("won")
+            games_lost = stat_data.get("games", {}).get("lost")
+        else:
+            # Simple format with wins/losses at top level
+            matches_won = stat_data.get("wins")
+            matches_lost = stat_data.get("losses")
+            matches_tied = stat_data.get("tied", 0)  # Default to 0 if not present
+            lines_won = stat_data.get("lines_won", 0)  # Default to 0 if not present
+            lines_lost = stat_data.get("lines_lost", 0)  # Default to 0 if not present
+            sets_won = stat_data.get("sets_won", 0)  # Default to 0 if not present
+            sets_lost = stat_data.get("sets_lost", 0)  # Default to 0 if not present
+            games_won = stat_data.get("games_won", 0)  # Default to 0 if not present
+            games_lost = stat_data.get("games_lost", 0)  # Default to 0 if not present
         
         # Handle None values by converting to 0 for database
         points = points if points is not None else 0
@@ -637,39 +669,40 @@ def upsert_stat(cur, league_id, stat_data):
                 else:  # INSERT
                     return result[0], "inserted"
         else:
-            # Check for existing stat record
-            existing_id = check_existing_stat(cur, league_id, team_id, series_name)
+            # Use UPSERT with the unique constraint (league_id, series, team)
+            cur.execute("""
+                INSERT INTO series_stats (league_id, series_id, team_id, series, team, points,
+                                        matches_won, matches_lost, matches_tied, 
+                                        lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (league_id, series, team)
+                DO UPDATE SET 
+                    series_id = EXCLUDED.series_id, 
+                    team_id = EXCLUDED.team_id,
+                    points = EXCLUDED.points,
+                    matches_won = EXCLUDED.matches_won,
+                    matches_lost = EXCLUDED.matches_lost,
+                    matches_tied = EXCLUDED.matches_tied,
+                    lines_won = EXCLUDED.lines_won,
+                    lines_lost = EXCLUDED.lines_lost,
+                    sets_won = EXCLUDED.sets_won,
+                    sets_lost = EXCLUDED.sets_lost,
+                    games_won = EXCLUDED.games_won,
+                    games_lost = EXCLUDED.games_lost
+                RETURNING id
+            """, (league_id, series_id, team_id, series_name, team_name, points,
+                  matches_won, matches_lost, matches_tied,
+                  lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost))
             
-            if existing_id:
-                # Update existing record
-                cur.execute("""
-                    UPDATE series_stats 
-                    SET series_id = %s, series = %s, team = %s, points = %s, 
-                        matches_won = %s, matches_lost = %s, matches_tied = %s,
-                        lines_won = %s, lines_lost = %s, sets_won = %s, sets_lost = %s, 
-                        games_won = %s, games_lost = %s
-                    WHERE id = %s
-                    RETURNING id
-                """, (series_id, series_name, team_name, points, matches_won, matches_lost, matches_tied,
-                      lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost, existing_id))
-                return existing_id, "updated"
-            else:
-                # Insert new record
-                cur.execute("""
-                    INSERT INTO series_stats (series, team, points, matches_won, matches_lost, matches_tied,
-                                            lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost,
-                                            league_id, team_id, series_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (series_name, team_name, points, matches_won, matches_lost, matches_tied,
-                      lines_won, lines_lost, sets_won, sets_lost, games_won, games_lost,
-                      league_id, team_id, series_id))
-                
-                result = cur.fetchone()
-                if result:
+            result = cur.fetchone()
+            if result:
+                # Check if this was an insert or update by looking at the row count
+                if cur.rowcount == 1:
                     return result[0], "inserted"
                 else:
-                    return None, "insert_failed"
+                    return result[0], "updated"
+            else:
+                return None, "upsert_failed"
         
     except Exception as e:
         raise Exception(f"Failed to upsert stat for team '{team_name}', series '{series_name}': {e}")

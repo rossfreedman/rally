@@ -343,7 +343,7 @@ def create_enhanced_scraper_config():
     }
     
     # Save configuration
-    config_file = "data/etl/scrapers/delta_scraper_config.json"
+    config_file = "data/etl/scrapers/helpers/delta_scraper_config.json"
     os.makedirs(os.path.dirname(config_file), exist_ok=True)
     
     with open(config_file, 'w') as f:

@@ -83,7 +83,7 @@ def should_preserve_session_context(user_email: str, current_session: dict) -> b
     """
     try:
         # Get current league_context from database
-        from database import execute_query_one
+        # execute_query_one is already imported at module level
         db_user_info = execute_query_one("SELECT league_context FROM users WHERE email = %s", [user_email])
         db_league_context = db_user_info.get("league_context") if db_user_info else None
         
@@ -501,7 +501,9 @@ def serve_mobile_player_detail(player_id):
                 player_record = execute_query_one(player_query, [actual_player_id])
         
         if player_record:
-            player_name = player_record["full_name"]
+            # Format name as "First Last" for display
+            full_name = player_record["full_name"]
+            player_name = full_name
             print(f"[DEBUG] Found player record: {player_name} (ID: {actual_player_id}, Team: {team_id})")
             # Use the team_id from the database record if not explicitly provided
             if not team_id:
@@ -528,8 +530,21 @@ def serve_mobile_player_detail(player_id):
         name_parts = player_name.strip().split()
         
         if len(name_parts) >= 2:
-            first_name = name_parts[0]
-            last_name = " ".join(name_parts[1:])
+            # Check if this is "Last, First" format (comma-separated)
+            if ',' in player_name:
+                # Handle "Last, First" format
+                name_sections = player_name.split(',')
+                if len(name_sections) == 2:
+                    last_name = name_sections[0].strip()
+                    first_name = name_sections[1].strip()
+                else:
+                    # Fallback to space splitting if comma format is malformed
+                    first_name = name_parts[0]
+                    last_name = " ".join(name_parts[1:])
+            else:
+                # Handle "First Last" format
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
             
             # For name-based lookups, prefer player in viewer's league with recent activity
             if league_id_int:
@@ -563,6 +578,8 @@ def serve_mobile_player_detail(player_id):
             if name_record:
                 actual_player_id = name_record["tenniscores_player_id"]
                 team_id = name_record.get("team_id")
+                # Convert to "First Last" format for display
+                player_name = f"{first_name} {last_name}"
                 print(f"[DEBUG] Name lookup found player_id {actual_player_id} with team_id {team_id}")
             else:
                 print(f"[DEBUG] No player record found for name: {player_name}")
@@ -596,42 +613,6 @@ def serve_mobile_player_detail(player_id):
                 player_league_id = fallback_record["league_id"]
                 print(f"[DEBUG] Using fallback player league: {player_league_id}")
         
-        # Create a user dict with the specific player ID and team context
-        player_user_dict = {
-            "first_name": player_name.split()[0] if player_name else "",
-            "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
-            "tenniscores_player_id": actual_player_id,
-            "league_id": player_league_id,  # Use target player's league, not viewing user's
-            "email": viewing_user.get("email", "")
-        }
-        
-        # Add team context for filtering and substitute detection
-        if team_id:
-            player_user_dict["team_context"] = team_id
-            player_user_dict["team_id"] = str(team_id)  # Add team_id for substitute detection
-            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
-        else:
-            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
-        
-        # Import the direct player analysis function
-        from app.services.mobile_service import get_player_analysis
-        analyze_data = get_player_analysis(player_user_dict)
-        
-        # DEBUG: Print court analysis data for Joel Braunstein specifically
-        if analyze_data and 'court_analysis' in analyze_data:
-            court_analysis = analyze_data['court_analysis']
-            print(f"\n🔍 DEBUG PLAYER DETAIL: Court analysis for {actual_player_id}")
-            for court_name, court_data in court_analysis.items():
-                partners = court_data.get('topPartners', [])
-                print(f"  {court_name}: {len(partners)} partners")
-                for partner in partners:
-                    if 'Joel' in partner.get('name', '') and 'Braunstein' in partner.get('name', ''):
-                        print(f"    >>> JOEL FOUND: {partner}")
-                        print(f"        matches: {partner.get('matches')}")
-                        print(f"        wins: {partner.get('wins')}")
-                        print(f"        losses: {partner.get('losses')}")
-                        print(f"        winRate: {partner.get('winRate')}")
-            print("🔍 DEBUG PLAYER DETAIL: End court analysis\n")
     else:
         # Final fallback to name-based analysis
         from app.services.mobile_service import get_player_analysis_by_name
@@ -712,6 +693,32 @@ def serve_mobile_player_detail(player_id):
                 "series": formatted_series, 
                 "team_name": player_record["team_name"]
             }
+
+    # Create a user dict with the specific player ID and team context for PTI delta calculation
+    player_user_dict = {
+        "first_name": player_name.split()[0] if player_name else "",
+        "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
+        "tenniscores_player_id": actual_player_id,
+        "league_id": player_league_id,  # Use target player's league, not viewing user's
+        "email": viewing_user.get("email", "")
+    }
+    
+    # Add team context for filtering and substitute detection
+    if team_id:
+        player_user_dict["team_context"] = team_id
+        player_user_dict["team_id"] = str(team_id)  # Add team_id for substitute detection
+        print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
+    else:
+        print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
+    
+    # Add club and series information for PTI delta calculation
+    if 'player_info' in locals() and player_info:
+        player_user_dict["club"] = player_info.get("club", "")
+        player_user_dict["series"] = player_info.get("series", "")
+        print(f"[DEBUG] Player detail - Added club '{player_user_dict['club']}' and series '{player_user_dict['series']}' for PTI delta calculation")
+    
+    # Get player analysis data with PTI delta calculation
+    analyze_data = get_player_analysis(player_user_dict)
 
     # PTI data is now handled within the service function with proper league filtering
 
@@ -1784,6 +1791,26 @@ def get_player_season_history(player_name):
 
         player_name = unquote(player_name)
 
+        # Parse player name to handle both "First Last" and "Last, First" formats
+        first_name = None
+        last_name = None
+        
+        if ',' in player_name:
+            # Handle "Last, First" format
+            name_sections = player_name.split(',')
+            if len(name_sections) == 2:
+                last_name = name_sections[0].strip()
+                first_name = name_sections[1].strip()
+        else:
+            # Handle "First Last" format
+            name_parts = player_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
+        
+        if not first_name or not last_name:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+
         # Find the player in the database by name, prioritizing the one with PTI history
         player_query = """
             SELECT 
@@ -1797,11 +1824,11 @@ def get_player_season_history(player_name):
                 (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
-            WHERE CONCAT(p.first_name, ' ', p.last_name) = %s
+            WHERE p.first_name = %s AND p.last_name = %s
             ORDER BY history_count DESC, p.id DESC
             LIMIT 1
         """
-        player_data = execute_query_one(player_query, [player_name])
+        player_data = execute_query_one(player_query, [first_name, last_name])
 
         if not player_data:
             print(f"[DEBUG] Player Season History - Player '{player_name}' not found in database")
@@ -2087,6 +2114,279 @@ def get_player_season_history(player_name):
 
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to fetch season history"}), 500
+
+
+@mobile_bp.route("/impersonate")
+@login_required
+def serve_impersonate():
+    """Serve the team impersonation page"""
+    try:
+        user = session["user"]
+        user_email = user["email"]
+        
+        # Get user's current team context
+        team_id = user.get("team_id")
+        if not team_id:
+            return render_template("mobile/impersonate.html", 
+                                 error="No team context found. Please ensure you're properly associated with a team.",
+                                 team_members=[])
+        
+        # Get team members for impersonation
+        team_members = get_team_members_for_impersonation(team_id, user_email)
+        
+        return render_template("mobile/impersonate.html", 
+                             team_members=team_members,
+                             current_user_email=user_email)
+        
+    except Exception as e:
+        print(f"Error in serve_impersonate: {e}")
+        return render_template("mobile/impersonate.html", 
+                             error="Failed to load team members",
+                             team_members=[])
+
+
+def get_team_members_for_impersonation(team_id, current_user_email):
+    """Get team members that can be impersonated by the current user"""
+    try:
+        query = """
+            SELECT DISTINCT
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name,
+                p.tenniscores_player_id,
+                p.team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE p.team_id = %s
+            AND p.is_active = TRUE
+            AND u.email != %s
+            ORDER BY u.first_name, u.last_name
+        """
+        
+        results = execute_query(query, [team_id, current_user_email])
+        
+        team_members = []
+        for row in results:
+            team_members.append({
+                "id": row["id"],
+                "email": row["email"],
+                "first_name": row["first_name"],
+                "last_name": row["last_name"],
+                "tenniscores_player_id": row["tenniscores_player_id"],
+                "team_id": row["team_id"],
+                "team_name": row["team_name"],
+                "club_name": row["club_name"],
+                "series_name": row["series_name"],
+                "league_name": row["league_name"],
+                "display_name": f"{row['first_name']} {row['last_name']} ({row['email']})"
+            })
+        
+        return team_members
+        
+    except Exception as e:
+        print(f"Error getting team members for impersonation: {e}")
+        return []
+
+
+@mobile_bp.route("/api/team-impersonation/start", methods=["POST"])
+@login_required
+def start_team_impersonation():
+    """Start impersonating a team member"""
+    try:
+        data = request.get_json()
+        target_email = data.get("user_email")
+        target_player_id = data.get("tenniscores_player_id")
+        
+        if not target_email:
+            return jsonify({"error": "User email is required"}), 400
+        
+        # Get current user's team context
+        current_user = session["user"]
+        current_team_id = current_user.get("team_id")
+        current_user_email = current_user["email"]
+        
+        if not current_team_id:
+            return jsonify({"error": "No team context found"}), 400
+        
+        # Verify the target user is on the same team
+        target_user_query = """
+            SELECT DISTINCT
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name,
+                u.is_admin,
+                p.tenniscores_player_id,
+                p.team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.email = %s
+            AND p.team_id = %s
+            AND p.is_active = TRUE
+        """
+        
+        target_user = execute_query_one(target_user_query, [target_email, current_team_id])
+        
+        if not target_user:
+            return jsonify({"error": "User not found on your team"}), 404
+        
+        # Prevent impersonating admins
+        if target_user.get("is_admin"):
+            return jsonify({"error": "Cannot impersonate admin users"}), 403
+        
+        # Prevent self-impersonation
+        if target_email == current_user_email:
+            return jsonify({"error": "Cannot impersonate yourself"}), 400
+        
+        # Backup current session
+        original_session = {
+            "user": current_user,
+            "impersonation_active": False
+        }
+        
+        # Build target user session data
+        from app.services.session_service import get_session_data_for_user_team
+        
+        target_session_data = get_session_data_for_user_team(target_email, current_team_id)
+        
+        if not target_session_data:
+            return jsonify({"error": "Failed to build session data for target user"}), 500
+        
+        # Store impersonation state
+        session["impersonation_active"] = True
+        session["original_user_session"] = original_session
+        session["impersonated_user_email"] = target_email
+        session["impersonated_player_id"] = target_player_id
+        session["impersonation_type"] = "team"  # Distinguish from admin impersonation
+        
+        # Replace current session with target user's session
+        session["user"] = target_session_data
+        session.modified = True
+        
+        # Log the impersonation
+        log_user_activity(
+            current_user_email,
+            "team_impersonation",
+            action="start_impersonation",
+            details=f"Started impersonating team member: {target_email} ({target_user['first_name']} {target_user['last_name']})"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully started impersonating {target_user['first_name']} {target_user['last_name']}",
+            "impersonated_user": {
+                "email": target_email,
+                "first_name": target_user["first_name"],
+                "last_name": target_user["last_name"],
+                "team_name": target_user["team_name"],
+                "club_name": target_user["club_name"],
+                "series_name": target_user["series_name"]
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in start_team_impersonation: {e}")
+        return jsonify({"error": f"Failed to start impersonation: {str(e)}"}), 500
+
+
+@mobile_bp.route("/api/team-impersonation/stop", methods=["POST"])
+@login_required
+def stop_team_impersonation():
+    """Stop team impersonation and restore original session"""
+    try:
+        # Check if currently impersonating
+        if not session.get("impersonation_active") or session.get("impersonation_type") != "team":
+            return jsonify({"error": "Not currently impersonating a team member"}), 400
+        
+        # Get original session
+        original_session = session.get("original_user_session")
+        impersonated_email = session.get("impersonated_user_email")
+        
+        if not original_session:
+            return jsonify({"error": "Original session not found"}), 500
+        
+        # Restore original session
+        session["user"] = original_session["user"]
+        
+        # Clear impersonation state
+        session.pop("impersonation_active", None)
+        session.pop("original_user_session", None)
+        session.pop("impersonated_user_email", None)
+        session.pop("impersonated_player_id", None)
+        session.pop("impersonation_type", None)
+        session.modified = True
+        
+        # Log the impersonation stop
+        current_user_email = session["user"]["email"]
+        log_user_activity(
+            current_user_email,
+            "team_impersonation",
+            action="stop_impersonation",
+            details=f"Stopped impersonating team member: {impersonated_email}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully stopped impersonation and restored your session"
+        })
+        
+    except Exception as e:
+        print(f"Error in stop_team_impersonation: {e}")
+        return jsonify({"error": f"Failed to stop impersonation: {str(e)}"}), 500
+
+
+@mobile_bp.route("/api/team-impersonation/status")
+@login_required
+def get_team_impersonation_status():
+    """Get current team impersonation status"""
+    try:
+        is_impersonating = session.get("impersonation_active", False)
+        impersonation_type = session.get("impersonation_type")
+        
+        if is_impersonating and impersonation_type == "team":
+            impersonated_email = session.get("impersonated_user_email")
+            current_user = session["user"]
+            
+            return jsonify({
+                "is_impersonating": True,
+                "impersonation_type": "team",
+                "impersonated_user": {
+                    "email": impersonated_email,
+                    "first_name": current_user.get("first_name"),
+                    "last_name": current_user.get("last_name"),
+                    "team_name": current_user.get("team_name"),
+                    "club_name": current_user.get("club"),
+                    "series_name": current_user.get("series")
+                }
+            })
+        else:
+            return jsonify({
+                "is_impersonating": False,
+                "impersonation_type": None
+            })
+            
+    except Exception as e:
+        print(f"Error in get_team_impersonation_status: {e}")
+        return jsonify({"error": f"Failed to get impersonation status: {str(e)}"}), 500
 
 
 @mobile_bp.route("/mobile/my-team")
@@ -2391,6 +2691,7 @@ def mobile_teams_players():
             "selected_team": data.get("selected_team"),
             "selected_team_id": data.get("selected_team_id"),
             "team_analysis_data": data.get("team_analysis_data"),
+            "team_roster": data.get("team_roster", []),  # Add team roster data
             "error": data.get("error")
         }
 
@@ -3618,7 +3919,9 @@ def get_pros_team_details():
                    CONCAT(p.first_name, ' ', p.last_name) as full_name
             FROM players p
             WHERE p.team_id = %s AND p.is_active = true
-            ORDER BY p.last_name, p.first_name
+            ORDER BY 
+                CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                p.last_name, p.first_name
         """
         
         players = execute_query(players_query, [team_id])
@@ -4023,6 +4326,51 @@ def serve_mobile_team_schedule():
             "mobile/team_schedule.html",
             session_data=session_data,
             error="An error occurred while loading the team schedule",
+        )
+
+
+@mobile_bp.route("/mobile/team-schedule-grid")
+@login_required
+def serve_mobile_team_schedule_grid():
+    """Serve the team schedule grid page showing all players and their availability"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        club_name = user.get("club")
+        series = user.get("series")
+
+        if not club_name or not series:
+            return render_template(
+                "mobile/team_schedule_grid.html",
+                session_data={"user": user},
+                error="Please set your club and series in your profile settings",
+            )
+
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_team_schedule_grid"
+        )
+
+        return render_template(
+            "mobile/team_schedule_grid.html", team=team_name, session_data={"user": user}
+        )
+
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_team_schedule_grid: {str(e)}")
+        import traceback
+
+        print(traceback.format_exc())
+
+        session_data = {"user": session.get("user"), "authenticated": True}
+
+        return render_template(
+            "mobile/team_schedule_grid.html",
+            session_data=session_data,
+            error="An error occurred while loading the team schedule grid",
         )
 
 
@@ -4453,6 +4801,293 @@ def send_share_rally_mms():
         return jsonify({"success": False, "error": "An error occurred while sending the invitation"}), 500
 
 
+@mobile_bp.route("/mobile/support")
+def serve_mobile_support():
+    """Serve the mobile Support page - accessible to both authenticated and unauthenticated users"""
+    try:
+        # Check if user is authenticated
+        if "user" in session:
+            session_data = {"user": session["user"], "authenticated": True}
+            log_user_activity(
+                session["user"]["email"], "page_visit", page="mobile_support"
+            )
+        else:
+            # For unauthenticated users, create minimal session data
+            session_data = {"user": None, "authenticated": False}
+
+        return render_template("mobile/support.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving support page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/swag")
+def serve_mobile_swag():
+    """Serve the mobile SWAG (merchandise) page - accessible to both authenticated and unauthenticated users"""
+    try:
+        # Check if user is authenticated
+        if "user" in session:
+            session_data = {"user": session["user"], "authenticated": True}
+            log_user_activity(
+                session["user"]["email"], "page_visit", page="mobile_swag"
+            )
+        else:
+            # For unauthenticated users, create minimal session data
+            session_data = {"user": None, "authenticated": False}
+
+        return render_template("mobile/swag.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving swag page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/api/support", methods=["POST"])
+def send_support_request():
+    """Send support request SMS to admin - accessible to both authenticated and unauthenticated users"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        user_name = data.get("user_name", "").strip()
+        message = data.get("message", "").strip()
+        user_phone = data.get("user_phone", "").strip()  # For unauthenticated users
+        
+        # Validate required fields
+        if not user_name:
+            return jsonify({"success": False, "error": "Your name is required"}), 400
+        
+        if not message:
+            return jsonify({"success": False, "error": "Message is required"}), 400
+        
+        # Determine user email and authentication status
+        if "user" in session:
+            # Authenticated user
+            sender_email = session['user']['email']
+            sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+            # Get phone number from session data for authenticated users
+            user_phone = session['user'].get('phone_number', '').strip()
+            is_authenticated = True
+        else:
+            # Unauthenticated user
+            if not user_phone:
+                return jsonify({"success": False, "error": "Phone number is required"}), 400
+            sender_email = "No email provided"  # Default since we removed email requirement
+            sender_name = user_name
+            is_authenticated = False
+        
+        # Gather user context information for authenticated users
+        user_context_info = ""
+        if is_authenticated:
+            try:
+                from database_utils import execute_query_one
+                
+                # Get user's current team context from session
+                user_data = session.get('user', {})
+                
+                # Build context string with available data
+                context_parts = []
+                
+                # League information - try multiple field names
+                league_name = user_data.get('league_name') or user_data.get('league_string_id')
+                if league_name and league_name.strip():
+                    context_parts.append(f"League: {league_name}")
+                
+                # Club information
+                club = user_data.get('club')
+                if club and club.strip():
+                    context_parts.append(f"Club: {club}")
+                
+                # Series information
+                series = user_data.get('series')
+                if series and series.strip():
+                    context_parts.append(f"Series: {series}")
+                
+                # Team information
+                team_name = user_data.get('team_name')
+                if team_name and team_name.strip():
+                    context_parts.append(f"Team: {team_name}")
+                
+                # Player ID
+                player_id = user_data.get('tenniscores_player_id')
+                if player_id and player_id.strip():
+                    context_parts.append(f"Player ID: {player_id}")
+                
+                # If we have context parts, join them
+                if context_parts:
+                    user_context_info = f" | {' | '.join(context_parts)}"
+                else:
+                    # Fallback: try to get context from database using email
+                    user_email = user_data.get('email')
+                    if user_email:
+                        # Get fresh context from database
+                        context_query = """
+                        SELECT DISTINCT ON (u.id)
+                            l.name as league_name, c.name as club, s.name as series, 
+                            t.name as team_name, p.tenniscores_player_id
+                        FROM users u
+                        LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+                        LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
+                        LEFT JOIN teams t ON p.team_id = t.id
+                        LEFT JOIN clubs c ON p.club_id = c.id
+                        LEFT JOIN series s ON p.series_id = s.id
+                        LEFT JOIN leagues l ON t.league_id = l.id
+                        WHERE u.email = %s
+                        LIMIT 1
+                        """
+                        context_result = execute_query_one(context_query, [user_email])
+                        
+                        if context_result:
+                            fallback_parts = []
+                            if context_result.get('league_name'):
+                                fallback_parts.append(f"League: {context_result['league_name']}")
+                            if context_result.get('club'):
+                                fallback_parts.append(f"Club: {context_result['club']}")
+                            if context_result.get('series'):
+                                fallback_parts.append(f"Series: {context_result['series']}")
+                            if context_result.get('team_name'):
+                                fallback_parts.append(f"Team: {context_result['team_name']}")
+                            if context_result.get('tenniscores_player_id'):
+                                fallback_parts.append(f"Player ID: {context_result['tenniscores_player_id']}")
+                            
+                            if fallback_parts:
+                                user_context_info = f" | {' | '.join(fallback_parts)}"
+                
+            except Exception as e:
+                print(f"Error gathering user context: {str(e)}")
+                user_context_info = " | Error gathering context"
+        
+        # Create the support SMS content
+        auth_status = "Authenticated User" if is_authenticated else "Unauthenticated User"
+        phone_info = f" | Phone: {user_phone}" if user_phone else ""
+        sms_message = f"Rally Support Request from {user_name} ({sender_email}){phone_info}{user_context_info} [{auth_status}]: {message}"
+        
+        # Log the support request (only if we have session data for authenticated users)
+        if is_authenticated:
+            log_user_activity(
+                sender_email, 
+                "support_request", 
+                page="mobile_support", 
+                details={
+                    "user_name": user_name,
+                    "email_address": sender_email,
+                    "phone_number": user_phone or "Not provided",
+                    "message_length": len(message),
+                    "authenticated": True,
+                    "user_context": user_context_info.strip(" | ") if user_context_info else "No context available"
+                }
+            )
+        else:
+            # For unauthenticated users, just log to console
+            print(f"Support request from unauthenticated user: {user_name} | Phone: {user_phone}")
+        
+        # Send the support SMS to admin
+        result = send_sms_notification(
+            to_number="7732138911",  # Admin phone number
+            message=sms_message,
+            test_mode=False
+        )
+        
+        if result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Support request sent successfully! We'll get back to you soon."
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Failed to send support request")
+            }), 400
+    
+    except Exception as e:
+        print(f"Error sending support request: {str(e)}")
+        return jsonify({"success": False, "error": "An error occurred while sending the support request"}), 500
+
+
+@mobile_bp.route("/api/swag-request", methods=["POST"])
+def send_swag_request():
+    """Send swag/merchandise request SMS to admin - accessible to both authenticated and unauthenticated users"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        user_name = data.get("user_name", "").strip()
+        product = data.get("product", "").strip()
+        price = data.get("price", "").strip()
+        notes = data.get("notes", "").strip()
+        user_phone = data.get("user_phone", "").strip()  # For unauthenticated users
+        
+        # Validate required fields
+        if not user_name:
+            return jsonify({"success": False, "error": "Your name is required"}), 400
+        
+        if not product:
+            return jsonify({"success": False, "error": "Product selection is required"}), 400
+        
+        # Determine user email and authentication status
+        if "user" in session:
+            # Authenticated user
+            sender_email = session['user']['email']
+            sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+            # Get phone number from session data for authenticated users
+            user_phone = session['user'].get('phone_number', '').strip()
+            is_authenticated = True
+        else:
+            # Unauthenticated user
+            if not user_phone:
+                return jsonify({"success": False, "error": "Phone number is required"}), 400
+            sender_email = "No email provided"
+            sender_name = user_name
+            is_authenticated = False
+        
+        # Create the swag request SMS content
+        auth_status = "Authenticated User" if is_authenticated else "Unauthenticated User"
+        phone_info = f" | Phone: {user_phone}" if user_phone else ""
+        notes_info = f" | Notes: {notes}" if notes else ""
+        sms_message = f"Rally SWAG Request from {user_name} ({sender_email}){phone_info} [{auth_status}]: Product: {product} ({price}){notes_info}"
+        
+        # Log the swag request (only if we have session data for authenticated users)
+        if is_authenticated:
+            log_user_activity(
+                session["user"]["email"], 
+                "swag_request",
+                metadata={
+                    "user_name": user_name,
+                    "product": product,
+                    "price": price,
+                    "notes": notes,
+                    "phone": user_phone,
+                    "authenticated": True
+                }
+            )
+        else:
+            # For unauthenticated users, just log to console
+            print(f"SWAG request from unauthenticated user: {user_name} | Phone: {user_phone} | Product: {product}")
+        
+        # Send the swag request SMS to admin
+        result = send_sms_notification(
+            to_number="7732138911",  # Admin phone number
+            message=sms_message,
+            test_mode=False
+        )
+        
+        if result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Your {product} request has been sent! We'll reach out shortly to complete your order."
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Failed to send swag request")
+            }), 400
+    
+    except Exception as e:
+        print(f"Error sending swag request: {str(e)}")
+        return jsonify({"success": False, "error": "An error occurred while sending the swag request"}), 500
+
+
 @mobile_bp.route("/mobile/create-team")
 @login_required
 def serve_mobile_create_team():
@@ -4539,7 +5174,9 @@ def serve_mobile_register_my_team():
                     LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
                     LEFT JOIN users u ON upa.user_id = u.id
                     WHERE p.team_id = %s AND p.is_active = true
-                    ORDER BY p.first_name, p.last_name
+                    ORDER BY 
+                        CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                        p.first_name, p.last_name
                 """
                 players_data = execute_query(players_query, [team_id])
 
@@ -4782,7 +5419,9 @@ def get_team_players(team_id):
                     p.tenniscores_player_id
                 FROM players p
                 WHERE p.team_id = %s AND p.is_active = true
-                ORDER BY p.first_name, p.last_name
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.first_name, p.last_name
             """
             players_data = execute_query(players_query, [team_id])
 
@@ -4838,6 +5477,265 @@ def get_team_players(team_id):
 
 # Debug endpoint removed - new AdvancedMatchupSimulator uses sophisticated algorithms
 # instead of the legacy debug functionality
+
+
+@mobile_bp.route("/api/get-series")
+@login_required
+def get_series_for_subs():
+    """Get all series data for substitute player discovery"""
+    try:
+        from app.services.admin_service import get_all_series_with_stats
+        
+        series = get_all_series_with_stats()
+        
+        # Get current user's series
+        current_user_series = session["user"].get("series")
+        
+        # Format the response to match what find-subs expects
+        return jsonify({
+            "all_series_objects": series,
+            "all_series": [s["name"] for s in series],  # Fallback series names
+            "series": current_user_series  # Current user's series
+        })
+        
+    except Exception as e:
+        print(f"Error getting series for subs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/api/get-team-series/<int:team_id>")
+def get_team_series(team_id):
+    """Get series information for a team ID"""
+    try:
+        # execute_query is already imported at module level
+        
+        query = """
+            SELECT s.name as series_name, s.id as series_id
+            FROM teams t
+            JOIN series s ON t.series_id = s.id
+            WHERE t.id = %s
+        """
+        
+        result = execute_query(query, (team_id,))
+        
+        if result:
+            return jsonify({
+                "success": True,
+                "series_name": result[0]['series_name'],
+                "series_id": result[0]['series_id']
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Team not found"
+            }), 404
+            
+    except Exception as e:
+        print(f"Error getting team series: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@mobile_bp.route("/api/escrow-subs")
+def get_escrow_subs():
+    """Get substitute players for escrow opposing captain - no login required"""
+    try:
+        from app.services.player_service import get_players_by_league_and_series_id
+        
+        # Get parameters
+        club_name = request.args.get("club_name")
+        user_series = request.args.get("user_series", "Series 22")  # Default fallback
+        
+        if not club_name:
+            return jsonify({"error": "club_name parameter is required"}), 400
+        
+        print(f"\n=== DEBUG: get_escrow_subs ===")
+        print(f"Requested club_name: {club_name}")
+        print(f"User series (for filtering): {user_series}")
+        
+        # Get the user's series value for comparison
+        user_series_value = get_series_comparison_value(user_series)
+        if not user_series_value:
+            print("Could not determine user series value")
+            return jsonify([])
+        
+        print(f"User series value: {user_series_value}")
+        
+        # Get all series in the league efficiently with a single query
+        all_series_query = """
+            SELECT DISTINCT s.id, s.name
+            FROM series s
+            JOIN leagues l ON s.league_id = l.id
+            WHERE l.league_id = %s
+            ORDER BY s.name
+        """
+        
+        all_series = execute_query(all_series_query, ("APTA_CHICAGO",))
+        print(f"Found {len(all_series)} total series in APTA_CHICAGO")
+        
+        # Find higher series only (exclude same series)
+        higher_series_ids = []
+        for series in all_series:
+            series_name = series['name']
+            series_value = get_series_comparison_value(series_name)
+            
+            if series_value and is_higher_series(series_value, user_series_value):
+                higher_series_ids.append(series['id'])
+                print(f"Higher series found: {series_name} (ID: {series['id']})")
+        
+        print(f"Found {len(higher_series_ids)} higher series")
+        
+        if not higher_series_ids:
+            print("No higher series found")
+            return jsonify([])
+        
+        # Get players from all higher series at the specified club in one efficient query
+        placeholders = ','.join(['%s'] * len(higher_series_ids))
+        players_query = f"""
+            SELECT DISTINCT 
+                p.id,
+                p.first_name,
+                p.last_name,
+                CONCAT(p.first_name, ' ', p.last_name) as name,
+                c.name as club,
+                s.name as series,
+                p.pti,
+                p.pti as rating,
+                p.wins,
+                p.losses,
+                p.win_percentage as win_rate,
+                p.series_id
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            WHERE p.series_id IN ({placeholders})
+            AND c.name = %s
+            AND p.league_id = (SELECT id FROM leagues WHERE league_id = 'APTA_CHICAGO')
+        """
+        
+        params = higher_series_ids + [club_name]
+        all_players = execute_query(players_query, params)
+        
+        print(f"Total found {len(all_players)} players in higher series at {club_name}")
+        
+        # Apply Rally's Recommendation Algorithm: PTI (70%), win rate (20%), series level (10%)
+        for player in all_players:
+            player['compositeScore'] = calculate_composite_score(player, user_series_value)
+        
+        # Debug: Show top 5 players before sorting
+        print("Top 5 players before sorting:")
+        for i, player in enumerate(all_players[:5]):
+            print(f"  {i+1}. {player['name']} - PTI: {player['pti']}, Score: {player['compositeScore']:.2f}")
+        
+        # Sort by composite score (highest first - higher composite score means better player)
+        all_players.sort(key=lambda x: x['compositeScore'], reverse=True)
+        
+        # Debug: Show top 5 players after sorting
+        print("Top 5 players after sorting:")
+        for i, player in enumerate(all_players[:5]):
+            print(f"  {i+1}. {player['name']} - PTI: {player['pti']}, Score: {player['compositeScore']:.2f}")
+        
+        print("=== END DEBUG ===\n")
+        
+        return jsonify(all_players)
+        
+    except Exception as e:
+        print(f"Error getting escrow subs: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+def get_series_comparison_value(series_name):
+    """Get series comparison value for ranking (same logic as frontend)"""
+    if not series_name:
+        return None
+    
+    # Handle numeric series (e.g., "Series 1", "Series 2", "Chicago 22")
+    import re
+    numeric_match = re.search(r'(\d+)', series_name)
+    if numeric_match:
+        return {"type": "numeric", "value": int(numeric_match.group(1))}
+    
+    # Handle letter series (e.g., "Series A", "Series B", "Division G")
+    letter_match = re.search(r'([A-Z])', series_name)
+    if letter_match:
+        letter = letter_match.group(1).upper()
+        precedence = ord(letter) - ord('A') + 1  # A=1, B=2, etc.
+        return {"type": "letter", "value": precedence}
+    
+    return None
+
+
+def is_higher_series(series_value, user_series_value):
+    """Check if series_value is higher than user_series_value"""
+    if not series_value or not user_series_value:
+        return False
+    
+    # Both must be same type
+    if series_value["type"] != user_series_value["type"]:
+        return False
+    
+    # For numeric series, higher number = higher series (Series 23 > Series 22)
+    if series_value["type"] == "numeric":
+        return series_value["value"] > user_series_value["value"]
+    
+    # For letter series, higher letter = higher series (Series B > Series A)
+    if series_value["type"] == "letter":
+        return series_value["value"] > user_series_value["value"]
+    
+    return False
+
+
+def calculate_composite_score(player, user_series_value):
+    """Calculate Rally's Recommendation Algorithm composite score: PTI (70%), win rate (20%), series level (10%)"""
+    try:
+        # Get PTI (70% weight)
+        pti = float(player.get('pti', 0) or 0)
+        
+        # Get win rate (20% weight)
+        win_rate = float(player.get('win_rate', 0) or 0)
+        
+        # Get series level (10% weight)
+        series_name = player.get('series', '')
+        series_value = get_series_comparison_value(series_name)
+        
+        # Calculate composite score
+        score = 0
+        
+        # PTI component (70%) - lower PTI is better, so invert it
+        # Use a baseline of 100 and subtract PTI to make lower values give higher scores
+        score += (100 - pti) * 0.7
+        
+        # Win rate component (20%)
+        score += win_rate * 0.2
+        
+        # Series level component (10%) - higher series get higher scores
+        if series_value:
+            if series_value["type"] == "numeric":
+                # For numeric series, higher numbers are higher series (Series 23 > Series 22)
+                # Give bonus points for being in higher series
+                series_bonus = (series_value["value"] - user_series_value["value"]) * 2
+                score += max(0, series_bonus) * 0.1
+            elif series_value["type"] == "letter":
+                # For letter series, higher letters are higher series (Series B > Series A)
+                if user_series_value["type"] == "numeric":
+                    # If user is in numeric series, any letter series gets bonus
+                    score += 5 * 0.1
+                else:
+                    # Both letter series - compare
+                    series_bonus = (series_value["value"] - user_series_value["value"]) * 2
+                    score += max(0, series_bonus) * 0.1
+        
+        return score
+        
+    except (ValueError, TypeError) as e:
+        print(f"Error calculating composite score for player {player.get('name', 'unknown')}: {e}")
+        return 0
+
+
 
 
 @mobile_bp.route("/mobile/polls")
@@ -5235,6 +6133,7 @@ def get_team_members_with_court_stats(team_id, user):
                     p.last_name,
                     p.pti,
                     p.tenniscores_player_id,
+                    p.captain_status,
                     COALESCE(pms.match_count, 0) as match_count,
                     COALESCE(pms.wins, 0) as wins,
                     COALESCE(pms.losses, 0) as losses,
@@ -5246,11 +6145,13 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court6, 0) as court6
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
-                WHERE p.team_id = %s AND p.is_active = TRUE
-                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+                WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.last_name, p.first_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
         else:
             # Fallback without league filter
             comprehensive_query = """
@@ -5338,6 +6239,7 @@ def get_team_members_with_court_stats(team_id, user):
                     p.last_name,
                     p.pti,
                     p.tenniscores_player_id,
+                    p.captain_status,
                     COALESCE(pms.match_count, 0) as match_count,
                     COALESCE(pms.wins, 0) as wins,
                     COALESCE(pms.losses, 0) as losses,
@@ -5350,7 +6252,9 @@ def get_team_members_with_court_stats(team_id, user):
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
                 WHERE p.team_id = %s AND p.is_active = TRUE
-                ORDER BY COALESCE(pms.match_count, 0) DESC, p.first_name, p.last_name
+                ORDER BY 
+                    CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
+                    p.last_name, p.first_name
             """
             
             members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
@@ -5361,7 +6265,7 @@ def get_team_members_with_court_stats(team_id, user):
         # Transform to the expected format
         members_with_stats = []
         for member in members_data:
-            full_name = f"{member['first_name']} {member['last_name']}"
+            full_name = f"{member['last_name']}, {member['first_name']}"
             
             # Build court stats dictionary in the expected format
             court_stats = {}
@@ -5378,6 +6282,7 @@ def get_team_members_with_court_stats(team_id, user):
                 "last_name": member["last_name"],
                 "pti": member.get("pti", 0),
                 "tenniscores_player_id": member["tenniscores_player_id"],
+                "captain_status": member.get("captain_status"),
                 "court_stats": court_stats,
                 "match_count": member.get("match_count", 0),
                 "wins": member.get("wins", 0),  # Include wins from optimized query

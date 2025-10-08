@@ -14,23 +14,23 @@
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg" style="background: #10645c !important;">
-                <i class="fas fa-users-cog text-white text-lg"></i>
+                <i class="fas fa-search text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Team Analysis</h1>
-                <p class="text-sm text-gray-500">View stats, match patterns, and top players for each team</p>
+                <h1 class="text-xl font-bold text-gray-900">Scout Competition</h1>
+                <p class="text-sm text-gray-500">Search teams and players to analyze their performance</p>
             </div>
         </div>
     </div>
 
     <!-- Content -->
-    <div class="px-4 py-6 space-y-6">
+    <div class="px-4 py-6 space-y-6" style="overflow: visible;">
         
-        <!-- Team Selection Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-search text-purple-500 mr-2"></i>
+        <!-- Team Selection Card - Hidden -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-search mr-2" style="color: #bff863;"></i>
                     Select Team
                 </h2>
             </div>
@@ -57,14 +57,92 @@
             </div>
         </div>
 
-        {% if team_analysis_data %}
+        <!-- Team and Player Search Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-search mr-2" style="color: #bff863;"></i>
+                    Search for a team or player
+                </h2>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <!-- Team Search Section -->
+                <div>
+                    <label for="teamTypeahead" class="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
+                    <form method="get" id="teamTypeaheadForm">
+                        <div class="relative overflow-visible">
+                            <input type="text" 
+                                   id="teamTypeahead" 
+                                   placeholder="Start typing a team name..."
+                                   class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   autocomplete="off">
+                            <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                            
+                            <!-- Dropdown for suggestions -->
+                            <div id="teamSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto" style="top: 100%; left: 0;">
+                                <!-- Suggestions will be populated here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Divider -->
+                <div class="flex items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="px-4 text-sm text-gray-500 font-medium">OR</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+                
+                <!-- Player Search Section -->
+                <div>
+                    <label for="playerTypeahead" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                    <form method="get" id="playerTypeaheadForm">
+                        <div class="relative overflow-visible">
+                            <input type="text" 
+                                   id="playerTypeahead" 
+                                   placeholder="Start typing a player name..."
+                                   class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   autocomplete="off">
+                            <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                            
+                            <!-- Dropdown for player suggestions -->
+                            <div id="playerSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-80 overflow-y-auto" style="top: 100%; left: 0;">
+                                <!-- Suggestions will be populated here -->
+                            </div>
+                            
+                            <!-- Loading indicator -->
+                            <div id="playerSearchLoading" class="absolute right-12 top-1/2 transform -translate-y-1/2 hidden">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        {% if team_analysis_data and selected_team %}
+        
+        <!-- Team Name Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-flag mr-2" style="color: #bff863;"></i>
+                    Team Name
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <h3 class="text-2xl font-bold text-gray-900 text-center">{{ selected_team }}</h3>
+            </div>
+        </div>
         
         <!-- Analysis Summary Card -->
         {% if team_analysis_data.summary %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-lightbulb mr-2" style="color: #bff863;"></i>
                     Analysis Summary
                 </h2>
             </div>
@@ -77,9 +155,9 @@
 
         <!-- Team Stats Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-chart-bar text-green-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-chart-bar mr-2" style="color: #bff863;"></i>
                     Team Statistics
                 </h2>
             </div>
@@ -145,9 +223,9 @@
 
         <!-- Match Patterns Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-random text-yellow-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-random mr-2" style="color: #bff863;"></i>
                     Match Patterns
                 </h2>
             </div>
@@ -179,9 +257,9 @@
 
         <!-- Court Analysis Header -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-chart-bar text-blue-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-chart-bar mr-2" style="color: #bff863;"></i>
                     Court Analysis
                 </h2>
             </div>
@@ -195,28 +273,24 @@
             {% set court_num = court_key.replace('Court', '').replace('court', '') %}
             <!-- Individual Court Card -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
+                <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                            <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
+                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                            <i class="fas fa-table-tennis mr-2" style="color: #bff863;"></i>
                             Court {{ court_num }}
                         </h2>
                         <div class="flex items-center gap-3">
                             <!-- Record -->
                             {% set record = court.record|default('0-0') %}
-                            <span class="text-lg font-bold text-gray-800">{{ record }}</span>
+                            <span class="text-lg font-bold" style="color: #bff863;">{{ record }}</span>
                             <!-- Win Rate Badge -->
                             {% if record != '0-0' %}
                             {% set win_rate = court.win_rate|default(court.winRate)|default(0) %}
-                            <div class="px-4 py-2 rounded-full text-lg font-bold
-                                {% if win_rate >= 60 %}bg-green-100 text-green-700
-                                {% elif win_rate >= 45 %}bg-yellow-100 text-yellow-700
-                                {% else %}bg-red-100 text-red-700
-                                {% endif %}">
+                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
                                 {{ win_rate|round(0)|int }}%
                             </div>
                             {% else %}
-                            <div class="px-4 py-2 rounded-full text-lg font-bold bg-gray-100 text-gray-500">
+                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
                                 0%
                             </div>
                             {% endif %}
@@ -297,11 +371,152 @@
         {% endif %}
 
         <!-- Team Players Card -->
-        {% if team_analysis_data.top_players %}
+        {% if team_roster and team_roster|length > 0 %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-users text-red-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-users mr-2" style="color: #bff863;"></i>
+                    Team Roster
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <p class="text-sm text-gray-600 mb-4">Current team members and their stats.</p>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Record</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Captains Section -->
+                            {% set captains = team_roster | selectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if captains %}
+                                <!-- Captains Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-crown mr-2"></i>Captains
+                                    </td>
+                                </tr>
+                                {% for player in captains %}
+                                <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                    <td class="py-2 px-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                            <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ player.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        <span class="text-sm font-medium text-gray-900">{{ player.match_count|default(0) }}</span>
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        {% set wins = player.wins|default(0) %}
+                                        {% set losses = player.losses|default(0) %}
+                                        {% set total = wins + losses %}
+                                        {% if total > 0 %}
+                                            {% set win_rate = (wins / total * 100)|round(1) %}
+                                            <span class="px-2 py-1 rounded text-xs font-medium
+                                                {% if win_rate >= 60 %}bg-green-100 text-green-800
+                                                {% elif win_rate >= 45 %}bg-yellow-100 text-yellow-800
+                                                {% else %}bg-red-100 text-red-800
+                                                {% endif %}">
+                                                {{ wins }}-{{ losses }} ({{ win_rate }}%)
+                                            </span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-500">No matches</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        {% if player.pti %}
+                                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                {{ "%.1f"|format(player.pti) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-500">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                <!-- Visual Separator -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-0">
+                                        <div class="border-t border-gray-200 mx-4"></div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            
+                            <!-- Players Section -->
+                            {% set regular_players = team_roster | rejectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if regular_players %}
+                                <!-- Players Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-users mr-2"></i>Players
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            {% for player in regular_players %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                <td class="py-2 px-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ player.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    <span class="text-sm font-medium text-gray-900">{{ player.match_count|default(0) }}</span>
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    {% set wins = player.wins|default(0) %}
+                                    {% set losses = player.losses|default(0) %}
+                                    {% set total = wins + losses %}
+                                    {% if total > 0 %}
+                                        {% set win_rate = (wins / total * 100)|round(1) %}
+                                        <span class="px-2 py-1 rounded text-xs font-medium
+                                            {% if win_rate >= 60 %}bg-green-100 text-green-800
+                                            {% elif win_rate >= 45 %}bg-yellow-100 text-yellow-800
+                                            {% else %}bg-red-100 text-red-800
+                                            {% endif %}">
+                                            {{ wins }}-{{ losses }} ({{ win_rate }}%)
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-500">No matches</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-2 px-2 text-center">
+                                    {% if player.pti %}
+                                        <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            {{ "%.1f"|format(player.pti) }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-500">N/A</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif team_analysis_data.top_players %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-users mr-2" style="color: #bff863;"></i>
                     Team Players
                 </h2>
             </div>
@@ -319,7 +534,84 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for player in team_analysis_data.top_players %}
+                            <!-- Captains Section -->
+                            {% set captains = team_analysis_data.top_players | selectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if captains %}
+                                <!-- Captains Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-crown mr-2"></i>Captains
+                                    </td>
+                                </tr>
+                                {% for player in captains %}
+                                <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                    <td class="py-2 px-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                            <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ player.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
+                                        </div>
+                                        {% if player.isSubstitute %}
+                                        <div class="mt-1">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200">
+                                                <i class="fas fa-exchange-alt mr-1"></i>
+                                                Sub
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        <button type="button" class="partner-matches-btn inline-flex items-center px-2 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none" 
+                                                 style="background-color: #045454; color: #bff863;"
+                                                 onclick="openPartnerMatchesModal('{{ player.name }}', 'All Courts', {{ player.matches }})" 
+                                                 title="Click to view matches with {{ player.name }}">
+                                            View {{ player.matches }}
+                                        </button>
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        {% set win_rate = player.win_rate|default(player.winRate)|default(0) %}
+                                        <span class="px-2 py-1 rounded text-xs font-medium
+                                            {% if win_rate >= 60 %}bg-green-100 text-green-800
+                                            {% elif win_rate >= 45 %}bg-yellow-100 text-yellow-800
+                                            {% else %}bg-red-100 text-red-800
+                                            {% endif %}">
+                                            {{ win_rate }}%
+                                        </span>
+                                    </td>
+                                    <td class="py-2 px-2 text-center">
+                                        {% if player.pti %}
+                                            <span class="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                                {{ "%.1f"|format(player.pti) }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-500">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                
+                                <!-- Visual Separator -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-0">
+                                        <div class="border-t border-gray-200 mx-4"></div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            
+                            <!-- Players Section -->
+                            {% set regular_players = team_analysis_data.top_players | rejectattr('captain_status', 'equalto', 'true') | list %}
+                            {% if regular_players %}
+                                <!-- Players Subheader -->
+                                <tr>
+                                    <td colspan="4" class="py-2 px-4 font-semibold text-sm" style="background-color: #045454; color: #bff863;">
+                                        <i class="fas fa-users mr-2"></i>Players
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            {% for player in regular_players %}
                             <tr class="border-b border-gray-50 hover:bg-gray-50">
                                 <td class="py-2 px-2">
                                     <div class="flex items-center gap-2">
@@ -380,9 +672,9 @@
         <!-- Last 3 Team Matches Card - Only show when team is selected -->
         {% if selected_team_id %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-history text-green-500 mr-2"></i>
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-history mr-2" style="color: #bff863;"></i>
                     Last 3 Team Matches
                 </h2>
             </div>
@@ -446,6 +738,12 @@
 /* Border utilities */
 .border-gray-50 { border-color: #f9fafb; }
 .border-gray-100 { border-color: #f3f4f6; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.rounded-t-xl { border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem; }
 
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
@@ -527,12 +825,134 @@
 @media (min-width: 640px) {
     .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Typeahead specific styles */
+.suggestion-item {
+    transition: background-color 0.2s ease;
+}
+
+.suggestion-item:hover {
+    background-color: #f3f4f6;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Ensure dropdown is not clipped by parent containers */
+#teamSuggestions {
+    position: absolute !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    width: 100% !important;
+}
+
+/* Ensure parent containers don't clip the dropdown */
+.bg-white.overflow-hidden {
+    overflow: visible !important;
+}
+
+/* Add some bottom margin to prevent clipping by next cards */
+#teamTypeaheadForm {
+    margin-bottom: 20px;
+}
+
+/* Focus states for typeahead */
+#teamTypeahead:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Loading state for typeahead */
+.nav-link-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.nav-link-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Player typeahead specific styles */
+.player-suggestion-item {
+    transition: background-color 0.2s ease;
+}
+
+.player-suggestion-item:hover {
+    background-color: #f3f4f6;
+}
+
+.player-suggestion-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Ensure player suggestions dropdown is not clipped */
+#playerSuggestions {
+    position: absolute !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    width: 100% !important;
+}
+
+/* Loading spinner animation */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Focus states for player typeahead */
+#playerTypeahead:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const teamSelect = document.getElementById('team');
     const teamForm = document.getElementById('teamSelectionForm');
+    const teamTypeahead = document.getElementById('teamTypeahead');
+    const teamTypeaheadForm = document.getElementById('teamTypeaheadForm');
+    const teamSuggestions = document.getElementById('teamSuggestions');
+    
+    // Store teams data for typeahead
+    let teamsData = [];
+    
+    // Initialize teams data from the select options
+    if (teamSelect) {
+        const options = teamSelect.querySelectorAll('option');
+        options.forEach(option => {
+            if (option.value && option.value !== '') {
+                teamsData.push({
+                    id: option.value,
+                    name: option.textContent.trim()
+                });
+            }
+        });
+    }
     
     if (teamSelect && teamForm) {
         teamSelect.addEventListener('change', function() {
@@ -565,12 +985,363 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Typeahead functionality
+    if (teamTypeahead && teamSuggestions) {
+        let selectedIndex = -1;
+        
+        // Handle input changes
+        teamTypeahead.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // Filter teams based on query
+            const filteredTeams = teamsData.filter(team => 
+                team.name.toLowerCase().includes(query)
+            );
+            
+            if (filteredTeams.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            showSuggestions(filteredTeams);
+        });
+        
+        // Handle keyboard navigation
+        teamTypeahead.addEventListener('keydown', function(e) {
+            const suggestions = teamSuggestions.querySelectorAll('.suggestion-item');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, suggestions.length - 1);
+                    updateSelection(suggestions);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(suggestions);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+                        selectTeam(suggestions[selectedIndex].dataset.teamId, suggestions[selectedIndex].textContent);
+                    }
+                    break;
+                case 'Escape':
+                    hideSuggestions();
+                    break;
+            }
+        });
+        
+        // Handle clicks outside to close suggestions
+        document.addEventListener('click', function(e) {
+            if (!teamTypeahead.contains(e.target) && !teamSuggestions.contains(e.target)) {
+                hideSuggestions();
+            }
+        });
+        
+        // Show suggestions dropdown
+        function showSuggestions(teams) {
+            let html = '';
+            teams.forEach((team, index) => {
+                html += `
+                    <div class="suggestion-item px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0" 
+                         data-team-id="${team.id}" 
+                         onclick="selectTeam('${team.id}', '${team.name}')">
+                        ${team.name}
+                    </div>
+                `;
+            });
+            
+            teamSuggestions.innerHTML = html;
+            teamSuggestions.classList.remove('hidden');
+            selectedIndex = -1;
+            
+            // Ensure dropdown is positioned correctly and visible
+            const inputRect = teamTypeahead.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = Math.min(240, teams.length * 48); // Max 5 items visible
+            
+            // Check if dropdown would be cut off at bottom
+            if (inputRect.bottom + dropdownHeight > viewportHeight) {
+                // Position dropdown above the input
+                teamSuggestions.style.top = 'auto';
+                teamSuggestions.style.bottom = '100%';
+                teamSuggestions.style.marginTop = '0';
+                teamSuggestions.style.marginBottom = '4px';
+            } else {
+                // Position dropdown below the input (default)
+                teamSuggestions.style.top = '100%';
+                teamSuggestions.style.bottom = 'auto';
+                teamSuggestions.style.marginTop = '4px';
+                teamSuggestions.style.marginBottom = '0';
+            }
+        }
+        
+        // Hide suggestions dropdown
+        function hideSuggestions() {
+            teamSuggestions.classList.add('hidden');
+            selectedIndex = -1;
+        }
+        
+        // Update selection highlighting
+        function updateSelection(suggestions) {
+            suggestions.forEach((item, index) => {
+                if (index === selectedIndex) {
+                    item.classList.add('bg-blue-50', 'text-blue-700');
+                } else {
+                    item.classList.remove('bg-blue-50', 'text-blue-700');
+                }
+            });
+        }
+        
+        // Select a team and submit form
+        window.selectTeam = function(teamId, teamName) {
+            teamTypeahead.value = teamName;
+            hideSuggestions();
+            
+            // Add visual feedback
+            teamTypeahead.classList.add('nav-link-loading');
+            
+            // Show loading indicator
+            if (window.app && window.app.showLoadingIndicator) {
+                window.app.showLoadingIndicator('Loading Team Analysis...');
+            }
+            
+            // Redirect to the team page with team_id parameter
+            setTimeout(() => {
+                window.location.href = `/mobile/teams-players?team_id=${teamId}`;
+            }, 150);
+            
+            // Safety timeout - hide loading indicator after 10 seconds if still showing
+            setTimeout(() => {
+                if (window.app && window.app.hideLoadingIndicator) {
+                    window.app.hideLoadingIndicator();
+                }
+            }, 10000);
+        };
+    }
+    
     // Load team last 3 matches data if we have a selected team
     const urlParams = new URLSearchParams(window.location.search);
     const selectedTeamId = urlParams.get('team_id');
     if (selectedTeamId) {
         loadTeamLastMatches(selectedTeamId);
     }
+    
+    // Player Typeahead functionality
+    const playerTypeahead = document.getElementById('playerTypeahead');
+    const playerSuggestions = document.getElementById('playerSuggestions');
+    const playerSearchLoading = document.getElementById('playerSearchLoading');
+    let playerSearchTimeout = null;
+    let playerSelectedIndex = -1;
+    
+    if (playerTypeahead && playerSuggestions) {
+        // Handle input changes with debouncing
+        playerTypeahead.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            // Clear previous timeout
+            if (playerSearchTimeout) {
+                clearTimeout(playerSearchTimeout);
+            }
+            
+            if (query.length < 2) {
+                hidePlayerSuggestions();
+                return;
+            }
+            
+            // Show loading indicator
+            playerSearchLoading.classList.remove('hidden');
+            
+            // Debounce API call
+            playerSearchTimeout = setTimeout(() => {
+                searchPlayers(query);
+            }, 300);
+        });
+        
+        // Handle keyboard navigation
+        playerTypeahead.addEventListener('keydown', function(e) {
+            const suggestions = playerSuggestions.querySelectorAll('.player-suggestion-item');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    playerSelectedIndex = Math.min(playerSelectedIndex + 1, suggestions.length - 1);
+                    updatePlayerSelection(suggestions);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    playerSelectedIndex = Math.max(playerSelectedIndex - 1, -1);
+                    updatePlayerSelection(suggestions);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (playerSelectedIndex >= 0 && suggestions[playerSelectedIndex]) {
+                        const playerId = suggestions[playerSelectedIndex].dataset.playerId;
+                        const teamId = suggestions[playerSelectedIndex].dataset.teamId;
+                        selectPlayer(playerId, teamId);
+                    }
+                    break;
+                case 'Escape':
+                    hidePlayerSuggestions();
+                    break;
+            }
+        });
+        
+        // Handle clicks outside to close suggestions
+        document.addEventListener('click', function(e) {
+            if (!playerTypeahead.contains(e.target) && !playerSuggestions.contains(e.target)) {
+                hidePlayerSuggestions();
+            }
+        });
+    }
+    
+    // Search players via API
+    async function searchPlayers(query) {
+        try {
+            const response = await fetch(`/api/search-players?query=${encodeURIComponent(query)}`);
+            
+            // Hide loading indicator
+            playerSearchLoading.classList.add('hidden');
+            
+            if (!response.ok) {
+                console.error('Failed to search players:', response.status);
+                hidePlayerSuggestions();
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.players && data.players.length > 0) {
+                showPlayerSuggestions(data.players);
+            } else {
+                showNoPlayerResults();
+            }
+            
+        } catch (err) {
+            console.error('Error searching players:', err);
+            playerSearchLoading.classList.add('hidden');
+            hidePlayerSuggestions();
+        }
+    }
+    
+    // Show player suggestions dropdown
+    function showPlayerSuggestions(players) {
+        let html = '';
+        players.forEach((player, index) => {
+            html += `
+                <div class="player-suggestion-item px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0" 
+                     data-player-id="${player.player_id || ''}" 
+                     data-team-id="${player.team_id || ''}"
+                     onclick="selectPlayer('${player.player_id || ''}', '${player.team_id || ''}')">
+                    <div class="font-semibold text-gray-900">${player.name}</div>
+                    <div class="text-xs text-gray-600 mt-1">
+                        <span class="inline-flex items-center gap-1">
+                            <i class="fas fa-building text-purple-500"></i>
+                            ${player.club}
+                        </span>
+                        <span class="inline-flex items-center gap-1 ml-3">
+                            <i class="fas fa-trophy text-yellow-500"></i>
+                            ${player.series}
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        ${player.wins || 0}-${player.losses || 0} • PTI: ${player.current_pti || 'N/A'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        playerSuggestions.innerHTML = html;
+        playerSuggestions.classList.remove('hidden');
+        playerSelectedIndex = -1;
+        
+        // Position dropdown correctly
+        const inputRect = playerTypeahead.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const dropdownHeight = Math.min(320, players.length * 80);
+        
+        if (inputRect.bottom + dropdownHeight > viewportHeight) {
+            playerSuggestions.style.top = 'auto';
+            playerSuggestions.style.bottom = '100%';
+            playerSuggestions.style.marginTop = '0';
+            playerSuggestions.style.marginBottom = '4px';
+        } else {
+            playerSuggestions.style.top = '100%';
+            playerSuggestions.style.bottom = 'auto';
+            playerSuggestions.style.marginTop = '4px';
+            playerSuggestions.style.marginBottom = '0';
+        }
+    }
+    
+    // Show no results message
+    function showNoPlayerResults() {
+        playerSuggestions.innerHTML = `
+            <div class="px-4 py-6 text-center text-gray-500">
+                <i class="fas fa-search text-2xl mb-2"></i>
+                <div class="text-sm">No players found</div>
+                <div class="text-xs mt-1">Try a different spelling or partial name</div>
+            </div>
+        `;
+        playerSuggestions.classList.remove('hidden');
+    }
+    
+    // Hide player suggestions dropdown
+    function hidePlayerSuggestions() {
+        playerSuggestions.classList.add('hidden');
+        playerSelectedIndex = -1;
+    }
+    
+    // Update selection highlighting
+    function updatePlayerSelection(suggestions) {
+        suggestions.forEach((item, index) => {
+            if (index === playerSelectedIndex) {
+                item.classList.add('bg-blue-50', 'text-blue-700');
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                item.classList.remove('bg-blue-50', 'text-blue-700');
+            }
+        });
+    }
+    
+    // Select a player and navigate to detail page
+    window.selectPlayer = function(playerId, teamId) {
+        hidePlayerSuggestions();
+        
+        // Add visual feedback
+        playerTypeahead.classList.add('nav-link-loading');
+        
+        // Show loading indicator
+        if (window.app && window.app.showLoadingIndicator) {
+            window.app.showLoadingIndicator('Loading Player Details...');
+        }
+        
+        // Navigate to player detail page
+        setTimeout(() => {
+            if (playerId && teamId) {
+                window.location.href = `/mobile/player-detail/${playerId}_team_${teamId}`;
+            } else if (playerId) {
+                window.location.href = `/mobile/player-detail/${playerId}`;
+            } else {
+                // Fallback to player search if no ID
+                const playerName = playerTypeahead.value;
+                window.location.href = `/mobile/player-search?query=${encodeURIComponent(playerName)}`;
+            }
+        }, 150);
+        
+        // Safety timeout
+        setTimeout(() => {
+            if (window.app && window.app.hideLoadingIndicator) {
+                window.app.hideLoadingIndicator();
+            }
+        }, 10000);
+    };
 });
 
 // Partner matches modal functionality
@@ -697,57 +1468,123 @@ async function loadPartnerMatchesData(partnerName, courtName) {
 function renderPartnerMatchesModal(matches, partnerName, courtName) {
     const modalContent = document.getElementById('matchesModalContent');
     
-    let html = `
-        <div class="mb-4 p-4 bg-blue-50 rounded-lg">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">${partnerName} on ${courtName.replace('court', 'Court ')}</h3>
-        </div>
-    `;
-    
     // Group matches by date and team matchup
     const groupedMatches = groupMatchesByTeamMatchup(matches);
     
+    let html = '';
+    
     groupedMatches.forEach(group => {
-        // Calculate team result (W or L)
-        const playerMatches = group.matches.filter(match => match.player_was_home !== null);
-        const wins = playerMatches.filter(match => match.player_won).length;
-        const losses = playerMatches.filter(match => !match.player_won).length;
-        const teamResult = wins > losses ? 'W' : 'L';
-        const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
-        
         html += `
-            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
-                <div class="px-4 py-3 bg-gray-100 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-medium text-gray-900">${group.date}</span>
-                            <span class="text-sm text-gray-700">${group.home_team} vs ${group.away_team}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-lg font-bold ${resultClass}">${teamResult}</span>
-                        </div>
-                    </div>
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
+                <!-- Team Match Header -->
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
                 </div>
+                
+                <!-- Team Matchup -->
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-base font-semibold" style="color: #bff863;">
+                        ${group.away_team} vs.<br>
+                        ${group.home_team}
+                    </span>
+                </div>
+                
+                <!-- Individual Matches -->
+                <div class="px-0">
         `;
         
+        // Sort matches by court number
+        group.matches.sort((a, b) => {
+            const aNum = typeof a.court_number === 'string' ? parseInt(a.court_number.replace(/\D/g, '')) : a.court_number;
+            const bNum = typeof b.court_number === 'string' ? parseInt(b.court_number.replace(/\D/g, '')) : b.court_number;
+            return aNum - bNum;
+        });
+        
         group.matches.forEach(match => {
-            const resultClass = match.player_won ? 'text-green-600' : 'text-red-600';
+            // Parse scores to determine winner and create score arrays
+            const scores = match.scores ? match.scores.split(", ") : [];
+            const team1_sets = [];  // First team in database (away team)
+            const team2_sets = [];  // Second team in database (home team)
+            let team1_sets_won = 0;
+            let team2_sets_won = 0;
+            
+            scores.forEach(set_score => {
+                if (set_score && set_score.includes("-")) {
+                    const [score1, score2] = set_score.split("-");
+                    team1_sets.push(score1);
+                    team2_sets.push(score2);
+                    
+                    if (parseInt(score2) > parseInt(score1)) {
+                        team2_sets_won++;
+                    } else {
+                        team1_sets_won++;
+                    }
+                }
+            });
+            
+            // Determine which team won based on sets won
+            const team1_won = team1_sets_won > team2_sets_won;
+            
+            // Determine which team the current player is on
+            const current_player_on_team1 = match.player_was_home === false; // If player_was_home is false, they're on team1 (away)
+            
+            // Assign scores to the correct teams based on player position
+            let current_team_sets, opponent_team_sets, current_team_won;
+            if (current_player_on_team1) {
+                // Current player is on team1 (away team in database)
+                current_team_sets = team1_sets;
+                opponent_team_sets = team2_sets;
+                current_team_won = team1_won;
+            } else {
+                // Current player is on team2 (home team in database)
+                current_team_sets = team2_sets;
+                opponent_team_sets = team1_sets;
+                current_team_won = team2_sets_won > team1_sets_won;
+            }
             
             html += `
-                <div class="px-4 py-3 bg-gray-50">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-medium text-gray-900">${match.court_number}</span>
-                            <span class="text-xs text-gray-700">${partnerName} & ${match.partner_name}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between">
-                        <div class="text-xs text-gray-600">
-                            vs ${match.opponent1_name}${match.opponent2_name !== 'Unknown' ? ` & ${match.opponent2_name}` : ''}
-                        </div>
-                        <div class="text-xs font-medium text-gray-900">${match.scores}</div>
-                    </div>
+                <!-- Court Header Row -->
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${match.court_number}</span>
                 </div>
+                
+                <!-- Match Table -->
+                <table class="w-full border-collapse">
+                    <tbody>
+                        <!-- Current Player's Team Row -->
+                        <tr class="${current_team_won ? 'bg-green-100' : 'bg-gray-50'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.partner_name}</div>
+                                    <div>${partnerName}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
+                        </tr>
+                        <!-- Opponent Team Row -->
+                        <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.home_team : group.away_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.opponent1_name}</div>
+                                    <div>${match.opponent2_name}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
             `;
         });
         
