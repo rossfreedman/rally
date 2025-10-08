@@ -1597,7 +1597,6 @@ def get_team_schedule_data_data():
             try:
                 # Get all player IDs for the query
                 player_ids = [p["internal_id"] for p in team_players if p.get("internal_id")]
-                player_names = [p["player_name"] for p in team_players]
                 
                 # Convert event_dates to date objects for the query
                 date_objects = []
@@ -1620,16 +1619,12 @@ def get_team_schedule_data_data():
                         FROM player_availability pa
                         JOIN players p ON pa.player_id = p.id
                         WHERE pa.series_id = p.series_id 
-                        AND (
-                            pa.player_id = ANY(%(player_ids)s) 
-                            OR pa.player_name = ANY(%(player_names)s)
-                        )
+                        AND pa.player_id = ANY(%(player_ids)s)
                         AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
                     """
                     
                     batch_params = {
                         "player_ids": player_ids,
-                        "player_names": player_names,
                         "dates": date_objects,
                     }
                     
@@ -1952,7 +1947,7 @@ def get_team_schedule_grid_data_data():
             # Get all match dates
             match_dates = [m["match_date"] for m in matches]
             
-            # Query availability for all players and dates at once (same logic as team-schedule page)
+            # Query availability for all players and dates at once (ID-based matching only)
             availability_query = """
                 SELECT 
                     pa.player_id,
@@ -1963,15 +1958,11 @@ def get_team_schedule_grid_data_data():
                 FROM player_availability pa
                 JOIN players p ON pa.player_id = p.id
                 WHERE pa.series_id = p.series_id 
-                AND (
-                    pa.player_id = ANY(%(player_ids)s) 
-                    OR pa.player_name = ANY(%(player_names)s)
-                )
+                AND pa.player_id = ANY(%(player_ids)s)
                 AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
             """
             
             # Prepare parameters (convert dates to date objects)
-            player_names = [f"{p['first_name']} {p['last_name']}" for p in players]
             date_objects = []
             for match_date in match_dates:
                 try:
@@ -1985,7 +1976,6 @@ def get_team_schedule_grid_data_data():
             
             availability_params = {
                 "player_ids": player_ids,
-                "player_names": player_names,
                 "dates": date_objects,
             }
             
@@ -2381,7 +2371,6 @@ def get_all_teams_schedule_data_data():
             try:
                 # Get all player IDs for the query
                 player_ids = [p["internal_id"] for p in team_players if p.get("internal_id")]
-                player_names = [p["player_name"] for p in team_players]
                 
                 # Convert event_dates to date objects for the query
                 date_objects = []
@@ -2404,16 +2393,12 @@ def get_all_teams_schedule_data_data():
                         FROM player_availability pa
                         JOIN players p ON pa.player_id = p.id
                         WHERE pa.series_id = p.series_id 
-                        AND (
-                            pa.player_id = ANY(%(player_ids)s) 
-                            OR pa.player_name = ANY(%(player_names)s)
-                        )
+                        AND pa.player_id = ANY(%(player_ids)s)
                         AND DATE(pa.match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
                     """
                     
                     batch_params = {
                         "player_ids": player_ids,
-                        "player_names": player_names,
                         "dates": date_objects,
                     }
                     
