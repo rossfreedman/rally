@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """
-Script to update career stats in production database from players_career_stats.json.
-This script connects directly to the production database and updates career stats.
+Script to update career stats in local, staging, or production database from players_career_stats.json.
+This script connects directly to the database and updates career stats.
 
 Usage:
+    # Auto-detect environment (checks RAILWAY_ENVIRONMENT and DATABASE_URL):
     python3 scripts/update_production_career_stats.py
+    
+    # Or specify explicitly:
+    python3 scripts/update_production_career_stats.py local
+    python3 scripts/update_production_career_stats.py staging
+    python3 scripts/update_production_career_stats.py production
 
 This script:
-1. Loads career stats from data/leagues/APTA_CHICAGO/players_career_stats.json
-2. Connects to the production database
-3. Updates career stats for all players
-4. Shows progress and summary
+1. Auto-detects environment or uses provided argument
+2. Loads career stats from data/leagues/APTA_CHICAGO/players_career_stats.json
+3. Connects to the specified database (local, staging, or production)
+4. Updates career stats for all players
+5. Shows progress and summary
 """
 
 import os
@@ -18,16 +25,26 @@ import sys
 import json
 from datetime import datetime
 
-# Production database URL (hardcoded for this script)
+# Database URLs
+LOCAL_DB_URL = 'postgresql://localhost/rally'
+STAGING_DB_URL = 'postgresql://postgres:SNDcbFXgqCOkjBRzAzqGbdRvyhftepsY@switchback.proxy.rlwy.net:28473/railway'
 PRODUCTION_DB_URL = 'postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway'
 
-def get_db_connection():
-    """Get direct database connection to production"""
+def get_db_connection(environment):
+    """Get direct database connection to staging or production"""
     try:
         import psycopg2
         from urllib.parse import urlparse
         
-        parsed = urlparse(PRODUCTION_DB_URL)
+        # Select database URL based on environment
+        if environment == 'production':
+            db_url = PRODUCTION_DB_URL
+        elif environment == 'staging':
+            db_url = STAGING_DB_URL
+        else:  # local
+            db_url = LOCAL_DB_URL
+        
+        parsed = urlparse(db_url)
         
         conn = psycopg2.connect(
             dbname=parsed.path[1:],
@@ -41,7 +58,7 @@ def get_db_connection():
         
         return conn
     except Exception as e:
-        print(f"❌ Failed to connect to production database: {e}")
+        print(f"❌ Failed to connect to {environment} database: {e}")
         sys.exit(1)
 
 def parse_percentage(pct_string):
@@ -53,12 +70,25 @@ def parse_percentage(pct_string):
     except (ValueError, AttributeError):
         return None
 
-def update_career_stats():
+def update_career_stats(environment):
     """Update career stats for all players from the JSON file"""
-    print("🔄 Updating Career Stats in PRODUCTION Database")
+    if environment == 'production':
+        db_url = PRODUCTION_DB_URL
+    elif environment == 'staging':
+        db_url = STAGING_DB_URL
+    else:  # local
+        db_url = LOCAL_DB_URL
+    
+    # Get database name for display
+    if environment == 'local':
+        db_name = 'localhost/rally'
+    else:
+        db_name = db_url.split('@')[1]
+    
+    print(f"🔄 Updating Career Stats in {environment.upper()} Database")
     print("=" * 60)
-    print(f"⚠️  WARNING: This will update production database!")
-    print(f"Database: {PRODUCTION_DB_URL.split('@')[1]}")
+    print(f"⚠️  WARNING: This will update {environment} database!")
+    print(f"Database: {db_name}")
     print("=" * 60)
     
     # Load the career stats JSON file
@@ -77,7 +107,7 @@ def update_career_stats():
     print(f"✅ Loaded {len(career_stats_data)} player records")
     
     # Ask for confirmation
-    print("\n⚠️  Ready to update production database. Continue? (yes/no): ", end='')
+    print(f"\n⚠️  Ready to update {environment} database. Continue? (yes/no): ", end='')
     confirmation = input().strip().lower()
     
     if confirmation != 'yes':
@@ -100,9 +130,9 @@ def update_career_stats():
     jeff_day_before = None
     jeff_day_after = None
     
-    # Connect to production database
-    conn = get_db_connection()
-    print(f"✅ Connected to production database\n")
+    # Connect to database
+    conn = get_db_connection(environment)
+    print(f"✅ Connected to {environment} database\n")
     
     try:
         cur = conn.cursor()
@@ -203,7 +233,7 @@ def update_career_stats():
                 continue
         
         # Commit all updates
-        print("\n💾 Committing updates to production database...")
+        print(f"\n💾 Committing updates to {environment} database...")
         conn.commit()
         print("✅ All updates committed successfully!")
         
@@ -219,7 +249,7 @@ def update_career_stats():
     
     # Print summary
     print("\n" + "=" * 60)
-    print("📊 PRODUCTION UPDATE SUMMARY")
+    print(f"📊 {environment.upper()} UPDATE SUMMARY")
     print("=" * 60)
     print(f"Total records in JSON: {stats['total']:,}")
     print(f"Successfully updated: {stats['updated']:,}")
@@ -236,9 +266,9 @@ def update_career_stats():
         print(f"   After:  {jeff_day_after['wins']} wins, {jeff_day_after['losses']} losses, {jeff_day_after['matches']} matches")
         print(f"   Career Win %: {jeff_day_after['win_pct']:.2f}%")
     
-    print(f"\n🎉 Production career stats update completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"✅ {stats['updated']:,} players in production now have correct career stats!")
-    print(f"\n💡 The production site should now display correct career statistics.")
+    print(f"\n🎉 {environment.title()} career stats update completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"✅ {stats['updated']:,} players in {environment} now have correct career stats!")
+    print(f"\n💡 The {environment} site should now display correct career statistics.")
 
 if __name__ == "__main__":
     # Check if running with proper imports
@@ -249,5 +279,33 @@ if __name__ == "__main__":
         print("   Install it with: pip install psycopg2-binary")
         sys.exit(1)
     
-    update_career_stats()
+    # Auto-detect environment or use provided argument
+    if len(sys.argv) < 2:
+        # Auto-detect based on DATABASE_URL or RAILWAY_ENVIRONMENT
+        railway_env = os.environ.get('RAILWAY_ENVIRONMENT')
+        database_url = os.environ.get('DATABASE_URL', '')
+        
+        if railway_env == 'production' or 'ballast.proxy.rlwy.net' in database_url:
+            environment = 'production'
+            print("🔍 Auto-detected environment: PRODUCTION")
+        elif railway_env == 'staging' or 'switchback.proxy.rlwy.net' in database_url:
+            environment = 'staging'
+            print("🔍 Auto-detected environment: STAGING")
+        else:
+            environment = 'local'
+            print("🔍 Auto-detected environment: LOCAL")
+        
+        print("")
+        print("💡 You can also specify environment explicitly:")
+        print("   python3 scripts/update_production_career_stats.py [local|staging|production]")
+        print("")
+    else:
+        environment = sys.argv[1].lower()
+    
+    if environment not in ['local', 'staging', 'production']:
+        print(f"❌ Error: Invalid environment '{sys.argv[1]}'")
+        print("   Must be 'local', 'staging', or 'production'")
+        sys.exit(1)
+    
+    update_career_stats(environment)
 

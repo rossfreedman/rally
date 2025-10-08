@@ -1,7 +1,7 @@
-# Production Career Stats Update Instructions
+# Career Stats Update Instructions (Staging & Production)
 
 ## Overview
-This document provides instructions for updating career stats in the production database using SSH.
+This document provides instructions for updating career stats in staging or production databases.
 
 ## Issue Fixed
 Career stats were being incorrectly overwritten with current season stats during ETL imports. This update will:
