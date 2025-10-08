@@ -866,7 +866,7 @@ def get_player_analysis(user):
                 try:
                     history_count = execute_query_one(
                         "SELECT COUNT(*) as count FROM player_history WHERE tenniscores_player_id = %s AND end_pti IS NOT NULL",
-                        [tenniscores_player_id]
+                        [player_id]
                     )
                     pti_history_available = history_count and history_count.get('count', 0) > 0
                 except Exception as history_error:

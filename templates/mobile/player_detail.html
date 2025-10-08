@@ -59,6 +59,21 @@
                     {% if analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
                     <div class="mb-2">
                         <span class="text-4xl font-bold text-gray-900">{{ (analyze_data.current_pti or 0)|round(1, 'common') }}</span>
+                        {% if analyze_data.delta_available and analyze_data.pti_delta is not none %}
+                        <div class="mt-2">
+                            <span class="text-sm text-gray-600">
+                                {% if analyze_data.pti_delta > 0 %}
+                                    <span class="text-red-500 font-medium">+{{ analyze_data.pti_delta }}</span>
+                                    <span class="text-gray-500">since start of season</span>
+                                {% elif analyze_data.pti_delta < 0 %}
+                                    <span class="text-green-500 font-medium">{{ analyze_data.pti_delta }}</span>
+                                    <span class="text-gray-500">since start of season</span>
+                                {% else %}
+                                    <span class="text-gray-500">No change since start of season</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
                         {# Hide weekly PTI change display #}
                         {% if false and analyze_data.weekly_pti_change is defined and analyze_data.weekly_pti_change is not none %}
                         <span class="ml-2 text-lg font-medium

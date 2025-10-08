@@ -613,26 +613,8 @@ def serve_mobile_player_detail(player_id):
                 player_league_id = fallback_record["league_id"]
                 print(f"[DEBUG] Using fallback player league: {player_league_id}")
         
-        # Create a user dict with the specific player ID and team context
-        player_user_dict = {
-            "first_name": player_name.split()[0] if player_name else "",
-            "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
-            "tenniscores_player_id": actual_player_id,
-            "league_id": player_league_id,  # Use target player's league, not viewing user's
-            "email": viewing_user.get("email", "")
-        }
-        
-        # Add team context for filtering and substitute detection
-        if team_id:
-            player_user_dict["team_context"] = team_id
-            player_user_dict["team_id"] = str(team_id)  # Add team_id for substitute detection
-            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
-        else:
-            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
-        
         # Import the direct player analysis function
         from app.services.mobile_service import get_player_analysis
-        analyze_data = get_player_analysis(player_user_dict)
         
         # DEBUG: Print court analysis data for Joel Braunstein specifically
         if analyze_data and 'court_analysis' in analyze_data:
