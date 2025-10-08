@@ -1983,17 +1983,17 @@ def get_team_schedule_grid_data_data():
             availability_records = execute_query(availability_query, availability_params)
             print(f"Found {len(availability_records)} availability records")
             
-            # Organize availability data by player and date
+            # Organize availability data by player_id and date (ID-based lookup)
             for record in availability_records:
-                player_name = record["player_name"]
+                player_id = str(record["player_id"])  # Use player_id instead of player_name
                 match_date = str(record["match_date"])
                 status = record["availability_status"]
                 notes = record.get("notes", "") or ""
                 
-                if player_name not in availability_data:
-                    availability_data[player_name] = {}
+                if player_id not in availability_data:
+                    availability_data[player_id] = {}
                 
-                availability_data[player_name][match_date] = {
+                availability_data[player_id][match_date] = {
                     "status": status,
                     "notes": notes,
                     "user_email": record.get("user_email")

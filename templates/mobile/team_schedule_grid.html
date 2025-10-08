@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cell = document.createElement('td');
                 cell.className = 'px-2 py-3 text-center';
                 
-                const playerAvailability = availability[player.name] || {};
+                const playerAvailability = availability[player.id] || {};  // Use player.id instead of player.name
                 const matchDate = match.date;
                 const availabilityData = playerAvailability[matchDate];
                 
