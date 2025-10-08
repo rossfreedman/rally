@@ -14,11 +14,11 @@
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
             <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg" style="background: #10645c !important;">
-                <i class="fas fa-users-cog text-white text-lg"></i>
+                <i class="fas fa-search text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Team Analysis</h1>
-                <p class="text-sm text-gray-500">View stats, match patterns, and top players for each team</p>
+                <h1 class="text-xl font-bold text-gray-900">Scout Competition</h1>
+                <p class="text-sm text-gray-500">Search teams and players to analyze their performance</p>
             </div>
         </div>
     </div>
@@ -57,31 +57,67 @@
             </div>
         </div>
 
-        <!-- Team Typeahead Card -->
+        <!-- Team and Player Search Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-visible">
             <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-keyboard mr-2" style="color: #bff863;"></i>
-                    Type a team name
+                    <i class="fas fa-search mr-2" style="color: #bff863;"></i>
+                    Search for a team or player
                 </h2>
             </div>
             
-            <div class="p-6">
-                <form method="get" id="teamTypeaheadForm">
-                    <div class="relative overflow-visible">
-                        <input type="text" 
-                               id="teamTypeahead" 
-                               placeholder="Start typing a team name..."
-                               class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                               autocomplete="off">
-                        <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                        
-                        <!-- Dropdown for suggestions -->
-                        <div id="teamSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto" style="top: 100%; left: 0;">
-                            <!-- Suggestions will be populated here -->
+            <div class="p-6 space-y-6">
+                <!-- Team Search Section -->
+                <div>
+                    <label for="teamTypeahead" class="block text-sm font-medium text-gray-700 mb-2">Team Name</label>
+                    <form method="get" id="teamTypeaheadForm">
+                        <div class="relative overflow-visible">
+                            <input type="text" 
+                                   id="teamTypeahead" 
+                                   placeholder="Start typing a team name..."
+                                   class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   autocomplete="off">
+                            <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                            
+                            <!-- Dropdown for suggestions -->
+                            <div id="teamSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto" style="top: 100%; left: 0;">
+                                <!-- Suggestions will be populated here -->
+                            </div>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
+                
+                <!-- Divider -->
+                <div class="flex items-center">
+                    <div class="flex-grow border-t border-gray-300"></div>
+                    <span class="px-4 text-sm text-gray-500 font-medium">OR</span>
+                    <div class="flex-grow border-t border-gray-300"></div>
+                </div>
+                
+                <!-- Player Search Section -->
+                <div>
+                    <label for="playerTypeahead" class="block text-sm font-medium text-gray-700 mb-2">Player Name</label>
+                    <form method="get" id="playerTypeaheadForm">
+                        <div class="relative overflow-visible">
+                            <input type="text" 
+                                   id="playerTypeahead" 
+                                   placeholder="Start typing a player name..."
+                                   class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                   autocomplete="off">
+                            <i class="fas fa-search absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                            
+                            <!-- Dropdown for player suggestions -->
+                            <div id="playerSuggestions" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-80 overflow-y-auto" style="top: 100%; left: 0;">
+                                <!-- Suggestions will be populated here -->
+                            </div>
+                            
+                            <!-- Loading indicator -->
+                            <div id="playerSearchLoading" class="absolute right-12 top-1/2 transform -translate-y-1/2 hidden">
+                                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 
@@ -856,6 +892,42 @@
         transform: rotate(360deg);
     }
 }
+
+/* Player typeahead specific styles */
+.player-suggestion-item {
+    transition: background-color 0.2s ease;
+}
+
+.player-suggestion-item:hover {
+    background-color: #f3f4f6;
+}
+
+.player-suggestion-item:last-child {
+    border-bottom: none !important;
+}
+
+/* Ensure player suggestions dropdown is not clipped */
+#playerSuggestions {
+    position: absolute !important;
+    z-index: 9999 !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d5db !important;
+    background: white !important;
+    width: 100% !important;
+}
+
+/* Loading spinner animation */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Focus states for player typeahead */
+#playerTypeahead:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
 </style>
 
 <script>
@@ -1061,6 +1133,215 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedTeamId) {
         loadTeamLastMatches(selectedTeamId);
     }
+    
+    // Player Typeahead functionality
+    const playerTypeahead = document.getElementById('playerTypeahead');
+    const playerSuggestions = document.getElementById('playerSuggestions');
+    const playerSearchLoading = document.getElementById('playerSearchLoading');
+    let playerSearchTimeout = null;
+    let playerSelectedIndex = -1;
+    
+    if (playerTypeahead && playerSuggestions) {
+        // Handle input changes with debouncing
+        playerTypeahead.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            // Clear previous timeout
+            if (playerSearchTimeout) {
+                clearTimeout(playerSearchTimeout);
+            }
+            
+            if (query.length < 2) {
+                hidePlayerSuggestions();
+                return;
+            }
+            
+            // Show loading indicator
+            playerSearchLoading.classList.remove('hidden');
+            
+            // Debounce API call
+            playerSearchTimeout = setTimeout(() => {
+                searchPlayers(query);
+            }, 300);
+        });
+        
+        // Handle keyboard navigation
+        playerTypeahead.addEventListener('keydown', function(e) {
+            const suggestions = playerSuggestions.querySelectorAll('.player-suggestion-item');
+            
+            switch(e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    playerSelectedIndex = Math.min(playerSelectedIndex + 1, suggestions.length - 1);
+                    updatePlayerSelection(suggestions);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    playerSelectedIndex = Math.max(playerSelectedIndex - 1, -1);
+                    updatePlayerSelection(suggestions);
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    if (playerSelectedIndex >= 0 && suggestions[playerSelectedIndex]) {
+                        const playerId = suggestions[playerSelectedIndex].dataset.playerId;
+                        const teamId = suggestions[playerSelectedIndex].dataset.teamId;
+                        selectPlayer(playerId, teamId);
+                    }
+                    break;
+                case 'Escape':
+                    hidePlayerSuggestions();
+                    break;
+            }
+        });
+        
+        // Handle clicks outside to close suggestions
+        document.addEventListener('click', function(e) {
+            if (!playerTypeahead.contains(e.target) && !playerSuggestions.contains(e.target)) {
+                hidePlayerSuggestions();
+            }
+        });
+    }
+    
+    // Search players via API
+    async function searchPlayers(query) {
+        try {
+            const response = await fetch(`/api/search-players?query=${encodeURIComponent(query)}`);
+            
+            // Hide loading indicator
+            playerSearchLoading.classList.add('hidden');
+            
+            if (!response.ok) {
+                console.error('Failed to search players:', response.status);
+                hidePlayerSuggestions();
+                return;
+            }
+            
+            const data = await response.json();
+            
+            if (data.success && data.players && data.players.length > 0) {
+                showPlayerSuggestions(data.players);
+            } else {
+                showNoPlayerResults();
+            }
+            
+        } catch (err) {
+            console.error('Error searching players:', err);
+            playerSearchLoading.classList.add('hidden');
+            hidePlayerSuggestions();
+        }
+    }
+    
+    // Show player suggestions dropdown
+    function showPlayerSuggestions(players) {
+        let html = '';
+        players.forEach((player, index) => {
+            html += `
+                <div class="player-suggestion-item px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0" 
+                     data-player-id="${player.player_id || ''}" 
+                     data-team-id="${player.team_id || ''}"
+                     onclick="selectPlayer('${player.player_id || ''}', '${player.team_id || ''}')">
+                    <div class="font-semibold text-gray-900">${player.name}</div>
+                    <div class="text-xs text-gray-600 mt-1">
+                        <span class="inline-flex items-center gap-1">
+                            <i class="fas fa-building text-purple-500"></i>
+                            ${player.club}
+                        </span>
+                        <span class="inline-flex items-center gap-1 ml-3">
+                            <i class="fas fa-trophy text-yellow-500"></i>
+                            ${player.series}
+                        </span>
+                    </div>
+                    <div class="text-xs text-gray-500 mt-1">
+                        ${player.wins || 0}-${player.losses || 0} • PTI: ${player.current_pti || 'N/A'}
+                    </div>
+                </div>
+            `;
+        });
+        
+        playerSuggestions.innerHTML = html;
+        playerSuggestions.classList.remove('hidden');
+        playerSelectedIndex = -1;
+        
+        // Position dropdown correctly
+        const inputRect = playerTypeahead.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const dropdownHeight = Math.min(320, players.length * 80);
+        
+        if (inputRect.bottom + dropdownHeight > viewportHeight) {
+            playerSuggestions.style.top = 'auto';
+            playerSuggestions.style.bottom = '100%';
+            playerSuggestions.style.marginTop = '0';
+            playerSuggestions.style.marginBottom = '4px';
+        } else {
+            playerSuggestions.style.top = '100%';
+            playerSuggestions.style.bottom = 'auto';
+            playerSuggestions.style.marginTop = '4px';
+            playerSuggestions.style.marginBottom = '0';
+        }
+    }
+    
+    // Show no results message
+    function showNoPlayerResults() {
+        playerSuggestions.innerHTML = `
+            <div class="px-4 py-6 text-center text-gray-500">
+                <i class="fas fa-search text-2xl mb-2"></i>
+                <div class="text-sm">No players found</div>
+                <div class="text-xs mt-1">Try a different spelling or partial name</div>
+            </div>
+        `;
+        playerSuggestions.classList.remove('hidden');
+    }
+    
+    // Hide player suggestions dropdown
+    function hidePlayerSuggestions() {
+        playerSuggestions.classList.add('hidden');
+        playerSelectedIndex = -1;
+    }
+    
+    // Update selection highlighting
+    function updatePlayerSelection(suggestions) {
+        suggestions.forEach((item, index) => {
+            if (index === playerSelectedIndex) {
+                item.classList.add('bg-blue-50', 'text-blue-700');
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                item.classList.remove('bg-blue-50', 'text-blue-700');
+            }
+        });
+    }
+    
+    // Select a player and navigate to detail page
+    window.selectPlayer = function(playerId, teamId) {
+        hidePlayerSuggestions();
+        
+        // Add visual feedback
+        playerTypeahead.classList.add('nav-link-loading');
+        
+        // Show loading indicator
+        if (window.app && window.app.showLoadingIndicator) {
+            window.app.showLoadingIndicator('Loading Player Details...');
+        }
+        
+        // Navigate to player detail page
+        setTimeout(() => {
+            if (playerId && teamId) {
+                window.location.href = `/mobile/player-detail/${playerId}_team_${teamId}`;
+            } else if (playerId) {
+                window.location.href = `/mobile/player-detail/${playerId}`;
+            } else {
+                // Fallback to player search if no ID
+                const playerName = playerTypeahead.value;
+                window.location.href = `/mobile/player-search?query=${encodeURIComponent(playerName)}`;
+            }
+        }, 150);
+        
+        // Safety timeout
+        setTimeout(() => {
+            if (window.app && window.app.hideLoadingIndicator) {
+                window.app.hideLoadingIndicator();
+            }
+        }, 10000);
+    };
 });
 
 // Partner matches modal functionality

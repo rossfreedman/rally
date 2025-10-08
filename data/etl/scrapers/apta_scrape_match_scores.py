@@ -72,6 +72,7 @@ class ScrapingConfig:
     delta_mode: bool = False
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    weeks: Optional[int] = None
     skip_proxy_test: bool = False
 
 class BaseLeagueScraper:
@@ -1434,7 +1435,7 @@ class APTAScraper(BaseLeagueScraper):
                     month = date_match.group(1)
                     day = date_match.group(2)
                     
-                    # Convert to DD-Mon-YY format (assuming current year)
+                    # Convert to both DD-Mon-YY format and YYYY-MM-DD format
                     try:
                         from datetime import datetime
                         current_year = datetime.now().year
@@ -1448,10 +1449,17 @@ class APTAScraper(BaseLeagueScraper):
                             year_short = str(current_year)[-2:]
                             formatted_date = f"{day}-{month_abbr}-{year_short}"
                             
+                            # Also create YYYY-MM-DD format for sorting
+                            sortable_date = f"{current_year}-{month.zfill(2)}-{day.zfill(2)}"
+                            
                             # Use the th element's position/context as a key
                             th_id = th.get('id', '')
-                            dates[th_id] = formatted_date
-                            print(f"      📅 Extracted date from th {th_id}: {formatted_date}")
+                            dates[th_id] = {
+                                'display_date': formatted_date,
+                                'sortable_date': sortable_date,
+                                'original_text': text
+                            }
+                            print(f"      📅 Extracted date from th {th_id}: {formatted_date} ({sortable_date})")
                     except Exception as e:
                         print(f"      ❌ Error formatting date from th: {e}")
                         continue
@@ -1475,12 +1483,51 @@ class APTAScraper(BaseLeagueScraper):
             
             # For now, return the first available date as a fallback
             if standings_dates:
-                return list(standings_dates.values())[0]
+                first_date_info = list(standings_dates.values())[0]
+                # Return the display_date for backward compatibility
+                if isinstance(first_date_info, dict):
+                    return first_date_info.get('display_date', '')
+                else:
+                    # Handle legacy format
+                    return first_date_info
                 
         except Exception as e:
             print(f"❌ Error finding date for match link: {e}")
             
         return None
+    
+    def _get_recent_dates_for_week_filtering(self, soup) -> List[str]:
+        """Extract and return the most recent dates from standings page for week filtering."""
+        try:
+            # Extract dates from standings page
+            standings_dates = self._extract_dates_from_standings_page(soup)
+            
+            if not standings_dates:
+                return []
+            
+            # Extract sortable dates and sort them (most recent first)
+            sortable_dates = []
+            for date_info in standings_dates.values():
+                if isinstance(date_info, dict) and 'sortable_date' in date_info:
+                    sortable_dates.append(date_info['sortable_date'])
+                elif isinstance(date_info, str):
+                    # Handle legacy format - try to parse as DD-Mon-YY
+                    try:
+                        from datetime import datetime
+                        parsed_date = datetime.strptime(date_info, "%d-%b-%y")
+                        sortable_dates.append(parsed_date.strftime("%Y-%m-%d"))
+                    except ValueError:
+                        continue
+            
+            # Sort dates in descending order (most recent first)
+            sortable_dates.sort(reverse=True)
+            
+            print(f"      📅 Found {len(sortable_dates)} dates for week filtering: {sortable_dates}")
+            return sortable_dates
+            
+        except Exception as e:
+            print(f"❌ Error getting recent dates for week filtering: {e}")
+            return []
     
     def _extract_apta_matches_from_series(self, html: str, series_name: str, 
                                         current_total_processed: int = 0, total_series: int = 1) -> Tuple[List[Dict], int]:
@@ -2328,6 +2375,11 @@ class EnhancedMatchScraper:
             )
             total_matches_processed += matches_processed_in_series
             
+            # Apply week filtering if in weeks mode
+            if self.config.weeks and self.config.weeks > 0:
+                print(f"   📅 Filtering matches by recent weeks ({self.config.weeks} weeks)...")
+                series_matches = self._filter_matches_by_recent_weeks(series_matches, self.config.weeks)
+            
             # Save temporary series file for atomic operations
             if series_matches:
                 self._save_series_temp(league_subdomain, series_name, series_matches)
@@ -2493,6 +2545,11 @@ class EnhancedMatchScraper:
                     if self.config.delta_mode and self.config.start_date and self.config.end_date:
                         print(f"📅 Filtering matches by date range...")
                         series_matches = self._filter_matches_by_date(series_matches)
+                    
+                    # Apply week filtering if in weeks mode
+                    if self.config.weeks and self.config.weeks > 0:
+                        print(f"📅 Filtering matches by recent weeks ({self.config.weeks} weeks)...")
+                        series_matches = self._filter_matches_by_recent_weeks(series_matches, self.config.weeks)
                     
                     all_matches.extend(series_matches)
                     print(f"✅ Found {len(series_matches)} matches in {series_name}")
@@ -3266,6 +3323,52 @@ class EnhancedMatchScraper:
             logger.error(f"❌ Error filtering by date: {e}")
             return matches
     
+    def _filter_matches_by_recent_weeks(self, matches: List[Dict], weeks: int) -> List[Dict]:
+        """Filter matches to only include the N most recent weeks based on standings page dates."""
+        if not weeks or weeks <= 0:
+            return matches
+        
+        try:
+            # Get all unique dates from matches and sort them (most recent first)
+            match_dates = set()
+            for match in matches:
+                if "Date" in match and match["Date"]:
+                    try:
+                        # Parse the date (assuming YYYY-MM-DD format)
+                        match_date = datetime.strptime(match["Date"], "%Y-%m-%d").date()
+                        match_dates.add(match_date)
+                    except ValueError:
+                        continue
+            
+            if not match_dates:
+                logger.warning("⚠️ No valid dates found in matches for week filtering")
+                return matches
+            
+            # Sort dates in descending order (most recent first)
+            sorted_dates = sorted(match_dates, reverse=True)
+            
+            # Take only the N most recent weeks
+            target_dates = sorted_dates[:weeks]
+            logger.info(f"📅 Week filtering: Using {len(target_dates)} most recent dates: {[d.strftime('%Y-%m-%d') for d in target_dates]}")
+            
+            # Filter matches to only include those from target dates
+            filtered_matches = []
+            for match in matches:
+                if "Date" in match and match["Date"]:
+                    try:
+                        match_date = datetime.strptime(match["Date"], "%Y-%m-%d").date()
+                        if match_date in target_dates:
+                            filtered_matches.append(match)
+                    except ValueError:
+                        continue
+            
+            logger.info(f"📅 Week filtered: {len(filtered_matches)}/{len(matches)} matches")
+            return filtered_matches
+            
+        except Exception as e:
+            logger.error(f"❌ Error filtering by weeks: {e}")
+            return matches
+    
     def get_metrics_summary(self) -> Dict[str, Any]:
         """Get comprehensive metrics summary."""
         duration = (datetime.now() - self.metrics["start_time"]).total_seconds()
@@ -3287,6 +3390,7 @@ def scrape_all_matches(league_subdomain: str,
                       start_date: str = None,
                       end_date: str = None,
                       delta_mode: bool = False,
+                      weeks: int = None,
                       fast_mode: bool = False,
                       verbose: bool = False,
                       skip_proxy_test: bool = False) -> List[Dict]:
@@ -3301,6 +3405,7 @@ def scrape_all_matches(league_subdomain: str,
         start_date: Start date for delta mode (YYYY-MM-DD)
         end_date: End date for delta mode (YYYY-MM-DD)
         delta_mode: Enable delta mode
+        weeks: Number of recent weeks to scrape (1=most recent, 2=most recent + previous week, etc.)
         fast_mode: Enable fast mode (reduced delays)
         verbose: Enable verbose logging
     
@@ -3317,6 +3422,9 @@ def scrape_all_matches(league_subdomain: str,
         if start_date and end_date:
             print(f"📅 Date Range: {start_date} to {end_date}")
     
+    if weeks:
+        print(f"🎯 WEEKS MODE: Only scraping matches from {weeks} most recent week(s)")
+    
     # Create configuration
     config = ScrapingConfig(
         fast_mode=fast_mode,
@@ -3328,6 +3436,7 @@ def scrape_all_matches(league_subdomain: str,
         delta_mode=delta_mode,
         start_date=start_date,
         end_date=end_date,
+        weeks=weeks,
         skip_proxy_test=skip_proxy_test
     )
     
@@ -3364,6 +3473,7 @@ def main():
     parser.add_argument("--environment", choices=["local", "staging", "production"], 
                        default="production", help="Environment mode")
     parser.add_argument("--clean-temp-first", action="store_true", help="Delete per-series temp files before starting (default: preserve)")
+    parser.add_argument("--weeks", type=int, help="Number of recent weeks to scrape (1=most recent, 2=most recent + previous week, etc.)")
     
     args = parser.parse_args()
     
@@ -3374,6 +3484,9 @@ def main():
     
     if args.delta_mode:
         print(f"📅 Delta Mode: {args.start_date} to {args.end_date}")
+    
+    if args.weeks:
+        print(f"📅 Week Mode: Scraping {args.weeks} most recent week(s)")
     
     # Optional pre-run cleanup of temp files (off by default)
     if args.clean_temp_first:
@@ -3401,6 +3514,7 @@ def main():
         start_date=args.start_date,
         end_date=args.end_date,
         delta_mode=args.delta_mode,
+        weeks=args.weeks,
         fast_mode=args.fast,
         verbose=not args.quiet,  # Invert quiet to get verbose
         skip_proxy_test=args.skip_proxy_test

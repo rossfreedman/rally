@@ -786,10 +786,11 @@ def upsert_players(cur, league_id, players_data, has_external_id):
         wins_raw = player_data.get("Wins", "0")
         losses_raw = player_data.get("Losses", "0")
         
-        # Extract career stats data
-        career_wins_raw = player_data.get("Career Wins", "0")
-        career_losses_raw = player_data.get("Career Losses", "0")
-        career_win_pct_raw = player_data.get("Career Win %", "0.0%")
+        # Extract career stats data - ONLY use explicit Career fields, DO NOT fall back to current season
+        # Career stats should be calculated from match history, not copied from current season stats
+        career_wins_raw = player_data.get("Career Wins", None)
+        career_losses_raw = player_data.get("Career Losses", None)
+        career_win_pct_raw = player_data.get("Career Win %", None)
         
         # Parse PTI value (handle "N/A" and convert to numeric)
         pti_value = None
@@ -887,6 +888,7 @@ def upsert_players(cur, league_id, players_data, has_external_id):
             
             if has_external_id and external_id:
                 # Use tenniscores_player_id for upsert - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
+                # CRITICAL FIX: Only update career stats if they are provided (not None)
                 cur.execute("""
                     INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, tenniscores_player_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
@@ -899,10 +901,10 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                         wins = EXCLUDED.wins,
                         losses = EXCLUDED.losses,
                         win_percentage = EXCLUDED.win_percentage,
-                        career_wins = EXCLUDED.career_wins,
-                        career_losses = EXCLUDED.career_losses,
-                        career_matches = EXCLUDED.career_matches,
-                        career_win_percentage = EXCLUDED.career_win_percentage
+                        career_wins = COALESCE(EXCLUDED.career_wins, players.career_wins),
+                        career_losses = COALESCE(EXCLUDED.career_losses, players.career_losses),
+                        career_matches = COALESCE(EXCLUDED.career_matches, players.career_matches),
+                        career_win_percentage = COALESCE(EXCLUDED.career_win_percentage, players.career_win_percentage)
                     RETURNING id
                 """, (first_name, last_name, league_id, club_id, series_id, team_id, external_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
                 
@@ -916,6 +918,7 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                     existing += 1
             else:
                 # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
+                # CRITICAL FIX: Only update career stats if they are provided (not None)
                 cur.execute("""
                     INSERT INTO players (first_name, last_name, league_id, club_id, series_id, team_id, pti, wins, losses, win_percentage, career_wins, career_losses, career_matches, career_win_percentage) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) 
@@ -926,10 +929,10 @@ def upsert_players(cur, league_id, players_data, has_external_id):
                         wins = EXCLUDED.wins,
                         losses = EXCLUDED.losses,
                         win_percentage = EXCLUDED.win_percentage,
-                        career_wins = EXCLUDED.career_wins,
-                        career_losses = EXCLUDED.career_losses,
-                        career_matches = EXCLUDED.career_matches,
-                        career_win_percentage = EXCLUDED.career_win_percentage
+                        career_wins = COALESCE(EXCLUDED.career_wins, players.career_wins),
+                        career_losses = COALESCE(EXCLUDED.career_losses, players.career_losses),
+                        career_matches = COALESCE(EXCLUDED.career_matches, players.career_matches),
+                        career_win_percentage = COALESCE(EXCLUDED.career_win_percentage, players.career_win_percentage)
                     RETURNING id
                 """, (first_name, last_name, league_id, club_id, series_id, team_id, pti_value, wins_value, losses_value, win_percentage_value, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value))
                 

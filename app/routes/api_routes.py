@@ -8235,6 +8235,146 @@ def search_players_for_groups():
         return jsonify({"error": "Search failed"}), 500
 
 
+@api_bp.route("/search-players", methods=["GET"])
+@login_required
+def search_players_typeahead():
+    """Search for players by name for typeahead functionality"""
+    try:
+        user = session["user"]
+        query = request.args.get("query", "").strip()
+        
+        if len(query) < 2:
+            return jsonify({"success": True, "players": []})
+        
+        # Get user's league for filtering
+        user_league_id = user.get("league_id", "")
+        league_id_int = None
+        
+        if user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Error converting league ID: {e}")
+        
+        # Search for players in the database
+        search_query = """
+            SELECT 
+                p.tenniscores_player_id as player_id,
+                p.first_name,
+                p.last_name,
+                p.pti as current_pti,
+                c.name as club,
+                s.name as series,
+                p.team_id,
+                l.league_id as league
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN leagues l ON p.league_id = l.id
+            WHERE p.is_active = true
+            AND p.tenniscores_player_id IS NOT NULL
+            AND (
+                LOWER(p.first_name || ' ' || p.last_name) LIKE LOWER(%s)
+                OR LOWER(p.last_name || ' ' || p.first_name) LIKE LOWER(%s)
+                OR LOWER(p.first_name) LIKE LOWER(%s)
+                OR LOWER(p.last_name) LIKE LOWER(%s)
+            )
+        """
+        
+        params = [f"%{query}%", f"%{query}%", f"%{query}%", f"%{query}%"]
+        
+        # Add league filtering if available
+        if league_id_int:
+            search_query += " AND p.league_id = %s"
+            params.append(league_id_int)
+        
+        search_query += " ORDER BY p.last_name, p.first_name LIMIT 20"
+        
+        players = execute_query(search_query, params)
+        
+        # Calculate wins/losses for each player
+        player_results = []
+        for player in players:
+            player_id = player.get("player_id")
+            team_id = player.get("team_id")
+            
+            # Get win/loss record from match_scores - don't filter by user's league
+            # since the player might have matches in different leagues
+            if player_id:
+                record_query = """
+                    SELECT 
+                        COUNT(*) FILTER (WHERE 
+                            (ms.winner = 'home' AND (ms.home_player_1_id = %s OR ms.home_player_2_id = %s))
+                            OR (ms.winner = 'away' AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+                        ) as wins,
+                        COUNT(*) FILTER (WHERE 
+                            (ms.winner = 'away' AND (ms.home_player_1_id = %s OR ms.home_player_2_id = %s))
+                            OR (ms.winner = 'home' AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+                        ) as losses
+                    FROM match_scores ms
+                    WHERE (
+                        ms.home_player_1_id = %s OR ms.home_player_2_id = %s
+                        OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s
+                    )
+                    AND ms.winner IN ('home', 'away')
+                """
+                record_params = [
+                    player_id, player_id, player_id, player_id,  # wins
+                    player_id, player_id, player_id, player_id,  # losses
+                    player_id, player_id, player_id, player_id  # overall filter
+                ]
+                
+                if team_id:
+                    record_query += " AND (ms.home_team_id = %s OR ms.away_team_id = %s)"
+                    record_params.extend([team_id, team_id])
+                
+                record = execute_query_one(record_query, record_params)
+                wins = record.get("wins", 0) if record else 0
+                losses = record.get("losses", 0) if record else 0
+            else:
+                wins = 0
+                losses = 0
+            
+            player_results.append({
+                "player_id": player_id,
+                "name": f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+                "club": player.get("club", ""),
+                "series": player.get("series", ""),
+                "current_pti": player.get("current_pti"),
+                "team_id": team_id,
+                "wins": wins,
+                "losses": losses,
+                "league": player.get("league", "")
+            })
+        
+        # Log the search activity
+        log_user_activity(
+            user["email"],
+            "player_search",
+            action="typeahead_search",
+            details={
+                "search_query": query,
+                "results_count": len(player_results),
+                "user_league": user_league_id
+            }
+        )
+        
+        return jsonify({
+            "success": True,
+            "players": player_results
+        })
+        
+    except Exception as e:
+        print(f"Error in search_players_typeahead: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Search failed"}), 500
+
+
 @api_bp.route("/groups/<int:group_id>/members", methods=["POST"])
 @login_required
 def add_group_member(group_id):
