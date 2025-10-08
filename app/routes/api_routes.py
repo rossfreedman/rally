@@ -11595,7 +11595,7 @@ def get_player_matches_detail():
         # Build match query for the specific player
         base_query = """
             SELECT
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
                 ms.match_date,
                 ms.home_team,
                 ms.away_team,
@@ -11640,10 +11640,9 @@ def get_player_matches_detail():
             base_query += " AND ms.league_id = %s"
             query_params.append(league_id_int)
             
-        # Add team filtering if available 
-        if team_id:
-            base_query += " AND (ms.home_team_id = %s OR ms.away_team_id = %s)"
-            query_params.extend([team_id, team_id])
+        # Note: Removed team filtering to allow substitute players to see matches from all teams they've played for
+        # The team_id parameter is still extracted for context but not used for filtering matches
+        # This ensures substitute players can see their matches regardless of which team they were playing for
             
         base_query += " ORDER BY ms.match_date DESC, ms.id DESC"
         
