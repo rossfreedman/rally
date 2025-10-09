@@ -824,11 +824,12 @@ def upsert_players(cur, league_id, players_data, has_external_id):
         career_win_percentage_value = None
         
         try:
-            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" else 0
-            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" else 0
+            # CRITICAL FIX: Only parse career stats if they exist in the JSON, otherwise keep as None
+            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" else None
+            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" else None
         except (ValueError, TypeError):
-            career_wins_value = 0
-            career_losses_value = 0
+            career_wins_value = None
+            career_losses_value = None
         
         # Parse career win percentage (handle "0.0%" format)
         if career_win_pct_raw and career_win_pct_raw != "N/A":

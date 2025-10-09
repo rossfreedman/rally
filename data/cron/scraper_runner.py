@@ -63,8 +63,8 @@ def main():
         run_step("Scrape Players", ["python3", "data/etl/scrapers/apta/apta_scrape_players_simple.py", "APTA_CHICAGO"])
         run_step("Import Players", ["python3", "data/etl/import/import_players.py", "APTA_CHICAGO"])
 
-        # Scores
-        run_step("Scrape Match Scores", ["python3", "data/etl/scrapers/apta_scrape_match_scores.py", "APTA_CHICAGO"])
+        # Scores (using --weeks 2 to scrape most recent 2 weeks)
+        run_step("Scrape Match Scores", ["python3", "data/etl/scrapers/apta_scrape_match_scores.py", "aptachicago", "--weeks", "2"])
         run_step("Import Match Scores", ["python3", "data/etl/import/import_match_scores.py", "APTA_CHICAGO"])
 
         # Stats
