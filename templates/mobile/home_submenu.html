@@ -873,14 +873,14 @@ function toggleSubmenu(submenuId) {
             adjustment = 0;
             console.log(`📊 SCROLL DEBUG: Analyze button - using 0px adjustment (top aligned with navbar)`);
           } else if (submenuId === 'prepare-submenu' || submenuId === 'play-submenu') {
-            // Prepare and Play: scroll 50px more than other sections
-            adjustment = -50;
-            console.log(`📊 SCROLL DEBUG: ${submenuId} button - using -50px adjustment (50px more)`);
+            // Prepare and Play: reduced scroll by 75px from previous -50px to 25px
+            adjustment = 25;
+            console.log(`📊 SCROLL DEBUG: ${submenuId} button - using 25px adjustment (reduced by 75px)`);
             console.log(`📊 SCROLL DEBUG: Prepare/Play button detected - submenuId: ${submenuId}`);
           } else if (submenuId === 'improve-submenu') {
-            // Improve: scroll 100px more than other sections
-            adjustment = -100;
-            console.log(`📊 SCROLL DEBUG: Improve button - using -100px adjustment (100px more)`);
+            // Improve: reduced scroll by 75px from previous -100px to -25px
+            adjustment = -25;
+            console.log(`📊 SCROLL DEBUG: Improve button - using -25px adjustment (reduced by 75px)`);
           } else if (submenuId === 'captain-submenu') {
             // Captain's Corner: check if we're at the bottom first
             const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
