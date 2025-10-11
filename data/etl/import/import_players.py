@@ -584,8 +584,11 @@ def upsert_player(cur, league_id, player_data):
     else:
         career_win_percentage_value = None
     
-    # Calculate career matches
-    career_matches_value = career_wins_value + career_losses_value
+    # Calculate career matches (only if both values are not None)
+    if career_wins_value is not None and career_losses_value is not None:
+        career_matches_value = career_wins_value + career_losses_value
+    else:
+        career_matches_value = None
     
     # Parse team name to get club and series
     club_name, series_name, team_number = parse_team_name(team_name)
