@@ -139,8 +139,9 @@ def import_match_record(cur, match_data, league_id, season):
             return result[0], "inserted"
         return None, "insert_failed"
     except Exception as e:
-        print(f"Error inserting match {tenniscores_match_id}: {e}")
-        return None, f"error: {str(e)}"
+        # Silently track errors - they'll be counted in the summary
+        # Most common cause: foreign key constraint on team_id (team doesn't exist in staging)
+        return None, f"error: {type(e).__name__}"
 
 
 def main():
