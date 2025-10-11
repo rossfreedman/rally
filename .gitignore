@@ -152,6 +152,8 @@ data/leagues/*/temp_match_scores/
 data/leagues/*/temp_*/
 
 # League data JSON files (ETL data)
+# Exception: allow player_history.json for deployment
+!data/leagues/*/player_history.json
 data/leagues/**/*.json
 
 backups/*.sql
