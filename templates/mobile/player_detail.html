@@ -212,6 +212,87 @@
         </div>
         {% endif %}
 
+        <!-- Last Season Stats (2024-2025) -->
+        {% if analyze_data.last_season %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-calendar-check mr-2" style="color: #bff863;"></i>
+                    Last Season Stats (2024-2025)
+                </h2>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Matches -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if analyze_data.last_season.matches %}
+                                {{ analyze_data.last_season.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">No data</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
+                    </div>
+                    
+                    <!-- Win Rate -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold mb-1
+                            {% if analyze_data.last_season.winRate is defined and analyze_data.last_season.winRate is not none and analyze_data.last_season.winRate|float >= 60 %}text-green-500
+                            {% elif analyze_data.last_season.winRate is defined and analyze_data.last_season.winRate is not none and analyze_data.last_season.winRate|float >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {% if analyze_data.last_season.winRate is defined %}
+                            {{ analyze_data.last_season.winRate|round(0)|int }}%
+                            {% else %}
+                            <span class="text-xs text-gray-400 font-normal">No data</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Win Rate</div>
+                    </div>
+                </div>
+                
+                <!-- W-L Record -->
+                <div class="flex items-center justify-center space-x-8 py-4 bg-gray-50 rounded-lg mb-4">
+                    <div class="text-center">
+                        {% if analyze_data.last_season and analyze_data.last_season.wins is defined %}
+                        <div class="text-2xl font-bold text-green-500">{{ analyze_data.last_season.wins|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-green-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Wins</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-300"></div>
+                    <div class="text-center">
+                        {% if analyze_data.last_season and analyze_data.last_season.losses is defined %}
+                        <div class="text-2xl font-bold text-red-500">{{ analyze_data.last_season.losses|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Losses</div>
+                    </div>
+                </div>
+                
+                <!-- View Details Link -->
+                <div class="mt-4 text-center">
+                    {% set player_id_value = player_info.tenniscores_player_id if player_info and player_info.tenniscores_player_id else analyze_data.tenniscores_player_id %}
+                    {% if player_id_value %}
+                    <a href="/mobile/last-season-stats/{{ player_id_value }}{% if player_info.team_id %}_team_{{ player_info.team_id }}{% endif %}" 
+                       class="inline-flex items-center px-6 py-3 font-semibold rounded-lg shadow-md transition-all duration-200"
+                       style="background-color: #045454; color: #bff863;"
+                       onmouseover="this.style.opacity='0.85'"
+                       onmouseout="this.style.opacity='1'">
+                        <i class="fas fa-chart-bar mr-2"></i>
+                        View More Detail
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Career Stats (only show when there are meaningful career stats) -->
         {% if analyze_data.career_stats and analyze_data.career_stats.matches and analyze_data.career_stats.matches > 0 %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

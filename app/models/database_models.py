@@ -620,6 +620,34 @@ class MatchScore(Base):
     )
 
 
+class MatchScorePreviousSeason(Base):
+    """Match scores from previous seasons - mirrors match_scores with season identifier"""
+
+    __tablename__ = "match_scores_previous_seasons"
+
+    id = Column(Integer, primary_key=True)
+    league_id = Column(Integer, ForeignKey("leagues.id"))
+    match_date = Column(Date)
+    home_team = Column(Text)
+    away_team = Column(Text)
+    home_team_id = Column(Integer, ForeignKey("teams.id"))
+    away_team_id = Column(Integer, ForeignKey("teams.id"))
+    home_player_1_id = Column(Text)
+    home_player_2_id = Column(Text)
+    away_player_1_id = Column(Text)
+    away_player_2_id = Column(Text)
+    scores = Column(Text)
+    winner = Column(Text)  # 'home', 'away', or 'tie'
+    tenniscores_match_id = Column(Text)
+    season = Column(String(20))  # Season identifier like "2024-2025"
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    # Relationships
+    league = relationship("League")
+    home_team_obj = relationship("Team", foreign_keys=[home_team_id])
+    away_team_obj = relationship("Team", foreign_keys=[away_team_id])
+
+
 class PlayerHistory(Base):
     """Historical player performance data"""
 

@@ -1,0 +1,597 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454;">
+                <i class="fas fa-user text-lg" style="color: #bff863;"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Last Season Stats</h1>
+                <p class="text-lg font-semibold text-gray-900">{{ player_name }}</p>
+                {% if player_info.club %}
+                <p class="text-sm text-gray-600 font-medium">{{ player_info.club }}</p>
+                {% endif %}
+                {% if player_info.series %}
+                <div class="mt-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" 
+                          style="background-color: #045454; color: #bff863;">
+                        {{ player_info.series }}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Last Season Stats Card -->
+        {% if last_season %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-calendar-check mr-2" style="color: #bff863;"></i>
+                    Season Summary (2024-2025)
+                </h2>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Matches -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if last_season.matches %}
+                                {{ last_season.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">No data</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
+                    </div>
+                    
+                    <!-- Win Rate -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold mb-1
+                            {% if last_season.winRate is defined and last_season.winRate is not none and last_season.winRate|float >= 60 %}text-green-500
+                            {% elif last_season.winRate is defined and last_season.winRate is not none and last_season.winRate|float >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {% if last_season.winRate is defined %}
+                            {{ last_season.winRate|round(0)|int }}%
+                            {% else %}
+                            <span class="text-xs text-gray-400 font-normal">No data</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Win Rate</div>
+                    </div>
+                </div>
+                
+                <!-- W-L Record -->
+                <div class="flex items-center justify-center py-4 bg-gray-50 rounded-lg mb-4" style="gap: 2rem;">
+                    <div class="text-center" style="min-width: 80px;">
+                        {% if last_season and last_season.wins is defined %}
+                        <div class="text-2xl font-bold text-green-500">{{ last_season.wins|int }}</div>
+                        {% elif last_season and last_season.winRate is defined and last_season.matches and last_season.matches != 'N/A' %}
+                        <div class="text-2xl font-bold text-green-500">{{ (last_season.winRate * last_season.matches // 100)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-green-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Wins</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-300"></div>
+                    <div class="text-center" style="min-width: 80px;">
+                        {% if last_season and last_season.losses is defined %}
+                        <div class="text-2xl font-bold text-red-500">{{ last_season.losses|int }}</div>
+                        {% elif last_season and last_season.winRate is defined and last_season.matches and last_season.matches != 'N/A' %}
+                        {% set wins = (last_season.winRate * last_season.matches // 100)|int %}
+                        <div class="text-2xl font-bold text-red-500">{{ (last_season.matches - wins)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Losses</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Partner Analysis -->
+        {% if partner_analysis %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-user-friends mr-2" style="color: #bff863;"></i>
+                    Best Partnerships (2024-2025)
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for partner in partner_analysis %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center justify-center w-10 h-10 rounded-full font-bold text-white text-lg" 
+                                     style="background-color: {% if loop.index <= 3 %}#045454{% else %}#6b7280{% endif %};">
+                                    {{ loop.index }}
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ partner.name }}</h3>
+                                    <p class="text-sm text-gray-600">{{ partner.record }} record</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold 
+                                    {% if partner.winRate >= 60 %}text-green-500
+                                    {% elif partner.winRate >= 45 %}text-yellow-500
+                                    {% else %}text-red-500
+                                    {% endif %}">
+                                    {{ partner.winRate|round(0)|int }}%
+                                </div>
+                                <p class="text-xs text-gray-500 uppercase">Win Rate</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-4">
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-gray-900">{{ partner.matches }}</div>
+                                    <div class="text-xs text-gray-500">Match{{ 'es' if partner.matches != 1 else '' }}</div>
+                                </div>
+                                <div class="w-px h-8 bg-gray-200"></div>
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-green-600">{{ partner.wins }}</div>
+                                    <div class="text-xs text-gray-500">Wins</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-red-600">{{ partner.losses }}</div>
+                                    <div class="text-xs text-gray-500">Losses</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs text-gray-600 font-medium">Courts:</span>
+                                {% for court in partner.courts %}
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold text-white" 
+                                      style="background-color: #045454;">
+                                    {{ court }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Court Performance -->
+        {% if court_analysis %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-table-tennis mr-2" style="color: #bff863;"></i>
+                    Court Performance (2024-2025)
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Courts Stack - Show all courts vertically full width -->
+                <div class="space-y-4">
+                    {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
+                    {% for court in court_order %}
+                    {% set stats = court_analysis.get(court) %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <!-- Court Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ court.replace('court', 'Court ').title() }}</h3>
+                            <div class="flex items-center gap-3">
+                                <!-- Record -->
+                                <span class="text-lg font-bold text-gray-900">
+                                    {% if stats and stats.record %}
+                                        {{ stats.record }}
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% endif %}
+                                </span>
+                                <!-- Win Rate Badge -->
+                                {% if stats and stats.winRate is defined and stats.winRate is not none and stats.record != '0-0' %}
+                                <div class="px-4 py-2 rounded-full text-lg font-bold
+                                    {% if stats.winRate|float >= 60 %}bg-green-100 text-green-700
+                                    {% elif stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
+                                    {% else %}bg-red-100 text-red-700
+                                    {% endif %}">
+                                    {{ stats.winRate|round(0)|int }}%
+                                </div>
+                                {% else %}
+                                <div class="px-4 py-2 rounded-full text-lg font-bold bg-gray-100 text-gray-500">
+                                    0%
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Partners Section -->
+                        {% if stats and stats.topPartners %}
+                        <div>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
+                            
+                            <div class="space-y-2">
+                                {% for p in stats.topPartners %}
+                                <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="mb-2 flex items-center gap-2">
+                                            <span class="font-bold text-gray-900">{{ p.name }}</span>
+                                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ p.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
+                                        </div>
+                                        <div class="flex flex-col gap-2">
+                                            <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                                 style="background-color: #045454; color: #bff863;"
+                                                 data-partner-name="{{ p.name }}"
+                                                 data-court-name="{{ court.replace('court', 'Court ')|title }}"
+                                                 data-match-count="{{ p.matches|default(0) }}"
+                                                 data-partner-id="{{ p.player_id }}"
+                                                 title="Click to view matches with {{ p.name }}">
+                                                View {{ p.matches|default(0) }} match{{ 'es' if p.matches != 1 else '' }}
+                                            </button>
+                                            {% if p.isSubstitute %}
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
+                                                <i class="fas fa-exchange-alt mr-1"></i>
+                                                Sub for {{ p.substituteSeries }}
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <!-- Wins -->
+                                        <div class="flex items-center gap-1">
+                                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            <span class="text-sm font-medium text-green-700">{{ p.wins|default(0) }}</span>
+                                        </div>
+                                        <!-- Losses -->
+                                        <div class="flex items-center gap-1">
+                                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            <span class="text-sm font-medium text-red-700">{{ p.losses|default(0) }}</span>
+                                        </div>
+                                        <!-- Win Rate -->
+                                        {% if p.winRate is defined and p.winRate is not none and p.winRate is number and p.matches|default(0) > 0 %}
+                                        <div class="ml-2 px-2 py-1 rounded text-xs font-medium
+                                            {% if p.winRate >= 60 %}bg-green-100 text-green-700
+                                            {% elif p.winRate >= 45 %}bg-yellow-100 text-yellow-700
+                                            {% else %}bg-red-100 text-red-700
+                                            {% endif %}">
+                                            {{ p.winRate|round(0)|int }}%
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <div class="text-gray-400 text-sm italic">No matches played on this court</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- Match Detail Modal -->
+<div id="playerMatchesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg px-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-h-[90vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200" style="background-color: #045454; flex-shrink: 0;">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold" style="color: #bff863;" id="playerMatchesModalTitle">Last Season Matches</h2>
+                    <button onclick="closePlayerMatchesModal()" class="hover:opacity-80" style="color: #bff863;">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- Modal Content -->
+            <div id="playerMatchesModalContent" class="p-6 overflow-y-auto flex-1 min-h-0">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#playerMatchesModalContent {
+    scrollbar-width: thin !important;
+    scrollbar-color: #888 #f1f1f1 !important;
+    min-height: 200px !important;
+    max-height: calc(80vh - 80px) !important;
+    overflow-y: scroll !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+    display: block !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-thumb {
+    background: #888 !important;
+    border-radius: 6px !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-thumb:hover {
+    background: #555 !important;
+}
+#playerMatchesModalContent::-webkit-scrollbar-corner {
+    background: #f1f1f1 !important;
+}
+</style>
+
+<script>
+// Partner matches modal functionality for Last Season Stats
+function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    console.log(`[DEBUG] Opening last season partner matches modal for: ${partnerName}, court: ${courtName}, matches: ${matchCount}`);
+    
+    // Update modal title
+    const modalTitle = document.getElementById('playerMatchesModalTitle');
+    if (modalTitle) {
+        modalTitle.textContent = `Last Season Match Detail`;
+    }
+    
+    // Show modal
+    const modal = document.getElementById('playerMatchesModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+    
+    // Load partner matches data from last season
+    loadPartnerMatchesData(partnerName, courtName);
+}
+
+function closePlayerMatchesModal() {
+    const modal = document.getElementById('playerMatchesModal');
+    modal.classList.add('hidden');
+}
+
+function loadPartnerMatchesData(partnerName, courtName) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    
+    // Show loading state
+    modalContent.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-3 text-gray-600">Loading matches with ${partnerName}...</span>
+        </div>
+    `;
+    
+    // Get current player context from the page URL
+    const pathParts = window.location.pathname.split('/');
+    const playerId = pathParts[pathParts.length - 1]; // Last part of URL
+    
+    console.log(`[DEBUG] Loading last season partner matches for: ${partnerName}, court: ${courtName}, player_id: ${playerId}`);
+    
+    // Extract court number from courtName (e.g., "Court 1" -> "1")
+    const courtNumber = courtName.replace(/[^0-9]/g, '');
+    
+    // Convert partner name from "Last, First" to "First Last" format for API call
+    let apiPartnerName = partnerName;
+    if (partnerName.includes(', ')) {
+        const [lastName, firstName] = partnerName.split(', ');
+        apiPartnerName = `${firstName} ${lastName}`;
+    }
+    
+    // Use special endpoint for last season data
+    const apiUrl = `/api/player-matches-detail?player_id=${encodeURIComponent(playerId)}&partner_name=${encodeURIComponent(apiPartnerName)}&court=${encodeURIComponent(courtNumber)}&season=2024-2025`;
+    
+    console.log(`[DEBUG] API URL: ${apiUrl}`);
+    
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('[DEBUG] Last season partner matches API response:', data);
+            if (data.success) {
+                renderPartnerMatchesModal(data.matches, partnerName, courtName);
+            } else {
+                showPlayerMatchesError(data.error || 'Failed to load matches');
+            }
+        })
+        .catch(error => {
+            console.error('[DEBUG] Error loading last season partner matches:', error);
+            showPlayerMatchesError(`Failed to fetch partner matches: ${error.message}`);
+        });
+}
+
+function renderPartnerMatchesModal(matches, partnerName, courtName) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    
+    if (!matches || matches.length === 0) {
+        modalContent.innerHTML = `
+            <div class="text-center py-8">
+                <p class="text-gray-600 text-lg">No matches found with ${partnerName} on ${courtName}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Get current player name from the page
+    const currentPlayerName = "{{ player_name }}";
+    
+    let html = `<div class="mt-4">`;
+    
+    // Group matches by date and team matchup
+    const groupedMatches = groupMatchesByTeamMatchup(matches);
+    
+    groupedMatches.forEach(group => {
+        html += `
+            <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
+                </div>
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-base font-semibold" style="color: #bff863;">
+                        ${group.away_team} vs.<br>
+                        ${group.home_team}
+                    </span>
+                </div>
+                <div class="px-0">
+        `;
+        
+        group.matches.sort((a, b) => {
+            const aNum = typeof a.court_number === 'string' ? parseInt(a.court_number.replace(/\D/g, '')) : a.court_number;
+            const bNum = typeof b.court_number === 'string' ? parseInt(b.court_number.replace(/\D/g, '')) : b.court_number;
+            return aNum - bNum;
+        });
+        
+        group.matches.forEach(match => {
+            const scores = match.scores ? match.scores.split(", ") : [];
+            const team1_sets = [];
+            const team2_sets = [];
+            let team1_sets_won = 0;
+            let team2_sets_won = 0;
+            
+            scores.forEach(set_score => {
+                if (set_score && set_score.includes("-")) {
+                    const [score1, score2] = set_score.split("-");
+                    team1_sets.push(score1);
+                    team2_sets.push(score2);
+                    
+                    if (parseInt(score2) > parseInt(score1)) {
+                        team2_sets_won++;
+                    } else {
+                        team1_sets_won++;
+                    }
+                }
+            });
+            
+            const team1_won = team1_sets_won > team2_sets_won;
+            const current_player_on_team1 = match.player_was_home === false;
+            
+            let current_team_sets, opponent_team_sets, current_team_won;
+            if (current_player_on_team1) {
+                current_team_sets = team1_sets;
+                opponent_team_sets = team2_sets;
+                current_team_won = team1_won;
+            } else {
+                current_team_sets = team2_sets;
+                opponent_team_sets = team1_sets;
+                current_team_won = team2_sets_won > team1_sets_won;
+            }
+            
+            html += `
+                <div class="px-3 py-2" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
+                </div>
+                <table class="w-full border-collapse">
+                    <tbody>
+                        <tr class="${current_team_won ? 'bg-green-100' : 'bg-gray-50'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.partner_name}</div>
+                                    <div>${currentPlayerName}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
+                        </tr>
+                        <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
+                            <td class="w-40 px-3 py-4 text-left">
+                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.home_team : group.away_team}</div>
+                                <div class="text-sm font-medium text-black">
+                                    <div class="mb-1">${match.opponent1_name}</div>
+                                    <div>${match.opponent2_name}</div>
+                                </div>
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center">
+                                ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                            </td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    html += `</div>`;
+    modalContent.innerHTML = html;
+}
+
+function groupMatchesByTeamMatchup(matches) {
+    const grouped = {};
+    
+    matches.forEach(match => {
+        const key = `${match.date}_${match.home_team}_${match.away_team}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                date: match.date,
+                home_team: match.home_team,
+                away_team: match.away_team,
+                matches: []
+            };
+        }
+        grouped[key].matches.push(match);
+    });
+    
+    return Object.values(grouped).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function showPlayerMatchesError(message) {
+    const modalContent = document.getElementById('playerMatchesModalContent');
+    modalContent.innerHTML = `
+        <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+            <p class="text-red-600 text-lg">${message}</p>
+        </div>
+    `;
+}
+
+// Event listener for partner matches buttons
+document.addEventListener('click', function(event) {
+    if (event.target.classList.contains('partner-matches-btn') || event.target.closest('.partner-matches-btn')) {
+        const button = event.target.classList.contains('partner-matches-btn') ? event.target : event.target.closest('.partner-matches-btn');
+        
+        const partnerName = button.getAttribute('data-partner-name');
+        const courtName = button.getAttribute('data-court-name');
+        const matchCount = parseInt(button.getAttribute('data-match-count'));
+        
+        if (partnerName && courtName && !isNaN(matchCount)) {
+            openPartnerMatchesModal(partnerName, courtName, matchCount);
+        }
+    }
+});
+</script>
+
+{% endblock %}
+
