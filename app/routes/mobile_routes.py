@@ -619,7 +619,7 @@ def serve_mobile_player_detail(player_id):
         analyze_data = get_player_analysis_by_name(player_name, viewing_user)
 
     # Get additional player info (team name and series) for the header using team context
-    player_info = {"club": None, "series": None, "team_name": None}
+    player_info = {"club": None, "series": None, "team_name": None, "tenniscores_player_id": actual_player_id, "team_id": team_id}
     if actual_player_id:
         # Use team-specific lookup for accurate context when team_id is available
         if team_id:
@@ -691,7 +691,9 @@ def serve_mobile_player_detail(player_id):
             player_info = {
                 "club": player_record["club_name"],
                 "series": formatted_series, 
-                "team_name": player_record["team_name"]
+                "team_name": player_record["team_name"],
+                "tenniscores_player_id": actual_player_id,
+                "team_id": team_id
             }
 
     # Create a user dict with the specific player ID and team context for PTI delta calculation
@@ -721,6 +723,11 @@ def serve_mobile_player_detail(player_id):
     analyze_data = get_player_analysis(player_user_dict)
 
     # PTI data is now handled within the service function with proper league filtering
+    
+    # Get last season stats (2024-2025)
+    from app.services.mobile_service import get_last_season_stats
+    last_season_stats = get_last_season_stats(actual_player_id, league_id_int, season="2024-2025")
+    analyze_data["last_season"] = last_season_stats
 
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
@@ -740,6 +747,170 @@ def serve_mobile_player_detail(player_id):
         analyze_data=analyze_data,
         player_name=player_name,
         player_info=player_info,
+        viewing_user_league=viewing_user_league,
+    )
+
+
+@mobile_bp.route("/mobile/last-season-stats/<player_id>")
+@login_required
+def serve_mobile_last_season_stats(player_id):
+    """Serve the mobile Last Season Stats detail page"""
+    from app.services.mobile_service import get_last_season_stats, get_last_season_partner_analysis, get_last_season_court_analysis
+    from urllib.parse import unquote
+    
+    player_identifier = unquote(player_id)
+    
+    # Parse player_id and team_id (format: player_id or player_id_team_teamID)
+    actual_player_id = player_identifier
+    team_id = None
+    
+    if '_team_' in player_identifier:
+        parts = player_identifier.split('_team_')
+        if len(parts) == 2:
+            actual_player_id = parts[0]
+            try:
+                team_id = int(parts[1])
+            except ValueError:
+                team_id = None
+    
+    # Get viewing user's league context
+    viewing_user = session["user"].copy()
+    viewing_user_league = viewing_user.get("league_id", "")
+    league_id_int = None
+    
+    if isinstance(viewing_user_league, str) and viewing_user_league != "":
+        try:
+            league_record = execute_query_one(
+                "SELECT id FROM leagues WHERE league_id = %s", [viewing_user_league]
+            )
+            if league_record:
+                league_id_int = league_record["id"]
+        except Exception:
+            pass
+    elif isinstance(viewing_user_league, int):
+        league_id_int = viewing_user_league
+    
+    # Get player's name from current database
+    player_name_query = """
+        SELECT 
+            CONCAT(p.first_name, ' ', p.last_name) as name,
+            p.tenniscores_player_id
+        FROM players p
+        WHERE p.tenniscores_player_id = %s
+        LIMIT 1
+    """
+    player_name_result = execute_query_one(player_name_query, [actual_player_id])
+    player_name = player_name_result.get("name", "Unknown Player") if player_name_result else "Unknown Player"
+    
+    # Get player's last season team info from match_scores_previous_seasons
+    # Find the most common team they played for in 2024-2025 season
+    last_season_team_query = """
+        SELECT 
+            ms.home_team_id,
+            ms.away_team_id,
+            t_home.team_name as home_team_name,
+            t_away.team_name as away_team_name,
+            c_home.name as home_club,
+            c_away.name as away_club,
+            s_home.name as home_series,
+            s_away.name as away_series,
+            CASE 
+                WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN ms.home_team_id
+                ELSE ms.away_team_id
+            END as player_team_id,
+            CASE 
+                WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN t_home.team_name
+                ELSE t_away.team_name
+            END as player_team_name,
+            CASE 
+                WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN c_home.name
+                ELSE c_away.name
+            END as player_club,
+            CASE 
+                WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN s_home.name
+                ELSE s_away.name
+            END as player_series
+        FROM match_scores_previous_seasons ms
+        LEFT JOIN teams t_home ON ms.home_team_id = t_home.id
+        LEFT JOIN teams t_away ON ms.away_team_id = t_away.id
+        LEFT JOIN clubs c_home ON t_home.club_id = c_home.id
+        LEFT JOIN clubs c_away ON t_away.club_id = c_away.id
+        LEFT JOIN series s_home ON t_home.series_id = s_home.id
+        LEFT JOIN series s_away ON t_away.series_id = s_away.id
+        WHERE ms.season = '2024-2025'
+            AND (ms.home_player_1_id = %s OR ms.home_player_2_id = %s OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s)
+    """
+    
+    if league_id_int:
+        last_season_team_query += " AND ms.league_id = %s"
+        last_season_matches = execute_query(last_season_team_query, 
+            [actual_player_id, actual_player_id, actual_player_id, actual_player_id, 
+             actual_player_id, actual_player_id, actual_player_id, actual_player_id,
+             actual_player_id, actual_player_id, actual_player_id, actual_player_id, league_id_int])
+    else:
+        last_season_matches = execute_query(last_season_team_query, 
+            [actual_player_id, actual_player_id, actual_player_id, actual_player_id, 
+             actual_player_id, actual_player_id, actual_player_id, actual_player_id,
+             actual_player_id, actual_player_id, actual_player_id, actual_player_id])
+    
+    # Find the most common team/club/series from last season matches
+    player_info = {
+        "name": player_name,
+        "tenniscores_player_id": actual_player_id,
+        "team_id": None,
+        "club": None,
+        "series": None,
+        "team_name": None
+    }
+    
+    if last_season_matches and len(last_season_matches) > 0:
+        # Count occurrences of each team
+        from collections import Counter
+        team_counts = Counter()
+        team_info = {}
+        
+        for match in last_season_matches:
+            team_id = match.get("player_team_id")
+            if team_id:
+                team_counts[team_id] += 1
+                team_info[team_id] = {
+                    "team_name": match.get("player_team_name"),
+                    "club": match.get("player_club"),
+                    "series": match.get("player_series")
+                }
+        
+        # Get most common team
+        if team_counts:
+            most_common_team_id = team_counts.most_common(1)[0][0]
+            player_info.update({
+                "team_id": most_common_team_id,
+                "team_name": team_info[most_common_team_id]["team_name"],
+                "club": team_info[most_common_team_id]["club"],
+                "series": team_info[most_common_team_id]["series"]
+            })
+    
+    # Get last season stats, partner analysis, and court analysis
+    last_season_stats = get_last_season_stats(actual_player_id, league_id_int, season="2024-2025")
+    partner_analysis = get_last_season_partner_analysis(actual_player_id, league_id_int, season="2024-2025")
+    court_analysis = get_last_season_court_analysis(actual_player_id, league_id_int, season="2024-2025")
+    
+    session_data = {"user": session["user"], "authenticated": True}
+    
+    log_user_activity(
+        session["user"]["email"],
+        "page_visit",
+        page="mobile_last_season_stats",
+        details=f"Last Season Stats: {player_name}"
+    )
+    
+    return render_template(
+        "mobile/last_season_stats.html",
+        session_data=session_data,
+        player_name=player_name,
+        player_info=player_info,
+        last_season=last_season_stats,
+        partner_analysis=partner_analysis,
+        court_analysis=court_analysis,
         viewing_user_league=viewing_user_league,
     )
 

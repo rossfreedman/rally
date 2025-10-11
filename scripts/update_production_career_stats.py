@@ -94,32 +94,52 @@ def update_career_stats(environment):
     print(f"Database: {db_name}")
     print("=" * 60)
     
-    # Load the career stats JSON file
-    # Try multiple paths: current directory, project root, or full path
-    possible_paths = [
+    # Load the career stats JSON files for both leagues
+    career_stats_data = []
+    
+    # APTA Chicago paths
+    apta_possible_paths = [
         'players_career_stats.json',  # Current directory (for SSH runs)
         'data/leagues/APTA_CHICAGO/players_career_stats.json',  # Project root
         os.path.join(os.path.dirname(__file__), '..', 'data/leagues/APTA_CHICAGO/players_career_stats.json')  # Relative to script
     ]
     
-    json_path = None
-    for path in possible_paths:
+    # Find and load APTA file
+    for path in apta_possible_paths:
         if os.path.exists(path):
-            json_path = path
+            print(f"📂 Loading APTA career stats from: {path}")
+            with open(path, 'r') as f:
+                apta_data = json.load(f)
+                career_stats_data.extend(apta_data)
+                print(f"   ✅ Loaded {len(apta_data):,} APTA players")
             break
     
-    if not json_path:
-        print(f"❌ File not found: players_career_stats.json")
-        print(f"   Tried locations:")
-        for path in possible_paths:
+    # CNSWPL paths
+    cnswpl_possible_paths = [
+        'cnswpl_players_career_stats.json',  # Current directory (for SSH runs)
+        'data/leagues/CNSWPL/cnswpl_players_career_stats.json',  # Project root
+        os.path.join(os.path.dirname(__file__), '..', 'data/leagues/CNSWPL/cnswpl_players_career_stats.json')  # Relative to script
+    ]
+    
+    # Find and load CNSWPL file
+    for path in cnswpl_possible_paths:
+        if os.path.exists(path):
+            print(f"📂 Loading CNSWPL career stats from: {path}")
+            with open(path, 'r') as f:
+                cnswpl_data = json.load(f)
+                career_stats_data.extend(cnswpl_data)
+                print(f"   ✅ Loaded {len(cnswpl_data):,} CNSWPL players")
+            break
+    
+    if not career_stats_data:
+        print(f"❌ No career stats files found!")
+        print(f"   Tried APTA locations:")
+        for path in apta_possible_paths:
             print(f"     - {path}")
-        print(f"   Make sure the JSON file is in one of these locations")
+        print(f"   Tried CNSWPL locations:")
+        for path in cnswpl_possible_paths:
+            print(f"     - {path}")
         sys.exit(1)
-    
-    print(f"📂 Loading career stats from: {json_path}")
-    
-    with open(json_path, 'r') as f:
-        career_stats_data = json.load(f)
     
     print(f"✅ Loaded {len(career_stats_data)} player records")
     

@@ -63,8 +63,8 @@ def main():
         run_step("Scrape CNSWPL Players", ["python3", "data/etl/scrapers/cnswpl/cnswpl_scrape_players_simple.py"])
         run_step("Import CNSWPL Players", ["python3", "data/etl/import/import_players.py", "CNSWPL"])
 
-        # Scores
-        run_step("Scrape CNSWPL Match Scores", ["python3", "data/etl/scrapers/cnswpl_scrape_match_scores.py", "cnswpl"])
+        # Scores (using --weeks 1 to only scrape most recent week)
+        run_step("Scrape CNSWPL Match Scores", ["python3", "data/etl/scrapers/cnswpl_scrape_match_scores.py", "cnswpl", "--weeks", "1"])
         run_step("Import CNSWPL Match Scores", ["python3", "data/etl/import/import_match_scores.py", "CNSWPL"])
 
         # Stats

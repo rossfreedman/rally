@@ -11538,8 +11538,9 @@ def get_player_matches_detail():
         player_name = request.args.get("player_name")  # For backward compatibility
         partner_name = request.args.get("partner_name")  # Filter by specific partner
         court_filter = request.args.get("court")  # Filter by specific court
+        season = request.args.get("season")  # Optional: filter by specific season (e.g., "2024-2025")
         
-        print(f"[DEBUG] Player matches detail API called with player_id: {player_id}, player_name: {player_name}, partner_name: {partner_name}, court: {court_filter}")
+        print(f"[DEBUG] Player matches detail API called with player_id: {player_id}, player_name: {player_name}, partner_name: {partner_name}, court: {court_filter}, season: {season}")
         
         if not player_id:
             return jsonify({
@@ -11582,58 +11583,105 @@ def get_player_matches_detail():
             
         print(f"[DEBUG] User league_id: {user_league_id}, league_id_int: {league_id_int}")
         
-        # Use same season definition as player detail page for consistency
-        from datetime import datetime
-        season_start = datetime(2024, 8, 1)  # August 1st, 2024
-        season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
-        
-        print(f"[DEBUG] Using season: {season_start.date()} to {season_end.date()}")
-        
         # Import helper function for name conversion
         from app.services.mobile_service import get_player_name_from_id
         
-        # Build match query for the specific player
-        base_query = """
-            SELECT
-                TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
-                ms.match_date,
-                ms.home_team,
-                ms.away_team,
-                ms.home_team_id,
-                ms.away_team_id,
-                ms.home_player_1_id,
-                ms.home_player_2_id,
-                ms.away_player_1_id,
-                ms.away_player_2_id,
-                ms.winner,
-                ms.scores,
-                ms.id,
-                CASE
-                    WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
-                    ELSE FALSE
-                END as player_was_home,
-                CASE
-                    WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
-                    WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
-                    ELSE FALSE
-                END as player_won
-            FROM match_scores ms
-            WHERE ms.match_date >= %s
-                AND ms.match_date <= %s
-                AND (
-                    ms.home_player_1_id = %s OR
-                    ms.home_player_2_id = %s OR
-                    ms.away_player_1_id = %s OR
-                    ms.away_player_2_id = %s
-                )
-        """
-        
-        query_params = [
-            actual_player_id, actual_player_id,  # player_was_home check
-            actual_player_id, actual_player_id, actual_player_id, actual_player_id,  # player_won check  
-            season_start.date(), season_end.date(),  # season filter
-            actual_player_id, actual_player_id, actual_player_id, actual_player_id  # player match filter
-        ]
+        # Determine which table to query based on season parameter
+        if season:
+            # Query from previous seasons table
+            table_name = "match_scores_previous_seasons"
+            print(f"[DEBUG] Querying previous seasons table for season: {season}")
+            
+            base_query = """
+                SELECT
+                    TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
+                    ms.match_date,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.home_team_id,
+                    ms.away_team_id,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.scores,
+                    ms.id,
+                    CASE
+                        WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
+                        ELSE FALSE
+                    END as player_was_home,
+                    CASE
+                        WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                        WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                        ELSE FALSE
+                    END as player_won
+                FROM match_scores_previous_seasons ms
+                WHERE ms.season = %s
+                    AND (
+                        ms.home_player_1_id = %s OR
+                        ms.home_player_2_id = %s OR
+                        ms.away_player_1_id = %s OR
+                        ms.away_player_2_id = %s
+                    )
+            """
+            
+            query_params = [
+                actual_player_id, actual_player_id,  # player_was_home check
+                actual_player_id, actual_player_id, actual_player_id, actual_player_id,  # player_won check
+                season,  # season filter
+                actual_player_id, actual_player_id, actual_player_id, actual_player_id  # player match filter
+            ]
+        else:
+            # Query from current season table
+            table_name = "match_scores"
+            from datetime import datetime
+            season_start = datetime(2024, 8, 1)  # August 1st, 2024
+            season_end = datetime(2026, 7, 31)   # July 31st, 2026 (extended to catch 2025-2026 season)
+            
+            print(f"[DEBUG] Using current season: {season_start.date()} to {season_end.date()}")
+            
+            base_query = """
+                SELECT
+                    TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
+                    ms.match_date,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.home_team_id,
+                    ms.away_team_id,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.scores,
+                    ms.id,
+                    CASE
+                        WHEN ms.home_player_1_id = %s OR ms.home_player_2_id = %s THEN TRUE
+                        ELSE FALSE
+                    END as player_was_home,
+                    CASE
+                        WHEN (ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND ms.winner = 'home' THEN TRUE
+                        WHEN (ms.away_player_1_id = %s OR ms.away_player_2_id = %s) AND ms.winner = 'away' THEN TRUE
+                        ELSE FALSE
+                    END as player_won
+                FROM match_scores ms
+                WHERE ms.match_date >= %s
+                    AND ms.match_date <= %s
+                    AND (
+                        ms.home_player_1_id = %s OR
+                        ms.home_player_2_id = %s OR
+                        ms.away_player_1_id = %s OR
+                        ms.away_player_2_id = %s
+                    )
+            """
+            
+            query_params = [
+                actual_player_id, actual_player_id,  # player_was_home check
+                actual_player_id, actual_player_id, actual_player_id, actual_player_id,  # player_won check  
+                season_start.date(), season_end.date(),  # season filter
+                actual_player_id, actual_player_id, actual_player_id, actual_player_id  # player match filter
+            ]
         
         # Add league filtering if available
         if league_id_int:
@@ -11664,16 +11712,30 @@ def get_player_matches_detail():
             court_number = 1
             try:
                 # Group matches by team matchup to determine court order
-                same_matchup_query = """
-                    SELECT id FROM match_scores 
-                    WHERE match_date = %s 
-                    AND home_team = %s 
-                    AND away_team = %s 
-                    ORDER BY id
-                """
-                same_matchup_matches = execute_query(same_matchup_query, [
-                    match["match_date"], match["home_team"], match["away_team"]
-                ])
+                # Use appropriate table based on season parameter
+                if season:
+                    same_matchup_query = """
+                        SELECT id FROM match_scores_previous_seasons
+                        WHERE match_date = %s 
+                        AND home_team = %s 
+                        AND away_team = %s 
+                        AND season = %s
+                        ORDER BY id
+                    """
+                    same_matchup_matches = execute_query(same_matchup_query, [
+                        match["match_date"], match["home_team"], match["away_team"], season
+                    ])
+                else:
+                    same_matchup_query = """
+                        SELECT id FROM match_scores 
+                        WHERE match_date = %s 
+                        AND home_team = %s 
+                        AND away_team = %s 
+                        ORDER BY id
+                    """
+                    same_matchup_matches = execute_query(same_matchup_query, [
+                        match["match_date"], match["home_team"], match["away_team"]
+                    ])
                 
                 if same_matchup_matches:
                     match_ids = [m["id"] for m in same_matchup_matches]

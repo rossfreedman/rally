@@ -559,18 +559,19 @@ def upsert_player(cur, league_id, player_data):
     
     try:
         # Handle both string and integer values for career stats
+        # CRITICAL FIX: Only parse career stats if they exist in the JSON, otherwise keep as None
         if isinstance(career_wins_raw, str):
-            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" and career_wins_raw.strip() != "" else 0
+            career_wins_value = int(career_wins_raw) if career_wins_raw and career_wins_raw != "N/A" and career_wins_raw.strip() != "" else None
         else:
-            career_wins_value = int(career_wins_raw) if career_wins_raw else 0
+            career_wins_value = int(career_wins_raw) if career_wins_raw else None
             
         if isinstance(career_losses_raw, str):
-            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" and career_losses_raw.strip() != "" else 0
+            career_losses_value = int(career_losses_raw) if career_losses_raw and career_losses_raw != "N/A" and career_losses_raw.strip() != "" else None
         else:
-            career_losses_value = int(career_losses_raw) if career_losses_raw else 0
+            career_losses_value = int(career_losses_raw) if career_losses_raw else None
     except (ValueError, TypeError):
-        career_wins_value = 0
-        career_losses_value = 0
+        career_wins_value = None
+        career_losses_value = None
     
     # Parse career win percentage (handle "0.0%" format)
     if career_win_pct_raw and career_win_pct_raw != "N/A":
@@ -583,8 +584,11 @@ def upsert_player(cur, league_id, player_data):
     else:
         career_win_percentage_value = None
     
-    # Calculate career matches
-    career_matches_value = career_wins_value + career_losses_value
+    # Calculate career matches (only if both values are not None)
+    if career_wins_value is not None and career_losses_value is not None:
+        career_matches_value = career_wins_value + career_losses_value
+    else:
+        career_matches_value = None
     
     # Parse team name to get club and series
     club_name, series_name, team_number = parse_team_name(team_name)

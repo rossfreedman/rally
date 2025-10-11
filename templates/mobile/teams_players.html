@@ -137,21 +137,6 @@
             </div>
         </div>
         
-        <!-- Analysis Summary Card -->
-        {% if team_analysis_data.summary %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
-                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-lightbulb mr-2" style="color: #bff863;"></i>
-                    Analysis Summary
-                </h2>
-            </div>
-            
-            <div class="p-6">
-                <p class="text-gray-700">{{ team_analysis_data.summary }}</p>
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Team Stats Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -254,121 +239,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Court Analysis Header -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
-                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-chart-bar mr-2" style="color: #bff863;"></i>
-                    Court Analysis
-                </h2>
-            </div>
-        </div>
-        
-        <!-- Court Performance Section -->
-        {% if team_analysis_data.court_analysis %}
-        <div class="space-y-4">
-            {% for court_key, court in team_analysis_data.court_analysis.items()|sort %}
-            {% if court %}
-            {% set court_num = court_key.replace('Court', '').replace('court', '') %}
-            <!-- Individual Court Card -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                            <i class="fas fa-table-tennis mr-2" style="color: #bff863;"></i>
-                            Court {{ court_num }}
-                        </h2>
-                        <div class="flex items-center gap-3">
-                            <!-- Record -->
-                            {% set record = court.record|default('0-0') %}
-                            <span class="text-lg font-bold" style="color: #bff863;">{{ record }}</span>
-                            <!-- Win Rate Badge -->
-                            {% if record != '0-0' %}
-                            {% set win_rate = court.win_rate|default(court.winRate)|default(0) %}
-                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
-                                {{ win_rate|round(0)|int }}%
-                            </div>
-                            {% else %}
-                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
-                                0%
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="p-6">
-                    <!-- All Players Section -->
-                    {% if court.key_players or court.topPartners %}
-                    <div>
-                        <p class="text-sm font-medium text-gray-700 mb-3">Players</p>
-                        <div class="space-y-2">
-                            {% set players = court.key_players or court.topPartners %}
-                            {% for player in players %}
-                            <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
-                                <div class="flex-1">
-                                    <div class="mb-2 flex items-center gap-2">
-                                        <span class="font-bold text-gray-900">{{ player.name }}</span>
-                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
-                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
-                                           title="View {{ player.name }}'s profile">
-                                            <i class="fas fa-search text-sm"></i>
-                                        </a>
-                                    </div>
-                                    <div class="flex flex-col gap-2">
-                                        <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
-                                             style="background-color: #045454; color: #bff863;"
-                                             onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
-                                             title="Click to view matches with {{ player.name }}">
-                                            View {{ player.matches|default(0) }} match{{ 'es' if player.matches != 1 else '' }}
-                                        </button>
-                                        {% if player.isSubstitute %}
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
-                                            <i class="fas fa-exchange-alt mr-1"></i>
-                                            Sub
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <!-- Wins -->
-                                    <div class="flex items-center gap-1">
-                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <span class="text-sm font-medium text-green-700">{{ player.wins|default(0) }}</span>
-                                    </div>
-                                    <!-- Losses -->
-                                    <div class="flex items-center gap-1">
-                                        <div class="w-2 h-2 bg-red-500 rounded-full"></div>
-                                        <span class="text-sm font-medium text-red-700">{{ player.losses|default(0) }}</span>
-                                    </div>
-                                    <!-- Win Rate Badge -->
-                                    {% if player.matches > 0 %}
-                                    {% set player_win_rate = player.win_rate|default(player.winRate)|default(0) %}
-                                    <div class="ml-2 px-2 py-1 rounded text-xs font-medium
-                                        {% if player_win_rate >= 60 %}bg-green-100 text-green-700
-                                        {% elif player_win_rate >= 45 %}bg-yellow-100 text-yellow-700
-                                        {% else %}bg-red-100 text-red-700
-                                        {% endif %}">
-                                        {{ player_win_rate|round(0)|int }}%
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <div class="text-gray-400 text-sm italic">No matches played on this court</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-            {% endfor %}
-        </div>
-        {% endif %}
 
         <!-- Team Players Card -->
         {% if team_roster and team_roster|length > 0 %}
@@ -664,6 +534,121 @@
                     </table>
                 </div>
             </div>
+        </div>
+        {% endif %}
+
+        <!-- Court Analysis Header -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-chart-bar mr-2" style="color: #bff863;"></i>
+                    Court Analysis
+                </h2>
+            </div>
+        </div>
+        
+        <!-- Court Performance Section -->
+        {% if team_analysis_data.court_analysis %}
+        <div class="space-y-4">
+            {% for court_key, court in team_analysis_data.court_analysis.items()|sort %}
+            {% if court %}
+            {% set court_num = court_key.replace('Court', '').replace('court', '') %}
+            <!-- Individual Court Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                            <i class="fas fa-table-tennis mr-2" style="color: #bff863;"></i>
+                            Court {{ court_num }}
+                        </h2>
+                        <div class="flex items-center gap-3">
+                            <!-- Record -->
+                            {% set record = court.record|default('0-0') %}
+                            <span class="text-lg font-bold" style="color: #bff863;">{{ record }}</span>
+                            <!-- Win Rate Badge -->
+                            {% if record != '0-0' %}
+                            {% set win_rate = court.win_rate|default(court.winRate)|default(0) %}
+                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
+                                {{ win_rate|round(0)|int }}%
+                            </div>
+                            {% else %}
+                            <div class="px-4 py-2 rounded-full text-lg font-bold" style="background-color: #bff863; color: #045454;">
+                                0%
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- All Players Section -->
+                    {% if court.key_players or court.topPartners %}
+                    <div>
+                        <p class="text-sm font-medium text-gray-700 mb-3">Players</p>
+                        <div class="space-y-2">
+                            {% set players = court.key_players or court.topPartners %}
+                            {% for player in players %}
+                            <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                <div class="flex-1">
+                                    <div class="mb-2 flex items-center gap-2">
+                                        <span class="font-bold text-gray-900">{{ player.name }}</span>
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                           title="View {{ player.name }}'s profile">
+                                            <i class="fas fa-search text-sm"></i>
+                                        </a>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
+                                             style="background-color: #045454; color: #bff863;"
+                                             onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
+                                             title="Click to view matches with {{ player.name }}">
+                                            View {{ player.matches|default(0) }} match{{ 'es' if player.matches != 1 else '' }}
+                                        </button>
+                                        {% if player.isSubstitute %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 w-fit">
+                                            <i class="fas fa-exchange-alt mr-1"></i>
+                                            Sub
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <!-- Wins -->
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-sm font-medium text-green-700">{{ player.wins|default(0) }}</span>
+                                    </div>
+                                    <!-- Losses -->
+                                    <div class="flex items-center gap-1">
+                                        <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                        <span class="text-sm font-medium text-red-700">{{ player.losses|default(0) }}</span>
+                                    </div>
+                                    <!-- Win Rate Badge -->
+                                    {% if player.matches > 0 %}
+                                    {% set player_win_rate = player.win_rate|default(player.winRate)|default(0) %}
+                                    <div class="ml-2 px-2 py-1 rounded text-xs font-medium
+                                        {% if player_win_rate >= 60 %}bg-green-100 text-green-700
+                                        {% elif player_win_rate >= 45 %}bg-yellow-100 text-yellow-700
+                                        {% else %}bg-red-100 text-red-700
+                                        {% endif %}">
+                                        {{ player_win_rate|round(0)|int }}%
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="text-gray-400 text-sm italic">No matches played on this court</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
         </div>
         {% endif %}
 
@@ -1132,6 +1117,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedTeamId = urlParams.get('team_id');
     if (selectedTeamId) {
         loadTeamLastMatches(selectedTeamId);
+        
+        // Auto-scroll 500px after search completes
+        // Wait for content to render then scroll
+        setTimeout(() => {
+            window.scrollTo({
+                top: 500,
+                behavior: 'smooth'
+            });
+        }, 100);
     }
     
     // Player Typeahead functionality

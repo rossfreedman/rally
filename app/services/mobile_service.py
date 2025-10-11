@@ -865,10 +865,14 @@ def get_player_analysis(user):
                 pti_history_available = False
                 try:
                     history_count = execute_query_one(
-                        "SELECT COUNT(*) as count FROM player_history WHERE tenniscores_player_id = %s AND end_pti IS NOT NULL",
+                        """SELECT COUNT(*) as count 
+                           FROM player_history ph 
+                           JOIN players p ON ph.player_id = p.id 
+                           WHERE p.tenniscores_player_id = %s AND ph.end_pti IS NOT NULL""",
                         [player_id]
                     )
                     pti_history_available = history_count and history_count.get('count', 0) > 0
+                    print(f"[DEBUG] PTI history check for player {player_id}: {history_count.get('count', 0) if history_count else 0} records found, pti_history_available={pti_history_available}")
                 except Exception as history_error:
                     print(f"Error checking PTI history availability: {history_error}")
                 
@@ -1028,6 +1032,508 @@ def get_player_analysis(user):
             "delta_available": False,
             "error": str(e)
         }
+
+
+def get_last_season_stats(player_id, league_id_int=None, season="2024-2025"):
+    """
+    Get last season statistics for a player from match_scores_previous_seasons table.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        league_id_int: The integer league ID for filtering
+        season: The season identifier (default: "2024-2025")
+    
+    Returns:
+        dict: Last season stats with matches, wins, losses, winRate
+    """
+    try:
+        if not player_id:
+            return None
+        
+        # Query last season matches from match_scores_previous_seasons table
+        if league_id_int:
+            history_query = """
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2",
+                    tenniscores_match_id
+                FROM match_scores_previous_seasons
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                AND season = %s
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+            """
+            query_params = [player_id, player_id, player_id, player_id, league_id_int, season]
+        else:
+            history_query = """
+                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores, tenniscores_match_id)
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    home_team_id,
+                    away_team_id,
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2",
+                    tenniscores_match_id
+                FROM match_scores_previous_seasons
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND season = %s
+                ORDER BY match_date DESC, home_team, away_team, winner, scores, tenniscores_match_id, id DESC
+            """
+            query_params = [player_id, player_id, player_id, player_id, season]
+        
+        player_matches = execute_query(history_query, query_params)
+        
+        # Calculate statistics
+        total_matches = len(player_matches) if player_matches else 0
+        wins = 0
+        losses = 0
+        
+        if player_matches:
+            for match in player_matches:
+                # Determine if player was on home or away team
+                is_home = player_id in [
+                    match.get("Home Player 1"),
+                    match.get("Home Player 2"),
+                ]
+                winner = match.get("Winner") or ""
+                
+                # Skip ties
+                if winner.lower() == "tie":
+                    continue
+                
+                won = (is_home and winner.lower() == "home") or (
+                    not is_home and winner.lower() == "away"
+                )
+                
+                if won:
+                    wins += 1
+                else:
+                    losses += 1
+        
+        # Calculate win rate
+        win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+        
+        return {
+            "matches": total_matches,
+            "wins": wins,
+            "losses": losses,
+            "winRate": win_rate,
+            "match_history": player_matches  # Include matches for court analysis
+        }
+        
+    except Exception as e:
+        print(f"Error getting last season stats: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return None
+
+
+def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024-2025"):
+    """
+    Analyze all partners from last season, ranked by win rate.
+    Shows overall partnership stats and which courts they played together on.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        league_id_int: The integer league ID for filtering
+        season: The season identifier (default: "2024-2025")
+    
+    Returns:
+        list: Partner analysis data sorted by win rate
+    """
+    try:
+        if not player_id:
+            return []
+        
+        # Get last season matches with full details
+        stats_with_matches = get_last_season_stats(player_id, league_id_int, season)
+        if not stats_with_matches or not stats_with_matches.get("match_history"):
+            return []
+        
+        player_matches = stats_with_matches["match_history"]
+        
+        # Track partner stats across all courts
+        partners = {}
+        
+        for match in player_matches:
+            # Determine if player was home or away
+            is_home = player_id in [
+                match.get("Home Player 1"),
+                match.get("Home Player 2"),
+            ]
+            
+            # Get partner
+            if is_home:
+                partner_id = match.get("Home Player 1") if match.get("Home Player 2") == player_id else match.get("Home Player 2")
+            else:
+                partner_id = match.get("Away Player 1") if match.get("Away Player 2") == player_id else match.get("Away Player 2")
+            
+            if not partner_id:
+                continue
+            
+            # Get court number from tenniscores_match_id
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
+            court_number = 1  # Default
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                line_parts = tenniscores_match_id.split("_Line")
+                if len(line_parts) > 1:
+                    try:
+                        court_number = int(line_parts[-1])
+                    except ValueError:
+                        court_number = 1
+            
+            # Determine win/loss
+            winner = match.get("Winner", "")
+            if winner.lower() == "tie":
+                continue
+            
+            won = (is_home and winner.lower() == "home") or (not is_home and winner.lower() == "away")
+            
+            # Initialize partner if needed
+            if partner_id not in partners:
+                # Try current players table first
+                partner_name = get_player_name_from_id(partner_id)
+                
+                # If not found in current season, try to extract from any match in previous seasons
+                if partner_name == "Unknown Player":
+                    try:
+                        # Look up player name from any previous season record in the teams/players that participated
+                        # This handles players who played last season but aren't in current season
+                        historical_lookup = execute_query_one("""
+                            SELECT DISTINCT p.first_name, p.last_name
+                            FROM players p
+                            WHERE p.tenniscores_player_id = %s
+                            LIMIT 1
+                        """, [partner_id])
+                        
+                        if not historical_lookup:
+                            # Last resort: Try to find this player ID in ANY match and use team context
+                            # Skip this partner if we truly can't identify them
+                            print(f"[DEBUG] Could not find player name for ID: {partner_id} in last season analysis")
+                            continue
+                        else:
+                            partner_name = f"{historical_lookup['first_name']} {historical_lookup['last_name']}"
+                    except Exception as e:
+                        print(f"[DEBUG] Error in historical player lookup: {e}")
+                        continue
+                    
+                partners[partner_id] = {
+                    "name": partner_name,
+                    "player_id": partner_id,
+                    "matches": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "courts": set()  # Track which courts they played together
+                }
+            
+            # Update stats
+            partners[partner_id]["matches"] += 1
+            if won:
+                partners[partner_id]["wins"] += 1
+            else:
+                partners[partner_id]["losses"] += 1
+            partners[partner_id]["courts"].add(court_number)
+        
+        # Format partner data
+        partner_list = []
+        for partner_id, stats in partners.items():
+            win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
+            
+            # Convert courts set to sorted list
+            courts_played = sorted(list(stats["courts"]))
+            
+            # Calculate weighted score: prioritize partnerships with more matches
+            # Score = (matches * 20) + win_rate
+            # This heavily weights matches played, so partnerships with more games rank higher
+            weighted_score = (stats["matches"] * 20) + win_rate
+            
+            partner_list.append({
+                "name": stats["name"],
+                "player_id": partner_id,
+                "matches": stats["matches"],
+                "wins": stats["wins"],
+                "losses": stats["losses"],
+                "winRate": win_rate,
+                "courts": courts_played,
+                "record": f"{stats['wins']}-{stats['losses']}",
+                "weighted_score": weighted_score
+            })
+        
+        # Sort by weighted score (descending) - this balances matches played with win rate
+        partner_list.sort(key=lambda x: -x["weighted_score"])
+        
+        return partner_list
+        
+    except Exception as e:
+        print(f"Error calculating last season partner analysis: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+
+def get_last_season_court_analysis(player_id, league_id_int=None, season="2024-2025"):
+    """
+    Calculate court performance for last season from match_scores_previous_seasons table.
+    Uses same logic as current season: extracts court number from tenniscores_match_id "_Line" suffix.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        league_id_int: The integer league ID for filtering
+        season: The season identifier (default: "2024-2025")
+    
+    Returns:
+        dict: Court analysis with performance by court number
+    """
+    try:
+        if not player_id:
+            return {}
+        
+        # Get last season matches with full details
+        stats_with_matches = get_last_season_stats(player_id, league_id_int, season)
+        if not stats_with_matches or not stats_with_matches.get("match_history"):
+            return {}
+        
+        player_matches = stats_with_matches["match_history"]
+        
+        # Find max court number from tenniscores_match_id (e.g., "abc123_Line3" -> Court 3)
+        max_court = 4  # Default to 4 courts
+        for match in player_matches:
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                line_parts = tenniscores_match_id.split("_Line")
+                if len(line_parts) > 1:
+                    try:
+                        court_number = int(line_parts[-1])
+                        max_court = max(max_court, court_number)
+                    except ValueError:
+                        pass
+        
+        # Cap at 6 for safety
+        max_court = min(max_court, 6)
+        
+        # Group matches by court using tenniscores_match_id "_Line" suffix
+        court_data = {}
+        for i in range(1, max_court + 1):
+            court_key = f"court{i}"
+            court_data[court_key] = []
+            
+            for match in player_matches:
+                tenniscores_match_id = match.get("tenniscores_match_id", "")
+                court_number = None
+                
+                if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                    # Extract court number from tenniscores_match_id (e.g., "12345_Line2" -> 2)
+                    line_parts = tenniscores_match_id.split("_Line")
+                    if len(line_parts) > 1:
+                        try:
+                            court_number = int(line_parts[-1])
+                        except ValueError:
+                            # Fallback to court 1 if parsing fails
+                            court_number = 1
+                    else:
+                        court_number = 1
+                else:
+                    # Fallback to court 1 if no tenniscores_match_id
+                    court_number = 1
+                
+                if court_number == i:  # This match belongs to court i
+                    court_data[court_key].append(match)
+        
+        # Get player's last season team info for substitute detection
+        player_last_season_team_id = None
+        player_last_season_club_id = None
+        player_last_season_series_id = None
+        
+        try:
+            # Find the most common team the player played for in last season
+            team_counts = {}
+            for match in player_matches:
+                is_home = player_id in [match.get("Home Player 1"), match.get("Home Player 2")]
+                match_team_id = match.get("home_team_id") if is_home else match.get("away_team_id")
+                if match_team_id:
+                    team_counts[match_team_id] = team_counts.get(match_team_id, 0) + 1
+            
+            if team_counts:
+                # Get the most common team
+                player_last_season_team_id = max(team_counts, key=team_counts.get)
+                
+                # Get club and series for this team
+                team_query = """
+                    SELECT club_id, series_id
+                    FROM teams
+                    WHERE id = %s
+                """
+                team_result = execute_query_one(team_query, [player_last_season_team_id])
+                if team_result:
+                    player_last_season_club_id = team_result.get("club_id")
+                    player_last_season_series_id = team_result.get("series_id")
+        except Exception as e:
+            print(f"[DEBUG] Error getting last season team info: {e}")
+        
+        # Calculate stats for each court
+        court_analysis = {}
+        
+        for court_key, court_matches in court_data.items():
+            wins = 0
+            losses = 0
+            partners = {}
+            
+            for match in court_matches:
+                # Determine if player was home or away
+                is_home = player_id in [
+                    match.get("Home Player 1"),
+                    match.get("Home Player 2"),
+                ]
+                
+                # Get partner
+                if is_home:
+                    partner_id = match.get("Home Player 1") if match.get("Home Player 2") == player_id else match.get("Home Player 2")
+                    match_team_id = match.get("home_team_id")
+                else:
+                    partner_id = match.get("Away Player 1") if match.get("Away Player 2") == player_id else match.get("Away Player 2")
+                    match_team_id = match.get("away_team_id")
+                
+                # Determine win/loss
+                winner = match.get("Winner", "")
+                if winner.lower() == "tie":
+                    continue
+                
+                won = (is_home and winner.lower() == "home") or (not is_home and winner.lower() == "away")
+                
+                if won:
+                    wins += 1
+                else:
+                    losses += 1
+                
+                # Track partner stats
+                if partner_id:
+                    # Get partner name from database
+                    partner_name = get_player_name_from_id(partner_id)
+                    if partner_name:
+                        if partner_name not in partners:
+                            partners[partner_name] = {
+                                "wins": 0, 
+                                "losses": 0, 
+                                "matches": 0, 
+                                "player_id": partner_id,
+                                "is_substitute": False,
+                                "substitute_series": None
+                            }
+                        
+                        partners[partner_name]["matches"] += 1
+                        if won:
+                            partners[partner_name]["wins"] += 1
+                        else:
+                            partners[partner_name]["losses"] += 1
+                        
+                        # Check if this is a substitute match (same club, different series)
+                        if (player_last_season_team_id and match_team_id and 
+                            match_team_id != player_last_season_team_id):
+                            try:
+                                match_team_query = """
+                                    SELECT club_id, series_id
+                                    FROM teams
+                                    WHERE id = %s
+                                """
+                                match_team_result = execute_query_one(match_team_query, [match_team_id])
+                                
+                                if (match_team_result and 
+                                    match_team_result.get("club_id") == player_last_season_club_id and
+                                    match_team_result.get("series_id") != player_last_season_series_id):
+                                    
+                                    # This is a substitute match
+                                    partners[partner_name]["is_substitute"] = True
+                                    
+                                    # Get series name for the substitute team
+                                    series_query = """
+                                        SELECT s.name as series_name, s.display_name as series_display_name
+                                        FROM teams t
+                                        JOIN series s ON t.series_id = s.id
+                                        WHERE t.id = %s
+                                    """
+                                    series_result = execute_query_one(series_query, [match_team_id])
+                                    if series_result:
+                                        series_name = series_result.get("series_display_name") or series_result["series_name"]
+                                        from app.routes.api_routes import convert_chicago_to_series_for_ui
+                                        display_series_name = convert_chicago_to_series_for_ui(series_name)
+                                        partners[partner_name]["substitute_series"] = display_series_name
+                            except Exception as e:
+                                print(f"[DEBUG] Error checking substitute status for last season: {e}")
+            
+            # Calculate win rate
+            total_matches = wins + losses
+            win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+            
+            # Format partner data
+            top_partners = []
+            for partner_name, stats in partners.items():
+                partner_win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
+                partner_data = {
+                    "name": partner_name,
+                    "matches": stats["matches"],
+                    "wins": stats["wins"],
+                    "losses": stats["losses"],
+                    "winRate": partner_win_rate,
+                    "player_id": stats["player_id"]
+                }
+                
+                # Add substitute information if applicable
+                if stats.get("is_substitute", False):
+                    partner_data["isSubstitute"] = True
+                    partner_data["substituteSeries"] = stats.get("substitute_series", "Unknown Series")
+                else:
+                    partner_data["isSubstitute"] = False
+                
+                top_partners.append(partner_data)
+            
+            # Sort partners by win rate, then matches
+            top_partners.sort(key=lambda x: (-x["winRate"], -x["matches"]))
+            
+            court_analysis[court_key] = {
+                "winRate": win_rate,
+                "record": f"{wins}-{losses}",
+                "topPartners": top_partners,
+                "matches": total_matches,
+                "wins": wins,
+                "losses": losses
+            }
+        
+        # Initialize empty courts if needed (courts 1-5)
+        for i in range(1, 6):
+            court_name = f"court{i}"
+            if court_name not in court_analysis:
+                court_analysis[court_name] = {
+                    "winRate": 0,
+                    "record": "0-0",
+                    "topPartners": [],
+                    "matches": 0,
+                    "wins": 0,
+                    "losses": 0
+                }
+        
+        return court_analysis
+        
+    except Exception as e:
+        print(f"Error calculating last season court analysis: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {}
 
 
 def calculate_individual_court_analysis(player_matches, player_id, user=None, current_series_id=None, current_club_id=None, team_context=None):
