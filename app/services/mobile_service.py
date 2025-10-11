@@ -865,10 +865,14 @@ def get_player_analysis(user):
                 pti_history_available = False
                 try:
                     history_count = execute_query_one(
-                        "SELECT COUNT(*) as count FROM player_history WHERE tenniscores_player_id = %s AND end_pti IS NOT NULL",
+                        """SELECT COUNT(*) as count 
+                           FROM player_history ph 
+                           JOIN players p ON ph.player_id = p.id 
+                           WHERE p.tenniscores_player_id = %s AND ph.end_pti IS NOT NULL""",
                         [player_id]
                     )
                     pti_history_available = history_count and history_count.get('count', 0) > 0
+                    print(f"[DEBUG] PTI history check for player {player_id}: {history_count.get('count', 0) if history_count else 0} records found, pti_history_available={pti_history_available}")
                 except Exception as history_error:
                     print(f"Error checking PTI history availability: {history_error}")
                 
