@@ -32,7 +32,6 @@ def load_starting_pti_data() -> Dict[str, float]:
             for row in reader:
                 first_name = row.get('First Name', '').strip()
                 last_name = row.get('Last Name', '').strip()
-                club = row.get('Club', '').strip()
                 series = row.get('Series', '').strip()
                 pti_str = row.get('PTI', '').strip()
                 
@@ -45,9 +44,9 @@ def load_starting_pti_data() -> Dict[str, float]:
                 except ValueError:
                     continue
                 
-                # Create lookup key: "FirstName LastName Club Series"
-                # This matches the pattern used in the database for player identification
-                lookup_key = f"{first_name} {last_name} {club} {series}"
+                # Create lookup key: "FirstName LastName Series"
+                # This avoids club name mismatches between CSV and database
+                lookup_key = f"{first_name} {last_name} {series}"
                 starting_pti_data[lookup_key] = pti_value
                 
     except Exception as e:
@@ -64,7 +63,7 @@ def get_starting_pti_for_player(player_data: Dict[str, Any]) -> Optional[float]:
     
     Args:
         player_data: Dictionary containing player information with keys:
-                    - first_name, last_name, club, series (for CSV lookup)
+                    - first_name, last_name, series (for CSV lookup)
                     - tenniscores_player_id (for database lookup)
     
     Returns:
@@ -79,25 +78,35 @@ def get_starting_pti_for_player(player_data: Dict[str, Any]) -> Optional[float]:
     
     cached_data = get_starting_pti_for_player._cached_data
     
-    # Try to match by name, club, and series
+    # Try to match by name and series (no club needed)
     first_name = player_data.get('first_name', '').strip()
     last_name = player_data.get('last_name', '').strip()
-    club = player_data.get('club', '').strip()
     series = player_data.get('series', '').strip()
     
-    if all([first_name, last_name, club, series]):
-        lookup_key = f"{first_name} {last_name} {club} {series}"
+    if all([first_name, last_name, series]):
+        lookup_key = f"{first_name} {last_name} {series}"
         starting_pti = cached_data.get(lookup_key)
         
         if starting_pti is not None:
-            print(f"Found starting PTI for {lookup_key}: {starting_pti}")
+            print(f"[PTI LOOKUP] Found starting PTI for {lookup_key}: {starting_pti}")
             return starting_pti
+        else:
+            print(f"[PTI LOOKUP] No starting PTI found for {lookup_key}")
+    else:
+        missing_fields = []
+        if not first_name:
+            missing_fields.append('first_name')
+        if not last_name:
+            missing_fields.append('last_name')
+        if not series:
+            missing_fields.append('series')
+        print(f"[PTI LOOKUP] Missing required fields: {', '.join(missing_fields)}")
     
-    # If no match found, try alternative matching strategies
+    # If no match found, log for debugging
     player_id = player_data.get('tenniscores_player_id')
     if player_id:
-        print(f"No starting PTI found for {first_name} {last_name} ({club}, {series})")
-        print(f"Player ID: {player_id}")
+        club = player_data.get('club', '').strip()
+        print(f"[PTI LOOKUP] Player ID: {player_id}, Club: {club}")
     
     return None
 
