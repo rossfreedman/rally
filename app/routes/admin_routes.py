@@ -249,6 +249,18 @@ def serve_admin_etl():
     )
 
 
+@admin_bp.route("/admin/videos")
+@login_required
+@admin_required
+def serve_admin_videos():
+    """Serve the admin videos management page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_videos")
+
+    return render_template(
+        "mobile/admin_videos.html", session_data={"user": session["user"]}
+    )
+
+
 @admin_bp.route("/admin/user-activity")
 @login_required
 @admin_required
@@ -4606,6 +4618,194 @@ def cleanup_scraper():
             "success": False,
             "error": str(e)
         }), 500
+
+
+# ==========================================
+# VIDEO MANAGEMENT API ROUTES
+# ==========================================
+
+@admin_bp.route("/api/admin/teams")
+@login_required
+@admin_required
+def get_teams_for_videos():
+    """Get all teams for video assignment"""
+    try:
+        query = """
+            SELECT 
+                t.id,
+                t.team_name,
+                t.display_name,
+                l.league_name
+            FROM teams t
+            LEFT JOIN leagues l ON t.league_id = l.id
+            WHERE t.is_active = true
+            ORDER BY l.league_name, t.display_name
+        """
+        teams = execute_query(query)
+        return jsonify({"teams": teams or []})
+    except Exception as e:
+        print(f"Error getting teams: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos")
+@login_required
+@admin_required
+def get_all_videos():
+    """Get all videos"""
+    try:
+        query = """
+            SELECT 
+                v.id,
+                v.name,
+                v.url,
+                v.players,
+                v.date,
+                v.team_id,
+                t.display_name as team_name,
+                l.league_name
+            FROM videos v
+            LEFT JOIN teams t ON v.team_id = t.id
+            LEFT JOIN leagues l ON t.league_id = l.id
+            ORDER BY v.date DESC, v.created_at DESC
+        """
+        videos = execute_query(query)
+        
+        # Format dates for JavaScript
+        for video in videos:
+            if video.get('date'):
+                video['date'] = video['date'].strftime('%Y-%m-%d')
+        
+        return jsonify({"videos": videos or []})
+    except Exception as e:
+        print(f"Error getting videos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos", methods=["POST"])
+@login_required
+@admin_required
+def add_video():
+    """Add a new video"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'url', 'date', 'team_id']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        query = """
+            INSERT INTO videos (name, url, players, date, team_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(query, [
+            data['name'],
+            data['url'],
+            data.get('players'),
+            data['date'],
+            data['team_id']
+        ])
+        
+        if result:
+            log_admin_action(
+                session["user"]["email"],
+                "add_video",
+                f"Added video: {data['name']} for team_id {data['team_id']}"
+            )
+            return jsonify({"success": True, "id": result['id']})
+        else:
+            return jsonify({"error": "Failed to add video"}), 500
+            
+    except Exception as e:
+        print(f"Error adding video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos/<int:video_id>", methods=["PUT"])
+@login_required
+@admin_required
+def update_video(video_id):
+    """Update an existing video"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'url', 'date', 'team_id']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        query = """
+            UPDATE videos
+            SET name = %s,
+                url = %s,
+                players = %s,
+                date = %s,
+                team_id = %s
+            WHERE id = %s
+        """
+        
+        success = execute_update(query, [
+            data['name'],
+            data['url'],
+            data.get('players'),
+            data['date'],
+            data['team_id'],
+            video_id
+        ])
+        
+        if success:
+            log_admin_action(
+                session["user"]["email"],
+                "update_video",
+                f"Updated video ID {video_id}: {data['name']}"
+            )
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Failed to update video"}), 500
+            
+    except Exception as e:
+        print(f"Error updating video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos/<int:video_id>", methods=["DELETE"])
+@login_required
+@admin_required
+def delete_video(video_id):
+    """Delete a video"""
+    try:
+        # Get video name before deleting for logging
+        video_query = "SELECT name FROM videos WHERE id = %s"
+        video = execute_query_one(video_query, [video_id])
+        video_name = video['name'] if video else f"ID {video_id}"
+        
+        query = "DELETE FROM videos WHERE id = %s"
+        success = execute_update(query, [video_id])
+        
+        if success:
+            log_admin_action(
+                session["user"]["email"],
+                "delete_video",
+                f"Deleted video: {video_name}"
+            )
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Failed to delete video"}), 500
+            
+    except Exception as e:
+        print(f"Error deleting video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.route("/scraper-status")
