@@ -1129,12 +1129,15 @@ class Food(Base):
     """
     Food notifications from the chef
     Club-specific table to store food announcements with timestamps
+    Split into men's paddle (Tues/Wed/Thurs) and women's paddle (Sun/Mon/Friday)
     """
 
     __tablename__ = "food"
 
     id = Column(Integer, primary_key=True)
-    food_text = Column(Text, nullable=False)
+    food_text = Column(Text, nullable=True)  # Kept for backward compatibility
+    mens_food = Column(Text, nullable=True)
+    womens_food = Column(Text, nullable=True)
     date = Column(Date, nullable=False)
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
     is_current_menu = Column(Boolean, nullable=False, default=False)
@@ -1144,7 +1147,7 @@ class Food(Base):
     club = relationship("Club")
 
     def __repr__(self):
-        return f"<Food(id={self.id}, food_text='{self.food_text[:50]}...', date='{self.date}', club_id={self.club_id}, is_current_menu={self.is_current_menu}, created_at='{self.created_at}')>"
+        return f"<Food(id={self.id}, mens_food='{self.mens_food[:30] if self.mens_food else 'None'}...', womens_food='{self.womens_food[:30] if self.womens_food else 'None'}...', date='{self.date}', club_id={self.club_id}, is_current_menu={self.is_current_menu}, created_at='{self.created_at}')>"
 
 
 class Beer(Base):

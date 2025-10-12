@@ -41,18 +41,31 @@
                             </select>
                         </div>
 
-                        <!-- Food Description -->
+                        <!-- Men's Paddle Food -->
                         <div>
-                            <label for="foodText" class="block text-sm font-medium text-gray-700 mb-2">
+                            <label for="mensFoodText" class="block text-sm font-medium text-gray-700 mb-2">
                                 <i class="fas fa-utensils mr-1"></i>
-                                Food Description
+                                Men's Paddle (Tues/Wed/Thurs)
                             </label>
                             <textarea 
-                                id="foodText" 
-                                rows="4" 
+                                id="mensFoodText" 
+                                rows="3" 
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal resize-none"
-                                placeholder="Enter the food item description (e.g., Grilled Salmon with Quinoa and Asparagus)"
-                                required
+                                placeholder="Enter men's paddle food (e.g., Grilled Salmon with Quinoa and Asparagus)"
+                            ></textarea>
+                        </div>
+
+                        <!-- Women's Paddle Food -->
+                        <div>
+                            <label for="womensFoodText" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-utensils mr-1"></i>
+                                Women's Paddle (Sun/Mon/Friday)
+                            </label>
+                            <textarea 
+                                id="womensFoodText" 
+                                rows="3" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-teal focus:border-rally-teal resize-none"
+                                placeholder="Enter women's paddle food (e.g., Caesar Salad with Grilled Chicken)"
                             ></textarea>
                         </div>
 
@@ -186,10 +199,16 @@
             e.preventDefault();
             
             const clubId = clubSelect.value;
-            const foodText = document.getElementById('foodText').value.trim();
+            const mensFoodText = document.getElementById('mensFoodText').value.trim();
+            const womensFoodText = document.getElementById('womensFoodText').value.trim();
             
-            if (!clubId || !foodText) {
-                showMessage('Please select a club and enter food description', 'error');
+            if (!clubId) {
+                showMessage('Please select a club', 'error');
+                return;
+            }
+            
+            if (!mensFoodText && !womensFoodText) {
+                showMessage('Please enter at least one food description (Men\'s or Women\'s)', 'error');
                 return;
             }
             
@@ -200,7 +219,8 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        food_text: foodText,
+                        mens_food: mensFoodText || null,
+                        womens_food: womensFoodText || null,
                         date: new Date().toISOString().split('T')[0], // Use today's date
                         club_id: parseInt(clubId),
                         is_current_menu: true // Always set as current menu
@@ -211,7 +231,8 @@
                 
                 if (result.success) {
                     showMessage('Current menu updated successfully!', 'success');
-                    document.getElementById('foodText').value = ''; // Clear food text
+                    document.getElementById('mensFoodText').value = ''; // Clear men's food text
+                    document.getElementById('womensFoodText').value = ''; // Clear women's food text
                     loadFoodHistory(clubId);
                     
                     // Show 2 second status message after a brief delay
@@ -279,19 +300,35 @@
             const today = new Date().toISOString().split('T')[0];
             const isToday = record.date === today;
 
+            // Build food display text
+            let foodDisplay = '';
+            if (record.mens_food) {
+                foodDisplay += `<div class="mb-2"><strong>Men's (T/W/Th):</strong> ${record.mens_food}</div>`;
+            }
+            if (record.womens_food) {
+                foodDisplay += `<div class="mb-2"><strong>Women's (S/M/F):</strong> ${record.womens_food}</div>`;
+            }
+            // Fallback to food_text for old records
+            if (!foodDisplay && record.food_text) {
+                foodDisplay = `<div class="mb-2">${record.food_text}</div>`;
+            }
+            
             return `
                 <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${record.is_current_menu ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}">
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center">
                             ${record.is_current_menu ? '<i class="fas fa-star text-yellow-500 mr-2"></i>' : ''}
                             <h3 class="font-semibold text-gray-900">
-                                ${record.food_text}
+                                Menu
                             </h3>
                         </div>
                         <div class="flex items-center space-x-2">
                             ${record.is_current_menu ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Current Menu</span>' : ''}
                             <span class="text-sm text-gray-500">${timeAgo}</span>
                         </div>
+                    </div>
+                    <div class="text-sm text-gray-700 mb-3">
+                        ${foodDisplay}
                     </div>
                     <div class="text-sm text-gray-600 mb-3">
                         <i class="fas fa-calendar-alt mr-1"></i>
@@ -344,17 +381,33 @@
             const createdDate = new Date(currentMenuItem.created_at);
             const timeAgo = getTimeAgo(createdDate);
             
+            // Build food display text
+            let foodDisplay = '';
+            if (currentMenuItem.mens_food) {
+                foodDisplay += `<div class="mb-2"><strong>Men's Paddle (Tues/Wed/Thurs):</strong> ${currentMenuItem.mens_food}</div>`;
+            }
+            if (currentMenuItem.womens_food) {
+                foodDisplay += `<div class="mb-2"><strong>Women's Paddle (Sun/Mon/Friday):</strong> ${currentMenuItem.womens_food}</div>`;
+            }
+            // Fallback to food_text for old records
+            if (!foodDisplay && currentMenuItem.food_text) {
+                foodDisplay = `<div class="mb-2">${currentMenuItem.food_text}</div>`;
+            }
+            
             container.innerHTML = `
                 <div class="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex items-center">
                             <i class="fas fa-star text-yellow-500 text-xl mr-3"></i>
                             <div>
-                                <h3 class="text-lg font-semibold text-gray-900">
-                                    ${currentMenuItem.food_text}
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                                    Current Menu
                                 </h3>
+                                <div class="text-base text-gray-800 mb-2">
+                                    ${foodDisplay}
+                                </div>
                                 <div class="flex items-center mt-1">
-                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">Current Menu</span>
+                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full mr-2">Active</span>
                                     <span class="text-sm text-gray-500">${timeAgo}</span>
                                 </div>
                             </div>

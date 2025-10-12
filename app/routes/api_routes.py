@@ -11856,7 +11856,9 @@ def get_food():
             for record in food_records:
                 food_data.append({
                     "id": record.id,
-                    "food_text": record.food_text,
+                    "food_text": record.food_text,  # Keep for backward compatibility
+                    "mens_food": record.mens_food,
+                    "womens_food": record.womens_food,
                     "date": record.date.isoformat() if record.date else None,
                     "club_id": record.club_id,
                     "is_current_menu": record.is_current_menu,
@@ -11868,7 +11870,9 @@ def get_food():
             if current_menu:
                 current_menu_data = {
                     "id": current_menu.id,
-                    "food_text": current_menu.food_text,
+                    "food_text": current_menu.food_text,  # Keep for backward compatibility
+                    "mens_food": current_menu.mens_food,
+                    "womens_food": current_menu.womens_food,
                     "date": current_menu.date.isoformat() if current_menu.date else None,
                     "club_id": current_menu.club_id,
                     "is_current_menu": current_menu.is_current_menu,
@@ -11891,22 +11895,29 @@ def get_food():
 
 @api_bp.route("/food", methods=["POST"])
 def save_food():
-    """Save a new food record (chef input - no authentication required)"""
+    """Save a new food record with separate men's and women's paddle options"""
     try:
         from app.models.database_models import Food, Club
         
         data = request.get_json()
-        if not data or 'food_text' not in data or 'club_id' not in data:
+        if not data or 'club_id' not in data:
             return jsonify({
                 "success": False,
-                "error": "food_text and club_id are required"
+                "error": "club_id is required"
             }), 400
         
-        food_text = data['food_text'].strip()
-        if not food_text:
+        # Get both men's and women's food (at least one must be provided)
+        mens_food = data.get('mens_food', '').strip() if data.get('mens_food') else None
+        womens_food = data.get('womens_food', '').strip() if data.get('womens_food') else None
+        
+        # Backward compatibility: accept food_text and put it in mens_food
+        if 'food_text' in data and not mens_food:
+            mens_food = data['food_text'].strip()
+        
+        if not mens_food and not womens_food:
             return jsonify({
                 "success": False,
-                "error": "food_text cannot be empty"
+                "error": "At least one of mens_food or womens_food must be provided"
             }), 400
         
         club_id = data['club_id']
@@ -11952,7 +11963,9 @@ def save_food():
                     existing_current.is_current_menu = False
             
             new_food = Food(
-                food_text=food_text,
+                mens_food=mens_food,
+                womens_food=womens_food,
+                food_text=mens_food or womens_food,  # Keep for backward compatibility
                 date=food_date,
                 club_id=club_id,
                 is_current_menu=is_current_menu
@@ -11965,7 +11978,9 @@ def save_food():
                 "message": "Food record saved successfully",
                 "food_record": {
                     "id": new_food.id,
-                    "food_text": new_food.food_text,
+                    "mens_food": new_food.mens_food,
+                    "womens_food": new_food.womens_food,
+                    "food_text": new_food.food_text,  # Backward compatibility
                     "date": new_food.date.isoformat(),
                     "club_id": new_food.club_id,
                     "is_current_menu": new_food.is_current_menu,
@@ -12027,7 +12042,9 @@ def set_current_menu():
                 "message": "Current menu updated successfully",
                 "current_menu": {
                     "id": food_record.id,
-                    "food_text": food_record.food_text,
+                    "food_text": food_record.food_text,  # Backward compatibility
+                    "mens_food": food_record.mens_food,
+                    "womens_food": food_record.womens_food,
                     "date": food_record.date.isoformat(),
                     "club_id": food_record.club_id,
                     "is_current_menu": food_record.is_current_menu,
@@ -12160,11 +12177,22 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
             club = db_session.query(Club).filter(Club.id == club_id).first()
             club_name = club.name if club else "Your Club"
             
+            # Build message from mens and womens food
+            message_parts = []
+            if latest_food.mens_food:
+                message_parts.append(f"<i class='fas fa-person' style='color: #045454;'></i> <strong>Men's (T/W/Th):</strong> {latest_food.mens_food}")
+            if latest_food.womens_food:
+                message_parts.append(f"<i class='fas fa-person-dress' style='color: #045454;'></i> <strong>Women's (S/M/F):</strong> {latest_food.womens_food}")
+            
+            # Fallback to food_text for backward compatibility
+            # Use <br> tag for HTML line break
+            message = "<br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
+            
             notification = {
                 "id": f"food_{latest_food.id}",
                 "type": "food",
                 "title": f"What's cook'in at {club_name}",
-                "message": latest_food.food_text,
+                "message": message,
                 "cta": {
                     "label": "View Full Menu",
                     "href": f"/food-display?club_id={club_id}"
@@ -12454,39 +12482,62 @@ def format_beer_text(beer_text):
     # First, fix any "Tao" typos to "Tap"
     beer_text = re.sub(r'\bTao\s+(\d+)', r'Tap \1', beer_text)
     
-    # Find all "Tap X" patterns and their positions
+    # Try to find numbered list format first (1), 2), 3), etc.)
+    # Match patterns like "1)" or "Tap 1" at the start of items
+    numbered_matches = list(re.finditer(r'\b(\d+)\)', beer_text))
+    
+    if numbered_matches:
+        # Handle numbered list format: "1) Beer Name 2) Another Beer"
+        formatted_parts = []
+        
+        for i, match in enumerate(numbered_matches):
+            start = match.start()
+            
+            # Find the end of this item (start of next number or end of string)
+            if i < len(numbered_matches) - 1:
+                next_start = numbered_matches[i + 1].start()
+                item_text = beer_text[start:next_start].strip()
+            else:
+                item_text = beer_text[start:].strip()
+            
+            formatted_parts.append(item_text)
+        
+        # Join with HTML line breaks for proper rendering
+        return '<br>'.join(formatted_parts)
+    
+    # Fallback: Try to find "Tap X" patterns
     tap_matches = list(re.finditer(r'\bTap\s+\d+', beer_text))
     
-    if not tap_matches:
-        # No tap patterns found, return original text
-        return beer_text
-    
-    # Build the formatted text
-    formatted_parts = []
-    last_end = 0
-    
-    for i, match in enumerate(tap_matches):
-        start = match.start()
-        end = match.end()
+    if tap_matches:
+        # Build the formatted text
+        formatted_parts = []
+        last_end = 0
         
-        # Add text before this tap (if any)
-        if start > last_end:
-            before_text = beer_text[last_end:start].strip()
-            if before_text and i == 0:  # Only add text before the first tap
-                formatted_parts.append(before_text)
+        for i, match in enumerate(tap_matches):
+            start = match.start()
+            end = match.end()
+            
+            # Add text before this tap (if any)
+            if start > last_end:
+                before_text = beer_text[last_end:start].strip()
+                if before_text and i == 0:  # Only add text before the first tap
+                    formatted_parts.append(before_text)
+            
+            # Find the end of this tap's description (start of next tap or end of string)
+            if i < len(tap_matches) - 1:
+                next_start = tap_matches[i + 1].start()
+                tap_description = beer_text[start:next_start].strip()
+            else:
+                tap_description = beer_text[start:].strip()
+            
+            formatted_parts.append(tap_description)
+            last_end = end
         
-        # Find the end of this tap's description (start of next tap or end of string)
-        if i < len(tap_matches) - 1:
-            next_start = tap_matches[i + 1].start()
-            tap_description = beer_text[start:next_start].strip()
-        else:
-            tap_description = beer_text[start:].strip()
-        
-        formatted_parts.append(tap_description)
-        last_end = end
+        # Join with HTML line breaks for proper rendering
+        return '<br>'.join(formatted_parts)
     
-    # Join with line breaks
-    return '\n'.join(formatted_parts)
+    # No patterns found, return original text
+    return beer_text
 
 
 def get_beer_notifications(user_id, player_id, league_id, team_id):

@@ -4848,12 +4848,17 @@ def get_mobile_team_data(user):
         # Sort by date (most recent first)
         formatted_matches.sort(key=lambda x: x["date"], reverse=True)
         
+        # Get team videos
+        team_videos = get_team_videos(team_id)
+        print(f"[DEBUG] My-team: Found {len(team_videos)} videos for team_id={team_id}")
+        
         # Return in the expected structure for the route
         return {
             "team_data": team_data_formatted,
             "court_analysis": team_analysis.get("court_analysis", {}),
             "top_players": top_players,
             "team_matches": formatted_matches,
+            "team_videos": team_videos,
             "strength_of_schedule": {},  # This would come from a separate function if needed
             "error": None,
         }
@@ -4866,8 +4871,66 @@ def get_mobile_team_data(user):
             "team_data": None,
             "court_analysis": {},
             "top_players": [],
+            "team_videos": [],
             "error": str(e),
         }
+
+
+def get_team_videos(team_id):
+    """
+    Get team-specific training videos from the videos table
+    
+    Args:
+        team_id: The team ID to fetch videos for
+        
+    Returns:
+        List of video dictionaries with name, url, players, date
+    """
+    try:
+        if not team_id:
+            print("[DEBUG] get_team_videos: No team_id provided")
+            return []
+            
+        query = """
+            SELECT 
+                id,
+                name,
+                url,
+                players,
+                date,
+                team_id,
+                created_at
+            FROM videos
+            WHERE team_id = %s
+            ORDER BY date DESC, created_at DESC
+        """
+        
+        videos = execute_query(query, [team_id])
+        
+        if not videos:
+            print(f"[DEBUG] get_team_videos: No videos found for team_id={team_id}")
+            return []
+        
+        # Format videos for template
+        formatted_videos = []
+        for video in videos:
+            formatted_videos.append({
+                'id': video.get('id'),
+                'name': video.get('name'),
+                'url': video.get('url'),
+                'players': video.get('players'),
+                'date': video.get('date').strftime('%m-%d-%Y') if video.get('date') else None,
+                'team_id': video.get('team_id'),
+            })
+        
+        print(f"[DEBUG] get_team_videos: Found {len(formatted_videos)} videos for team_id={team_id}")
+        return formatted_videos
+        
+    except Exception as e:
+        print(f"Error getting team videos: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
 
 
 def get_series_analysis_data(user):

@@ -2608,6 +2608,7 @@ def serve_mobile_my_team():
         court_analysis = result.get("court_analysis", {})
         top_players = result.get("top_players", [])
         team_matches = result.get("team_matches", [])
+        team_videos = result.get("team_videos", [])
         strength_of_schedule = result.get("strength_of_schedule", {})
         error = result.get("error")
 
@@ -2618,6 +2619,7 @@ def serve_mobile_my_team():
             court_analysis=court_analysis,
             top_players=top_players,
             team_matches=team_matches,
+            team_videos=team_videos,
             strength_of_schedule=strength_of_schedule,
             error=error,
         )
@@ -2646,6 +2648,7 @@ def serve_mobile_my_team():
             team_data=None,
             court_analysis={},
             top_players=[],
+            team_videos=[],
             strength_of_schedule={
                 "sos_value": 0.0,
                 "rank": 0,
