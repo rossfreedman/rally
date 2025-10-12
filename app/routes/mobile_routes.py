@@ -1104,6 +1104,17 @@ def serve_mobile_analyze_me():
 
         session_data = {"user": session_user_for_template, "authenticated": True}
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         # Enhanced logging for analyze-me page visit
         analyze_me_details = {
             "page": "mobile_analyze_me",
@@ -1126,6 +1137,7 @@ def serve_mobile_analyze_me():
             "mobile/analyze_me.html",
             session_data=session_data,
             analyze_data=analyze_data,
+            last_updated=last_updated,
         )
 
     except Exception as e:
@@ -2603,6 +2615,17 @@ def serve_mobile_my_team():
 
         log_user_activity(session_user["email"], "page_visit", page="mobile_my_team")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         # Extract all data from result
         team_data = result.get("team_data")
         court_analysis = result.get("court_analysis", {})
@@ -2622,6 +2645,7 @@ def serve_mobile_my_team():
             team_videos=team_videos,
             strength_of_schedule=strength_of_schedule,
             error=error,
+            last_updated=last_updated,
         )
         
         # Add cache-busting headers to ensure fresh data
@@ -2767,6 +2791,17 @@ def serve_mobile_my_series():
         session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         print(f"📱 Calling log_user_activity for my-series...")
         log_result = log_user_activity(
             session_user["email"], 
@@ -2779,7 +2814,7 @@ def serve_mobile_my_series():
 
         print(f"🎨 Rendering template...")
         return render_template(
-            "mobile/my_series.html", session_data=session_data, **series_data
+            "mobile/my_series.html", session_data=session_data, last_updated=last_updated, **series_data
         )
 
     except Exception as e:
@@ -3045,13 +3080,24 @@ def my_club():
         session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         print(f"📱 Calling log_user_activity for my-club...")
         log_result = log_user_activity(session_user["email"], "page_visit", page="mobile_my_club")
         print(f"✅ Activity logged: {log_result}")
 
         print(f"🎨 Rendering template...")
         return render_template(
-            "mobile/my_club.html", session_data=session_data, **club_data
+            "mobile/my_club.html", session_data=session_data, last_updated=last_updated, **club_data
         )
 
     except Exception as e:
