@@ -152,9 +152,11 @@ data/leagues/*/temp_match_scores/
 data/leagues/*/temp_*/
 
 # League data JSON files (ETL data)
-# Exception: allow player_history.json for deployment
-!data/leagues/*/player_history.json
+# First ignore all JSON files, then add exceptions for deployment data
 data/leagues/**/*.json
+!data/leagues/*/player_history.json
+!data/leagues/*/match_history_2024_2025.json
+!data/leagues/*/cnswpl_match_history_2024_2025.json
 
 backups/*.sql
 .db.env
