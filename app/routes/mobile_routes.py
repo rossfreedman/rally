@@ -725,9 +725,13 @@ def serve_mobile_player_detail(player_id):
     # PTI data is now handled within the service function with proper league filtering
     
     # Get last season stats (2024-2025)
-    from app.services.mobile_service import get_last_season_stats
+    from app.services.mobile_service import get_last_season_stats, get_current_season_partner_analysis
     last_season_stats = get_last_season_stats(actual_player_id, league_id_int, season="2024-2025")
     analyze_data["last_season"] = last_season_stats
+    
+    # Get current season partner analysis
+    partner_analysis = get_current_season_partner_analysis(actual_player_id, league_id_int, team_id)
+    analyze_data["partner_analysis"] = partner_analysis
 
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
@@ -1046,6 +1050,22 @@ def serve_mobile_analyze_me():
 
             # Use the session data (now with resolved league_id and team_context if applicable)
             analyze_data = get_player_analysis(session_user)
+            
+            # Get current season partner analysis
+            from app.services.mobile_service import get_current_season_partner_analysis
+            player_id = session_user.get("tenniscores_player_id")
+            league_id_int = session_user.get("league_id")
+            team_context = session_user.get("team_context") or session_user.get("team_id")
+            
+            print(f"[DEBUG] Analyze-me partner analysis - player_id: {player_id}, league_id: {league_id_int}, team_context: {team_context}")
+            
+            if player_id:
+                partner_analysis = get_current_season_partner_analysis(player_id, league_id_int, team_context)
+                print(f"[DEBUG] Analyze-me partner analysis result: {len(partner_analysis) if partner_analysis else 0} partners found")
+                analyze_data["partner_analysis"] = partner_analysis
+            else:
+                print(f"[DEBUG] Analyze-me - No player_id, cannot fetch partner analysis")
+                analyze_data["partner_analysis"] = []
         else:
             # NO FALLBACK: Require proper player ID - no name-based lookups
             print(f"[ERROR] Analyze-me - No tenniscores_player_id in session, cannot proceed with name-based lookup")

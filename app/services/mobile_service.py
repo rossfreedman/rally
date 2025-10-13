@@ -1144,6 +1144,162 @@ def get_last_season_stats(player_id, league_id_int=None, season="2024-2025"):
         return None
 
 
+def get_current_season_partner_analysis(player_id, league_id_int=None, team_context=None):
+    """
+    Analyze all partners from current season, ranked by win rate.
+    Shows overall partnership stats and which courts they played together on.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        league_id_int: The integer league ID for filtering
+        team_context: Optional team_id for filtering to specific team
+    
+    Returns:
+        list: Partner analysis data sorted by win rate
+    """
+    try:
+        if not player_id:
+            return []
+        
+        # Build user dict to pass to get_player_analysis
+        user = {
+            "tenniscores_player_id": player_id,
+            "league_id": league_id_int,
+            "team_context": team_context
+        }
+        
+        # Get current season matches with full details
+        stats_with_matches = get_player_analysis(user)
+        if not stats_with_matches or not stats_with_matches.get("match_history"):
+            return []
+        
+        player_matches = stats_with_matches["match_history"]
+        
+        # Track partner stats across all courts
+        partners = {}
+        
+        for match in player_matches:
+            # Determine if player was home or away
+            is_home = player_id in [
+                match.get("Home Player 1"),
+                match.get("Home Player 2"),
+            ]
+            
+            # Get partner
+            if is_home:
+                partner_id = match.get("Home Player 1") if match.get("Home Player 2") == player_id else match.get("Home Player 2")
+            else:
+                partner_id = match.get("Away Player 1") if match.get("Away Player 2") == player_id else match.get("Away Player 2")
+            
+            if not partner_id:
+                continue
+            
+            # Get court number from tenniscores_match_id
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
+            court_number = 1  # Default
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                line_parts = tenniscores_match_id.split("_Line")
+                if len(line_parts) > 1:
+                    try:
+                        court_number = int(line_parts[-1])
+                    except ValueError:
+                        court_number = 1
+            
+            # Determine win/loss
+            winner = match.get("Winner", "")
+            if winner.lower() == "tie":
+                continue
+            
+            won = (is_home and winner.lower() == "home") or (not is_home and winner.lower() == "away")
+            
+            # Initialize partner if needed
+            if partner_id not in partners:
+                # Try current players table first
+                partner_name = get_player_name_from_id(partner_id)
+                
+                # If not found in current season, try database lookup
+                if partner_name == "Unknown Player":
+                    try:
+                        historical_lookup = execute_query_one("""
+                            SELECT DISTINCT p.first_name, p.last_name
+                            FROM players p
+                            WHERE p.tenniscores_player_id = %s
+                            LIMIT 1
+                        """, [partner_id])
+                        
+                        if not historical_lookup:
+                            print(f"[DEBUG] Could not find player name for ID: {partner_id} in current season analysis")
+                            continue
+                        else:
+                            partner_name = f"{historical_lookup['first_name']} {historical_lookup['last_name']}"
+                    except Exception as e:
+                        print(f"[DEBUG] Error in player lookup: {e}")
+                        continue
+                    
+                partners[partner_id] = {
+                    "name": partner_name,
+                    "player_id": partner_id,
+                    "matches": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "courts": set()  # Track which courts they played together
+                }
+            
+            # Update stats
+            partners[partner_id]["matches"] += 1
+            if won:
+                partners[partner_id]["wins"] += 1
+            else:
+                partners[partner_id]["losses"] += 1
+            partners[partner_id]["courts"].add(court_number)
+        
+        # Format partner data
+        partner_list = []
+        
+        # Bayesian confidence-weighted ranking algorithm
+        CONFIDENCE_FACTOR = 2  # Number of "virtual matches" at league average
+        BASELINE_WIN_RATE = 50.0  # League-wide average win rate
+        
+        for partner_id, stats in partners.items():
+            win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
+            
+            # Convert courts set to sorted list
+            courts_played = sorted(list(stats["courts"]))
+            
+            # Calculate Bayesian adjusted win rate for ranking
+            adjusted_win_rate = (
+                (CONFIDENCE_FACTOR * BASELINE_WIN_RATE + stats["matches"] * win_rate) / 
+                (CONFIDENCE_FACTOR + stats["matches"])
+            )
+            
+            # Secondary sort: total matches (for tie-breaking between similar adjusted rates)
+            match_count = stats["matches"]
+            
+            partner_list.append({
+                "name": stats["name"],
+                "player_id": partner_id,
+                "matches": stats["matches"],
+                "wins": stats["wins"],
+                "losses": stats["losses"],
+                "winRate": win_rate,
+                "courts": courts_played,
+                "record": f"{stats['wins']}-{stats['losses']}",
+                "adjusted_win_rate": adjusted_win_rate,
+                "match_count": match_count
+            })
+        
+        # Sort by adjusted win rate (descending), then by match count (descending)
+        partner_list.sort(key=lambda x: (-x["adjusted_win_rate"], -x["match_count"]))
+        
+        return partner_list
+        
+    except Exception as e:
+        print(f"Error calculating current season partner analysis: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+
 def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024-2025"):
     """
     Analyze all partners from last season, ranked by win rate.
