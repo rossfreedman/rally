@@ -11,8 +11,8 @@
                 <i class="fas fa-user-friends text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Search & Connect with Players</h1>
-                <p class="text-sm text-gray-500">Find players to play</p>
+                <h1 class="text-xl font-bold text-gray-900">Search Players</h1>
+                <p class="text-sm text-gray-500">Find players in {{ session_data.user.league_name if session_data and session_data.user and session_data.user.league_name else 'your league' }}</p>
             </div>
         </div>
     </div>
