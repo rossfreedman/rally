@@ -2,7 +2,8 @@
 - Think step-by-step before proposing changes.
 - Always explain your thought process clearly and briefly before editing or suggesting code.
 - Confirm the goal of the task or user intent if ambiguous.
-- Minimize disruption to surrounding logic — avoid breaking existing functionality.
+- Minimize disruption to surrounding logic 
+— Be surgical. Avoid breaking existing functionality.
 - Always back up or checkpoint modified code (e.g., via comments or git commit suggestions).
 - Proactively suggest improvements to performance, readability, or structure if they are high-impact.
 
@@ -23,28 +24,74 @@
 - In JavaScript/React, use inline comments for complex logic and JSDoc for utility functions when appropriate.
 - Comment any refactors or non-obvious changes with rationale.
 
+# ETL & Data Import Best Practices
+- ALWAYS backup data before ETL imports (use cb.py for database backups)
+- Use stable reference patterns (user_id, not player_id) for data that should survive ETL imports
+- Always default to id based queries instead of name (string) queries (for example - user team_id instead of team name)
+- Validate all foreign key relationships during ETL to prevent orphaned records
+- Always run post-import validation and health checks after ETL operations
+- Use Team ID Preservation patterns to maintain data integrity across imports
+- Import scripts should be in data/etl/import (not data/etl/database_import)
+
+# Scraping Best Practices
+- NEVER test proxies against root domain URLs (XXX.tenniscores.com) - always use deep links with specific parameters
+- Root domain testing will give false negatives and mark healthy proxies as dead
+- Scrapers must scrape actual player IDs from source websites, never generate fallback IDs
+- League parameter/argument should dictate scraper behavior - maintain clear separation between leagues
+- Always use stealth features (mandatory, not optional) in browser automation
+- Document when no player ID is found rather than creating placeholder values
+
+# Data Integrity & Lookup Patterns
+- Use ID-based lookups only, never name-based searches
+- Never hard-code league IDs - they differ between local/staging/production - retrieve from configuration
+- Use relative URLs for internal links (not absolute URLs) to work across environments
+- Prefer self-contained code changes - avoid introducing shared functions that could break other code
+- Always validate foreign key relationships to prevent orphaned records
+- Use team IDs and lookup tables instead of string literals for team references
+
+# Performance Optimization
+- Watch for N+1 query problems - replace nested loops with single batch queries
+- Use PostgreSQL CTEs and ANY() operator for batch operations instead of individual queries
+- Build lookup dictionaries for O(1) access rather than repeated database calls
+- Target 70-80% performance improvements by batching database calls
+- For large files (>1K lines), use targeted searches instead of reading entire files
+
+# Deployment & Testing
+- Use scripts/milestone.py for comprehensive deployment workflow (checks status, commits, verifies DB sync, creates backups)
+- Railway deploys from git repository - always commit and push before expecting changes on live site
+- Use python scripts/check_deployment_status.py to verify deployment sync
+- All tests must use UI for registration, not API calls
+- NEVER auto-commit or push to git - user manages commits manually
+- Test changes in dev/staging environment before production deployment
+- Always verify changes are committed and pushed to appropriate branch (staging/production)
+
 # Project-Specific Practices
 - When working with Flask, maintain a clear separation of concerns between routes, logic, and templates.
 - When working with React, prioritize composability and avoid deeply nested components.
 - When suggesting backend changes, consider compatibility with Railway deployment (e.g., environment variables, file structure).
 - Use `.env` for sensitive configuration and remind me if hardcoding is detected.
-- Use Alembic for all database related management tasks (migrations, cloning, table updates, field updates, etc.)
+- Use dbschema for all database schema migrations (run: python data/dbschema/dbschema_workflow.py --auto for staging deployment)
 - Do not write code that pulls data from json files within the application.  All data queries need to come from the postgres database.
-- When creating temporary scripts to fix or check things create them in teh scrpts folder.
+- When creating temporary scripts to fix or check things create them in the scripts folder.
 - Always ask to clean up files that don't need to be used in the root so it stays clean with only essential files.
 
 # Communication Style
 - Ask clarifying questions when unsure about instructions.
 - Use markdown formatting for code blocks, bullet points, and clear visual structure in explanations.
 - If you detect repeated patterns in the project, suggest refactoring opportunities proactively.
+- Always ask a question at the end of responses to keep conversation going
+- Show 3-second thinking indicator before sharing responses
 
 # Safeguards
 - Remind me periodically to test my changes in a dev/staging environment.
 - If a change could introduce bugs or technical debt, flag it with a warning and suggest mitigation.
 
-# Database Updates
-- Use Alembic to manage changes between databases - local, staging, production.
-- Use database migrations consistently across all environments
+# Database Management
+- Use dbschema to manage changes between databases - local, staging, production
+- Use database migrations consistently across all environments via dbschema workflow
 - Keep SQLAlchemy models in sync with actual database schema
-- Test registration flows in staging before production deployment
 - Consider database schema comparison scripts to catch drift early
+- Production URL is: postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway
+- Staging URL is: postgresql://postgres:SNDcbFXgqCOkjBRzAzqGbdRvyhftepsY@switchback.proxy.rlwy.net:28473/railway
+- ALWAYS ask if the database is backed up before making any direct changes to production database (both schema and data changes)
+- When making updates to staging and production that require a large data import, update or deletion, always opt to use SSH instead of making the update locally to the server since it will take a long time
