@@ -6367,15 +6367,38 @@ def get_player_name_from_id(player_id):
         return "Unknown Player"
 
     try:
+        # First, try the players table
         player = execute_query_one(
             "SELECT first_name, last_name FROM players WHERE tenniscores_player_id = %s",
             [player_id],
         )
         if player:
             return f"{player['first_name']} {player['last_name']}"
-        else:
-            # FIXED: Return "Unknown Player" instead of truncated ID to avoid confusion
-            return "Unknown Player"
+        
+        # If not found in players table, try match_scores_previous_seasons table
+        # Look for this player ID in any match and extract their name from the name columns
+        match_lookup = execute_query_one("""
+            SELECT 
+                CASE 
+                    WHEN home_player_1_id = %s AND home_player_1_name IS NOT NULL THEN home_player_1_name
+                    WHEN home_player_2_id = %s AND home_player_2_name IS NOT NULL THEN home_player_2_name
+                    WHEN away_player_1_id = %s AND away_player_1_name IS NOT NULL THEN away_player_1_name
+                    WHEN away_player_2_id = %s AND away_player_2_name IS NOT NULL THEN away_player_2_name
+                END as player_name
+            FROM match_scores_previous_seasons
+            WHERE (home_player_1_id = %s AND home_player_1_name IS NOT NULL)
+               OR (home_player_2_id = %s AND home_player_2_name IS NOT NULL)
+               OR (away_player_1_id = %s AND away_player_1_name IS NOT NULL)
+               OR (away_player_2_id = %s AND away_player_2_name IS NOT NULL)
+            LIMIT 1
+        """, [player_id, player_id, player_id, player_id, player_id, player_id, player_id, player_id])
+        
+        if match_lookup and match_lookup.get('player_name'):
+            return match_lookup['player_name']
+        
+        # If truly not found anywhere, return "Unknown Player"
+        return "Unknown Player"
+        
     except Exception as e:
         print(f"Error looking up player name for ID {player_id}: {e}")
         return "Unknown Player"
