@@ -1,6 +1,7 @@
 """
-Import previous season data to staging database with player names.
+Import previous season data with player names.
 This script imports both APTA Chicago and CNSWPL data.
+Uses DATABASE_URL environment variable to connect to the appropriate database.
 """
 
 import json
@@ -11,8 +12,11 @@ from dateutil import parser
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-# Staging database URL
-STAGING_DB_URL = "postgresql://postgres:SNDcbFXgqCOkjBRzAzqGbdRvyhftepsY@switchback.proxy.rlwy.net:28473/railway"
+# Get database URL from environment variable
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    print("ERROR: DATABASE_URL environment variable not set")
+    sys.exit(1)
 
 
 def parse_match_date(date_str):
@@ -218,7 +222,7 @@ def import_league_data(conn, json_file, league_identifier, season):
 def main():
     """Main import function"""
     print("="*80)
-    print("IMPORTING PREVIOUS SEASON DATA TO STAGING")
+    print("IMPORTING PREVIOUS SEASON DATA")
     print("="*80)
     
     season = "2024-2025"
@@ -235,13 +239,14 @@ def main():
         }
     ]
     
-    # Connect to staging database
-    print(f"\nConnecting to staging database...")
+    # Connect to database using environment variable
+    print(f"\nConnecting to database...")
+    print(f"Using DATABASE_URL: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'unknown'}")
     try:
-        conn = psycopg2.connect(STAGING_DB_URL)
-        print("✅ Connected to staging database!")
+        conn = psycopg2.connect(DATABASE_URL)
+        print("✅ Connected to database!")
     except Exception as e:
-        print(f"ERROR: Could not connect to staging database: {e}")
+        print(f"ERROR: Could not connect to database: {e}")
         return 1
     
     try:
