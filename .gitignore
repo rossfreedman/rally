@@ -157,6 +157,9 @@ data/leagues/**/*.json
 !data/leagues/*/player_history.json
 !data/leagues/*/match_history_2024_2025.json
 !data/leagues/*/cnswpl_match_history_2024_2025.json
+!data/leagues/all/improve_data/complete_platform_tennis_training_guide.json
+!data/leagues/all/improve_data/paddle_tips.json
+!data/leagues/all/improve_data/platform_tennis_videos_full_30.json
 
 backups/*.sql
 .db.env
