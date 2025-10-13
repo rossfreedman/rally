@@ -443,7 +443,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        const gameDate = new Date(dateValue);
+        // Parse the date value properly to avoid timezone issues
+        // dateValue format: "YYYY-MM-DD"
+        const [year, month, day] = dateValue.split('-').map(Number);
+        const gameDate = new Date(year, month - 1, day); // month is 0-indexed
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
@@ -548,11 +551,10 @@ document.addEventListener('DOMContentLoaded', function() {
             playersRequestedField.addEventListener('blur', validatePlayers);
         }
         
-        // Set default date to tomorrow
+        // Set default date to today
         if (dateFilter && !dateFilter.value) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            dateFilter.value = tomorrow.toISOString().split('T')[0];
+            const today = new Date();
+            dateFilter.value = today.toISOString().split('T')[0];
         }
         
         // Set default time to 6:00 PM
