@@ -261,6 +261,18 @@ def serve_admin_videos():
     )
 
 
+@admin_bp.route("/admin/status-messages")
+@login_required
+@admin_required
+def serve_admin_status_messages():
+    """Serve the admin status messages management page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_status_messages")
+
+    return render_template(
+        "mobile/admin_status_messages.html", session_data={"user": session["user"]}
+    )
+
+
 @admin_bp.route("/admin/user-activity")
 @login_required
 @admin_required

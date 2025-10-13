@@ -62,6 +62,337 @@ def convert_chicago_to_series_for_ui(series_name):
     return series_name
 
 
+# ==============================
+# Status Messages API
+# ==============================
+
+@api_bp.route('/status-message', methods=['GET'])
+def get_active_status_message():
+    """
+    Get the currently active status message for the banner display.
+    Returns the most recent active status message or null if none exists.
+    """
+    try:
+        query = """
+            SELECT id, description, url, created_at
+            FROM status_messages
+            WHERE active = true
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        result = execute_query_one(query)
+        
+        if result:
+            # Handle both dict-like and tuple-like results
+            if isinstance(result, dict):
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result['id'],
+                        'description': result['description'],
+                        'url': result['url'],
+                        'created_at': result['created_at'].isoformat() if result['created_at'] else None
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result[0],
+                        'description': result[1],
+                        'url': result[2],
+                        'created_at': result[3].isoformat() if result[3] else None
+                    }
+                })
+        else:
+            return jsonify({
+                'success': True,
+                'message': None
+            })
+    except Exception as e:
+        logger.error(f"Error fetching active status message: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': None
+        }), 500
+
+
+# ==============================
+# Admin Status Messages API
+# ==============================
+
+@api_bp.route('/admin/status-messages', methods=['GET'])
+@login_required
+def get_all_status_messages():
+    """
+    Get all status messages for admin management.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = """
+            SELECT id, description, url, active, created_at, updated_at
+            FROM status_messages
+            ORDER BY created_at DESC
+        """
+        results = execute_query(query)
+        
+        messages = []
+        for row in results:
+            # Handle both dict-like and tuple-like results
+            if isinstance(row, dict):
+                messages.append({
+                    'id': row['id'],
+                    'description': row['description'],
+                    'url': row['url'],
+                    'active': row['active'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                })
+            else:
+                messages.append({
+                    'id': row[0],
+                    'description': row[1],
+                    'url': row[2],
+                    'active': row[3],
+                    'created_at': row[4].isoformat() if row[4] else None,
+                    'updated_at': row[5].isoformat() if row[5] else None
+                })
+        
+        return jsonify({
+            'success': True,
+            'messages': messages
+        })
+    except Exception as e:
+        logger.error(f"Error fetching all status messages: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['GET'])
+@login_required
+def get_status_message(message_id):
+    """
+    Get a specific status message by ID.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = """
+            SELECT id, description, url, active, created_at, updated_at
+            FROM status_messages
+            WHERE id = %s
+        """
+        result = execute_query_one(query, (message_id,))
+        
+        if result:
+            # Handle both dict-like and tuple-like results
+            if isinstance(result, dict):
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result['id'],
+                        'description': result['description'],
+                        'url': result['url'],
+                        'active': result['active'],
+                        'created_at': result['created_at'].isoformat() if result['created_at'] else None,
+                        'updated_at': result['updated_at'].isoformat() if result['updated_at'] else None
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result[0],
+                        'description': result[1],
+                        'url': result[2],
+                        'active': result[3],
+                        'created_at': result[4].isoformat() if result[4] else None,
+                        'updated_at': result[5].isoformat() if result[5] else None
+                    }
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Message not found'
+            }), 404
+    except Exception as e:
+        logger.error(f"Error fetching status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages', methods=['POST'])
+@login_required
+def create_status_message():
+    """
+    Create a new status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        data = request.get_json()
+        description = data.get('description', '').strip()
+        url = (data.get('url') or '').strip() or None
+        active = data.get('active', False)
+        
+        logger.info(f"Creating status message: description='{description}', url='{url}', active={active}")
+        
+        if not description:
+            return jsonify({
+                'success': False,
+                'error': 'Description is required'
+            }), 400
+        
+        # If setting this message as active, deactivate all other messages
+        if active:
+            logger.info("Deactivating other messages...")
+            deactivate_query = "UPDATE status_messages SET active = false"
+            deactivate_result = execute_update(deactivate_query, None)
+            logger.info(f"Deactivate result: {deactivate_result}")
+        
+        logger.info("Inserting new message...")
+        query = """
+            INSERT INTO status_messages (description, url, active)
+            VALUES (%s, %s, %s)
+            RETURNING id
+        """
+        result = execute_query_one(query, (description, url, active), commit=True)
+        logger.info(f"Insert result: {result}, type: {type(result)}")
+        
+        if result:
+            # Result is a RealDictRow, access by column name
+            message_id = result['id'] if isinstance(result, dict) else result[0]
+            logger.info(f"Successfully created message with ID: {message_id}")
+            return jsonify({
+                'success': True,
+                'message_id': message_id
+            })
+        else:
+            logger.error("Insert returned None")
+            return jsonify({
+                'success': False,
+                'error': 'Failed to create message - no result returned'
+            }), 500
+    except Exception as e:
+        import traceback
+        logger.error(f"Error creating status message: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['PUT'])
+@login_required
+def update_status_message(message_id):
+    """
+    Update an existing status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        data = request.get_json()
+        description = data.get('description', '').strip()
+        url = (data.get('url') or '').strip() or None
+        active = data.get('active', False)
+        
+        if not description:
+            return jsonify({
+                'success': False,
+                'error': 'Description is required'
+            }), 400
+        
+        # If setting this message as active, deactivate all other messages
+        if active:
+            deactivate_query = "UPDATE status_messages SET active = false WHERE id != %s"
+            success = execute_update(deactivate_query, (message_id,))
+            if not success:
+                logger.warning(f"Failed to deactivate other messages when updating {message_id}")
+        
+        query = """
+            UPDATE status_messages
+            SET description = %s, url = %s, active = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """
+        success = execute_update(query, (description, url, active, message_id))
+        
+        if success:
+            return jsonify({
+                'success': True
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to update message'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error updating status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['DELETE'])
+@login_required
+def delete_status_message(message_id):
+    """
+    Delete a status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = "DELETE FROM status_messages WHERE id = %s"
+        execute_update(query, (message_id,))
+        
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        logger.error(f"Error deleting status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 
 
 # ==============================

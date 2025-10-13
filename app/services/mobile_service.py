@@ -1252,16 +1252,30 @@ def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024
         
         # Format partner data
         partner_list = []
+        
+        # Bayesian confidence-weighted ranking algorithm
+        # This prevents small sample sizes from dominating while rewarding strong performance
+        # Tuned for 18-match season: factor of 2 provides minimal adjustment for typical partnerships
+        CONFIDENCE_FACTOR = 2  # Number of "virtual matches" at league average
+        BASELINE_WIN_RATE = 50.0  # League-wide average win rate
+        
         for partner_id, stats in partners.items():
             win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
             
             # Convert courts set to sorted list
             courts_played = sorted(list(stats["courts"]))
             
-            # Calculate weighted score: prioritize partnerships with more matches
-            # Score = (matches * 20) + win_rate
-            # This heavily weights matches played, so partnerships with more games rank higher
-            weighted_score = (stats["matches"] * 20) + win_rate
+            # Calculate Bayesian adjusted win rate for ranking
+            # Formula: (C × baseline + n × actual) / (C + n)
+            # Where C = confidence factor, n = actual matches
+            # This pulls small samples toward 50% baseline, while large samples use actual performance
+            adjusted_win_rate = (
+                (CONFIDENCE_FACTOR * BASELINE_WIN_RATE + stats["matches"] * win_rate) / 
+                (CONFIDENCE_FACTOR + stats["matches"])
+            )
+            
+            # Secondary sort: total matches (for tie-breaking between similar adjusted rates)
+            match_count = stats["matches"]
             
             partner_list.append({
                 "name": stats["name"],
@@ -1272,11 +1286,13 @@ def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024
                 "winRate": win_rate,
                 "courts": courts_played,
                 "record": f"{stats['wins']}-{stats['losses']}",
-                "weighted_score": weighted_score
+                "adjusted_win_rate": adjusted_win_rate,
+                "match_count": match_count
             })
         
-        # Sort by weighted score (descending) - this balances matches played with win rate
-        partner_list.sort(key=lambda x: -x["weighted_score"])
+        # Sort by adjusted win rate (descending), then by match count (descending)
+        # This ranks partners by statistically-confident performance
+        partner_list.sort(key=lambda x: (-x["adjusted_win_rate"], -x["match_count"]))
         
         return partner_list
         

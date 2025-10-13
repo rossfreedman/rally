@@ -776,6 +776,13 @@
     </nav>
 
 
+    <!-- Status Banner (below navigation) -->
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 56px; background-color: #bff863; color: #045454; margin-bottom: 15px;">
+        <div class="flex items-center justify-center" style="min-height: 48px; padding: 16px 24px;">
+            <span id="statusBannerText" class="text-sm font-medium text-center" style="line-height: 1.5;"></span>
+        </div>
+    </div>
+
     <!-- Full-Width Modern Nav Drawer -->
     <div id="navDrawer" class="fixed top-0 right-0 h-full w-full bg-white z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="flex flex-col h-full">
@@ -1600,8 +1607,44 @@
             }
         }
 
-        // Initialize drawer functionality
+            // Status Banner Functionality
+        async function loadStatusBanner() {
+            try {
+                const response = await fetch('/api/status-message');
+                const data = await response.json();
+                
+                if (data.success && data.message) {
+                    const banner = document.getElementById('statusBanner');
+                    const bannerText = document.getElementById('statusBannerText');
+                    const mainContent = document.getElementById('main-content');
+                    
+                    if (banner && bannerText && mainContent) {
+                        // Set the message text
+                        if (data.message.url) {
+                            // Display message with "click here to learn more" where "here" is the link
+                            bannerText.innerHTML = `${data.message.description} Click <a href="${data.message.url}" class="underline hover:no-underline font-semibold">here</a> to learn more.`;
+                        } else {
+                            bannerText.textContent = data.message.description;
+                        }
+                        
+                        // Show the banner
+                        banner.classList.remove('hidden');
+                        
+                        // Adjust main content padding to account for banner (32px banner + 15px spacing)
+                        const currentPadding = parseInt(mainContent.style.paddingTop || '72px');
+                        mainContent.style.paddingTop = (currentPadding + 47) + 'px';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading status banner:', error);
+            }
+        }
+
+            // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Load status banner on page load
+            loadStatusBanner();
+            
             // Set up dock active state
             updateDockActiveState();
             

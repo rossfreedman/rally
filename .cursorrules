@@ -6,6 +6,7 @@
 — Be surgical. Avoid breaking existing functionality.
 - Always back up or checkpoint modified code (e.g., via comments or git commit suggestions).
 - Proactively suggest improvements to performance, readability, or structure if they are high-impact.
+- DO NOT DEPLOY TO STAGING OR PRODUCTION UNTIL LOCAL IS FULL TESTED AND YOU HAVE PERMISSION FROM ME
 
 # Code Style
 - Write modular, reusable code with a component-based mindset. 
