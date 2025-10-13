@@ -129,9 +129,9 @@
 
         <!-- Players List Section (Hidden initially) -->
         <div id="playersCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="display: none;">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-users text-green-500 mr-2"></i>
+            <div class="px-6 py-4 border-b border-gray-50" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-users mr-2" style="color: #bff863;"></i>
                     Players
                 </h2>
             </div>
@@ -1324,14 +1324,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         card.innerHTML = `
             <!-- Header with Player Name -->
-            <div class="bg-gray-500 px-4 py-2 border-b border-gray-600 flex items-center gap-3">
-                <!-- Checkbox -->
+            <div style="background-color: #045454;" class="px-4 py-2 border-b border-gray-600 flex items-center gap-3 rounded-t-lg">
+                <!-- Checkbox (Hidden) -->
                 <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
                        class="player-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
-                       data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
+                       data-player-name="${player.name}" ${isSelected ? 'checked' : ''}
+                       style="display: none;">
                 
                 <!-- Player Name -->
-                <h3 class="font-bold text-base text-white leading-tight">${player.name}</h3>
+                <h3 class="font-bold text-base leading-tight" style="color: #bff863;">${player.name}</h3>
             </div>
             
             <!-- Body with Player Info -->
@@ -1344,8 +1345,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     ` : ''}
                     
                     <!-- Club and Series -->
-                    <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
-                    <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</p>
+                    <p class="text-sm text-gray-600 mb-2">${player.club || 'Unknown Club'}</p>
+                    <span class="text-sm font-semibold mb-3 inline-block" style="background-color: #045454; color: #bff863; padding: 4px 12px; border-radius: 16px;">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</span>
                     
                     <!-- Stats -->
                     <div class="text-sm space-y-1">
@@ -1361,12 +1362,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <!-- Right Column: Action Buttons -->
-                <div class="flex flex-col justify-center space-y-3 w-32">
+                <div class="flex flex-col justify-center space-y-3" style="width: 138px;">
                     <button class="details-btn w-full" 
                             onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.playerId)}'"
                             style="
-                                background-color: #3b82f6 !important; 
-                                color: white !important; 
+                                background-color: #045454 !important; 
+                                color: #bff863 !important; 
                                 padding: 12px 16px !important; 
                                 border-radius: 8px !important; 
                                 font-size: 14px !important; 
@@ -1377,13 +1378,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 visibility: visible !important;
                                 min-height: 44px !important;
                             ">
-                        Details
+                        View Stats
                     </button>
                     <button class="contact-btn w-full" 
                             onclick="handleContactClick('${player.name}')"
                             style="
-                                background-color: #16a34a !important; 
-                                color: white !important; 
+                                background-color: #bff863 !important; 
+                                color: #045454 !important; 
                                 padding: 12px 16px !important; 
                                 border-radius: 8px !important; 
                                 font-size: 14px !important; 

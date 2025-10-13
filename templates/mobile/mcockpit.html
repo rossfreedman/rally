@@ -353,7 +353,7 @@
           </div>
           <div>
             <h2 class="text-lg font-semibold text-gray-900">Recent Registrations</h2>
-            <p class="text-sm text-gray-600">10 most recently registered users and their activity</p>
+            <p class="text-sm text-gray-600">25 most recently registered users and their activity</p>
           </div>
         </div>
         <button onclick="refreshRecentRegistrations()" class="text-gray-500 hover:text-rally-primary transition-colors">
@@ -370,7 +370,49 @@
         <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
         <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Activity Detail Modal -->
+<div id="user-activity-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4" onclick="closeActivityModalOnBackdrop(event)">
+  <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="p-6 border-b border-gray-200 flex items-center justify-between" style="background-color: #10645c;">
+      <div>
+        <h2 id="modal-user-name" class="text-xl font-bold text-white">User Activity</h2>
+        <p id="modal-user-email" class="text-sm text-white opacity-90"></p>
+      </div>
+      <button onclick="closeActivityModal()" class="text-white hover:text-gray-200 transition-colors">
+        <i class="fas fa-times text-2xl"></i>
+      </button>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="flex-1 overflow-y-auto p-6">
+      <div id="modal-activity-content">
+        <!-- Activity content will be loaded here -->
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-rally-primary"></div>
+          <span class="ml-3 text-gray-600">Loading activity...</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal Footer -->
+    <div class="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+      <div class="text-sm text-gray-600">
+        <span id="modal-activity-count">Showing last 100 activities</span>
+      </div>
+      <button onclick="closeActivityModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">
+        Close
+      </button>
     </div>
   </div>
 </div>
@@ -1286,7 +1328,7 @@ function renderRecentRegistrations(registrations) {
       <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-rally-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+            <div class="w-8 h-8 text-white rounded-full flex items-center justify-center text-sm font-semibold" style="background-color: #10645c;">
               ${index + 1}
             </div>
             <div>
@@ -1319,11 +1361,16 @@ function renderRecentRegistrations(registrations) {
         </div>
         
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
-          <div class="flex items-center text-xs text-gray-600">
+          <button 
+            onclick="openActivityModal(${reg.id}, '${reg.first_name} ${reg.last_name}', '${reg.email}')"
+            class="flex items-center text-xs text-gray-600 hover:text-rally-primary transition-colors cursor-pointer px-2 py-1 rounded hover:bg-gray-200"
+            title="Click to view detailed activity"
+          >
             <i class="fas fa-chart-line mr-1"></i>
             <span class="font-semibold text-gray-900">${reg.activity_count}</span>
             <span class="ml-1">total activities</span>
-          </div>
+            <i class="fas fa-external-link-alt ml-2 text-xs"></i>
+          </button>
           <div class="text-xs text-gray-500">
             <i class="fas fa-calendar mr-1"></i>
             ${daysAgo}
@@ -1336,6 +1383,159 @@ function renderRecentRegistrations(registrations) {
 
 function refreshRecentRegistrations() {
   loadRecentRegistrations();
+}
+
+async function openActivityModal(userId, userName, userEmail) {
+  console.log('Opening activity modal for user:', userId, userName, userEmail);
+  
+  // Show modal
+  const modal = document.getElementById('user-activity-modal');
+  modal.classList.remove('hidden');
+  
+  // Update modal header
+  document.getElementById('modal-user-name').textContent = userName;
+  document.getElementById('modal-user-email').textContent = userEmail;
+  
+  // Show loading state
+  document.getElementById('modal-activity-content').innerHTML = `
+    <div class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-rally-primary"></div>
+      <span class="ml-3 text-gray-600">Loading activity...</span>
+    </div>
+  `;
+  
+  try {
+    // Fetch user activity
+    const response = await fetch(`/api/admin/cockpit/user-activity/${userId}`, {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      renderActivityDetail(data.activities, data.total_count);
+    } else {
+      throw new Error(data.error || 'Failed to load activity');
+    }
+  } catch (error) {
+    console.error('Error loading user activity:', error);
+    document.getElementById('modal-activity-content').innerHTML = `
+      <div class="text-center py-12">
+        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+        <p class="text-gray-700 mb-2">Failed to load activity</p>
+        <p class="text-sm text-gray-500">${error.message}</p>
+      </div>
+    `;
+  }
+}
+
+function closeActivityModal() {
+  const modal = document.getElementById('user-activity-modal');
+  modal.classList.add('hidden');
+}
+
+function closeActivityModalOnBackdrop(event) {
+  // Only close if clicking the backdrop, not the modal content
+  if (event.target.id === 'user-activity-modal') {
+    closeActivityModal();
+  }
+}
+
+function renderActivityDetail(activities, totalCount) {
+  const container = document.getElementById('modal-activity-content');
+  
+  // Update activity count
+  document.getElementById('modal-activity-count').textContent = 
+    `Showing ${activities.length} ${activities.length === 100 ? 'most recent' : ''} activities`;
+  
+  if (!activities || activities.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-12">
+        <i class="fas fa-inbox text-4xl text-gray-400 mb-4"></i>
+        <p class="text-gray-500">No activity recorded for this user</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Group activities by date
+  const groupedByDate = {};
+  activities.forEach(activity => {
+    const date = new Date(activity.timestamp);
+    const dateKey = date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    if (!groupedByDate[dateKey]) {
+      groupedByDate[dateKey] = [];
+    }
+    groupedByDate[dateKey].push(activity);
+  });
+  
+  // Render grouped activities
+  let html = '';
+  Object.keys(groupedByDate).forEach(dateKey => {
+    const dateActivities = groupedByDate[dateKey];
+    
+    html += `
+      <div class="mb-6">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-2 border-b border-gray-200">
+          <i class="fas fa-calendar-day mr-2"></i>${dateKey} (${dateActivities.length} activities)
+        </h3>
+        <div class="space-y-2">
+    `;
+    
+    dateActivities.forEach(activity => {
+      const time = new Date(activity.timestamp).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      const actionIcon = getActionTypeIcon(activity.action_type, activity.page);
+      const actionColor = getActionTypeColor(activity.action_type, activity.page);
+      const pageName = formatPageName(activity.page);
+      
+      html += `
+        <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+          <div class="flex-shrink-0 mt-1">
+            <div class="w-8 h-8 bg-${actionColor}-100 rounded-lg flex items-center justify-center">
+              <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-sm font-medium text-gray-900">${pageName}</span>
+              <span class="text-xs text-gray-500 font-mono">${time}</span>
+            </div>
+            <div class="text-xs text-gray-600">
+              <span class="px-2 py-0.5 bg-gray-100 rounded text-gray-700">${activity.action_type}</span>
+            </div>
+            ${activity.details ? `
+              <div class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                ${activity.details.substring(0, 150)}${activity.details.length > 150 ? '...' : ''}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
 }
 
 function updateLastUpdated() {

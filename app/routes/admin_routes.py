@@ -4862,7 +4862,7 @@ def get_recent_registrations():
             ) al ON u.id = al.user_id
             WHERE u.created_at IS NOT NULL
             ORDER BY u.created_at DESC
-            LIMIT 10
+            LIMIT 25
         """
         
         users = execute_query(query)
@@ -4908,6 +4908,86 @@ def get_recent_registrations():
         
     except Exception as e:
         print(f"Error fetching recent registrations: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/cockpit/user-activity/<int:user_id>")
+@login_required
+@admin_required
+def get_user_activity_detail(user_id):
+    """Get detailed activity history for a specific user"""
+    try:
+        # Get user basic info
+        user_query = """
+            SELECT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.created_at
+            FROM users u
+            WHERE u.id = %s
+        """
+        user = execute_query_one(user_query, [user_id])
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'error': 'User not found'
+            }), 404
+        
+        # Get detailed activity from activity_log
+        activity_query = """
+            SELECT 
+                al.id,
+                al.timestamp,
+                al.action_type,
+                al.page,
+                al.action_description,
+                al.details,
+                al.ip_address,
+                al.user_agent
+            FROM activity_log al
+            WHERE al.user_id = %s
+            ORDER BY al.timestamp DESC
+            LIMIT 100
+        """
+        activities = execute_query(activity_query, [user_id])
+        
+        # Format activities
+        formatted_activities = []
+        for activity in activities:
+            formatted_activities.append({
+                'id': activity['id'],
+                'timestamp': activity['timestamp'].isoformat() if activity['timestamp'] else None,
+                'action_type': activity['action_type'] or 'Unknown',
+                'page': activity['page'] or '',
+                'action_description': activity['action_description'] or '',
+                'details': activity['details'] or '',
+                'ip_address': activity['ip_address'] or '',
+                'user_agent': activity['user_agent'] or ''
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'user': {
+                'id': user['id'],
+                'first_name': user['first_name'] or '',
+                'last_name': user['last_name'] or '',
+                'email': user['email'],
+                'created_at': user['created_at'].isoformat() if user['created_at'] else None
+            },
+            'activities': formatted_activities,
+            'total_count': len(formatted_activities)
+        })
+        
+    except Exception as e:
+        print(f"Error fetching user activity detail: {str(e)}")
         import traceback
         print(traceback.format_exc())
         return jsonify({
