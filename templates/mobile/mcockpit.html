@@ -342,6 +342,37 @@
       </div>
     </div>
   </div>
+
+  <!-- Recent Registrations Section -->
+  <div class="bg-white rounded-xl shadow-lg mb-6">
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-user-plus text-green-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Recent Registrations</h2>
+            <p class="text-sm text-gray-600">10 most recently registered users and their activity</p>
+          </div>
+        </div>
+        <button onclick="refreshRecentRegistrations()" class="text-gray-500 hover:text-rally-primary transition-colors">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+      </div>
+    </div>
+    
+    <div class="p-4">
+      <div id="recent-registrations-list" class="space-y-3">
+        <!-- Loading skeleton -->
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+        <div class="loading-skeleton h-20 rounded-lg mb-2"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -475,7 +506,8 @@ async function loadAllData() {
       loadSystemStatus(),
       loadMostActivePages(),
       loadUserCountTrends(),
-      loadPieCharts()
+      loadPieCharts(),
+      loadRecentRegistrations()
     ]);
     updateLastUpdated();
   } catch (error) {
@@ -1190,6 +1222,120 @@ function setTopUsersFilter(filter) {
   
   // Reload top users with new filter
   loadTopUsers();
+}
+
+async function loadRecentRegistrations() {
+  try {
+    const response = await fetch('/api/admin/cockpit/recent-registrations', {
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      console.error(`Recent registrations API error: ${response.status} ${response.statusText}`);
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      renderRecentRegistrations(data.registrations);
+    } else {
+      console.error('Recent registrations API returned error:', data.error);
+      renderRecentRegistrations([]);
+    }
+  } catch (error) {
+    console.error('Error loading recent registrations:', error);
+    renderRecentRegistrations([]);
+  }
+}
+
+function renderRecentRegistrations(registrations) {
+  const container = document.getElementById('recent-registrations-list');
+  
+  if (!registrations || registrations.length === 0) {
+    container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No registration data available</p>';
+    return;
+  }
+
+  container.innerHTML = registrations.map((reg, index) => {
+    const registrationDate = reg.created_at ? new Date(reg.created_at) : null;
+    const timeAgo = registrationDate ? getTimeAgo(reg.created_at) : 'Unknown';
+    const daysAgo = reg.days_since_registration !== null ? `${reg.days_since_registration} days ago` : 'Unknown';
+    
+    // Determine activity level and color
+    let activityBadge = '';
+    let activityColor = '';
+    if (reg.activity_count === 0) {
+      activityBadge = 'No Activity';
+      activityColor = 'bg-gray-100 text-gray-700';
+    } else if (reg.activity_count < 10) {
+      activityBadge = 'Low Activity';
+      activityColor = 'bg-yellow-100 text-yellow-700';
+    } else if (reg.activity_count < 50) {
+      activityBadge = 'Moderate Activity';
+      activityColor = 'bg-blue-100 text-blue-700';
+    } else {
+      activityBadge = 'High Activity';
+      activityColor = 'bg-green-100 text-green-700';
+    }
+    
+    return `
+      <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+        <div class="flex items-start justify-between mb-2">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-rally-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">
+              ${index + 1}
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">${reg.first_name} ${reg.last_name}</h3>
+              <p class="text-xs text-gray-500">${reg.email}</p>
+            </div>
+          </div>
+          <span class="px-2 py-1 text-xs font-medium rounded-full ${activityColor}">
+            ${activityBadge}
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-2 text-xs mt-3">
+          <div>
+            <span class="text-gray-500">Club:</span>
+            <span class="text-gray-900 ml-1 font-medium">${reg.club_name}</span>
+          </div>
+          <div>
+            <span class="text-gray-500">Series:</span>
+            <span class="text-gray-900 ml-1 font-medium">${reg.series_name}</span>
+          </div>
+          <div>
+            <span class="text-gray-500">League:</span>
+            <span class="text-gray-900 ml-1 font-medium">${reg.league_name}</span>
+          </div>
+          <div>
+            <span class="text-gray-500">Registered:</span>
+            <span class="text-gray-900 ml-1 font-medium">${timeAgo}</span>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
+          <div class="flex items-center text-xs text-gray-600">
+            <i class="fas fa-chart-line mr-1"></i>
+            <span class="font-semibold text-gray-900">${reg.activity_count}</span>
+            <span class="ml-1">total activities</span>
+          </div>
+          <div class="text-xs text-gray-500">
+            <i class="fas fa-calendar mr-1"></i>
+            ${daysAgo}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function refreshRecentRegistrations() {
+  loadRecentRegistrations();
 }
 
 function updateLastUpdated() {

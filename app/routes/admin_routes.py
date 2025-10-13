@@ -4820,6 +4820,102 @@ def delete_video(video_id):
         return jsonify({"error": str(e)}), 500
 
 
+@admin_bp.route("/api/admin/cockpit/recent-registrations")
+@login_required
+@admin_required
+def get_recent_registrations():
+    """Get the 10 most recently registered users with their activity counts"""
+    try:
+        # Query for the 10 most recently registered users
+        query = """
+            SELECT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.created_at,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name,
+                -- Count total activity from both activity systems
+                COALESCE(al.activity_count, 0) as activity_count,
+                -- Get latest activity timestamp
+                GREATEST(
+                    COALESCE(al.latest_activity, u.created_at),
+                    COALESCE(u.last_login, u.created_at)
+                ) as latest_activity
+            FROM users u
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN (
+                -- Aggregate all activity for each user
+                SELECT 
+                    user_id,
+                    COUNT(*) as activity_count,
+                    MAX(timestamp) as latest_activity
+                FROM activity_log
+                WHERE user_id IS NOT NULL
+                GROUP BY user_id
+            ) al ON u.id = al.user_id
+            WHERE u.created_at IS NOT NULL
+            ORDER BY u.created_at DESC
+            LIMIT 10
+        """
+        
+        users = execute_query(query)
+        
+        # Process and format the results
+        recent_registrations = []
+        from datetime import timezone
+        
+        for user in users:
+            registration_date = user.get('created_at')
+            latest_activity = user.get('latest_activity')
+            
+            # Calculate days since registration
+            if registration_date:
+                # Handle timezone-aware datetime comparison
+                now = datetime.now(timezone.utc)
+                if registration_date.tzinfo is None:
+                    # If registration_date is naive, make it UTC-aware
+                    registration_date = registration_date.replace(tzinfo=timezone.utc)
+                days_since_registration = (now - registration_date).days
+            else:
+                days_since_registration = None
+            
+            recent_registrations.append({
+                'id': user['id'],
+                'first_name': user['first_name'] or '',
+                'last_name': user['last_name'] or '',
+                'email': user['email'],
+                'club_name': user['club_name'] or 'Not Set',
+                'series_name': user['series_name'] or 'Not Set',
+                'league_name': user['league_name'] or 'Not Set',
+                'created_at': registration_date.isoformat() if registration_date else None,
+                'days_since_registration': days_since_registration,
+                'activity_count': int(user['activity_count']) if user['activity_count'] else 0,
+                'latest_activity': latest_activity.isoformat() if latest_activity else None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'registrations': recent_registrations,
+            'count': len(recent_registrations)
+        })
+        
+    except Exception as e:
+        print(f"Error fetching recent registrations: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
 @admin_bp.route("/scraper-status")
 def scraper_status_page():
     """Public status page to check if scraper is running (no auth required)"""

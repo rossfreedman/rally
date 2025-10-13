@@ -1632,7 +1632,19 @@
                         
                         // Show button if there's a URL
                         if (data.message.url && bannerButton) {
-                            bannerButton.href = data.message.url;
+                            // Convert absolute URLs to relative URLs to avoid session issues
+                            let url = data.message.url;
+                            try {
+                                const urlObj = new URL(url, window.location.origin);
+                                // If it's the same origin, use relative path
+                                if (urlObj.origin === window.location.origin) {
+                                    url = urlObj.pathname + urlObj.search + urlObj.hash;
+                                }
+                            } catch (e) {
+                                // If URL parsing fails, keep original URL
+                                console.log('URL parsing failed, using original URL:', url);
+                            }
+                            bannerButton.href = url;
                             bannerButton.classList.remove('hidden');
                         }
                         
