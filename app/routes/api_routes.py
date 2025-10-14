@@ -2915,6 +2915,20 @@ def remove_practice_times():
     return remove_practice_times_data()
 
 
+@api_bp.route("/get-practice-times-list", methods=["GET"])
+@login_required
+def get_practice_times_list():
+    """Get list of existing practice times for user's team"""
+    return get_practice_times_list_data()
+
+
+@api_bp.route("/remove-specific-practice-times", methods=["POST"])
+@login_required
+def remove_specific_practice_times():
+    """Remove specific practice times by time"""
+    return remove_specific_practice_times_data()
+
+
 @api_bp.route("/team-schedule-data")
 @login_required
 def get_team_schedule_data():

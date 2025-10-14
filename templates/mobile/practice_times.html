@@ -195,6 +195,32 @@
             </div>
         </div>
 
+        <!-- Current Practice Times Card -->
+        <div id="current-practices-card" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list text-indigo-500 mr-2"></i>
+                    Current Practice Times
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div id="practices-loading" class="text-center py-4">
+                    <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                    <p class="text-sm text-gray-500 mt-2">Loading practice times...</p>
+                </div>
+                
+                <div id="practices-list" class="space-y-3 hidden">
+                    <!-- Practice times will be populated here -->
+                </div>
+                
+                <div id="no-practices" class="text-center py-4 text-gray-500 text-sm hidden">
+                    <i class="fas fa-calendar-times text-gray-400 text-2xl mb-2"></i>
+                    <p>No practice times scheduled yet</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Information Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -379,6 +405,11 @@ document.getElementById('practice-form').addEventListener('submit', function(e) 
       // Hide the form
       formContainer.style.display = 'none';
       
+      // Reload practice times list
+      setTimeout(() => {
+        loadPracticeTimes();
+      }, 500);
+      
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
@@ -487,6 +518,148 @@ document.getElementById('remove-btn').addEventListener('click', function() {
   });
 });
 
+// Load existing practice times
+function loadPracticeTimes() {
+  const practicesCard = document.getElementById('current-practices-card');
+  const practicesLoading = document.getElementById('practices-loading');
+  const practicesList = document.getElementById('practices-list');
+  const noPractices = document.getElementById('no-practices');
+  
+  fetch('/api/get-practice-times-list')
+    .then(response => response.json())
+    .then(data => {
+      practicesLoading.classList.add('hidden');
+      
+      if (data.success && data.practice_groups && data.practice_groups.length > 0) {
+        // Show the card
+        practicesCard.classList.remove('hidden');
+        practicesList.classList.remove('hidden');
+        noPractices.classList.add('hidden');
+        
+        // Build the practices list
+        let html = '';
+        data.practice_groups.forEach(practice => {
+          // Format time nicely (e.g., "12:00:00" -> "12:00 PM")
+          const timeObj = new Date('2000-01-01 ' + practice.time);
+          const formattedTime = timeObj.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          
+          html += `
+            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center mb-1">
+                    <i class="fas fa-calendar-day text-indigo-500 mr-2"></i>
+                    <span class="font-semibold text-gray-900">${practice.day_name}s at ${formattedTime}</span>
+                  </div>
+                  <div class="text-xs text-gray-600 ml-6">
+                    <i class="fas fa-clock text-gray-400 mr-1"></i>
+                    ${practice.count} practice${practice.count > 1 ? 's' : ''} scheduled
+                  </div>
+                  ${practice.first_date && practice.last_date ? `
+                    <div class="text-xs text-gray-500 ml-6 mt-1">
+                      ${new Date(practice.first_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - 
+                      ${new Date(practice.last_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  ` : ''}
+                </div>
+                <button 
+                  class="ml-3 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-colors delete-practice-btn"
+                  data-time="${practice.time}"
+                  data-day="${practice.day_name}"
+                  data-formatted-time="${formattedTime}"
+                  data-count="${practice.count}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        });
+        
+        practicesList.innerHTML = html;
+        
+        // Add click handlers for delete buttons
+        document.querySelectorAll('.delete-practice-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const time = this.getAttribute('data-time');
+            const day = this.getAttribute('data-day');
+            const formattedTime = this.getAttribute('data-formatted-time');
+            const count = this.getAttribute('data-count');
+            
+            if (confirm(`Are you sure you want to delete all ${count} ${day} ${formattedTime} practice times? This cannot be undone.`)) {
+              deleteSpecificPracticeTime(time, day, formattedTime, count);
+            }
+          });
+        });
+        
+      } else {
+        noPractices.classList.remove('hidden');
+        practicesCard.classList.remove('hidden');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading practice times:', error);
+      practicesLoading.classList.add('hidden');
+      noPractices.classList.remove('hidden');
+      practicesCard.classList.remove('hidden');
+    });
+}
+
+// Delete specific practice time
+function deleteSpecificPracticeTime(time, day, formattedTime, count) {
+  const successMessage = document.getElementById('success-message');
+  const errorMessage = document.getElementById('error-message');
+  const removeSuccessMessage = document.getElementById('remove-success-message');
+  
+  // Hide all messages
+  successMessage.classList.add('hidden');
+  errorMessage.classList.add('hidden');
+  removeSuccessMessage.classList.add('hidden');
+  
+  fetch('/api/remove-specific-practice-times', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ time: time })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Update success message
+      document.getElementById('remove-success-title').textContent = `Successfully removed ${data.count} ${day} ${formattedTime} practice times!`;
+      document.getElementById('remove-success-details').innerHTML = `
+        <p class="mb-2">Removed ${day} ${formattedTime} practices for <strong>${data.series}</strong>.</p>
+        <p class="text-xs text-green-600">The practice times have been removed from your team calendar.</p>
+      `;
+      
+      // Show success message
+      removeSuccessMessage.classList.remove('hidden');
+      
+      // Reload the practices list
+      setTimeout(() => {
+        loadPracticeTimes();
+      }, 500);
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      document.getElementById('error-text').textContent = data.message || 'Failed to remove practice times';
+      errorMessage.classList.remove('hidden');
+      errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    document.getElementById('error-text').textContent = 'An error occurred while removing practice times. Please try again.';
+    errorMessage.classList.remove('hidden');
+    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
 // Set default dates when page loads
 document.addEventListener('DOMContentLoaded', function() {
   const firstDateInput = document.getElementById('first_date');
@@ -502,6 +675,9 @@ document.addEventListener('DOMContentLoaded', function() {
   threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
   const threeMonthsFormatted = threeMonthsFromNow.toISOString().split('T')[0];
   lastDateInput.value = threeMonthsFormatted;
+  
+  // Load existing practice times
+  loadPracticeTimes();
 });
 
 // Helper function to suggest a reasonable end date when first date is selected
