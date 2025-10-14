@@ -1341,7 +1341,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex-1 min-w-0">
                     <!-- PTI (most prominent) -->
                     ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
-                        <div class="text-blue-600 font-bold text-xl mb-2">PTI: ${player.pti}</div>
+                        <div class="font-bold text-base mb-2" style="color: #045454;">PTI: ${player.pti}</div>
                     ` : ''}
                     
                     <!-- Club and Series -->
