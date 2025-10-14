@@ -6,13 +6,23 @@
     <div class="container">
         <!-- Header -->
         <div class="bg-white border-b border-gray-100">
-            <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
-                <i class="fas fa-users text-white text-lg"></i>
-            </div>
-            <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">My Team</h1>
-                <p class="text-sm text-gray-500">{{ team_data.display_name if team_data else 'Team Analysis' }}</p>
+            <div class="flex items-center justify-between px-4 py-6">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                        <i class="fas fa-users text-white text-lg"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h1 class="text-xl font-bold text-gray-900">My Team</h1>
+                        <p class="text-sm text-gray-500">{{ team_data.display_name if team_data else 'Team Analysis' }}</p>
+                    </div>
+                </div>
+                {% if last_updated %}
+                <div class="text-right">
+                    <p class="text-xs text-gray-400">Updated</p>
+                    <p class="text-xs text-gray-500">{{ last_updated.strftime('%m/%d/%y') }}</p>
+                    <p class="text-xs text-gray-500">{{ last_updated.strftime('%I:%M %p') }}</p>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -476,6 +486,144 @@
             </div>
         </div>
 
+        <!-- Team Videos Section -->
+        {% if team_videos %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-play-circle mr-2" style="color: #bff863;"></i>
+                    Team Videos
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-6">
+                    {% for video in team_videos %}
+                    <div class="video-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                        
+                        <!-- Video Thumbnail / Player -->
+                        {% if 'youtu.be' in video.url %}
+                            {% set video_id = video.url.split('/')[-1].split('?')[0] %}
+                        {% elif 'youtube.com' in video.url %}
+                            {% set video_id = video.url.split('v=')[1].split('&')[0] %}
+                        {% else %}
+                            {% set video_id = '' %}
+                        {% endif %}
+                        
+                        <div class="relative aspect-video bg-gray-200 flex items-center justify-center video-container" 
+                             data-video-url="{{ video.url }}"
+                             data-video-id="{{ video_id }}">
+                            
+                            <!-- Thumbnail View -->
+                            <div class="thumbnail-view" style="position: absolute; inset: 0; background: #1a1a1a;">
+                                <!-- YouTube Thumbnail -->
+                                {% if video_id %}
+                                <img src="https://i.ytimg.com/vi/{{ video_id }}/hqdefault.jpg" 
+                                     alt="{{ video.name }}" 
+                                     loading="eager"
+                                     style="position: absolute !important; 
+                                            top: 0 !important; 
+                                            left: 0 !important; 
+                                            width: 100% !important; 
+                                            height: 100% !important; 
+                                            object-fit: cover !important; 
+                                            display: block !important;
+                                            z-index: 1 !important;
+                                            opacity: 1 !important;
+                                            visibility: visible !important;"
+                                     onload="console.log('Thumbnail loaded for {{ video_id }}');"
+                                     onerror="console.error('Failed to load thumbnail for {{ video_id }}'); this.style.display='block'; this.style.opacity='0.5';">
+                                {% endif %}
+                                
+                                <!-- Slight overlay for better play button visibility -->
+                                <div style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.15); pointer-events: none; z-index: 2;"></div>
+                                
+                                <!-- Modern Play Button Overlay -->
+                                <button class="play-btn" style="position: absolute; 
+                                                                 inset: 0; 
+                                                                 z-index: 10;
+                                                                 display: flex;
+                                                                 align-items: center;
+                                                                 justify-content: center;
+                                                                 background: transparent;
+                                                                 border: none;
+                                                                 cursor: pointer;
+                                                                 transition: all 0.3s ease;">
+                                    <!-- Outer glow ring -->
+                                    <div style="position: absolute;
+                                                width: 7rem;
+                                                height: 7rem;
+                                                border-radius: 50%;
+                                                background: rgba(255, 255, 255, 0.2);
+                                                transition: all 0.3s ease;"></div>
+                                    
+                                    <!-- Main button -->
+                                    <div style="position: relative;
+                                                width: 5rem;
+                                                height: 5rem;
+                                                border-radius: 50%;
+                                                display: flex;
+                                                align-items: center;
+                                                justify-content: center;
+                                                background: linear-gradient(135deg, #045454 0%, #10645c 100%);
+                                                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                                                border: 2px solid rgba(255, 255, 255, 0.6);
+                                                transition: all 0.3s ease;">
+                                        <!-- Play triangle -->
+                                        <div style="position: relative;
+                                                    display: flex;
+                                                    align-items: center;
+                                                    justify-content: center;
+                                                    margin-left: 0.25rem;">
+                                            <svg style="width: 2rem; height: 2rem; color: white; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M8 5v14l11-7z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </button>
+                            </div>
+                            
+                            <!-- Video Player (hidden initially) -->
+                            <div class="video-player hidden absolute inset-0">
+                                <iframe class="w-full h-full" 
+                                        src="" 
+                                        title="{{ video.name }}"
+                                        frameborder="0" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allowfullscreen>
+                                </iframe>
+                                <!-- Close Button -->
+                                <button class="close-video absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white transition-all duration-200 z-10">
+                                    <i class="fas fa-times text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Video Info -->
+                        <div class="p-4 pt-5">
+                            <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">{{ video.name }}</h3>
+                            
+                            {% if video.players %}
+                            <div class="flex items-center text-sm text-gray-600 mb-2">
+                                <i class="fas fa-users mr-2 text-gray-400"></i>
+                                <span>{{ video.players }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if video.date %}
+                            <div class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-calendar mr-2 text-gray-400"></i>
+                                <span>{{ video.date }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
@@ -490,6 +638,61 @@
     .grid-cols-2 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+/* Video aspect ratio */
+.aspect-video {
+    aspect-ratio: 16 / 9;
+    position: relative;
+    width: 100%;
+}
+
+/* Fallback for browsers that don't support aspect-ratio */
+@supports not (aspect-ratio: 16 / 9) {
+    .aspect-video {
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        position: relative;
+    }
+    .aspect-video > * {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Video thumbnail styles */
+.video-container .thumbnail-view {
+    z-index: 1;
+    position: absolute;
+    inset: 0;
+}
+
+.video-container .thumbnail-view img.video-thumbnail {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    z-index: 1;
+    display: block !important;
+    background-color: #000;
+}
+
+.video-container .play-btn {
+    z-index: 10;
+    position: relative;
 }
 
 /* Shadow utilities */
@@ -1036,6 +1239,72 @@ function showMatchesEmpty() {
         </div>
     `;
 }
+
+// Team Videos Player Functionality
+function initializeTeamVideos() {
+    // Add event listeners to all play buttons
+    document.querySelectorAll('.video-container .play-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Find the video container
+            const videoCard = this.closest('.video-card');
+            const videoContainer = videoCard.querySelector('.video-container');
+            const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+            const videoPlayer = videoContainer.querySelector('.video-player');
+            const iframe = videoPlayer.querySelector('iframe');
+            
+            // Get video URL and extract video ID
+            const videoUrl = videoContainer.dataset.videoUrl;
+            const videoId = extractYouTubeVideoId(videoUrl);
+            
+            if (videoId) {
+                // Set iframe source to YouTube embed URL with autoplay
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+                
+                // Hide thumbnail and show player
+                thumbnailView.classList.add('hidden');
+                videoPlayer.classList.remove('hidden');
+                
+                // Scroll video into view
+                videoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    });
+    
+    // Add event listeners to close buttons
+    document.querySelectorAll('.video-container .close-video').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const videoContainer = this.closest('.video-container');
+            const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+            const videoPlayer = videoContainer.querySelector('.video-player');
+            const iframe = videoPlayer.querySelector('iframe');
+            
+            // Stop video by clearing iframe source
+            iframe.src = '';
+            
+            // Show thumbnail and hide player
+            videoPlayer.classList.add('hidden');
+            thumbnailView.classList.remove('hidden');
+        });
+    });
+}
+
+function extractYouTubeVideoId(url) {
+    // Handle various YouTube URL formats
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+
+// Initialize team videos on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initializeTeamVideos();
+});
 
 </script>
     </div>

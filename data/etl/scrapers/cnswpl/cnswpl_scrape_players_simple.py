@@ -455,8 +455,10 @@ class CNSWPLSimpleScraper:
                 if not player_name or player_name.lower() in ['name', 'player', '']:
                     continue
                 
-                # Skip sub players
-                if any(sub_indicator in player_name.lower() for sub_indicator in ['sub', 'substitute', '(sub)']):
+                # Skip sub players - check for (S) and (S↑) suffixes that indicate substitutes
+                # Note: Keep case-sensitive for (S) detection
+                if any(sub_indicator in player_name for sub_indicator in ['(S)', '(S↑)', '(sub)', 'substitute']):
+                    self.logger.info(f"      ⚠️ Skipping substitute player: {player_name}")
                     continue
                 
                 # Check for captain indicators and clean player name

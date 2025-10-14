@@ -65,52 +65,90 @@
                  data-summary="{{ video.summary|lower }}">
                 
                 <!-- Video Thumbnail / Player -->
-                <div class="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center video-container" 
+                {% if 'youtu.be' in video.url %}
+                    {% set video_id = video.url.split('/')[-1].split('?')[0] %}
+                {% elif 'youtube.com' in video.url %}
+                    {% set video_id = video.url.split('v=')[1].split('&')[0] %}
+                {% else %}
+                    {% set video_id = '' %}
+                {% endif %}
+                
+                <div class="relative aspect-video bg-gray-200 flex items-center justify-center video-container" 
                      data-video-url="{{ video.url }}"
-                     data-video-id="{{ video.url.split('/')[-1].split('=')[-1].split('&')[0] if 'youtube.com' in video.url or 'youtu.be' in video.url else '' }}">
+                     data-video-id="{{ video_id }}">
                     
                     <!-- Thumbnail View -->
-                    <div class="thumbnail-view absolute inset-0">
+                    <div class="thumbnail-view" style="position: absolute; inset: 0; background: #1a1a1a;">
                         <!-- YouTube Thumbnail -->
-                        {% set video_id = video.url.split('/')[-1].split('=')[-1].split('&')[0] if 'youtube.com' in video.url or 'youtu.be' in video.url else '' %}
                         {% if video_id %}
-                        <img src="https://img.youtube.com/vi/{{ video_id }}/maxresdefault.jpg" 
+                        <img src="https://i.ytimg.com/vi/{{ video_id }}/hqdefault.jpg" 
                              alt="{{ video.title }}" 
-                             class="w-full h-full object-cover"
-                             onerror="this.src='https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg'">
+                             loading="eager"
+                             style="position: absolute !important; 
+                                    top: 0 !important; 
+                                    left: 0 !important; 
+                                    width: 100% !important; 
+                                    height: 100% !important; 
+                                    object-fit: cover !important; 
+                                    display: block !important;
+                                    z-index: 1 !important;
+                                    opacity: 1 !important;
+                                    visibility: visible !important;"
+                             onload="console.log('Thumbnail loaded for {{ video_id }}');"
+                             onerror="console.error('Failed to load thumbnail for {{ video_id }}'); this.style.display='block'; this.style.opacity='0.5';">
                         {% endif %}
                         
-                        <div class="absolute inset-0 bg-black bg-opacity-30"></div>
+                        <!-- Slight overlay for better play button visibility -->
+                        <div style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.15); pointer-events: none; z-index: 2;"></div>
                         
                         <!-- Duration Badge (simulated) -->
-                        <div class="absolute bottom-4 right-4 bg-black bg-opacity-80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm font-medium">
+                        <div class="absolute bottom-4 right-4 bg-black bg-opacity-80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm font-medium" style="z-index: 3;">
                             {% set duration_minutes = range(3, 16) | random %}
                             {{ duration_minutes }}:{{ '%02d'|format(range(0, 60) | random) }}
                         </div>
                         
                         <!-- Modern Play Button Overlay -->
-                        <button class="play-btn absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 group">
+                        <button class="play-btn" style="position: absolute; 
+                                                         inset: 0; 
+                                                         z-index: 10;
+                                                         display: flex;
+                                                         align-items: center;
+                                                         justify-content: center;
+                                                         background: transparent;
+                                                         border: none;
+                                                         cursor: pointer;
+                                                         transition: all 0.3s ease;">
                             <!-- Outer glow ring -->
-                            <div class="absolute w-28 h-28 rounded-full bg-white bg-opacity-20 group-hover:bg-opacity-30 transition-all duration-300 animate-pulse"></div>
+                            <div style="position: absolute;
+                                        width: 7rem;
+                                        height: 7rem;
+                                        border-radius: 50%;
+                                        background: rgba(255, 255, 255, 0.2);
+                                        transition: all 0.3s ease;"></div>
                             
                             <!-- Main button -->
-                            <div class="relative w-20 h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-all duration-300 border-2 border-white border-opacity-60 backdrop-blur-sm">
-                                <!-- Inner shadow for depth -->
-                                <div class="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 to-transparent"></div>
-                                
-                                <!-- Play triangle with better positioning -->
-                                <div class="relative flex items-center justify-center ml-1">
-                                    <svg class="w-8 h-8 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                            <div style="position: relative;
+                                        width: 5rem;
+                                        height: 5rem;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+                                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                                        border: 2px solid rgba(255, 255, 255, 0.6);
+                                        transition: all 0.3s ease;">
+                                <!-- Play triangle -->
+                                <div style="position: relative;
+                                            display: flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            margin-left: 0.25rem;">
+                                    <svg style="width: 2rem; height: 2rem; color: white; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M8 5v14l11-7z"/>
                                     </svg>
                                 </div>
-                                
-                                <!-- Subtle inner glow -->
-                                <div class="absolute inset-2 rounded-full bg-gradient-to-r from-blue-400/30 to-purple-400/30 group-hover:from-blue-300/40 group-hover:to-purple-300/40 transition-all duration-300"></div>
                             </div>
-                            
-                            <!-- Ripple effect on hover -->
-                            <div class="absolute w-24 h-24 rounded-full border-2 border-white border-opacity-40 group-hover:scale-125 group-hover:border-opacity-20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
                         </button>
                     </div>
                     
@@ -205,8 +243,51 @@
     overflow: hidden;
 }
 
+/* Video aspect ratio */
 .aspect-video {
     aspect-ratio: 16 / 9;
+    position: relative;
+    width: 100%;
+}
+
+/* Fallback for browsers that don't support aspect-ratio */
+@supports not (aspect-ratio: 16 / 9) {
+    .aspect-video {
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+        height: 0;
+        position: relative;
+    }
+    .aspect-video > * {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+}
+
+/* Video thumbnail styles */
+.video-container .thumbnail-view {
+    z-index: 1;
+    position: absolute;
+    inset: 0;
+}
+
+.video-container .thumbnail-view img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    z-index: 1;
+    display: block !important;
+    background-color: #000;
+}
+
+.video-container .play-btn {
+    z-index: 10;
+    position: relative;
 }
 
 #no-results.hidden {

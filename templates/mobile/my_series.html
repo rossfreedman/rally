@@ -9,16 +9,25 @@
     
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
-                <i class="fas fa-trophy text-white text-lg"></i>
+        <div class="flex items-center justify-between px-4 py-6">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                    <i class="fas fa-trophy text-white text-lg"></i>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold text-gray-900">My Series Analysis</h1>
+                    <p class="text-sm text-gray-500" data-series="{{ user_series or '' }}" data-display-name="{{ series_display_name or user_series or '' }}">
+                        {{ series_display_name if series_display_name else user_series if user_series else 'Series Statistics' }}
+                    </p>
+                </div>
             </div>
-            <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">My Series Analysis</h1>
-                <p class="text-sm text-gray-500" data-series="{{ user_series or '' }}" data-display-name="{{ series_display_name or user_series or '' }}">
-                    {{ series_display_name if series_display_name else user_series if user_series else 'Series Statistics' }}
-                </p>
+            {% if last_updated %}
+            <div class="text-right">
+                <p class="text-xs text-gray-400">Updated</p>
+                <p class="text-xs text-gray-500">{{ last_updated.strftime('%m/%d/%y') }}</p>
+                <p class="text-xs text-gray-500">{{ last_updated.strftime('%I:%M %p') }}</p>
             </div>
+            {% endif %}
         </div>
     </div>
 

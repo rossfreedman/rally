@@ -102,77 +102,6 @@
         </div>
         {% endif %}
 
-        <!-- Partner Analysis -->
-        {% if partner_analysis %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4" style="background-color: #045454;">
-                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-user-friends mr-2" style="color: #bff863;"></i>
-                    Best Partnerships (2024-2025)
-                </h2>
-            </div>
-            
-            <div class="p-6">
-                <div class="space-y-4">
-                    {% for partner in partner_analysis %}
-                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-3">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-full font-bold text-white text-lg" 
-                                     style="background-color: {% if loop.index <= 3 %}#045454{% else %}#6b7280{% endif %};">
-                                    {{ loop.index }}
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-semibold text-gray-900">{{ partner.name }}</h3>
-                                    <p class="text-sm text-gray-600">{{ partner.record }} record</p>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold 
-                                    {% if partner.winRate >= 60 %}text-green-500
-                                    {% elif partner.winRate >= 45 %}text-yellow-500
-                                    {% else %}text-red-500
-                                    {% endif %}">
-                                    {{ partner.winRate|round(0)|int }}%
-                                </div>
-                                <p class="text-xs text-gray-500 uppercase">Win Rate</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-                            <div class="flex items-center gap-4">
-                                <div class="text-center">
-                                    <div class="text-sm font-medium text-gray-900">{{ partner.matches }}</div>
-                                    <div class="text-xs text-gray-500">Match{{ 'es' if partner.matches != 1 else '' }}</div>
-                                </div>
-                                <div class="w-px h-8 bg-gray-200"></div>
-                                <div class="text-center">
-                                    <div class="text-sm font-medium text-green-600">{{ partner.wins }}</div>
-                                    <div class="text-xs text-gray-500">Wins</div>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-sm font-medium text-red-600">{{ partner.losses }}</div>
-                                    <div class="text-xs text-gray-500">Losses</div>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center gap-1">
-                                <span class="text-xs text-gray-600 font-medium">Courts:</span>
-                                {% for court in partner.courts %}
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold text-white" 
-                                      style="background-color: #045454;">
-                                    {{ court }}
-                                </span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
         <!-- Court Performance -->
         {% if court_analysis %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -291,6 +220,85 @@
             </div>
         </div>
         {% endif %}
+
+        <!-- Best Partners -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-user-friends mr-2" style="color: #bff863;"></i>
+                    Best Partners (2024-2025)
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                {% set qualified_partners = partner_analysis|selectattr('wins', 'gt', 0)|list if partner_analysis else [] %}
+                {% if qualified_partners %}
+                <div class="space-y-4">
+                    {% for partner in qualified_partners %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="flex items-center justify-center w-10 h-10 rounded-full font-bold text-white text-lg" 
+                                     style="background-color: {% if loop.index <= 3 %}#045454{% else %}#6b7280{% endif %};">
+                                    {{ loop.index }}
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ partner.name }}</h3>
+                                    <p class="text-sm text-gray-600">{{ partner.record }} record</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold 
+                                    {% if partner.winRate >= 60 %}text-green-500
+                                    {% elif partner.winRate >= 45 %}text-yellow-500
+                                    {% else %}text-red-500
+                                    {% endif %}">
+                                    {{ partner.winRate|round(0)|int }}%
+                                </div>
+                                <p class="text-xs text-gray-500 uppercase">Win Rate</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div class="flex items-center gap-4">
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-gray-900">{{ partner.matches }}</div>
+                                    <div class="text-xs text-gray-500">Match{{ 'es' if partner.matches != 1 else '' }}</div>
+                                </div>
+                                <div class="w-px h-8 bg-gray-200"></div>
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-green-600">{{ partner.wins }}</div>
+                                    <div class="text-xs text-gray-500">Wins</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-sm font-medium text-red-600">{{ partner.losses }}</div>
+                                    <div class="text-xs text-gray-500">Losses</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs text-gray-600 font-medium">Courts:</span>
+                                {% for court in partner.courts %}
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold text-white" 
+                                      style="background-color: #045454;">
+                                    {{ court }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-friends text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-500">No qualifying partnerships in 2024-2025. Win at least 1 match with a partner to see them here!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
 
     </div>
 </div>

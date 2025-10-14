@@ -159,15 +159,34 @@
                     day: 'numeric'
                 });
 
+                // Build food display text
+                let foodDisplay = '';
+                if (currentMenu.mens_food) {
+                    foodDisplay += `<div class="mb-3 p-4 bg-blue-50 rounded-lg">
+                        <div class="text-sm font-semibold text-blue-800 mb-1">Men's Paddle (Tues/Wed/Thurs)</div>
+                        <div class="text-lg text-gray-900">${currentMenu.mens_food}</div>
+                    </div>`;
+                }
+                if (currentMenu.womens_food) {
+                    foodDisplay += `<div class="mb-3 p-4 bg-pink-50 rounded-lg">
+                        <div class="text-sm font-semibold text-pink-800 mb-1">Women's Paddle (Sun/Mon/Friday)</div>
+                        <div class="text-lg text-gray-900">${currentMenu.womens_food}</div>
+                    </div>`;
+                }
+                // Fallback to food_text for old records
+                if (!foodDisplay && currentMenu.food_text) {
+                    foodDisplay = `<div class="text-2xl font-bold text-gray-900 mb-2">${currentMenu.food_text}</div>`;
+                }
+
                 container.innerHTML = `
                     <div class="text-center">
                         <div class="mb-4">
-                            <div class="flex items-center justify-center mb-2">
+                            <div class="flex items-center justify-center mb-4">
                                 <i class="fas fa-star text-yellow-500 mr-2"></i>
                                 <span class="text-sm font-semibold text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">Current Menu</span>
                             </div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-2">${currentMenu.food_text}</h3>
-                            <p class="text-lg text-gray-600">${formattedDate}</p>
+                            ${foodDisplay}
+                            <p class="text-base text-gray-600 mt-3">${formattedDate}</p>
                         </div>
                         <div class="text-sm text-gray-500">
                             <i class="fas fa-clock mr-1"></i>
@@ -202,15 +221,34 @@
                 day: 'numeric'
             });
 
+            // Build food display text
+            let foodDisplay = '';
+            if (latestItem.mens_food) {
+                foodDisplay += `<div class="mb-3 p-4 bg-blue-50 rounded-lg">
+                    <div class="text-sm font-semibold text-blue-800 mb-1">Men's Paddle (Tues/Wed/Thurs)</div>
+                    <div class="text-lg text-gray-900">${latestItem.mens_food}</div>
+                </div>`;
+            }
+            if (latestItem.womens_food) {
+                foodDisplay += `<div class="mb-3 p-4 bg-pink-50 rounded-lg">
+                    <div class="text-sm font-semibold text-pink-800 mb-1">Women's Paddle (Sun/Mon/Friday)</div>
+                    <div class="text-lg text-gray-900">${latestItem.womens_food}</div>
+                </div>`;
+            }
+            // Fallback to food_text for old records
+            if (!foodDisplay && latestItem.food_text) {
+                foodDisplay = `<div class="text-2xl font-bold text-gray-900 mb-2">${latestItem.food_text}</div>`;
+            }
+
             container.innerHTML = `
                 <div class="text-center">
                     <div class="mb-4">
-                        <div class="flex items-center justify-center mb-2">
+                        <div class="flex items-center justify-center mb-4">
                             <i class="fas fa-calendar-day text-blue-500 mr-2"></i>
                             <span class="text-sm font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">Today's Special</span>
                         </div>
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">${latestItem.food_text}</h3>
-                        <p class="text-lg text-gray-600">${formattedDate}</p>
+                        ${foodDisplay}
+                        <p class="text-base text-gray-600 mt-3">${formattedDate}</p>
                     </div>
                     <div class="text-sm text-gray-500">
                         <i class="fas fa-clock mr-1"></i>

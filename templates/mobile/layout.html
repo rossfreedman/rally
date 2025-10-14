@@ -776,6 +776,14 @@
     </nav>
 
 
+    <!-- Status Banner (below navigation) -->
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 56px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; gap: 16px;">
+            <span id="statusBannerText" class="text-sm font-medium" style="line-height: 1.4; text-align: left; flex: 1;"></span>
+            <a id="statusBannerButton" class="hidden" style="background-color: #045454; color: #bff863; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Try it</a>
+        </div>
+    </div>
+
     <!-- Full-Width Modern Nav Drawer -->
     <div id="navDrawer" class="fixed top-0 right-0 h-full w-full bg-white z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="flex flex-col h-full">
@@ -1600,8 +1608,64 @@
             }
         }
 
-        // Initialize drawer functionality
+            // Status Banner Functionality
+        async function loadStatusBanner() {
+            try {
+                // Only show banner on mobile home page
+                const currentPath = window.location.pathname;
+                if (currentPath !== '/mobile' && currentPath !== '/mobile/') {
+                    return; // Exit if not on mobile home page
+                }
+                
+                const response = await fetch('/api/status-message');
+                const data = await response.json();
+                
+                if (data.success && data.message) {
+                    const banner = document.getElementById('statusBanner');
+                    const bannerText = document.getElementById('statusBannerText');
+                    const bannerButton = document.getElementById('statusBannerButton');
+                    const mainContent = document.getElementById('main-content');
+                    
+                    if (banner && bannerText && mainContent) {
+                        // Set the message text (just the description)
+                        bannerText.textContent = data.message.description;
+                        
+                        // Show button if there's a URL
+                        if (data.message.url && bannerButton) {
+                            // Convert absolute URLs to relative URLs to avoid session issues
+                            let url = data.message.url;
+                            try {
+                                const urlObj = new URL(url, window.location.origin);
+                                // If it's the same origin, use relative path
+                                if (urlObj.origin === window.location.origin) {
+                                    url = urlObj.pathname + urlObj.search + urlObj.hash;
+                                }
+                            } catch (e) {
+                                // If URL parsing fails, keep original URL
+                                console.log('URL parsing failed, using original URL:', url);
+                            }
+                            bannerButton.href = url;
+                            bannerButton.classList.remove('hidden');
+                        }
+                        
+                        // Show the banner
+                        banner.classList.remove('hidden');
+                        
+                        // Adjust main content padding to account for banner (60px banner + 30px spacing)
+                        const currentPadding = parseInt(mainContent.style.paddingTop || '72px');
+                        mainContent.style.paddingTop = (currentPadding + 90) + 'px';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading status banner:', error);
+            }
+        }
+
+            // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Load status banner on page load
+            loadStatusBanner();
+            
             // Set up dock active state
             updateDockActiveState();
             

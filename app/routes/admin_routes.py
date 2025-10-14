@@ -130,7 +130,7 @@ def serve_admin():
     return render_template("mobile/admin.html", session_data={"user": session["user"]})
 
 
-@admin_bp.route("/admin/cockpit")
+@admin_bp.route("/cockpit")
 @login_required
 @admin_required
 def serve_admin_cockpit():
@@ -158,7 +158,7 @@ def serve_admin_cockpit():
     return render_template("cockpit.html", session_data={"user": session["user"]})
 
 
-@admin_bp.route("/mobile/mcockpit")
+@admin_bp.route("/mcockpit")
 @login_required
 @admin_required
 def serve_mobile_cockpit():
@@ -246,6 +246,30 @@ def serve_admin_etl():
 
     return render_template(
         "mobile/admin_etl.html", session_data={"user": session["user"]}
+    )
+
+
+@admin_bp.route("/admin/videos")
+@login_required
+@admin_required
+def serve_admin_videos():
+    """Serve the admin videos management page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_videos")
+
+    return render_template(
+        "mobile/admin_videos.html", session_data={"user": session["user"]}
+    )
+
+
+@admin_bp.route("/admin/status-messages")
+@login_required
+@admin_required
+def serve_admin_status_messages():
+    """Serve the admin status messages management page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_status_messages")
+
+    return render_template(
+        "mobile/admin_status_messages.html", session_data={"user": session["user"]}
     )
 
 
@@ -4605,6 +4629,374 @@ def cleanup_scraper():
         return jsonify({
             "success": False,
             "error": str(e)
+        }), 500
+
+
+# ==========================================
+# VIDEO MANAGEMENT API ROUTES
+# ==========================================
+
+@admin_bp.route("/api/admin/teams")
+@login_required
+@admin_required
+def get_teams_for_videos():
+    """Get all teams for video assignment"""
+    try:
+        query = """
+            SELECT 
+                t.id,
+                t.team_name,
+                t.display_name,
+                l.league_name
+            FROM teams t
+            LEFT JOIN leagues l ON t.league_id = l.id
+            WHERE t.is_active = true
+            ORDER BY l.league_name, t.display_name
+        """
+        teams = execute_query(query)
+        return jsonify({"teams": teams or []})
+    except Exception as e:
+        print(f"Error getting teams: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos")
+@login_required
+@admin_required
+def get_all_videos():
+    """Get all videos"""
+    try:
+        query = """
+            SELECT 
+                v.id,
+                v.name,
+                v.url,
+                v.players,
+                v.date,
+                v.team_id,
+                t.display_name as team_name,
+                l.league_name
+            FROM videos v
+            LEFT JOIN teams t ON v.team_id = t.id
+            LEFT JOIN leagues l ON t.league_id = l.id
+            ORDER BY v.date DESC, v.created_at DESC
+        """
+        videos = execute_query(query)
+        
+        # Format dates for JavaScript
+        for video in videos:
+            if video.get('date'):
+                video['date'] = video['date'].strftime('%Y-%m-%d')
+        
+        return jsonify({"videos": videos or []})
+    except Exception as e:
+        print(f"Error getting videos: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos", methods=["POST"])
+@login_required
+@admin_required
+def add_video():
+    """Add a new video"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'url', 'date', 'team_id']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        query = """
+            INSERT INTO videos (name, url, players, date, team_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(query, [
+            data['name'],
+            data['url'],
+            data.get('players'),
+            data['date'],
+            data['team_id']
+        ])
+        
+        if result:
+            log_admin_action(
+                session["user"]["email"],
+                "add_video",
+                f"Added video: {data['name']} for team_id {data['team_id']}"
+            )
+            return jsonify({"success": True, "id": result['id']})
+        else:
+            return jsonify({"error": "Failed to add video"}), 500
+            
+    except Exception as e:
+        print(f"Error adding video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos/<int:video_id>", methods=["PUT"])
+@login_required
+@admin_required
+def update_video(video_id):
+    """Update an existing video"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'url', 'date', 'team_id']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        query = """
+            UPDATE videos
+            SET name = %s,
+                url = %s,
+                players = %s,
+                date = %s,
+                team_id = %s
+            WHERE id = %s
+        """
+        
+        success = execute_update(query, [
+            data['name'],
+            data['url'],
+            data.get('players'),
+            data['date'],
+            data['team_id'],
+            video_id
+        ])
+        
+        if success:
+            log_admin_action(
+                session["user"]["email"],
+                "update_video",
+                f"Updated video ID {video_id}: {data['name']}"
+            )
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Failed to update video"}), 500
+            
+    except Exception as e:
+        print(f"Error updating video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/videos/<int:video_id>", methods=["DELETE"])
+@login_required
+@admin_required
+def delete_video(video_id):
+    """Delete a video"""
+    try:
+        # Get video name before deleting for logging
+        video_query = "SELECT name FROM videos WHERE id = %s"
+        video = execute_query_one(video_query, [video_id])
+        video_name = video['name'] if video else f"ID {video_id}"
+        
+        query = "DELETE FROM videos WHERE id = %s"
+        success = execute_update(query, [video_id])
+        
+        if success:
+            log_admin_action(
+                session["user"]["email"],
+                "delete_video",
+                f"Deleted video: {video_name}"
+            )
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Failed to delete video"}), 500
+            
+    except Exception as e:
+        print(f"Error deleting video: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/cockpit/recent-registrations")
+@login_required
+@admin_required
+def get_recent_registrations():
+    """Get the 10 most recently registered users with their activity counts"""
+    try:
+        # Query for the 10 most recently registered users
+        query = """
+            SELECT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.created_at,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name,
+                -- Count total activity from both activity systems
+                COALESCE(al.activity_count, 0) as activity_count,
+                -- Get latest activity timestamp
+                GREATEST(
+                    COALESCE(al.latest_activity, u.created_at),
+                    COALESCE(u.last_login, u.created_at)
+                ) as latest_activity
+            FROM users u
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN (
+                -- Aggregate all activity for each user
+                SELECT 
+                    user_id,
+                    COUNT(*) as activity_count,
+                    MAX(timestamp) as latest_activity
+                FROM activity_log
+                WHERE user_id IS NOT NULL
+                GROUP BY user_id
+            ) al ON u.id = al.user_id
+            WHERE u.created_at IS NOT NULL
+            ORDER BY u.created_at DESC
+            LIMIT 25
+        """
+        
+        users = execute_query(query)
+        
+        # Process and format the results
+        recent_registrations = []
+        from datetime import timezone
+        
+        for user in users:
+            registration_date = user.get('created_at')
+            latest_activity = user.get('latest_activity')
+            
+            # Calculate days since registration
+            if registration_date:
+                # Handle timezone-aware datetime comparison
+                now = datetime.now(timezone.utc)
+                if registration_date.tzinfo is None:
+                    # If registration_date is naive, make it UTC-aware
+                    registration_date = registration_date.replace(tzinfo=timezone.utc)
+                days_since_registration = (now - registration_date).days
+            else:
+                days_since_registration = None
+            
+            recent_registrations.append({
+                'id': user['id'],
+                'first_name': user['first_name'] or '',
+                'last_name': user['last_name'] or '',
+                'email': user['email'],
+                'club_name': user['club_name'] or 'Not Set',
+                'series_name': user['series_name'] or 'Not Set',
+                'league_name': user['league_name'] or 'Not Set',
+                'created_at': registration_date.isoformat() if registration_date else None,
+                'days_since_registration': days_since_registration,
+                'activity_count': int(user['activity_count']) if user['activity_count'] else 0,
+                'latest_activity': latest_activity.isoformat() if latest_activity else None
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'registrations': recent_registrations,
+            'count': len(recent_registrations)
+        })
+        
+    except Exception as e:
+        print(f"Error fetching recent registrations: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+
+@admin_bp.route("/api/admin/cockpit/user-activity/<int:user_id>")
+@login_required
+@admin_required
+def get_user_activity_detail(user_id):
+    """Get detailed activity history for a specific user"""
+    try:
+        # Get user basic info
+        user_query = """
+            SELECT 
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.created_at
+            FROM users u
+            WHERE u.id = %s
+        """
+        user = execute_query_one(user_query, [user_id])
+        
+        if not user:
+            return jsonify({
+                'status': 'error',
+                'error': 'User not found'
+            }), 404
+        
+        # Get detailed activity from activity_log
+        activity_query = """
+            SELECT 
+                al.id,
+                al.timestamp,
+                al.action_type,
+                al.action_description,
+                al.related_id,
+                al.related_type,
+                al.extra_data,
+                al.ip_address,
+                al.user_agent
+            FROM activity_log al
+            WHERE al.user_id = %s
+            ORDER BY al.timestamp DESC
+            LIMIT 100
+        """
+        activities = execute_query(activity_query, [user_id])
+        
+        # Format activities
+        formatted_activities = []
+        for activity in activities:
+            # Use related_type as page, or extract from action_description
+            page = activity.get('related_type') or activity.get('related_id') or ''
+            
+            formatted_activities.append({
+                'id': str(activity['id']),
+                'timestamp': activity['timestamp'].isoformat() if activity['timestamp'] else None,
+                'action_type': activity['action_type'] or 'Unknown',
+                'page': page,
+                'action_description': activity['action_description'] or '',
+                'details': activity.get('extra_data') or '',
+                'ip_address': activity['ip_address'] or '',
+                'user_agent': activity['user_agent'] or ''
+            })
+        
+        return jsonify({
+            'status': 'success',
+            'user': {
+                'id': user['id'],
+                'first_name': user['first_name'] or '',
+                'last_name': user['last_name'] or '',
+                'email': user['email'],
+                'created_at': user['created_at'].isoformat() if user['created_at'] else None
+            },
+            'activities': formatted_activities,
+            'total_count': len(formatted_activities)
+        })
+        
+    except Exception as e:
+        print(f"Error fetching user activity detail: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
         }), 500
 
 

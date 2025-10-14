@@ -62,6 +62,337 @@ def convert_chicago_to_series_for_ui(series_name):
     return series_name
 
 
+# ==============================
+# Status Messages API
+# ==============================
+
+@api_bp.route('/status-message', methods=['GET'])
+def get_active_status_message():
+    """
+    Get the currently active status message for the banner display.
+    Returns the most recent active status message or null if none exists.
+    """
+    try:
+        query = """
+            SELECT id, description, url, created_at
+            FROM status_messages
+            WHERE active = true
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        result = execute_query_one(query)
+        
+        if result:
+            # Handle both dict-like and tuple-like results
+            if isinstance(result, dict):
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result['id'],
+                        'description': result['description'],
+                        'url': result['url'],
+                        'created_at': result['created_at'].isoformat() if result['created_at'] else None
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result[0],
+                        'description': result[1],
+                        'url': result[2],
+                        'created_at': result[3].isoformat() if result[3] else None
+                    }
+                })
+        else:
+            return jsonify({
+                'success': True,
+                'message': None
+            })
+    except Exception as e:
+        logger.error(f"Error fetching active status message: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'message': None
+        }), 500
+
+
+# ==============================
+# Admin Status Messages API
+# ==============================
+
+@api_bp.route('/admin/status-messages', methods=['GET'])
+@login_required
+def get_all_status_messages():
+    """
+    Get all status messages for admin management.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = """
+            SELECT id, description, url, active, created_at, updated_at
+            FROM status_messages
+            ORDER BY created_at DESC
+        """
+        results = execute_query(query)
+        
+        messages = []
+        for row in results:
+            # Handle both dict-like and tuple-like results
+            if isinstance(row, dict):
+                messages.append({
+                    'id': row['id'],
+                    'description': row['description'],
+                    'url': row['url'],
+                    'active': row['active'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                })
+            else:
+                messages.append({
+                    'id': row[0],
+                    'description': row[1],
+                    'url': row[2],
+                    'active': row[3],
+                    'created_at': row[4].isoformat() if row[4] else None,
+                    'updated_at': row[5].isoformat() if row[5] else None
+                })
+        
+        return jsonify({
+            'success': True,
+            'messages': messages
+        })
+    except Exception as e:
+        logger.error(f"Error fetching all status messages: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['GET'])
+@login_required
+def get_status_message(message_id):
+    """
+    Get a specific status message by ID.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = """
+            SELECT id, description, url, active, created_at, updated_at
+            FROM status_messages
+            WHERE id = %s
+        """
+        result = execute_query_one(query, (message_id,))
+        
+        if result:
+            # Handle both dict-like and tuple-like results
+            if isinstance(result, dict):
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result['id'],
+                        'description': result['description'],
+                        'url': result['url'],
+                        'active': result['active'],
+                        'created_at': result['created_at'].isoformat() if result['created_at'] else None,
+                        'updated_at': result['updated_at'].isoformat() if result['updated_at'] else None
+                    }
+                })
+            else:
+                return jsonify({
+                    'success': True,
+                    'message': {
+                        'id': result[0],
+                        'description': result[1],
+                        'url': result[2],
+                        'active': result[3],
+                        'created_at': result[4].isoformat() if result[4] else None,
+                        'updated_at': result[5].isoformat() if result[5] else None
+                    }
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Message not found'
+            }), 404
+    except Exception as e:
+        logger.error(f"Error fetching status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages', methods=['POST'])
+@login_required
+def create_status_message():
+    """
+    Create a new status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        data = request.get_json()
+        description = data.get('description', '').strip()
+        url = (data.get('url') or '').strip() or None
+        active = data.get('active', False)
+        
+        logger.info(f"Creating status message: description='{description}', url='{url}', active={active}")
+        
+        if not description:
+            return jsonify({
+                'success': False,
+                'error': 'Description is required'
+            }), 400
+        
+        # If setting this message as active, deactivate all other messages
+        if active:
+            logger.info("Deactivating other messages...")
+            deactivate_query = "UPDATE status_messages SET active = false"
+            deactivate_result = execute_update(deactivate_query, None)
+            logger.info(f"Deactivate result: {deactivate_result}")
+        
+        logger.info("Inserting new message...")
+        query = """
+            INSERT INTO status_messages (description, url, active)
+            VALUES (%s, %s, %s)
+            RETURNING id
+        """
+        result = execute_query_one(query, (description, url, active), commit=True)
+        logger.info(f"Insert result: {result}, type: {type(result)}")
+        
+        if result:
+            # Result is a RealDictRow, access by column name
+            message_id = result['id'] if isinstance(result, dict) else result[0]
+            logger.info(f"Successfully created message with ID: {message_id}")
+            return jsonify({
+                'success': True,
+                'message_id': message_id
+            })
+        else:
+            logger.error("Insert returned None")
+            return jsonify({
+                'success': False,
+                'error': 'Failed to create message - no result returned'
+            }), 500
+    except Exception as e:
+        import traceback
+        logger.error(f"Error creating status message: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['PUT'])
+@login_required
+def update_status_message(message_id):
+    """
+    Update an existing status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        data = request.get_json()
+        description = data.get('description', '').strip()
+        url = (data.get('url') or '').strip() or None
+        active = data.get('active', False)
+        
+        if not description:
+            return jsonify({
+                'success': False,
+                'error': 'Description is required'
+            }), 400
+        
+        # If setting this message as active, deactivate all other messages
+        if active:
+            deactivate_query = "UPDATE status_messages SET active = false WHERE id != %s"
+            success = execute_update(deactivate_query, (message_id,))
+            if not success:
+                logger.warning(f"Failed to deactivate other messages when updating {message_id}")
+        
+        query = """
+            UPDATE status_messages
+            SET description = %s, url = %s, active = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """
+        success = execute_update(query, (description, url, active, message_id))
+        
+        if success:
+            return jsonify({
+                'success': True
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to update message'
+            }), 500
+    except Exception as e:
+        logger.error(f"Error updating status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@api_bp.route('/admin/status-messages/<int:message_id>', methods=['DELETE'])
+@login_required
+def delete_status_message(message_id):
+    """
+    Delete a status message.
+    Requires admin authentication.
+    """
+    # Check if user is admin
+    if not session.get("user", {}).get("is_admin", False):
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        query = "DELETE FROM status_messages WHERE id = %s"
+        execute_update(query, (message_id,))
+        
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        logger.error(f"Error deleting status message {message_id}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 
 
 # ==============================
@@ -2582,6 +2913,20 @@ def add_practice_times():
 def remove_practice_times():
     """Remove practice times"""
     return remove_practice_times_data()
+
+
+@api_bp.route("/get-practice-times-list", methods=["GET"])
+@login_required
+def get_practice_times_list():
+    """Get list of existing practice times for user's team"""
+    return get_practice_times_list_data()
+
+
+@api_bp.route("/remove-specific-practice-times", methods=["POST"])
+@login_required
+def remove_specific_practice_times():
+    """Remove specific practice times by time"""
+    return remove_specific_practice_times_data()
 
 
 @api_bp.route("/team-schedule-data")
@@ -11856,7 +12201,9 @@ def get_food():
             for record in food_records:
                 food_data.append({
                     "id": record.id,
-                    "food_text": record.food_text,
+                    "food_text": record.food_text,  # Keep for backward compatibility
+                    "mens_food": record.mens_food,
+                    "womens_food": record.womens_food,
                     "date": record.date.isoformat() if record.date else None,
                     "club_id": record.club_id,
                     "is_current_menu": record.is_current_menu,
@@ -11868,7 +12215,9 @@ def get_food():
             if current_menu:
                 current_menu_data = {
                     "id": current_menu.id,
-                    "food_text": current_menu.food_text,
+                    "food_text": current_menu.food_text,  # Keep for backward compatibility
+                    "mens_food": current_menu.mens_food,
+                    "womens_food": current_menu.womens_food,
                     "date": current_menu.date.isoformat() if current_menu.date else None,
                     "club_id": current_menu.club_id,
                     "is_current_menu": current_menu.is_current_menu,
@@ -11891,22 +12240,29 @@ def get_food():
 
 @api_bp.route("/food", methods=["POST"])
 def save_food():
-    """Save a new food record (chef input - no authentication required)"""
+    """Save a new food record with separate men's and women's paddle options"""
     try:
         from app.models.database_models import Food, Club
         
         data = request.get_json()
-        if not data or 'food_text' not in data or 'club_id' not in data:
+        if not data or 'club_id' not in data:
             return jsonify({
                 "success": False,
-                "error": "food_text and club_id are required"
+                "error": "club_id is required"
             }), 400
         
-        food_text = data['food_text'].strip()
-        if not food_text:
+        # Get both men's and women's food (at least one must be provided)
+        mens_food = data.get('mens_food', '').strip() if data.get('mens_food') else None
+        womens_food = data.get('womens_food', '').strip() if data.get('womens_food') else None
+        
+        # Backward compatibility: accept food_text and put it in mens_food
+        if 'food_text' in data and not mens_food:
+            mens_food = data['food_text'].strip()
+        
+        if not mens_food and not womens_food:
             return jsonify({
                 "success": False,
-                "error": "food_text cannot be empty"
+                "error": "At least one of mens_food or womens_food must be provided"
             }), 400
         
         club_id = data['club_id']
@@ -11952,7 +12308,9 @@ def save_food():
                     existing_current.is_current_menu = False
             
             new_food = Food(
-                food_text=food_text,
+                mens_food=mens_food,
+                womens_food=womens_food,
+                food_text=mens_food or womens_food,  # Keep for backward compatibility
                 date=food_date,
                 club_id=club_id,
                 is_current_menu=is_current_menu
@@ -11965,7 +12323,9 @@ def save_food():
                 "message": "Food record saved successfully",
                 "food_record": {
                     "id": new_food.id,
-                    "food_text": new_food.food_text,
+                    "mens_food": new_food.mens_food,
+                    "womens_food": new_food.womens_food,
+                    "food_text": new_food.food_text,  # Backward compatibility
                     "date": new_food.date.isoformat(),
                     "club_id": new_food.club_id,
                     "is_current_menu": new_food.is_current_menu,
@@ -12027,7 +12387,9 @@ def set_current_menu():
                 "message": "Current menu updated successfully",
                 "current_menu": {
                     "id": food_record.id,
-                    "food_text": food_record.food_text,
+                    "food_text": food_record.food_text,  # Backward compatibility
+                    "mens_food": food_record.mens_food,
+                    "womens_food": food_record.womens_food,
                     "date": food_record.date.isoformat(),
                     "club_id": food_record.club_id,
                     "is_current_menu": food_record.is_current_menu,
@@ -12160,11 +12522,22 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
             club = db_session.query(Club).filter(Club.id == club_id).first()
             club_name = club.name if club else "Your Club"
             
+            # Build message from mens and womens food
+            message_parts = []
+            if latest_food.mens_food:
+                message_parts.append(f"<i class='fas fa-person' style='color: #045454;'></i> <strong>Men's (T/W/Th):</strong> {latest_food.mens_food}")
+            if latest_food.womens_food:
+                message_parts.append(f"<i class='fas fa-person-dress' style='color: #045454;'></i> <strong>Women's (S/M/F):</strong> {latest_food.womens_food}")
+            
+            # Fallback to food_text for backward compatibility
+            # Use <br> tag for HTML line break
+            message = "<br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
+            
             notification = {
                 "id": f"food_{latest_food.id}",
                 "type": "food",
                 "title": f"What's cook'in at {club_name}",
-                "message": latest_food.food_text,
+                "message": message,
                 "cta": {
                     "label": "View Full Menu",
                     "href": f"/food-display?club_id={club_id}"
@@ -12454,39 +12827,62 @@ def format_beer_text(beer_text):
     # First, fix any "Tao" typos to "Tap"
     beer_text = re.sub(r'\bTao\s+(\d+)', r'Tap \1', beer_text)
     
-    # Find all "Tap X" patterns and their positions
+    # Try to find numbered list format first (1), 2), 3), etc.)
+    # Match patterns like "1)" or "Tap 1" at the start of items
+    numbered_matches = list(re.finditer(r'\b(\d+)\)', beer_text))
+    
+    if numbered_matches:
+        # Handle numbered list format: "1) Beer Name 2) Another Beer"
+        formatted_parts = []
+        
+        for i, match in enumerate(numbered_matches):
+            start = match.start()
+            
+            # Find the end of this item (start of next number or end of string)
+            if i < len(numbered_matches) - 1:
+                next_start = numbered_matches[i + 1].start()
+                item_text = beer_text[start:next_start].strip()
+            else:
+                item_text = beer_text[start:].strip()
+            
+            formatted_parts.append(item_text)
+        
+        # Join with HTML line breaks for proper rendering
+        return '<br>'.join(formatted_parts)
+    
+    # Fallback: Try to find "Tap X" patterns
     tap_matches = list(re.finditer(r'\bTap\s+\d+', beer_text))
     
-    if not tap_matches:
-        # No tap patterns found, return original text
-        return beer_text
-    
-    # Build the formatted text
-    formatted_parts = []
-    last_end = 0
-    
-    for i, match in enumerate(tap_matches):
-        start = match.start()
-        end = match.end()
+    if tap_matches:
+        # Build the formatted text
+        formatted_parts = []
+        last_end = 0
         
-        # Add text before this tap (if any)
-        if start > last_end:
-            before_text = beer_text[last_end:start].strip()
-            if before_text and i == 0:  # Only add text before the first tap
-                formatted_parts.append(before_text)
+        for i, match in enumerate(tap_matches):
+            start = match.start()
+            end = match.end()
+            
+            # Add text before this tap (if any)
+            if start > last_end:
+                before_text = beer_text[last_end:start].strip()
+                if before_text and i == 0:  # Only add text before the first tap
+                    formatted_parts.append(before_text)
+            
+            # Find the end of this tap's description (start of next tap or end of string)
+            if i < len(tap_matches) - 1:
+                next_start = tap_matches[i + 1].start()
+                tap_description = beer_text[start:next_start].strip()
+            else:
+                tap_description = beer_text[start:].strip()
+            
+            formatted_parts.append(tap_description)
+            last_end = end
         
-        # Find the end of this tap's description (start of next tap or end of string)
-        if i < len(tap_matches) - 1:
-            next_start = tap_matches[i + 1].start()
-            tap_description = beer_text[start:next_start].strip()
-        else:
-            tap_description = beer_text[start:].strip()
-        
-        formatted_parts.append(tap_description)
-        last_end = end
+        # Join with HTML line breaks for proper rendering
+        return '<br>'.join(formatted_parts)
     
-    # Join with line breaks
-    return '\n'.join(formatted_parts)
+    # No patterns found, return original text
+    return beer_text
 
 
 def get_beer_notifications(user_id, player_id, league_id, team_id):

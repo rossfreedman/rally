@@ -85,10 +85,17 @@ def import_match_record(cur, match_data, league_id, season):
     home_team = match_data.get("Home Team", "").strip()
     away_team = match_data.get("Away Team", "").strip()
     
+    # Extract player IDs
     home_player_1_id = match_data.get("Home Player 1 ID", "").strip() or None
     home_player_2_id = match_data.get("Home Player 2 ID", "").strip() or None
     away_player_1_id = match_data.get("Away Player 1 ID", "").strip() or None
     away_player_2_id = match_data.get("Away Player 2 ID", "").strip() or None
+    
+    # Extract player names
+    home_player_1_name = match_data.get("Home Player 1", "").strip() or None
+    home_player_2_name = match_data.get("Home Player 2", "").strip() or None
+    away_player_1_name = match_data.get("Away Player 1", "").strip() or None
+    away_player_2_name = match_data.get("Away Player 2", "").strip() or None
     
     scores = match_data.get("Scores", "").strip()
     winner = match_data.get("Winner", "").strip().lower() or None
@@ -121,9 +128,11 @@ def import_match_record(cur, match_data, league_id, season):
                 home_team_id, away_team_id,
                 home_player_1_id, home_player_2_id, 
                 away_player_1_id, away_player_2_id,
+                home_player_1_name, home_player_2_name,
+                away_player_1_name, away_player_2_name,
                 scores, winner, tenniscores_match_id, season
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
@@ -131,6 +140,8 @@ def import_match_record(cur, match_data, league_id, season):
                 home_team_id, away_team_id,
                 home_player_1_id, home_player_2_id,
                 away_player_1_id, away_player_2_id,
+                home_player_1_name, home_player_2_name,
+                away_player_1_name, away_player_2_name,
                 scores, winner, tenniscores_match_id, season
             )
         )

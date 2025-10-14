@@ -1,0 +1,495 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Video Management | Rally Admin{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="welcome-section text-center mb-8">
+    <h1 class="text-2xl font-bold text-gray-800">
+      Video Management
+    </h1>
+    <p class="text-sm text-gray-500 mt-2">
+      Add, edit, and remove team training videos
+    </p>
+  </div>
+
+  <!-- Add New Video Section -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+    <div class="px-6 py-4" style="background-color: #045454;">
+      <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+        <i class="fas fa-plus-circle mr-2"></i>
+        Add New Video
+      </h2>
+    </div>
+    
+    <div class="p-6">
+      <form id="add-video-form" class="space-y-4">
+        <div>
+          <label for="video-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Video Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="video-name" 
+            name="name" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            placeholder="e.g., Series 20 Practice 10-12-25 Part 1"
+          />
+        </div>
+
+        <div>
+          <label for="video-url" class="block text-sm font-medium text-gray-700 mb-2">
+            YouTube URL <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="url" 
+            id="video-url" 
+            name="url" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            placeholder="https://youtu.be/..."
+          />
+        </div>
+
+        <div>
+          <label for="video-players" class="block text-sm font-medium text-gray-700 mb-2">
+            Players
+          </label>
+          <input 
+            type="text" 
+            id="video-players" 
+            name="players"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            placeholder="e.g., Ross Freedman, Jon Blume, Ryan Jarol"
+          />
+        </div>
+
+        <div>
+          <label for="video-date" class="block text-sm font-medium text-gray-700 mb-2">
+            Date <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="date" 
+            id="video-date" 
+            name="date" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label for="video-team" class="block text-sm font-medium text-gray-700 mb-2">
+            Team <span class="text-red-500">*</span>
+          </label>
+          <select 
+            id="video-team" 
+            name="team_id" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="">Select a team...</option>
+            <!-- Teams will be loaded dynamically -->
+          </select>
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          style="background-color: #045454;"
+        >
+          <i class="fas fa-plus mr-2"></i>
+          Add Video
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Videos List Section -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4" style="background-color: #045454;">
+      <h2 class="text-lg font-semibold flex items-center justify-between" style="color: #bff863;">
+        <span>
+          <i class="fas fa-video mr-2"></i>
+          Existing Videos
+        </span>
+        <span id="video-count" class="text-sm">0 videos</span>
+      </h2>
+    </div>
+
+    <div class="p-6">
+      <!-- Loading State -->
+      <div id="videos-loading" class="flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <span class="ml-2 text-gray-600">Loading videos...</span>
+      </div>
+
+      <!-- Videos List -->
+      <div id="videos-list" class="hidden space-y-4">
+        <!-- Videos will be populated here -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="videos-empty" class="hidden text-center py-8">
+        <i class="fas fa-video text-gray-300 text-4xl mb-4"></i>
+        <p class="text-gray-500">No videos found</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Video Modal -->
+<div id="edit-video-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-200 flex justify-between items-center" style="background-color: #045454;">
+      <h3 class="text-lg font-bold text-white">Edit Video</h3>
+      <button onclick="closeEditModal()" class="text-white hover:text-gray-200 text-2xl">×</button>
+    </div>
+    <div class="p-4">
+      <form id="edit-video-form" class="space-y-4">
+        <input type="hidden" id="edit-video-id" name="id" />
+        
+        <div>
+          <label for="edit-video-name" class="block text-sm font-medium text-gray-700 mb-2">
+            Video Name <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="text" 
+            id="edit-video-name" 
+            name="name" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label for="edit-video-url" class="block text-sm font-medium text-gray-700 mb-2">
+            YouTube URL <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="url" 
+            id="edit-video-url" 
+            name="url" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label for="edit-video-players" class="block text-sm font-medium text-gray-700 mb-2">
+            Players
+          </label>
+          <input 
+            type="text" 
+            id="edit-video-players" 
+            name="players"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label for="edit-video-date" class="block text-sm font-medium text-gray-700 mb-2">
+            Date <span class="text-red-500">*</span>
+          </label>
+          <input 
+            type="date" 
+            id="edit-video-date" 
+            name="date" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          />
+        </div>
+
+        <div>
+          <label for="edit-video-team" class="block text-sm font-medium text-gray-700 mb-2">
+            Team <span class="text-red-500">*</span>
+          </label>
+          <select 
+            id="edit-video-team" 
+            name="team_id" 
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          >
+            <option value="">Select a team...</option>
+            <!-- Teams will be loaded dynamically -->
+          </select>
+        </div>
+
+        <div class="flex gap-3">
+          <button 
+            type="submit" 
+            class="flex-1 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+            style="background-color: #045454;"
+          >
+            <i class="fas fa-save mr-2"></i>
+            Save Changes
+          </button>
+          <button 
+            type="button"
+            onclick="closeEditModal()"
+            class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors duration-200"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+// Video Management JavaScript
+
+let allVideos = [];
+let allTeams = [];
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeams();
+    loadVideos();
+    
+    // Set up form handlers
+    document.getElementById('add-video-form').addEventListener('submit', handleAddVideo);
+    document.getElementById('edit-video-form').addEventListener('submit', handleEditVideo);
+});
+
+// Load all teams
+async function loadTeams() {
+    try {
+        const response = await fetch('/api/admin/teams');
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        allTeams = data.teams || [];
+        populateTeamSelects();
+    } catch (error) {
+        console.error('Error loading teams:', error);
+        alert('Error loading teams: ' + error.message);
+    }
+}
+
+// Populate team select dropdowns
+function populateTeamSelects() {
+    const addSelect = document.getElementById('video-team');
+    const editSelect = document.getElementById('edit-video-team');
+    
+    const options = allTeams.map(team => 
+        `<option value="${team.id}">${team.display_name || team.team_name} (${team.league_name})</option>`
+    ).join('');
+    
+    const selectOption = '<option value="">Select a team...</option>';
+    addSelect.innerHTML = selectOption + options;
+    editSelect.innerHTML = selectOption + options;
+}
+
+// Load all videos
+async function loadVideos() {
+    try {
+        document.getElementById('videos-loading').classList.remove('hidden');
+        document.getElementById('videos-list').classList.add('hidden');
+        document.getElementById('videos-empty').classList.add('hidden');
+        
+        const response = await fetch('/api/admin/videos');
+        const data = await response.json();
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        allVideos = data.videos || [];
+        
+        document.getElementById('videos-loading').classList.add('hidden');
+        
+        if (allVideos.length === 0) {
+            document.getElementById('videos-empty').classList.remove('hidden');
+            document.getElementById('video-count').textContent = '0 videos';
+        } else {
+            document.getElementById('videos-list').classList.remove('hidden');
+            document.getElementById('video-count').textContent = `${allVideos.length} video${allVideos.length !== 1 ? 's' : ''}`;
+            renderVideos();
+        }
+    } catch (error) {
+        console.error('Error loading videos:', error);
+        document.getElementById('videos-loading').classList.add('hidden');
+        alert('Error loading videos: ' + error.message);
+    }
+}
+
+// Render videos list
+function renderVideos() {
+    const container = document.getElementById('videos-list');
+    
+    const html = allVideos.map(video => `
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex justify-between items-start mb-2">
+                <h3 class="font-semibold text-gray-900">${video.name}</h3>
+                <div class="flex gap-2">
+                    <button 
+                        onclick="openEditModal(${video.id})"
+                        class="text-blue-600 hover:text-blue-800 text-sm"
+                        title="Edit"
+                    >
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button 
+                        onclick="deleteVideo(${video.id})"
+                        class="text-red-600 hover:text-red-800 text-sm"
+                        title="Delete"
+                    >
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-600 space-y-1">
+                <div><i class="fas fa-link mr-2"></i><a href="${video.url}" target="_blank" class="text-blue-600 hover:underline">${video.url}</a></div>
+                ${video.players ? `<div><i class="fas fa-users mr-2"></i>${video.players}</div>` : ''}
+                <div><i class="fas fa-calendar mr-2"></i>${formatDate(video.date)}</div>
+                <div><i class="fas fa-trophy mr-2"></i>${video.team_name || 'Unknown Team'}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = html;
+}
+
+// Handle add video form submission
+async function handleAddVideo(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        name: formData.get('name'),
+        url: formData.get('url'),
+        players: formData.get('players') || null,
+        date: formData.get('date'),
+        team_id: parseInt(formData.get('team_id'))
+    };
+    
+    try {
+        const response = await fetch('/api/admin/videos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        alert('Video added successfully!');
+        e.target.reset();
+        loadVideos();
+    } catch (error) {
+        console.error('Error adding video:', error);
+        alert('Error adding video: ' + error.message);
+    }
+}
+
+// Open edit modal
+function openEditModal(videoId) {
+    const video = allVideos.find(v => v.id === videoId);
+    if (!video) return;
+    
+    document.getElementById('edit-video-id').value = video.id;
+    document.getElementById('edit-video-name').value = video.name;
+    document.getElementById('edit-video-url').value = video.url;
+    document.getElementById('edit-video-players').value = video.players || '';
+    document.getElementById('edit-video-date').value = video.date;
+    document.getElementById('edit-video-team').value = video.team_id;
+    
+    document.getElementById('edit-video-modal').classList.remove('hidden');
+}
+
+// Close edit modal
+function closeEditModal() {
+    document.getElementById('edit-video-modal').classList.add('hidden');
+    document.getElementById('edit-video-form').reset();
+}
+
+// Handle edit video form submission
+async function handleEditVideo(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = {
+        id: parseInt(formData.get('id')),
+        name: formData.get('name'),
+        url: formData.get('url'),
+        players: formData.get('players') || null,
+        date: formData.get('date'),
+        team_id: parseInt(formData.get('team_id'))
+    };
+    
+    try {
+        const response = await fetch('/api/admin/videos/' + data.id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        alert('Video updated successfully!');
+        closeEditModal();
+        loadVideos();
+    } catch (error) {
+        console.error('Error updating video:', error);
+        alert('Error updating video: ' + error.message);
+    }
+}
+
+// Delete video
+async function deleteVideo(videoId) {
+    const video = allVideos.find(v => v.id === videoId);
+    if (!video) return;
+    
+    if (!confirm(`Are you sure you want to delete the video "${video.name}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/videos/' + videoId, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        
+        alert('Video deleted successfully!');
+        loadVideos();
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        alert('Error deleting video: ' + error.message);
+    }
+}
+
+// Format date for display
+function formatDate(dateString) {
+    if (!dateString) return 'No date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+</script>
+
+<style>
+.hover\:text-gray-200:hover {
+    color: #e5e7eb;
+}
+</style>
+{% endblock %}
+

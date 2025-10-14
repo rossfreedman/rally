@@ -1144,6 +1144,162 @@ def get_last_season_stats(player_id, league_id_int=None, season="2024-2025"):
         return None
 
 
+def get_current_season_partner_analysis(player_id, league_id_int=None, team_context=None):
+    """
+    Analyze all partners from current season, ranked by win rate.
+    Shows overall partnership stats and which courts they played together on.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        league_id_int: The integer league ID for filtering
+        team_context: Optional team_id for filtering to specific team
+    
+    Returns:
+        list: Partner analysis data sorted by win rate
+    """
+    try:
+        if not player_id:
+            return []
+        
+        # Build user dict to pass to get_player_analysis
+        user = {
+            "tenniscores_player_id": player_id,
+            "league_id": league_id_int,
+            "team_context": team_context
+        }
+        
+        # Get current season matches with full details
+        stats_with_matches = get_player_analysis(user)
+        if not stats_with_matches or not stats_with_matches.get("match_history"):
+            return []
+        
+        player_matches = stats_with_matches["match_history"]
+        
+        # Track partner stats across all courts
+        partners = {}
+        
+        for match in player_matches:
+            # Determine if player was home or away
+            is_home = player_id in [
+                match.get("Home Player 1"),
+                match.get("Home Player 2"),
+            ]
+            
+            # Get partner
+            if is_home:
+                partner_id = match.get("Home Player 1") if match.get("Home Player 2") == player_id else match.get("Home Player 2")
+            else:
+                partner_id = match.get("Away Player 1") if match.get("Away Player 2") == player_id else match.get("Away Player 2")
+            
+            if not partner_id:
+                continue
+            
+            # Get court number from tenniscores_match_id
+            tenniscores_match_id = match.get("tenniscores_match_id", "")
+            court_number = 1  # Default
+            if tenniscores_match_id and "_Line" in tenniscores_match_id:
+                line_parts = tenniscores_match_id.split("_Line")
+                if len(line_parts) > 1:
+                    try:
+                        court_number = int(line_parts[-1])
+                    except ValueError:
+                        court_number = 1
+            
+            # Determine win/loss
+            winner = match.get("Winner", "")
+            if winner.lower() == "tie":
+                continue
+            
+            won = (is_home and winner.lower() == "home") or (not is_home and winner.lower() == "away")
+            
+            # Initialize partner if needed
+            if partner_id not in partners:
+                # Try current players table first
+                partner_name = get_player_name_from_id(partner_id)
+                
+                # If not found in current season, try database lookup
+                if partner_name == "Unknown Player":
+                    try:
+                        historical_lookup = execute_query_one("""
+                            SELECT DISTINCT p.first_name, p.last_name
+                            FROM players p
+                            WHERE p.tenniscores_player_id = %s
+                            LIMIT 1
+                        """, [partner_id])
+                        
+                        if not historical_lookup:
+                            print(f"[DEBUG] Could not find player name for ID: {partner_id} in current season analysis")
+                            continue
+                        else:
+                            partner_name = f"{historical_lookup['first_name']} {historical_lookup['last_name']}"
+                    except Exception as e:
+                        print(f"[DEBUG] Error in player lookup: {e}")
+                        continue
+                    
+                partners[partner_id] = {
+                    "name": partner_name,
+                    "player_id": partner_id,
+                    "matches": 0,
+                    "wins": 0,
+                    "losses": 0,
+                    "courts": set()  # Track which courts they played together
+                }
+            
+            # Update stats
+            partners[partner_id]["matches"] += 1
+            if won:
+                partners[partner_id]["wins"] += 1
+            else:
+                partners[partner_id]["losses"] += 1
+            partners[partner_id]["courts"].add(court_number)
+        
+        # Format partner data
+        partner_list = []
+        
+        # Bayesian confidence-weighted ranking algorithm
+        CONFIDENCE_FACTOR = 2  # Number of "virtual matches" at league average
+        BASELINE_WIN_RATE = 50.0  # League-wide average win rate
+        
+        for partner_id, stats in partners.items():
+            win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
+            
+            # Convert courts set to sorted list
+            courts_played = sorted(list(stats["courts"]))
+            
+            # Calculate Bayesian adjusted win rate for ranking
+            adjusted_win_rate = (
+                (CONFIDENCE_FACTOR * BASELINE_WIN_RATE + stats["matches"] * win_rate) / 
+                (CONFIDENCE_FACTOR + stats["matches"])
+            )
+            
+            # Secondary sort: total matches (for tie-breaking between similar adjusted rates)
+            match_count = stats["matches"]
+            
+            partner_list.append({
+                "name": stats["name"],
+                "player_id": partner_id,
+                "matches": stats["matches"],
+                "wins": stats["wins"],
+                "losses": stats["losses"],
+                "winRate": win_rate,
+                "courts": courts_played,
+                "record": f"{stats['wins']}-{stats['losses']}",
+                "adjusted_win_rate": adjusted_win_rate,
+                "match_count": match_count
+            })
+        
+        # Sort by adjusted win rate (descending), then by match count (descending)
+        partner_list.sort(key=lambda x: (-x["adjusted_win_rate"], -x["match_count"]))
+        
+        return partner_list
+        
+    except Exception as e:
+        print(f"Error calculating current season partner analysis: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+
 def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024-2025"):
     """
     Analyze all partners from last season, ranked by win rate.
@@ -1252,16 +1408,30 @@ def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024
         
         # Format partner data
         partner_list = []
+        
+        # Bayesian confidence-weighted ranking algorithm
+        # This prevents small sample sizes from dominating while rewarding strong performance
+        # Tuned for 18-match season: factor of 2 provides minimal adjustment for typical partnerships
+        CONFIDENCE_FACTOR = 2  # Number of "virtual matches" at league average
+        BASELINE_WIN_RATE = 50.0  # League-wide average win rate
+        
         for partner_id, stats in partners.items():
             win_rate = round((stats["wins"] / stats["matches"]) * 100, 1) if stats["matches"] > 0 else 0
             
             # Convert courts set to sorted list
             courts_played = sorted(list(stats["courts"]))
             
-            # Calculate weighted score: prioritize partnerships with more matches
-            # Score = (matches * 20) + win_rate
-            # This heavily weights matches played, so partnerships with more games rank higher
-            weighted_score = (stats["matches"] * 20) + win_rate
+            # Calculate Bayesian adjusted win rate for ranking
+            # Formula: (C × baseline + n × actual) / (C + n)
+            # Where C = confidence factor, n = actual matches
+            # This pulls small samples toward 50% baseline, while large samples use actual performance
+            adjusted_win_rate = (
+                (CONFIDENCE_FACTOR * BASELINE_WIN_RATE + stats["matches"] * win_rate) / 
+                (CONFIDENCE_FACTOR + stats["matches"])
+            )
+            
+            # Secondary sort: total matches (for tie-breaking between similar adjusted rates)
+            match_count = stats["matches"]
             
             partner_list.append({
                 "name": stats["name"],
@@ -1272,11 +1442,13 @@ def get_last_season_partner_analysis(player_id, league_id_int=None, season="2024
                 "winRate": win_rate,
                 "courts": courts_played,
                 "record": f"{stats['wins']}-{stats['losses']}",
-                "weighted_score": weighted_score
+                "adjusted_win_rate": adjusted_win_rate,
+                "match_count": match_count
             })
         
-        # Sort by weighted score (descending) - this balances matches played with win rate
-        partner_list.sort(key=lambda x: -x["weighted_score"])
+        # Sort by adjusted win rate (descending), then by match count (descending)
+        # This ranks partners by statistically-confident performance
+        partner_list.sort(key=lambda x: (-x["adjusted_win_rate"], -x["match_count"]))
         
         return partner_list
         
@@ -4848,12 +5020,17 @@ def get_mobile_team_data(user):
         # Sort by date (most recent first)
         formatted_matches.sort(key=lambda x: x["date"], reverse=True)
         
+        # Get team videos
+        team_videos = get_team_videos(team_id)
+        print(f"[DEBUG] My-team: Found {len(team_videos)} videos for team_id={team_id}")
+        
         # Return in the expected structure for the route
         return {
             "team_data": team_data_formatted,
             "court_analysis": team_analysis.get("court_analysis", {}),
             "top_players": top_players,
             "team_matches": formatted_matches,
+            "team_videos": team_videos,
             "strength_of_schedule": {},  # This would come from a separate function if needed
             "error": None,
         }
@@ -4866,8 +5043,66 @@ def get_mobile_team_data(user):
             "team_data": None,
             "court_analysis": {},
             "top_players": [],
+            "team_videos": [],
             "error": str(e),
         }
+
+
+def get_team_videos(team_id):
+    """
+    Get team-specific training videos from the videos table
+    
+    Args:
+        team_id: The team ID to fetch videos for
+        
+    Returns:
+        List of video dictionaries with name, url, players, date
+    """
+    try:
+        if not team_id:
+            print("[DEBUG] get_team_videos: No team_id provided")
+            return []
+            
+        query = """
+            SELECT 
+                id,
+                name,
+                url,
+                players,
+                date,
+                team_id,
+                created_at
+            FROM videos
+            WHERE team_id = %s
+            ORDER BY date DESC, created_at DESC
+        """
+        
+        videos = execute_query(query, [team_id])
+        
+        if not videos:
+            print(f"[DEBUG] get_team_videos: No videos found for team_id={team_id}")
+            return []
+        
+        # Format videos for template
+        formatted_videos = []
+        for video in videos:
+            formatted_videos.append({
+                'id': video.get('id'),
+                'name': video.get('name'),
+                'url': video.get('url'),
+                'players': video.get('players'),
+                'date': video.get('date').strftime('%m-%d-%Y') if video.get('date') else None,
+                'team_id': video.get('team_id'),
+            })
+        
+        print(f"[DEBUG] get_team_videos: Found {len(formatted_videos)} videos for team_id={team_id}")
+        return formatted_videos
+        
+    except Exception as e:
+        print(f"Error getting team videos: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
 
 
 def get_series_analysis_data(user):
@@ -6304,15 +6539,38 @@ def get_player_name_from_id(player_id):
         return "Unknown Player"
 
     try:
+        # First, try the players table
         player = execute_query_one(
             "SELECT first_name, last_name FROM players WHERE tenniscores_player_id = %s",
             [player_id],
         )
         if player:
             return f"{player['first_name']} {player['last_name']}"
-        else:
-            # FIXED: Return "Unknown Player" instead of truncated ID to avoid confusion
-            return "Unknown Player"
+        
+        # If not found in players table, try match_scores_previous_seasons table
+        # Look for this player ID in any match and extract their name from the name columns
+        match_lookup = execute_query_one("""
+            SELECT 
+                CASE 
+                    WHEN home_player_1_id = %s AND home_player_1_name IS NOT NULL THEN home_player_1_name
+                    WHEN home_player_2_id = %s AND home_player_2_name IS NOT NULL THEN home_player_2_name
+                    WHEN away_player_1_id = %s AND away_player_1_name IS NOT NULL THEN away_player_1_name
+                    WHEN away_player_2_id = %s AND away_player_2_name IS NOT NULL THEN away_player_2_name
+                END as player_name
+            FROM match_scores_previous_seasons
+            WHERE (home_player_1_id = %s AND home_player_1_name IS NOT NULL)
+               OR (home_player_2_id = %s AND home_player_2_name IS NOT NULL)
+               OR (away_player_1_id = %s AND away_player_1_name IS NOT NULL)
+               OR (away_player_2_id = %s AND away_player_2_name IS NOT NULL)
+            LIMIT 1
+        """, [player_id, player_id, player_id, player_id, player_id, player_id, player_id, player_id])
+        
+        if match_lookup and match_lookup.get('player_name'):
+            return match_lookup['player_name']
+        
+        # If truly not found anywhere, return "Unknown Player"
+        return "Unknown Player"
+        
     except Exception as e:
         print(f"Error looking up player name for ID {player_id}: {e}")
         return "Unknown Player"

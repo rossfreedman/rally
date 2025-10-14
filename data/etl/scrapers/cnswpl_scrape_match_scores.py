@@ -234,12 +234,27 @@ class CNSWPLScraper(BaseLeagueScraper):
             print(f"❌ CNSWPL: Error extracting detailed match data: {e}")
             return []
     
+    def _is_substitute_player(self, player_name: str) -> bool:
+        """Check if player name indicates a substitute."""
+        if not player_name:
+            return False
+        return any(indicator in player_name for indicator in ['(S)', '(S↑)', '(sub)', 'substitute'])
+    
     def _clean_player_name(self, name: str) -> str:
-        """Clean player name by removing extra spaces and normalizing."""
+        """
+        Clean player name by removing extra spaces and normalizing.
+        Also removes substitute indicators like (S) and (S↑).
+        """
         if not name:
             return ""
+        
+        # Remove substitute indicators
+        cleaned = name
+        for indicator in ['(S)', '(S↑)', '(sub)']:
+            cleaned = cleaned.replace(indicator, '')
+        
         # Remove extra spaces and normalize
-        return " ".join(name.split())
+        return " ".join(cleaned.split())
 
     def _determine_winner_from_scores(self, scores: str) -> str:
         """Determine winner from scores string like '6-2, 6-3' or '6-4, 6-2'."""

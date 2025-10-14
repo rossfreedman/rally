@@ -725,9 +725,13 @@ def serve_mobile_player_detail(player_id):
     # PTI data is now handled within the service function with proper league filtering
     
     # Get last season stats (2024-2025)
-    from app.services.mobile_service import get_last_season_stats
+    from app.services.mobile_service import get_last_season_stats, get_current_season_partner_analysis
     last_season_stats = get_last_season_stats(actual_player_id, league_id_int, season="2024-2025")
     analyze_data["last_season"] = last_season_stats
+    
+    # Get current season partner analysis
+    partner_analysis = get_current_season_partner_analysis(actual_player_id, league_id_int, team_id)
+    analyze_data["partner_analysis"] = partner_analysis
 
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
@@ -1046,6 +1050,22 @@ def serve_mobile_analyze_me():
 
             # Use the session data (now with resolved league_id and team_context if applicable)
             analyze_data = get_player_analysis(session_user)
+            
+            # Get current season partner analysis
+            from app.services.mobile_service import get_current_season_partner_analysis
+            player_id = session_user.get("tenniscores_player_id")
+            league_id_int = session_user.get("league_id")
+            team_context = session_user.get("team_context") or session_user.get("team_id")
+            
+            print(f"[DEBUG] Analyze-me partner analysis - player_id: {player_id}, league_id: {league_id_int}, team_context: {team_context}")
+            
+            if player_id:
+                partner_analysis = get_current_season_partner_analysis(player_id, league_id_int, team_context)
+                print(f"[DEBUG] Analyze-me partner analysis result: {len(partner_analysis) if partner_analysis else 0} partners found")
+                analyze_data["partner_analysis"] = partner_analysis
+            else:
+                print(f"[DEBUG] Analyze-me - No player_id, cannot fetch partner analysis")
+                analyze_data["partner_analysis"] = []
         else:
             # NO FALLBACK: Require proper player ID - no name-based lookups
             print(f"[ERROR] Analyze-me - No tenniscores_player_id in session, cannot proceed with name-based lookup")
@@ -1104,6 +1124,17 @@ def serve_mobile_analyze_me():
 
         session_data = {"user": session_user_for_template, "authenticated": True}
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         # Enhanced logging for analyze-me page visit
         analyze_me_details = {
             "page": "mobile_analyze_me",
@@ -1126,6 +1157,7 @@ def serve_mobile_analyze_me():
             "mobile/analyze_me.html",
             session_data=session_data,
             analyze_data=analyze_data,
+            last_updated=last_updated,
         )
 
     except Exception as e:
@@ -2603,11 +2635,23 @@ def serve_mobile_my_team():
 
         log_user_activity(session_user["email"], "page_visit", page="mobile_my_team")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         # Extract all data from result
         team_data = result.get("team_data")
         court_analysis = result.get("court_analysis", {})
         top_players = result.get("top_players", [])
         team_matches = result.get("team_matches", [])
+        team_videos = result.get("team_videos", [])
         strength_of_schedule = result.get("strength_of_schedule", {})
         error = result.get("error")
 
@@ -2618,8 +2662,10 @@ def serve_mobile_my_team():
             court_analysis=court_analysis,
             top_players=top_players,
             team_matches=team_matches,
+            team_videos=team_videos,
             strength_of_schedule=strength_of_schedule,
             error=error,
+            last_updated=last_updated,
         )
         
         # Add cache-busting headers to ensure fresh data
@@ -2646,6 +2692,7 @@ def serve_mobile_my_team():
             team_data=None,
             court_analysis={},
             top_players=[],
+            team_videos=[],
             strength_of_schedule={
                 "sos_value": 0.0,
                 "rank": 0,
@@ -2764,6 +2811,17 @@ def serve_mobile_my_series():
         session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         print(f"📱 Calling log_user_activity for my-series...")
         log_result = log_user_activity(
             session_user["email"], 
@@ -2776,7 +2834,7 @@ def serve_mobile_my_series():
 
         print(f"🎨 Rendering template...")
         return render_template(
-            "mobile/my_series.html", session_data=session_data, **series_data
+            "mobile/my_series.html", session_data=session_data, last_updated=last_updated, **series_data
         )
 
     except Exception as e:
@@ -3042,13 +3100,24 @@ def my_club():
         session_data = {"user": session_user, "authenticated": True}
         print(f"✅ Session data created")
 
+        # Get last updated timestamp from match_scores table
+        last_updated = None
+        try:
+            last_updated_result = execute_query_one(
+                "SELECT MAX(created_at) as last_updated FROM match_scores"
+            )
+            if last_updated_result and last_updated_result.get("last_updated"):
+                last_updated = last_updated_result["last_updated"]
+        except Exception as e:
+            print(f"[WARNING] Could not fetch last_updated timestamp: {e}")
+
         print(f"📱 Calling log_user_activity for my-club...")
         log_result = log_user_activity(session_user["email"], "page_visit", page="mobile_my_club")
         print(f"✅ Activity logged: {log_result}")
 
         print(f"🎨 Rendering template...")
         return render_template(
-            "mobile/my_club.html", session_data=session_data, **club_data
+            "mobile/my_club.html", session_data=session_data, last_updated=last_updated, **club_data
         )
 
     except Exception as e:

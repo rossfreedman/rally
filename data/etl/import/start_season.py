@@ -1306,6 +1306,12 @@ def create_letter_based_series(cur, league_id, teams):
     """Create additional letter-based series that might be needed for teams."""
     created_count = 0
     
+    # Get league string ID to check if this is APTA
+    cur.execute("SELECT league_id FROM leagues WHERE id = %s", (league_id,))
+    league_result = cur.fetchone()
+    league_string_id = league_result[0] if league_result else ""
+    is_apta = league_string_id.startswith('APTA')
+    
     # Extract all potential series names from team names
     needed_series = set()
     for team_name in teams:
@@ -1315,6 +1321,12 @@ def create_letter_based_series(cur, league_id, teams):
     
     # Check which series already exist and create missing ones
     for series_name in needed_series:
+        # VALIDATION: Prevent letter series (A, B, C, D, E, F, etc.) in APTA league
+        # Letter series are only for CNSWPL and NSTF Sunday leagues
+        if is_apta and re.match(r'^Series [A-Z]$', series_name):
+            print(f"    ⚠️ Skipping letter series '{series_name}' for APTA league (not allowed)")
+            continue
+        
         cur.execute("SELECT id FROM series WHERE name = %s AND league_id = %s", (series_name, league_id))
         if not cur.fetchone():
             try:

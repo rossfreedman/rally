@@ -1266,6 +1266,181 @@ def remove_practice_times_data():
         )
 
 
+def get_practice_times_list_data():
+    """API endpoint to get list of existing practice times for the user's team"""
+    try:
+        from flask import jsonify, session
+        from database_utils import execute_query
+        from datetime import datetime
+
+        # Get user's team info
+        user = session["user"]
+        user_club = user.get("club", "")
+        user_series = user.get("series", "")
+
+        if not user_club or not user_series:
+            return jsonify({"success": False, "message": "User club or series not found"}), 400
+
+        # Use priority-based team detection
+        user_team_id = None
+        session_team_id = user.get("team_id")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+        elif user.get("team_context"):
+            user_team_id = user.get("team_context")
+        else:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
+
+        if not user_team_id:
+            return jsonify({"success": False, "message": "Could not determine your team"}), 400
+
+        # Get all practice times for this team, grouped by time
+        query = """
+            SELECT 
+                match_time,
+                EXTRACT(DOW FROM match_date) as day_of_week,
+                COUNT(*) as practice_count,
+                MIN(match_date) as first_date,
+                MAX(match_date) as last_date
+            FROM schedule
+            WHERE home_team_id = %s AND home_team LIKE %s
+            GROUP BY match_time, EXTRACT(DOW FROM match_date)
+            ORDER BY day_of_week, match_time
+        """
+        
+        practices = execute_query(query, [user_team_id, '%Practice%'])
+        
+        # Format the response
+        practice_groups = []
+        day_names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        
+        for p in practices:
+            practice_groups.append({
+                'time': str(p['match_time']),
+                'day_of_week': int(p['day_of_week']),
+                'day_name': day_names[int(p['day_of_week'])],
+                'count': p['practice_count'],
+                'first_date': p['first_date'].strftime('%Y-%m-%d') if p['first_date'] else None,
+                'last_date': p['last_date'].strftime('%Y-%m-%d') if p['last_date'] else None
+            })
+
+        return jsonify({
+            "success": True,
+            "practice_groups": practice_groups,
+            "team_id": user_team_id,
+            "club": user_club,
+            "series": user_series
+        })
+
+    except Exception as e:
+        print(f"Error getting practice times list: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+def remove_specific_practice_times_data():
+    """API endpoint to remove specific practice times by time (e.g., all Friday 12:00 practices)"""
+    try:
+        from flask import jsonify, session, request
+        from database_utils import execute_query, execute_query_one
+        from utils.logging import log_user_activity
+
+        # Get the time to remove from request
+        data = request.get_json()
+        if not data or 'time' not in data:
+            return jsonify({"success": False, "message": "Practice time not specified"}), 400
+
+        practice_time = data['time']
+        
+        # Get user's team info
+        user = session["user"]
+        user_club = user.get("club", "")
+        user_series = user.get("series", "")
+
+        if not user_club or not user_series:
+            return jsonify({"success": False, "message": "User club or series not found"}), 400
+
+        # Use priority-based team detection
+        user_team_id = None
+        session_team_id = user.get("team_id")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+        elif user.get("team_context"):
+            user_team_id = user.get("team_context")
+        else:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
+
+        if not user_team_id:
+            return jsonify({"success": False, "message": "Could not determine your team"}), 400
+
+        # Count practices to be removed
+        count_query = """
+            SELECT COUNT(*) as count
+            FROM schedule
+            WHERE home_team_id = %s 
+            AND home_team LIKE %s
+            AND match_time = %s
+        """
+        
+        count_result = execute_query_one(count_query, [user_team_id, '%Practice%', practice_time])
+        practice_count = count_result['count'] if count_result else 0
+
+        if practice_count == 0:
+            return jsonify({
+                "success": False,
+                "message": f"No practice times found at {practice_time}"
+            }), 400
+
+        # Delete the specific practice times
+        delete_query = """
+            DELETE FROM schedule
+            WHERE home_team_id = %s 
+            AND home_team LIKE %s
+            AND match_time = %s
+        """
+        
+        execute_query(delete_query, [user_team_id, '%Practice%', practice_time])
+
+        print(f"Successfully removed {practice_count} practice entries at {practice_time} for team_id {user_team_id}")
+
+        # Log the activity
+        log_user_activity(
+            user["email"],
+            "specific_practice_times_removed",
+            details=f"Removed {practice_count} practice times at {practice_time} for {user_series} at {user_club} (team_id: {user_team_id})",
+        )
+
+        return jsonify({
+            "success": True,
+            "message": f"Successfully removed {practice_count} practice times!",
+            "count": practice_count,
+            "time": practice_time,
+            "series": user_series,
+            "club": user_club
+        })
+
+    except Exception as e:
+        print(f"Error removing specific practice times: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 def get_team_schedule_data_data():
     """Get team schedule data - OPTIMIZED for faster loading with priority-based team detection"""
     try:
