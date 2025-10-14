@@ -4947,9 +4947,10 @@ def get_user_activity_detail(user_id):
                 al.id,
                 al.timestamp,
                 al.action_type,
-                al.page,
                 al.action_description,
-                al.details,
+                al.related_id,
+                al.related_type,
+                al.extra_data,
                 al.ip_address,
                 al.user_agent
             FROM activity_log al
@@ -4962,13 +4963,16 @@ def get_user_activity_detail(user_id):
         # Format activities
         formatted_activities = []
         for activity in activities:
+            # Use related_type as page, or extract from action_description
+            page = activity.get('related_type') or activity.get('related_id') or ''
+            
             formatted_activities.append({
-                'id': activity['id'],
+                'id': str(activity['id']),
                 'timestamp': activity['timestamp'].isoformat() if activity['timestamp'] else None,
                 'action_type': activity['action_type'] or 'Unknown',
-                'page': activity['page'] or '',
+                'page': page,
                 'action_description': activity['action_description'] or '',
-                'details': activity['details'] or '',
+                'details': activity.get('extra_data') or '',
                 'ip_address': activity['ip_address'] or '',
                 'user_agent': activity['user_agent'] or ''
             })
