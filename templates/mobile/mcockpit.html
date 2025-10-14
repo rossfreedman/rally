@@ -1494,40 +1494,42 @@ function renderActivityDetail(activities, totalCount) {
         <div class="space-y-2">
     `;
     
-    dateActivities.forEach(activity => {
-      const time = new Date(activity.timestamp).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        second: '2-digit'
-      });
-      const actionIcon = getActionTypeIcon(activity.action_type, activity.page);
-      const actionColor = getActionTypeColor(activity.action_type, activity.page);
-      const pageName = formatPageName(activity.page);
-      
-      html += `
-        <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
-          <div class="flex-shrink-0 mt-1">
-            <div class="w-8 h-8 bg-${actionColor}-100 rounded-lg flex items-center justify-center">
-              <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
-            </div>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-sm font-medium text-gray-900">${pageName}</span>
-              <span class="text-xs text-gray-500 font-mono">${time}</span>
-            </div>
-            <div class="text-xs text-gray-600">
-              <span class="px-2 py-0.5 bg-gray-100 rounded text-gray-700">${activity.action_type}</span>
-            </div>
-            ${activity.details ? `
-              <div class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                ${activity.details.substring(0, 150)}${activity.details.length > 150 ? '...' : ''}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `;
-    });
+                dateActivities.forEach(activity => {
+                    const time = new Date(activity.timestamp).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    const actionIcon = getActionTypeIcon(activity.action_type, activity.page);
+                    const actionColor = getActionTypeColor(activity.action_type, activity.page);
+                    
+                    // Use action_description as the main title (more meaningful than page)
+                    const displayTitle = activity.action_description || formatPageName(activity.page) || 'User Activity';
+                    
+                    html += `
+                        <div class="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+                            <div class="flex-shrink-0 mt-1">
+                                <div class="w-8 h-8 bg-${actionColor}-100 rounded-lg flex items-center justify-center">
+                                    <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-sm font-medium text-gray-900">${displayTitle}</span>
+                                    <span class="text-xs text-gray-500 font-mono">${time}</span>
+                                </div>
+                                <div class="text-xs text-gray-600">
+                                    <span class="px-2 py-0.5 bg-gray-100 rounded text-gray-700">${activity.action_type}</span>
+                                </div>
+                                ${activity.details ? `
+                                    <div class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded font-mono">
+                                        ${activity.details.substring(0, 200)}${activity.details.length > 200 ? '...' : ''}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
     
     html += `
         </div>
