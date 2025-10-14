@@ -562,8 +562,10 @@ class CNSWPLSimpleScraper:
             
             # Check if this looks like a player link
             if 'p=' in href and text and len(text.split()) >= 2:
-                # Skip sub players
-                if any(sub_indicator in text.lower() for sub_indicator in ['sub', 'substitute', '(sub)']):
+                # Skip sub players - check for (S) and (S↑) suffixes that indicate substitutes
+                # Note: Keep case-sensitive for (S) detection
+                if any(sub_indicator in text for sub_indicator in ['(S)', '(S↑)', '(sub)', 'substitute']):
+                    self.logger.info(f"      ⚠️ Skipping substitute player: {text}")
                     continue
                 
                 # Extract player ID from URL and change prefix
