@@ -130,7 +130,7 @@ def serve_admin():
     return render_template("mobile/admin.html", session_data={"user": session["user"]})
 
 
-@admin_bp.route("/admin/cockpit")
+@admin_bp.route("/cockpit")
 @login_required
 @admin_required
 def serve_admin_cockpit():
@@ -158,7 +158,7 @@ def serve_admin_cockpit():
     return render_template("cockpit.html", session_data={"user": session["user"]})
 
 
-@admin_bp.route("/mobile/mcockpit")
+@admin_bp.route("/mcockpit")
 @login_required
 @admin_required
 def serve_mobile_cockpit():
