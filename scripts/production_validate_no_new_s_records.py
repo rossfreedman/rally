@@ -22,9 +22,10 @@ def validate_production():
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
     try:
-        # Expected baseline (from our cleanup)
-        EXPECTED_ACTIVE_S = 170
-        EXPECTED_INACTIVE_S = 106
+        # Expected baseline (after complete cleanup - October 14, 2025)
+        # All (S) records should be inactive now - there should be NO active (S) records
+        EXPECTED_ACTIVE_S = 0
+        EXPECTED_INACTIVE_S = 276
         
         # Query 1: Count (S) players by status
         print("1. (S) PLAYER RECORD COUNTS")
