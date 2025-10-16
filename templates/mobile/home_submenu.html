@@ -751,10 +751,20 @@
 
 </div>
 
-<!-- Hidden link to alternate dashboard -->
-<div style="text-align: center; padding: 4rem 0 2rem; opacity: 0.15;">
-  <a href="/mobile/main-alt" style="font-size: 9px; color: #999; text-decoration: none; letter-spacing: 2px;">·</a>
+<!-- Link to alternate dashboard (admin only) -->
+{% if session_data and session_data.user and session_data.user.is_admin %}
+<div style="text-align: center; padding: 3rem 0 2rem; margin-top: 1rem;">
+  <a href="/mobile/main-alt" style="
+    font-size: 13px;
+    color: #86868b;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  " onmouseover="this.style.color='#045454';" onmouseout="this.style.color='#86868b';">
+    Try new view →
+  </a>
 </div>
+{% endif %}
 
 <script>
 // Ensure all submenus are closed when page loads
