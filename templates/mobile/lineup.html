@@ -698,62 +698,59 @@ function renderSubsInModal(subsData) {
   subsData.forEach((player, idx) => {
     const isTopThree = idx < 3;
     const card = document.createElement('div');
-    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-2 hover:shadow-md transition-shadow duration-200 max-w-md mx-auto';
+    card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 mb-3 hover:shadow-md transition-shadow duration-200';
     card.dataset.playerId = player.name; // Use name as unique identifier
     
-    // Determine win rate color using Rally brand colors
+    // Determine win rate color - matching find-people-to-play
     const winRateNum = parseFloat((player.winRate || '0%').replace('%', ''));
     let winRateColor = 'text-gray-600';
     if (winRateNum >= 60) {
-      winRateColor = 'color: #bff863;'; // Rally Bright Green
+      winRateColor = 'text-green-600';
     } else if (winRateNum >= 45) {
-      winRateColor = 'color: #fbbf24;'; // Yellow
+      winRateColor = 'text-yellow-600';
     } else if (winRateNum > 0) {
-      winRateColor = 'color: #ef4444;'; // Red
+      winRateColor = 'text-red-600';
     }
     
     card.innerHTML = `
-      <div class="flex items-start gap-4">
-        <!-- Checkbox Column -->
-        <div class="flex items-center pt-1 flex-shrink-0">
-          <input type="checkbox" class="sub-checkbox w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
-                 data-player-name="${player.name}" data-player-data='${JSON.stringify(player)}'>
-        </div>
+      <!-- Header with Player Name and Checkbox -->
+      <div style="background-color: #045454;" class="px-4 py-2 border-b border-gray-600 flex items-center gap-3 rounded-t-lg">
+        <!-- Checkbox -->
+        <input type="checkbox" class="sub-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
+               data-player-name="${player.name}" data-player-data='${JSON.stringify(player)}'>
         
-        <!-- Player Content Column -->
-        <div class="flex-1 min-w-0">
-          <!-- TOP PICK Badge (if applicable) -->
-          ${isTopThree ? `
-            <div class="mb-2">
-              <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
-                <i class="fas fa-star text-xs"></i>TOP PICK
-              </span>
-            </div>
-          ` : ''}
-          
-          <!-- Player Name -->
-          <div class="flex items-center space-x-2 mb-2">
-            <h4 class="font-semibold text-gray-900 truncate">${player.name}</h4>
+        <!-- TOP PICK Badge (if applicable) -->
+        ${isTopThree ? `
+          <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+            <i class="fas fa-star text-xs"></i>TOP PICK
+          </span>
+        ` : ''}
+        
+        <!-- Player Name -->
+        <h3 class="font-bold text-base leading-tight flex-1" style="color: #bff863;">${player.name}</h3>
+      </div>
+      
+      <!-- Body with Player Info -->
+      <div class="p-4">
+        <!-- PTI (most prominent) -->
+        ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
+          <div class="font-bold text-base mb-2" style="color: #045454;">PTI: ${player.pti}</div>
+        ` : ''}
+        
+        <!-- Series Badge -->
+        <span class="text-sm font-semibold mb-3 inline-block" style="background-color: #045454; color: #bff863; padding: 4px 12px; border-radius: 16px;">
+          ${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}
+        </span>
+        
+        <!-- Stats -->
+        <div class="text-sm space-y-1 mt-3">
+          <div>
+            <span class="text-gray-600">Record:</span> 
+            <span class="text-gray-900 font-medium">${player.wins || 0}W-${player.losses || 0}L</span>
           </div>
-          
-          <!-- Stats Grid -->
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-600">PTI:</span>
-              <span class="font-medium text-blue-600">${player.pti || player.rating || 'N/A'}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Series:</span>
-              <span class="font-medium text-gray-900">${player.series ? player.series.replace(/^Chicago\\s+(\\d+.*)$/i, 'Series $1') : player.series}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Record:</span>
-              <span class="font-medium text-gray-900">${player.wins || 0}W-${player.losses || 0}L</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Win Rate:</span>
-              <span class="font-medium" style="${winRateColor}">${player.winRate || '0%'}</span>
-            </div>
+          <div>
+            <span class="text-gray-600">Win Rate:</span> 
+            <span class="font-medium ${winRateColor}">${player.winRate || '0%'}</span>
           </div>
         </div>
       </div>

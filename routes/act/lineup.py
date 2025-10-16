@@ -1155,6 +1155,49 @@ def init_lineup_routes(app):
             session_data = {"user": session.get("user", {}), "authenticated": True}
             return render_template("mobile/error.html", error="Unable to load saved lineups page", session_data=session_data), 500
 
+    @app.route("/mobile/view-lineup-escrows")
+    @login_required
+    def serve_view_lineup_escrows():
+        """Serve the view previous lineup escrows page"""
+        try:
+            session_data = {"user": session["user"], "authenticated": True}
+            log_user_activity(
+                session["user"]["email"],
+                "page_visit",
+                page="mobile_view_lineup_escrows",
+                details="Accessed previous lineup escrows page"
+            )
+            return render_template("mobile/view_lineup_escrows.html", session_data=session_data)
+        except Exception as e:
+            print(f"Error serving view lineup escrows page: {str(e)}")
+            session_data = {"user": session.get("user", {}), "authenticated": True}
+            return render_template("mobile/error.html", error="Unable to load lineup escrows page", session_data=session_data), 500
+
+    @app.route("/api/lineup-escrow/user-previous", methods=["GET"])
+    @login_required
+    def get_user_previous_escrows():
+        """Get all previous lineup escrows created by the current user"""
+        try:
+            user = session["user"]
+            limit = request.args.get("limit", 50, type=int)
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.get_user_previous_escrows(
+                    user_id=user["id"],
+                    limit=limit
+                )
+                
+                if result["success"]:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+                    
+        except Exception as e:
+            print(f"Error getting user previous escrows: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
     def _create_minimal_session_data():
         """Create minimal session data for non-authenticated users"""
         return {

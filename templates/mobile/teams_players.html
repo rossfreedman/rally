@@ -134,6 +134,18 @@
             
             <div class="p-6">
                 <h3 class="text-2xl font-bold text-gray-900 text-center">{{ selected_team }}</h3>
+                
+                <!-- Simulate Matchup Chip -->
+                {% if session_data and session_data.user and session_data.user.team_id and selected_team_id %}
+                <div class="text-center mt-3" style="display: none;">
+                    <a href="/mobile/matchup-simulator?team_a_id={{ session_data.user.team_id }}&team_b_id={{ selected_team_id }}" 
+                       class="inline-flex items-center rounded-full font-semibold transition-all duration-200 hover:shadow-lg transform hover:scale-105" 
+                       style="background: linear-gradient(135deg, #10645c 0%, #0d5148 100%); color: white; text-decoration: none; box-shadow: 0 2px 4px rgba(16, 100, 92, 0.3); padding: 0.44rem 0.88rem; font-size: 0.935rem;">
+                        <i class="fas fa-chart-line mr-1.5" style="font-size: 0.935rem;"></i>
+                        <span>Simulate Matchup</span>
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
         

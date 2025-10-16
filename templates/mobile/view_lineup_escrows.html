@@ -1,0 +1,314 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Previous Lineup Escrows | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #0284c7 !important;">
+                <i class="fas fa-history text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Previous Lineup Escrows</h1>
+                <p class="text-sm text-gray-500">View your past lineup escrow sessions</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
+        
+        <!-- Loading State -->
+        <div id="loading-state" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 text-center">
+                <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-3"></i>
+                <p class="text-gray-500">Loading lineup escrows...</p>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="p-6 text-center">
+                <i class="fas fa-clipboard-list text-gray-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">No Previous Escrows</h3>
+                <p class="text-gray-500 mb-4">You haven't created any lineup escrows yet. Create your first lineup escrow to get started!</p>
+                <a href="/mobile/create-lineup" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#bff863'; this.style.color='#045454';" onmouseout="this.style.backgroundColor='#045454'; this.style.color='white';">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create Lineup Escrow
+                </a>
+            </div>
+        </div>
+
+        <!-- Escrows List -->
+        <div id="escrows-container" class="space-y-4 hidden">
+            <!-- Escrows will be dynamically loaded here -->
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
+            <div class="p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-red-400 text-4xl mb-4"></i>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Escrows</h3>
+                <p class="text-gray-500 mb-4" id="error-message">Unable to load lineup escrows. Please try again.</p>
+                <button onclick="loadEscrows()" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#bff863'; this.style.color='#045454';" onmouseout="this.style.backgroundColor='#045454'; this.style.color='white';">
+                    <i class="fas fa-refresh mr-2"></i>
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Status badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.status-responded {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.status-pending {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.status-expired {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.status-no-response {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+/* Card hover effects */
+.escrow-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.escrow-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Lineup full styling */
+.lineup-full {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-4 { padding-left: 1rem; padding-right: 1rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+
+<script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
+
+// Load escrows when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    loadEscrows();
+});
+
+async function loadEscrows() {
+    const loadingState = document.getElementById('loading-state');
+    const emptyState = document.getElementById('empty-state');
+    const escrowsContainer = document.getElementById('escrows-container');
+    const errorState = document.getElementById('error-state');
+    
+    // Show loading state
+    loadingState.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    escrowsContainer.classList.add('hidden');
+    errorState.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/api/lineup-escrow/user-previous?limit=50');
+        const result = await response.json();
+        
+        if (result.success) {
+            if (result.escrows && result.escrows.length > 0) {
+                displayEscrows(result.escrows);
+                escrowsContainer.classList.remove('hidden');
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+        } else {
+            throw new Error(result.error || 'Failed to load escrows');
+        }
+    } catch (error) {
+        console.error('Error loading escrows:', error);
+        document.getElementById('error-message').textContent = error.message || 'Unable to load lineup escrows. Please try again.';
+        errorState.classList.remove('hidden');
+    } finally {
+        loadingState.classList.add('hidden');
+    }
+}
+
+function displayEscrows(escrows) {
+    const container = document.getElementById('escrows-container');
+    container.innerHTML = '';
+    
+    escrows.forEach(escrow => {
+        const escrowCard = createEscrowCard(escrow);
+        container.appendChild(escrowCard);
+    });
+}
+
+function createEscrowCard(escrow) {
+    const card = document.createElement('div');
+    card.className = 'escrow-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden';
+    
+    // Format dates
+    const createdDate = new Date(escrow.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    const createdTime = new Date(escrow.created_at).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+    
+    // Determine status badge
+    let statusClass = 'status-no-response';
+    let statusText = 'No Response';
+    
+    if (escrow.status === 'both_submitted') {
+        statusClass = 'status-responded';
+        statusText = 'Responded';
+    } else if (escrow.status === 'pending') {
+        statusClass = 'status-pending';
+        statusText = 'Pending';
+    } else if (escrow.status === 'expired') {
+        statusClass = 'status-expired';
+        statusText = 'Expired';
+    }
+    
+    
+    card.innerHTML = `
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                        ${escrow.recipient_name || 'Unknown Captain'}
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-2">
+                        ${escrow.initiator_team_name} vs ${escrow.recipient_team_name}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        ${createdDate} at ${createdTime}
+                    </p>
+                </div>
+                <span class="status-badge ${statusClass}">
+                    ${statusText}
+                </span>
+            </div>
+            
+            <!-- Details -->
+            <div class="space-y-3 mb-4">
+                <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-envelope text-gray-400 mr-2 w-4"></i>
+                    <span>${escrow.contact_type.toUpperCase()}: ${escrow.recipient_contact}</span>
+                </div>
+                
+                <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-map-marker-alt text-gray-400 mr-2 w-4"></i>
+                    <span>${escrow.initiator_club_name} vs ${escrow.recipient_club_name}</span>
+                </div>
+                
+                ${escrow.recipient_submitted_at ? `
+                <div class="flex items-center text-sm text-gray-600">
+                    <i class="fas fa-clock text-gray-400 mr-2 w-4"></i>
+                    <span>Responded: ${new Date(escrow.recipient_submitted_at).toLocaleString()}</span>
+                </div>
+                ` : ''}
+            </div>
+            
+            <!-- Your Lineup -->
+            <div class="bg-gray-50 rounded-lg p-3 mb-3">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Your Lineup</h4>
+                <div class="lineup-full text-gray-600">${escrow.initiator_lineup || 'No lineup data'}</div>
+            </div>
+            
+            <!-- Opposing Lineup (if available) -->
+            ${escrow.recipient_lineup ? `
+            <div class="bg-blue-50 rounded-lg p-3 mb-4">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Opposing Lineup</h4>
+                <div class="lineup-full text-gray-600">${escrow.recipient_lineup}</div>
+            </div>
+            ` : `
+            <div class="bg-yellow-50 rounded-lg p-3 mb-4">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Opposing Lineup</h4>
+                <div class="text-gray-500 italic">${escrow.status === 'pending' ? 'Waiting for response...' : 'No response received'}</div>
+            </div>
+            `}
+            
+            <!-- Actions -->
+            <div class="flex gap-2">
+                ${escrow.status === 'both_submitted' ? `
+                <button onclick="viewEscrowResults('${escrow.escrow_token}')" 
+                        class="flex-1 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style="background-color: #045454 !important;" 
+                        onmouseover="this.style.backgroundColor='#bff863'; this.style.color='#045454';" 
+                        onmouseout="this.style.backgroundColor='#045454'; this.style.color='white';">
+                    <i class="fas fa-trophy mr-2"></i>
+                    View Full Results
+                </button>
+                ` : `
+                <button onclick="viewEscrowDetails('${escrow.escrow_token}')" 
+                        class="flex-1 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style="background-color: #045454 !important;" 
+                        onmouseover="this.style.backgroundColor='#bff863'; this.style.color='#045454';" 
+                        onmouseout="this.style.backgroundColor='#045454'; this.style.color='white';">
+                    <i class="fas fa-external-link-alt mr-2"></i>
+                    Open Escrow Page
+                </button>
+                `}
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+function viewEscrowDetails(escrowToken) {
+    // Redirect to the escrow view page
+    window.location.href = `/mobile/lineup-escrow-view/${escrowToken}`;
+}
+
+function viewEscrowResults(escrowToken) {
+    // Redirect to the escrow view page to see both lineups
+    window.location.href = `/mobile/lineup-escrow-view/${escrowToken}`;
+}
+</script>
+
+{% endblock %}

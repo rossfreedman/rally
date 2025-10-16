@@ -93,9 +93,18 @@
         <div class="icon-box">
             <i class="fas fa-search"></i>
         </div>
-        <div>
+        <div style="flex: 1;">
             <div class="header-title">Teams & Players</div>
             <div class="header-subtitle">Research teams and player stats across the league.</div>
+            <!-- Simulate Matchup chip - hidden -->
+            <!-- <div id="simulateMatchupChip" style="display: none; margin-top: 0.5rem;">
+                <a id="simulateMatchupLink" href="#" style="text-decoration: none;">
+                    <div style="display: inline-flex; align-items: center; padding: 0.44rem 0.88rem; background: linear-gradient(135deg, #10645c 0%, #0d5148 100%); color: white; border-radius: 1rem; font-size: 0.935rem; font-weight: 600; box-shadow: 0 2px 6px rgba(16, 100, 92, 0.3); transition: all 0.2s ease;">
+                        <i class="fas fa-chart-line" style="margin-right: 0.44rem; font-size: 0.99rem;"></i>
+                        <span>Simulate Matchup</span>
+                    </div>
+                </a>
+            </div> -->
         </div>
     </div>
     <!-- Main Content Section -->
@@ -331,6 +340,22 @@
             playerSelect.disabled = true;
             playerStatsCard.classList.add('d-none');
             courtBreakdownDiv.innerHTML = '';
+            
+            // Show/hide simulate matchup chip and update link
+            const simulateChip = document.getElementById('simulateMatchupChip');
+            const simulateLink = document.getElementById('simulateMatchupLink');
+            if (teamId) {
+                // Get user's team_id from the page (we'll add it via template)
+                const userTeamId = '{{ session_data.user.team_id }}';
+                
+                // Build the simulator URL with pre-populated teams
+                const simulatorUrl = `/mobile/matchup-simulator?team_a_id=${encodeURIComponent(userTeamId)}&team_b_id=${encodeURIComponent(teamId)}`;
+                simulateLink.href = simulatorUrl;
+                simulateChip.style.display = 'block';
+            } else {
+                simulateChip.style.display = 'none';
+            }
+            
             // Hide team stats if no team
             if (!teamId) {
                 teamStatsCard.classList.add('d-none');
