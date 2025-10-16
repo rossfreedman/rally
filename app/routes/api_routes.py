@@ -13065,3 +13065,83 @@ def create_player_note_api():
             "success": False,
             "error": str(e)
         }), 500
+
+
+@api_bp.route("/player-notes/<int:note_id>", methods=["PUT"])
+@login_required
+def update_player_note_api(note_id):
+    """Update an existing note (only by creator)"""
+    try:
+        from app.services.mobile_service import update_player_note
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        note_text = data.get("note")
+        
+        if not note_text:
+            return jsonify({
+                "success": False,
+                "error": "Missing required field: note"
+            }), 400
+        
+        # Get current user ID
+        user_id = session["user"].get("id")
+        
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        # Update the note (will only succeed if user is creator)
+        result = update_player_note(note_id, user_id, note_text)
+        
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 403
+            
+    except Exception as e:
+        print(f"Error updating player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-notes/<int:note_id>", methods=["DELETE"])
+@login_required
+def delete_player_note_api(note_id):
+    """Delete a note (only by creator)"""
+    try:
+        from app.services.mobile_service import delete_player_note
+        
+        # Get current user ID
+        user_id = session["user"].get("id")
+        
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        # Delete the note (will only succeed if user is creator)
+        result = delete_player_note(note_id, user_id)
+        
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 403
+            
+    except Exception as e:
+        print(f"Error deleting player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

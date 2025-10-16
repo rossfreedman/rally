@@ -5237,6 +5237,7 @@ def get_player_notes(player_id, club_id):
                 pn.id,
                 pn.note,
                 pn.created_at,
+                pn.creator_id,
                 u.first_name,
                 u.last_name,
                 u.email
@@ -5256,7 +5257,8 @@ def get_player_notes(player_id, club_id):
                 "note": note["note"],
                 "created_at": note["created_at"].strftime("%B %d, %Y at %I:%M %p") if note["created_at"] else "",
                 "creator_name": f"{note['first_name']} {note['last_name']}",
-                "creator_email": note["email"]
+                "creator_email": note["email"],
+                "creator_id": note["creator_id"]  # Include creator_id for permission checks
             })
         
         return formatted_notes
@@ -5308,6 +5310,87 @@ def create_player_note(player_id, creator_id, club_id, note_text):
             
     except Exception as e:
         print(f"Error creating player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+def update_player_note(note_id, user_id, note_text):
+    """
+    Update an existing note (only by the creator).
+    
+    Args:
+        note_id: The note ID to update
+        user_id: The user attempting to update (must be creator)
+        note_text: The new note content
+        
+    Returns:
+        Dictionary with success status or error message
+    """
+    try:
+        # Validate inputs
+        if not note_id or not user_id or not note_text:
+            return {"success": False, "error": "Missing required fields"}
+        
+        if not note_text.strip():
+            return {"success": False, "error": "Note cannot be empty"}
+        
+        # Update only if user is the creator
+        query = """
+            UPDATE player_notes
+            SET note = %s
+            WHERE id = %s AND creator_id = %s
+            RETURNING id, created_at
+        """
+        
+        result = execute_query_one(query, [note_text.strip(), note_id, user_id])
+        
+        if result:
+            return {
+                "success": True,
+                "note_id": result["id"],
+                "created_at": result["created_at"].strftime("%B %d, %Y at %I:%M %p") if result["created_at"] else ""
+            }
+        else:
+            return {"success": False, "error": "Note not found or you don't have permission to edit it"}
+            
+    except Exception as e:
+        print(f"Error updating player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+def delete_player_note(note_id, user_id):
+    """
+    Delete a note (only by the creator).
+    
+    Args:
+        note_id: The note ID to delete
+        user_id: The user attempting to delete (must be creator)
+        
+    Returns:
+        Dictionary with success status or error message
+    """
+    try:
+        # Validate inputs
+        if not note_id or not user_id:
+            return {"success": False, "error": "Missing required fields"}
+        
+        # Delete only if user is the creator
+        query = """
+            DELETE FROM player_notes
+            WHERE id = %s AND creator_id = %s
+            RETURNING id
+        """
+        
+        result = execute_query_one(query, [note_id, user_id])
+        
+        if result:
+            return {"success": True, "note_id": result["id"]}
+        else:
+            return {"success": False, "error": "Note not found or you don't have permission to delete it"}
+            
+    except Exception as e:
+        print(f"Error deleting player note: {str(e)}")
         print(f"Full traceback: {traceback.format_exc()}")
         return {"success": False, "error": str(e)}
 
