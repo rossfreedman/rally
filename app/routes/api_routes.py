@@ -12949,3 +12949,119 @@ def get_beer_notifications(user_id, player_id, league_id, team_id):
     except Exception as e:
         logger.error(f"Error getting beer notifications: {str(e)}")
         return []
+
+
+@api_bp.route("/player-notes/<player_id>")
+@login_required
+def get_player_notes_api(player_id):
+    """Get all notes for a specific player within the user's club context"""
+    try:
+        from app.services.mobile_service import get_player_notes
+        
+        # Get user's club context
+        user_club = session["user"].get("club")
+        
+        if not user_club:
+            return jsonify({
+                "success": False,
+                "error": "User club not found in session"
+            }), 400
+        
+        # Get club_id from club name
+        club_query = "SELECT id FROM clubs WHERE name = %s"
+        club_record = execute_query_one(club_query, [user_club])
+        
+        if not club_record:
+            return jsonify({
+                "success": False,
+                "error": "Club not found"
+            }), 404
+        
+        club_id = club_record["id"]
+        
+        # Extract actual player ID if composite (player_id_team_teamID)
+        actual_player_id = player_id
+        if '_team_' in player_id:
+            actual_player_id = player_id.split('_team_')[0]
+        
+        # Get notes
+        notes = get_player_notes(actual_player_id, club_id)
+        
+        return jsonify({
+            "success": True,
+            "notes": notes
+        })
+        
+    except Exception as e:
+        print(f"Error getting player notes: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-notes", methods=["POST"])
+@login_required
+def create_player_note_api():
+    """Create a new note for a player"""
+    try:
+        from app.services.mobile_service import create_player_note
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        player_id = data.get("player_id")
+        note_text = data.get("note")
+        
+        if not player_id or not note_text:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: player_id and note"
+            }), 400
+        
+        # Extract actual player ID if composite (player_id_team_teamID)
+        actual_player_id = player_id
+        if '_team_' in player_id:
+            actual_player_id = player_id.split('_team_')[0]
+        
+        # Get user's club context
+        user_club = session["user"].get("club")
+        user_id = session["user"].get("id")
+        
+        if not user_club or not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        # Get club_id from club name
+        club_query = "SELECT id FROM clubs WHERE name = %s"
+        club_record = execute_query_one(club_query, [user_club])
+        
+        if not club_record:
+            return jsonify({
+                "success": False,
+                "error": "Club not found"
+            }), 404
+        
+        club_id = club_record["id"]
+        
+        # Create the note
+        result = create_player_note(actual_player_id, user_id, club_id, note_text)
+        
+        if result["success"]:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"Error creating player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

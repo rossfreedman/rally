@@ -4851,13 +4851,32 @@ def get_recent_registrations():
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN leagues l ON p.league_id = l.id
             LEFT JOIN (
-                -- Aggregate all activity for each user
+                -- Aggregate all activity for each user from BOTH activity systems
                 SELECT 
                     user_id,
-                    COUNT(*) as activity_count,
-                    MAX(timestamp) as latest_activity
-                FROM activity_log
-                WHERE user_id IS NOT NULL
+                    SUM(activity_count) as activity_count,
+                    MAX(latest_activity) as latest_activity
+                FROM (
+                    -- New activity_log table
+                    SELECT 
+                        user_id,
+                        COUNT(*) as activity_count,
+                        MAX(timestamp) as latest_activity
+                    FROM activity_log
+                    WHERE user_id IS NOT NULL
+                    GROUP BY user_id
+                    
+                    UNION ALL
+                    
+                    -- Legacy user_activity_logs table
+                    SELECT 
+                        u2.id as user_id,
+                        COUNT(*) as activity_count,
+                        MAX(ual.timestamp) as latest_activity
+                    FROM user_activity_logs ual
+                    JOIN users u2 ON ual.user_email = u2.email
+                    GROUP BY u2.id
+                ) combined_activities
                 GROUP BY user_id
             ) al ON u.id = al.user_id
             WHERE u.created_at IS NOT NULL
@@ -4941,8 +4960,8 @@ def get_user_activity_detail(user_id):
                 'error': 'User not found'
             }), 404
         
-        # Get detailed activity from activity_log
-        activity_query = """
+        # Get detailed activity from NEW activity_log table
+        new_activity_query = """
             SELECT 
                 al.id,
                 al.timestamp,
@@ -4952,29 +4971,60 @@ def get_user_activity_detail(user_id):
                 al.related_type,
                 al.extra_data,
                 al.ip_address,
-                al.user_agent
+                al.user_agent,
+                'new' as source
             FROM activity_log al
             WHERE al.user_id = %s
             ORDER BY al.timestamp DESC
             LIMIT 100
         """
-        activities = execute_query(activity_query, [user_id])
+        new_activities = execute_query(new_activity_query, [user_id])
+        
+        # Get detailed activity from LEGACY user_activity_logs table
+        legacy_activity_query = """
+            SELECT 
+                id,
+                timestamp,
+                activity_type as action_type,
+                page,
+                action as action_description,
+                details as extra_data,
+                ip_address,
+                NULL as user_agent,
+                NULL as related_id,
+                NULL as related_type,
+                'legacy' as source
+            FROM user_activity_logs
+            WHERE user_email = %s
+            ORDER BY timestamp DESC
+            LIMIT 100
+        """
+        legacy_activities = execute_query(legacy_activity_query, [user['email']])
+        
+        # Combine and sort both activity sources by timestamp
+        all_activities = list(new_activities) + list(legacy_activities)
+        all_activities.sort(key=lambda x: x['timestamp'], reverse=True)
         
         # Format activities
         formatted_activities = []
-        for activity in activities:
-            # Use related_type as page, or extract from action_description
-            page = activity.get('related_type') or activity.get('related_id') or ''
+        for activity in all_activities[:100]:  # Limit to 100 most recent
+            # Determine page/location based on source
+            if activity['source'] == 'legacy':
+                page = activity.get('page') or ''
+                action_desc = activity.get('action_description') or ''
+            else:
+                page = activity.get('related_type') or activity.get('related_id') or ''
+                action_desc = activity.get('action_description') or ''
             
             formatted_activities.append({
                 'id': str(activity['id']),
                 'timestamp': activity['timestamp'].isoformat() if activity['timestamp'] else None,
                 'action_type': activity['action_type'] or 'Unknown',
                 'page': page,
-                'action_description': activity['action_description'] or '',
+                'action_description': action_desc,
                 'details': activity.get('extra_data') or '',
                 'ip_address': activity['ip_address'] or '',
-                'user_agent': activity['user_agent'] or ''
+                'user_agent': activity.get('user_agent') or ''
             })
         
         return jsonify({

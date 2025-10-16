@@ -359,6 +359,82 @@ def serve_mobile_classic():
     return render_template("mobile/index_old.html", session_data=session_data)
 
 
+@mobile_bp.route("/mobile/main-alt")
+@login_required
+def serve_mobile_main_alt():
+    """Serve the new alternate dashboard view with modern design"""
+    print(f"=== SERVE_MOBILE_MAIN_ALT FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    # Don't handle admin routes
+    if "/admin" in request.path:
+        print("Admin route detected in mobile, redirecting to serve_admin")
+        return redirect(url_for("admin.serve_admin"))
+
+    # Use new session service to get fresh session data, BUT preserve team switches
+    from app.services.session_service import get_session_data_for_user
+    
+    try:
+        user_email = session["user"]["email"]
+        
+        print(f"[DEBUG] Checking session for user: {user_email}")
+        
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            print(f"[DEBUG] Impersonation active - preserving session as-is")
+            session_data = {"user": session["user"], "authenticated": True}
+        else:
+            # Use helper function to determine if we should preserve session or refresh
+            current_session = session.get("user", {})
+            
+            if should_preserve_session_context(user_email, current_session):
+                # Preserve current session (team switch protection + no league switch detected)
+                session_data = {"user": current_session, "authenticated": True}
+            else:
+                # Session is incomplete, invalid, or league switch detected - refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                    
+                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+                
+                if fresh_session_data:
+                    # Update the Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_data = {"user": fresh_session_data, "authenticated": True}
+                    print(f"[DEBUG] Using fresh session data and updated Flask session")
+                else:
+                    # Fallback to old session if session service fails
+                    session_data = {"user": session["user"], "authenticated": True}
+                    print(f"[DEBUG] Using fallback session data: {session['user']}")
+        
+        # Log mobile access
+        try:
+            log_user_activity(
+                session["user"]["email"], 
+                "page_visit", 
+                page="mobile_main_alt",
+                first_name=session["user"].get("first_name"),
+                last_name=session["user"].get("last_name")
+            )
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    except Exception as e:
+        print(f"Error with new session service: {str(e)}")
+        # Fallback to old session
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_main_alt")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    return render_template("mobile/main_alt.html", session_data=session_data)
+
+
 @mobile_bp.route("/mobile/rally")
 @login_required
 def serve_rally_mobile():

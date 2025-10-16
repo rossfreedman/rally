@@ -5220,6 +5220,98 @@ def get_mobile_series_data(user):
         return {"error": str(e)}
 
 
+def get_player_notes(player_id, club_id):
+    """
+    Get all notes for a specific player within a club context.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        club_id: The club ID to filter notes by
+        
+    Returns:
+        List of note dictionaries with creator info and timestamps
+    """
+    try:
+        query = """
+            SELECT 
+                pn.id,
+                pn.note,
+                pn.created_at,
+                u.first_name,
+                u.last_name,
+                u.email
+            FROM player_notes pn
+            JOIN users u ON pn.creator_id = u.id
+            WHERE pn.player_id = %s AND pn.club_id = %s
+            ORDER BY pn.created_at DESC
+        """
+        
+        notes = execute_query(query, [player_id, club_id])
+        
+        # Format the results
+        formatted_notes = []
+        for note in notes:
+            formatted_notes.append({
+                "id": note["id"],
+                "note": note["note"],
+                "created_at": note["created_at"].strftime("%B %d, %Y at %I:%M %p") if note["created_at"] else "",
+                "creator_name": f"{note['first_name']} {note['last_name']}",
+                "creator_email": note["email"]
+            })
+        
+        return formatted_notes
+        
+    except Exception as e:
+        print(f"Error fetching player notes: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+
+def create_player_note(player_id, creator_id, club_id, note_text):
+    """
+    Create a new note for a player.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        creator_id: The user ID of the note creator
+        club_id: The club ID for the note context
+        note_text: The actual note content
+        
+    Returns:
+        Dictionary with success status and note_id or error message
+    """
+    try:
+        # Validate inputs
+        if not player_id or not creator_id or not club_id or not note_text:
+            return {"success": False, "error": "Missing required fields"}
+        
+        if not note_text.strip():
+            return {"success": False, "error": "Note cannot be empty"}
+        
+        # Insert the note
+        query = """
+            INSERT INTO player_notes (player_id, creator_id, club_id, note)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, created_at
+        """
+        
+        result = execute_query_one(query, [player_id, creator_id, club_id, note_text.strip()])
+        
+        if result:
+            return {
+                "success": True,
+                "note_id": result["id"],
+                "created_at": result["created_at"].strftime("%B %d, %Y at %I:%M %p") if result["created_at"] else ""
+            }
+        else:
+            return {"success": False, "error": "Failed to create note"}
+            
+    except Exception as e:
+        print(f"Error creating player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
 def get_series_player_ratings(user):
     """Get all players in user's series ranked by PTI (low to high)"""
     try:
