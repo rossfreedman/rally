@@ -1662,7 +1662,9 @@ def get_last_season_court_analysis(player_id, league_id_int=None, season="2024-2
                     "wins": stats["wins"],
                     "losses": stats["losses"],
                     "winRate": partner_win_rate,
-                    "player_id": stats["player_id"]
+                    "player_id": stats["player_id"],
+                    "tenniscores_player_id": stats["player_id"],  # Add for clickable links
+                    "team_id": None  # Last season data doesn't have team context
                 }
                 
                 # Add substitute information if applicable
@@ -1725,7 +1727,10 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
         from datetime import datetime
         from database_utils import execute_query
         
+        print(f"[DEBUG] calculate_individual_court_analysis called with {len(player_matches) if player_matches else 0} matches for player {player_id}")
+        
         if not player_matches or not player_id:
+            print(f"[DEBUG] No player matches or player_id provided, returning empty court analysis")
             # Return empty court analysis with proper structure (default to 5 courts)
             return {
                 f"court{i}": {
@@ -2002,12 +2007,21 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                     partner_name = get_player_name_from_id(partner_id)
                     if partner_name and stats["matches"] > 0:
                         partner_win_rate = round((stats["wins"] / stats["matches"]) * 100, 1)
+                        # Get team_id from various sources
+                        team_id = None
+                        if team_context and isinstance(team_context, dict):
+                            team_id = team_context.get("team_id")
+                        elif user and isinstance(user, dict):
+                            team_id = user.get("team_id")
+                        
                         partner_data = {
                             "name": partner_name,
                             "matches": stats["matches"],
                             "wins": stats["wins"],
                             "losses": stats["matches"] - stats["wins"], 
-                            "winRate": partner_win_rate
+                            "winRate": partner_win_rate,
+                            "tenniscores_player_id": partner_id,  # Add for clickable links
+                            "team_id": team_id  # Add for clickable links
                         }
                         
                         # Add substitute information if this partner was a substitute
@@ -6372,6 +6386,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "pti": player_pti,  # Add PTI data for template
                     "isSubstitute": is_substitute,  # Add substitute status
                     "captain_status": captain_status,  # Add captain status
+                    "tenniscores_player_id": player_id,  # Add for clickable links
+                    "team_id": team_id,  # Add for clickable links
                 }
             )
 
