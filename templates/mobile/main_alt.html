@@ -51,10 +51,6 @@
             background: var(--rally-gradient);
             padding: max(env(safe-area-inset-top), 1rem) 1.25rem 1.5rem;
             box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            backdrop-filter: blur(20px);
         }
         
         .header-top {
@@ -202,89 +198,6 @@
             font-weight: 400;
             line-height: 1.4;
         }
-        
-        /* ============================================
-           HERO CARD - iOS STYLE WITH GLASSMORPHISM
-           ============================================ */
-        .hero-card {
-            background: linear-gradient(135deg, #045454 0%, #078888 100%);
-            color: white;
-            text-align: center;
-            padding: 2.5rem 2rem;
-            box-shadow: 0 8px 32px rgba(4, 84, 84, 0.25);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: shimmer 3s ease-in-out infinite;
-        }
-        
-        @keyframes shimmer {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-10%, -10%); }
-        }
-        
-        .hero-card:active {
-            transform: scale(0.98);
-        }
-        
-        .progress-ring-container {
-            position: relative;
-            width: 140px;
-            height: 140px;
-            margin: 1.75rem auto;
-            z-index: 1;
-        }
-        
-        .progress-ring {
-            transform: rotate(-90deg);
-            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
-        }
-        
-        .progress-ring-circle {
-            stroke-dasharray: 339.292;
-            stroke-dashoffset: 0;
-            stroke-linecap: round;
-            animation: progressRing 2s ease-out forwards;
-        }
-        
-        @keyframes progressRing {
-            from {
-                stroke-dashoffset: 339.292;
-            }
-            to {
-                stroke-dashoffset: 84.823; /* 75% progress */
-            }
-        }
-        
-        .progress-ring-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 36px;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-        
-        .hero-tagline {
-            font-size: 17px;
-            opacity: 0.95;
-            margin-top: 1.25rem;
-            line-height: 1.5;
-            font-weight: 500;
-            z-index: 1;
-            position: relative;
-        }
-        
         /* ============================================
            OPPONENTS SECTION - iOS LIST STYLE
            ============================================ */
@@ -492,79 +405,65 @@
         }
         
         /* ============================================
-           NOTIFICATIONS SECTION - iOS STYLE
+           NOTIFICATIONS SECTION - iOS STYLE (MATCHES OPPONENT-INFO)
            ============================================ */
         .notification-item {
             display: flex;
-            align-items: flex-start;
-            gap: 0.875rem;
-            padding: 1rem;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.125rem;
             background: var(--ios-secondary-bg);
             border-radius: 14px;
-            margin-bottom: 0.625rem;
+            margin-top: 0.75rem;
             transition: all 0.2s var(--spring-timing);
-            cursor: pointer;
-            animation: slideIn 0.4s ease-out;
-            border-left: 3px solid transparent;
             border: 0.5px solid rgba(0, 0, 0, 0.04);
         }
         
-        .notification-item:active {
+        .notification-item:first-child {
+            margin-top: 0;
+        }
+        
+        .notification-item.clickable {
+            cursor: pointer;
+        }
+        
+        .notification-item.clickable:active {
             transform: scale(0.97);
             background: #f0f0f5;
         }
         
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
         .notification-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
             background: var(--rally-gradient);
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 20px;
             color: white;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(4, 84, 84, 0.2);
             flex-shrink: 0;
-            font-size: 18px;
-            box-shadow: 0 2px 8px rgba(4, 84, 84, 0.15);
         }
         
-        .notification-content {
+        .notification-details {
             flex: 1;
             min-width: 0;
         }
         
         .notification-title {
+            font-size: 17px;
             font-weight: 600;
             color: #1d1d1f;
-            margin-bottom: 0.25rem;
-            font-size: 15px;
             letter-spacing: -0.2px;
+            margin-bottom: 0.25rem;
         }
         
-        .notification-text {
+        .notification-subtitle {
             font-size: 15px;
             color: #86868b;
-            line-height: 1.4;
-        }
-        
-        .notification-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ff3b30;
-            flex-shrink: 0;
-            box-shadow: 0 2px 6px rgba(255, 59, 48, 0.4);
+            margin-top: 0.125rem;
         }
         
         /* ============================================
@@ -652,19 +551,6 @@
                 padding: 1.5rem 1.25rem;
             }
             
-            .hero-card {
-                padding: 2rem 1.5rem;
-            }
-            
-            .progress-ring-container {
-                width: 120px;
-                height: 120px;
-            }
-            
-            .progress-ring-text {
-                font-size: 32px;
-            }
-            
             .header-welcome {
                 font-size: 24px;
             }
@@ -741,10 +627,6 @@
                 {% endif %}
             </div>
         </div>
-        <!-- Subtle link back to classic view -->
-        <div style="text-align: center; margin-top: 0.625rem;">
-            <a href="/mobile" style="color: rgba(255,255,255,0.7); font-size: 13px; text-decoration: none; font-weight: 500; transition: all 0.2s ease;">← Back to Classic View</a>
-        </div>
         <div class="header-tabs">
             <div class="tab-item active">Dashboard</div>
             <div class="tab-item" onclick="location.href='/mobile/matches'">Matches</div>
@@ -757,54 +639,6 @@
          MAIN CONTENT
          ============================================ -->
     <div class="dashboard-content">
-        
-        <!-- ============================================
-             2. THIS WEEK'S OUTLOOK (Hero Card)
-             ============================================ -->
-        <div class="card hero-card">
-            <div class="card-title" style="color: white;">
-                <i class="fas fa-trophy"></i>
-                Your Performance
-            </div>
-            
-            <!-- Loading State -->
-            <div id="pti-loading" class="text-center py-8">
-                <div class="flex justify-center mb-4">
-                    <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
-                </div>
-            </div>
-            
-            <!-- PTI Display -->
-            <div id="pti-content" class="hidden">
-                <div class="progress-ring-container">
-                    <svg class="progress-ring" width="150" height="150">
-                        <circle
-                            stroke="rgba(255,255,255,0.2)"
-                            stroke-width="10"
-                            fill="transparent"
-                            r="54"
-                            cx="75"
-                            cy="75"
-                        />
-                        <circle
-                            id="progress-circle"
-                            class="progress-ring-circle"
-                            stroke="#F5C842"
-                            stroke-width="10"
-                            fill="transparent"
-                            r="54"
-                            cx="75"
-                            cy="75"
-                        />
-                    </svg>
-                    <div class="progress-ring-text" id="pti-value">--</div>
-                </div>
-                
-                <div class="hero-tagline" id="pti-message">
-                    Loading your stats...
-                </div>
-            </div>
-        </div>
         
         <!-- ============================================
              3. KNOW YOUR OPPONENTS
@@ -884,7 +718,7 @@
             </div>
             
             <!-- Notifications Container -->
-            <div id="notifications-content-alt" class="hidden space-y-3"></div>
+            <div id="notifications-content-alt" class="hidden"></div>
             
             <!-- Empty State -->
             <div id="notifications-empty-alt" class="hidden text-center py-8">
@@ -934,6 +768,10 @@
          7. FOOTER
          ============================================ -->
     <footer class="dashboard-footer">
+        <!-- Link back to classic view -->
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <a href="/mobile" style="color: #86868b; font-size: 15px; text-decoration: none; font-weight: 500; transition: all 0.2s ease;">← Back to Classic View</a>
+        </div>
         <img src="/static/rallylogo.png" alt="Rally Logo" class="footer-logo">
         <p class="footer-text">Powered by Rally</p>
     </footer>
@@ -942,63 +780,11 @@
     <script>
         // Initialize all data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadPTIData();
             loadUpcomingMatches();
             loadTopPlayers();
             loadNotifications();
         });
-        
-        // ============================================
-        // PTI DATA LOADING
-        // ============================================
-        async function loadPTIData() {
-            const loading = document.getElementById('pti-loading');
-            const content = document.getElementById('pti-content');
-            const ptiValue = document.getElementById('pti-value');
-            const ptiMessage = document.getElementById('pti-message');
-            
-            try {
-                const response = await fetch('/api/player-history');
-                const data = await response.json();
-                
-                loading.classList.add('hidden');
-                content.classList.remove('hidden');
-                
-                if (data.error) {
-                    ptiValue.textContent = '--';
-                    ptiMessage.innerHTML = 'Keep playing to build your stats! 🎾';
-                    return;
-                }
-                
-                const currentPTI = data.current_pti || 0;
-                ptiValue.textContent = currentPTI.toFixed(1);
-                
-                // Calculate trend from match history
-                if (data.matches && data.matches.length > 1) {
-                    const recentMatches = data.matches.slice(-5); // Last 5 matches
-                    const firstPTI = recentMatches[0].end_pti;
-                    const lastPTI = recentMatches[recentMatches.length - 1].end_pti;
-                    const trend = lastPTI - firstPTI;
-                    
-                    if (trend > 0) {
-                        ptiMessage.innerHTML = `You're trending <strong>+${trend.toFixed(1)} PTI</strong> over your last ${recentMatches.length} matches.<br>Keep grinding — you're on fire! 🔥`;
-                    } else if (trend < 0) {
-                        ptiMessage.innerHTML = `Current PTI: <strong>${currentPTI.toFixed(1)}</strong><br>Every match is a chance to improve! 💪`;
-                    } else {
-                        ptiMessage.innerHTML = `Current PTI: <strong>${currentPTI.toFixed(1)}</strong><br>Consistent performance — keep it up! 🎯`;
-                    }
-                } else {
-                    ptiMessage.innerHTML = `Current PTI: <strong>${currentPTI.toFixed(1)}</strong><br>Your paddle tennis journey starts here! 🚀`;
-                }
-                
-            } catch (error) {
-                console.error('Error loading PTI data:', error);
-                loading.classList.add('hidden');
-                content.classList.remove('hidden');
-                ptiValue.textContent = '--';
-                ptiMessage.innerHTML = 'Keep playing to build your stats! 🎾';
-            }
-        }
+
         
         // ============================================
         // UPCOMING MATCHES LOADING
@@ -1009,7 +795,7 @@
             const empty = document.getElementById('opponents-empty');
             
             try {
-                const response = await fetch('/api/team-schedule');
+                const response = await fetch('/api/schedule');
                 const data = await response.json();
                 
                 loading.classList.add('hidden');
@@ -1023,8 +809,14 @@
                 const now = new Date();
                 const upcomingMatches = data.matches
                     .filter(match => {
-                        const matchDate = new Date(match.date);
-                        return matchDate >= now && match.opponent && match.opponent !== 'Practice';
+                        try {
+                            const matchDate = new Date(match.date);
+                            const isUpcoming = matchDate >= now;
+                            const isNotPractice = match.type === 'match' && match.away_team && match.away_team !== 'Practice';
+                            return isUpcoming && isNotPractice;
+                        } catch (e) {
+                            return false;
+                        }
                     })
                     .slice(0, 3); // Show next 3 matches
                 
@@ -1052,21 +844,33 @@
             const div = document.createElement('div');
             div.className = 'opponent-info';
             
-            // Get initials for avatar
-            const opponentName = match.opponent || 'TBD';
+            // Determine opponent and match type
+            const homeTeam = match.home_team || '';
+            const awayTeam = match.away_team || '';
+            const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
+            const opponentName = isHome ? awayTeam : homeTeam;
             const initials = opponentName.split(' ').map(word => word[0]).join('').substring(0, 3).toUpperCase();
             
-            // Format date
+            // Format date and time
             const matchDate = new Date(match.date);
-            const dateStr = matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const dateStr = matchDate.toLocaleDateString('en-US', { 
+                weekday: 'long',
+                month: 'short', 
+                day: 'numeric' 
+            });
             const timeStr = match.time || 'TBD';
+            
+            // Get location info
+            const location = match.location || '';
+            const locationDisplay = location ? `📍 ${location}` : '';
             
             div.innerHTML = `
                 <div class="opponent-avatar">${initials}</div>
                 <div class="opponent-details">
-                    <div class="opponent-name">${opponentName}</div>
-                    <div class="opponent-stats">${dateStr} • ${timeStr}</div>
-                    <div class="card-subtitle">${match.home_away === 'home' ? 'Home Match 🏠' : 'Away Match ✈️'}</div>
+                    <div class="opponent-name">vs ${opponentName}</div>
+                    <div class="opponent-stats">${dateStr} at ${timeStr}</div>
+                    ${locationDisplay ? `<div class="notification-subtitle">${locationDisplay}</div>` : ''}
+                    ${isHome ? '<div class="card-subtitle">Home Match 🏠</div>' : '<div class="card-subtitle">Away Match ✈️</div>'}
                 </div>
             `;
             
@@ -1211,42 +1015,22 @@
             
             const link = notification.cta || notification.detail_link;
             if (link && link.href) {
-                div.style.cursor = 'pointer';
+                div.classList.add('clickable');
                 div.onclick = () => location.href = link.href;
             }
             
             const icon = getNotificationIconHTML(notification.type);
-            
-            if (notification.type === 'captain') {
-                div.style.backgroundColor = '#f0f9f0';
-                div.style.borderLeft = '4px solid #10b981';
-            }
+            const message = formatNotificationMessage(notification);
             
             div.innerHTML = `
                 <div class="notification-icon">
                     ${icon}
                 </div>
-                <div class="notification-content">
+                <div class="notification-details">
                     <div class="notification-title">${notification.title}</div>
-                    <div class="notification-text">${formatNotificationMessage(notification)}</div>
-                    ${link ? `
-                        <div style="margin-top: 0.75rem;">
-                            <span style="
-                                display: inline-flex;
-                                align-items: center;
-                                color: var(--rally-green);
-                                font-size: 0.875rem;
-                                font-weight: 600;
-                            ">
-                                ${link.label}
-                                <svg style="width: 14px; height: 14px; margin-left: 4px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </span>
-                        </div>
-                    ` : ''}
+                    <div class="notification-subtitle">${message}</div>
+                    ${link ? `<div class="card-subtitle" style="margin-top: 0.25rem;">${link.label} →</div>` : ''}
                 </div>
-                ${notification.priority <= 4 ? '<div class="notification-dot"></div>' : ''}
             `;
             
             return div;

@@ -1482,7 +1482,12 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-40 px-3 py-4 text-left">
                                 <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
                                 <div class="text-sm font-medium text-black">
-                                    <div class="mb-1">${match.partner_name}</div>
+                                    <div class="mb-1">
+                                        <a href="/mobile/player-detail/${match.partner_tenniscores_id}_team_${match.partner_team_id}" 
+                                           class="text-blue-600 hover:text-blue-800 hover:underline">
+                                            ${match.partner_name}
+                                        </a>
+                                    </div>
                                     <div>${currentPlayerName}</div>
                                 </div>
                             </td>

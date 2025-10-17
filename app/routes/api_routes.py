@@ -11606,11 +11606,25 @@ def get_partner_matches_team():
                     print(f"[DEBUG] API: Skipping match - partner '{partner_name}' doesn't match filter '{partner_filter}'")
                     continue
             
+            # Get partner's team information for clickable links
+            partner_tenniscores_id = None
+            partner_team_id = None
+            
+            if partner_id:
+                partner_tenniscores_id = partner_id
+                # Find partner's team_id for this match
+                if is_home:
+                    partner_team_id = match.get("home_team_id")
+                else:
+                    partner_team_id = match.get("away_team_id")
+            
             formatted_match = {
                 "date": match["date"],
                 "home_team": home_team,
                 "away_team": away_team,
                 "partner_name": partner_name or "Unknown",
+                "partner_tenniscores_id": partner_tenniscores_id,
+                "partner_team_id": partner_team_id,
                 "opponent1_name": opponent1_name,
                 "opponent2_name": opponent2_name,
                 "scores": match["scores"] or "No score recorded",
@@ -11831,11 +11845,25 @@ def get_partner_matches_team():
                             print(f"[DEBUG] API: League-wide skipping match - partner '{partner_name}' doesn't match filter '{partner_filter}'")
                             continue
                     
+                    # Get partner's team information for clickable links
+                    partner_tenniscores_id = None
+                    partner_team_id = None
+                    
+                    if partner_id:
+                        partner_tenniscores_id = partner_id
+                        # Find partner's team_id for this match
+                        if is_home:
+                            partner_team_id = match.get("home_team_id")
+                        else:
+                            partner_team_id = match.get("away_team_id")
+                    
                     formatted_match = {
                         "date": match["date"],
                         "home_team": home_team,
                         "away_team": away_team,
                         "partner_name": partner_name or "Unknown",
+                        "partner_tenniscores_id": partner_tenniscores_id,
+                        "partner_team_id": partner_team_id,
                         "opponent1_name": opponent1_name,
                         "opponent2_name": opponent2_name,
                         "scores": match["scores"] or "No score recorded",
