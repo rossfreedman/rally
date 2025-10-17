@@ -12979,6 +12979,47 @@ def get_beer_notifications(user_id, player_id, league_id, team_id):
         return []
 
 
+def _get_user_club_with_fallback(user_email, session_club=None):
+    """
+    Get user's club with robust fallback logic matching session_service.py pattern.
+    
+    Fallback order:
+    1. Use session club if provided
+    2. Look up from user_player_associations (same as session service)
+    3. Raise exception if no club found
+    
+    Returns: (club_name, club_id) tuple
+    """
+    # Try session club first
+    if session_club:
+        club_query = "SELECT id, name FROM clubs WHERE name = %s"
+        club_record = execute_query_one(club_query, [session_club])
+        if club_record:
+            return (club_record["name"], club_record["id"])
+    
+    # Fallback: Look up club from player associations (matches session_service.py logic)
+    club_lookup_query = """
+        SELECT c.id as club_id, c.name as club_name
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN clubs c ON p.club_id = c.id
+        WHERE u.email = %s 
+        AND p.is_active = true
+        AND (upa.is_primary = true OR upa.is_primary IS NULL)
+        ORDER BY upa.is_primary DESC NULLS LAST, p.id DESC
+        LIMIT 1
+    """
+    
+    club_info = execute_query_one(club_lookup_query, [user_email])
+    
+    if club_info:
+        return (club_info["club_name"], club_info["club_id"])
+    
+    # No club found - this should rarely happen
+    raise ValueError(f"No club found for user {user_email}")
+
+
 @api_bp.route("/player-notes/<player_id>")
 @login_required
 def get_player_notes_api(player_id):
@@ -12986,26 +13027,17 @@ def get_player_notes_api(player_id):
     try:
         from app.services.mobile_service import get_player_notes
         
-        # Get user's club context
-        user_club = session["user"].get("club")
+        # Get user's club context with fallback logic
+        user_email = session["user"].get("email")
+        session_club = session["user"].get("club")
         
-        if not user_club:
+        try:
+            club_name, club_id = _get_user_club_with_fallback(user_email, session_club)
+        except ValueError as e:
             return jsonify({
                 "success": False,
-                "error": "User club not found in session"
-            }), 400
-        
-        # Get club_id from club name
-        club_query = "SELECT id FROM clubs WHERE name = %s"
-        club_record = execute_query_one(club_query, [user_club])
-        
-        if not club_record:
-            return jsonify({
-                "success": False,
-                "error": "Club not found"
+                "error": str(e)
             }), 404
-        
-        club_id = club_record["id"]
         
         # Extract actual player ID if composite (player_id_team_teamID)
         actual_player_id = player_id
@@ -13057,27 +13089,24 @@ def create_player_note_api():
         if '_team_' in player_id:
             actual_player_id = player_id.split('_team_')[0]
         
-        # Get user's club context
-        user_club = session["user"].get("club")
+        # Get user's club context with fallback logic
+        user_email = session["user"].get("email")
+        session_club = session["user"].get("club")
         user_id = session["user"].get("id")
         
-        if not user_club or not user_id:
+        if not user_id:
             return jsonify({
                 "success": False,
                 "error": "User session data incomplete"
             }), 400
         
-        # Get club_id from club name
-        club_query = "SELECT id FROM clubs WHERE name = %s"
-        club_record = execute_query_one(club_query, [user_club])
-        
-        if not club_record:
+        try:
+            club_name, club_id = _get_user_club_with_fallback(user_email, session_club)
+        except ValueError as e:
             return jsonify({
                 "success": False,
-                "error": "Club not found"
+                "error": str(e)
             }), 404
-        
-        club_id = club_record["id"]
         
         # Create the note
         result = create_player_note(actual_player_id, user_id, club_id, note_text)
