@@ -11568,6 +11568,7 @@ def get_partner_matches_team():
                 
                 # Find partner (the other home player)
                 partner_name = "Unknown"
+                partner_id = None
                 for p in home_players:
                     if p:
                         # If we have a player_id, compare against that
@@ -11575,10 +11576,12 @@ def get_partner_matches_team():
                             continue  # Skip the current player
                         elif player_id and p != player_id:
                             # Convert partner ID to readable name
+                            partner_id = p
                             partner_name = get_player_name_from_id(p)
                             break
                         # Fallback to name-based comparison
                         elif not player_id and p.lower() != player_name.lower():
+                            partner_id = p
                             partner_name = p
                             break
                 
@@ -11600,6 +11603,7 @@ def get_partner_matches_team():
                 
                 # Find partner (the other away player)
                 partner_name = "Unknown"
+                partner_id = None
                 for p in away_players:
                     if p:
                         # If we have a player_id, compare against that
@@ -11607,10 +11611,12 @@ def get_partner_matches_team():
                             continue  # Skip the current player
                         elif player_id and p != player_id:
                             # Convert partner ID to readable name
+                            partner_id = p
                             partner_name = get_player_name_from_id(p)
                             break
                         # Fallback to name-based comparison
                         elif not player_id and p.lower() != player_name.lower():
+                            partner_id = p
                             partner_name = p
                             break
                 
