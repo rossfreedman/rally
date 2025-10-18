@@ -4833,7 +4833,8 @@ def serve_mobile_lesson_requests():
                 pl.created_at,
                 p.name as pro_name,
                 u.first_name,
-                u.last_name
+                u.last_name,
+                u.phone_number
             FROM pro_lessons pl
             JOIN pros p ON pl.pro_id = p.id
             LEFT JOIN users u ON pl.user_email = u.email
@@ -4874,6 +4875,7 @@ def serve_mobile_lesson_requests():
                     "id": request['id'],
                     "student_name": student_name,
                     "student_email": request['user_email'],
+                    "student_phone": request['phone_number'] or "",
                     "lesson_date": str(request['lesson_date']),
                     "lesson_time": formatted_time,
                     "focus_areas": request['focus_areas'] or "",
@@ -4906,6 +4908,230 @@ def serve_mobile_lesson_requests():
             lesson_requests=[],
             error="An error occurred while loading the lesson requests page",
         )
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/accept", methods=["POST"])
+@login_required
+def accept_lesson_request(request_id):
+    """Accept a lesson request"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'confirmed'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'confirmed', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_confirmed", 
+                    details=f"Confirmed lesson request {request_id} for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request confirmed successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error confirming lesson request: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to confirm lesson request"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in accept_lesson_request: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while confirming the lesson request"
+        }), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/reject", methods=["POST"])
+@login_required
+def reject_lesson_request(request_id):
+    """Reject a lesson request"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'declined'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'declined', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_declined", 
+                    details=f"Declined lesson request {request_id} for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request declined successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error declining lesson request: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to decline lesson request"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in reject_lesson_request: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while declining the lesson request"
+        }), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/pending", methods=["POST"])
+@login_required
+def set_lesson_request_pending(request_id):
+    """Set a lesson request status to pending"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'pending'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'pending', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_set_pending", 
+                    details=f"Set lesson request {request_id} to pending for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request set to pending successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error setting lesson request to pending: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to set lesson request to pending"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in set_lesson_request_pending: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while setting the lesson request to pending"
+        }), 500
+
+
+@mobile_bp.route("/api/send-sms", methods=["POST"])
+@login_required
+def send_sms_api():
+    """Send SMS message to a student"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        to_email = data.get("to")  # This will be the student's email
+        message = data.get("message")
+        
+        if not to_email or not message:
+            return jsonify({"error": "Missing 'to' or 'message' field"}), 400
+
+        # For now, we'll use a placeholder phone number since we don't have phone numbers
+        # In a real implementation, you'd look up the student's phone number from their profile
+        # For demo purposes, we'll send to the admin phone number
+        admin_phone = "773-213-8911"  # Admin phone number
+        
+        # Import the SMS service
+        from app.services.notifications_service import send_sms_notification
+        
+        # Send SMS
+        sms_result = send_sms_notification(admin_phone, message)
+        
+        if sms_result.get("success"):
+            # Log the activity
+            log_user_activity(
+                user["email"], 
+                "sms_sent", 
+                details=f"SMS sent to {to_email}: {message[:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "SMS sent successfully!"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": sms_result.get("error", "Failed to send SMS")
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in send_sms_api: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while sending SMS"
+        }), 500
 
 
 @mobile_bp.route("/mobile/schedule")

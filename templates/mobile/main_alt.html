@@ -1,35 +1,8 @@
 {% extends "mobile/layout.html" %}
 
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rally Dashboard</title>
-    
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Tailwind Config -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'rally-green': '#045454',
-                        'rally-green-light': '#056565',
-                        'rally-green-dark': '#033333',
-                    }
-                }
-            }
-        }
-    </script>
-    
-    <style>
+<!-- Custom CSS for main-alt page -->
+<style>
         * {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -75,14 +48,84 @@
         .carousel::-webkit-scrollbar {
             display: none;
         }
+
+        /* Sticky Navigation Styles */
+        .sticky-nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background: linear-gradient(135deg, #045454 0%, #067676 100%);
+        }
+
+        .sticky-nav.scrolled {
+            background: rgba(4, 84, 84, 0.98);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-button {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(0);
+        }
+
+        .nav-button.scrolled {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-button.scrolled:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Add padding to account for sticky nav */
+        .main-content {
+            padding-top: 0;
+        }
+
+        /* Persistence styles */
+        .persistent-card {
+            transition: all 0.3s ease;
+        }
+        
+        .persistent-card.loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .persistent-card.loaded {
+            opacity: 1;
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
-</head>
-<body class="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+
+<!-- Main content starts here -->
 
     <!-- ============================================
-         HEADER
+         HEADER (Fixed at top, below navbar)
          ============================================ -->
-    <header class="section-hero text-white shadow-lg">
+    <header class="section-hero text-white shadow-lg" style="margin-top: 56px;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-3">
@@ -106,16 +149,19 @@
                 {% endif %}
             </div>
             
-            <!-- Navigation Tabs -->
-            <nav class="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                <a href="#schedule" class="px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/30 transition">Schedule</a>
-                <a href="#team" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Team</a>
-                <a href="#club" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Club</a>
-                <a href="#play" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Play</a>
-                <a href="#improve" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Improve</a>
-            </nav>
         </div>
     </header>
+
+    <!-- Sticky Navigation Tabs (Persistent below header) -->
+    <nav id="main-nav" class="sticky-nav bg-gradient-to-r from-rally-green to-rally-green-light px-4 py-3 shadow-lg" style="position: sticky; top: 0; z-index: 50;">
+        <div class="max-w-7xl mx-auto flex gap-2 overflow-x-auto scrollbar-none">
+            <a href="#schedule" class="nav-button px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/30 transition text-white">Schedule</a>
+            <a href="#team" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Team</a>
+            <a href="#club" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Club</a>
+            <a href="#play" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Play</a>
+            <a href="#improve" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Improve</a>
+        </div>
+    </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
@@ -126,7 +172,7 @@
             <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Dashboard</h2>
             
             <!-- PTI Hero Card -->
-            <div class="section-hero rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl hover-lift">
+            <div class="section-hero rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl hover-lift persistent-card" id="pti-card">
                 <div id="pti-loading" class="py-8">
                     <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto"></div>
                 </div>
@@ -145,12 +191,12 @@
             
             <!-- Stats Grid -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
                     <div class="text-sm text-gray-500 mb-2">My Record</div>
                     <div id="my-record" class="text-3xl font-bold text-gray-900">-- - --</div>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
                     <div class="text-sm text-gray-500 mb-2">Win Rate</div>
                     <div id="win-rate" class="text-3xl font-bold text-gray-900">--%</div>
                 </div>
@@ -546,8 +592,38 @@
          JAVASCRIPT - DATA LOADING
          ============================================ -->
     <script>
+        console.log('Main Alt JavaScript loaded');
+        console.log('Testing if our script is working...');
+        
+        // Add a visible test to make sure our script is running
+        window.testStickyNav = function() {
+            console.log('Test function called');
+            const nav = document.getElementById('main-nav');
+            if (nav) {
+                nav.style.border = '5px solid red';
+                console.log('Navigation element found and styled');
+            } else {
+                console.log('Navigation element NOT found');
+            }
+        };
+        
+        // Test if we can find the navigation element right away
+        setTimeout(function() {
+            const nav = document.getElementById('main-nav');
+            console.log('Navigation element found:', nav);
+            if (nav) {
+                console.log('Navigation classes:', nav.className);
+                console.log('Navigation position:', nav.offsetTop);
+            }
+        }, 100);
+        
         // Initialize all data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Starting initialization');
+            
+            // Initialize persistence system
+            initPersistence();
+            
             loadPTIData();
             loadUpcomingMatches();
             loadPractices();
@@ -557,7 +633,104 @@
             loadSeriesStandings();
             loadClubOverview();
             loadPickupGames();
+            console.log('About to initialize sticky navigation');
+            initStickyNavigation();
+            console.log('Sticky navigation initialization complete');
         });
+
+        // ============================================
+        // PERSISTENCE SYSTEM
+        // ============================================
+        function initPersistence() {
+            console.log('Initializing persistence system...');
+            
+            // Restore persisted data immediately
+            restorePersistedData();
+            
+            // Set up periodic saving
+            setInterval(savePersistedData, 30000); // Save every 30 seconds
+            
+            // Save on page unload
+            window.addEventListener('beforeunload', savePersistedData);
+            
+            console.log('Persistence system initialized');
+        }
+
+        function savePersistedData() {
+            try {
+                const dashboardData = {
+                    pti: {
+                        value: document.getElementById('pti-value')?.textContent || '--',
+                        message: document.getElementById('pti-message')?.textContent || '',
+                        timestamp: Date.now()
+                    },
+                    record: {
+                        value: document.getElementById('my-record')?.textContent || '-- - --',
+                        timestamp: Date.now()
+                    },
+                    winRate: {
+                        value: document.getElementById('win-rate')?.textContent || '--%',
+                        timestamp: Date.now()
+                    }
+                };
+                
+                localStorage.setItem('rally_dashboard_data', JSON.stringify(dashboardData));
+                console.log('Dashboard data persisted to localStorage');
+            } catch (error) {
+                console.error('Error saving persisted data:', error);
+            }
+        }
+
+        function restorePersistedData() {
+            try {
+                const savedData = localStorage.getItem('rally_dashboard_data');
+                if (!savedData) {
+                    console.log('No persisted data found');
+                    return;
+                }
+                
+                const dashboardData = JSON.parse(savedData);
+                const now = Date.now();
+                const maxAge = 5 * 60 * 1000; // 5 minutes
+                
+                // Restore PTI data if recent
+                if (dashboardData.pti && (now - dashboardData.pti.timestamp) < maxAge) {
+                    const ptiCard = document.getElementById('pti-card');
+                    if (ptiCard) {
+                        ptiCard.classList.add('loaded');
+                        document.getElementById('pti-value').textContent = dashboardData.pti.value;
+                        document.getElementById('pti-message').textContent = dashboardData.pti.message;
+                        document.getElementById('pti-loading').classList.add('hidden');
+                        document.getElementById('pti-content').classList.remove('hidden');
+                        console.log('PTI data restored from cache');
+                    }
+                }
+                
+                // Restore record data if recent
+                if (dashboardData.record && (now - dashboardData.record.timestamp) < maxAge) {
+                    const recordCard = document.getElementById('record-card');
+                    if (recordCard) {
+                        recordCard.classList.add('loaded');
+                        document.getElementById('my-record').textContent = dashboardData.record.value;
+                        console.log('Record data restored from cache');
+                    }
+                }
+                
+                // Restore win rate data if recent
+                if (dashboardData.winRate && (now - dashboardData.winRate.timestamp) < maxAge) {
+                    const winrateCard = document.getElementById('winrate-card');
+                    if (winrateCard) {
+                        winrateCard.classList.add('loaded');
+                        document.getElementById('win-rate').textContent = dashboardData.winRate.value;
+                        console.log('Win rate data restored from cache');
+                    }
+                }
+                
+                console.log('Persisted data restored successfully');
+            } catch (error) {
+                console.error('Error restoring persisted data:', error);
+            }
+        }
         
         // ============================================
         // PTI DATA LOADING
@@ -576,6 +749,9 @@
                 if (chartResponse.status === 404) {
                     document.getElementById('pti-value').textContent = '--';
                     document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
+                    // Mark card as loaded and save to persistence
+                    document.getElementById('pti-card').classList.add('loaded');
+                    savePersistedData();
                     return;
                 }
                 
@@ -584,6 +760,9 @@
                 if (chartData.error || !chartData.matches || chartData.matches.length === 0) {
                     document.getElementById('pti-value').textContent = '--';
                     document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
+                    // Mark card as loaded and save to persistence
+                    document.getElementById('pti-card').classList.add('loaded');
+                    savePersistedData();
                     return;
                 }
                 
@@ -620,6 +799,11 @@
                         document.getElementById('my-record').textContent = `${wins} - ${losses}`;
                         document.getElementById('win-rate').textContent = `${winRate}%`;
                         
+                        // Mark cards as loaded and save to persistence
+                        document.getElementById('record-card').classList.add('loaded');
+                        document.getElementById('winrate-card').classList.add('loaded');
+                        savePersistedData();
+                        
                         // Calculate win streak from last-3-matches (for streak only)
                         const lastMatchesResponse = await fetch('/api/last-3-matches');
                         if (lastMatchesResponse.ok) {
@@ -651,12 +835,20 @@
                         document.getElementById('my-record').textContent = '0 - 0';
                         document.getElementById('win-rate').textContent = '0%';
                         document.getElementById('win-streak').textContent = '--';
+                        // Mark cards as loaded and save to persistence
+                        document.getElementById('record-card').classList.add('loaded');
+                        document.getElementById('winrate-card').classList.add('loaded');
+                        savePersistedData();
                     }
                 } else {
                     // Fallback if current-season-stats fails
                     document.getElementById('my-record').textContent = '0 - 0';
                     document.getElementById('win-rate').textContent = '0%';
                     document.getElementById('win-streak').textContent = '--';
+                    // Mark cards as loaded and save to persistence
+                    document.getElementById('record-card').classList.add('loaded');
+                    document.getElementById('winrate-card').classList.add('loaded');
+                    savePersistedData();
                 }
                 
                 // Calculate trend and build message
@@ -675,6 +867,10 @@
                 
                 document.getElementById('pti-message').innerHTML = message + deltaDisplay;
                 
+                // Mark card as loaded and save to persistence
+                document.getElementById('pti-card').classList.add('loaded');
+                savePersistedData();
+                
                 // Find best partner from current season data (same as analyze-me page)
                 // For now, we'll use a simplified approach since we don't have partner analysis API
                 // In the future, we could add a partner analysis API endpoint
@@ -689,6 +885,9 @@
                 content.classList.remove('hidden');
                 document.getElementById('pti-value').textContent = '--';
                 document.getElementById('pti-message').innerHTML = 'Unable to load stats';
+                // Mark card as loaded and save to persistence
+                document.getElementById('pti-card').classList.add('loaded');
+                savePersistedData();
             }
         }
         
@@ -1301,9 +1500,91 @@
             loading.classList.add('hidden');
             empty.classList.remove('hidden');
         }
+
+        // ============================================
+        // STICKY NAVIGATION
+        // ============================================
+        function initStickyNavigation() {
+            console.log('initStickyNavigation function called');
+            const nav = document.getElementById('main-nav');
+            console.log('Navigation element:', nav);
+            
+            if (!nav) {
+                console.error('Navigation element not found');
+                return;
+            }
+            
+            const navButtons = nav.querySelectorAll('.nav-button');
+            console.log('Found nav buttons:', navButtons.length);
+            console.log('Sticky navigation initialized');
+            
+            // Get the initial position of the navigation
+            const navOffsetTop = nav.offsetTop;
+            console.log('Navigation offset top:', navOffsetTop);
+            
+            function handleScroll() {
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                console.log('Scroll position:', scrollTop, 'Nav offset:', navOffsetTop);
+                
+                // Check if we've scrolled past the navigation's initial position
+                if (scrollTop > navOffsetTop - 50) { // Add some threshold for better UX
+                    if (!nav.classList.contains('scrolled')) {
+                        console.log('Adding scrolled class');
+                        nav.classList.add('scrolled');
+                        navButtons.forEach(button => {
+                            button.classList.add('scrolled');
+                        });
+                    }
+                } else {
+                    if (nav.classList.contains('scrolled')) {
+                        console.log('Removing scrolled class');
+                        nav.classList.remove('scrolled');
+                        navButtons.forEach(button => {
+                            button.classList.remove('scrolled');
+                        });
+                    }
+                }
+            }
+            
+            // Throttle scroll events for better performance
+            let ticking = false;
+            function requestTick() {
+                if (!ticking) {
+                    requestAnimationFrame(handleScroll);
+                    ticking = true;
+                    setTimeout(() => { ticking = false; }, 16); // ~60fps
+                }
+            }
+            
+            // Add scroll event listener
+            console.log('Adding scroll event listener');
+            window.addEventListener('scroll', requestTick, { passive: true });
+            console.log('Scroll event listener added');
+            
+            // Handle smooth scrolling for anchor links
+            navButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.querySelector(href);
+                        if (target) {
+                            const targetOffsetTop = target.offsetTop - 80; // Account for sticky nav height
+                            window.scrollTo({
+                                top: targetOffsetTop,
+                                behavior: 'smooth'
+                            });
+                        }
+                    }
+                });
+            });
+            
+            // Initial call to set correct state
+            console.log('Setting initial scroll state');
+            handleScroll();
+            console.log('Initial scroll state set');
+        }
     </script>
-    
-</body>
-</html>
+
 {% endblock %}
 
