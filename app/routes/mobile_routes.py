@@ -3365,12 +3365,7 @@ def serve_mobile_schedule_lesson():
                 image_url,
                 email,
                 is_active,
-                private_30min_price,
-                private_45min_price,
-                private_60min_price,
-                semi_private_60min_price,
-                group_3players_price,
-                group_4plus_price
+                pricing_info
             FROM pros
             WHERE is_active = true
             ORDER BY name DESC
