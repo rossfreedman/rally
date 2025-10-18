@@ -3477,6 +3477,43 @@ def schedule_lesson_api():
                 data["focus_areas"], data.get("notes", ""), "pending"
             ])
             print("✅ Lesson request saved to database")
+            
+            # Get pro name for SMS notification
+            pro_query = "SELECT name FROM pros WHERE id = %s"
+            pro_result = execute_query(pro_query, [data["pro_id"]])
+            pro_name = pro_result[0]["name"] if pro_result else "Unknown Pro"
+            
+            # Send SMS notification to admin
+            try:
+                from app.services.notifications_service import send_sms_notification
+                
+                admin_phone = "773-213-8911"  # Admin phone number
+                
+                # Format lesson date nicely
+                lesson_date_obj = datetime.strptime(data["lesson_date"], "%Y-%m-%d")
+                formatted_date = lesson_date_obj.strftime("%A, %B %d, %Y")
+                
+                # Format lesson time nicely
+                lesson_time_obj = datetime.strptime(data["lesson_time"], "%H:%M")
+                formatted_time = lesson_time_obj.strftime("%I:%M %p")
+                
+                # Create SMS message
+                sms_message = f"🎾 NEW LESSON REQUEST\n\nStudent: {user_name} ({user_email})\nPro: {pro_name}\nDate: {formatted_date}\nTime: {formatted_time}\nFocus: {data['focus_areas']}"
+                
+                if data.get("notes"):
+                    sms_message += f"\nNotes: {data['notes']}"
+                
+                sms_result = send_sms_notification(admin_phone, sms_message)
+                
+                if sms_result.get("success"):
+                    print("✅ SMS notification sent to admin")
+                else:
+                    print(f"⚠️ SMS notification failed: {sms_result.get('error', 'Unknown error')}")
+                    
+            except Exception as sms_error:
+                print(f"⚠️ Could not send SMS notification: {sms_error}")
+                # Continue anyway - lesson request is still saved
+                
         except Exception as db_error:
             print(f"⚠️ Could not save to database (tables may not exist yet): {db_error}")
             # Continue anyway - the request is still logged
