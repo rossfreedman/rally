@@ -4797,7 +4797,7 @@ def serve_mobile_pro():
 @mobile_bp.route("/mobile/lesson-requests")
 @login_required
 def serve_mobile_lesson_requests():
-    """Serve the lesson requests page with mock data and accept/message functionality"""
+    """Serve the lesson requests page with real data from pro_lessons table"""
     try:
         user = session.get("user")
         if not user:
@@ -4807,58 +4807,90 @@ def serve_mobile_lesson_requests():
             session["user"]["email"], "page_visit", page="mobile_lesson_requests"
         )
 
-        # Mock lesson request data
-        mock_lesson_requests = [
-            {
-                "id": 1,
-                "student_name": "John Smith",
-                "student_email": "john.smith@email.com",
-                "lesson_date": "2024-01-15",
-                "lesson_time": "2:00 PM",
-                "focus_areas": "Backhand technique, Volley positioning",
-                "notes": "Looking to improve consistency on backhand shots",
-                "status": "pending",
-                "created_at": "2024-01-10"
-            },
-            {
-                "id": 2,
-                "student_name": "Sarah Johnson",
-                "student_email": "sarah.j@email.com",
-                "lesson_date": "2024-01-18",
-                "lesson_time": "10:00 AM",
-                "focus_areas": "Serve technique",
-                "notes": "Want to work on power and accuracy",
-                "status": "pending",
-                "created_at": "2024-01-11"
-            },
-            {
-                "id": 3,
-                "student_name": "Mike Davis",
-                "student_email": "mike.davis@email.com",
-                "lesson_date": "2024-01-20",
-                "lesson_time": "4:00 PM",
-                "focus_areas": "Court positioning, Strategy",
-                "notes": "Preparing for upcoming tournament",
-                "status": "confirmed",
-                "created_at": "2024-01-09"
-            },
-            {
-                "id": 4,
-                "student_name": "Lisa Wilson",
-                "student_email": "lisa.wilson@email.com",
-                "lesson_date": "2024-01-22",
-                "lesson_time": "3:00 PM",
-                "focus_areas": "Return of serve",
-                "notes": "Struggling with aggressive returns",
-                "status": "pending",
-                "created_at": "2024-01-12"
-            }
-        ]
+        # Get user's club information
+        user_club = user.get("club", "")
+        user_club_id = user.get("club_id")
+        
+        if not user_club:
+            print(f"❌ No club found for user: {user['email']}")
+            return render_template(
+                "mobile/lesson_requests.html",
+                session_data={"user": user},
+                lesson_requests=[],
+                error="No club information found. Please contact support."
+            )
+
+        # Query lesson requests for pros in the user's club
+        lesson_requests_query = """
+            SELECT 
+                pl.id,
+                pl.user_email,
+                pl.lesson_date,
+                pl.lesson_time,
+                pl.focus_areas,
+                pl.notes,
+                pl.status,
+                pl.created_at,
+                p.name as pro_name,
+                u.first_name,
+                u.last_name
+            FROM pro_lessons pl
+            JOIN pros p ON pl.pro_id = p.id
+            LEFT JOIN users u ON pl.user_email = u.email
+            WHERE p.is_active = true
+            ORDER BY pl.lesson_date DESC, pl.lesson_time DESC
+        """
+        
+        try:
+            lesson_requests_data = execute_query(lesson_requests_query)
+            
+            # Format the data for the template
+            lesson_requests = []
+            for request in lesson_requests_data:
+                student_name = f"{request['first_name'] or ''} {request['last_name'] or ''}".strip()
+                if not student_name:
+                    # Fallback to email if no name found
+                    student_name = request['user_email'].split('@')[0].replace('.', ' ').title()
+                
+                # Format lesson time
+                lesson_time_str = str(request['lesson_time'])
+                if ':' in lesson_time_str:
+                    time_parts = lesson_time_str.split(':')
+                    hour = int(time_parts[0])
+                    minute = time_parts[1]
+                    
+                    if hour == 0:
+                        formatted_time = f"12:{minute} AM"
+                    elif hour < 12:
+                        formatted_time = f"{hour}:{minute} AM"
+                    elif hour == 12:
+                        formatted_time = f"12:{minute} PM"
+                    else:
+                        formatted_time = f"{hour - 12}:{minute} PM"
+                else:
+                    formatted_time = lesson_time_str
+                
+                lesson_requests.append({
+                    "id": request['id'],
+                    "student_name": student_name,
+                    "student_email": request['user_email'],
+                    "lesson_date": str(request['lesson_date']),
+                    "lesson_time": formatted_time,
+                    "focus_areas": request['focus_areas'] or "",
+                    "notes": request['notes'] or "",
+                    "status": request['status'],
+                    "created_at": request['created_at'].strftime('%Y-%m-%d') if request['created_at'] else "",
+                    "pro_name": request['pro_name']
+                })
+                
+        except Exception as e:
+            print(f"❌ Error querying lesson requests: {e}")
+            lesson_requests = []
 
         return render_template(
             "mobile/lesson_requests.html", 
             session_data={"user": user},
-            lesson_requests=mock_lesson_requests
+            lesson_requests=lesson_requests
         )
 
     except Exception as e:
