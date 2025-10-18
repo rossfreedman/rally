@@ -1311,7 +1311,7 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
 
 <!-- League Switching Modal -->
 <div id="leagueSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[40rem] overflow-hidden flex flex-col" style="max-height: 40rem !important; height: auto !important;">
         <!-- Modal Header -->
         <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-white" style="color: white !important;">
@@ -1335,11 +1335,11 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
         </div>
         
         <!-- Available League Options -->
-        <div class="p-4 bg-gray-50">
+        <div class="p-4 bg-gray-50 flex-1 overflow-y-auto">
             <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                 Switch to Different League
             </div>
-            <div class="space-y-2 league-options">
+            <div class="space-y-2 league-options min-h-[300px]" style="min-height: 300px !important;">
                 <!-- Options will be loaded dynamically -->
                 <div class="text-center py-4 text-gray-500">
                     <i class="fas fa-spinner fa-spin"></i> Loading leagues...
@@ -1351,7 +1351,7 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
 
 <!-- Club/Team Switching Modal (Only on home page) -->
 <div id="clubSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[40rem] overflow-hidden flex flex-col" style="max-height: 40rem !important; height: auto !important;">
         <!-- Modal Header -->
         <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-white">
@@ -1375,11 +1375,11 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
         </div>
         
         <!-- Available Team Options -->
-        <div class="p-4 bg-gray-50">
+        <div class="p-4 bg-gray-50 flex-1 overflow-y-auto">
             <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
                 Switch to Different Team (Same League)
             </div>
-            <div class="space-y-2 club-options">
+            <div class="space-y-2 club-options min-h-[300px]" style="min-height: 300px !important;">
                 <!-- Options will be loaded dynamically -->
                 <div class="text-center py-4 text-gray-500">
                     <span class="sf-symbol">􀋦</span> Loading teams...

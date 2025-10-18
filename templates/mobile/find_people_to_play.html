@@ -576,11 +576,45 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             await loadInitialData();
             setupEventListeners();
+            
+            // Check for URL parameters and auto-populate form
+            handleURLParameters();
+            
             // Don't load players initially - wait for user to search/filter
             showLoading(false);
         } catch (error) {
             console.error('Error initializing page:', error);
             showError('Failed to load page data');
+        }
+    }
+    
+    // Handle URL parameters for auto-search
+    function handleURLParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const firstName = urlParams.get('first_name');
+        const lastName = urlParams.get('last_name');
+        const series = urlParams.get('series');
+        const clubOnly = urlParams.get('club_only');
+        
+        // Populate form fields if parameters exist
+        if (firstName) {
+            firstNameFilter.value = firstName;
+        }
+        if (lastName) {
+            lastNameFilter.value = lastName;
+        }
+        if (series) {
+            seriesFilter.value = series;
+        }
+        if (clubOnly === 'true') {
+            clubOnlyFilter.checked = true;
+            clubFilterStatus.style.display = 'flex';
+        }
+        
+        // Auto-execute search if any parameters are provided
+        if (firstName || lastName || series || clubOnly === 'true') {
+            console.log('Auto-executing search with URL parameters');
+            loadPlayers();
         }
     }
 

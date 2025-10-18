@@ -1742,6 +1742,12 @@
                         drawer.style.transform = 'translateX(100%)';
                         overlay.classList.add('hidden');
                         hamburger.classList.remove('open');
+                        
+                        // Show persistent navigation when drawer is forced closed
+                        const persistentNav = document.getElementById('main-nav');
+                        if (persistentNav) {
+                            persistentNav.style.display = 'block';
+                        }
                     }
                 });
             });
@@ -1761,10 +1767,22 @@
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
+                    
+                    // Show persistent navigation when drawer closes
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'block';
+                    }
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
                     hamburger.classList.add('open');
+                    
+                    // Hide persistent navigation when drawer opens
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'none';
+                    }
                 }
 
                 // Reset transition state after animation completes
@@ -1827,6 +1845,13 @@
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
+                    
+                    // Show persistent navigation when drawer closes
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'block';
+                    }
+                    
                     setTimeout(() => { intentionalChange = false; }, 300);
                     return;
                 }

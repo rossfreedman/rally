@@ -2271,6 +2271,33 @@ def find_training_video():
     return find_training_video_data()
 
 
+@api_bp.route("/training-videos")
+@login_required
+def get_training_videos():
+    """Get all training videos for the featured video section"""
+    try:
+        import json
+        import os
+        
+        # Load training videos from JSON file (same as mobile training videos page)
+        videos_path = os.path.join(
+            "data",
+            "leagues",
+            "all",
+            "improve_data",
+            "platform_tennis_videos_full_30.json",
+        )
+        
+        with open(videos_path, "r", encoding="utf-8") as f:
+            training_videos = json.load(f)
+            
+        return jsonify(training_videos)
+        
+    except Exception as e:
+        print(f"Error loading training videos: {str(e)}")
+        return jsonify({"error": "Could not load training videos"}), 500
+
+
 # COMMENTED OUT: Using enhanced OpenAI Assistant from rally_ai.py instead
 # @api_bp.route('/api/chat', methods=['POST'])
 # @login_required
@@ -13356,6 +13383,204 @@ def get_current_season_stats_api():
         
     except Exception as e:
         print(f"Error getting current season stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/rising-stars")
+@login_required
+def get_rising_stars():
+    """Get the 10 players with the biggest PTI gains in the current league"""
+    try:
+        import csv
+        import os
+        from database_utils import execute_query
+        
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Not authenticated"}), 401
+            
+        league_id = user.get("league_id")
+        if not league_id:
+            return jsonify({"error": "League information not available"}), 400
+        
+        # Convert string league_id to integer if needed
+        user_league_db_id = None
+        if isinstance(league_id, str) and league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(league_id, int):
+            user_league_db_id = league_id
+            
+        if not user_league_db_id:
+            return jsonify({"error": "Invalid league ID"}), 400
+        
+        # Load starting PTI data from CSV
+        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
+        starting_pti_data = {}
+        
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    first_name = row.get('First Name', '').strip()
+                    last_name = row.get('Last Name', '').strip()
+                    pti_str = row.get('PTI', '').strip()
+                    
+                    if first_name and last_name and pti_str:
+                        try:
+                            pti_value = float(pti_str)
+                            key = f"{first_name.lower()}_{last_name.lower()}"
+                            starting_pti_data[key] = pti_value
+                        except ValueError:
+                            continue
+        except Exception as e:
+            print(f"Error reading CSV file: {e}")
+            return jsonify({"error": "Could not load starting PTI data"}), 500
+        
+        # Get current PTI data for all players in the league
+        current_players_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti as current_pti,
+                c.name as club_name,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.tenniscores_player_id IS NOT NULL
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.first_name, p.last_name
+        """
+        
+        current_players = execute_query(current_players_query, [user_league_db_id])
+        
+        # Calculate PTI deltas
+        rising_stars = []
+        for player in current_players:
+            first_name = player['first_name'].strip()
+            last_name = player['last_name'].strip()
+            current_pti = float(player['current_pti'])
+            
+            # Look up starting PTI
+            key = f"{first_name.lower()}_{last_name.lower()}"
+            starting_pti = starting_pti_data.get(key)
+            
+            if starting_pti is not None:
+                pti_delta = current_pti - starting_pti
+                rising_stars.append({
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'current_pti': current_pti,
+                    'starting_pti': starting_pti,
+                    'pti_delta': pti_delta,
+                    'club_name': player['club_name'],
+                    'series_name': player['series_name']
+                })
+        
+        # Sort by PTI delta (highest gains first) and take top 10
+        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=True)
+        top_rising_stars = rising_stars[:10]
+        
+        return jsonify({
+            "success": True,
+            "rising_stars": top_rising_stars,
+            "total_players_analyzed": len(rising_stars)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting rising stars: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/current-season-partner-analysis")
+@login_required
+def get_current_season_partner_analysis_api():
+    """Get current season partner analysis for dashboard (same as analyze-me page)"""
+    try:
+        from app.services.mobile_service import get_current_season_partner_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        player_id = user_data.get("tenniscores_player_id")
+        league_id_int = user_data.get("league_id")
+        team_context = user_data.get("team_context") or user_data.get("team_id")
+        
+        if not player_id:
+            return jsonify({
+                "success": False,
+                "error": "Player ID not found in session"
+            }), 400
+        
+        # Get partner analysis data (same as analyze-me page)
+        partner_analysis = get_current_season_partner_analysis(player_id, league_id_int, team_context)
+        
+        # Return the partner analysis data
+        return jsonify({
+            "success": True,
+            "partner_analysis": partner_analysis
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting current season partner analysis: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/club-standings")
+@login_required
+def get_club_standings_api():
+    """Get club standings data for dashboard (same as my-club page)"""
+    try:
+        from app.services.mobile_service import get_mobile_club_data
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get club data (same as my-club page)
+        club_data = get_mobile_club_data(user_data)
+        
+        # Return the club standings data
+        return jsonify({
+            "success": True,
+            "tennaqua_standings": club_data.get("tennaqua_standings", []),
+            "player_streaks": club_data.get("player_streaks", []),
+            "club_name": club_data.get("club_name", user_data.get("club", "Unknown"))
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting club standings: {str(e)}")
         return jsonify({
             "success": False,
             "error": str(e)

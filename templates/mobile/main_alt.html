@@ -80,6 +80,17 @@
             transform: translateY(-1px);
         }
 
+        /* Active state styling */
+        .nav-button.active {
+            background: #bff863 !important;
+            color: #045454 !important;
+        }
+
+        .nav-button.active:hover {
+            background: #bff863 !important;
+            color: #045454 !important;
+        }
+
         /* Smooth scroll behavior */
         html {
             scroll-behavior: smooth;
@@ -113,6 +124,29 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
+            }
+        }
+        
+        /* Video aspect ratio */
+        .aspect-video {
+            aspect-ratio: 16 / 9;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Fallback for browsers that don't support aspect-ratio */
+        @supports not (aspect-ratio: 16 / 9) {
+            .aspect-video {
+                padding-bottom: 56.25%; /* 16:9 aspect ratio */
+                height: 0;
+                position: relative;
+            }
+            .aspect-video > * {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
             }
         }
     </style>
@@ -153,7 +187,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" style="position: sticky; top: 56px; z-index: 50;">
         <nav id="main-nav" class="sticky-nav bg-gradient-to-r from-rally-green to-rally-green-light rounded-3xl px-6 py-4 shadow-xl">
             <div class="flex gap-1.5 justify-center">
-                <a href="#schedule" class="nav-button px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/30 transition text-white">Schedule</a>
+                <a href="#schedule" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Schedule</a>
                 <a href="#team" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Team</a>
                 <a href="#club" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Club</a>
                 <a href="#play" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Play</a>
@@ -189,25 +223,34 @@
             </div>
             
             <!-- Stats Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
-                    <div class="text-sm text-gray-500 mb-2">My Record</div>
-                    <div id="my-record" class="text-3xl font-bold text-gray-900">-- - --</div>
+            <div class="space-y-4">
+                <!-- First Row: My Record and Win Rate -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
+                        <div class="text-sm text-gray-500 mb-2">My Record</div>
+                        <div id="my-record" class="text-3xl font-bold text-gray-900">-- - --</div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
+                        <div class="text-sm text-gray-500 mb-2">Win Rate</div>
+                        <div id="win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                    </div>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
-                    <div class="text-sm text-gray-500 mb-2">Win Rate</div>
-                    <div id="win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                <!-- Second Row: Win Streak -->
+                <div class="grid grid-cols-1">
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                        <div class="text-sm text-gray-500 mb-2">Win Streak</div>
+                        <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
+                    </div>
                 </div>
                 
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                    <div class="text-sm text-gray-500 mb-2">Best Partner</div>
-                    <div id="best-partner" class="text-xl font-semibold text-gray-900">Loading...</div>
-                </div>
-                
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                    <div class="text-sm text-gray-500 mb-2">Win Streak</div>
-                    <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
+                <!-- Third Row: Best Partner -->
+                <div class="grid grid-cols-1">
+                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                        <div class="text-sm text-gray-500 mb-2">Best Partner</div>
+                        <div id="best-partner" class="text-xl font-semibold text-gray-900">Loading...</div>
+                    </div>
                 </div>
             </div>
             
@@ -251,51 +294,6 @@
                 </div>
             </div>
             
-            <!-- Club Overview -->
-            <div class="bg-white rounded-2xl p-6 shadow-md mb-6">
-                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-chart-bar text-rally-green"></i>
-                    {{ session_data.user.club }} Overview
-                </h3>
-                
-                <div id="club-overview-loading" class="text-center py-8">
-                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
-                </div>
-                
-                <div id="club-overview-content" class="hidden">
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-record" class="text-2xl font-bold text-gray-900">-- - --</div>
-                            <div class="text-sm text-gray-600">Record</div>
-                        </div>
-                        <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-win-rate" class="text-2xl font-bold text-gray-900">--%</div>
-                            <div class="text-sm text-gray-600">Win Rate</div>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <h4 class="font-semibold text-gray-900 mb-2">Top Players</h4>
-                            <div id="club-top-players" class="space-y-2">
-                                <div class="text-center py-4 text-gray-500">Loading...</div>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h4 class="font-semibold text-gray-900 mb-2">Top Courts</h4>
-                            <div id="club-top-courts" class="space-y-2">
-                                <div class="text-center py-4 text-gray-500">Loading...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="club-overview-empty" class="hidden text-center py-8">
-                    <i class="fas fa-chart-bar text-4xl text-gray-300 mb-2"></i>
-                    <p class="text-gray-500">No club data available</p>
-                </div>
-            </div>
 
             <!-- Upcoming Matches & Practices -->
             <div class="grid lg:grid-cols-2 gap-6">
@@ -366,25 +364,31 @@
             <div class="bg-white rounded-2xl p-6 shadow-md">
                 <h3 class="text-2xl font-bold text-gray-900 mb-6">How Are We Doing?</h3>
                 
-                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="text-center p-4 bg-gray-50 rounded-xl">
-                        <div class="text-sm text-gray-500 mb-1">Total Points</div>
-                        <div id="team-points" class="text-3xl font-bold text-rally-green">--</div>
+                <div class="space-y-4">
+                    <!-- First Row: Total Points and Behind 1st -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-sm text-gray-500 mb-1">Total Points</div>
+                            <div id="team-points" class="text-3xl font-bold text-rally-green">--</div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-sm text-gray-500 mb-1">Behind 1st</div>
+                            <div id="points-behind" class="text-3xl font-bold text-orange-500">--</div>
+                        </div>
                     </div>
                     
-                    <div class="text-center p-4 bg-gray-50 rounded-xl">
-                        <div class="text-sm text-gray-500 mb-1">Behind 1st</div>
-                        <div id="points-behind" class="text-3xl font-bold text-orange-500">--</div>
-                    </div>
-                    
-                    <div class="text-center p-4 bg-gray-50 rounded-xl">
-                        <div class="text-sm text-gray-500 mb-1">Team Record</div>
-                        <div id="team-record" class="text-2xl font-bold text-gray-900">-- - --</div>
-                    </div>
-                    
-                    <div class="text-center p-4 bg-gray-50 rounded-xl">
-                        <div class="text-sm text-gray-500 mb-1">Win Rate</div>
-                        <div id="team-win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                    <!-- Second Row: Team Record and Win Rate -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-sm text-gray-500 mb-1">Team Record</div>
+                            <div id="team-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-sm text-gray-500 mb-1">Win Rate</div>
+                            <div id="team-win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -419,9 +423,15 @@
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
                 </div>
                 
-                <div id="series-content" class="hidden space-y-3"></div>
+                <div id="series-content" class="hidden">
+                    <div class="overflow-x-auto">
+                        <table id="seriesTable" class="w-full text-sm text-left" style="table-layout: fixed;">
+                            <!-- Table will be populated by JS -->
+                        </table>
+                    </div>
+                </div>
                 
-                <a href="/mobile/series" class="block mt-6 text-center py-3 bg-gray-100 text-gray-900 rounded-xl font-semibold hover:bg-gray-200 transition">
+                <a href="/mobile/my-series" class="block mt-6 text-center py-3 bg-gray-100 text-gray-900 rounded-xl font-semibold hover:bg-gray-200 transition">
                     View Full Standings →
                 </a>
             </div>
@@ -444,6 +454,52 @@
              ============================================ -->
         <section id="club" class="space-y-6">
             <h2 class="text-4xl font-bold text-gray-900 tracking-tight">My Club</h2>
+            
+            <!-- Club Overview -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-chart-bar text-rally-green"></i>
+                    {{ session_data.user.club }} Overview
+                </h3>
+                
+                <div id="club-overview-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="club-overview-content" class="hidden">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div id="club-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                            <div class="text-sm text-gray-600">Record</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div id="club-win-rate" class="text-2xl font-bold text-gray-900">--%</div>
+                            <div class="text-sm text-gray-600">Win Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Top Players</h4>
+                            <div id="club-top-players" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading...</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Top Courts</h4>
+                            <div id="club-top-courts" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="club-overview-empty" class="hidden text-center py-8">
+                    <i class="fas fa-chart-bar text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No club data available</p>
+                </div>
+            </div>
             
             <!-- Club Highlights Grid -->
             <div class="grid md:grid-cols-3 gap-6">
@@ -528,10 +584,10 @@
         </section>
 
         <!-- ============================================
-             5. IMPROVE SECTION
+             5. PLAY SECTION
              ============================================ -->
-        <section id="improve" class="space-y-6 pb-12">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Improve</h2>
+        <section id="play" class="space-y-6 pb-12">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Play</h2>
             
             <!-- Pickup Games -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
@@ -556,6 +612,47 @@
                 </a>
             </div>
             
+            <!-- Find People to Play -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-user-friends text-rally-green"></i>
+                    Find People to Play
+                </h3>
+                
+                <div class="space-y-4">
+                    <!-- Quick Search Form -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input type="text" id="quickFirstName" placeholder="Enter first name" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-rally-green focus:border-rally-green">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input type="text" id="quickLastName" placeholder="Enter last name" 
+                                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-rally-green focus:border-rally-green">
+                        </div>
+                    </div>
+                    
+                    <!-- Search Buttons -->
+                    <div class="flex gap-3 pt-2">
+                        <button id="quickSearchBtn" class="flex-1 px-4 py-3 bg-rally-green text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-rally-green transition-colors duration-200 font-medium hover:bg-rally-green-dark">
+                            <i class="fas fa-search mr-2"></i>Search Players
+                        </button>
+                        <button id="quickResetBtn" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium">
+                            <i class="fas fa-undo-alt mr-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             6. IMPROVE SECTION
+             ============================================ -->
+        <section id="improve" class="space-y-6 pb-12">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Improve</h2>
+            
             <!-- Latest Paddle Tip -->
             <div class="bg-gradient-to-br from-rally-green to-rally-green-light rounded-3xl p-8 text-white shadow-xl hover-lift">
                 <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
@@ -567,6 +664,26 @@
                 </div>
                 <a href="/mobile/improve" class="inline-block px-8 py-3 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
                     Improve My Game →
+                </a>
+            </div>
+            
+            <!-- Featured Training Video -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-play-circle text-rally-green"></i>
+                    Featured Training Video
+                </h3>
+                
+                <div id="training-video-content" class="space-y-4">
+                    <div class="bg-gray-100 rounded-xl p-4 text-center">
+                        <i class="fas fa-video text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600 mb-4">Loading featured video...</p>
+                        <div class="w-8 h-8 border-4 border-gray-300 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                    </div>
+                </div>
+                
+                <a href="/mobile/training-videos" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    Browse All Videos →
                 </a>
             </div>
         </section>
@@ -739,13 +856,13 @@
             const content = document.getElementById('pti-content');
             
             try {
-                // Use the same API as analyze-me page for consistent data
-                const chartResponse = await fetch('/api/player-history-chart');
+                // Use the same API as analyze-me page for consistent PTI data
+                const response = await fetch('/api/player-analysis');
                 
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
                 
-                if (chartResponse.status === 404) {
+                if (!response.ok) {
                     document.getElementById('pti-value').textContent = '--';
                     document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
                     // Mark card as loaded and save to persistence
@@ -754,9 +871,9 @@
                     return;
                 }
                 
-                const chartData = await chartResponse.json();
+                const data = await response.json();
                 
-                if (chartData.error || !chartData.matches || chartData.matches.length === 0) {
+                if (data.error || !data.success) {
                     document.getElementById('pti-value').textContent = '--';
                     document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
                     // Mark card as loaded and save to persistence
@@ -765,17 +882,15 @@
                     return;
                 }
                 
-                // Get current PTI from the most recent match
-                const matches = chartData.matches || [];
-                const currentPTI = matches.length > 0 ? matches[matches.length - 1].end_pti : 0;
+                // Use the exact same PTI value as analyze-me page
+                const currentPTI = data.current_pti || 0;
                 
                 document.getElementById('pti-value').textContent = currentPTI.toFixed(1);
                 
-                // Calculate PTI delta since start of season
+                // Calculate PTI delta since start of season (same logic as analyze-me)
                 let deltaDisplay = '';
-                if (matches.length > 1) {
-                    const startingPTI = matches[0].end_pti;
-                    const ptiDelta = currentPTI - startingPTI;
+                if (data.delta_available && data.pti_delta !== null) {
+                    const ptiDelta = data.pti_delta;
                     if (ptiDelta > 0) {
                         deltaDisplay = `<div class="text-sm text-white/80 mt-2">+${ptiDelta.toFixed(1)} since start of season</div>`;
                     } else if (ptiDelta < 0) {
@@ -850,19 +965,8 @@
                     savePersistedData();
                 }
                 
-                // Calculate trend and build message
-                let message = `Current PTI: <strong>${currentPTI.toFixed(1)}</strong>`;
-                
-                if (matches.length > 1) {
-                    const recentMatches = matches.slice(-5);
-                    const firstPTI = recentMatches[0].end_pti;
-                    const lastPTI = recentMatches[recentMatches.length - 1].end_pti;
-                    const trend = lastPTI - firstPTI;
-                    
-                    if (trend > 0) {
-                        message += `<br>You're trending <strong>+${trend.toFixed(1)} PTI</strong> over your last ${recentMatches.length} matches.`;
-                    }
-                }
+                // Display only the delta information (PTI value is already shown in the circle)
+                let message = '';
                 
                 document.getElementById('pti-message').innerHTML = message + deltaDisplay;
                 
@@ -870,10 +974,8 @@
                 document.getElementById('pti-card').classList.add('loaded');
                 savePersistedData();
                 
-                // Find best partner from current season data (same as analyze-me page)
-                // For now, we'll use a simplified approach since we don't have partner analysis API
-                // In the future, we could add a partner analysis API endpoint
-                document.getElementById('best-partner').textContent = 'None';
+                // Load best partner data using the same API as analyze-me page
+                await loadBestPartner();
                 
                 // Load last match data using the same API as analyze-me page
                 await loadLastMatchData();
@@ -966,11 +1068,14 @@
                             <i class="fas fa-map-marker-alt"></i>
                             ${location}
                         </div>
-                        <div class="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-                            ${isHome ? '🏠 Home' : '✈️ Away'}
-                        </div>
                     </div>
-                    <a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="inline-block mt-6 px-6 py-2 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition">Get Directions →</a>
+                    <div class="flex gap-3 mt-6">
+                        <a href="/mobile/teams-players?team_id=59782" class="flex items-center gap-2 px-4 py-2 rounded-full transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                            <i class="fas fa-search"></i>
+                            Scout Competition
+                        </a>
+                        <a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="px-6 py-2 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition">Get Directions →</a>
+                    </div>
                 `;
                 
                 // Next 3 Matches
@@ -1001,8 +1106,34 @@
             const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
             const opponentName = isHome ? awayTeam : homeTeam;
             
-            // Extract club name from opponent team name (e.g., "Exmoor 20" -> "Exmoor")
-            const clubName = opponentName.replace(/\s+\d+$/, '').toLowerCase();
+            // Extract club name from opponent team name and normalize for logo lookup
+            let clubName = opponentName.replace(/\s+\d+$/, '').toLowerCase();
+            
+            // Handle specific club name mappings for logo files
+            const clubMappings = {
+                'valley lo': 'valley_lo',
+                'michigan shores': 'michigan_shores',
+                'glenbrook rc': 'glenbrook_rc',
+                'midtown chicago': 'midtownchicago',
+                'midt bannockburn': 'midtbannockburn',
+                'life sport': 'lifesport',
+                'life sport lshire': 'lifesportlshire',
+                'river forest': 'riverforest',
+                'sunset ridge': 'sunsetridge',
+                'winter club': 'winterclub',
+                'north shore': 'northshore',
+                'lake bluff': 'lakebluff',
+                'westmoreland': 'westmoreland',
+                'wilmette': 'wilmette',
+                'winnetka': 'winnetka',
+                'knollwood': 'knollwood',
+                'briarwood': 'briarwood',
+                'evanston': 'evanston',
+                'tennaqua': 'tennaqua'
+            };
+            
+            // Apply mapping if exists, otherwise use the original club name
+            clubName = clubMappings[clubName] || clubName.replace(/\s+/g, '_');
             
             const matchDate = new Date(match.date);
             const dateStr = matchDate.toLocaleDateString('en-US', { 
@@ -1017,7 +1148,7 @@
                     <img src="/static/images/clubs/${clubName}_logo.png" 
                          alt="${opponentName} Logo" 
                          class="w-12 h-12 object-contain rounded-lg"
-                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                         onerror="console.log('Logo not found for:', '${clubName}_logo.png'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="w-12 h-12 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
                         ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
                     </div>
@@ -1112,29 +1243,24 @@
             const empty = document.getElementById('players-empty');
             
             try {
-                const response = await fetch('/api/pti-analysis/players');
+                // Use the same API as my-club page to get player streaks data
+                const response = await fetch('/api/club-standings');
                 const data = await response.json();
                 
                 loading.classList.add('hidden');
                 
-                if (!data || data.length === 0) {
+                if (!data.success || !data.player_streaks || data.player_streaks.length === 0) {
                     empty.classList.remove('hidden');
                     return;
                 }
                 
-                const topPlayers = data
-                    .filter(p => {
-                        const pti = typeof p.PTI === 'number' ? p.PTI : parseFloat(p.PTI);
-                        return pti && pti > 0;
-                    })
-                    .sort((a, b) => {
-                        const aPTI = typeof a.PTI === 'number' ? a.PTI : parseFloat(a.PTI) || 0;
-                        const bPTI = typeof b.PTI === 'number' ? b.PTI : parseFloat(b.PTI) || 0;
-                        return bPTI - aPTI;
-                    })
-                    .slice(0, 10);
+                // Filter players with 3+ wins in a row (same logic as my-club page)
+                const hotPlayers = data.player_streaks
+                    .filter(player => player.streak >= 3)
+                    .sort((a, b) => b.streak - a.streak) // Sort by streak length
+                    .slice(0, 10); // Show top 10
                 
-                if (topPlayers.length === 0) {
+                if (hotPlayers.length === 0) {
                     empty.classList.remove('hidden');
                     return;
                 }
@@ -1142,34 +1268,102 @@
                 carousel.classList.remove('hidden');
                 carousel.innerHTML = '';
                 
-                topPlayers.forEach(player => {
-                    const firstName = player['First Name'] || '';
-                    const lastName = player['Last Name'] || '';
+                hotPlayers.forEach(player => {
+                    const firstName = player.first_name || '';
+                    const lastName = player.last_name || '';
                     const fullName = `${firstName} ${lastName}`.trim();
                     const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-                    const ptiValue = typeof player.PTI === 'number' ? player.PTI : parseFloat(player.PTI) || 0;
-                    const pti = ptiValue.toFixed(1);
+                    const streak = player.streak || 0;
                     
                     const div = document.createElement('div');
                     div.className = 'flex-shrink-0 w-40 bg-gray-50 rounded-2xl p-5 text-center hover:bg-gray-100 transition';
                     div.innerHTML = `
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-xl mx-auto mb-3">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-400 text-white flex items-center justify-center font-bold text-xl mx-auto mb-3">
                             ${initials}
                         </div>
                         <div class="font-semibold text-gray-900 text-sm mb-1">${fullName}</div>
-                        <div class="text-2xl font-bold text-rally-green">${pti}</div>
-                        <div class="text-xs text-gray-500 mt-1">PTI</div>
+                        <div class="text-2xl font-bold text-orange-500">${streak}</div>
+                        <div class="text-xs text-gray-500 mt-1">Win Streak</div>
                     `;
                     carousel.appendChild(div);
                 });
                 
                 // Update club stats
-                document.getElementById('hot-streak-players').textContent = topPlayers.filter(p => p['Win Streak'] >= 3).length;
+                document.getElementById('hot-streak-players').textContent = hotPlayers.length;
+                
+                // Load 1st place teams count using same logic as my-club page
+                loadFirstPlaceTeams();
+                
+                // Load rising stars data
+                loadRisingStars();
                 
             } catch (error) {
                 console.error('Error loading top players:', error);
                 loading.classList.add('hidden');
                 empty.classList.remove('hidden');
+            }
+        }
+        
+        // ============================================
+        // FIRST PLACE TEAMS LOADING
+        // ============================================
+        async function loadFirstPlaceTeams() {
+            try {
+                // Use the same API as my-club page to get standings data
+                const response = await fetch('/api/club-standings');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.tennaqua_standings && data.tennaqua_standings.length > 0) {
+                    // Find all 1st place teams (same logic as my-club page)
+                    const firstPlaceTeams = data.tennaqua_standings.filter(team => team.place === 1);
+                    
+                    if (firstPlaceTeams.length > 0) {
+                        // Show team names instead of just count
+                        const teamNames = firstPlaceTeams.map(team => team.team_name).join(', ');
+                        document.getElementById('first-place-teams').innerHTML = `
+                            <div class="text-lg font-bold text-rally-green">${firstPlaceTeams.length}</div>
+                            <div class="text-xs text-gray-600 mt-1">${teamNames}</div>
+                        `;
+                    } else {
+                        document.getElementById('first-place-teams').textContent = '0';
+                    }
+                } else {
+                    document.getElementById('first-place-teams').textContent = '0';
+                }
+                
+            } catch (error) {
+                console.error('Error loading first place teams:', error);
+                document.getElementById('first-place-teams').textContent = '--';
+            }
+        }
+        
+        // ============================================
+        // RISING STARS LOADING
+        // ============================================
+        async function loadRisingStars() {
+            try {
+                const response = await fetch('/api/rising-stars');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.rising_stars && data.rising_stars.length > 0) {
+                    // Count players with significant PTI gains (>= 2.0 points)
+                    const significantGains = data.rising_stars.filter(player => player.pti_delta >= 2.0);
+                    document.getElementById('pti-climbers').textContent = significantGains.length;
+                } else {
+                    document.getElementById('pti-climbers').textContent = '0';
+                }
+                
+            } catch (error) {
+                console.error('Error loading rising stars:', error);
+                document.getElementById('pti-climbers').textContent = '--';
             }
         }
         
@@ -1272,8 +1466,8 @@
                 // Update team points
                 document.getElementById('team-points').textContent = points;
                 
-                // For now, show placeholder for points behind (would need series standings API)
-                document.getElementById('points-behind').textContent = '--';
+                // Calculate points behind first place using series standings
+                await loadPointsBehindFirst();
                 
                 // Update team record
                 document.getElementById('team-record').textContent = `${matchesWon} - ${matchesLost}`;
@@ -1292,13 +1486,196 @@
         }
         
         // ============================================
+        // POINTS BEHIND FIRST PLACE LOADING
+        // ============================================
+        async function loadPointsBehindFirst() {
+            try {
+                // Use the same API as my-series page to get standings data
+                const response = await fetch(`/api/series-stats?t=${Date.now()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const statsData = await response.json();
+                const stats = statsData.teams || statsData;
+                
+                if (!Array.isArray(stats) || stats.length === 0) {
+                    document.getElementById('points-behind').textContent = '--';
+                    return;
+                }
+
+                // Sort teams by points (highest first) - same logic as my-series page
+                stats.sort((a, b) => b.points - a.points);
+                
+                // Get first place points
+                const firstPlacePoints = stats.length > 0 ? stats[0].points : 0;
+                
+                // Find user's team in the standings
+                const userTeam = '{{ session_data.user.team or session_data.user.club }}';
+                const userTeamData = stats.find(team => 
+                    team.team && team.team.toLowerCase() === userTeam.toLowerCase()
+                );
+                
+                if (userTeamData) {
+                    // Calculate points behind first place (same logic as my-series page)
+                    const pointsBehind = firstPlacePoints - userTeamData.points;
+                    document.getElementById('points-behind').textContent = pointsBehind;
+                } else {
+                    // If user's team not found in standings, show placeholder
+                    document.getElementById('points-behind').textContent = '--';
+                }
+                
+            } catch (error) {
+                console.error('Error loading points behind first:', error);
+                document.getElementById('points-behind').textContent = '--';
+            }
+        }
+        
+        // ============================================
+        // BEST PARTNER LOADING
+        // ============================================
+        async function loadBestPartner() {
+            try {
+                // Use the same API as analyze-me page to get partner analysis
+                const response = await fetch('/api/current-season-partner-analysis');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && data.partner_analysis && data.partner_analysis.length > 0) {
+                    // Filter partners with wins > 0 (same logic as analyze-me page)
+                    const qualifiedPartners = data.partner_analysis.filter(partner => partner.wins > 0);
+                    
+                    if (qualifiedPartners.length > 0) {
+                        // Get the best partner (highest win rate, then most wins)
+                        const bestPartner = qualifiedPartners.sort((a, b) => {
+                            if (b.winRate !== a.winRate) {
+                                return b.winRate - a.winRate;
+                            }
+                            return b.wins - a.wins;
+                        })[0];
+                        
+                        document.getElementById('best-partner').textContent = bestPartner.name;
+                    } else {
+                        document.getElementById('best-partner').textContent = 'None';
+                    }
+                } else {
+                    document.getElementById('best-partner').textContent = 'None';
+                }
+                
+            } catch (error) {
+                console.error('Error loading best partner:', error);
+                document.getElementById('best-partner').textContent = 'None';
+            }
+        }
+        
+        // ============================================
         // SERIES STANDINGS LOADING
         // ============================================
         async function loadSeriesStandings() {
-            // Placeholder - would connect to actual series standings API
+            const loading = document.getElementById('series-loading');
             const content = document.getElementById('series-content');
-            content.classList.remove('hidden');
-            content.innerHTML = '<p class="text-gray-500 text-center py-4">Standings data loading...</p>';
+            const table = document.getElementById('seriesTable');
+            
+            try {
+                // Use the same API as my-series page
+                const response = await fetch(`/api/series-stats?t=${Date.now()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const statsData = await response.json();
+                const stats = statsData.teams || statsData;
+                
+                loading.classList.add('hidden');
+                
+                if (!Array.isArray(stats) || stats.length === 0) {
+                    table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-chart-bar text-gray-400 text-2xl"></i></div><h3 class="text-lg font-semibold text-gray-900 mb-2">No Series Data</h3><p class="text-gray-500">Series statistics will appear here once matches are played.</p></div>';
+                    content.classList.remove('hidden');
+                    return;
+                }
+
+                // Sort teams by points (same as my-series)
+                stats.sort((a, b) => b.points - a.points);
+
+                // Get user's team for highlighting
+                const userTeam = '{{ session_data.user.team or session_data.user.club }}';
+                const playoffCutoff = 8;
+                const firstPlacePoints = stats.length > 0 ? stats[0].points : 0;
+                
+                // Check if any team has PTI data to conditionally show Avg PTI column
+                const hasPtiData = stats.some(team => team.avg_pti && team.avg_pti !== 'N/A' && team.avg_pti !== null);
+                
+                let html = `<thead><tr>
+                  <th class="text-left py-3 px-2 font-semibold text-gray-700" style="width: 30%; white-space: nowrap;">Team</th>`;
+                if (hasPtiData) {
+                  html += `<th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Avg PTI</th>`;
+                }
+                html += `<th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Record</th>
+                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Pts</th>
+                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Avg Pts</th>
+                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Pts Back</th>
+                </tr></thead><tbody>`;
+                
+                stats.forEach((team, idx) => {
+                    const isUserTeam = userTeam && team.team && team.team.toLowerCase() === userTeam.toLowerCase();
+                    let playoffIcon = '';
+                    const isPlayoffTeam = idx < playoffCutoff;
+                    let rowClass = 'border-b border-gray-50';
+                    
+                    if (isUserTeam) {
+                        rowClass += ' bg-yellow-50 border-l-4 border-yellow-400 font-semibold';
+                    } else if (idx % 2 === 0) {
+                        rowClass += ' bg-white';
+                    } else {
+                        rowClass += ' bg-gray-50';
+                    }
+                    
+                    if (isPlayoffTeam) {
+                        rowClass += ' border-l-4 border-green-500';
+                        playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
+                    }
+                    
+                    const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
+                    const avgPoints = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '0.0';
+                    
+                    // Create team link
+                    const teamId = team.team_id || team.id || '';
+                    const teamDisplayName = team.team;
+                    const starIcon = isUserTeam ? ' <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>' : '';
+                    
+                    const teamName = teamId ? 
+                        `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}${starIcon}</a>` :
+                        `${teamDisplayName}${starIcon}`;
+                    
+                    html += `<tr class="${rowClass}">
+                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamName}</td>`;
+                    
+                    // Add Avg PTI column (if PTI data exists)
+                    if (hasPtiData) {
+                        const avgPti = team.avg_pti && team.avg_pti !== 'N/A' ? team.avg_pti : 'N/A';
+                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 14%;">${avgPti}</td>`;
+                    }
+                    
+                    html += `
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${team.matches.won}-${team.matches.lost}</td>
+                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 14%;">${team.points}</td>
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${avgPoints}</td>
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-600' : 'text-gray-600'}" style="width: 14%;">${firstPlacePoints - team.points}</td>
+                      </tr>`;
+                });
+                html += '</tbody>';
+                table.innerHTML = html;
+                content.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Error loading series standings:', error);
+                loading.classList.add('hidden');
+                table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Standings</h3><p class="text-gray-500">Unable to load series standings data.</p></div>';
+                content.classList.remove('hidden');
+            }
         }
         
         // ============================================
@@ -1438,8 +1815,8 @@
                 // Get the most recent match (first in the array)
                 const lastMatch = data.matches[0];
                 
-                // Parse match data - use correct field names from /api/last-3-matches response
-                const matchDate = new Date(lastMatch.Date);
+                // Parse match data using same field names as analyze-me page
+                const matchDate = new Date(lastMatch.date);
                 const dateStr = matchDate.toLocaleDateString('en-US', { 
                     month: 'short', 
                     day: 'numeric', 
@@ -1447,20 +1824,40 @@
                 });
                 const timeStr = 'TBD'; // Time not available in this API
                 
-                // Determine if our team won
-                const isHome = lastMatch['Home Team'] && lastMatch['Home Team'].includes('{{ session_data.user.club }}');
-                const won = (isHome && lastMatch.Winner === 'home') || (!isHome && lastMatch.Winner === 'away');
+                // Parse scores to determine winner (same logic as analyze-me page)
+                const scores = lastMatch.scores ? lastMatch.scores.split(", ") : [];
+                const team1_sets = [];  // First team in database (away team)
+                const team2_sets = [];  // Second team in database (home team)
+                let team1_sets_won = 0;
+                let team2_sets_won = 0;
+                
+                scores.forEach(set_score => {
+                    if (set_score && set_score.includes("-")) {
+                        const [score1, score2] = set_score.split("-");
+                        team1_sets.push(score1);
+                        team2_sets.push(score2);
+                        
+                        if (parseInt(score2) > parseInt(score1)) {
+                            team2_sets_won++;
+                        } else {
+                            team1_sets_won++;
+                        }
+                    }
+                });
+                
+                // Determine which team won based on sets won
+                const team1_won = team1_sets_won > team2_sets_won;
+                
+                // Determine which team the current player is on
+                const current_player_on_team1 = lastMatch.player_was_home === false; // If player was away, they're on team1
+                
+                // Determine if current player won
+                const won = current_player_on_team1 ? team1_won : !team1_won;
                 
                 // Get opponent team name
-                const opponentTeam = isHome ? lastMatch['Away Team'] : lastMatch['Home Team'];
-                
-                // Get opponent players - these are player IDs, not names
-                const opponent1 = isHome ? lastMatch['Away Player 1'] : lastMatch['Home Player 1'];
-                const opponent2 = isHome ? lastMatch['Away Player 2'] : lastMatch['Home Player 2'];
-                const opponentNames = opponentTeam || 'Unknown'; // Use team name instead of player IDs
+                const opponentTeam = current_player_on_team1 ? lastMatch.home_team : lastMatch.away_team;
                 
                 // Format score
-                const scores = lastMatch.Scores ? lastMatch.Scores.split(', ') : [];
                 const scoreStr = scores.length > 0 ? scores.join(', ') : '--';
                 
                 // Update the last match display
@@ -1471,7 +1868,7 @@
                         </div>
                         <div class="flex-1">
                             <div class="font-semibold text-lg ${won ? 'text-green-600' : 'text-red-600'}">${won ? 'Won' : 'Lost'}</div>
-                            <div class="text-gray-600">vs ${opponentNames}</div>
+                            <div class="text-gray-600">vs ${opponentTeam || 'Unknown'}</div>
                             <div class="text-sm text-gray-500">${dateStr} at ${timeStr}</div>
                             <div class="text-xs text-gray-400">${scoreStr}</div>
                         </div>
@@ -1543,6 +1940,47 @@
                         });
                     }
                 }
+                
+                // Determine which section is currently in view and set active state
+                updateActiveNavigation(scrollTop);
+            }
+            
+            function updateActiveNavigation(scrollTop) {
+                // Define sections and their scroll positions
+                const sections = [
+                    { id: 'schedule', element: document.querySelector('#schedule') },
+                    { id: 'team', element: document.querySelector('#team') },
+                    { id: 'club', element: document.querySelector('#club') },
+                    { id: 'play', element: document.querySelector('#play') },
+                    { id: 'improve', element: document.querySelector('#improve') }
+                ];
+                
+                // Remove active class from all buttons
+                navButtons.forEach(button => button.classList.remove('active'));
+                
+                // Find the section that's currently in view
+                let activeSection = null;
+                const offset = 165; // Same offset as autoscroll + 10px higher
+                
+                for (let i = sections.length - 1; i >= 0; i--) {
+                    const section = sections[i];
+                    if (section.element) {
+                        const sectionTop = section.element.offsetTop - offset;
+                        if (scrollTop >= sectionTop) {
+                            activeSection = section.id;
+                            break;
+                        }
+                    }
+                }
+                
+                // Set active state for the current section
+                if (activeSection) {
+                    const activeButton = document.querySelector(`a[href="#${activeSection}"]`);
+                    if (activeButton) {
+                        activeButton.classList.add('active');
+                        console.log(`Setting active state for: ${activeSection}`);
+                    }
+                }
             }
             
             // Throttle scroll events for better performance
@@ -1566,6 +2004,13 @@
                     const href = this.getAttribute('href');
                     if (href.startsWith('#')) {
                         e.preventDefault();
+                        
+                        // Remove active class from all buttons
+                        navButtons.forEach(btn => btn.classList.remove('active'));
+                        
+                        // Add active class to clicked button
+                        this.classList.add('active');
+                        
                         const target = document.querySelector(href);
                         if (target) {
                             // Consistent offset for all navigation sections
@@ -1584,6 +2029,293 @@
             console.log('Setting initial scroll state');
             handleScroll();
             console.log('Initial scroll state set');
+            
+            // Load featured training video
+            loadFeaturedTrainingVideo();
+            
+            // Initialize quick search functionality
+            initializeQuickSearch();
+        }
+        
+        // Function to initialize quick search functionality
+        function initializeQuickSearch() {
+            const quickSearchBtn = document.getElementById('quickSearchBtn');
+            const quickResetBtn = document.getElementById('quickResetBtn');
+            const quickFirstName = document.getElementById('quickFirstName');
+            const quickLastName = document.getElementById('quickLastName');
+            
+            // Search button functionality
+            if (quickSearchBtn) {
+                quickSearchBtn.addEventListener('click', function() {
+                    performQuickSearch();
+                });
+            }
+            
+            // Reset button functionality
+            if (quickResetBtn) {
+                quickResetBtn.addEventListener('click', function() {
+                    resetQuickSearch();
+                });
+            }
+            
+            // Enter key functionality
+            [quickFirstName, quickLastName].forEach(input => {
+                if (input) {
+                    input.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            performQuickSearch();
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Function to perform quick search
+        function performQuickSearch() {
+            const firstName = document.getElementById('quickFirstName')?.value.trim();
+            const lastName = document.getElementById('quickLastName')?.value.trim();
+            
+            // Build search parameters
+            const params = new URLSearchParams();
+            if (firstName) params.append('first_name', firstName);
+            if (lastName) params.append('last_name', lastName);
+            
+            // Redirect to find-people-to-play page with parameters
+            const searchUrl = `/mobile/find-people-to-play?${params.toString()}`;
+            window.location.href = searchUrl;
+        }
+        
+        // Function to reset quick search form
+        function resetQuickSearch() {
+            const firstName = document.getElementById('quickFirstName');
+            const lastName = document.getElementById('quickLastName');
+            
+            if (firstName) firstName.value = '';
+            if (lastName) lastName.value = '';
+        }
+        
+        // Function to load a random training video
+        async function loadFeaturedTrainingVideo() {
+            try {
+                console.log('Loading featured training video...');
+                const response = await fetch('/api/training-videos');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch training videos');
+                }
+                
+                const videos = await response.json();
+                if (videos && videos.length > 0) {
+                    // Get a random video
+                    const randomIndex = Math.floor(Math.random() * videos.length);
+                    const featuredVideo = videos[randomIndex];
+                    
+                    // Update the training video content
+                    const videoContent = document.getElementById('training-video-content');
+                    if (videoContent) {
+                        // Extract YouTube video ID
+                        const videoId = extractYouTubeVideoId(featuredVideo.url);
+                        
+                        videoContent.innerHTML = `
+                            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                <div class="relative aspect-video bg-gray-200 video-container" 
+                                     data-video-url="${featuredVideo.url}"
+                                     data-video-id="${videoId}">
+                                    
+                                    <!-- Thumbnail View -->
+                                    <div class="thumbnail-view" style="position: absolute; inset: 0; background: #1a1a1a;">
+                                        ${videoId ? `
+                                        <img src="https://i.ytimg.com/vi/${videoId}/hqdefault.jpg" 
+                                             alt="${featuredVideo.title}" 
+                                             loading="eager"
+                                             style="position: absolute !important; 
+                                                    top: 0 !important; 
+                                                    left: 0 !important; 
+                                                    width: 100% !important; 
+                                                    height: 100% !important; 
+                                                    object-fit: cover !important; 
+                                                    display: block !important;
+                                                    z-index: 1 !important;
+                                                    opacity: 1 !important;
+                                                    visibility: visible !important;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        ` : ''}
+                                        
+                                        <!-- Fallback if no thumbnail -->
+                                        <div class="flex items-center justify-center text-center" style="position: absolute; inset: 0; z-index: 1; display: none;">
+                                            <div>
+                                                <i class="fas fa-play-circle text-4xl text-rally-green mb-2"></i>
+                                                <p class="text-gray-600 font-medium">${featuredVideo.title}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Slight overlay for better play button visibility -->
+                                        <div style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.15); pointer-events: none; z-index: 2;"></div>
+                                        
+                                        <!-- Duration Badge (simulated) -->
+                                        <div class="absolute bottom-4 right-4 bg-black bg-opacity-80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm font-medium" style="z-index: 3;">
+                                            ${Math.floor(Math.random() * 13) + 3}:${String(Math.floor(Math.random() * 60)).padStart(2, '0')}
+                                        </div>
+                                        
+                                        <!-- Modern Play Button Overlay -->
+                                        <button class="play-btn" style="position: absolute; 
+                                                                         inset: 0; 
+                                                                         z-index: 10;
+                                                                         display: flex;
+                                                                         align-items: center;
+                                                                         justify-content: center;
+                                                                         background: transparent;
+                                                                         border: none;
+                                                                         cursor: pointer;
+                                                                         transition: all 0.3s ease;">
+                                            <!-- Outer glow ring -->
+                                            <div style="position: absolute;
+                                                        width: 5rem;
+                                                        height: 5rem;
+                                                        border-radius: 50%;
+                                                        background: rgba(255, 255, 255, 0.2);
+                                                        transition: all 0.3s ease;"></div>
+                                            
+                                            <!-- Main button -->
+                                            <div style="position: relative;
+                                                        width: 3.5rem;
+                                                        height: 3.5rem;
+                                                        border-radius: 50%;
+                                                        display: flex;
+                                                        align-items: center;
+                                                        justify-content: center;
+                                                        background: linear-gradient(135deg, #045454 0%, #067676 100%);
+                                                        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                                                        border: 2px solid rgba(255, 255, 255, 0.6);
+                                                        transition: all 0.3s ease;">
+                                                <!-- Play triangle -->
+                                                <div style="position: relative;
+                                                            display: flex;
+                                                            align-items: center;
+                                                            justify-content: center;
+                                                            margin-left: 0.25rem;">
+                                                    <svg style="width: 1.5rem; height: 1.5rem; color: white; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M8 5v14l11-7z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Video Player (hidden initially) -->
+                                    <div class="video-player hidden absolute inset-0">
+                                        <iframe class="w-full h-full" 
+                                                src="" 
+                                                title="${featuredVideo.title}"
+                                                frameborder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                allowfullscreen>
+                                        </iframe>
+                                        <!-- Close Button -->
+                                        <button class="close-video absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white transition-all duration-200 z-10">
+                                            <i class="fas fa-times text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-900 mb-2">${featuredVideo.title}</h4>
+                                    <p class="text-sm text-gray-600 mb-3">${featuredVideo.summary}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${featuredVideo.keywords.slice(0, 3).map(keyword => 
+                                            `<span class="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full">${keyword}</span>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Initialize video player for the featured video
+                        initializeFeaturedVideoPlayer();
+                    }
+                } else {
+                    // Show fallback if no videos available
+                    const videoContent = document.getElementById('training-video-content');
+                    if (videoContent) {
+                        videoContent.innerHTML = `
+                            <div class="bg-gray-100 rounded-xl p-6 text-center">
+                                <i class="fas fa-video text-4xl text-gray-400 mb-3"></i>
+                                <p class="text-gray-600">Training videos coming soon!</p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading featured training video:', error);
+                // Show error fallback
+                const videoContent = document.getElementById('training-video-content');
+                if (videoContent) {
+                    videoContent.innerHTML = `
+                        <div class="bg-gray-100 rounded-xl p-6 text-center">
+                            <i class="fas fa-exclamation-triangle text-4xl text-gray-400 mb-3"></i>
+                            <p class="text-gray-600">Unable to load video</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Function to initialize video player for featured video
+        function initializeFeaturedVideoPlayer() {
+            const playBtn = document.querySelector('#training-video-content .play-btn');
+            const closeBtn = document.querySelector('#training-video-content .close-video');
+            
+            if (playBtn) {
+                playBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const videoContainer = this.closest('.video-container');
+                    const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+                    const videoPlayer = videoContainer.querySelector('.video-player');
+                    const iframe = videoPlayer.querySelector('iframe');
+                    
+                    // Get video URL and extract video ID
+                    const videoUrl = videoContainer.dataset.videoUrl;
+                    const videoId = extractYouTubeVideoId(videoUrl);
+                    
+                    if (videoId) {
+                        // Set iframe source to YouTube embed URL with autoplay
+                        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+                        
+                        // Hide thumbnail and show player
+                        thumbnailView.classList.add('hidden');
+                        videoPlayer.classList.remove('hidden');
+                        
+                        // Scroll video into view
+                        videoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const videoContainer = this.closest('.video-container');
+                    const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+                    const videoPlayer = videoContainer.querySelector('.video-player');
+                    const iframe = videoPlayer.querySelector('iframe');
+                    
+                    // Stop video by clearing iframe source
+                    iframe.src = '';
+                    
+                    // Show thumbnail and hide player
+                    videoPlayer.classList.add('hidden');
+                    thumbnailView.classList.remove('hidden');
+                });
+            }
+        }
+        
+        // Function to extract YouTube video ID from URL
+        function extractYouTubeVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
         }
     </script>
 
