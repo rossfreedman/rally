@@ -8,800 +8,711 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rally Dashboard</title>
     
-    <style>
-        /* ============================================
-           RALLY DASHBOARD - ALTERNATE VIEW
-           Inspired by Notion, ESPN, Airbnb/Apple
-           ============================================ */
-        
-        :root {
-            --rally-green: #045454;
-            --rally-green-light: #056565;
-            --rally-green-dark: #033333;
-            --rally-gradient: linear-gradient(135deg, #045454 0%, #067676 100%);
-            --ios-bg: #f2f2f7;
-            --ios-card-bg: #ffffff;
-            --ios-secondary-bg: #f9f9f9;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-            --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10);
-            --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
-            --spring-timing: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-green': '#045454',
+                        'rally-green-light': '#056565',
+                        'rally-green-dark': '#033333',
+                    }
+                }
+            }
         }
-        
+    </script>
+    
+    <style>
         * {
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
         
         body {
-            background: linear-gradient(to bottom, #f2f2f7 0%, #e8e8ed 100%);
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-            color: #1d1d1f;
-            margin: 0;
-            padding: 0;
-            font-size: 17px;
-            line-height: 1.47059;
         }
         
-        /* ============================================
-           HEADER SECTION - iOS STYLE
-           ============================================ */
-        .dashboard-header {
-            background: var(--rally-gradient);
-            padding: max(env(safe-area-inset-top), 1rem) 1.25rem 1.5rem;
-            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+        .section-hero {
+            background: linear-gradient(135deg, #045454 0%, #067676 100%);
         }
         
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .header-logo {
-            height: 32px;
-            filter: brightness(0) invert(1);
-        }
-        
-        .header-actions {
-            display: flex;
-            gap: 0.75rem;
-            align-items: center;
-        }
-        
-        .header-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 22px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
+        .pti-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+            border: 8px solid rgba(255,255,255,0.3);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
-            cursor: pointer;
-            transition: all 0.2s var(--spring-timing);
-            font-size: 18px;
+            flex-direction: column;
         }
         
-        .header-icon:active {
-            transform: scale(0.92);
-            background: rgba(255, 255, 255, 0.25);
+        .hover-lift {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
-        .header-welcome {
-            color: white;
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0;
-            letter-spacing: -0.5px;
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.12);
         }
         
-        .header-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1.25rem;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            padding-bottom: 0.25rem;
-        }
-        
-        .header-tabs::-webkit-scrollbar {
-            display: none;
-        }
-        
-        .tab-item {
-            padding: 0.625rem 1.25rem;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            color: white;
-            border-radius: 22px;
-            white-space: nowrap;
-            cursor: pointer;
-            transition: all 0.2s var(--spring-timing);
-            font-size: 15px;
-            font-weight: 600;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .tab-item.active {
-            background: white;
-            color: var(--rally-green);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-        
-        .tab-item:active {
-            transform: scale(0.96);
-        }
-        
-        /* ============================================
-           MAIN CONTENT - iOS STYLE
-           ============================================ */
-        .dashboard-content {
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 1.25rem 1rem;
-            padding-bottom: max(env(safe-area-inset-bottom), 100px);
-        }
-        
-        /* ============================================
-           CARD COMPONENTS - iOS STYLE
-           ============================================ */
-        .card {
-            background: var(--ios-card-bg);
-            border-radius: 20px;
-            padding: 1.75rem 1.5rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-            margin-bottom: 1.25rem;
-            transition: all 0.3s var(--spring-timing);
-            animation: fadeIn 0.6s ease;
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-        }
-        
-        .card:active {
-            transform: scale(0.98);
-        }
-        
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .card-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--rally-green);
-            margin-bottom: 1.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            letter-spacing: -0.3px;
-        }
-        
-        .card-title i {
-            font-size: 20px;
-        }
-        
-        .card-subtitle {
-            font-size: 15px;
-            color: #86868b;
-            margin-top: 0.375rem;
-            font-weight: 400;
-            line-height: 1.4;
-        }
-        /* ============================================
-           OPPONENTS SECTION - iOS LIST STYLE
-           ============================================ */
-        .opponent-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1.125rem;
-            background: var(--ios-secondary-bg);
-            border-radius: 14px;
-            margin-top: 0.75rem;
-            transition: all 0.2s var(--spring-timing);
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-        }
-        
-        .opponent-info:active {
-            transform: scale(0.97);
-            background: #f0f0f5;
-        }
-        
-        .opponent-avatar {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            background: var(--rally-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 2px 8px rgba(4, 84, 84, 0.2);
-            flex-shrink: 0;
-        }
-        
-        .opponent-details {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .opponent-name {
-            font-size: 17px;
-            font-weight: 600;
-            color: #1d1d1f;
-            letter-spacing: -0.2px;
-            margin-bottom: 0.25rem;
-        }
-        
-        .opponent-stats {
-            font-size: 15px;
-            color: #86868b;
-            margin-top: 0.125rem;
-        }
-        
-        /* ============================================
-           WHO'S HOT CAROUSEL - iOS STYLE
-           ============================================ */
         .carousel {
             display: flex;
-            gap: 0.75rem;
+            gap: 1rem;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            padding-bottom: 0.5rem;
-            margin-top: 0.75rem;
+            -webkit-overflow-scrolling: touch;
         }
         
         .carousel::-webkit-scrollbar {
             display: none;
         }
-        
-        .player-card {
-            min-width: 160px;
-            background: var(--ios-secondary-bg);
-            border-radius: 18px;
-            padding: 1.5rem 1.25rem;
-            text-align: center;
-            transition: all 0.2s var(--spring-timing);
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-            flex-shrink: 0;
-        }
-        
-        .player-card:active {
-            transform: scale(0.95);
-            background: #f0f0f5;
-        }
-        
-        .player-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 18px;
-            background: var(--rally-gradient);
-            margin: 0 auto 0.875rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 4px 12px rgba(4, 84, 84, 0.2);
-        }
-        
-        .player-name {
-            font-weight: 600;
-            color: #1d1d1f;
-            margin-bottom: 0.375rem;
-            font-size: 15px;
-            letter-spacing: -0.2px;
-        }
-        
-        .player-pti {
-            font-size: 15px;
-            color: #86868b;
-            margin-bottom: 0.25rem;
-        }
-        
-        .player-streak {
-            font-size: 13px;
-            color: #30d158;
-            margin-top: 0.25rem;
-            font-weight: 600;
-        }
-        
-        .player-action {
-            margin-top: 1rem;
-            padding: 0.625rem 1rem;
-            background: var(--rally-green);
-            color: white;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s var(--spring-timing);
-            border: none;
-            width: 100%;
-            box-shadow: 0 2px 8px rgba(4, 84, 84, 0.2);
-        }
-        
-        .player-action:active {
-            transform: scale(0.96);
-            background: var(--rally-green-light);
-        }
-        
-        /* ============================================
-           LINEUP SECTION
-           ============================================ */
-        .lineup-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        
-        @media (min-width: 768px) {
-            .lineup-container {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        
-        .team-side {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 1rem;
-        }
-        
-        .team-header {
-            font-weight: 600;
-            color: var(--rally-green);
-            margin-bottom: 0.75rem;
-            font-size: 1rem;
-        }
-        
-        .court-matchup {
-            background: white;
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-left: 3px solid var(--rally-green);
-        }
-        
-        .court-label {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #666;
-            margin-bottom: 0.5rem;
-        }
-        
-        .player-pair {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .player-pair span {
-            font-size: 0.9rem;
-            color: #333;
-        }
-        
-        .player-pti-badge {
-            background: var(--rally-green);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        /* ============================================
-           NOTIFICATIONS SECTION - iOS STYLE (MATCHES OPPONENT-INFO)
-           ============================================ */
-        .notification-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1.125rem;
-            background: var(--ios-secondary-bg);
-            border-radius: 14px;
-            margin-top: 0.75rem;
-            transition: all 0.2s var(--spring-timing);
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-        }
-        
-        .notification-item:first-child {
-            margin-top: 0;
-        }
-        
-        .notification-item.clickable {
-            cursor: pointer;
-        }
-        
-        .notification-item.clickable:active {
-            transform: scale(0.97);
-            background: #f0f0f5;
-        }
-        
-        .notification-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            background: var(--rally-gradient);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-            font-weight: 700;
-            box-shadow: 0 2px 8px rgba(4, 84, 84, 0.2);
-            flex-shrink: 0;
-        }
-        
-        .notification-details {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .notification-title {
-            font-size: 17px;
-            font-weight: 600;
-            color: #1d1d1f;
-            letter-spacing: -0.2px;
-            margin-bottom: 0.25rem;
-        }
-        
-        .notification-subtitle {
-            font-size: 15px;
-            color: #86868b;
-            margin-top: 0.125rem;
-        }
-        
-        /* ============================================
-           QUICK ACTIONS GRID - iOS STYLE
-           ============================================ */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
-            margin-top: 0.75rem;
-        }
-        
-        @media (min-width: 768px) {
-            .quick-actions {
-                grid-template-columns: repeat(4, 1fr);
-            }
-        }
-        
-        .action-button {
-            background: var(--ios-secondary-bg);
-            border: 0.5px solid rgba(0, 0, 0, 0.04);
-            border-radius: 18px;
-            padding: 1.75rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s var(--spring-timing);
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 120px;
-        }
-        
-        .action-button:active {
-            transform: scale(0.95);
-            background: #f0f0f5;
-        }
-        
-        .action-icon {
-            font-size: 40px;
-            margin-bottom: 0.625rem;
-        }
-        
-        .action-label {
-            font-weight: 600;
-            color: #1d1d1f;
-            font-size: 14px;
-            letter-spacing: -0.2px;
-        }
-        
-        /* ============================================
-           FOOTER - iOS STYLE
-           ============================================ */
-        .dashboard-footer {
-            background: transparent;
-            padding: 2.5rem 1rem max(env(safe-area-inset-bottom), 2rem);
-            text-align: center;
-            margin-top: 2rem;
-        }
-        
-        .footer-logo {
-            height: 24px;
-            opacity: 0.4;
-            margin-bottom: 0.625rem;
-            filter: grayscale(1);
-        }
-        
-        .footer-text {
-            font-size: 13px;
-            color: #86868b;
-            font-weight: 400;
-        }
-        
-        /* ============================================
-           RESPONSIVE UTILITIES - iOS OPTIMIZED
-           ============================================ */
-        @media (max-width: 768px) {
-            .dashboard-content {
-                padding: 1rem;
-            }
-            
-            .card {
-                padding: 1.5rem 1.25rem;
-            }
-            
-            .header-welcome {
-                font-size: 24px;
-            }
-            
-            .card-title {
-                font-size: 20px;
-            }
-        }
-        
-        /* ============================================
-           LOADING STATES - iOS STYLE
-           ============================================ */
-        .animate-spin {
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        /* ============================================
-           iOS SAFE AREA SUPPORT
-           ============================================ */
-        @supports (padding: max(0px)) {
-            body {
-                padding-bottom: max(env(safe-area-inset-bottom), 0px);
-            }
-        }
-        
-        /* ============================================
-           DARK MODE SUPPORT (for future)
-           ============================================ */
-        @media (prefers-color-scheme: dark) {
-            /* Prepared for dark mode if needed */
-        }
     </style>
 </head>
-<body>
-    
+<body class="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen">
+
     <!-- ============================================
-         1. HEADER SECTION
+         HEADER
          ============================================ -->
-    <header class="dashboard-header">
-        <div class="header-top">
-            <img src="/static/rallylogo.png" alt="Rally Logo" class="header-logo">
-            <div class="header-actions">
-                <div class="header-icon" onclick="location.href='/mobile/team-notifications'">
-                    <i class="fas fa-bell"></i>
+    <header class="section-hero text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                {% if session_data and session_data.user and session_data.user.club_logo %}
+                <img src="/{{ session_data.user.club_logo }}" 
+                     alt="{{ session_data.user.club }} Logo" 
+                     class="w-20 h-20 object-contain rounded-xl"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                {% endif %}
+                <div class="w-20 h-20 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-xl" 
+                     style="{% if session_data and session_data.user and session_data.user.club_logo %}display: none;{% endif %}">
+                    {{ session_data.user.club[0:2] if session_data and session_data.user and session_data.user.club else 'CL' }}
                 </div>
-                <div class="header-icon" onclick="location.href='/mobile/settings'">
-                    <i class="fas fa-user-circle"></i>
                 </div>
             </div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.625rem;">
-            {% if session_data and session_data.user and session_data.user.club_logo %}
-            <img src="/static/clublogos/{{ session_data.user.club_logo }}" alt="Club Logo" 
-                 style="width: 52px; height: 52px; border-radius: 14px; object-fit: cover; background: white; padding: 6px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);"
-                 onerror="this.style.display='none'">
-            {% endif %}
-            <div style="flex: 1;">
-                <h1 class="header-welcome" style="margin: 0;">
-                    {% if session_data and session_data.user and session_data.user.first_name %}
-                        Welcome back, {{ session_data.user.first_name }}.
-                    {% else %}
-                        Welcome back.
-                    {% endif %}
-                </h1>
+            
+            <div class="mb-6">
+                <h1 class="text-3xl font-bold tracking-tight">Welcome back, {{ session_data.user.first_name }}</h1>
                 {% if session_data and session_data.user and session_data.user.team_name %}
-                <div style="color: rgba(255,255,255,0.85); font-size: 15px; margin-top: 0.375rem; font-weight: 500;">
-                    {{ session_data.user.team_name }}
-                </div>
+                <p class="text-white/80 text-sm mt-1">{{ session_data.user.team_name }}</p>
                 {% endif %}
             </div>
-        </div>
-        <div class="header-tabs">
-            <div class="tab-item active">Dashboard</div>
-            <div class="tab-item" onclick="location.href='/mobile/matches'">Matches</div>
-            <div class="tab-item" onclick="location.href='/mobile/lineup'">Lineups</div>
-            <div class="tab-item" onclick="location.href='/mobile/analyze-me'">Stats</div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                <a href="#schedule" class="px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/30 transition">Schedule</a>
+                <a href="#team" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Team</a>
+                <a href="#club" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Club</a>
+                <a href="#play" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Play</a>
+                <a href="#improve" class="px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition">Improve</a>
+            </nav>
         </div>
     </header>
-    
-    <!-- ============================================
-         MAIN CONTENT
-         ============================================ -->
-    <div class="dashboard-content">
-        
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+
         <!-- ============================================
-             3. KNOW YOUR OPPONENTS
+             1. DASHBOARD SECTION
              ============================================ -->
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-crosshairs"></i>
-                Upcoming Matches
-            </div>
+        <section id="dashboard" class="space-y-6">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Dashboard</h2>
             
-            <!-- Loading State -->
-            <div id="opponents-loading" class="text-center py-8">
-                <div class="flex justify-center mb-4">
-                    <div class="w-12 h-12 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
+            <!-- PTI Hero Card -->
+            <div class="section-hero rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl hover-lift">
+                <div id="pti-loading" class="py-8">
+                    <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto"></div>
                 </div>
-                <p class="text-sm text-gray-600">Loading your schedule...</p>
-            </div>
-            
-            <!-- Opponents Container -->
-            <div id="opponents-content" class="hidden"></div>
-            
-            <!-- Empty State -->
-            <div id="opponents-empty" class="hidden text-center py-8">
-                <div class="text-gray-400 mb-2">
-                    <i class="fas fa-calendar-alt text-4xl"></i>
-                </div>
-                <p class="text-gray-600">No upcoming matches scheduled</p>
-            </div>
-        </div>
-        
-        <!-- ============================================
-             4. WHO'S HOT
-             ============================================ -->
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-fire"></i>
-                Who's Hot
-            </div>
-            <div class="card-subtitle">Top performers in your Series</div>
-            
-            <!-- Loading State -->
-            <div id="players-loading" class="text-center py-8">
-                <div class="flex justify-center mb-4">
-                    <div class="w-12 h-12 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
-                </div>
-                <p class="text-sm text-gray-600">Loading top players...</p>
-            </div>
-            
-            <!-- Players Carousel -->
-            <div id="players-carousel" class="carousel hidden"></div>
-            
-            <!-- Empty State -->
-            <div id="players-empty" class="hidden text-center py-8">
-                <div class="text-gray-400 mb-2">
-                    <i class="fas fa-users text-4xl"></i>
-                </div>
-                <p class="text-gray-600">No player data available</p>
-            </div>
-        </div>
-        
-        <!-- ============================================
-             5. NOTIFICATIONS / RECENT ACTIVITY
-             ============================================ -->
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-bell"></i>
-                Notifications
-                <span id="notification-count-badge" class="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded-full hidden"></span>
-            </div>
-            
-            <!-- Loading State -->
-            <div id="notifications-loading-alt" class="text-center py-8">
-                <div class="flex justify-center mb-4">
-                    <div class="w-12 h-12 border-4 border-gray-200 border-t-green-600 rounded-full animate-spin"></div>
-                </div>
-                <p class="text-sm text-gray-600">Loading your notifications...</p>
-            </div>
-            
-            <!-- Notifications Container -->
-            <div id="notifications-content-alt" class="hidden"></div>
-            
-            <!-- Empty State -->
-            <div id="notifications-empty-alt" class="hidden text-center py-8">
-                <div class="text-gray-400 mb-2">
-                    <i class="fas fa-check-circle text-4xl"></i>
-                </div>
-                <p class="text-gray-600 font-medium">All caught up!</p>
-                <p class="text-gray-500 text-sm">You're on top of everything.</p>
-            </div>
-        </div>
-        
-        <!-- ============================================
-             6. QUICK ACTIONS
-             ============================================ -->
-        <div class="card">
-            <div class="card-title">
-                <i class="fas fa-bolt"></i>
-                Quick Actions
-            </div>
-            
-            <div class="quick-actions">
-                <a href="/mobile/availability" class="action-button">
-                    <div class="action-icon">📅</div>
-                    <div class="action-label">Availability</div>
-                </a>
                 
-                <a href="/mobile/analyze-me" class="action-button">
-                    <div class="action-icon">📊</div>
-                    <div class="action-label">My Stats</div>
+                <div id="pti-content" class="hidden">
+                    <h3 class="text-xl font-semibold mb-6 text-white/90">My PTI</h3>
+                    <div class="pti-circle mx-auto mb-6">
+                        <div id="pti-value" class="text-6xl font-bold">--</div>
+                    </div>
+                    <p id="pti-message" class="text-lg text-white/90 max-w-2xl mx-auto"></p>
+                <a href="/mobile/analyze-me" class="inline-block mt-6 px-8 py-3 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
+                    Tell me more
                 </a>
+                </div>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-sm text-gray-500 mb-2">My Record</div>
+                    <div id="my-record" class="text-3xl font-bold text-gray-900">-- - --</div>
+                </div>
                 
-                <a href="/mobile/text-group" class="action-button">
-                    <div class="action-icon">💬</div>
-                    <div class="action-label">Team Chat</div>
-                </a>
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-sm text-gray-500 mb-2">Win Rate</div>
+                    <div id="win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                </div>
                 
-                <a href="/mobile/ask-ai" class="action-button">
-                    <div class="action-icon">🧠</div>
-                    <div class="action-label">Coach Rally</div>
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-sm text-gray-500 mb-2">Best Partner</div>
+                    <div id="best-partner" class="text-xl font-semibold text-gray-900">Loading...</div>
+                </div>
+                
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-sm text-gray-500 mb-2">Win Streak</div>
+                    <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
+                </div>
+            </div>
+            
+            <!-- Last Match Results -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">My Last Match</h3>
+                <div id="last-match-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                <div id="last-match-content" class="hidden"></div>
+                <div id="last-match-empty" class="hidden text-center py-8">
+                    <i class="fas fa-calendar-times text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No recent matches found</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             2. SCHEDULE SECTION
+             ============================================ -->
+        <section id="schedule" class="space-y-6">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Schedule</h2>
+            
+            <!-- Next Match Hero -->
+            <div class="bg-gradient-to-br from-rally-green to-rally-green-light rounded-3xl p-8 text-white shadow-xl hover-lift">
+                <div id="next-match-loading" class="text-center py-8">
+                    <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="next-match-content" class="hidden">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-calendar-star text-2xl"></i>
+                        <h3 class="text-2xl font-bold">Next Match</h3>
+                    </div>
+                    <div id="next-match-details"></div>
+                </div>
+                
+                <div id="next-match-empty" class="hidden text-center py-8">
+                    <i class="fas fa-calendar-alt text-4xl mb-4 opacity-50"></i>
+                    <p class="text-white/80">No upcoming matches scheduled</p>
+                </div>
+            </div>
+            
+            <!-- Club Overview -->
+            <div class="bg-white rounded-2xl p-6 shadow-md mb-6">
+                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-chart-bar text-rally-green"></i>
+                    {{ session_data.user.club }} Overview
+                </h3>
+                
+                <div id="club-overview-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="club-overview-content" class="hidden">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div id="club-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                            <div class="text-sm text-gray-600">Record</div>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div id="club-win-rate" class="text-2xl font-bold text-gray-900">--%</div>
+                            <div class="text-sm text-gray-600">Win Rate</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Top Players</h4>
+                            <div id="club-top-players" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading...</div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Top Courts</h4>
+                            <div id="club-top-courts" class="space-y-2">
+                                <div class="text-center py-4 text-gray-500">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="club-overview-empty" class="hidden text-center py-8">
+                    <i class="fas fa-chart-bar text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No club data available</p>
+                </div>
+            </div>
+
+            <!-- Upcoming Matches & Practices -->
+            <div class="grid lg:grid-cols-2 gap-6">
+                <!-- Future Matches -->
+                <div class="bg-white rounded-2xl p-6 shadow-md">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-trophy text-rally-green"></i>
+                        Future Matches
+                    </h3>
+                    
+                    <div id="opponents-loading" class="text-center py-8">
+                        <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                    </div>
+                    
+                    <div id="opponents-content" class="hidden space-y-3"></div>
+                    
+                    <div id="opponents-empty" class="hidden text-center py-8">
+                        <i class="fas fa-calendar-alt text-4xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-500">No upcoming matches</p>
+                    </div>
+                    
+                    <a href="/mobile/availability" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                        Update Availability
+                    </a>
+                </div>
+                
+                <!-- Next 3 Practices -->
+                <div class="bg-white rounded-2xl p-6 shadow-md">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-dumbbell text-rally-green"></i>
+                        Next 3 Practices
+                    </h3>
+                    
+                    <div id="practices-loading" class="text-center py-8">
+                        <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                    </div>
+                    
+                    <div id="practices-content" class="hidden space-y-3"></div>
+                    
+                    <div id="practices-empty" class="hidden text-center py-8">
+                        <i class="fas fa-dumbbell text-4xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-500">No upcoming practices</p>
+                    </div>
+                    
+                    <a href="/mobile/availability" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                        Update Availability
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================
+             3. TEAM SECTION
+             ============================================ -->
+        <section id="team" class="space-y-6">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">My Team</h2>
+            
+            <!-- Captain's Message -->
+            <div id="captain-message-section" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 shadow-md border-l-4 border-rally-green hidden">
+                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <i class="fas fa-bullhorn text-rally-green"></i>
+                    Captain's Message
+                </h3>
+                <div id="captain-message-content"></div>
+            </div>
+            
+            <!-- How Are We Doing? -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-6">How Are We Doing?</h3>
+                
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <div class="text-sm text-gray-500 mb-1">Total Points</div>
+                        <div id="team-points" class="text-3xl font-bold text-rally-green">--</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <div class="text-sm text-gray-500 mb-1">Behind 1st</div>
+                        <div id="points-behind" class="text-3xl font-bold text-orange-500">--</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <div class="text-sm text-gray-500 mb-1">Team Record</div>
+                        <div id="team-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                    </div>
+                    
+                    <div class="text-center p-4 bg-gray-50 rounded-xl">
+                        <div class="text-sm text-gray-500 mb-1">Win Rate</div>
+                        <div id="team-win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                    </div>
+                </div>
+                
+                <a href="/mobile/my-team" class="block mt-6 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    My Team Page →
                 </a>
             </div>
+            
+            <!-- Who's Doing Well? -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-fire text-orange-500"></i>
+                    Who's Doing Well?
+                </h3>
+                
+                <div id="team-streaks-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="team-streaks-content" class="hidden carousel pb-4"></div>
+                
+                <div id="team-streaks-empty" class="hidden text-center py-8 text-gray-500">
+                    No current win streaks
+                </div>
+            </div>
+            
+            <!-- Series Overview -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Series Standings</h3>
+                
+                <div id="series-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="series-content" class="hidden space-y-3"></div>
+                
+                <a href="/mobile/series" class="block mt-6 text-center py-3 bg-gray-100 text-gray-900 rounded-xl font-semibold hover:bg-gray-200 transition">
+                    View Full Standings →
+                </a>
+            </div>
+            
+            <!-- Team Polls -->
+            <div id="team-polls-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-poll text-rally-green"></i>
+                    Team Polls
+                </h3>
+                <div id="team-polls-content"></div>
+                <a href="/mobile/polls" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    View All Polls →
+                </a>
+            </div>
+        </section>
+
+        <!-- ============================================
+             4. CLUB SECTION
+             ============================================ -->
+        <section id="club" class="space-y-6">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">My Club</h2>
+            
+            <!-- Club Highlights Grid -->
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Teams in 1st Place -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-trophy text-3xl text-yellow-500"></i>
+                        <h3 class="text-lg font-bold text-gray-900">1st Place Teams</h3>
+                    </div>
+                    <div id="first-place-teams" class="text-2xl font-bold text-rally-green">--</div>
+                    <p class="text-sm text-gray-500 mt-1">at this club</p>
+                </div>
+                
+                <!-- Players with Win Streaks -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-fire text-3xl text-orange-500"></i>
+                        <h3 class="text-lg font-bold text-gray-900">Hot Streaks</h3>
+                    </div>
+                    <div id="hot-streak-players" class="text-2xl font-bold text-orange-500">--</div>
+                    <p class="text-sm text-gray-500 mt-1">players with 3+ wins</p>
+                </div>
+                
+                <!-- PTI Changes -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="fas fa-chart-line text-3xl text-blue-500"></i>
+                        <h3 class="text-lg font-bold text-gray-900">Rising Stars</h3>
+                    </div>
+                    <div id="pti-climbers" class="text-2xl font-bold text-blue-500">--</div>
+                    <p class="text-sm text-gray-500 mt-1">biggest PTI gains</p>
+                </div>
+            </div>
+            
+            <!-- Who's Hot at Club -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4">Who's Hot at {{ session_data.user.club }}</h3>
+                
+                <div id="players-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="players-carousel" class="hidden carousel pb-4"></div>
+                
+                <div id="players-empty" class="hidden text-center py-8">
+                    <i class="fas fa-users text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No player data available</p>
+                </div>
+            </div>
+            
+            <!-- Club Events -->
+            <div id="club-events-section" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-md hidden">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-calendar-star text-purple-600"></i>
+                    Club Events
+                </h3>
+                <div id="club-events-content"></div>
+            </div>
+            
+            <!-- Food & Beer -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <div id="food-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-utensils text-rally-green"></i>
+                        Food Menu
+                    </h3>
+                    <div id="food-content"></div>
+                </div>
+                
+                <div id="beer-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-beer text-amber-600"></i>
+                        Beer Menu
+                    </h3>
+                    <div id="beer-content"></div>
+                </div>
+            </div>
+            
+            <a href="/mobile/improve" class="block text-center py-4 bg-rally-green text-white rounded-2xl font-semibold hover:bg-rally-green-dark transition text-lg shadow-md">
+                More Club Info →
+            </a>
+        </section>
+
+        <!-- ============================================
+             5. IMPROVE SECTION
+             ============================================ -->
+        <section id="improve" class="space-y-6 pb-12">
+            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Improve</h2>
+            
+            <!-- Pickup Games -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-users text-rally-green"></i>
+                    Pickup Games
+                </h3>
+                
+                <div id="pickup-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="pickup-content" class="hidden space-y-3"></div>
+                
+                <div id="pickup-empty" class="hidden text-center py-8">
+                    <i class="fas fa-calendar-alt text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No pickup games available</p>
+                </div>
+                
+                <a href="/mobile/pickup-games" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    View All Pickup Games →
+                </a>
+            </div>
+            
+            <!-- Latest Paddle Tip -->
+            <div class="bg-gradient-to-br from-rally-green to-rally-green-light rounded-3xl p-8 text-white shadow-xl hover-lift">
+                <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-lightbulb text-3xl"></i>
+                    Latest Paddle Tip
+                </h3>
+                <div id="paddle-tip-content" class="text-lg mb-6 text-white/90">
+                    <p><strong>Master the Lob:</strong> When your opponents are at the net, use a high, deep lob to push them back. Aim for their backhand side for maximum effect.</p>
+                </div>
+                <a href="/mobile/improve" class="inline-block px-8 py-3 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
+                    Improve My Game →
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-6">
+                <a href="/mobile" class="text-gray-500 hover:text-rally-green transition text-sm font-medium">
+                    ← Back to Classic View
+                </a>
+            </div>
+            <div class="text-center">
+                <p class="text-gray-500 text-sm">Powered by Rally</p>
+            </div>
         </div>
-        
-    </div>
-    
-    <!-- ============================================
-         7. FOOTER
-         ============================================ -->
-    <footer class="dashboard-footer">
-        <!-- Link back to classic view -->
-        <div style="text-align: center; margin-bottom: 1.5rem;">
-            <a href="/mobile" style="color: #86868b; font-size: 15px; text-decoration: none; font-weight: 500; transition: all 0.2s ease;">← Back to Classic View</a>
-        </div>
-        <img src="/static/rallylogo.png" alt="Rally Logo" class="footer-logo">
-        <p class="footer-text">Powered by Rally</p>
     </footer>
-    
-    <!-- JavaScript for Real Data Loading -->
+
+    <!-- ============================================
+         JAVASCRIPT - DATA LOADING
+         ============================================ -->
     <script>
         // Initialize all data on page load
         document.addEventListener('DOMContentLoaded', function() {
+            loadPTIData();
             loadUpcomingMatches();
+            loadPractices();
             loadTopPlayers();
             loadNotifications();
+            loadTeamData();
+            loadSeriesStandings();
+            loadClubOverview();
+            loadPickupGames();
         });
-
+        
+        // ============================================
+        // PTI DATA LOADING
+        // ============================================
+        async function loadPTIData() {
+            const loading = document.getElementById('pti-loading');
+            const content = document.getElementById('pti-content');
+            
+            try {
+                // Use the same API as analyze-me page for consistent data
+                const chartResponse = await fetch('/api/player-history-chart');
+                
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                
+                if (chartResponse.status === 404) {
+                    document.getElementById('pti-value').textContent = '--';
+                    document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
+                    return;
+                }
+                
+                const chartData = await chartResponse.json();
+                
+                if (chartData.error || !chartData.matches || chartData.matches.length === 0) {
+                    document.getElementById('pti-value').textContent = '--';
+                    document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
+                    return;
+                }
+                
+                // Get current PTI from the most recent match
+                const matches = chartData.matches || [];
+                const currentPTI = matches.length > 0 ? matches[matches.length - 1].end_pti : 0;
+                
+                document.getElementById('pti-value').textContent = currentPTI.toFixed(1);
+                
+                // Calculate PTI delta since start of season
+                let deltaDisplay = '';
+                if (matches.length > 1) {
+                    const startingPTI = matches[0].end_pti;
+                    const ptiDelta = currentPTI - startingPTI;
+                    if (ptiDelta > 0) {
+                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">+${ptiDelta.toFixed(1)} since start of season</div>`;
+                    } else if (ptiDelta < 0) {
+                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">${ptiDelta.toFixed(1)} since start of season</div>`;
+                    } else {
+                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">No change since start of season</div>`;
+                    }
+                }
+                
+                // Get current season stats from the same API as analyze-me page
+                const seasonStatsResponse = await fetch('/api/current-season-stats');
+                if (seasonStatsResponse.ok) {
+                    const seasonStatsData = await seasonStatsResponse.json();
+                    if (seasonStatsData.success && seasonStatsData.matches > 0) {
+                        // Use the actual current season data from analyze-me
+                        const wins = seasonStatsData.wins || 0;
+                        const losses = seasonStatsData.losses || 0;
+                        const winRate = Math.round(seasonStatsData.win_rate || 0);
+                        
+                        document.getElementById('my-record').textContent = `${wins} - ${losses}`;
+                        document.getElementById('win-rate').textContent = `${winRate}%`;
+                        
+                        // Calculate win streak from last-3-matches (for streak only)
+                        const lastMatchesResponse = await fetch('/api/last-3-matches');
+                        if (lastMatchesResponse.ok) {
+                            const lastMatchesData = await lastMatchesResponse.json();
+                            if (lastMatchesData.matches && lastMatchesData.matches.length > 0) {
+                                let currentStreak = 0;
+                                const matches = lastMatchesData.matches.reverse();
+                                
+                                for (const match of matches) {
+                                    const isHome = match['Home Team'] && match['Home Team'].includes('{{ session_data.user.club }}');
+                                    const won = (isHome && match.Winner === 'home') || (!isHome && match.Winner === 'away');
+                                    
+                                    if (won) {
+                                        currentStreak++;
+                                    } else {
+                                        break; // Stop counting streak after first loss
+                                    }
+                                }
+                                
+                                document.getElementById('win-streak').textContent = currentStreak > 0 ? `🔥 ${currentStreak}` : '--';
+                            } else {
+                                document.getElementById('win-streak').textContent = '--';
+                            }
+                        } else {
+                            document.getElementById('win-streak').textContent = '--';
+                        }
+                    } else {
+                        // No current season data available
+                        document.getElementById('my-record').textContent = '0 - 0';
+                        document.getElementById('win-rate').textContent = '0%';
+                        document.getElementById('win-streak').textContent = '--';
+                    }
+                } else {
+                    // Fallback if current-season-stats fails
+                    document.getElementById('my-record').textContent = '0 - 0';
+                    document.getElementById('win-rate').textContent = '0%';
+                    document.getElementById('win-streak').textContent = '--';
+                }
+                
+                // Calculate trend and build message
+                let message = `Current PTI: <strong>${currentPTI.toFixed(1)}</strong>`;
+                
+                if (matches.length > 1) {
+                    const recentMatches = matches.slice(-5);
+                    const firstPTI = recentMatches[0].end_pti;
+                    const lastPTI = recentMatches[recentMatches.length - 1].end_pti;
+                    const trend = lastPTI - firstPTI;
+                    
+                    if (trend > 0) {
+                        message += `<br>You're trending <strong>+${trend.toFixed(1)} PTI</strong> over your last ${recentMatches.length} matches.`;
+                    }
+                }
+                
+                document.getElementById('pti-message').innerHTML = message + deltaDisplay;
+                
+                // Find best partner from current season data (same as analyze-me page)
+                // For now, we'll use a simplified approach since we don't have partner analysis API
+                // In the future, we could add a partner analysis API endpoint
+                document.getElementById('best-partner').textContent = 'None';
+                
+                // Load last match data using the same API as analyze-me page
+                await loadLastMatchData();
+                
+            } catch (error) {
+                console.error('Error loading PTI data:', error);
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                document.getElementById('pti-value').textContent = '--';
+                document.getElementById('pti-message').innerHTML = 'Unable to load stats';
+            }
+        }
         
         // ============================================
         // UPCOMING MATCHES LOADING
         // ============================================
         async function loadUpcomingMatches() {
-            const loading = document.getElementById('opponents-loading');
-            const content = document.getElementById('opponents-content');
-            const empty = document.getElementById('opponents-empty');
+            const nextMatchLoading = document.getElementById('next-match-loading');
+            const nextMatchContent = document.getElementById('next-match-content');
+            const nextMatchEmpty = document.getElementById('next-match-empty');
+            const opponentsLoading = document.getElementById('opponents-loading');
+            const opponentsContent = document.getElementById('opponents-content');
+            const opponentsEmpty = document.getElementById('opponents-empty');
             
             try {
                 const response = await fetch('/api/schedule');
                 const data = await response.json();
                 
-                loading.classList.add('hidden');
+                nextMatchLoading.classList.add('hidden');
+                opponentsLoading.classList.add('hidden');
                 
                 if (data.error || !data.matches || data.matches.length === 0) {
-                    empty.classList.remove('hidden');
+                    nextMatchEmpty.classList.remove('hidden');
+                    opponentsEmpty.classList.remove('hidden');
                     return;
                 }
                 
@@ -817,60 +728,106 @@
                         } catch (e) {
                             return false;
                         }
-                    })
-                    .slice(0, 3); // Show next 3 matches
+                    });
                 
                 if (upcomingMatches.length === 0) {
-                    empty.classList.remove('hidden');
+                    nextMatchEmpty.classList.remove('hidden');
+                    opponentsEmpty.classList.remove('hidden');
                     return;
                 }
                 
-                content.classList.remove('hidden');
-                content.innerHTML = '';
+                // Next Match (first one)
+                const nextMatch = upcomingMatches[0];
+                nextMatchContent.classList.remove('hidden');
+                const homeTeam = nextMatch.home_team || '';
+                const awayTeam = nextMatch.away_team || '';
+                const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
+                const opponentName = isHome ? awayTeam : homeTeam;
                 
-                upcomingMatches.forEach(match => {
-                    const matchElement = createMatchElement(match);
-                    content.appendChild(matchElement);
+                const matchDate = new Date(nextMatch.date);
+                const dateStr = matchDate.toLocaleDateString('en-US', { 
+                    weekday: 'long',
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                const timeStr = nextMatch.time || 'TBD';
+                const location = nextMatch.location || 'TBD';
+                
+                document.getElementById('next-match-details').innerHTML = `
+                    <div class="text-5xl font-bold mb-4">vs ${opponentName}</div>
+                    <div class="flex items-center gap-6 text-lg flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar"></i>
+                            ${dateStr}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-clock"></i>
+                            ${timeStr}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${location}
+                        </div>
+                        <div class="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
+                            ${isHome ? '🏠 Home' : '✈️ Away'}
+                        </div>
+                    </div>
+                    <a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="inline-block mt-6 px-6 py-2 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition">Get Directions →</a>
+                `;
+                
+                // Next 3 Matches
+                const next3 = upcomingMatches.slice(0, 3);
+                opponentsContent.classList.remove('hidden');
+                opponentsContent.innerHTML = '';
+                
+                next3.forEach(match => {
+                    const matchDiv = createMatchElement(match);
+                    opponentsContent.appendChild(matchDiv);
                 });
                 
             } catch (error) {
                 console.error('Error loading matches:', error);
-                loading.classList.add('hidden');
-                empty.classList.remove('hidden');
+                nextMatchLoading.classList.add('hidden');
+                opponentsLoading.classList.add('hidden');
+                nextMatchEmpty.classList.remove('hidden');
+                opponentsEmpty.classList.remove('hidden');
             }
         }
         
         function createMatchElement(match) {
             const div = document.createElement('div');
-            div.className = 'opponent-info';
+            div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
             
-            // Determine opponent and match type
             const homeTeam = match.home_team || '';
             const awayTeam = match.away_team || '';
             const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
             const opponentName = isHome ? awayTeam : homeTeam;
-            const initials = opponentName.split(' ').map(word => word[0]).join('').substring(0, 3).toUpperCase();
             
-            // Format date and time
+            // Extract club name from opponent team name (e.g., "Exmoor 20" -> "Exmoor")
+            const clubName = opponentName.replace(/\s+\d+$/, '').toLowerCase();
+            
             const matchDate = new Date(match.date);
             const dateStr = matchDate.toLocaleDateString('en-US', { 
-                weekday: 'long',
                 month: 'short', 
                 day: 'numeric' 
             });
             const timeStr = match.time || 'TBD';
-            
-            // Get location info
             const location = match.location || '';
-            const locationDisplay = location ? `📍 ${location}` : '';
             
             div.innerHTML = `
-                <div class="opponent-avatar">${initials}</div>
-                <div class="opponent-details">
-                    <div class="opponent-name">vs ${opponentName}</div>
-                    <div class="opponent-stats">${dateStr} at ${timeStr}</div>
-                    ${locationDisplay ? `<div class="notification-subtitle">${locationDisplay}</div>` : ''}
-                    ${isHome ? '<div class="card-subtitle">Home Match 🏠</div>' : '<div class="card-subtitle">Away Match ✈️</div>'}
+                <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <img src="/static/images/clubs/${clubName}_logo.png" 
+                         alt="${opponentName} Logo" 
+                         class="w-12 h-12 object-contain rounded-lg"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="w-12 h-12 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
+                        ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-gray-900">vs ${opponentName}</div>
+                    <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                    ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
                 </div>
             `;
             
@@ -878,7 +835,78 @@
         }
         
         // ============================================
-        // TOP PLAYERS LOADING  
+        // PRACTICES LOADING
+        // ============================================
+        async function loadPractices() {
+            const loading = document.getElementById('practices-loading');
+            const content = document.getElementById('practices-content');
+            const empty = document.getElementById('practices-empty');
+            
+            try {
+                const response = await fetch('/api/schedule');
+                const data = await response.json();
+                
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.matches || data.matches.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                const now = new Date();
+                const practices = data.matches
+                    .filter(match => {
+                        try {
+                            const matchDate = new Date(match.date);
+                            return matchDate >= now && match.type === 'practice';
+                        } catch (e) {
+                            return false;
+                        }
+                    })
+                    .slice(0, 3);
+                
+                if (practices.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                content.classList.remove('hidden');
+                content.innerHTML = '';
+                
+                practices.forEach(practice => {
+                    const practiceDate = new Date(practice.date);
+                    const dateStr = practiceDate.toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    const timeStr = practice.time || 'TBD';
+                    const location = practice.location || 'TBD';
+                    
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+                    div.innerHTML = `
+                        <div class="w-14 h-14 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-gray-900">${practice.description || 'Practice'}</div>
+                            <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                            <div class="text-xs text-gray-500">📍 ${location}</div>
+                        </div>
+                    `;
+                    content.appendChild(div);
+                });
+                
+            } catch (error) {
+                console.error('Error loading practices:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+        
+        // ============================================
+        // TOP PLAYERS LOADING
         // ============================================
         async function loadTopPlayers() {
             const loading = document.getElementById('players-loading');
@@ -896,10 +924,16 @@
                     return;
                 }
                 
-                // Sort by PTI and get top 10
                 const topPlayers = data
-                    .filter(p => p.PTI && p.PTI > 0)
-                    .sort((a, b) => b.PTI - a.PTI)
+                    .filter(p => {
+                        const pti = typeof p.PTI === 'number' ? p.PTI : parseFloat(p.PTI);
+                        return pti && pti > 0;
+                    })
+                    .sort((a, b) => {
+                        const aPTI = typeof a.PTI === 'number' ? a.PTI : parseFloat(a.PTI) || 0;
+                        const bPTI = typeof b.PTI === 'number' ? b.PTI : parseFloat(b.PTI) || 0;
+                        return bPTI - aPTI;
+                    })
                     .slice(0, 10);
                 
                 if (topPlayers.length === 0) {
@@ -911,9 +945,28 @@
                 carousel.innerHTML = '';
                 
                 topPlayers.forEach(player => {
-                    const playerCard = createPlayerCard(player);
-                    carousel.appendChild(playerCard);
+                    const firstName = player['First Name'] || '';
+                    const lastName = player['Last Name'] || '';
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+                    const ptiValue = typeof player.PTI === 'number' ? player.PTI : parseFloat(player.PTI) || 0;
+                    const pti = ptiValue.toFixed(1);
+                    
+                    const div = document.createElement('div');
+                    div.className = 'flex-shrink-0 w-40 bg-gray-50 rounded-2xl p-5 text-center hover:bg-gray-100 transition';
+                    div.innerHTML = `
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-xl mx-auto mb-3">
+                            ${initials}
+                        </div>
+                        <div class="font-semibold text-gray-900 text-sm mb-1">${fullName}</div>
+                        <div class="text-2xl font-bold text-rally-green">${pti}</div>
+                        <div class="text-xs text-gray-500 mt-1">PTI</div>
+                    `;
+                    carousel.appendChild(div);
                 });
+                
+                // Update club stats
+                document.getElementById('hot-streak-players').textContent = topPlayers.filter(p => p['Win Streak'] >= 3).length;
                 
             } catch (error) {
                 console.error('Error loading top players:', error);
@@ -922,155 +975,331 @@
             }
         }
         
-        function createPlayerCard(player) {
-            const div = document.createElement('div');
-            div.className = 'player-card';
-            
-            const firstName = player['First Name'] || '';
-            const lastName = player['Last Name'] || '';
-            const fullName = `${firstName} ${lastName}`.trim();
-            const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-            const pti = player.PTI ? player.PTI.toFixed(1) : '0.0';
-            const wins = player.wins || 0;
-            const losses = player.losses || 0;
-            const record = `${wins}-${losses}`;
-            
-            div.innerHTML = `
-                <div class="player-avatar">${initials}</div>
-                <div class="player-name">${fullName}</div>
-                <div class="player-pti">PTI: ${pti}</div>
-                <div class="player-streak">${record} record</div>
-                <button class="player-action" onclick="location.href='/mobile/player-detail?name=${encodeURIComponent(fullName)}'">
-                    <i class="fas fa-chart-line"></i> View Stats
-                </button>
-            `;
-            
-            return div;
-        }
-        
         // ============================================
         // NOTIFICATIONS LOADING
         // ============================================
         async function loadNotifications() {
-            const loading = document.getElementById('notifications-loading-alt');
-            const content = document.getElementById('notifications-content-alt');
-            const empty = document.getElementById('notifications-empty-alt');
-            const badge = document.getElementById('notification-count-badge');
-            
             try {
                 const response = await fetch('/api/home/notifications');
                 const data = await response.json();
                 
-                loading.classList.add('hidden');
-                
-                if (data.error) {
-                    console.error('Error fetching notifications:', data.error);
-                    showEmptyNotifications();
+                if (data.error || !data.notifications) {
                     return;
                 }
                 
                 const notifications = data.notifications || [];
                 
-                if (notifications.length === 0) {
-                    showEmptyNotifications();
-                    return;
+                // Captain's Message
+                const captainMessages = notifications.filter(n => n.type === 'captain');
+                if (captainMessages.length > 0) {
+                    const section = document.getElementById('captain-message-section');
+                    const content = document.getElementById('captain-message-content');
+                    section.classList.remove('hidden');
+                    content.innerHTML = `<p class="text-gray-700">${captainMessages[0].message}</p>`;
                 }
                 
-                if (notifications.length > 0) {
-                    badge.textContent = notifications.length;
-                    badge.classList.remove('hidden');
+                // Team Polls
+                const polls = notifications.filter(n => n.type === 'poll');
+                if (polls.length > 0) {
+                    const section = document.getElementById('team-polls-section');
+                    const content = document.getElementById('team-polls-content');
+                    section.classList.remove('hidden');
+                    content.innerHTML = polls.map(poll => `
+                        <div class="p-4 bg-gray-50 rounded-xl mb-2">
+                            <div class="font-semibold text-gray-900">${poll.title}</div>
+                            <p class="text-sm text-gray-600 mt-1">${poll.message}</p>
+                        </div>
+                    `).join('');
                 }
                 
-                content.classList.remove('hidden');
-                renderNotifications(notifications);
+                // Food notifications
+                const foodNotifs = notifications.filter(n => n.type === 'food');
+                if (foodNotifs.length > 0) {
+                    const section = document.getElementById('food-section');
+                    const content = document.getElementById('food-content');
+                    section.classList.remove('hidden');
+                    content.innerHTML = `<p class="text-gray-700">${foodNotifs[0].message}</p>`;
+                }
+                
+                // Beer notifications
+                const beerNotifs = notifications.filter(n => n.type === 'beer');
+                if (beerNotifs.length > 0) {
+                    const section = document.getElementById('beer-section');
+                    const content = document.getElementById('beer-content');
+                    section.classList.remove('hidden');
+                    content.innerHTML = `<p class="text-gray-700">${beerNotifs[0].message}</p>`;
+                }
                 
             } catch (error) {
                 console.error('Error loading notifications:', error);
-                loading.classList.add('hidden');
-                showEmptyNotifications();
             }
         }
         
-        function showEmptyNotifications() {
-            const content = document.getElementById('notifications-content-alt');
-            const empty = document.getElementById('notifications-empty-alt');
-            
-            content.classList.add('hidden');
-            empty.classList.remove('hidden');
-        }
-        
-        function renderNotifications(notifications) {
-            const content = document.getElementById('notifications-content-alt');
-            content.innerHTML = '';
-            
-            notifications.forEach(notification => {
-                const notificationElement = createNotificationElement(notification);
-                content.appendChild(notificationElement);
-            });
-        }
-        
-        function createNotificationElement(notification) {
-            const div = document.createElement('div');
-            div.className = 'notification-item';
-            
-            const link = notification.cta || notification.detail_link;
-            if (link && link.href) {
-                div.classList.add('clickable');
-                div.onclick = () => location.href = link.href;
-            }
-            
-            const icon = getNotificationIconHTML(notification.type);
-            const message = formatNotificationMessage(notification);
-            
-            div.innerHTML = `
-                <div class="notification-icon">
-                    ${icon}
-                </div>
-                <div class="notification-details">
-                    <div class="notification-title">${notification.title}</div>
-                    <div class="notification-subtitle">${message}</div>
-                    ${link ? `<div class="card-subtitle" style="margin-top: 0.25rem;">${link.label} →</div>` : ''}
-                </div>
-            `;
-            
-            return div;
-        }
-        
-        function formatNotificationMessage(notification) {
-            if (notification.type === 'schedule' && notification.message.includes('\n')) {
-                const lines = notification.message.split('\n');
-                let html = '<div style="line-height: 1.6;">';
+        // ============================================
+        // TEAM DATA LOADING
+        // ============================================
+        async function loadTeamData() {
+            try {
+                // Get team stats from the team stats API (same as my-team page)
+                const response = await fetch('/api/team-stats');
                 
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        const formattedLine = line.replace(/^(Practice:|Match:)/, '<strong>$1</strong>');
-                        html += `<div style="margin-bottom: 0.25rem;">${formattedLine}</div>`;
-                    }
+                if (!response.ok) {
+                    console.error('Team stats API error:', response.status, response.statusText);
+                    // Show placeholder data
+                    document.getElementById('team-points').textContent = '--';
+                    document.getElementById('points-behind').textContent = '--';
+                    document.getElementById('team-record').textContent = '-- - --';
+                    document.getElementById('team-win-rate').textContent = '--%';
+                    return;
                 }
                 
-                html += '</div>';
-                return html;
+                const data = await response.json();
+                
+                if (data.error || !data.success) {
+                    console.error('Error loading team stats:', data.error);
+                    // Show placeholder data
+                    document.getElementById('team-points').textContent = '--';
+                    document.getElementById('points-behind').textContent = '--';
+                    document.getElementById('team-record').textContent = '-- - --';
+                    document.getElementById('team-win-rate').textContent = '--%';
+                    return;
+                }
+                
+                // Use the team stats data (same as my-team page)
+                const points = data.points || 0;
+                const matchesWon = data.matches_won || 0;
+                const matchesLost = data.matches_lost || 0;
+                const winRate = data.win_rate || 0;
+                
+                // Update team points
+                document.getElementById('team-points').textContent = points;
+                
+                // For now, show placeholder for points behind (would need series standings API)
+                document.getElementById('points-behind').textContent = '--';
+                
+                // Update team record
+                document.getElementById('team-record').textContent = `${matchesWon} - ${matchesLost}`;
+                
+                // Update win rate
+                document.getElementById('team-win-rate').textContent = `${Math.round(winRate)}%`;
+                
+            } catch (error) {
+                console.error('Error loading team data:', error);
+                // Show placeholder data on error
+                document.getElementById('team-points').textContent = '--';
+                document.getElementById('points-behind').textContent = '--';
+                document.getElementById('team-record').textContent = '-- - --';
+                document.getElementById('team-win-rate').textContent = '--%';
             }
-            
-            return notification.message;
         }
         
-        function getNotificationIconHTML(type) {
-            const iconMap = {
-                'captain': '<i class="fas fa-calendar-alt"></i>',
-                'schedule': '<i class="fas fa-calendar-check"></i>',
-                'team': '<i class="fas fa-trophy"></i>',
-                'poll': '<i class="fas fa-poll"></i>',
-                'match': '<i class="fas fa-table-tennis"></i>',
-                'personal': '<i class="fas fa-fire"></i>',
-                'food': '<i class="fas fa-utensils"></i>',
-                'beer': '<i class="fas fa-beer"></i>',
-                'result': '<i class="fas fa-check-circle"></i>',
-                'install': '<i class="fas fa-mobile-alt"></i>'
-            };
+        // ============================================
+        // SERIES STANDINGS LOADING
+        // ============================================
+        async function loadSeriesStandings() {
+            // Placeholder - would connect to actual series standings API
+            const content = document.getElementById('series-content');
+            content.classList.remove('hidden');
+            content.innerHTML = '<p class="text-gray-500 text-center py-4">Standings data loading...</p>';
+        }
+        
+        // ============================================
+        // CLUB OVERVIEW LOADING
+        // ============================================
+        async function loadClubOverview() {
+            const loading = document.getElementById('club-overview-loading');
+            const content = document.getElementById('club-overview-content');
+            const empty = document.getElementById('club-overview-empty');
             
-            return iconMap[type] || '<i class="fas fa-bell"></i>';
+            try {
+                // Get club players data for stats
+                const response = await fetch('/api/club-players');
+                const data = await response.json();
+                
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.players || data.players.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                content.classList.remove('hidden');
+                
+                // Calculate club stats
+                const players = data.players || [];
+                let totalWins = 0;
+                let totalLosses = 0;
+                let totalMatches = 0;
+                
+                players.forEach(player => {
+                    const wins = player.wins || 0;
+                    const losses = player.losses || 0;
+                    totalWins += wins;
+                    totalLosses += losses;
+                    totalMatches += wins + losses;
+                });
+                
+                // Update record and win rate
+                document.getElementById('club-record').textContent = `${totalWins} - ${totalLosses}`;
+                const winRate = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
+                document.getElementById('club-win-rate').textContent = `${winRate}%`;
+                
+                // Get top players by PTI
+                const topPlayers = players
+                    .filter(p => p.PTI && !isNaN(parseFloat(p.PTI)))
+                    .sort((a, b) => parseFloat(b.PTI) - parseFloat(a.PTI))
+                    .slice(0, 3);
+                
+                const topPlayersContainer = document.getElementById('club-top-players');
+                if (topPlayers.length > 0) {
+                    topPlayersContainer.innerHTML = topPlayers.map(player => `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                    ${player.first_name ? player.first_name[0] : '?'}
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">${player.first_name} ${player.last_name}</div>
+                                    <div class="text-sm text-gray-600">${player.wins || 0}-${player.losses || 0}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-rally-green">${parseFloat(player.PTI).toFixed(1)}</div>
+                                <div class="text-xs text-gray-500">PTI</div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    topPlayersContainer.innerHTML = '<div class="text-center py-4 text-gray-500">No player data available</div>';
+                }
+                
+                // Get top courts (placeholder - would need court-specific data)
+                const topCourtsContainer = document.getElementById('club-top-courts');
+                topCourtsContainer.innerHTML = `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                            <div class="font-medium text-gray-900">Court 1</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-rally-green">${winRate}%</div>
+                            <div class="text-xs text-gray-500">Win Rate</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                            <div class="font-medium text-gray-900">Court 2</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-bold text-rally-green">${Math.max(0, winRate - 5)}%</div>
+                            <div class="text-xs text-gray-500">Win Rate</div>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading club overview:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+
+        // ============================================
+        // LAST MATCH LOADING
+        // ============================================
+        async function loadLastMatchData() {
+            const loading = document.getElementById('last-match-loading');
+            const content = document.getElementById('last-match-content');
+            const empty = document.getElementById('last-match-empty');
+            
+            // Check if elements exist
+            if (!loading || !content || !empty) {
+                console.error('Last match HTML elements not found');
+                return;
+            }
+            
+            try {
+                // Use the same API as analyze-me page
+                const response = await fetch('/api/last-3-matches');
+                
+                if (response.status === 404) {
+                    loading.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.error || !data.matches || data.matches.length === 0) {
+                    loading.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                // Get the most recent match (first in the array)
+                const lastMatch = data.matches[0];
+                
+                // Parse match data - use correct field names from /api/last-3-matches response
+                const matchDate = new Date(lastMatch.Date);
+                const dateStr = matchDate.toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    year: 'numeric' 
+                });
+                const timeStr = 'TBD'; // Time not available in this API
+                
+                // Determine if our team won
+                const isHome = lastMatch['Home Team'] && lastMatch['Home Team'].includes('{{ session_data.user.club }}');
+                const won = (isHome && lastMatch.Winner === 'home') || (!isHome && lastMatch.Winner === 'away');
+                
+                // Get opponent team name
+                const opponentTeam = isHome ? lastMatch['Away Team'] : lastMatch['Home Team'];
+                
+                // Get opponent players - these are player IDs, not names
+                const opponent1 = isHome ? lastMatch['Away Player 1'] : lastMatch['Home Player 1'];
+                const opponent2 = isHome ? lastMatch['Away Player 2'] : lastMatch['Home Player 2'];
+                const opponentNames = opponentTeam || 'Unknown'; // Use team name instead of player IDs
+                
+                // Format score
+                const scores = lastMatch.Scores ? lastMatch.Scores.split(', ') : [];
+                const scoreStr = scores.length > 0 ? scores.join(', ') : '--';
+                
+                // Update the last match display
+                content.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-full ${won ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-center">
+                            <i class="fas fa-${won ? 'trophy' : 'times'} text-2xl ${won ? 'text-green-600' : 'text-red-600'}"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-semibold text-lg ${won ? 'text-green-600' : 'text-red-600'}">${won ? 'Won' : 'Lost'}</div>
+                            <div class="text-gray-600">vs ${opponentNames}</div>
+                            <div class="text-sm text-gray-500">${dateStr} at ${timeStr}</div>
+                            <div class="text-xs text-gray-400">${scoreStr}</div>
+                        </div>
+                    </div>
+                `;
+                
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+                empty.classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error loading last match data:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+
+        // ============================================
+        // PICKUP GAMES LOADING
+        // ============================================
+        async function loadPickupGames() {
+            // Placeholder - would connect to actual pickup games API
+            const loading = document.getElementById('pickup-loading');
+            const empty = document.getElementById('pickup-empty');
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
         }
     </script>
     

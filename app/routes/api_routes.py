@@ -13202,3 +13202,161 @@ def delete_player_note_api(note_id):
             "success": False,
             "error": str(e)
         }), 500
+
+
+@api_bp.route("/player-analysis")
+@login_required
+def get_player_analysis_api():
+    """Get player analysis data including PTI delta since start of season"""
+    try:
+        from app.services.mobile_service import get_player_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get player analysis data
+        analyze_data = get_player_analysis(user_data)
+        
+        if analyze_data.get("error"):
+            return jsonify({
+                "success": False,
+                "error": analyze_data["error"]
+            }), 500
+        
+        # Return the analysis data
+        return jsonify({
+            "success": True,
+            "current_pti": analyze_data.get("current_pti"),
+            "pti_delta": analyze_data.get("pti_delta"),
+            "delta_available": analyze_data.get("delta_available", False),
+            "starting_pti": analyze_data.get("starting_pti"),
+            "weekly_pti_change": analyze_data.get("weekly_pti_change")
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting player analysis: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/team-stats")
+@login_required
+def get_team_stats_api():
+    """Get team stats for dashboard (same as my-team page)"""
+    try:
+        from app.services.mobile_service import get_mobile_team_data
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get team data using the same function as my-team page
+        result = get_mobile_team_data(user_data)
+        
+        # Handle case where result might be a string (error message)
+        if isinstance(result, str):
+            return jsonify({
+                "success": False,
+                "error": result
+            }), 500
+        
+        team_data = result.get("team_data")
+        
+        if not team_data:
+            return jsonify({
+                "success": False,
+                "error": "Team data not found"
+            }), 404
+        
+        # Extract the stats we need for dashboard
+        # The team_data structure has matches, lines, sets, games, points, display_name, team
+        matches_data = team_data.get("matches", {})
+        points = team_data.get("points", 0)
+        team_name = team_data.get("team", "Unknown Team")
+        
+        # Calculate win rate from matches data
+        matches_won = int(matches_data.get("won", 0))
+        matches_lost = int(matches_data.get("lost", 0))
+        total_matches = matches_won + matches_lost
+        win_rate = (matches_won / total_matches * 100) if total_matches > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "points": points,
+            "matches_won": matches_won,
+            "matches_lost": matches_lost,
+            "win_rate": win_rate,
+            "team_name": team_name
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting team stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/current-season-stats")
+@login_required
+def get_current_season_stats_api():
+    """Get current season stats for dashboard (same as analyze-me page)"""
+    try:
+        from app.services.mobile_service import get_player_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get player analysis data using the same function as analyze-me page
+        analyze_data = get_player_analysis(user_data)
+        
+        if analyze_data.get("error"):
+            return jsonify({
+                "success": False,
+                "error": analyze_data["error"]
+            }), 500
+        
+        # Extract current season data
+        current_season = analyze_data.get("current_season", {})
+        
+        if not current_season:
+            return jsonify({
+                "success": False,
+                "error": "No current season data available"
+            }), 404
+        
+        # Return the current season stats
+        return jsonify({
+            "success": True,
+            "matches": current_season.get("matches", 0),
+            "wins": current_season.get("wins", 0),
+            "losses": current_season.get("losses", 0),
+            "win_rate": current_season.get("winRate", 0),
+            "pti_change": current_season.get("ptiChange", "N/A")
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting current season stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
