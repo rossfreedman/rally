@@ -13,7 +13,7 @@
         }
         
         .section-hero {
-            background: linear-gradient(135deg, #045454 0%, #067676 100%);
+            background: #045454;
         }
         
         .pti-circle {
@@ -54,7 +54,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            background: linear-gradient(135deg, #045454 0%, #067676 100%);
+            background: #045454;
         }
 
         .sticky-nav.scrolled {
@@ -166,8 +166,8 @@
                      class="w-20 h-20 object-contain rounded-xl"
                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 {% endif %}
-                <div class="w-20 h-20 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-xl" 
-                     style="{% if session_data and session_data.user and session_data.user.club_logo %}display: none;{% endif %}">
+                <div class="w-20 h-20 text-white flex items-center justify-center font-bold text-lg rounded-xl" 
+                     style="{% if session_data and session_data.user and session_data.user.club_logo %}display: none;{% endif %}background-color: #bff863; color: #045454;">
                     {{ session_data.user.club[0:2] if session_data and session_data.user and session_data.user.club else 'CL' }}
                 </div>
                 </div>
@@ -185,7 +185,7 @@
 
     <!-- Sticky Navigation Tabs (Persistent below header) -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" style="position: sticky; top: 56px; z-index: 50;">
-        <nav id="main-nav" class="sticky-nav bg-gradient-to-r from-rally-green to-rally-green-light rounded-3xl px-6 py-4 shadow-xl">
+        <nav id="main-nav" class="sticky-nav rounded-3xl px-6 py-4 shadow-xl">
             <div class="flex gap-1.5 justify-center">
                 <a href="#schedule" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Schedule</a>
                 <a href="#team" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Team</a>
@@ -202,7 +202,7 @@
              1. DASHBOARD SECTION
              ============================================ -->
         <section id="dashboard" class="space-y-6">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Dashboard</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Dashboard</h2>
             
             <!-- PTI Hero Card -->
             <div class="section-hero rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl hover-lift persistent-card" id="pti-card">
@@ -216,7 +216,7 @@
                         <div id="pti-value" class="text-6xl font-bold">--</div>
                     </div>
                     <p id="pti-message" class="text-lg text-white/90 max-w-2xl mx-auto"></p>
-                <a href="/mobile/analyze-me" class="inline-block mt-6 px-8 py-3 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
+                <a href="/mobile/analyze-me" class="inline-block mt-6 px-8 py-3 rounded-full font-semibold transition shadow-lg" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
                     Tell me more
                 </a>
                 </div>
@@ -228,12 +228,12 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
                         <div class="text-sm text-gray-500 mb-2">My Record</div>
-                        <div id="my-record" class="text-3xl font-bold text-gray-900">-- - --</div>
+                        <div id="my-record" class="text-3xl font-bold text-[#045454]">-- - --</div>
                     </div>
                     
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
                         <div class="text-sm text-gray-500 mb-2">Win Rate</div>
-                        <div id="win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                        <div id="win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
                     </div>
                 </div>
                 
@@ -249,14 +249,14 @@
                 <div class="grid grid-cols-1">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
                         <div class="text-sm text-gray-500 mb-2">Best Partner</div>
-                        <div id="best-partner" class="text-xl font-semibold text-gray-900">Loading...</div>
+                        <div id="best-partner" class="text-xl font-semibold text-[#045454]">Loading...</div>
                     </div>
                 </div>
             </div>
             
             <!-- Last Match Results -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">My Last Match</h3>
+                <h3 class="text-2xl font-bold text-[#045454] mb-4">My Last Match</h3>
                 <div id="last-match-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
                 </div>
@@ -272,10 +272,10 @@
              2. SCHEDULE SECTION
              ============================================ -->
         <section id="schedule" class="space-y-6">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Schedule</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Schedule</h2>
             
             <!-- Next Match Hero -->
-            <div class="bg-gradient-to-br from-rally-green to-rally-green-light rounded-3xl p-8 text-white shadow-xl hover-lift">
+            <div class="rounded-3xl p-8 text-white shadow-xl hover-lift" style="background-color: #045454;">
                 <div id="next-match-loading" class="text-center py-8">
                     <div class="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin mx-auto"></div>
                 </div>
@@ -299,10 +299,12 @@
             <div class="grid lg:grid-cols-2 gap-6">
                 <!-- Future Matches -->
                 <div class="bg-white rounded-2xl p-6 shadow-md">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <i class="fas fa-trophy text-rally-green"></i>
-                        Future Matches
-                    </h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-trophy" style="color: #bff863;"></i>
+                            Future Matches
+                        </h3>
+                    </div>
                     
                     <div id="opponents-loading" class="text-center py-8">
                         <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -322,10 +324,12 @@
                 
                 <!-- Next 3 Practices -->
                 <div class="bg-white rounded-2xl p-6 shadow-md">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <i class="fas fa-dumbbell text-rally-green"></i>
-                        Next 3 Practices
-                    </h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-dumbbell" style="color: #bff863;"></i>
+                            Next 3 Practices
+                        </h3>
+                    </div>
                     
                     <div id="practices-loading" class="text-center py-8">
                         <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -349,11 +353,11 @@
              3. TEAM SECTION
              ============================================ -->
         <section id="team" class="space-y-6">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">My Team</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">My Team</h2>
             
             <!-- Captain's Message -->
             <div id="captain-message-section" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 shadow-md border-l-4 border-rally-green hidden">
-                <h3 class="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 class="text-xl font-bold text-[#045454] mb-3 flex items-center gap-2">
                     <i class="fas fa-bullhorn text-rally-green"></i>
                     Captain's Message
                 </h3>
@@ -362,7 +366,9 @@
             
             <!-- How Are We Doing? -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-6">How Are We Doing?</h3>
+                <div class="rounded-xl p-4 mb-6" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0" style="color: #bff863;">How Are We Doing?</h3>
+                </div>
                 
                 <div class="space-y-4">
                     <!-- First Row: Total Points and Behind 1st -->
@@ -382,12 +388,12 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
                             <div class="text-sm text-gray-500 mb-1">Team Record</div>
-                            <div id="team-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                            <div id="team-record" class="text-2xl font-bold text-[#045454]">-- - --</div>
                         </div>
                         
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
                             <div class="text-sm text-gray-500 mb-1">Win Rate</div>
-                            <div id="team-win-rate" class="text-3xl font-bold text-gray-900">--%</div>
+                            <div id="team-win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
                         </div>
                     </div>
                 </div>
@@ -399,10 +405,12 @@
             
             <!-- Who's Doing Well? -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-fire text-orange-500"></i>
-                    Who's Doing Well?
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-fire" style="color: #bff863;"></i>
+                        Who's Doing Well?
+                    </h3>
+                </div>
                 
                 <div id="team-streaks-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -417,7 +425,9 @@
             
             <!-- Series Overview -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">Series Standings</h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0" style="color: #bff863;">Series Standings</h3>
+                </div>
                 
                 <div id="series-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -431,17 +441,19 @@
                     </div>
                 </div>
                 
-                <a href="/mobile/my-series" class="block mt-6 text-center py-3 bg-gray-100 text-gray-900 rounded-xl font-semibold hover:bg-gray-200 transition">
+                <a href="/mobile/my-series" class="block mt-6 text-center py-3 bg-gray-100 text-[#045454] rounded-xl font-semibold hover:bg-gray-200 transition">
                     View Full Standings →
                 </a>
             </div>
             
             <!-- Team Polls -->
             <div id="team-polls-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-poll text-rally-green"></i>
-                    Team Polls
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-poll" style="color: #bff863;"></i>
+                        Team Polls
+                    </h3>
+                </div>
                 <div id="team-polls-content"></div>
                 <a href="/mobile/polls" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
                     View All Polls →
@@ -453,14 +465,16 @@
              4. CLUB SECTION
              ============================================ -->
         <section id="club" class="space-y-6">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">My Club</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">My Club</h2>
             
             <!-- Club Overview -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-chart-bar text-rally-green"></i>
-                    {{ session_data.user.club }} Overview
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-chart-bar" style="color: #bff863;"></i>
+                        {{ session_data.user.club }} Overview
+                    </h3>
+                </div>
                 
                 <div id="club-overview-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -469,25 +483,25 @@
                 <div id="club-overview-content" class="hidden">
                     <div class="grid grid-cols-2 gap-4 mb-6">
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-record" class="text-2xl font-bold text-gray-900">-- - --</div>
+                            <div id="club-record" class="text-2xl font-bold text-[#045454]">-- - --</div>
                             <div class="text-sm text-gray-600">Record</div>
                         </div>
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-win-rate" class="text-2xl font-bold text-gray-900">--%</div>
+                            <div id="club-win-rate" class="text-2xl font-bold text-[#045454]">--%</div>
                             <div class="text-sm text-gray-600">Win Rate</div>
                         </div>
                     </div>
                     
                     <div class="space-y-4">
                         <div>
-                            <h4 class="font-semibold text-gray-900 mb-2">Top Players</h4>
+                            <h4 class="font-semibold text-[#045454] mb-2">Top Players</h4>
                             <div id="club-top-players" class="space-y-2">
                                 <div class="text-center py-4 text-gray-500">Loading...</div>
                             </div>
                         </div>
                         
                         <div>
-                            <h4 class="font-semibold text-gray-900 mb-2">Top Courts</h4>
+                            <h4 class="font-semibold text-[#045454] mb-2">Top Courts</h4>
                             <div id="club-top-courts" class="space-y-2">
                                 <div class="text-center py-4 text-gray-500">Loading...</div>
                             </div>
@@ -507,7 +521,7 @@
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fas fa-trophy text-3xl text-yellow-500"></i>
-                        <h3 class="text-lg font-bold text-gray-900">1st Place Teams</h3>
+                        <h3 class="text-lg font-bold text-[#045454]">1st Place Teams</h3>
                     </div>
                     <div id="first-place-teams" class="text-2xl font-bold text-rally-green">--</div>
                     <p class="text-sm text-gray-500 mt-1">at this club</p>
@@ -517,7 +531,7 @@
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fas fa-fire text-3xl text-orange-500"></i>
-                        <h3 class="text-lg font-bold text-gray-900">Hot Streaks</h3>
+                        <h3 class="text-lg font-bold text-[#045454]">Hot Streaks</h3>
                     </div>
                     <div id="hot-streak-players" class="text-2xl font-bold text-orange-500">--</div>
                     <p class="text-sm text-gray-500 mt-1">players with 3+ wins</p>
@@ -527,7 +541,7 @@
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fas fa-chart-line text-3xl text-blue-500"></i>
-                        <h3 class="text-lg font-bold text-gray-900">Rising Stars</h3>
+                        <h3 class="text-lg font-bold text-[#045454]">Rising Stars</h3>
                     </div>
                     <div id="pti-climbers" class="text-2xl font-bold text-blue-500">--</div>
                     <p class="text-sm text-gray-500 mt-1">biggest PTI gains</p>
@@ -536,7 +550,9 @@
             
             <!-- Who's Hot at Club -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4">Who's Hot at {{ session_data.user.club }}</h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0" style="color: #bff863;">Who's Hot at {{ session_data.user.club }}</h3>
+                </div>
                 
                 <div id="players-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -552,7 +568,7 @@
             
             <!-- Club Events -->
             <div id="club-events-section" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6 shadow-md hidden">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 class="text-2xl font-bold text-[#045454] mb-4 flex items-center gap-2">
                     <i class="fas fa-calendar-star text-purple-600"></i>
                     Club Events
                 </h3>
@@ -562,23 +578,27 @@
             <!-- Food & Beer -->
             <div class="grid md:grid-cols-2 gap-6">
                 <div id="food-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <i class="fas fa-utensils text-rally-green"></i>
-                        Food Menu
-                    </h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-utensils" style="color: #bff863;"></i>
+                            Food Menu
+                        </h3>
+                    </div>
                     <div id="food-content"></div>
                 </div>
                 
                 <div id="beer-section" class="bg-white rounded-2xl p-6 shadow-md hidden">
-                    <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <i class="fas fa-beer text-amber-600"></i>
-                        Beer Menu
-                    </h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-beer" style="color: #bff863;"></i>
+                            Beer Menu
+                        </h3>
+                    </div>
                     <div id="beer-content"></div>
                 </div>
             </div>
             
-            <a href="/mobile/improve" class="block text-center py-4 bg-rally-green text-white rounded-2xl font-semibold hover:bg-rally-green-dark transition text-lg shadow-md">
+            <a href="/mobile/improve" class="block text-center py-4 text-white rounded-2xl font-semibold transition text-lg shadow-md" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                 More Club Info →
             </a>
         </section>
@@ -587,14 +607,16 @@
              5. PLAY SECTION
              ============================================ -->
         <section id="play" class="space-y-6 pb-12">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Play</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Play</h2>
             
             <!-- Pickup Games -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-users text-rally-green"></i>
-                    Pickup Games
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-users" style="color: #bff863;"></i>
+                        Pickup Games
+                    </h3>
+                </div>
                 
                 <div id="pickup-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
@@ -607,17 +629,19 @@
                     <p class="text-gray-500">No pickup games available</p>
                 </div>
                 
-                <a href="/mobile/pickup-games" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                <a href="/mobile/pickup-games" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     View All Pickup Games →
                 </a>
             </div>
             
             <!-- Find People to Play -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-user-friends text-rally-green"></i>
-                    Find People to Play
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-user-friends" style="color: #bff863;"></i>
+                        Find People to Play
+                    </h3>
+                </div>
                 
                 <div class="space-y-4">
                     <!-- Quick Search Form -->
@@ -636,10 +660,10 @@
                     
                     <!-- Search Buttons -->
                     <div class="flex gap-3 pt-2">
-                        <button id="quickSearchBtn" class="flex-1 px-4 py-3 bg-rally-green text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-rally-green transition-colors duration-200 font-medium hover:bg-rally-green-dark">
+                        <button id="quickSearchBtn" class="flex-1 px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 font-medium" style="background-color: #045454; border-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                             <i class="fas fa-search mr-2"></i>Search Players
                         </button>
-                        <button id="quickResetBtn" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium">
+                        <button id="quickResetBtn" class="px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 font-medium" style="background-color: #045454; border-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                             <i class="fas fa-undo-alt mr-2"></i>Reset
                         </button>
                     </div>
@@ -651,10 +675,10 @@
              6. IMPROVE SECTION
              ============================================ -->
         <section id="improve" class="space-y-6 pb-12">
-            <h2 class="text-4xl font-bold text-gray-900 tracking-tight">Improve</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Improve</h2>
             
             <!-- Latest Paddle Tip -->
-            <div class="bg-gradient-to-br from-rally-green to-rally-green-light rounded-3xl p-8 text-white shadow-xl hover-lift">
+            <div class="rounded-3xl p-8 text-white shadow-xl hover-lift" style="background-color: #045454;">
                 <h3 class="text-2xl font-bold mb-4 flex items-center gap-2">
                     <i class="fas fa-lightbulb text-3xl"></i>
                     Latest Paddle Tip
@@ -662,17 +686,19 @@
                 <div id="paddle-tip-content" class="text-lg mb-6 text-white/90">
                     <p><strong>Master the Lob:</strong> When your opponents are at the net, use a high, deep lob to push them back. Aim for their backhand side for maximum effect.</p>
                 </div>
-                <a href="/mobile/improve" class="inline-block px-8 py-3 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition shadow-lg">
+                <a href="/mobile/improve" class="inline-block px-8 py-3 bg-white rounded-full font-semibold hover:bg-gray-100 transition shadow-lg" style="color: #045454;">
                     Improve My Game →
                 </a>
             </div>
             
             <!-- Featured Training Video -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
-                <h3 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <i class="fas fa-play-circle text-rally-green"></i>
-                    Featured Training Video
-                </h3>
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-play-circle" style="color: #bff863;"></i>
+                        Featured Training Video
+                    </h3>
+                </div>
                 
                 <div id="training-video-content" class="space-y-4">
                     <div class="bg-gray-100 rounded-xl p-4 text-center">
@@ -682,7 +708,7 @@
                     </div>
                 </div>
                 
-                <a href="/mobile/training-videos" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                <a href="/mobile/training-videos" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     Browse All Videos →
                 </a>
             </div>
@@ -1074,7 +1100,7 @@
                             <i class="fas fa-search"></i>
                             Scout Competition
                         </a>
-                        <a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="px-6 py-2 bg-white text-rally-green rounded-full font-semibold hover:bg-gray-100 transition">Get Directions →</a>
+                        <a href="https://maps.google.com/?q=${encodeURIComponent(location)}" target="_blank" class="px-6 py-2 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Get Directions →</a>
                     </div>
                 `;
                 
@@ -1154,7 +1180,7 @@
                     </div>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-gray-900">vs ${opponentName}</div>
+                    <div class="font-semibold text-[#045454]">vs ${opponentName}</div>
                     <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                     ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
                 </div>
@@ -1219,7 +1245,7 @@
                             <i class="fas fa-dumbbell"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-gray-900">${practice.description || 'Practice'}</div>
+                            <div class="font-semibold text-[#045454]">${practice.description || 'Practice'}</div>
                             <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                             <div class="text-xs text-gray-500">📍 ${location}</div>
                         </div>
@@ -1281,7 +1307,7 @@
                         <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-400 text-white flex items-center justify-center font-bold text-xl mx-auto mb-3">
                             ${initials}
                         </div>
-                        <div class="font-semibold text-gray-900 text-sm mb-1">${fullName}</div>
+                        <div class="font-semibold text-[#045454] text-sm mb-1">${fullName}</div>
                         <div class="text-2xl font-bold text-orange-500">${streak}</div>
                         <div class="text-xs text-gray-500 mt-1">Win Streak</div>
                     `;
@@ -1398,7 +1424,7 @@
                     section.classList.remove('hidden');
                     content.innerHTML = polls.map(poll => `
                         <div class="p-4 bg-gray-50 rounded-xl mb-2">
-                            <div class="font-semibold text-gray-900">${poll.title}</div>
+                            <div class="font-semibold text-[#045454]">${poll.title}</div>
                             <p class="text-sm text-gray-600 mt-1">${poll.message}</p>
                         </div>
                     `).join('');
@@ -1592,7 +1618,7 @@
                 loading.classList.add('hidden');
                 
                 if (!Array.isArray(stats) || stats.length === 0) {
-                    table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-chart-bar text-gray-400 text-2xl"></i></div><h3 class="text-lg font-semibold text-gray-900 mb-2">No Series Data</h3><p class="text-gray-500">Series statistics will appear here once matches are played.</p></div>';
+                    table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-chart-bar text-gray-400 text-2xl"></i></div><h3 class="text-lg font-semibold text-[#045454] mb-2">No Series Data</h3><p class="text-gray-500">Series statistics will appear here once matches are played.</p></div>';
                     content.classList.remove('hidden');
                     return;
                 }
@@ -1651,17 +1677,17 @@
                         `${teamDisplayName}${starIcon}`;
                     
                     html += `<tr class="${rowClass}">
-                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamName}</td>`;
+                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamName}</td>`;
                     
                     // Add Avg PTI column (if PTI data exists)
                     if (hasPtiData) {
                         const avgPti = team.avg_pti && team.avg_pti !== 'N/A' ? team.avg_pti : 'N/A';
-                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 14%;">${avgPti}</td>`;
+                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 14%;">${avgPti}</td>`;
                     }
                     
                     html += `
                         <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${team.matches.won}-${team.matches.lost}</td>
-                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-gray-900'}" style="width: 14%;">${team.points}</td>
+                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 14%;">${team.points}</td>
                         <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${avgPoints}</td>
                         <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-600' : 'text-gray-600'}" style="width: 14%;">${firstPlacePoints - team.points}</td>
                       </tr>`;
@@ -1673,7 +1699,7 @@
             } catch (error) {
                 console.error('Error loading series standings:', error);
                 loading.classList.add('hidden');
-                table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i></div><h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Standings</h3><p class="text-gray-500">Unable to load series standings data.</p></div>';
+                table.innerHTML = '<div class="text-center text-gray-500 p-8"><div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i></div><h3 class="text-lg font-semibold text-[#045454] mb-2">Error Loading Standings</h3><p class="text-gray-500">Unable to load series standings data.</p></div>';
                 content.classList.remove('hidden');
             }
         }
@@ -1734,7 +1760,7 @@
                                     ${player.first_name ? player.first_name[0] : '?'}
                                 </div>
                                 <div>
-                                    <div class="font-medium text-gray-900">${player.first_name} ${player.last_name}</div>
+                                    <div class="font-medium text-[#045454]">${player.first_name} ${player.last_name}</div>
                                     <div class="text-sm text-gray-600">${player.wins || 0}-${player.losses || 0}</div>
                                 </div>
                             </div>
@@ -1754,7 +1780,7 @@
                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                            <div class="font-medium text-gray-900">Court 1</div>
+                            <div class="font-medium text-[#045454]">Court 1</div>
                         </div>
                         <div class="text-right">
                             <div class="font-bold text-rally-green">${winRate}%</div>
@@ -1764,7 +1790,7 @@
                     <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                            <div class="font-medium text-gray-900">Court 2</div>
+                            <div class="font-medium text-[#045454]">Court 2</div>
                         </div>
                         <div class="text-right">
                             <div class="font-bold text-rally-green">${Math.max(0, winRate - 5)}%</div>
@@ -2183,7 +2209,7 @@
                                                         display: flex;
                                                         align-items: center;
                                                         justify-content: center;
-                                                        background: linear-gradient(135deg, #045454 0%, #067676 100%);
+                                                        background: #bff863;
                                                         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
                                                         border: 2px solid rgba(255, 255, 255, 0.6);
                                                         transition: all 0.3s ease;">
@@ -2217,7 +2243,7 @@
                                     </div>
                                 </div>
                                 <div class="p-4">
-                                    <h4 class="font-semibold text-gray-900 mb-2">${featuredVideo.title}</h4>
+                                    <h4 class="font-semibold text-[#045454] mb-2">${featuredVideo.title}</h4>
                                     <p class="text-sm text-gray-600 mb-3">${featuredVideo.summary}</p>
                                     <div class="flex flex-wrap gap-2">
                                         ${featuredVideo.keywords.slice(0, 3).map(keyword => 
