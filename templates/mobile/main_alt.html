@@ -51,9 +51,6 @@
 
         /* Sticky Navigation Styles */
         .sticky-nav {
-            position: sticky;
-            top: 0;
-            z-index: 50;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
@@ -125,7 +122,7 @@
     <!-- ============================================
          HEADER (Fixed at top, below navbar)
          ============================================ -->
-    <header class="section-hero text-white shadow-lg" style="margin-top: 56px;">
+    <header class="section-hero text-white shadow-lg" style="margin-top: 11px;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-3">
@@ -153,15 +150,17 @@
     </header>
 
     <!-- Sticky Navigation Tabs (Persistent below header) -->
-    <nav id="main-nav" class="sticky-nav bg-gradient-to-r from-rally-green to-rally-green-light px-4 py-3 shadow-lg" style="position: sticky; top: 0; z-index: 50;">
-        <div class="max-w-7xl mx-auto flex gap-2 overflow-x-auto scrollbar-none">
-            <a href="#schedule" class="nav-button px-5 py-2.5 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/30 transition text-white">Schedule</a>
-            <a href="#team" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Team</a>
-            <a href="#club" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Club</a>
-            <a href="#play" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Play</a>
-            <a href="#improve" class="nav-button px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-sm font-semibold whitespace-nowrap hover:bg-white/20 transition text-white">Improve</a>
-        </div>
-    </nav>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" style="position: sticky; top: 56px; z-index: 50;">
+        <nav id="main-nav" class="sticky-nav bg-gradient-to-r from-rally-green to-rally-green-light rounded-3xl px-6 py-4 shadow-xl">
+            <div class="flex gap-1.5 justify-center">
+                <a href="#schedule" class="nav-button px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/30 transition text-white">Schedule</a>
+                <a href="#team" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Team</a>
+                <a href="#club" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Club</a>
+                <a href="#play" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Play</a>
+                <a href="#improve" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Improve</a>
+            </div>
+        </nav>
+    </div>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
 
@@ -1527,7 +1526,7 @@
                 console.log('Scroll position:', scrollTop, 'Nav offset:', navOffsetTop);
                 
                 // Check if we've scrolled past the navigation's initial position
-                if (scrollTop > navOffsetTop - 50) { // Add some threshold for better UX
+                if (scrollTop > navOffsetTop - 0) { // Add some threshold for better UX
                     if (!nav.classList.contains('scrolled')) {
                         console.log('Adding scrolled class');
                         nav.classList.add('scrolled');
@@ -1569,7 +1568,9 @@
                         e.preventDefault();
                         const target = document.querySelector(href);
                         if (target) {
-                            const targetOffsetTop = target.offsetTop - 80; // Account for sticky nav height
+                            // Consistent offset for all navigation sections
+                            let offset = 155; // Standard offset for all sections
+                            const targetOffsetTop = target.offsetTop - offset;
                             window.scrollTo({
                                 top: targetOffsetTop,
                                 behavior: 'smooth'
