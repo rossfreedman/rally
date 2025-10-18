@@ -16,7 +16,7 @@
 .analysis-section h4 {
     color: #2c3e50;
     margin-bottom: 20px;
-    border-bottom: 2px solid #3498db;
+    border-bottom: 2px solid #045454;
     padding-bottom: 12px;
     font-weight: 600;
 }
@@ -50,7 +50,7 @@
 .court-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    border-color: #3498db;
+    border-color: #045454;
 }
 
 .court-card h5, .court-card h6 {
@@ -92,7 +92,7 @@
     background-color: #f8f9fa;
     border-radius: 6px;
     font-size: 0.95rem;
-    border-left: 3px solid #3498db;
+    border-left: 3px solid #045454;
 }
 
 .player-stat {
@@ -157,7 +157,7 @@
     padding: 25px;
     border-radius: 12px;
     margin-bottom: 30px;
-    border-left: 4px solid #3498db;
+    border-left: 4px solid #045454;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -200,7 +200,7 @@
 
 .stat-item:hover {
     background-color: #f8f9fa;
-    border-color: #3498db;
+    border-color: #045454;
 }
 
 .stat-item strong {
@@ -222,7 +222,7 @@
 }
 
 .win-rate-high {
-    color: #2ecc71;
+    color: #bff863;
     font-weight: 700;
 }
 
@@ -239,7 +239,7 @@
 /* Performance-based styling */
 .strong-performance {
     background-color: #edfbf3;
-    border-left: 4px solid #2ecc71;
+    border-left: 4px solid #bff863;
 }
 
 .average-performance {
@@ -349,12 +349,12 @@
     border-radius: 10px;
     padding: 1.5rem;
     margin-bottom: 1.5rem;
-    border-left: 4px solid #0d6efd;
+    border-left: 4px solid #045454;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 #player-stats .overall-stats h6 {
-    color: #0d6efd;
+    color: #045454;
     font-size: 1.2rem;
     margin-bottom: 1.25rem;
     font-weight: 600;
@@ -428,7 +428,7 @@
 }
 
 #player-stats .win-rate-high {
-    color: #28a745;
+    color: #bff863;
     font-weight: 700;
 }
 

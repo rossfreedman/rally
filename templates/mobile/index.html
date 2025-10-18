@@ -1183,13 +1183,13 @@ async function loadClubSwitcherOptions() {
       if (optionsContainer) {
         optionsContainer.innerHTML = data.teams.map(team => `
           <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
-                  class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
-                         ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
+                  class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-rally-bright-green hover:bg-opacity-10 transition-all duration-200 border-2 border-gray-300 hover:border-rally-dark-green hover:shadow-md group
+                         ${team.is_current ? 'bg-rally-bright-green bg-opacity-20 border-rally-dark-green' : ''}">
               <div class="text-left">
-                  <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
-                  <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
+                  <div class="font-bold text-gray-900 group-hover:text-rally-dark-green">${team.club_name}</div>
+                  <div class="text-sm text-gray-600 group-hover:text-rally-dark-green">${team.series_name} • ${team.match_count} matches</div>
               </div>
-              <div class="text-sm ${team.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${team.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
+              <div class="text-sm ${team.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-rally-dark-green group-hover:bg-opacity-90 text-white px-3 py-1 rounded'}" style="${team.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
                   ${team.is_current ? 'Current' : 'Switch'}
               </div>
           </button>
@@ -1323,9 +1323,9 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
         </div>
         
         <!-- Current League Display -->
-        <div class="px-6 py-4" style="background: #045454; border-bottom: 2px solid #0d47a1;">
+        <div class="px-6 py-4" style="background: #045454; border-bottom: 2px solid #045454;">
             <div class="flex items-center gap-3 mb-3">
-                <span class="bg-white text-blue-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                <span class="bg-white text-rally-dark-green px-3 py-1 rounded-full text-xs font-bold shadow-sm">
                     CURRENT
                 </span>
                 <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE LEAGUE</span>
@@ -1354,7 +1354,7 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
     <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[40rem] overflow-hidden flex flex-col" style="max-height: 40rem !important; height: auto !important;">
         <!-- Modal Header -->
         <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-white">
+            <h3 class="text-lg font-semibold" style="color: #bff863 !important;">
                 Switch Team
             </h3>
             <button id="closeClubModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold" onclick="closeClubSwitcher()">
@@ -1363,14 +1363,13 @@ async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
         </div>
         
         <!-- Current Team Display -->
-        <div class="px-6 py-4" style="background: linear-gradient(135deg, #059669, #047857); border-bottom: 2px solid #065f46;">
+        <div class="px-6 py-4" style="background: linear-gradient(135deg, #045454, #033333); border-bottom: 2px solid #045454;">
             <div class="flex items-center gap-3 mb-3">
-                <span class="bg-white text-green-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                <span class="bg-white text-rally-dark-green px-3 py-1 rounded-full text-xs font-bold shadow-sm">
                     CURRENT
                 </span>
-                <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE TEAM</span>
             </div>
-            <div class="font-bold text-white text-lg mb-1">{{ session_data.user.club }}</div>
+            <div class="font-bold text-lg mb-1" style="color: #bff863 !important;">{{ session_data.user.club }}</div>
             <div class="text-white text-sm">{{ session_data.user.series }} • {{ session_data.user.league_name }}</div>
         </div>
         

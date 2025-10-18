@@ -13,9 +13,9 @@
 }
 
 .form-select:focus {
-    border-color: #86b7fe;
+    border-color: #bff863;
     outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    box-shadow: 0 0 0 0.25rem rgba(191, 248, 99, 0.25);
 }
 
 .form-select option {
@@ -55,28 +55,28 @@
 
 /* Highlight box for top recommended subs */
 .top-player-box {
-    border: 3px solid #007bff;
+    border: 3px solid #045454;
     border-radius: 12px;
-    background: #eaf4ff;
-    box-shadow: 0 4px 16px rgba(0,123,255,0.08);
+    background: #e8f8e8;
+    box-shadow: 0 4px 16px rgba(4,84,84,0.08);
 }
 
 .top-player-row {
     font-weight: bold;
-    background: #d0eaff;
-    border-bottom: 2px solid #007bff;
+    background: #c8f0c8;
+    border-bottom: 2px solid #045454;
 }
 
 .top-player-row.top-player-box {
-    background: #eaf4ff !important;
-    border-left: 8px solid #0056b3 !important;
-    box-shadow: 0 2px 12px rgba(0,86,179,0.18) !important;
+    background: #e8f8e8 !important;
+    border-left: 8px solid #045454 !important;
+    box-shadow: 0 2px 12px rgba(4,84,84,0.18) !important;
     font-weight: bold !important;
-    color: #1a237e !important;
+    color: #045454 !important;
 }
 
 table .top-player-label {
-    background: #145a32 !important;
+    background: #045454 !important;
     color: #fff !important;
     font-size: 1.1em !important;
     border-top-left-radius: 10px !important;
@@ -93,8 +93,8 @@ table .top-player td {
 }
 
 table .top-player td {
-    background: #eaf4ff !important;
-    border-left: 8px solid #0056b3 !important;
-    box-shadow: 0 2px 12px rgba(0,86,179,0.18) !important;
-    color: #1a237e !important;
+    background: #e8f8e8 !important;
+    border-left: 8px solid #045454 !important;
+    box-shadow: 0 2px 12px rgba(4,84,84,0.18) !important;
+    color: #045454 !important;
 } 

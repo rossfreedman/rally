@@ -19,7 +19,7 @@
         <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[32rem] overflow-hidden">
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <h3 class="text-lg font-semibold" style="color: #bff863 !important;">Switch Team</h3>
                 <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
@@ -326,11 +326,11 @@ async function loadTeamSelectorOptions(currentTeamId, currentTeamName) {
                 // Populate team options
                 teamOptionsContainer.innerHTML = data.teams.map(team => `
                     <button onclick="switchTeamContext(${team.team_id}, '${team.team_name}')" 
-                            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent ${team.team_id == currentTeamId ? 'bg-blue-50 border-blue-200' : ''}"
+                            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-rally-bright-green hover:bg-opacity-10 transition-colors border border-transparent ${team.team_id == currentTeamId ? 'bg-rally-bright-green bg-opacity-20 border-rally-dark-green' : ''}"
                             data-team-id="${team.team_id}"
                             data-team-name="${team.team_name}">
                         <div class="flex-1 text-left">
-                            <div class="font-medium ${team.team_id == currentTeamId ? 'text-blue-700' : 'text-gray-900'}">
+                            <div class="font-medium ${team.team_id == currentTeamId ? 'text-rally-dark-green' : 'text-gray-900'}">
                                 ${team.team_name}
                             </div>
                             <div class="text-sm text-gray-500">${team.club_name} - ${team.series_name}</div>
@@ -338,7 +338,7 @@ async function loadTeamSelectorOptions(currentTeamId, currentTeamName) {
                         </div>
                         <div class="ml-3">
                             ${team.team_id == currentTeamId ? 
-                                '<div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>' :
+                                '<div class="w-6 h-6 bg-rally-dark-green rounded-full flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>' :
                                 '<i class="fas fa-arrow-right text-gray-300 text-sm"></i>'
                             }
                         </div>
