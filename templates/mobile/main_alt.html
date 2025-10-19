@@ -227,12 +227,12 @@
                 <!-- First Row: My Record and Win Rate -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
-                        <div class="text-sm font-bold text-gray-700 mb-2">My Record</div>
+                        <div class="text-2xl font-bold text-[#045454] mb-4">My Record</div>
                         <div id="my-record" class="text-3xl font-bold text-[#045454]">-- - --</div>
                     </div>
                     
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
-                        <div class="text-sm font-bold text-gray-700 mb-2">Win Rate</div>
+                        <div class="text-2xl font-bold text-[#045454] mb-4">Win Rate</div>
                         <div id="win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
                     </div>
                 </div>
@@ -240,7 +240,7 @@
                 <!-- Second Row: Win Streak -->
                 <div class="grid grid-cols-1">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-sm font-bold text-gray-700 mb-2">Win Streak</div>
+                        <div class="text-2xl font-bold text-[#045454] mb-4">Win Streak</div>
                         <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
                     </div>
                 </div>
@@ -248,8 +248,12 @@
                 <!-- Third Row: Best Partner -->
                 <div class="grid grid-cols-1">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-sm font-bold text-gray-700 mb-2">Best Partner</div>
-                        <div id="best-partner" class="text-xl font-semibold text-[#045454]">Loading...</div>
+                        <div class="text-2xl font-bold text-[#045454] mb-4">Best Partner</div>
+                        <div id="best-partner-content">
+                            <div class="text-center py-4">
+                                <div class="w-8 h-8 border-4 border-gray-200 border-t-[#045454] rounded-full animate-spin mx-auto"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -371,11 +375,16 @@
                 </div>
                 
                 <div class="space-y-4">
-                    <!-- First Row: Total Points and Behind 1st -->
-                    <div class="grid grid-cols-2 gap-4">
+                    <!-- First Row: Total Points, Avg Pts, and Behind 1st -->
+                    <div class="grid grid-cols-3 gap-4">
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
                             <div class="text-sm text-gray-500 mb-1">Total Points</div>
                             <div id="team-points" class="text-3xl font-bold text-rally-green">--</div>
+                        </div>
+                        
+                        <div class="text-center p-4 bg-gray-50 rounded-xl">
+                            <div class="text-sm text-gray-500 mb-1">Avg Pts</div>
+                            <div id="avg-points" class="text-3xl font-bold text-blue-500">--</div>
                         </div>
                         
                         <div class="text-center p-4 bg-gray-50 rounded-xl">
@@ -421,7 +430,7 @@
                     </div>
                 </div>
                 
-                <a href="/mobile/my-series" class="block mt-6 text-center py-3 bg-gray-100 text-[#045454] rounded-xl font-semibold hover:bg-gray-200 transition">
+                <a href="/mobile/my-series" class="block mt-6 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     View Full Standings →
                 </a>
             </div>
@@ -469,61 +478,16 @@
         <section id="club" class="space-y-6">
             <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">My Club</h2>
             
-            <!-- Club Overview -->
-            <div class="bg-white rounded-2xl p-6 shadow-md">
-                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
-                    <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
-                        <i class="fas fa-chart-bar" style="color: #bff863;"></i>
-                        {{ session_data.user.club }} Overview
-                    </h3>
-                </div>
-                
-                <div id="club-overview-loading" class="text-center py-8">
-                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
-                </div>
-                
-                <div id="club-overview-content" class="hidden">
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-record" class="text-2xl font-bold text-[#045454]">-- - --</div>
-                            <div class="text-sm text-gray-600">Record</div>
-                        </div>
-                        <div class="text-center p-4 bg-gray-50 rounded-xl">
-                            <div id="club-win-rate" class="text-2xl font-bold text-[#045454]">--%</div>
-                            <div class="text-sm text-gray-600">Win Rate</div>
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <h4 class="font-semibold text-[#045454] mb-2">Top Players</h4>
-                            <div id="club-top-players" class="space-y-2">
-                                <div class="text-center py-4 text-gray-500">Loading...</div>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <h4 class="font-semibold text-[#045454] mb-2">Top Courts</h4>
-                            <div id="club-top-courts" class="space-y-2">
-                                <div class="text-center py-4 text-gray-500">Loading...</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="club-overview-empty" class="hidden text-center py-8">
-                    <i class="fas fa-chart-bar text-4xl text-gray-300 mb-2"></i>
-                    <p class="text-gray-500">No club data available</p>
-                </div>
-            </div>
             
             <!-- Club Highlights Grid -->
-            <div class="grid md:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-2 gap-6">
                 <!-- Teams in 1st Place -->
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-trophy text-3xl text-yellow-500"></i>
-                        <h3 class="text-lg font-bold text-[#045454]">{{ session_data.user.club or 'Club' }} Teams in 1st Place</h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-trophy" style="color: #bff863;"></i>
+                            {{ session_data.user.club or 'Club' }} Teams in 1st Place
+                        </h3>
                     </div>
                     
                     <!-- Loading state -->
@@ -558,21 +522,14 @@
                     </div>
                 </div>
                 
-                <!-- Players with Win Streaks -->
-                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-fire text-3xl text-orange-500"></i>
-                        <h3 class="text-lg font-bold text-[#045454]">Hot Streaks</h3>
-                    </div>
-                    <div id="hot-streak-players" class="text-2xl font-bold text-orange-500">--</div>
-                    <p class="text-sm text-gray-500 mt-1">players with 3+ wins</p>
-                </div>
                 
                 <!-- PTI Changes -->
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="fas fa-chart-line text-3xl text-blue-500"></i>
-                        <h3 class="text-lg font-bold text-[#045454]">Rising Stars</h3>
+                    <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                        <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                            <i class="fas fa-chart-line" style="color: #bff863;"></i>
+                            Rising Stars
+                        </h3>
                     </div>
                     <div id="pti-climbers" class="text-2xl font-bold text-blue-500">--</div>
                     <p class="text-sm text-gray-500 mt-1">biggest PTI gains</p>
@@ -582,7 +539,10 @@
             <!-- Who's Hot at Club -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
                 <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
-                    <h3 class="text-2xl font-bold mb-0" style="color: #bff863;">Who's Hot at {{ session_data.user.club }}</h3>
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-fire" style="color: #bff863;"></i>
+                        Who's Hot at {{ session_data.user.club }}
+                    </h3>
                 </div>
                 
                 <div id="players-loading" class="text-center py-8">
@@ -777,7 +737,7 @@
                     <p class="text-gray-500">No lessons scheduled</p>
                 </div>
                 
-                <a href="/mobile/schedule-lesson" class="block mt-4 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                <a href="/mobile/schedule-lesson" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     Schedule Lesson
                 </a>
             </div>
@@ -833,7 +793,6 @@
             loadNotifications();
             loadTeamData();
             loadSeriesStandings();
-            loadClubOverview();
             loadPickupGames();
             loadMyLessons();
             loadPaddleTip();
@@ -1025,18 +984,18 @@
                                     }
                                 }
                                 
-                                document.getElementById('win-streak').textContent = currentStreak > 0 ? `🔥 ${currentStreak}` : '--';
+                                document.getElementById('win-streak').innerHTML = currentStreak > 0 ? `🔥 ${currentStreak}` : '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                             } else {
-                                document.getElementById('win-streak').textContent = '--';
+                                document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                             }
                         } else {
-                            document.getElementById('win-streak').textContent = '--';
+                            document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                         }
                     } else {
                         // No current season data available
                         document.getElementById('my-record').textContent = '0 - 0';
                         document.getElementById('win-rate').textContent = '0%';
-                        document.getElementById('win-streak').textContent = '--';
+                        document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                         // Mark cards as loaded and save to persistence
                         document.getElementById('record-card').classList.add('loaded');
                         document.getElementById('winrate-card').classList.add('loaded');
@@ -1046,7 +1005,7 @@
                     // Fallback if current-season-stats fails
                     document.getElementById('my-record').textContent = '0 - 0';
                     document.getElementById('win-rate').textContent = '0%';
-                    document.getElementById('win-streak').textContent = '--';
+                    document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                     // Mark cards as loaded and save to persistence
                     document.getElementById('record-card').classList.add('loaded');
                     document.getElementById('winrate-card').classList.add('loaded');
@@ -1307,9 +1266,9 @@
                     <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                     ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
                 </div>
-                <div class="flex flex-col items-center gap-1">
-                    <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
-                    <span class="text-xs font-medium text-${statusColor}-600">${statusText}</span>
+                <div class="flex flex-col items-center justify-center gap-1 min-w-[60px]">
+                    <i class="${statusIcon} text-2xl text-${statusColor}-500 mx-auto"></i>
+                    <span class="text-xs font-medium text-${statusColor}-600 text-center">${statusText}</span>
                 </div>
             `;
             
@@ -1445,9 +1404,9 @@
                             <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                             <div class="text-xs text-gray-500">📍 ${location}</div>
                         </div>
-                        <div class="flex flex-col items-center gap-1">
-                            <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
-                            <span class="text-xs font-medium text-${statusColor}-600">${statusText}</span>
+                        <div class="flex flex-col items-center justify-center gap-1 min-w-[60px]">
+                            <i class="${statusIcon} text-2xl text-${statusColor}-500 mx-auto"></i>
+                            <span class="text-xs font-medium text-${statusColor}-600 text-center">${statusText}</span>
                         </div>
                     `;
                     content.appendChild(div);
@@ -1589,8 +1548,6 @@
                     carousel.appendChild(div);
                 });
                 
-                // Update club stats
-                document.getElementById('hot-streak-players').textContent = hotPlayers.length;
                 
                 // Load 1st place teams count using same logic as my-club page
                 loadFirstPlaceTeams();
@@ -1634,6 +1591,9 @@
                     });
                     
                     if (firstPlaceTeams.length > 0) {
+                        // Sort teams by total points (descending)
+                        firstPlaceTeams.sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
+                        
                         // Show table with team details
                         content.classList.remove('hidden');
                         tableBody.innerHTML = '';
@@ -1732,18 +1692,39 @@
                     
                     // Separate active and past polls based on date or status
                     const now = new Date();
+                    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // 1 week ago
+                    
                     const activePolls = polls.filter(poll => {
-                        // Consider polls active if they don't have an end date or if end date is in the future
-                        if (!poll.end_date) return true;
-                        const endDate = new Date(poll.end_date);
-                        return endDate > now;
+                        // Check if poll has an end date and it's in the past
+                        if (poll.end_date) {
+                            const endDate = new Date(poll.end_date);
+                            if (endDate <= now) return false;
+                        }
+                        
+                        // Check if poll is older than 1 week based on created_date
+                        if (poll.created_date) {
+                            const createdDate = new Date(poll.created_date);
+                            if (createdDate <= oneWeekAgo) return false;
+                        }
+                        
+                        // Poll is active if it passes both checks
+                        return true;
                     });
                     
                     const pastPolls = polls.filter(poll => {
                         // Consider polls past if they have an end date and it's in the past
-                        if (!poll.end_date) return false;
-                        const endDate = new Date(poll.end_date);
-                        return endDate <= now;
+                        if (poll.end_date) {
+                            const endDate = new Date(poll.end_date);
+                            if (endDate <= now) return true;
+                        }
+                        
+                        // Consider polls past if they're older than 1 week
+                        if (poll.created_date) {
+                            const createdDate = new Date(poll.created_date);
+                            if (createdDate <= oneWeekAgo) return true;
+                        }
+                        
+                        return false;
                     });
                     
                     // Display active polls
@@ -1771,7 +1752,10 @@
                                     <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Closed</span>
                                 </div>
                                 <p class="text-sm text-gray-600 mb-2">${poll.message}</p>
-                                <div class="text-xs text-gray-500">Ended: ${new Date(poll.end_date).toLocaleDateString()}</div>
+                                <div class="text-xs text-gray-500">
+                                    ${poll.end_date ? `Ended: ${new Date(poll.end_date).toLocaleDateString()}` : 
+                                      poll.created_date ? `Created: ${new Date(poll.created_date).toLocaleDateString()}` : ''}
+                                </div>
                             </div>
                         `).join('');
                     } else {
@@ -1814,6 +1798,7 @@
                     console.error('Team stats API error:', response.status, response.statusText);
                     // Show placeholder data
                     document.getElementById('team-points').textContent = '--';
+                    document.getElementById('avg-points').textContent = '--';
                     document.getElementById('points-behind').textContent = '--';
                     document.getElementById('team-record').textContent = '-- - --';
                     document.getElementById('team-win-rate').textContent = '--%';
@@ -1826,6 +1811,7 @@
                     console.error('Error loading team stats:', data.error);
                     // Show placeholder data
                     document.getElementById('team-points').textContent = '--';
+                    document.getElementById('avg-points').textContent = '--';
                     document.getElementById('points-behind').textContent = '--';
                     document.getElementById('team-record').textContent = '-- - --';
                     document.getElementById('team-win-rate').textContent = '--%';
@@ -1840,6 +1826,11 @@
                 
                 // Update team points
                 document.getElementById('team-points').textContent = points;
+                
+                // Calculate and update average points per match
+                const totalMatches = matchesWon + matchesLost;
+                const avgPoints = totalMatches > 0 ? (points / totalMatches).toFixed(1) : '0.0';
+                document.getElementById('avg-points').textContent = avgPoints;
                 
                 // Calculate points behind first place using series standings
                 await loadPointsBehindFirst();
@@ -1972,17 +1963,89 @@
                             return b.wins - a.wins;
                         })[0];
                         
-                        document.getElementById('best-partner').textContent = bestPartner.name;
+                        // Create detailed partner display
+                        const partnerContent = document.getElementById('best-partner-content');
+                        partnerContent.innerHTML = `
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-full font-bold text-white text-sm" 
+                                         style="background-color: #045454;">
+                                        1
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-semibold text-gray-900">${bestPartner.name}</h3>
+                                        <p class="text-sm text-gray-600">${bestPartner.record} record</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold 
+                                        ${bestPartner.winRate >= 60 ? 'text-green-500' : 
+                                          bestPartner.winRate >= 45 ? 'text-yellow-500' : 'text-red-500'}">
+                                        ${Math.round(bestPartner.winRate)}%
+                                    </div>
+                                    <p class="text-xs text-gray-500 uppercase">Win Rate</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="text-center">
+                                        <div class="text-sm font-medium text-gray-900">${bestPartner.matches}</div>
+                                        <div class="text-xs text-gray-500">Match${bestPartner.matches !== 1 ? 'es' : ''}</div>
+                                    </div>
+                                    <div class="w-px h-6 bg-gray-200"></div>
+                                    <div class="text-center">
+                                        <div class="text-sm font-medium text-green-600">${bestPartner.wins}</div>
+                                        <div class="text-xs text-gray-500">Wins</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-sm font-medium text-red-600">${bestPartner.losses}</div>
+                                        <div class="text-xs text-gray-500">Losses</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-gray-600 font-medium">Courts:</span>
+                                    ${bestPartner.courts ? bestPartner.courts.map(court => 
+                                        `<span class="inline-flex items-center justify-center w-5 h-5 rounded text-xs font-bold text-white" 
+                                               style="background-color: #045454;">
+                                            ${court}
+                                        </span>`
+                                    ).join('') : ''}
+                                </div>
+                            </div>
+                        `;
                     } else {
-                        document.getElementById('best-partner').textContent = 'None';
+                        document.getElementById('best-partner-content').innerHTML = `
+                            <div class="text-center py-4">
+                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-user-friends text-gray-400 text-xl"></i>
+                                </div>
+                                <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                            </div>
+                        `;
                     }
                 } else {
-                    document.getElementById('best-partner').textContent = 'None';
+                    document.getElementById('best-partner-content').innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-user-friends text-gray-400 text-xl"></i>
+                            </div>
+                            <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                        </div>
+                    `;
                 }
                 
             } catch (error) {
                 console.error('Error loading best partner:', error);
-                document.getElementById('best-partner').textContent = 'None';
+                document.getElementById('best-partner-content').innerHTML = `
+                    <div class="text-center py-4">
+                        <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-user-friends text-gray-400 text-xl"></i>
+                        </div>
+                        <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                    </div>
+                `;
             }
         }
         
@@ -2051,15 +2114,13 @@
                     
                     if (isUserTeam) {
                         rowClass += ' bg-green-50 border-l-4 border-green-400 font-semibold';
+                    } else if (isPlayoffTeam) {
+                        rowClass += ' bg-white border-l-4 border-green-500';
+                        playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
                     } else if (idx % 2 === 0) {
                         rowClass += ' bg-white';
                     } else {
                         rowClass += ' bg-gray-50';
-                    }
-                    
-                    if (isPlayoffTeam) {
-                        rowClass += ' border-l-4 border-green-500';
-                        playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
                     }
                     
                     const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
@@ -2102,110 +2163,6 @@
             }
         }
         
-        // ============================================
-        // CLUB OVERVIEW LOADING
-        // ============================================
-        async function loadClubOverview() {
-            const loading = document.getElementById('club-overview-loading');
-            const content = document.getElementById('club-overview-content');
-            const empty = document.getElementById('club-overview-empty');
-            
-            try {
-                // Get club players data for stats
-                const response = await fetch('/api/club-players');
-                const data = await response.json();
-                
-                loading.classList.add('hidden');
-                
-                if (data.error || !data.players || data.players.length === 0) {
-                    empty.classList.remove('hidden');
-                    return;
-                }
-                
-                content.classList.remove('hidden');
-                
-                // Calculate club stats
-                const players = data.players || [];
-                let totalWins = 0;
-                let totalLosses = 0;
-                let totalMatches = 0;
-                
-                players.forEach(player => {
-                    const wins = player.wins || 0;
-                    const losses = player.losses || 0;
-                    totalWins += wins;
-                    totalLosses += losses;
-                    totalMatches += wins + losses;
-                });
-                
-                // Update record and win rate
-                document.getElementById('club-record').textContent = `${totalWins} - ${totalLosses}`;
-                const winRate = totalMatches > 0 ? Math.round((totalWins / totalMatches) * 100) : 0;
-                document.getElementById('club-win-rate').textContent = `${winRate}%`;
-                
-                // Get top players by PTI
-                const topPlayers = players
-                    .filter(p => p.PTI && !isNaN(parseFloat(p.PTI)))
-                    .sort((a, b) => parseFloat(b.PTI) - parseFloat(a.PTI))
-                    .slice(0, 3);
-                
-                const topPlayersContainer = document.getElementById('club-top-players');
-                if (topPlayers.length > 0) {
-                    topPlayersContainer.innerHTML = topPlayers.map(player => `
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">
-                                    ${player.first_name ? player.first_name[0] : '?'}
-                                </div>
-                                <div>
-                                    <div class="font-medium text-[#045454]">${player.first_name} ${player.last_name}</div>
-                                    <div class="text-sm text-gray-600">${player.wins || 0}-${player.losses || 0}</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-rally-green">${parseFloat(player.PTI).toFixed(1)}</div>
-                                <div class="text-xs text-gray-500">PTI</div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    topPlayersContainer.innerHTML = '<div class="text-center py-4 text-gray-500">No player data available</div>';
-                }
-                
-                // Get top courts (placeholder - would need court-specific data)
-                const topCourtsContainer = document.getElementById('club-top-courts');
-                topCourtsContainer.innerHTML = `
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                            <div class="font-medium text-[#045454]">Court 1</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-rally-green">${winRate}%</div>
-                            <div class="text-xs text-gray-500">Win Rate</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 bg-rally-green text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                            <div class="font-medium text-[#045454]">Court 2</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="font-bold text-rally-green">${Math.max(0, winRate - 5)}%</div>
-                            <div class="text-xs text-gray-500">Win Rate</div>
-                        </div>
-                    </div>
-                `;
-                
-                // Load club standings to get teams in 1st place
-                await loadClubStandings();
-                
-            } catch (error) {
-                console.error('Error loading club overview:', error);
-                loading.classList.add('hidden');
-                empty.classList.remove('hidden');
-            }
-        }
         
         // ============================================
         // CLUB STANDINGS LOADING

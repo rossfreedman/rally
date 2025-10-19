@@ -8664,7 +8664,7 @@ def search_players_typeahead():
             search_query += " AND p.league_id = %s"
             params.append(league_id_int)
         
-        search_query += " ORDER BY p.last_name, p.first_name LIMIT 20"
+        search_query += " ORDER BY p.last_name, p.first_name LIMIT 100"
         
         players = execute_query(search_query, params)
         
