@@ -322,7 +322,7 @@
                     </div>
                     
                     <a href="/mobile/availability" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                        Update Availability
+                        Update Match Availability
                     </a>
                 </div>
                 
@@ -347,7 +347,7 @@
                     </div>
                     
                     <a href="/mobile/availability" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                        Update Availability
+                        Update Practice Availability
                     </a>
                 </div>
             </div>
@@ -829,10 +829,12 @@
                     },
                     record: {
                         value: document.getElementById('my-record')?.textContent || '-- - --',
+                        className: document.getElementById('my-record')?.className || '',
                         timestamp: Date.now()
                     },
                     winRate: {
                         value: document.getElementById('win-rate')?.textContent || '--%',
+                        className: document.getElementById('win-rate')?.className || '',
                         timestamp: Date.now()
                     }
                 };
@@ -874,7 +876,11 @@
                     const recordCard = document.getElementById('record-card');
                     if (recordCard) {
                         recordCard.classList.add('loaded');
-                        document.getElementById('my-record').textContent = dashboardData.record.value;
+                        const recordElement = document.getElementById('my-record');
+                        recordElement.textContent = dashboardData.record.value;
+                        if (dashboardData.record.className) {
+                            recordElement.className = dashboardData.record.className;
+                        }
                         console.log('Record data restored from cache');
                     }
                 }
@@ -884,7 +890,11 @@
                     const winrateCard = document.getElementById('winrate-card');
                     if (winrateCard) {
                         winrateCard.classList.add('loaded');
-                        document.getElementById('win-rate').textContent = dashboardData.winRate.value;
+                        const winRateElement = document.getElementById('win-rate');
+                        winRateElement.textContent = dashboardData.winRate.value;
+                        if (dashboardData.winRate.className) {
+                            winRateElement.className = dashboardData.winRate.className;
+                        }
                         console.log('Win rate data restored from cache');
                     }
                 }
@@ -957,8 +967,30 @@
                         const losses = seasonStatsData.losses || 0;
                         const winRate = Math.round(seasonStatsData.win_rate || 0);
                         
-                        document.getElementById('my-record').textContent = `${wins} - ${losses}`;
-                        document.getElementById('win-rate').textContent = `${winRate}%`;
+                        // Apply color coding based on win rate
+                        let recordColor = '';
+                        let winRateColor = '';
+                        
+                        if (winRate > 50) {
+                            recordColor = 'text-green-500';
+                            winRateColor = 'text-green-500';
+                        } else if (winRate >= 34 && winRate <= 50) {
+                            recordColor = 'text-yellow-500';
+                            winRateColor = 'text-yellow-500';
+                        } else {
+                            recordColor = 'text-red-500';
+                            winRateColor = 'text-red-500';
+                        }
+                        
+                        // Set record with color
+                        const recordElement = document.getElementById('my-record');
+                        recordElement.textContent = `${wins} - ${losses}`;
+                        recordElement.className = `text-3xl font-bold ${recordColor}`;
+                        
+                        // Set win rate with color
+                        const winRateElement = document.getElementById('win-rate');
+                        winRateElement.textContent = `${winRate}%`;
+                        winRateElement.className = `text-3xl font-bold ${winRateColor}`;
                         
                         // Mark cards as loaded and save to persistence
                         document.getElementById('record-card').classList.add('loaded');
@@ -993,8 +1025,14 @@
                         }
                     } else {
                         // No current season data available
-                        document.getElementById('my-record').textContent = '0 - 0';
-                        document.getElementById('win-rate').textContent = '0%';
+                        const recordElement = document.getElementById('my-record');
+                        recordElement.textContent = '0 - 0';
+                        recordElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
+                        
+                        const winRateElement = document.getElementById('win-rate');
+                        winRateElement.textContent = '0%';
+                        winRateElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
+                        
                         document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                         // Mark cards as loaded and save to persistence
                         document.getElementById('record-card').classList.add('loaded');
@@ -1003,8 +1041,14 @@
                     }
                 } else {
                     // Fallback if current-season-stats fails
-                    document.getElementById('my-record').textContent = '0 - 0';
-                    document.getElementById('win-rate').textContent = '0%';
+                    const recordElement = document.getElementById('my-record');
+                    recordElement.textContent = '0 - 0';
+                    recordElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
+                    
+                    const winRateElement = document.getElementById('win-rate');
+                    winRateElement.textContent = '0%';
+                    winRateElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
+                    
                     document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
                     // Mark cards as loaded and save to persistence
                     document.getElementById('record-card').classList.add('loaded');
@@ -1266,9 +1310,9 @@
                     <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                     ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
                 </div>
-                <div class="flex flex-col items-center justify-center gap-1 min-w-[60px]">
-                    <i class="${statusIcon} text-2xl text-${statusColor}-500 mx-auto"></i>
-                    <span class="text-xs font-medium text-${statusColor}-600 text-center">${statusText}</span>
+                <div class="flex flex-col items-center justify-center gap-1 w-20">
+                    <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
+                    <span class="text-xs font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                 </div>
             `;
             
@@ -1404,9 +1448,9 @@
                             <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                             <div class="text-xs text-gray-500">📍 ${location}</div>
                         </div>
-                        <div class="flex flex-col items-center justify-center gap-1 min-w-[60px]">
-                            <i class="${statusIcon} text-2xl text-${statusColor}-500 mx-auto"></i>
-                            <span class="text-xs font-medium text-${statusColor}-600 text-center">${statusText}</span>
+                        <div class="flex flex-col items-center justify-center gap-1 w-20">
+                            <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
+                            <span class="text-xs font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                         </div>
                     `;
                     content.appendChild(div);
@@ -1692,38 +1736,58 @@
                     
                     // Separate active and past polls based on date or status
                     const now = new Date();
-                    const oneWeekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)); // 1 week ago
+                    const fiveDaysAgo = new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000)); // 5 days ago
+                    
+                    console.log('Current time:', now);
+                    console.log('Five days ago:', fiveDaysAgo);
+                    console.log('All polls:', polls);
                     
                     const activePolls = polls.filter(poll => {
+                        console.log('Checking poll for active status:', poll);
+                        
                         // Check if poll has an end date and it's in the past
                         if (poll.end_date) {
                             const endDate = new Date(poll.end_date);
+                            console.log('Poll has end date:', poll.end_date, 'End date <= now?', endDate <= now);
                             if (endDate <= now) return false;
                         }
                         
-                        // Check if poll is older than 1 week based on created_date
-                        if (poll.created_date) {
-                            const createdDate = new Date(poll.created_date);
-                            if (createdDate <= oneWeekAgo) return false;
+                        // Check if poll is older than 5 days based on created_at
+                        if (poll.created_at) {
+                            const createdDate = new Date(poll.created_at);
+                            console.log('Poll created at:', poll.created_at, 'Created at <= fiveDaysAgo?', createdDate <= fiveDaysAgo);
+                            if (createdDate <= fiveDaysAgo) return false;
+                        } else {
+                            console.log('Poll has no created_at, treating as past poll');
+                            return false; // Treat polls without created_at as past polls
                         }
                         
+                        console.log('Poll is active');
                         // Poll is active if it passes both checks
                         return true;
                     });
                     
                     const pastPolls = polls.filter(poll => {
+                        console.log('Checking poll for past status:', poll);
+                        
                         // Consider polls past if they have an end date and it's in the past
                         if (poll.end_date) {
                             const endDate = new Date(poll.end_date);
+                            console.log('Poll has end date:', poll.end_date, 'End date <= now?', endDate <= now);
                             if (endDate <= now) return true;
                         }
                         
-                        // Consider polls past if they're older than 1 week
-                        if (poll.created_date) {
-                            const createdDate = new Date(poll.created_date);
-                            if (createdDate <= oneWeekAgo) return true;
+                        // Consider polls past if they're older than 5 days
+                        if (poll.created_at) {
+                            const createdDate = new Date(poll.created_at);
+                            console.log('Poll created at:', poll.created_at, 'Created at <= fiveDaysAgo?', createdDate <= fiveDaysAgo);
+                            if (createdDate <= fiveDaysAgo) return true;
+                        } else {
+                            console.log('Poll has no created_at, treating as past poll');
+                            return true; // Treat polls without created_at as past polls
                         }
                         
+                        console.log('Poll is not past');
                         return false;
                     });
                     
