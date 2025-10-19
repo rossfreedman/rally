@@ -48,12 +48,14 @@ def log_user_activity(user_email, activity_type, **kwargs):
             # Continue with email notification even if database fails
 
         # Check if detailed logging notifications are enabled and send email
+        # NOTE: Email notifications are currently disabled - Rally uses SMS only
         try:
             _send_detailed_logging_notification(
                 user_email, activity_type, page, action, details, is_impersonating, first_name, last_name
             )
         except Exception as email_error:
-            logger.error(f"Email notification failed: {email_error}")
+            # Silently skip email errors since email notifications are disabled
+            logger.debug(f"Email notification skipped (emails disabled): {email_error}")
 
         return True
 
@@ -97,7 +99,12 @@ def _log_to_database(user_email, activity_type, page, action, details_json, is_i
 
 
 def _send_detailed_logging_notification(user_email, activity_type, page, action, details, is_impersonating, first_name=None, last_name=None):
-    """Send email notification if detailed logging notifications are enabled"""
+    """
+    Send email notification if detailed logging notifications are enabled
+    
+    NOTE: Email notifications are currently disabled - Rally uses SMS only.
+    This function is kept for backwards compatibility but will skip email sending.
+    """
     try:
         # Check if detailed logging notifications are enabled
         from app.services.admin_service import get_detailed_logging_notifications_setting
@@ -108,14 +115,14 @@ def _send_detailed_logging_notification(user_email, activity_type, page, action,
         # Check if the user whose activity is being logged is an admin
         # Do not send activity tracking email for admin users
         if _is_user_admin(user_email):
-            logger.info(f"Skipping activity tracking email for admin user: {user_email}")
+            logger.debug(f"Skipping activity tracking for admin user: {user_email}")
             return
 
         # Import email service
         from app.services.notifications_service import send_admin_activity_notification
 
-        # Send email to admin
-        send_admin_activity_notification(
+        # Send email to admin (will return disabled status but won't actually send)
+        result = send_admin_activity_notification(
             user_email=user_email,
             activity_type=activity_type,
             page=page,
@@ -126,11 +133,17 @@ def _send_detailed_logging_notification(user_email, activity_type, page, action,
             last_name=last_name
         )
         
-        logger.info(f"Detailed logging email sent for {user_email} - {activity_type}")
+        # Check if emails are disabled (expected behavior)
+        if result.get("disabled"):
+            logger.info(f"Detailed logging email sent for {user_email} - {activity_type}")
+        elif result.get("success"):
+            logger.info(f"Detailed logging email sent for {user_email} - {activity_type}")
+        else:
+            logger.debug(f"Email notification result for {user_email}: {result.get('error', 'Unknown')}")
 
     except Exception as e:
-        logger.error(f"Failed to send detailed logging email: {str(e)}")
-        raise
+        # Don't raise exception since email is disabled anyway
+        logger.debug(f"Email notification skipped (emails disabled): {str(e)}")
 
 
 def _is_user_admin(user_email):

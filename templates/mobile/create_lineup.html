@@ -93,6 +93,17 @@ if (performance.navigation.type === 1) {
                         <i class="fas fa-chevron-right text-gray-400"></i>
                     </div>
                     
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onclick="viewPreviousEscrows()">
+                        <div class="flex items-center">
+                            <i class="fas fa-history text-orange-500 mr-3"></i>
+                            <div>
+                                <h3 class="font-medium text-gray-900">View Previous Lineup Escrows</h3>
+                                <p class="text-sm text-gray-600">View your past lineup escrow sessions</p>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
                     <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer" onclick="createAILineup()">
                         <div class="flex items-center">
                             <i class="fas fa-robot text-purple-500 mr-3"></i>
@@ -865,6 +876,11 @@ function createAILineup() {
 function loadSavedLineup() {
     // Redirect to saved lineups page
     window.location.href = '/mobile/saved-lineups';
+}
+
+function viewPreviousEscrows() {
+    // Redirect to previous lineup escrows page
+    window.location.href = '/mobile/view-lineup-escrows';
 }
 
 function showDirectLineupInput() {

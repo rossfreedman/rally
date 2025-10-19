@@ -6,7 +6,12 @@ module.exports = {
     "./static/**/*.html"
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'rally-dark-green': '#045454',
+        'rally-bright-green': '#bff863',
+      },
+    },
   },
   plugins: [
     require('daisyui'),

@@ -22,10 +22,10 @@
 
     <!-- Team Selection Modal -->
     <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[32rem] overflow-hidden">
             <!-- Modal Header -->
             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <h3 class="text-lg font-semibold" style="color: #bff863 !important;">Switch Team</h3>
                 <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
@@ -35,11 +35,11 @@
                 <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
                     {% for team in user_teams %}
                     <a href="{{ url_for('mobile.serve_track_byes_courts', team_id=team.id) }}" 
-                       class="team-option-link flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group {% if team.id == team_id %}bg-blue-50 border border-blue-200{% else %}border border-transparent{% endif %}"
+                       class="team-option-link flex items-center justify-between p-3 rounded-lg hover:bg-rally-bright-green hover:bg-opacity-10 transition-colors group {% if team.id == team_id %}bg-rally-bright-green bg-opacity-20 border border-rally-dark-green{% else %}border border-transparent{% endif %}"
                        data-team-id="{{ team.id }}"
                        data-team-name="{{ team.team_name }}">
                         <div class="flex-1">
-                            <div class="font-medium {% if team.id == team_id %}text-blue-700{% else %}text-gray-900{% endif %}">
+                            <div class="font-medium {% if team.id == team_id %}text-rally-dark-green{% else %}text-gray-900{% endif %}">
                                 {{ team.team_name }}
                             </div>
                             <div class="text-sm text-gray-500">{{ team.club_name }} - {{ team.series_name }}</div>
@@ -47,7 +47,7 @@
                         </div>
                         <div class="ml-3">
                             {% if team.id == team_id %}
-                            <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <div class="w-6 h-6 bg-rally-dark-green rounded-full flex items-center justify-center">
                                 <i class="fas fa-check text-white text-xs"></i>
                             </div>
                             {% else %}

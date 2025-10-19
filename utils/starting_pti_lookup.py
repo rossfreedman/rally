@@ -1,70 +1,28 @@
 """
 Starting PTI lookup utility for calculating PTI deltas from beginning of season.
 
-This module provides functionality to lookup a player's starting PTI from the CSV file
+This module provides functionality to lookup a player's starting PTI from the database
 and calculate the delta from their current PTI.
 """
 
-import csv
 import os
+import sys
 from typing import Optional, Dict, Any
 
+# Add root directory to path for database imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-def load_starting_pti_data() -> Dict[str, float]:
-    """
-    Load starting PTI data from CSV file into a lookup dictionary.
-    
-    Returns:
-        Dict mapping player identifiers to starting PTI values
-    """
-    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'APTA Players - 2025 Season Starting PTI.csv')
-    
-    if not os.path.exists(csv_path):
-        print(f"Warning: Starting PTI CSV file not found at {csv_path}")
-        return {}
-    
-    starting_pti_data = {}
-    
-    try:
-        with open(csv_path, 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            
-            for row in reader:
-                first_name = row.get('First Name', '').strip()
-                last_name = row.get('Last Name', '').strip()
-                series = row.get('Series', '').strip()
-                pti_str = row.get('PTI', '').strip()
-                
-                # Skip rows with empty PTI values
-                if not pti_str:
-                    continue
-                
-                try:
-                    pti_value = float(pti_str)
-                except ValueError:
-                    continue
-                
-                # Create lookup key: "FirstName LastName Series"
-                # This avoids club name mismatches between CSV and database
-                lookup_key = f"{first_name} {last_name} {series}"
-                starting_pti_data[lookup_key] = pti_value
-                
-    except Exception as e:
-        print(f"Error loading starting PTI data: {e}")
-        return {}
-    
-    print(f"Loaded {len(starting_pti_data)} starting PTI records")
-    return starting_pti_data
+from database_utils import execute_query_one
 
 
 def get_starting_pti_for_player(player_data: Dict[str, Any]) -> Optional[float]:
     """
-    Get the starting PTI for a specific player based on their data.
+    Get the starting PTI for a specific player from the database.
     
     Args:
         player_data: Dictionary containing player information with keys:
-                    - first_name, last_name, series (for CSV lookup)
-                    - tenniscores_player_id (for database lookup)
+                    - tenniscores_player_id (required for lookup)
+                    - league_id (optional, for more specific lookup)
     
     Returns:
         Starting PTI value if found, None otherwise
@@ -72,43 +30,51 @@ def get_starting_pti_for_player(player_data: Dict[str, Any]) -> Optional[float]:
     if not player_data:
         return None
     
-    # Load starting PTI data (cached on first call)
-    if not hasattr(get_starting_pti_for_player, '_cached_data'):
-        get_starting_pti_for_player._cached_data = load_starting_pti_data()
+    # Get tenniscores_player_id for lookup
+    player_id = player_data.get('tenniscores_player_id')
     
-    cached_data = get_starting_pti_for_player._cached_data
+    if not player_id:
+        print(f"[PTI LOOKUP] Missing tenniscores_player_id")
+        return None
     
-    # Try to match by name and series (no club needed)
-    first_name = player_data.get('first_name', '').strip()
-    last_name = player_data.get('last_name', '').strip()
-    series = player_data.get('series', '').strip()
-    
-    if all([first_name, last_name, series]):
-        lookup_key = f"{first_name} {last_name} {series}"
-        starting_pti = cached_data.get(lookup_key)
+    try:
+        # Query database for starting_pti
+        # Use league_id if available for more specific lookup
+        league_id = player_data.get('league_id')
         
-        if starting_pti is not None:
-            print(f"[PTI LOOKUP] Found starting PTI for {lookup_key}: {starting_pti}")
+        if league_id:
+            query = """
+                SELECT starting_pti 
+                FROM players 
+                WHERE tenniscores_player_id = %s 
+                  AND league_id = %s 
+                  AND is_active = true
+                LIMIT 1
+            """
+            result = execute_query_one(query, [player_id, league_id])
+        else:
+            query = """
+                SELECT starting_pti 
+                FROM players 
+                WHERE tenniscores_player_id = %s 
+                  AND is_active = true
+                LIMIT 1
+            """
+            result = execute_query_one(query, [player_id])
+        
+        if result and result.get('starting_pti') is not None:
+            starting_pti = float(result['starting_pti'])
+            print(f"[PTI LOOKUP] Found starting PTI for player {player_id}: {starting_pti}")
             return starting_pti
         else:
-            print(f"[PTI LOOKUP] No starting PTI found for {lookup_key}")
-    else:
-        missing_fields = []
-        if not first_name:
-            missing_fields.append('first_name')
-        if not last_name:
-            missing_fields.append('last_name')
-        if not series:
-            missing_fields.append('series')
-        print(f"[PTI LOOKUP] Missing required fields: {', '.join(missing_fields)}")
-    
-    # If no match found, log for debugging
-    player_id = player_data.get('tenniscores_player_id')
-    if player_id:
-        club = player_data.get('club', '').strip()
-        print(f"[PTI LOOKUP] Player ID: {player_id}, Club: {club}")
-    
-    return None
+            print(f"[PTI LOOKUP] No starting PTI found for player {player_id}")
+            return None
+            
+    except Exception as e:
+        print(f"[PTI LOOKUP] Error querying database: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return None
 
 
 def calculate_pti_delta(current_pti: Optional[float], starting_pti: Optional[float]) -> Optional[float]:

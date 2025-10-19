@@ -132,13 +132,13 @@ body {
 
 /* Link styling */
 a {
-    color: #2196F3;
+    color: #045454;
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
 a:hover {
-    color: #0d47a1;
+    color: #bff863;
 }
 
 /* Custom scrollbar */
@@ -163,11 +163,11 @@ a:hover {
 
 /* Utility classes */
 .text-primary {
-    color: #2196F3;
+    color: #045454;
 }
 
 .text-success {
-    color: #4CAF50;
+    color: #bff863;
 }
 
 .text-warning {
@@ -433,9 +433,9 @@ a:hover {
 
 /* Rally green for 'I can play' button */
 .btn-success {
-  background-color: #007417 !important; /* Rally green */
-  border-color: #007417 !important; /* Rally green */
-  color: #fff !important;
+  background-color: #045454 !important; /* Rally dark green */
+  border-color: #045454 !important; /* Rally dark green */
+  color: #bff863 !important;
 }
 
 /* Rally red for 'Sorry can\'t' button */
@@ -702,8 +702,8 @@ a:hover {
 /* --- Small Get Directions button --- */
 .directions-small-btn {
   display: inline-block;
-  background: #219653; /* Green */
-  color: #fff;
+  background: #045454; /* Dark Green */
+  color: #bff863;
   font-size: 0.93rem;
   font-weight: 700;
   border-radius: 999px;
@@ -718,8 +718,8 @@ a:hover {
   cursor: pointer;
 }
 .directions-small-btn:hover, .directions-small-btn:focus {
-  background: #17643b;
-  color: #fff;
+  background: #bff863;
+  color: #045454;
   text-decoration: underline;
   box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
@@ -992,8 +992,8 @@ a:hover {
   font-size: 0.95em;
 }
 .match-label {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: #e8f8e8;
+  color: #045454;
   font-weight: 700;
   border-radius: 6px;
   padding: 0.1em 0.5em;
@@ -1138,8 +1138,8 @@ a:hover {
     width: 100% !important;
     height: 100% !important;
     border: 4px solid transparent !important;
-    border-top: 4px solid #3b82f6 !important;
-    border-right: 4px solid #3b82f6 !important;
+    border-top: 4px solid #045454 !important;
+    border-right: 4px solid #045454 !important;
     border-radius: 50% !important;
     animation: spin 1s linear infinite !important;
 }
@@ -1174,7 +1174,7 @@ a:hover {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #3b82f6;
+    background-color: #045454;
     animation: pulse-dot 1.4s ease-in-out infinite both;
 }
 

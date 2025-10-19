@@ -12,11 +12,11 @@
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center justify-between px-4 py-6">
             <div class="flex items-center">
-                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #4f46e5 !important;">
+                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
                     <i class="fas fa-building text-white text-lg"></i>
                 </div>
                 <div class="ml-4">
-                    <h1 class="text-xl font-bold text-gray-900">My Club Analysis</h1>
+                    <h1 class="text-xl font-bold text-gray-900">My Club</h1>
                     <p class="text-sm text-gray-500">{{ team_name if team_name else 'Club Statistics' }}</p>
                 </div>
             </div>
@@ -45,11 +45,9 @@
 
         <!-- Club Standings Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-sm mr-3">
-                        <i class="fas fa-trophy text-white text-sm"></i>
-                    </div>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-trophy mr-2" style="color: #bff863;"></i>
                     {{ team_name }} Club Standings
                 </h2>
             </div>
@@ -111,13 +109,11 @@
 
         <!-- Player Win Streaks Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-sm mr-3">
-                        <i class="fas fa-fire text-white text-sm"></i>
-                    </div>
-                    Current Win Streaks
-                    <span class="text-xs text-gray-500 ml-2 font-normal">(5+ wins only)</span>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-fire mr-2" style="color: #bff863;"></i>
+                    Hot Streaks
+                    <span class="text-xs ml-2 font-normal" style="color: #bff863; opacity: 0.8;">(All win streaks)</span>
                 </h2>
             </div>
             
@@ -165,8 +161,8 @@
                             {% if not player_streaks %}
                             <tr class="bg-white">
                                 <td colspan="5" class="py-4 text-center text-gray-500">
-                                    <div class="text-base">No current win streaks found</div>
-                                    <div class="text-xs mt-1">Looking for active win streaks of 5+ games</div>
+                                    <div class="text-base">No win streaks found</div>
+                                    <div class="text-xs mt-1">Players with winning streaks will appear here</div>
                                 </td>
                             </tr>
                             {% endif %}
@@ -178,15 +174,15 @@
 
         <!-- Recent Match Results Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-sm mr-3">
-                        <i class="fas fa-flag-checkered text-white text-sm"></i>
-                    </div>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-flag-checkered mr-2" style="color: #bff863;"></i>
                     Recent Match Results
-                    <span class="text-xs text-gray-500 ml-2 font-normal">(Last 6 weeks)</span>
                 </h2>
-                <p class="text-sm text-gray-800 mt-2 bg-yellow-100 px-3 py-2 rounded-md border border-yellow-200">Click on a date to see match scores.</p>
+            </div>
+            
+            <div class="px-6 py-3">
+                <p class="text-sm text-gray-600 bg-yellow-100 px-3 py-2 rounded-md border border-yellow-200">Click on a date to see match scores.</p>
             </div>
             
             <div class="p-6">
@@ -315,13 +311,11 @@
 
         <!-- Club Player Ratings Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center shadow-sm mr-3">
-                        <i class="fas fa-star text-white text-sm"></i>
-                    </div>
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-star mr-2" style="color: #bff863;"></i>
                     Club Player Ratings
-                    <span class="text-xs text-gray-500 ml-2 font-normal">(PTI Rankings)</span>
+                    <span class="text-xs ml-2 font-normal" style="color: #bff863; opacity: 0.8;">(PTI Rankings)</span>
                 </h2>
             </div>
             

@@ -75,6 +75,21 @@
     <link href="/static/mobile/css/style.css?v=2025" rel="stylesheet">
     <!-- Additive responsive layer -->
     <link href="/static/css/responsive.css?v=2025" rel="stylesheet">
+    
+    <!-- Tailwind CSS for main-alt page -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-dark-green': '#045454',
+                        'rally-bright-green': '#bff863',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="/static/js/activity-tracker.js?v=2025" defer></script>
     <script src="/static/mobile/js/main.js?v=2025" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -1726,6 +1741,12 @@
                         drawer.style.transform = 'translateX(100%)';
                         overlay.classList.add('hidden');
                         hamburger.classList.remove('open');
+                        
+                        // Show persistent navigation when drawer is forced closed
+                        const persistentNav = document.getElementById('main-nav');
+                        if (persistentNav) {
+                            persistentNav.style.display = 'block';
+                        }
                     }
                 });
             });
@@ -1745,10 +1766,22 @@
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
+                    
+                    // Show persistent navigation when drawer closes
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'block';
+                    }
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
                     hamburger.classList.add('open');
+                    
+                    // Hide persistent navigation when drawer opens
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'none';
+                    }
                 }
 
                 // Reset transition state after animation completes
@@ -1811,6 +1844,13 @@
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
+                    
+                    // Show persistent navigation when drawer closes
+                    const persistentNav = document.getElementById('main-nav');
+                    if (persistentNav) {
+                        persistentNav.style.display = 'block';
+                    }
+                    
                     setTimeout(() => { intentionalChange = false; }, 300);
                     return;
                 }

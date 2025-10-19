@@ -30,8 +30,18 @@ command = "CRON_JOB_MODE=true FLASK_APP='' python data/etl/database_import/maste
 
 # CNSWPL Scraper Runner - Full scrape and import for CNSWPL league
 [deploy.cronJobs.cnswpl_scraper]
-schedule = "0 6 * * *"  # Daily at 6 AM UTC
+schedule = "0 15 * * 1,2,6"  # Monday, Tuesday, Saturday at 3 PM UTC (9 AM Central)
 command = "python3 data/cron/cnswpl_scraper_runner.py"
+
+# APTA All Scraper - Wednesday, Thursday, Friday at 5 AM Central (11 AM UTC CST)
+[deploy.cronJobs.apta_all_scraper]
+schedule = "0 11 * * 3,4,5"
+command = "python3 data/cron/apta_scraper_runner_all.py"
+
+# APTA Stats/Scores Scraper - Wednesday, Thursday, Friday at 12 PM Central (6 PM UTC CST)
+[deploy.cronJobs.apta_stats_scores_scraper]
+schedule = "0 18 * * 3,4,5"
+command = "python3 data/cron/apta_scraper_runner_stats_scores.py"
 
 [env]
 FLASK_ENV = "production"

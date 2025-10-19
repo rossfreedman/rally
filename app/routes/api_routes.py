@@ -2271,6 +2271,33 @@ def find_training_video():
     return find_training_video_data()
 
 
+@api_bp.route("/training-videos")
+@login_required
+def get_training_videos():
+    """Get all training videos for the featured video section"""
+    try:
+        import json
+        import os
+        
+        # Load training videos from JSON file (same as mobile training videos page)
+        videos_path = os.path.join(
+            "data",
+            "leagues",
+            "all",
+            "improve_data",
+            "platform_tennis_videos_full_30.json",
+        )
+        
+        with open(videos_path, "r", encoding="utf-8") as f:
+            training_videos = json.load(f)
+            
+        return jsonify(training_videos)
+        
+    except Exception as e:
+        print(f"Error loading training videos: {str(e)}")
+        return jsonify({"error": "Could not load training videos"}), 500
+
+
 # COMMENTED OUT: Using enhanced OpenAI Assistant from rally_ai.py instead
 # @api_bp.route('/api/chat', methods=['POST'])
 # @login_required
@@ -8637,7 +8664,7 @@ def search_players_typeahead():
             search_query += " AND p.league_id = %s"
             params.append(league_id_int)
         
-        search_query += " ORDER BY p.last_name, p.first_name LIMIT 20"
+        search_query += " ORDER BY p.last_name, p.first_name LIMIT 100"
         
         players = execute_query(search_query, params)
         
@@ -11541,6 +11568,7 @@ def get_partner_matches_team():
                 
                 # Find partner (the other home player)
                 partner_name = "Unknown"
+                partner_id = None
                 for p in home_players:
                     if p:
                         # If we have a player_id, compare against that
@@ -11548,10 +11576,12 @@ def get_partner_matches_team():
                             continue  # Skip the current player
                         elif player_id and p != player_id:
                             # Convert partner ID to readable name
+                            partner_id = p
                             partner_name = get_player_name_from_id(p)
                             break
                         # Fallback to name-based comparison
                         elif not player_id and p.lower() != player_name.lower():
+                            partner_id = p
                             partner_name = p
                             break
                 
@@ -11573,6 +11603,7 @@ def get_partner_matches_team():
                 
                 # Find partner (the other away player)
                 partner_name = "Unknown"
+                partner_id = None
                 for p in away_players:
                     if p:
                         # If we have a player_id, compare against that
@@ -11580,10 +11611,12 @@ def get_partner_matches_team():
                             continue  # Skip the current player
                         elif player_id and p != player_id:
                             # Convert partner ID to readable name
+                            partner_id = p
                             partner_name = get_player_name_from_id(p)
                             break
                         # Fallback to name-based comparison
                         elif not player_id and p.lower() != player_name.lower():
+                            partner_id = p
                             partner_name = p
                             break
                 
@@ -11606,11 +11639,25 @@ def get_partner_matches_team():
                     print(f"[DEBUG] API: Skipping match - partner '{partner_name}' doesn't match filter '{partner_filter}'")
                     continue
             
+            # Get partner's team information for clickable links
+            partner_tenniscores_id = None
+            partner_team_id = None
+            
+            if partner_id:
+                partner_tenniscores_id = partner_id
+                # Find partner's team_id for this match
+                if is_home:
+                    partner_team_id = match.get("home_team_id")
+                else:
+                    partner_team_id = match.get("away_team_id")
+            
             formatted_match = {
                 "date": match["date"],
                 "home_team": home_team,
                 "away_team": away_team,
                 "partner_name": partner_name or "Unknown",
+                "partner_tenniscores_id": partner_tenniscores_id,
+                "partner_team_id": partner_team_id,
                 "opponent1_name": opponent1_name,
                 "opponent2_name": opponent2_name,
                 "scores": match["scores"] or "No score recorded",
@@ -11831,11 +11878,25 @@ def get_partner_matches_team():
                             print(f"[DEBUG] API: League-wide skipping match - partner '{partner_name}' doesn't match filter '{partner_filter}'")
                             continue
                     
+                    # Get partner's team information for clickable links
+                    partner_tenniscores_id = None
+                    partner_team_id = None
+                    
+                    if partner_id:
+                        partner_tenniscores_id = partner_id
+                        # Find partner's team_id for this match
+                        if is_home:
+                            partner_team_id = match.get("home_team_id")
+                        else:
+                            partner_team_id = match.get("away_team_id")
+                    
                     formatted_match = {
                         "date": match["date"],
                         "home_team": home_team,
                         "away_team": away_team,
                         "partner_name": partner_name or "Unknown",
+                        "partner_tenniscores_id": partner_tenniscores_id,
+                        "partner_team_id": partner_team_id,
                         "opponent1_name": opponent1_name,
                         "opponent2_name": opponent2_name,
                         "scores": match["scores"] or "No score recorded",
@@ -12530,8 +12591,8 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
                 message_parts.append(f"<i class='fas fa-person-dress' style='color: #045454;'></i> <strong>Women's (S/M/F):</strong> {latest_food.womens_food}")
             
             # Fallback to food_text for backward compatibility
-            # Use <br> tag for HTML line break
-            message = "<br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
+            # Use <br><br> for proper line break between sections
+            message = "<br><br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
             
             notification = {
                 "id": f"food_{latest_food.id}",
@@ -12949,3 +13010,584 @@ def get_beer_notifications(user_id, player_id, league_id, team_id):
     except Exception as e:
         logger.error(f"Error getting beer notifications: {str(e)}")
         return []
+
+
+def _get_user_club_with_fallback(user_email, session_club=None):
+    """
+    Get user's club with robust fallback logic matching session_service.py pattern.
+    
+    Fallback order:
+    1. Use session club if provided
+    2. Look up from user_player_associations (same as session service)
+    3. Raise exception if no club found
+    
+    Returns: (club_name, club_id) tuple
+    """
+    # Try session club first
+    if session_club:
+        club_query = "SELECT id, name FROM clubs WHERE name = %s"
+        club_record = execute_query_one(club_query, [session_club])
+        if club_record:
+            return (club_record["name"], club_record["id"])
+    
+    # Fallback: Look up club from player associations (matches session_service.py logic)
+    club_lookup_query = """
+        SELECT c.id as club_id, c.name as club_name
+        FROM users u
+        JOIN user_player_associations upa ON u.id = upa.user_id
+        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+        JOIN clubs c ON p.club_id = c.id
+        WHERE u.email = %s 
+        AND p.is_active = true
+        AND (upa.is_primary = true OR upa.is_primary IS NULL)
+        ORDER BY upa.is_primary DESC NULLS LAST, p.id DESC
+        LIMIT 1
+    """
+    
+    club_info = execute_query_one(club_lookup_query, [user_email])
+    
+    if club_info:
+        return (club_info["club_name"], club_info["club_id"])
+    
+    # No club found - this should rarely happen
+    raise ValueError(f"No club found for user {user_email}")
+
+
+@api_bp.route("/player-notes/<player_id>")
+@login_required
+def get_player_notes_api(player_id):
+    """Get all notes for a specific player within the user's club context"""
+    try:
+        from app.services.mobile_service import get_player_notes
+        
+        # Get user's club context with fallback logic
+        user_email = session["user"].get("email")
+        session_club = session["user"].get("club")
+        
+        try:
+            club_name, club_id = _get_user_club_with_fallback(user_email, session_club)
+        except ValueError as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 404
+        
+        # Extract actual player ID if composite (player_id_team_teamID)
+        actual_player_id = player_id
+        if '_team_' in player_id:
+            actual_player_id = player_id.split('_team_')[0]
+        
+        # Get notes
+        notes = get_player_notes(actual_player_id, club_id)
+        
+        return jsonify({
+            "success": True,
+            "notes": notes
+        })
+        
+    except Exception as e:
+        print(f"Error getting player notes: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-notes", methods=["POST"])
+@login_required
+def create_player_note_api():
+    """Create a new note for a player"""
+    try:
+        from app.services.mobile_service import create_player_note
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        player_id = data.get("player_id")
+        note_text = data.get("note")
+        
+        if not player_id or not note_text:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields: player_id and note"
+            }), 400
+        
+        # Extract actual player ID if composite (player_id_team_teamID)
+        actual_player_id = player_id
+        if '_team_' in player_id:
+            actual_player_id = player_id.split('_team_')[0]
+        
+        # Get user's club context with fallback logic
+        user_email = session["user"].get("email")
+        session_club = session["user"].get("club")
+        user_id = session["user"].get("id")
+        
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        try:
+            club_name, club_id = _get_user_club_with_fallback(user_email, session_club)
+        except ValueError as e:
+            return jsonify({
+                "success": False,
+                "error": str(e)
+            }), 404
+        
+        # Create the note
+        result = create_player_note(actual_player_id, user_id, club_id, note_text)
+        
+        if result["success"]:
+            return jsonify(result), 201
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        print(f"Error creating player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-notes/<int:note_id>", methods=["PUT"])
+@login_required
+def update_player_note_api(note_id):
+    """Update an existing note (only by creator)"""
+    try:
+        from app.services.mobile_service import update_player_note
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+        
+        note_text = data.get("note")
+        
+        if not note_text:
+            return jsonify({
+                "success": False,
+                "error": "Missing required field: note"
+            }), 400
+        
+        # Get current user ID
+        user_id = session["user"].get("id")
+        
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        # Update the note (will only succeed if user is creator)
+        result = update_player_note(note_id, user_id, note_text)
+        
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 403
+            
+    except Exception as e:
+        print(f"Error updating player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-notes/<int:note_id>", methods=["DELETE"])
+@login_required
+def delete_player_note_api(note_id):
+    """Delete a note (only by creator)"""
+    try:
+        from app.services.mobile_service import delete_player_note
+        
+        # Get current user ID
+        user_id = session["user"].get("id")
+        
+        if not user_id:
+            return jsonify({
+                "success": False,
+                "error": "User session data incomplete"
+            }), 400
+        
+        # Delete the note (will only succeed if user is creator)
+        result = delete_player_note(note_id, user_id)
+        
+        if result["success"]:
+            return jsonify(result), 200
+        else:
+            return jsonify(result), 403
+            
+    except Exception as e:
+        print(f"Error deleting player note: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/player-analysis")
+@login_required
+def get_player_analysis_api():
+    """Get player analysis data including PTI delta since start of season"""
+    try:
+        from app.services.mobile_service import get_player_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get player analysis data
+        analyze_data = get_player_analysis(user_data)
+        
+        if analyze_data.get("error"):
+            return jsonify({
+                "success": False,
+                "error": analyze_data["error"]
+            }), 500
+        
+        # Return the analysis data
+        return jsonify({
+            "success": True,
+            "current_pti": analyze_data.get("current_pti"),
+            "pti_delta": analyze_data.get("pti_delta"),
+            "delta_available": analyze_data.get("delta_available", False),
+            "starting_pti": analyze_data.get("starting_pti"),
+            "weekly_pti_change": analyze_data.get("weekly_pti_change")
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting player analysis: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/team-stats")
+@login_required
+def get_team_stats_api():
+    """Get team stats for dashboard (same as my-team page)"""
+    try:
+        from app.services.mobile_service import get_mobile_team_data
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get team data using the same function as my-team page
+        result = get_mobile_team_data(user_data)
+        
+        # Handle case where result might be a string (error message)
+        if isinstance(result, str):
+            return jsonify({
+                "success": False,
+                "error": result
+            }), 500
+        
+        team_data = result.get("team_data")
+        
+        if not team_data:
+            return jsonify({
+                "success": False,
+                "error": "Team data not found"
+            }), 404
+        
+        # Extract the stats we need for dashboard
+        # The team_data structure has matches, lines, sets, games, points, display_name, team
+        matches_data = team_data.get("matches", {})
+        points = team_data.get("points", 0)
+        team_name = team_data.get("team", "Unknown Team")
+        
+        # Calculate win rate from matches data
+        matches_won = int(matches_data.get("won", 0))
+        matches_lost = int(matches_data.get("lost", 0))
+        total_matches = matches_won + matches_lost
+        win_rate = (matches_won / total_matches * 100) if total_matches > 0 else 0
+        
+        return jsonify({
+            "success": True,
+            "points": points,
+            "matches_won": matches_won,
+            "matches_lost": matches_lost,
+            "win_rate": win_rate,
+            "team_name": team_name
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting team stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/current-season-stats")
+@login_required
+def get_current_season_stats_api():
+    """Get current season stats for dashboard (same as analyze-me page)"""
+    try:
+        from app.services.mobile_service import get_player_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get player analysis data using the same function as analyze-me page
+        analyze_data = get_player_analysis(user_data)
+        
+        if analyze_data.get("error"):
+            return jsonify({
+                "success": False,
+                "error": analyze_data["error"]
+            }), 500
+        
+        # Extract current season data
+        current_season = analyze_data.get("current_season", {})
+        
+        if not current_season:
+            return jsonify({
+                "success": False,
+                "error": "No current season data available"
+            }), 404
+        
+        # Return the current season stats
+        return jsonify({
+            "success": True,
+            "matches": current_season.get("matches", 0),
+            "wins": current_season.get("wins", 0),
+            "losses": current_season.get("losses", 0),
+            "win_rate": current_season.get("winRate", 0),
+            "pti_change": current_season.get("ptiChange", "N/A")
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting current season stats: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/rising-stars")
+@login_required
+def get_rising_stars():
+    """Get the 10 players with the biggest PTI gains in the current league"""
+    try:
+        import csv
+        import os
+        from database_utils import execute_query
+        
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Not authenticated"}), 401
+            
+        league_id = user.get("league_id")
+        if not league_id:
+            return jsonify({"error": "League information not available"}), 400
+        
+        # Convert string league_id to integer if needed
+        user_league_db_id = None
+        if isinstance(league_id, str) and league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(league_id, int):
+            user_league_db_id = league_id
+            
+        if not user_league_db_id:
+            return jsonify({"error": "Invalid league ID"}), 400
+        
+        # Load starting PTI data from CSV
+        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
+        starting_pti_data = {}
+        
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    first_name = row.get('First Name', '').strip()
+                    last_name = row.get('Last Name', '').strip()
+                    pti_str = row.get('PTI', '').strip()
+                    
+                    if first_name and last_name and pti_str:
+                        try:
+                            pti_value = float(pti_str)
+                            key = f"{first_name.lower()}_{last_name.lower()}"
+                            starting_pti_data[key] = pti_value
+                        except ValueError:
+                            continue
+        except Exception as e:
+            print(f"Error reading CSV file: {e}")
+            return jsonify({"error": "Could not load starting PTI data"}), 500
+        
+        # Get current PTI data for all players in the league
+        current_players_query = """
+            SELECT 
+                p.first_name,
+                p.last_name,
+                p.pti as current_pti,
+                c.name as club_name,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.league_id = %s
+            AND p.tenniscores_player_id IS NOT NULL
+            AND p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.first_name, p.last_name
+        """
+        
+        current_players = execute_query(current_players_query, [user_league_db_id])
+        
+        # Calculate PTI deltas
+        rising_stars = []
+        for player in current_players:
+            first_name = player['first_name'].strip()
+            last_name = player['last_name'].strip()
+            current_pti = float(player['current_pti'])
+            
+            # Look up starting PTI
+            key = f"{first_name.lower()}_{last_name.lower()}"
+            starting_pti = starting_pti_data.get(key)
+            
+            if starting_pti is not None:
+                pti_delta = current_pti - starting_pti
+                rising_stars.append({
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'current_pti': current_pti,
+                    'starting_pti': starting_pti,
+                    'pti_delta': pti_delta,
+                    'club_name': player['club_name'],
+                    'series_name': player['series_name']
+                })
+        
+        # Sort by PTI delta (highest gains first) and take top 10
+        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=True)
+        top_rising_stars = rising_stars[:10]
+        
+        return jsonify({
+            "success": True,
+            "rising_stars": top_rising_stars,
+            "total_players_analyzed": len(rising_stars)
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting rising stars: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/current-season-partner-analysis")
+@login_required
+def get_current_season_partner_analysis_api():
+    """Get current season partner analysis for dashboard (same as analyze-me page)"""
+    try:
+        from app.services.mobile_service import get_current_season_partner_analysis
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        player_id = user_data.get("tenniscores_player_id")
+        league_id_int = user_data.get("league_id")
+        team_context = user_data.get("team_context") or user_data.get("team_id")
+        
+        if not player_id:
+            return jsonify({
+                "success": False,
+                "error": "Player ID not found in session"
+            }), 400
+        
+        # Get partner analysis data (same as analyze-me page)
+        partner_analysis = get_current_season_partner_analysis(player_id, league_id_int, team_context)
+        
+        # Return the partner analysis data
+        return jsonify({
+            "success": True,
+            "partner_analysis": partner_analysis
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting current season partner analysis: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@api_bp.route("/club-standings")
+@login_required
+def get_club_standings_api():
+    """Get club standings data for dashboard (same as my-club page)"""
+    try:
+        from app.services.mobile_service import get_mobile_club_data
+        
+        # Get user session data
+        user_data = session.get("user", {})
+        
+        if not user_data:
+            return jsonify({
+                "success": False,
+                "error": "User session data not found"
+            }), 400
+        
+        # Get club data (same as my-club page)
+        club_data = get_mobile_club_data(user_data)
+        
+        # Return the club standings data
+        return jsonify({
+            "success": True,
+            "tennaqua_standings": club_data.get("tennaqua_standings", []),
+            "player_streaks": club_data.get("player_streaks", []),
+            "club_name": club_data.get("club_name", user_data.get("club", "Unknown"))
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting club standings: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

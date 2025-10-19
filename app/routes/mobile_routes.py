@@ -359,6 +359,82 @@ def serve_mobile_classic():
     return render_template("mobile/index_old.html", session_data=session_data)
 
 
+@mobile_bp.route("/mobile/main-alt")
+@login_required
+def serve_mobile_main_alt():
+    """Serve the new alternate dashboard view with modern design"""
+    print(f"=== SERVE_MOBILE_MAIN_ALT FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    # Don't handle admin routes
+    if "/admin" in request.path:
+        print("Admin route detected in mobile, redirecting to serve_admin")
+        return redirect(url_for("admin.serve_admin"))
+
+    # Use new session service to get fresh session data, BUT preserve team switches
+    from app.services.session_service import get_session_data_for_user
+    
+    try:
+        user_email = session["user"]["email"]
+        
+        print(f"[DEBUG] Checking session for user: {user_email}")
+        
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            print(f"[DEBUG] Impersonation active - preserving session as-is")
+            session_data = {"user": session["user"], "authenticated": True}
+        else:
+            # Use helper function to determine if we should preserve session or refresh
+            current_session = session.get("user", {})
+            
+            if should_preserve_session_context(user_email, current_session):
+                # Preserve current session (team switch protection + no league switch detected)
+                session_data = {"user": current_session, "authenticated": True}
+            else:
+                # Session is incomplete, invalid, or league switch detected - refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                    
+                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+                
+                if fresh_session_data:
+                    # Update the Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_data = {"user": fresh_session_data, "authenticated": True}
+                    print(f"[DEBUG] Using fresh session data and updated Flask session")
+                else:
+                    # Fallback to old session if session service fails
+                    session_data = {"user": session["user"], "authenticated": True}
+                    print(f"[DEBUG] Using fallback session data: {session['user']}")
+        
+        # Log mobile access
+        try:
+            log_user_activity(
+                session["user"]["email"], 
+                "page_visit", 
+                page="mobile_main_alt",
+                first_name=session["user"].get("first_name"),
+                last_name=session["user"].get("last_name")
+            )
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    except Exception as e:
+        print(f"Error with new session service: {str(e)}")
+        # Fallback to old session
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_main_alt")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    return render_template("mobile/main_alt.html", session_data=session_data)
+
+
 @mobile_bp.route("/mobile/rally")
 @login_required
 def serve_rally_mobile():
@@ -3287,7 +3363,9 @@ def serve_mobile_schedule_lesson():
                 specialties,
                 hourly_rate,
                 image_url,
-                is_active
+                email,
+                is_active,
+                pricing_info
             FROM pros
             WHERE is_active = true
             ORDER BY name DESC
@@ -3394,6 +3472,43 @@ def schedule_lesson_api():
                 data["focus_areas"], data.get("notes", ""), "pending"
             ])
             print("✅ Lesson request saved to database")
+            
+            # Get pro name for SMS notification
+            pro_query = "SELECT name FROM pros WHERE id = %s"
+            pro_result = execute_query(pro_query, [data["pro_id"]])
+            pro_name = pro_result[0]["name"] if pro_result else "Unknown Pro"
+            
+            # Send SMS notification to admin
+            try:
+                from app.services.notifications_service import send_sms_notification
+                
+                admin_phone = "773-213-8911"  # Admin phone number
+                
+                # Format lesson date nicely
+                lesson_date_obj = datetime.strptime(data["lesson_date"], "%Y-%m-%d")
+                formatted_date = lesson_date_obj.strftime("%A, %B %d, %Y")
+                
+                # Format lesson time nicely
+                lesson_time_obj = datetime.strptime(data["lesson_time"], "%H:%M")
+                formatted_time = lesson_time_obj.strftime("%I:%M %p")
+                
+                # Create SMS message
+                sms_message = f"🎾 NEW LESSON REQUEST\n\nStudent: {user_name} ({user_email})\nPro: {pro_name}\nDate: {formatted_date}\nTime: {formatted_time}\nFocus: {data['focus_areas']}"
+                
+                if data.get("notes"):
+                    sms_message += f"\nNotes: {data['notes']}"
+                
+                sms_result = send_sms_notification(admin_phone, sms_message)
+                
+                if sms_result.get("success"):
+                    print("✅ SMS notification sent to admin")
+                else:
+                    print(f"⚠️ SMS notification failed: {sms_result.get('error', 'Unknown error')}")
+                    
+            except Exception as sms_error:
+                print(f"⚠️ Could not send SMS notification: {sms_error}")
+                # Continue anyway - lesson request is still saved
+                
         except Exception as db_error:
             print(f"⚠️ Could not save to database (tables may not exist yet): {db_error}")
             # Continue anyway - the request is still logged
@@ -3415,6 +3530,120 @@ def schedule_lesson_api():
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to submit lesson request"}), 500
+
+
+@mobile_bp.route("/api/my-lessons", methods=["GET"])
+@login_required
+def get_my_lessons():
+    """API endpoint to get lessons for the current user"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        user_email = user.get("email")
+        if not user_email:
+            return jsonify({"error": "User email not found"}), 400
+        
+        # Get user's lessons
+        query = """
+            SELECT 
+                pl.id,
+                pl.lesson_date,
+                pl.lesson_time,
+                pl.focus_areas,
+                pl.notes,
+                pl.status,
+                pl.created_at,
+                p.name as pro_name,
+                p.bio as pro_bio,
+                p.specialties as pro_specialties
+            FROM pro_lessons pl
+            LEFT JOIN pros p ON pl.pro_id = p.id
+            WHERE pl.user_email = %s
+            ORDER BY pl.lesson_date DESC, pl.lesson_time DESC
+        """
+        
+        lessons = execute_query(query, [user_email])
+        
+        # Convert time objects to strings for JSON serialization
+        for lesson in lessons:
+            if lesson.get('lesson_time'):
+                lesson['lesson_time'] = str(lesson['lesson_time'])
+            if lesson.get('created_at'):
+                lesson['created_at'] = str(lesson['created_at'])
+        
+        return jsonify({
+            "success": True,
+            "lessons": lessons
+        })
+        
+    except Exception as e:
+        print(f"Error getting user lessons: {str(e)}")
+        return jsonify({"error": "Failed to get lessons"}), 500
+
+
+@mobile_bp.route("/api/user-availability", methods=["GET"])
+@login_required
+def get_user_availability():
+    """API endpoint to get user's availability for upcoming matches/practices"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        user_id = user.get("id")
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get user's availability for upcoming matches/practices
+        query = """
+            SELECT 
+                DATE(pa.match_date AT TIME ZONE 'UTC') as match_date,
+                pa.availability_status,
+                pa.notes,
+                pa.updated_at
+            FROM player_availability pa
+            WHERE pa.user_id = %s
+            AND pa.match_date >= CURRENT_DATE
+            ORDER BY pa.match_date ASC
+        """
+        
+        availability = execute_query(query, [user_id])
+        
+        return jsonify({
+            "success": True,
+            "availability": availability
+        })
+        
+    except Exception as e:
+        print(f"Error getting user availability: {str(e)}")
+        return jsonify({"error": "Failed to get availability"}), 500
+
+
+@mobile_bp.route("/api/paddle-tips", methods=["GET"])
+@login_required
+def get_paddle_tips():
+    """API endpoint to get paddle tips for the main-alt page"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        # Use the same service function as the improve page
+        from app.services.mobile_service import get_mobile_improve_data
+        improve_data = get_mobile_improve_data(user)
+        
+        paddle_tips = improve_data.get("paddle_tips", [])
+        
+        return jsonify({
+            "success": True,
+            "paddle_tips": paddle_tips
+        })
+        
+    except Exception as e:
+        print(f"Error getting paddle tips: {str(e)}")
+        return jsonify({"error": "Failed to get paddle tips"}), 500
 
 
 @mobile_bp.route("/api/lesson-requests", methods=["GET"])
@@ -4682,7 +4911,7 @@ def serve_mobile_pro():
 @mobile_bp.route("/mobile/lesson-requests")
 @login_required
 def serve_mobile_lesson_requests():
-    """Serve the lesson requests page with mock data and accept/message functionality"""
+    """Serve the lesson requests page with real data from pro_lessons table"""
     try:
         user = session.get("user")
         if not user:
@@ -4692,58 +4921,92 @@ def serve_mobile_lesson_requests():
             session["user"]["email"], "page_visit", page="mobile_lesson_requests"
         )
 
-        # Mock lesson request data
-        mock_lesson_requests = [
-            {
-                "id": 1,
-                "student_name": "John Smith",
-                "student_email": "john.smith@email.com",
-                "lesson_date": "2024-01-15",
-                "lesson_time": "2:00 PM",
-                "focus_areas": "Backhand technique, Volley positioning",
-                "notes": "Looking to improve consistency on backhand shots",
-                "status": "pending",
-                "created_at": "2024-01-10"
-            },
-            {
-                "id": 2,
-                "student_name": "Sarah Johnson",
-                "student_email": "sarah.j@email.com",
-                "lesson_date": "2024-01-18",
-                "lesson_time": "10:00 AM",
-                "focus_areas": "Serve technique",
-                "notes": "Want to work on power and accuracy",
-                "status": "pending",
-                "created_at": "2024-01-11"
-            },
-            {
-                "id": 3,
-                "student_name": "Mike Davis",
-                "student_email": "mike.davis@email.com",
-                "lesson_date": "2024-01-20",
-                "lesson_time": "4:00 PM",
-                "focus_areas": "Court positioning, Strategy",
-                "notes": "Preparing for upcoming tournament",
-                "status": "confirmed",
-                "created_at": "2024-01-09"
-            },
-            {
-                "id": 4,
-                "student_name": "Lisa Wilson",
-                "student_email": "lisa.wilson@email.com",
-                "lesson_date": "2024-01-22",
-                "lesson_time": "3:00 PM",
-                "focus_areas": "Return of serve",
-                "notes": "Struggling with aggressive returns",
-                "status": "pending",
-                "created_at": "2024-01-12"
-            }
-        ]
+        # Get user's club information
+        user_club = user.get("club", "")
+        user_club_id = user.get("club_id")
+        
+        if not user_club:
+            print(f"❌ No club found for user: {user['email']}")
+            return render_template(
+                "mobile/lesson_requests.html",
+                session_data={"user": user},
+                lesson_requests=[],
+                error="No club information found. Please contact support."
+            )
+
+        # Query lesson requests for pros in the user's club
+        lesson_requests_query = """
+            SELECT 
+                pl.id,
+                pl.user_email,
+                pl.lesson_date,
+                pl.lesson_time,
+                pl.focus_areas,
+                pl.notes,
+                pl.status,
+                pl.created_at,
+                p.name as pro_name,
+                u.first_name,
+                u.last_name,
+                u.phone_number
+            FROM pro_lessons pl
+            JOIN pros p ON pl.pro_id = p.id
+            LEFT JOIN users u ON pl.user_email = u.email
+            WHERE p.is_active = true
+            ORDER BY pl.lesson_date DESC, pl.lesson_time DESC
+        """
+        
+        try:
+            lesson_requests_data = execute_query(lesson_requests_query)
+            
+            # Format the data for the template
+            lesson_requests = []
+            for request in lesson_requests_data:
+                student_name = f"{request['first_name'] or ''} {request['last_name'] or ''}".strip()
+                if not student_name:
+                    # Fallback to email if no name found
+                    student_name = request['user_email'].split('@')[0].replace('.', ' ').title()
+                
+                # Format lesson time
+                lesson_time_str = str(request['lesson_time'])
+                if ':' in lesson_time_str:
+                    time_parts = lesson_time_str.split(':')
+                    hour = int(time_parts[0])
+                    minute = time_parts[1]
+                    
+                    if hour == 0:
+                        formatted_time = f"12:{minute} AM"
+                    elif hour < 12:
+                        formatted_time = f"{hour}:{minute} AM"
+                    elif hour == 12:
+                        formatted_time = f"12:{minute} PM"
+                    else:
+                        formatted_time = f"{hour - 12}:{minute} PM"
+                else:
+                    formatted_time = lesson_time_str
+                
+                lesson_requests.append({
+                    "id": request['id'],
+                    "student_name": student_name,
+                    "student_email": request['user_email'],
+                    "student_phone": request['phone_number'] or "",
+                    "lesson_date": str(request['lesson_date']),
+                    "lesson_time": formatted_time,
+                    "focus_areas": request['focus_areas'] or "",
+                    "notes": request['notes'] or "",
+                    "status": request['status'],
+                    "created_at": request['created_at'].strftime('%Y-%m-%d') if request['created_at'] else "",
+                    "pro_name": request['pro_name']
+                })
+                
+        except Exception as e:
+            print(f"❌ Error querying lesson requests: {e}")
+            lesson_requests = []
 
         return render_template(
             "mobile/lesson_requests.html", 
             session_data={"user": user},
-            lesson_requests=mock_lesson_requests
+            lesson_requests=lesson_requests
         )
 
     except Exception as e:
@@ -4759,6 +5022,230 @@ def serve_mobile_lesson_requests():
             lesson_requests=[],
             error="An error occurred while loading the lesson requests page",
         )
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/accept", methods=["POST"])
+@login_required
+def accept_lesson_request(request_id):
+    """Accept a lesson request"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'confirmed'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'confirmed', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_confirmed", 
+                    details=f"Confirmed lesson request {request_id} for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request confirmed successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error confirming lesson request: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to confirm lesson request"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in accept_lesson_request: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while confirming the lesson request"
+        }), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/reject", methods=["POST"])
+@login_required
+def reject_lesson_request(request_id):
+    """Reject a lesson request"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'declined'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'declined', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_declined", 
+                    details=f"Declined lesson request {request_id} for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request declined successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error declining lesson request: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to decline lesson request"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in reject_lesson_request: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while declining the lesson request"
+        }), 500
+
+
+@mobile_bp.route("/api/lesson-requests/<int:request_id>/pending", methods=["POST"])
+@login_required
+def set_lesson_request_pending(request_id):
+    """Set a lesson request status to pending"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        # Update the lesson request status to 'pending'
+        update_query = """
+            UPDATE pro_lessons 
+            SET status = 'pending', updated_at = NOW()
+            WHERE id = %s
+        """
+        
+        try:
+            execute_update(update_query, [request_id])
+            
+            # Get the updated request details for logging
+            get_request_query = """
+                SELECT pl.user_email, pl.lesson_date, pl.lesson_time, p.name as pro_name
+                FROM pro_lessons pl
+                JOIN pros p ON pl.pro_id = p.id
+                WHERE pl.id = %s
+            """
+            
+            request_details = execute_query_one(get_request_query, [request_id])
+            
+            if request_details:
+                log_user_activity(
+                    user["email"], 
+                    "lesson_request_set_pending", 
+                    details=f"Set lesson request {request_id} to pending for {request_details['user_email']}"
+                )
+            
+            return jsonify({
+                "success": True,
+                "message": "Lesson request set to pending successfully!"
+            })
+            
+        except Exception as e:
+            print(f"❌ Error setting lesson request to pending: {e}")
+            return jsonify({
+                "success": False,
+                "error": "Failed to set lesson request to pending"
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in set_lesson_request_pending: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while setting the lesson request to pending"
+        }), 500
+
+
+@mobile_bp.route("/api/send-sms", methods=["POST"])
+@login_required
+def send_sms_api():
+    """Send SMS message to a student"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Please log in first"}), 401
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        to_email = data.get("to")  # This will be the student's email
+        message = data.get("message")
+        
+        if not to_email or not message:
+            return jsonify({"error": "Missing 'to' or 'message' field"}), 400
+
+        # For now, we'll use a placeholder phone number since we don't have phone numbers
+        # In a real implementation, you'd look up the student's phone number from their profile
+        # For demo purposes, we'll send to the admin phone number
+        admin_phone = "773-213-8911"  # Admin phone number
+        
+        # Import the SMS service
+        from app.services.notifications_service import send_sms_notification
+        
+        # Send SMS
+        sms_result = send_sms_notification(admin_phone, message)
+        
+        if sms_result.get("success"):
+            # Log the activity
+            log_user_activity(
+                user["email"], 
+                "sms_sent", 
+                details=f"SMS sent to {to_email}: {message[:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message": "SMS sent successfully!"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": sms_result.get("error", "Failed to send SMS")
+            }), 500
+            
+    except Exception as e:
+        print(f"❌ Error in send_sms_api: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "An error occurred while sending SMS"
+        }), 500
 
 
 @mobile_bp.route("/mobile/schedule")

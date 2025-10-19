@@ -16,10 +16,11 @@ from typing import Dict, Optional, Tuple
 
 import requests
 from requests.auth import HTTPBasicAuth
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+# DISABLED: SendGrid email functionality - SMS only now
+# from sendgrid import SendGridAPIClient
+# from sendgrid.helpers.mail import Mail
 
-from config import TwilioConfig, SendGridConfig
+from config import TwilioConfig  # SendGridConfig removed - email disabled
 
 
 # Configure logging
@@ -936,304 +937,374 @@ def validate_email_address(email: str) -> Tuple[bool, str]:
 
 def send_email_notification(to_email: str, subject: str, content: str, html_content: str = None, test_mode: bool = False) -> Dict:
     """
-    Send an email using SendGrid API
+    DISABLED: Email notifications have been turned off - Rally uses SMS only now
+    
+    This function is kept for backwards compatibility but always returns disabled status.
     
     Args:
-        to_email (str): Recipient email address
-        subject (str): Email subject line
-        content (str): Plain text email content
-        html_content (str): Optional HTML email content
-        test_mode (bool): If True, validates but doesn't actually send
+        to_email (str): Recipient email address (unused)
+        subject (str): Email subject line (unused)
+        content (str): Plain text email content (unused)
+        html_content (str): Optional HTML email content (unused)
+        test_mode (bool): If True, validates but doesn't actually send (unused)
         
     Returns:
-        Dict: Result with status and any errors
+        Dict: Result indicating email functionality is disabled
     """
+    logger.info(f"Email notification skipped (emails disabled) - would have sent to: {to_email}")
+    return {
+        "success": False,
+        "error": "Email notifications disabled - Rally uses SMS only",
+        "status_code": None,
+        "message_id": None,
+        "disabled": True
+    }
     
-    # Validate configuration
-    config_status = SendGridConfig.validate_config()
-    if not config_status["is_valid"]:
-        return {
-            "success": False,
-            "error": f"SendGrid not configured. Missing: {', '.join(config_status['missing_vars'])}",
-            "status_code": None,
-            "message_id": None
-        }
-    
-    # Validate email address
-    is_valid_email, email_result = validate_email_address(to_email)
-    if not is_valid_email:
-        return {
-            "success": False,
-            "error": email_result,
-            "status_code": None,
-            "message_id": None
-        }
-    
-    formatted_email = email_result
-    
-    # Validate content
-    if not subject or not subject.strip():
-        return {
-            "success": False,
-            "error": "Email subject is required",
-            "status_code": None,
-            "message_id": None
-        }
-    
-    if not content or not content.strip():
-        return {
-            "success": False,
-            "error": "Email content is required",
-            "status_code": None,
-            "message_id": None
-        }
-    
-    # Test mode - validate but don't send
-    if test_mode:
-        return {
-            "success": True,
-            "message": "Test mode - email validated successfully",
-            "formatted_email": formatted_email,
-            "subject": subject,
-            "content_length": len(content),
-            "status_code": 200,
-            "message_id": "test_email_id"
-        }
-    
-    # Send email with SendGrid
-    return _send_email_with_sendgrid(formatted_email, subject, content, html_content)
+    # ORIGINAL CODE COMMENTED OUT - SendGrid functionality disabled
+    # # Validate configuration
+    # config_status = SendGridConfig.validate_config()
+    # if not config_status["is_valid"]:
+    #     return {
+    #         "success": False,
+    #         "error": f"SendGrid not configured. Missing: {', '.join(config_status['missing_vars'])}",
+    #         "status_code": None,
+    #         "message_id": None
+    #     }
+    # 
+    # # Validate email address
+    # is_valid_email, email_result = validate_email_address(to_email)
+    # if not is_valid_email:
+    #     return {
+    #         "success": False,
+    #         "error": email_result,
+    #         "status_code": None,
+    #         "message_id": None
+    #     }
+    # 
+    # formatted_email = email_result
+    # 
+    # # Validate content
+    # if not subject or not subject.strip():
+    #     return {
+    #         "success": False,
+    #         "error": "Email subject is required",
+    #         "status_code": None,
+    #         "message_id": None
+    #     }
+    # 
+    # if not content or not content.strip():
+    #     return {
+    #         "success": False,
+    #         "error": "Email content is required",
+    #         "status_code": None,
+    #         "message_id": None
+    #     }
+    # 
+    # # Test mode - validate but don't send
+    # if test_mode:
+    #     return {
+    #         "success": True,
+    #         "message": "Test mode - email validated successfully",
+    #         "formatted_email": formatted_email,
+    #         "subject": subject,
+    #         "content_length": len(content),
+    #         "status_code": 200,
+    #         "message_id": "test_email_id"
+    #     }
+    # 
+    # # Send email with SendGrid
+    # return _send_email_with_sendgrid(formatted_email, subject, content, html_content)
 
 
 def _send_email_with_sendgrid(to_email: str, subject: str, content: str, html_content: str = None) -> Dict:
     """
-    Send email using SendGrid API
+    DISABLED: SendGrid email functionality has been turned off
+    
+    This function is kept for backwards compatibility but always returns disabled status.
     
     Args:
-        to_email (str): Validated email address
-        subject (str): Email subject
-        content (str): Plain text content
-        html_content (str): Optional HTML content
+        to_email (str): Validated email address (unused)
+        subject (str): Email subject (unused)
+        content (str): Plain text content (unused)
+        html_content (str): Optional HTML content (unused)
         
     Returns:
-        Dict: Result with status and any errors
+        Dict: Result indicating email functionality is disabled
     """
+    logger.info(f"SendGrid email skipped (emails disabled) - would have sent to: {to_email}")
+    return {
+        "success": False,
+        "error": "Email notifications disabled - Rally uses SMS only",
+        "status_code": None,
+        "message_id": None,
+        "disabled": True
+    }
     
-    try:
-        # Create the email message
-        message = Mail(
-            from_email=(SendGridConfig.FROM_EMAIL, SendGridConfig.FROM_NAME),
-            to_emails=to_email,
-            subject=subject,
-            plain_text_content=content,
-            html_content=html_content or f"<p>{content.replace(chr(10), '<br>')}</p>"
-        )
-        
-        # Initialize SendGrid client
-        sg = SendGridAPIClient(api_key=SendGridConfig.API_KEY)
-        
-        # Set EU data residency if enabled
-        if SendGridConfig.EU_DATA_RESIDENCY:
-            sg.set_sendgrid_data_residency("eu")
-            logger.info("EU data residency enabled for SendGrid")
-        
-        # Send email
-        response = sg.send(message)
-        
-        # Check response status
-        if response.status_code in [200, 201, 202]:
-            logger.info(f"Email sent successfully to {to_email}")
-            return {
-                "success": True,
-                "status_code": response.status_code,
-                "message_id": response.headers.get('X-Message-Id', 'unknown'),
-                "message": "Email sent successfully"
-            }
-        else:
-            logger.error(f"SendGrid returned status {response.status_code}: {response.body}")
-            return {
-                "success": False,
-                "error": f"SendGrid error: Status {response.status_code}",
-                "status_code": response.status_code,
-                "message_id": None
-            }
-            
-    except Exception as e:
-        logger.error(f"SendGrid email sending failed: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Email sending failed: {str(e)}",
-            "status_code": None,
-            "message_id": None
-        }
+    # ORIGINAL CODE COMMENTED OUT - SendGrid functionality disabled
+    # try:
+    #     # Create the email message
+    #     message = Mail(
+    #         from_email=(SendGridConfig.FROM_EMAIL, SendGridConfig.FROM_NAME),
+    #         to_emails=to_email,
+    #         subject=subject,
+    #         plain_text_content=content,
+    #         html_content=html_content or f"<p>{content.replace(chr(10), '<br>')}</p>"
+    #     )
+    #     
+    #     # Initialize SendGrid client
+    #     sg = SendGridAPIClient(api_key=SendGridConfig.API_KEY)
+    #     
+    #     # Set EU data residency if enabled
+    #     if SendGridConfig.EU_DATA_RESIDENCY:
+    #         sg.set_sendgrid_data_residency("eu")
+    #         logger.info("EU data residency enabled for SendGrid")
+    #     
+    #     # Send email
+    #     response = sg.send(message)
+    #     
+    #     # Check response status
+    #     if response.status_code in [200, 201, 202]:
+    #         logger.info(f"Email sent successfully to {to_email}")
+    #         return {
+    #             "success": True,
+    #             "status_code": response.status_code,
+    #             "message_id": response.headers.get('X-Message-Id', 'unknown'),
+    #             "message": "Email sent successfully"
+    #         }
+    #     else:
+    #         logger.error(f"SendGrid returned status {response.status_code}: {response.body}")
+    #         return {
+    #             "success": False,
+    #             "error": f"SendGrid error: Status {response.status_code}",
+    #             "status_code": response.status_code,
+    #             "message_id": None
+    #         }
+    #         
+    # except Exception as e:
+    #     logger.error(f"SendGrid email sending failed: {str(e)}")
+    #     return {
+    #         "success": False,
+    #         "error": f"Email sending failed: {str(e)}",
+    #         "status_code": None,
+    #         "message_id": None
+    #     }
 
 
 def send_admin_activity_notification(user_email: str, activity_type: str, page: str = None, action: str = None, details: str = None, is_impersonating: bool = False, first_name: str = None, last_name: str = None) -> Dict:
     """
-    Send email notification to admin about user activity
+    DISABLED: Email notifications have been turned off - Rally uses SMS only now
+    
+    This function is kept for backwards compatibility but always returns disabled status.
     
     Args:
-        user_email (str): Email of user performing activity
-        activity_type (str): Type of activity
-        page (str): Page where activity occurred
-        action (str): Specific action taken
-        details (str): Additional details about the activity
-        is_impersonating (bool): Whether activity was performed while impersonating
-        first_name (str): User's first name
-        last_name (str): User's last name
+        user_email (str): Email of user performing activity (unused)
+        activity_type (str): Type of activity (unused)
+        page (str): Page where activity occurred (unused)
+        action (str): Specific action taken (unused)
+        details (str): Additional details about the activity (unused)
+        is_impersonating (bool): Whether activity was performed while impersonating (unused)
+        first_name (str): User's first name (unused)
+        last_name (str): User's last name (unused)
         
     Returns:
-        Dict: Result of email sending
+        Dict: Result indicating email functionality is disabled
     """
+    logger.info(f"Admin activity email skipped (emails disabled) - activity: {activity_type} for {user_email}")
+    return {
+        "success": False,
+        "error": "Email notifications disabled - Rally uses SMS only",
+        "status_code": None,
+        "message_id": None,
+        "disabled": True
+    }
     
-    # Helper function to convert technical page names to human-readable format
-    def humanize_page_name(page_name):
-        if not page_name:
-            return "Unknown Page"
-        
-        # Remove common prefixes
-        page_name = page_name.replace("mobile_", "").replace("admin_", "").replace("api_", "")
-        
-        # Handle specific cases
-        page_mappings = {
-            "my_series": "My Series",
-            "analyze_me": "Analyze Me", 
-            "player_detail": "Player Detail",
-            "home_submenu": "Home Page",
-            "home_alt1": "Home Page",
-            "home_classic": "Home Page",
-            "my_team": "My Team",
-            "my_club": "My Club",
-            "user_activity": "User Activity",
-            "player_search": "Player Search",
-            "player_stats": "Player Stats",
-            "schedule_lesson": "Schedule Lesson",
-            "email_team": "Email Team",
-            "practice_times": "Practice Times",
-            "availability": "Availability",
-            "team_schedule": "Team Schedule",
-            "find_people_to_play": "Find People to Play",
-            "pickup_games": "Pickup Games",
-            "private_groups": "Private Groups",
-            "create_pickup_game": "Create Pickup Game",
-            "reserve_court": "Reserve Court",
-            "share_rally": "Share Rally",
-            "create_team": "Create Team",
-            "matchup_simulator": "Matchup Simulator",
-            "polls": "Polls"
-        }
-        
-        # Check for exact matches first
-        if page_name in page_mappings:
-            return page_mappings[page_name]
-        
-        # Generic conversion: replace underscores with spaces and title case
-        return page_name.replace("_", " ").title()
+    # ORIGINAL CODE COMMENTED OUT - Email functionality disabled
+    # """
+    # Send email notification to admin about user activity
+    # 
+    # Args:
+    #     user_email (str): Email of user performing activity
+    #     activity_type (str): Type of activity
+    #     page (str): Page where activity occurred
+    #     action (str): Specific action taken
+    #     details (str): Additional details about the activity
+    #     is_impersonating (bool): Whether activity was performed while impersonating
+    #     first_name (str): User's first name
+    #     last_name (str): User's last name
+    #     
+    # Returns:
+    #     Dict: Result of email sending
+    # """
     
-    # Create email subject using requested format 
-    user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
-    
-    # Special formatting for login and registration activities
-    if activity_type == "login":
-        subject = f"{user_name} - Login: Successful"
-        content_parts = [
-            f"Rally Activity:",
-            f"{user_name} logged in successfully",
-            f"Activity: {activity_type}",
-        ]
-    elif activity_type == "login_failed":
-        subject = f"{user_name} - Login: Unsuccessful"
-        content_parts = [
-            f"Rally Activity:",
-            f"{user_name} login failed",
-            f"Activity: {activity_type}",
-        ]
-    elif activity_type in ["registration_successful", "registration_failed"]:
-        status = "Successful" if "successful" in activity_type else "Unsuccessful"
-        subject = f"{user_name} - Registration: {status}"
-        content_parts = [
-            f"Rally Activity:",
-            f"{user_name} registration {status.lower()}",
-            f"Activity: {activity_type}",
-        ]
-    else:
-        # Regular page visit formatting
-        page_display = humanize_page_name(page)
-        subject = f"{user_name} - {page_display}"
-        content_parts = [
-            f"Rally Activity:",
-            f"{user_name} visited {page_display}",
-            f"Activity: {activity_type}",
-        ]
-    
-    if is_impersonating:
-        subject = f"Admin Impersonation: {subject}"
-    
-    # Keep it simple - only add impersonation note if needed
-    if is_impersonating:
-        content_parts.append("⚠️ Note: This activity was performed while impersonating another user")
-    
-    content = "\n".join(content_parts)
-    
-    # Create HTML version
-    html_content = f"""
-    <html>
-    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
-            <h2 style="color: #2c3e50; margin-bottom: 20px;">
-                {'👥 Rally Admin Impersonation Activity' if is_impersonating else '🔔 Rally Activity Alert'}
-            </h2>
-            
-            <div style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <tr><td style="font-weight: bold; padding: 5px 0;">User:</td><td style="padding: 5px 0;">{user_name} ({user_email})</td></tr>
-                    <tr><td style="font-weight: bold; padding: 5px 0;">Activity:</td><td style="padding: 5px 0;">{activity_type}</td></tr>
-                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Page:</td><td style="padding: 5px 0;">{page}</td></tr>' if page else ''}
-                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Action:</td><td style="padding: 5px 0;">{action}</td></tr>' if action else ''}
-                    {f'<tr><td style="font-weight: bold; padding: 5px 0;">Details:</td><td style="padding: 5px 0;">{details}</td></tr>' if details else ''}
-                    <tr><td style="font-weight: bold; padding: 5px 0;">Timestamp:</td><td style="padding: 5px 0;">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
-                </table>
-                
-                {f'<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 15px;"><strong>⚠️ Note:</strong> This activity was performed while impersonating another user</div>' if is_impersonating else ''}
-            </div>
-            
-            <div style="margin-top: 20px; text-align: center;">
-                <a href="https://www.lovetorally.com/admin" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-                    Visit Rally Admin Panel
-                </a>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
-    
-    # Send email to admin
-    return send_email_notification(
-        to_email=SendGridConfig.ADMIN_EMAIL,
-        subject=subject,
-        content=content,
-        html_content=html_content
-    )
+    # ORIGINAL CODE COMMENTED OUT - Email functionality disabled
+    # # Helper function to convert technical page names to human-readable format
+    # def humanize_page_name(page_name):
+    #     if not page_name:
+    #         return "Unknown Page"
+    #     
+    #     # Remove common prefixes
+    #     page_name = page_name.replace("mobile_", "").replace("admin_", "").replace("api_", "")
+    #     
+    #     # Handle specific cases
+    #     page_mappings = {
+    #         "my_series": "My Series",
+    #         "analyze_me": "Analyze Me", 
+    #         "player_detail": "Player Detail",
+    #         "home_submenu": "Home Page",
+    #         "home_alt1": "Home Page",
+    #         "home_classic": "Home Page",
+    #         "my_team": "My Team",
+    #         "my_club": "My Club",
+    #         "user_activity": "User Activity",
+    #         "player_search": "Player Search",
+    #         "player_stats": "Player Stats",
+    #         "schedule_lesson": "Schedule Lesson",
+    #         "email_team": "Email Team",
+    #         "practice_times": "Practice Times",
+    #         "availability": "Availability",
+    #         "team_schedule": "Team Schedule",
+    #         "find_people_to_play": "Find People to Play",
+    #         "pickup_games": "Pickup Games",
+    #         "private_groups": "Private Groups",
+    #         "create_pickup_game": "Create Pickup Game",
+    #         "reserve_court": "Reserve Court",
+    #         "share_rally": "Share Rally",
+    #         "create_team": "Create Team",
+    #         "matchup_simulator": "Matchup Simulator",
+    #         "polls": "Polls"
+    #     }
+    #     
+    #     # Check for exact matches first
+    #     if page_name in page_mappings:
+    #         return page_mappings[page_name]
+    #     
+    #     # Generic conversion: replace underscores with spaces and title case
+    #     return page_name.replace("_", " ").title()
+    # 
+    # # Create email subject using requested format 
+    # user_name = f"{first_name} {last_name}" if first_name and last_name else user_email
+    # 
+    # # Special formatting for login and registration activities
+    # if activity_type == "login":
+    #     subject = f"{user_name} - Login: Successful"
+    #     content_parts = [
+    #         f"Rally Activity:",
+    #         f"{user_name} logged in successfully",
+    #         f"Activity: {activity_type}",
+    #     ]
+    # elif activity_type == "login_failed":
+    #     subject = f"{user_name} - Login: Unsuccessful"
+    #     content_parts = [
+    #         f"Rally Activity:",
+    #         f"{user_name} login failed",
+    #         f"Activity: {activity_type}",
+    #     ]
+    # elif activity_type in ["registration_successful", "registration_failed"]:
+    #     status = "Successful" if "successful" in activity_type else "Unsuccessful"
+    #     subject = f"{user_name} - Registration: {status}"
+    #     content_parts = [
+    #         f"Rally Activity:",
+    #         f"{user_name} registration {status.lower()}",
+    #         f"Activity: {activity_type}",
+    #     ]
+    # else:
+    #     # Regular page visit formatting
+    #     page_display = humanize_page_name(page)
+    #     subject = f"{user_name} - {page_display}"
+    #     content_parts = [
+    #         f"Rally Activity:",
+    #         f"{user_name} visited {page_display}",
+    #         f"Activity: {activity_type}",
+    #     ]
+    # 
+    # if is_impersonating:
+    #     subject = f"Admin Impersonation: {subject}"
+    # 
+    # # Keep it simple - only add impersonation note if needed
+    # if is_impersonating:
+    #     content_parts.append("⚠️ Note: This activity was performed while impersonating another user")
+    # 
+    # content = "\n".join(content_parts)
+    # 
+    # # Create HTML version
+    # html_content = f"""
+    # <html>
+    # <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    #     <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+    #         <h2 style="color: #2c3e50; margin-bottom: 20px;">
+    #             {'👥 Rally Admin Impersonation Activity' if is_impersonating else '🔔 Rally Activity Alert'}
+    #         </h2>
+    #         
+    #         <div style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db;">
+    #             <table style="width: 100%; border-collapse: collapse;">
+    #                 <tr><td style="font-weight: bold; padding: 5px 0;">User:</td><td style="padding: 5px 0;">{user_name} ({user_email})</td></tr>
+    #                 <tr><td style="font-weight: bold; padding: 5px 0;">Activity:</td><td style="padding: 5px 0;">{activity_type}</td></tr>
+    #                 {f'<tr><td style="font-weight: bold; padding: 5px 0;">Page:</td><td style="padding: 5px 0;">{page}</td></tr>' if page else ''}
+    #                 {f'<tr><td style="font-weight: bold; padding: 5px 0;">Action:</td><td style="padding: 5px 0;">{action}</td></tr>' if action else ''}
+    #                 {f'<tr><td style="font-weight: bold; padding: 5px 0;">Details:</td><td style="padding: 5px 0;">{details}</td></tr>' if details else ''}
+    #                 <tr><td style="font-weight: bold; padding: 5px 0;">Timestamp:</td><td style="padding: 5px 0;">{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</td></tr>
+    #             </table>
+    #             
+    #             {f'<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin-top: 15px;"><strong>⚠️ Note:</strong> This activity was performed while impersonating another user</div>' if is_impersonating else ''}
+    #         </div>
+    #         
+    #         <div style="margin-top: 20px; text-align: center;">
+    #             <a href="https://www.lovetorally.com/admin" style="background-color: #3498db; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+    #                 Visit Rally Admin Panel
+    #             </a>
+    #         </div>
+    #     </div>
+    # </body>
+    # </html>
+    # """
+    # 
+    # # Send email to admin
+    # return send_email_notification(
+    #     to_email=SendGridConfig.ADMIN_EMAIL,
+    #     subject=subject,
+    #     content=content,
+    #     html_content=html_content
+    # )
 
 
 def get_sendgrid_status() -> Dict:
-    """Get SendGrid configuration status"""
-    config = SendGridConfig.validate_config()
+    """
+    DISABLED: Get SendGrid configuration status
     
-    status = {
-        "configured": config["is_valid"],
-        "api_key": config["api_key"],
-        "from_email": config["from_email"],
-        "from_name": config["from_name"],
-        "admin_email": config["admin_email"],
-        "eu_data_residency": config["eu_data_residency"],
-        "missing_vars": config["missing_vars"]
+    This function is kept for backwards compatibility but always returns disabled status.
+    """
+    return {
+        "configured": False,
+        "api_key": None,
+        "from_email": None,
+        "from_name": None,
+        "admin_email": None,
+        "eu_data_residency": False,
+        "missing_vars": [],
+        "status_message": "📧 Email notifications disabled - Rally uses SMS only",
+        "status_color": "gray",
+        "disabled": True
     }
     
-    if config["is_valid"]:
-        status["status_message"] = "✅ SendGrid is properly configured"
-        status["status_color"] = "green"
-    else:
-        status["status_message"] = f"❌ Missing: {', '.join(config['missing_vars'])}"
-        status["status_color"] = "red"
-    
-    return status 
+    # ORIGINAL CODE COMMENTED OUT - Email functionality disabled
+    # """Get SendGrid configuration status"""
+    # config = SendGridConfig.validate_config()
+    # 
+    # status = {
+    #     "configured": config["is_valid"],
+    #     "api_key": config["api_key"],
+    #     "from_email": config["from_email"],
+    #     "from_name": config["from_name"],
+    #     "admin_email": config["admin_email"],
+    #     "eu_data_residency": config["eu_data_residency"],
+    #     "missing_vars": config["missing_vars"]
+    # }
+    # 
+    # if config["is_valid"]:
+    #     status["status_message"] = "✅ SendGrid is properly configured"
+    #     status["status_color"] = "green"
+    # else:
+    #     status["status_message"] = f"❌ Missing: {', '.join(config['missing_vars'])}"
+    #     status["status_color"] = "red"
+    # 
+    # return status 

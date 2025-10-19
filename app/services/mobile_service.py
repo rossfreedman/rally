@@ -1662,7 +1662,9 @@ def get_last_season_court_analysis(player_id, league_id_int=None, season="2024-2
                     "wins": stats["wins"],
                     "losses": stats["losses"],
                     "winRate": partner_win_rate,
-                    "player_id": stats["player_id"]
+                    "player_id": stats["player_id"],
+                    "tenniscores_player_id": stats["player_id"],  # Add for clickable links
+                    "team_id": None  # Last season data doesn't have team context
                 }
                 
                 # Add substitute information if applicable
@@ -1725,7 +1727,10 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
         from datetime import datetime
         from database_utils import execute_query
         
+        print(f"[DEBUG] calculate_individual_court_analysis called with {len(player_matches) if player_matches else 0} matches for player {player_id}")
+        
         if not player_matches or not player_id:
+            print(f"[DEBUG] No player matches or player_id provided, returning empty court analysis")
             # Return empty court analysis with proper structure (default to 5 courts)
             return {
                 f"court{i}": {
@@ -2002,12 +2007,21 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                     partner_name = get_player_name_from_id(partner_id)
                     if partner_name and stats["matches"] > 0:
                         partner_win_rate = round((stats["wins"] / stats["matches"]) * 100, 1)
+                        # Get team_id from various sources
+                        team_id = None
+                        if team_context and isinstance(team_context, dict):
+                            team_id = team_context.get("team_id")
+                        elif user and isinstance(user, dict):
+                            team_id = user.get("team_id")
+                        
                         partner_data = {
                             "name": partner_name,
                             "matches": stats["matches"],
                             "wins": stats["wins"],
                             "losses": stats["matches"] - stats["wins"], 
-                            "winRate": partner_win_rate
+                            "winRate": partner_win_rate,
+                            "tenniscores_player_id": partner_id,  # Add for clickable links
+                            "team_id": team_id  # Add for clickable links
                         }
                         
                         # Add substitute information if this partner was a substitute
@@ -2670,220 +2684,194 @@ def get_recent_matches_for_user_club(user):
 
 
 def calculate_player_streaks(club_name, user_league_db_id=None):
-    """Calculate winning and losing streaks for players across ALL matches for the club - only show significant streaks (+5/-5)"""
+    """Calculate winning streaks for players at the club using improved algorithm"""
     try:
         from database_utils import execute_query
 
-        # Load ALL match history data from database
-        all_matches = execute_query(
-            """
+        # Get club ID for the club name
+        club_query = "SELECT id FROM clubs WHERE name ILIKE %s LIMIT 1"
+        club_result = execute_query(club_query, [f'%{club_name}%'])
+        
+        if not club_result:
+            print(f"Club {club_name} not found")
+            return []
+        
+        club_id = club_result[0]['id']
+        print(f"[DEBUG] Found club {club_name} with ID {club_id}")
+
+        # Get all match results for club players, ordered by date
+        query = """
             SELECT 
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                ms.home_team as "Home Team",
-                ms.away_team as "Away Team",
-                ms.winner as "Winner",
-                ms.home_player_1_id as "Home Player 1",
-                ms.home_player_2_id as "Home Player 2",
-                ms.away_player_1_id as "Away Player 1", 
-                ms.away_player_2_id as "Away Player 2",
-                ms.league_id
-            FROM match_scores ms
-            ORDER BY ms.match_date DESC
+                match_date,
+                home_player_1_id,
+                home_player_2_id,
+                away_player_1_id,
+                away_player_2_id,
+                winner,
+                home_team,
+                away_team,
+                scores,
+                league_id
+            FROM match_scores 
+            WHERE match_date IS NOT NULL 
+            AND winner IS NOT NULL
+            AND winner != ''
+            AND (home_player_1_id IN (
+                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
+                ) OR home_player_2_id IN (
+                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
+                ) OR away_player_1_id IN (
+                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
+                ) OR away_player_2_id IN (
+                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
+                ))
         """
-        )
-
-        # Filter matches by user's league if provided
+        
+        # Add league filter if provided
         if user_league_db_id:
+            query += " AND league_id = %s"
+            params = [club_id, club_id, club_id, club_id, user_league_db_id]
+        else:
+            params = [club_id, club_id, club_id, club_id]
+        
+        query += " ORDER BY match_date ASC, id ASC"
+        
+        matches = execute_query(query, params)
+        print(f"[DEBUG] Found {len(matches)} matches for club {club_name}")
+        
+        if not matches:
+            return []
 
-            def is_match_in_user_league(match):
-                match_league_id = match.get("league_id")
-
-                # Integer comparison - match if league IDs are equal
-                return match_league_id == user_league_db_id
-
-            league_filtered_matches = [
-                match for match in all_matches if is_match_in_user_league(match)
-            ]
-            print(
-                f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_db_id: {user_league_db_id})"
-            )
-            all_matches = league_filtered_matches
-
-        player_stats = {}
-
-        # Sort matches by date, handling None values
-        def parse_date(date_str):
-            for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
-                try:
-                    return datetime.strptime(date_str, fmt)
-                except ValueError:
-                    continue
-            return datetime.min
-
-        def sort_key(x):
-            date = parse_date(x.get("Date", ""))
-            return date or datetime(9999, 12, 31)
-
-        # Filter and normalize all matches for the club
-        club_matches = []
-        for match in all_matches:
-            home_team = match.get("Home Team", "")
-            away_team = match.get("Away Team", "")
-
-            if not (home_team.startswith(club_name) or away_team.startswith(club_name)):
-                continue
-
-            # Normalize match data
-            normalized_match = {
-                "date": match.get("Date", ""),
-                "home_team": home_team,
-                "away_team": away_team,
-                "winner": match.get("Winner", ""),
-                "home_player_1": match.get("Home Player 1", ""),
-                "home_player_2": match.get("Home Player 2", ""),
-                "away_player_1": match.get("Away Player 1", ""),
-                "away_player_2": match.get("Away Player 2", ""),
-            }
-            club_matches.append(normalized_match)
-
-        sorted_matches = sorted(club_matches, key=sort_key)
-
-        print(
-            f"[DEBUG] Found {len(sorted_matches)} total matches for club '{club_name}' across all time"
-        )
-
-        for match in sorted_matches:
-            home_team = match.get("home_team", "")
-            away_team = match.get("away_team", "")
-
-            # Get all players from the match
+        # Track player streaks
+        player_streaks = {}
+        
+        for match in matches:
+            match_date = match['match_date']
+            winner = match['winner']
+            
+            # Get all club players in this match
             players = [
-                match.get("home_player_1", ""),
-                match.get("home_player_2", ""),
-                match.get("away_player_1", ""),
-                match.get("away_player_2", ""),
+                match['home_player_1_id'],
+                match['home_player_2_id'], 
+                match['away_player_1_id'],
+                match['away_player_2_id']
             ]
-
-            for player in players:
-                if not player:  # Handle None values
-                    continue
-                player = player.strip()
-                if not player or player.lower() == "bye":
-                    continue
-
-                if player not in player_stats:
-                    player_stats[player] = {
-                        "matches": [],  # Store all match results for this player
-                        "series": (
-                            home_team.split(" - ")[1]
-                            if " - " in home_team and home_team.startswith(club_name)
-                            else (
-                                away_team.split(" - ")[1]
-                                if " - " in away_team
-                                and away_team.startswith(club_name)
-                                else ""
-                            )
-                        ),
+            
+            # Filter to only club players
+            club_players = []
+            for player_id in players:
+                if player_id:
+                    # Check if player is from this club
+                    player_check_query = '''
+                        SELECT tenniscores_player_id FROM players 
+                        WHERE tenniscores_player_id = %s AND club_id = %s
+                    '''
+                    player_check = execute_query(player_check_query, [player_id, club_id])
+                    if player_check:
+                        club_players.append(player_id)
+            
+            # Determine if each club player won or lost
+            for player_id in club_players:
+                if player_id not in player_streaks:
+                    player_streaks[player_id] = {
+                        'current_streak': 0,
+                        'max_streak': 0,
+                        'last_result': None,
+                        'last_date': None,
+                        'streak_start_date': None,
+                        'max_streak_start_date': None,
+                        'max_streak_end_date': None,
+                        'total_matches': 0
                     }
-
-                # Determine if player won
-                is_home_player = player in [
-                    match.get("home_player_1", ""),
-                    match.get("home_player_2", ""),
-                ]
-                won = (is_home_player and match.get("winner") == "home") or (
-                    not is_home_player and match.get("winner") == "away"
-                )
-
-                # Store match result
-                player_stats[player]["matches"].append(
-                    {"date": match.get("date", ""), "won": won}
-                )
-
-        # Calculate streaks for each player
-        significant_streaks = []
-
-        for player, stats in player_stats.items():
-            if (
-                len(stats["matches"]) < 5
-            ):  # Need at least 5 matches to have a significant streak
-                continue
-
-            matches = sorted(stats["matches"], key=lambda x: parse_date(x["date"]))
-
-            current_streak = 0
-            best_win_streak = 0
-            best_loss_streak = 0
-            last_match_date = matches[-1]["date"] if matches else ""
-
-            # Calculate current streak and best streaks
-            for i, match in enumerate(matches):
-                if i == 0:
-                    current_streak = 1 if match["won"] else -1
-                    best_win_streak = 1 if match["won"] else 0
-                    best_loss_streak = 1 if not match["won"] else 0
+                
+                # Determine if this player won
+                player_won = False
+                if 'home' in winner.lower() and player_id in [match['home_player_1_id'], match['home_player_2_id']]:
+                    player_won = True
+                elif 'away' in winner.lower() and player_id in [match['away_player_1_id'], match['away_player_2_id']]:
+                    player_won = True
+                elif winner == match['home_team'] and player_id in [match['home_player_1_id'], match['home_player_2_id']]:
+                    player_won = True
+                elif winner == match['away_team'] and player_id in [match['away_player_1_id'], match['away_player_2_id']]:
+                    player_won = True
+                
+                streak_data = player_streaks[player_id]
+                streak_data['total_matches'] += 1
+                
+                # Update streak
+                if streak_data['last_result'] == 'win' and player_won:
+                    # Continuing win streak
+                    streak_data['current_streak'] += 1
+                elif streak_data['last_result'] == 'loss' and not player_won:
+                    # Continuing loss streak  
+                    streak_data['current_streak'] += 1
                 else:
-                    prev_match = matches[i - 1]
-                    if match["won"] == prev_match["won"]:
-                        # Streak continues
-                        if match["won"]:
-                            current_streak = (
-                                current_streak + 1 if current_streak > 0 else 1
-                            )
-                            best_win_streak = max(best_win_streak, current_streak)
-                        else:
-                            current_streak = (
-                                current_streak - 1 if current_streak < 0 else -1
-                            )
-                            best_loss_streak = max(
-                                best_loss_streak, abs(current_streak)
-                            )
-                    else:
-                        # Streak broken
-                        current_streak = 1 if match["won"] else -1
-                        if match["won"]:
-                            best_win_streak = max(best_win_streak, 1)
-                        else:
-                            best_loss_streak = max(best_loss_streak, 1)
+                    # Streak broken, start new one
+                    streak_data['current_streak'] = 1
+                    streak_data['streak_start_date'] = match_date
+                
+                streak_data['last_result'] = 'win' if player_won else 'loss'
+                streak_data['last_date'] = match_date
+                
+                # Update max streak if current streak is better
+                if (streak_data['current_streak'] > streak_data['max_streak'] and 
+                    streak_data['last_result'] == 'win'):
+                    streak_data['max_streak'] = streak_data['current_streak']
+                    streak_data['max_streak_start_date'] = streak_data['streak_start_date']
+                    streak_data['max_streak_end_date'] = match_date
 
-            # Only include players with significant WINNING streaks (current +5 or best +5) AND no losing streaks
-            has_significant_current_win = current_streak >= 5
-            has_significant_best_win = best_win_streak >= 5
-            is_currently_on_losing_streak = current_streak < 0
-
-            if (has_significant_current_win or has_significant_best_win) and not is_currently_on_losing_streak:
-                best_streak = max(best_win_streak, best_loss_streak)
-                # Convert player ID to readable name
-                player_display_name = get_player_name_from_id(player)
-                significant_streaks.append(
-                    {
-                        "player_name": player_display_name,
-                        "current_streak": current_streak,
-                        "best_streak": best_streak,
+        # Get player names and series info
+        significant_streaks = []
+        
+        for player_id, data in player_streaks.items():
+            if data['max_streak'] > 0:  # Only include players with at least 1 win streak
+                # Get player details
+                name_query = '''
+                    SELECT first_name, last_name, series_id FROM players 
+                    WHERE tenniscores_player_id = %s AND club_id = %s
+                    LIMIT 1
+                '''
+                name_result = execute_query(name_query, [player_id, club_id])
+                
+                if name_result:
+                    first_name = name_result[0]['first_name'] or ''
+                    last_name = name_result[0]['last_name'] or ''
+                    player_name = f'{first_name} {last_name}'.strip()
+                    series_id = name_result[0]['series_id']
+                    
+                    # Get series name
+                    series_name = ''
+                    if series_id:
+                        series_query = 'SELECT name FROM series WHERE id = %s'
+                        series_result = execute_query(series_query, [series_id])
+                        if series_result:
+                            series_name = series_result[0]['name']
+                    
+                    # Format last match date
+                    last_match_date = ''
+                    if data['last_date']:
+                        last_match_date = data['last_date'].strftime('%m/%d/%y')
+                    
+                    significant_streaks.append({
+                        "player_name": player_name,
+                        "current_streak": data['current_streak'],
+                        "best_streak": data['max_streak'],
                         "last_match_date": last_match_date,
-                        "series": stats["series"],
-                        "total_matches": len(matches),
-                    }
-                )
+                        "series": series_name,
+                        "total_matches": data['total_matches'],
+                    })
 
-        # Sort by current streak (win streaks highest to lowest, then loss streaks)
-        significant_streaks.sort(
-            key=lambda x: (-x["current_streak"], -x["best_streak"])
-        )
+        # Sort by current streak (descending)
+        significant_streaks.sort(key=lambda x: x['current_streak'], reverse=True)
 
-        print(
-            f"[DEBUG] Found {len(significant_streaks)} players with significant winning streaks (5+ wins)"
-        )
-
+        print(f"[DEBUG] Found {len(significant_streaks)} players with win streaks for club {club_name}")
         return significant_streaks
 
     except Exception as e:
         print(f"Error calculating player streaks: {str(e)}")
         import traceback
-
         print(f"Full traceback: {traceback.format_exc()}")
         return []
-
 
 def get_mobile_club_data(user):
     """Get comprehensive club data for mobile my club page - using match_history.json for completed matches"""
@@ -3369,12 +3357,28 @@ def get_mobile_club_data(user):
                 
                 series_teams = execute_query(series_teams_query, [series, user_league_db_id, user_league_db_id])
                 
-                # Find our team's position
+                # Calculate proper place with tie handling
+                # Teams with identical points should share the same place
                 place = 1
-                for i, team in enumerate(series_teams, 1):
+                current_place = 1
+                prev_points = None
+                
+                for i, team in enumerate(series_teams):
+                    # Check if this team is tied with the previous team (same points)
+                    if prev_points is not None and team["points"] == prev_points:
+                        # This team is tied with the previous team, same place
+                        pass  # current_place stays the same
+                    else:
+                        # This team is not tied, advance to next place
+                        current_place = i + 1
+                    
+                    # If this is our team, record the place
                     if team["team"] == team_stats["team"]:
-                        place = i
+                        place = current_place
                         break
+                    
+                    # Update previous points for next iteration
+                    prev_points = team["points"]
                 
                 tennaqua_standings.append({
                     "series": series,
@@ -5220,6 +5224,181 @@ def get_mobile_series_data(user):
         return {"error": str(e)}
 
 
+def get_player_notes(player_id, club_id):
+    """
+    Get all notes for a specific player within a club context.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        club_id: The club ID to filter notes by
+        
+    Returns:
+        List of note dictionaries with creator info and timestamps
+    """
+    try:
+        query = """
+            SELECT 
+                pn.id,
+                pn.note,
+                pn.created_at,
+                pn.creator_id,
+                u.first_name,
+                u.last_name,
+                u.email
+            FROM player_notes pn
+            JOIN users u ON pn.creator_id = u.id
+            WHERE pn.player_id = %s AND pn.club_id = %s
+            ORDER BY pn.created_at DESC
+        """
+        
+        notes = execute_query(query, [player_id, club_id])
+        
+        # Format the results
+        formatted_notes = []
+        for note in notes:
+            formatted_notes.append({
+                "id": note["id"],
+                "note": note["note"],
+                "created_at": note["created_at"].strftime("%B %d, %Y at %I:%M %p") if note["created_at"] else "",
+                "creator_name": f"{note['first_name']} {note['last_name']}",
+                "creator_email": note["email"],
+                "creator_id": note["creator_id"]  # Include creator_id for permission checks
+            })
+        
+        return formatted_notes
+        
+    except Exception as e:
+        print(f"Error fetching player notes: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+
+def create_player_note(player_id, creator_id, club_id, note_text):
+    """
+    Create a new note for a player.
+    
+    Args:
+        player_id: The player's tenniscores_player_id
+        creator_id: The user ID of the note creator
+        club_id: The club ID for the note context
+        note_text: The actual note content
+        
+    Returns:
+        Dictionary with success status and note_id or error message
+    """
+    try:
+        # Validate inputs
+        if not player_id or not creator_id or not club_id or not note_text:
+            return {"success": False, "error": "Missing required fields"}
+        
+        if not note_text.strip():
+            return {"success": False, "error": "Note cannot be empty"}
+        
+        # Insert the note
+        query = """
+            INSERT INTO player_notes (player_id, creator_id, club_id, note)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, created_at
+        """
+        
+        result = execute_query_one(query, [player_id, creator_id, club_id, note_text.strip()])
+        
+        if result:
+            return {
+                "success": True,
+                "note_id": result["id"],
+                "created_at": result["created_at"].strftime("%B %d, %Y at %I:%M %p") if result["created_at"] else ""
+            }
+        else:
+            return {"success": False, "error": "Failed to create note"}
+            
+    except Exception as e:
+        print(f"Error creating player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+def update_player_note(note_id, user_id, note_text):
+    """
+    Update an existing note (only by the creator).
+    
+    Args:
+        note_id: The note ID to update
+        user_id: The user attempting to update (must be creator)
+        note_text: The new note content
+        
+    Returns:
+        Dictionary with success status or error message
+    """
+    try:
+        # Validate inputs
+        if not note_id or not user_id or not note_text:
+            return {"success": False, "error": "Missing required fields"}
+        
+        if not note_text.strip():
+            return {"success": False, "error": "Note cannot be empty"}
+        
+        # Update only if user is the creator
+        query = """
+            UPDATE player_notes
+            SET note = %s
+            WHERE id = %s AND creator_id = %s
+            RETURNING id, created_at
+        """
+        
+        result = execute_query_one(query, [note_text.strip(), note_id, user_id])
+        
+        if result:
+            return {
+                "success": True,
+                "note_id": result["id"],
+                "created_at": result["created_at"].strftime("%B %d, %Y at %I:%M %p") if result["created_at"] else ""
+            }
+        else:
+            return {"success": False, "error": "Note not found or you don't have permission to edit it"}
+            
+    except Exception as e:
+        print(f"Error updating player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
+def delete_player_note(note_id, user_id):
+    """
+    Delete a note (only by the creator).
+    
+    Args:
+        note_id: The note ID to delete
+        user_id: The user attempting to delete (must be creator)
+        
+    Returns:
+        Dictionary with success status or error message
+    """
+    try:
+        # Validate inputs
+        if not note_id or not user_id:
+            return {"success": False, "error": "Missing required fields"}
+        
+        # Delete only if user is the creator
+        query = """
+            DELETE FROM player_notes
+            WHERE id = %s AND creator_id = %s
+            RETURNING id
+        """
+        
+        result = execute_query_one(query, [note_id, user_id])
+        
+        if result:
+            return {"success": True, "note_id": result["id"]}
+        else:
+            return {"success": False, "error": "Note not found or you don't have permission to delete it"}
+            
+    except Exception as e:
+        print(f"Error deleting player note: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+
+
 def get_series_player_ratings(user):
     """Get all players in user's series ranked by PTI (low to high)"""
     try:
@@ -6197,6 +6376,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                     "pti": player_pti,  # Add PTI data for template
                     "isSubstitute": is_substitute,  # Add substitute status
                     "captain_status": captain_status,  # Add captain status
+                    "tenniscores_player_id": player_id,  # Add for clickable links
+                    "team_id": team_id,  # Add for clickable links
                 }
             )
 

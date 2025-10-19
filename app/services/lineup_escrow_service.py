@@ -870,6 +870,104 @@ Rally Team
             return ''
         return email.strip().lower()
 
+    def get_user_previous_escrows(self, user_id: int, limit: int = 50) -> Dict:
+        """
+        Get all previous lineup escrows created by a user
+        
+        Args:
+            user_id: ID of the user
+            limit: Maximum number of escrows to return
+            
+        Returns:
+            Dict with list of previous escrows
+        """
+        try:
+            escrows = self.db_session.query(LineupEscrow).filter(
+                LineupEscrow.initiator_user_id == user_id
+            ).order_by(LineupEscrow.created_at.desc()).limit(limit).all()
+            
+            escrow_list = []
+            for escrow in escrows:
+                # Get team and club information
+                initiator_team_name = "Unknown Team"
+                recipient_team_name = "Unknown Team"
+                initiator_club_name = "Unknown Club"
+                recipient_club_name = "Unknown Club"
+                
+                try:
+                    if escrow.initiator_team_id:
+                        initiator_team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
+                        if initiator_team:
+                            initiator_team_name = initiator_team.display_name
+                            if hasattr(initiator_team, 'club_id') and initiator_team.club_id:
+                                club = self.db_session.query(Club).filter(Club.id == initiator_team.club_id).first()
+                                if club:
+                                    initiator_club_name = club.name
+                    
+                    if escrow.recipient_team_id:
+                        recipient_team = self.db_session.query(Team).filter(Team.id == escrow.recipient_team_id).first()
+                        if recipient_team:
+                            recipient_team_name = recipient_team.display_name
+                            if hasattr(recipient_team, 'club_id') and recipient_team.club_id:
+                                club = self.db_session.query(Club).filter(Club.id == recipient_team.club_id).first()
+                                if club:
+                                    recipient_club_name = club.name
+                except Exception as e:
+                    logger.warning(f"Error getting team/club information for escrow {escrow.id}: {str(e)}")
+                
+                # Format dates
+                created_date = escrow.created_at.strftime("%B %d, %Y") if escrow.created_at else "Unknown"
+                created_time = escrow.created_at.strftime("%I:%M %p") if escrow.created_at else "Unknown"
+                
+                # Determine response status
+                response_status = "No Response"
+                if escrow.status == "both_submitted":
+                    response_status = "Responded"
+                elif escrow.status == "expired":
+                    response_status = "Expired"
+                elif escrow.status == "pending":
+                    response_status = "Pending Response"
+                
+                escrow_data = {
+                    "id": escrow.id,
+                    "escrow_token": escrow.escrow_token,
+                    "recipient_name": escrow.recipient_name,
+                    "recipient_contact": escrow.recipient_contact,
+                    "contact_type": escrow.contact_type,
+                    "status": escrow.status,
+                    "response_status": response_status,
+                    "created_at": escrow.created_at.isoformat() if escrow.created_at else None,
+                    "created_date": created_date,
+                    "created_time": created_time,
+                    "initiator_submitted_at": escrow.initiator_submitted_at.isoformat() if escrow.initiator_submitted_at else None,
+                    "recipient_submitted_at": escrow.recipient_submitted_at.isoformat() if escrow.recipient_submitted_at else None,
+                    "expires_at": escrow.expires_at.isoformat() if escrow.expires_at else None,
+                    "subject": escrow.subject or "",
+                    "message_body": escrow.message_body or "",
+                    "initiator_team_name": initiator_team_name,
+                    "recipient_team_name": recipient_team_name,
+                    "initiator_club_name": initiator_club_name,
+                    "recipient_club_name": recipient_club_name,
+                    "initiator_team_id": escrow.initiator_team_id,
+                    "recipient_team_id": escrow.recipient_team_id,
+                    "initiator_lineup": self._clean_lineup_text(escrow.initiator_lineup) if escrow.initiator_lineup else "",
+                    "recipient_lineup": self._clean_lineup_text(escrow.recipient_lineup) if escrow.recipient_lineup else None
+                }
+                escrow_list.append(escrow_data)
+            
+            return {
+                "success": True,
+                "escrows": escrow_list,
+                "total_count": len(escrow_list)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting user previous escrows: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Failed to get previous escrows: {str(e)}"
+            }
+
     def _normalize_phone(self, phone: str) -> str:
         if not phone:
             return ''
