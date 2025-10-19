@@ -589,6 +589,8 @@ def get_player_history():
 def get_player_history_by_id(player_id):
     """Get history for a specific player by player ID - FIXED: Uses player ID for accurate lookup"""
     try:
+        from database_utils import execute_query, execute_query_one
+        
         if "user" not in session:
             return jsonify({"error": "Not authenticated"}), 401
 

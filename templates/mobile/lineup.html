@@ -48,6 +48,17 @@
                     Next →
                 </button>
             </div>
+            
+            <!-- Lineup Name Display (for edit mode) -->
+            <div id="lineup-name-display" class="hidden mb-6">
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 text-center">
+                    <div class="flex items-center justify-center mb-2">
+                        <i class="fas fa-edit text-blue-600 text-xl mr-3"></i>
+                        <h2 class="text-2xl font-bold text-blue-900">Editing Lineup</h2>
+                    </div>
+                    <div class="text-3xl font-bold text-blue-800" id="lineup-name-text"></div>
+                </div>
+            </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-50">
@@ -348,6 +359,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('  - isEditMode:', isEditMode);
     console.log('  - editLineupName:', editLineupName);
     
+    // Debug: Check if we have the lineup name for edit mode
+    if (isEditMode && !editLineupName) {
+        console.log('⚠️ Edit mode detected but no lineup name found in sessionStorage');
+    }
+    
     if (loadLineupData) {
         console.log('✅ Found lineup data, will load after players are available:', loadLineupData);
         
@@ -365,16 +381,37 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('🎨 Updating UI for edit mode:', editLineupName);
         
         // Update page title and description
-        document.querySelector('h1').textContent = 'Edit Lineup';
-        document.querySelector('h1').nextElementSibling.textContent = `Editing: ${editLineupName}`;
+        const titleElement = document.querySelector('h1');
+        const descriptionElement = document.querySelector('h1').parentElement.querySelector('p');
+        
+        if (titleElement) {
+            titleElement.textContent = 'Edit Lineup';
+        }
+        
+        if (descriptionElement) {
+            descriptionElement.textContent = `Editing: ${editLineupName}`;
+        }
+        
+        // Show the prominent lineup name display
+        const lineupNameDisplay = document.getElementById('lineup-name-display');
+        const lineupNameText = document.getElementById('lineup-name-text');
+        
+        if (lineupNameDisplay && lineupNameText && editLineupName) {
+            lineupNameText.textContent = editLineupName;
+            lineupNameDisplay.classList.remove('hidden');
+        }
         
         // Update button text
         const sendButton = document.getElementById('manual-send');
-        sendButton.innerHTML = 'Save Changes';
+        if (sendButton) {
+            sendButton.innerHTML = 'Save Changes';
+        }
         
         // Update icon to save icon instead of clipboard
         const headerIcon = document.querySelector('.fas.fa-clipboard-list');
-        headerIcon.className = 'fas fa-edit text-white text-lg';
+        if (headerIcon) {
+            headerIcon.className = 'fas fa-edit text-white text-lg';
+        }
     }
 });
 
@@ -1307,6 +1344,8 @@ function updateManualLineupSummary() {
 }
 
 function updateCourtPTIAverages() {
+  console.log('🔧 updateCourtPTIAverages called, players array length:', players.length);
+  
   // Calculate PTI for each court
   for (let courtNum = 1; courtNum <= 4; courtNum++) {
     const courtElement = document.getElementById(`court-${courtNum}-pti`);
@@ -1321,15 +1360,34 @@ function updateCourtPTIAverages() {
     let totalPTI = 0;
     let playerCount = 0;
     
+    console.log(`🔧 Processing Court ${courtNum}:`);
+    
     // Check Ad position
     if (adPosition && adPosition.querySelector('.player-card')) {
       const playerElement = adPosition.querySelector('.player-card');
       const playerName = playerElement.dataset.playerName;
+      console.log(`🔧 Ad position player: ${playerName}`);
+      
+      // Look up player in the players array (not DOM pool) to get PTI data
       const player = players.find(p => p.name === playerName);
       if (player) {
         const pti = parseFloat(player.pti || player.rating || 0);
+        console.log(`🔧 Found player ${playerName} in players array, PTI: ${pti}`);
         totalPTI += pti;
         playerCount++;
+      } else {
+        console.log(`❌ Player ${playerName} not found in players array`);
+        console.log('Available players:', players.map(p => p.name));
+        
+        // Fallback: try to get PTI from the player element's dataset
+        const fallbackPTI = parseFloat(playerElement.dataset.playerRating || 0);
+        if (fallbackPTI > 0) {
+          console.log(`🔧 Using fallback PTI for ${playerName}: ${fallbackPTI}`);
+          totalPTI += fallbackPTI;
+          playerCount++;
+        } else {
+          console.log(`❌ No PTI data available for ${playerName}`);
+        }
       }
     }
     
@@ -1337,11 +1395,28 @@ function updateCourtPTIAverages() {
     if (deucePosition && deucePosition.querySelector('.player-card')) {
       const playerElement = deucePosition.querySelector('.player-card');
       const playerName = playerElement.dataset.playerName;
+      console.log(`🔧 Deuce position player: ${playerName}`);
+      
+      // Look up player in the players array (not DOM pool) to get PTI data
       const player = players.find(p => p.name === playerName);
       if (player) {
         const pti = parseFloat(player.pti || player.rating || 0);
+        console.log(`🔧 Found player ${playerName} in players array, PTI: ${pti}`);
         totalPTI += pti;
         playerCount++;
+      } else {
+        console.log(`❌ Player ${playerName} not found in players array`);
+        console.log('Available players:', players.map(p => p.name));
+        
+        // Fallback: try to get PTI from the player element's dataset
+        const fallbackPTI = parseFloat(playerElement.dataset.playerRating || 0);
+        if (fallbackPTI > 0) {
+          console.log(`🔧 Using fallback PTI for ${playerName}: ${fallbackPTI}`);
+          totalPTI += fallbackPTI;
+          playerCount++;
+        } else {
+          console.log(`❌ No PTI data available for ${playerName}`);
+        }
       }
     }
     
@@ -1350,8 +1425,10 @@ function updateCourtPTIAverages() {
       const avgPTI = (totalPTI / playerCount).toFixed(1);
       const totalPTIFormatted = totalPTI.toFixed(1);
       courtElement.textContent = `(Avg PTI: ${avgPTI}, Total PTI: ${totalPTIFormatted})`;
+      console.log(`✅ Court ${courtNum} PTI updated: Avg ${avgPTI}, Total ${totalPTIFormatted}`);
     } else {
       courtElement.textContent = `(Avg PTI: --, Total PTI: --)`;
+      console.log(`❌ Court ${courtNum} has no players, PTI set to --`);
     }
   }
 }
@@ -1871,9 +1948,37 @@ function setLineupFromText(lineupText) {
     // Clear existing lineup
     manualLineup = {};
     
+    // Check if this is JSON format (new format) or HTML text format (old format)
+    let normalizedText;
+    let isJsonFormat = false;
+    let lineupData = null;
+    
+    try {
+        // Try to parse as JSON first
+        lineupData = JSON.parse(lineupText);
+        console.log('🔧 Detected JSON format, lineup data:', lineupData);
+        
+        if (lineupData.version === '2.0' && lineupData.player_data) {
+            // New format: use player_data to restore lineup
+            console.log('🔧 Using new JSON format with player_data');
+            manualLineup = lineupData.player_data;
+            isJsonFormat = true;
+            
+            // Also populate courts from display_text for visual consistency
+            normalizedText = lineupData.display_text;
+        } else {
+            // Fallback to display_text
+            normalizedText = lineupData.display_text || lineupText;
+        }
+    } catch (e) {
+        // Not JSON, treat as HTML text format
+        console.log('🔧 Detected HTML text format');
+        normalizedText = lineupText;
+    }
+    
     // Parse the HTML lineup format: "LINEUP:<br>Court 1: Player1 & Player2<br>Court 2: Player3 & Player4<br>" (old format) or new format
     // First, convert <br> tags to newlines and decode HTML entities
-    let normalizedText = lineupText.replace(/<br\s*\/?>/gi, '\n');
+    normalizedText = normalizedText.replace(/<br\s*\/?>/gi, '\n');
     normalizedText = normalizedText.replace(/&amp;/g, '&'); // Decode &amp; to &
     normalizedText = normalizedText.replace(/&lt;/g, '<'); // Decode &lt; to <
     normalizedText = normalizedText.replace(/&gt;/g, '>'); // Decode &gt; to >
@@ -1910,10 +2015,18 @@ function setLineupFromText(lineupText) {
         } else if (trimmedLine && currentCourt) {
             // This is a player name under the current court
             const playerName = trimmedLine.replace(/^\s+/, ''); // Remove leading spaces
+            
+            // Skip PTI information lines
+            if (playerName.includes('(Avg PTI:') || playerName.includes('(Total PTI:')) {
+                console.log(`🔧 Skipping PTI line: ${playerName}`);
+                return; // Skip this line
+            }
+            
             if (playerName && !playerName.includes('[Need Partner]')) {
                 // Extract just the player name, removing PTI values in parentheses
                 const cleanPlayerName = playerName.replace(/\s*\(\d+\.?\d*\)\s*$/, '').trim();
                 if (cleanPlayerName) {
+                    console.log(`🔧 Adding player to court ${currentCourt}: ${cleanPlayerName}`);
                     currentPlayers.push(cleanPlayerName);
                 }
             }
@@ -1932,14 +2045,89 @@ function setLineupFromText(lineupText) {
         }
     }
     
+    // If we loaded from JSON format with player_data, restore the visual lineup
+    if (isJsonFormat && lineupData && lineupData.version === '2.0' && lineupData.player_data) {
+        console.log('🔧 Restoring visual lineup from player_data');
+        console.log('🔧 Players array length at restore time:', players.length);
+        console.log('🔧 Players array sample at restore time:', players.slice(0, 3).map(p => ({ name: p.name, pti: p.pti, rating: p.rating })));
+        
+        // Check if players array is populated
+        if (players.length === 0) {
+            console.log('⚠️ Players array is empty, delaying lineup restoration');
+            // Delay restoration until players are loaded
+            setTimeout(() => {
+                console.log('🔧 Retrying lineup restoration after delay');
+                restoreLineupFromData(manualLineup);
+            }, 1000);
+        } else {
+            restoreLineupFromData(manualLineup);
+        }
+    }
+    
     // Update the lineup summary
     updateManualLineupSummary();
+    
+    // Ensure PTI calculations are updated after lineup is loaded
+    // Add a small delay to ensure players array is fully populated
+    setTimeout(() => {
+        console.log('🔧 Delayed PTI calculation, players array length:', players.length);
+        updateCourtPTIAverages();
+    }, 100);
+    
     console.log('🔧 Lineup populated, manualLineup:', manualLineup);
+    console.log('🔧 Players array length:', players.length);
+    console.log('🔧 Players array sample:', players.slice(0, 3).map(p => ({ name: p.name, pti: p.pti, rating: p.rating })));
+}
+
+// Helper: restore lineup from player_data structure (for JSON format)
+function restoreLineupFromData(playerData) {
+    console.log('🔧 restoreLineupFromData called with:', playerData);
+    console.log('🔧 playerData keys:', Object.keys(playerData));
+    
+    // Clear all court positions first
+    for (let courtNum = 1; courtNum <= 4; courtNum++) {
+        const courtContainer = document.querySelectorAll('.court-container')[courtNum - 1];
+        if (courtContainer) {
+            const adPosition = courtContainer.querySelector('[data-position="1"]');
+            const deucePosition = courtContainer.querySelector('[data-position="2"]');
+            
+            if (adPosition) {
+                adPosition.innerHTML = '<span class="drop-text">Player 1</span>';
+            }
+            if (deucePosition) {
+                deucePosition.innerHTML = '<span class="drop-text">Player 2</span>';
+            }
+        }
+    }
+    
+    // Restore players to courts based on player_data
+    Object.keys(playerData).forEach(courtNum => {
+        const courtData = playerData[courtNum];
+        console.log(`🔧 Restoring Court ${courtNum}:`, courtData);
+        console.log(`🔧 Court ${courtNum} keys:`, Object.keys(courtData));
+        
+        // Restore Ad position (position 1)
+        if (courtData['1'] && courtData['1'].name) {
+            console.log(`🔧 Restoring Ad position: ${courtData['1'].name}`);
+            assignPlayerToCourt(courtData['1'].name, parseInt(courtNum), 'Ad');
+        } else {
+            console.log(`🔧 No Ad position data for Court ${courtNum}`);
+        }
+        
+        // Restore Deuce position (position 2)
+        if (courtData['2'] && courtData['2'].name) {
+            console.log(`🔧 Restoring Deuce position: ${courtData['2'].name}`);
+            assignPlayerToCourt(courtData['2'].name, parseInt(courtNum), 'Deuce');
+        } else {
+            console.log(`🔧 No Deuce position data for Court ${courtNum}`);
+        }
+    });
 }
 
 // Helper: assign a player to a specific court and position
 function assignPlayerToCourt(playerName, courtNum, position) {
     console.log(`🔧 Assigning ${playerName} to Court ${courtNum} ${position}`);
+    console.log(`🔧 Available players:`, players.map(p => p.name));
     
     // Clean up the player name (trim whitespace)
     const cleanPlayerName = playerName.trim();
@@ -1963,7 +2151,40 @@ function assignPlayerToCourt(playerName, courtNum, position) {
     if (!playerElement) {
         console.log(`❌ Player ${cleanPlayerName} not found in available players pool`);
         console.log(`Available players:`, Array.from(document.querySelectorAll('[data-player-name]')).map(el => el.getAttribute('data-player-name')));
-        return;
+        console.log(`🔧 Attempting to find player in players array instead`);
+        
+        // Try to find player in the players array and create a new element
+        const playerData = players.find(p => p.name === cleanPlayerName);
+        if (playerData) {
+            console.log(`🔧 Found player ${cleanPlayerName} in players array, creating new element`);
+            // Create a new player element
+            const newPlayerElement = document.createElement('div');
+            newPlayerElement.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+            newPlayerElement.dataset.playerName = cleanPlayerName;
+            newPlayerElement.dataset.playerId = playerData.id || '';
+            newPlayerElement.dataset.playerRating = playerData.pti || playerData.rating || '0';
+            newPlayerElement.dataset.playerType = playerData.position_preference || 'Either';
+            
+            // Set color based on player type
+            const playerTypeColors = {
+                'Ad': '#70e6bb',
+                'Deuce': '#6f90d6',
+                'Either': '#fbbf24'
+            };
+            const grayColor = '#d1d5db';
+            const playerType = playerData.position_preference;
+            newPlayerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+            
+            newPlayerElement.innerHTML = `
+                <div class="font-semibold text-xs">${cleanPlayerName}</div>
+                <div class="text-xs text-gray-600">${playerData.pti || playerData.rating || '0'}, ${playerData.position_preference || 'Either'}</div>
+            `;
+            
+            playerElement = newPlayerElement;
+        } else {
+            console.log(`❌ Player ${cleanPlayerName} not found in players array either`);
+            return;
+        }
     }
     
     // Find the target court position
@@ -2021,6 +2242,9 @@ function assignPlayerToCourt(playerName, courtNum, position) {
     };
     
     console.log(`✅ Successfully assigned ${cleanPlayerName} to Court ${courtNum} ${position}`);
+    
+    // Update PTI calculations immediately after assignment
+    updateCourtPTIAverages();
 }
 
 </script>

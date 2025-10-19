@@ -180,7 +180,7 @@ function createLineupCard(lineup) {
                     <i class="fas fa-trash mr-2"></i>
                     Delete
                 </button>
-                <button data-lineup-data="${escapeHtml(lineup.data)}" class="use-lineup-btn flex-1 px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
+                <button data-lineup-data="${encodeURIComponent(lineup.data)}" class="use-lineup-btn flex-1 px-4 py-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg font-semibold transition-colors flex items-center justify-center">
                     <i class="fas fa-play mr-2"></i>
                     Use
                 </button>
@@ -519,10 +519,18 @@ function setupEventDelegation() {
     // Handle lineup button clicks using event delegation
     document.addEventListener('click', (e) => {
         if (e.target.closest('.use-lineup-btn')) {
+            console.log('🔧 Use lineup button clicked');
             const button = e.target.closest('.use-lineup-btn');
-            const lineupData = button.getAttribute('data-lineup-data');
-            if (lineupData) {
+            const encodedLineupData = button.getAttribute('data-lineup-data');
+            console.log('🔧 encodedLineupData from button:', encodedLineupData);
+            
+            if (encodedLineupData) {
+                // Decode the URI-encoded lineup data
+                const lineupData = decodeURIComponent(encodedLineupData);
+                console.log('🔧 decoded lineupData:', lineupData);
                 useLineup(lineupData);
+            } else {
+                console.error('❌ No lineup data found on button');
             }
         } else if (e.target.closest('.edit-lineup-btn')) {
             const button = e.target.closest('.edit-lineup-btn');
@@ -541,9 +549,41 @@ function setupEventDelegation() {
 }
 
 function useLineup(lineupData) {
-    // Store the lineup data for the confirmation page
-    sessionStorage.setItem('createdLineup', lineupData);
-    window.location.href = '/mobile/lineup-confirmation';
+    console.log('🔧 useLineup called with:', lineupData);
+    
+    try {
+        // Try to parse the lineup data as JSON first
+        let parsedData = null;
+        try {
+            parsedData = JSON.parse(lineupData);
+            console.log('🔧 Parsed lineup data:', parsedData);
+        } catch (e) {
+            console.log('🔧 Lineup data is not JSON, using as-is');
+        }
+        
+        let formattedLineupData;
+        
+        if (parsedData && parsedData.display_text) {
+            // Use the display_text from the JSON data
+            formattedLineupData = parsedData.display_text;
+            console.log('🔧 Using display_text from JSON:', formattedLineupData);
+        } else {
+            // Use the raw data as-is (for older lineups)
+            formattedLineupData = lineupData;
+            console.log('🔧 Using raw lineup data:', formattedLineupData);
+        }
+        
+        // Store the formatted lineup data for the confirmation page
+        sessionStorage.setItem('createdLineup', formattedLineupData);
+        console.log('🔧 Stored createdLineup in sessionStorage:', formattedLineupData);
+        
+        window.location.href = '/mobile/lineup-confirmation';
+    } catch (error) {
+        console.error('❌ Error in useLineup:', error);
+        // Fallback: store the raw data
+        sessionStorage.setItem('createdLineup', lineupData);
+        window.location.href = '/mobile/lineup-confirmation';
+    }
 }
 </script>
 

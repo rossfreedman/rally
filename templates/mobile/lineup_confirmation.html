@@ -109,8 +109,14 @@ window.sessionData = {{ session_data | tojson | safe }};
 
 // Load and display the lineup from sessionStorage
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔧 Lineup confirmation page loaded');
+    console.log('🔧 Checking sessionStorage for createdLineup...');
+    
     const createdLineup = sessionStorage.getItem('createdLineup');
+    console.log('🔧 createdLineup from sessionStorage:', createdLineup);
+    
     const lineupPreview = document.getElementById('lineup-preview');
+    console.log('🔧 lineupPreview element:', lineupPreview);
     
     if (createdLineup && lineupPreview) {
         // Convert HTML to plain text for proper display in <pre> element

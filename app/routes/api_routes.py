@@ -13452,25 +13452,54 @@ def get_rising_stars():
             print(f"Error reading CSV file: {e}")
             return jsonify({"error": "Could not load starting PTI data"}), 500
         
-        # Get current PTI data for all players in the league
-        current_players_query = """
-            SELECT 
-                p.first_name,
-                p.last_name,
-                p.pti as current_pti,
-                c.name as club_name,
-                s.name as series_name
-            FROM players p
-            LEFT JOIN clubs c ON p.club_id = c.id
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.league_id = %s
-            AND p.tenniscores_player_id IS NOT NULL
-            AND p.is_active = true
-            AND p.pti IS NOT NULL
-            ORDER BY p.first_name, p.last_name
-        """
+        # Get user's club for filtering
+        user_club = user.get("club")
+        user_club_id = None
+        if user_club:
+            club_query = "SELECT id FROM clubs WHERE name ILIKE %s"
+            club_result = execute_query_one(club_query, [f"%{user_club}%"])
+            if club_result:
+                user_club_id = club_result["id"]
         
-        current_players = execute_query(current_players_query, [user_league_db_id])
+        # Get current PTI data for players in the user's club
+        if user_club_id:
+            current_players_query = """
+                SELECT 
+                    p.first_name,
+                    p.last_name,
+                    p.pti as current_pti,
+                    c.name as club_name,
+                    s.name as series_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s
+                AND p.club_id = %s
+                AND p.tenniscores_player_id IS NOT NULL
+                AND p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            current_players = execute_query(current_players_query, [user_league_db_id, user_club_id])
+        else:
+            # Fallback to all players in league if club not found
+            current_players_query = """
+                SELECT 
+                    p.first_name,
+                    p.last_name,
+                    p.pti as current_pti,
+                    c.name as club_name,
+                    s.name as series_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s
+                AND p.tenniscores_player_id IS NOT NULL
+                AND p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            current_players = execute_query(current_players_query, [user_league_db_id])
         
         # Calculate PTI deltas
         rising_stars = []
@@ -13495,8 +13524,8 @@ def get_rising_stars():
                     'series_name': player['series_name']
                 })
         
-        # Sort by PTI delta (highest gains first) and take top 10
-        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=True)
+        # Sort by PTI delta (most negative first - biggest drops) and take top 10
+        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=False)  # False = ascending (most negative first)
         top_rising_stars = rising_stars[:10]
         
         return jsonify({

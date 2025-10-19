@@ -7761,6 +7761,33 @@ def serve_mobile_all_teams_schedule():
         )
 
 
+@mobile_bp.route("/mobile/pti-movers")
+@login_required
+def serve_pti_movers():
+    """Serve the PTI Movers & Shakers page showing all players at user's club"""
+    print(f"=== SERVE_PTI_MOVERS FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    # Use session service to get fresh session data
+    from app.services.session_service import get_session_data_for_user
+    
+    try:
+        user_email = session["user"]["email"]
+        session_data = get_session_data_for_user(user_email)
+        
+        return render_template("mobile/pti_movers.html", session_data=session_data)
+        
+    except Exception as e:
+        print(f"Error in serve_pti_movers: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        
+        # Fallback to basic session data
+        session_data = {"user": session.get("user"), "authenticated": True}
+        return render_template("mobile/pti_movers.html", session_data=session_data)
+
+
 @mobile_bp.route("/install")
 def install():
     """Serve the install page with iOS/Android instructions"""
