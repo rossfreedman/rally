@@ -13465,9 +13465,12 @@ def get_rising_stars():
         if user_club_id:
             current_players_query = """
                 SELECT 
+                    p.id as player_id,
+                    p.tenniscores_player_id,
                     p.first_name,
                     p.last_name,
                     p.pti as current_pti,
+                    p.team_id,
                     c.name as club_name,
                     s.name as series_name
                 FROM players p
@@ -13485,9 +13488,12 @@ def get_rising_stars():
             # Fallback to all players in league if club not found
             current_players_query = """
                 SELECT 
+                    p.id as player_id,
+                    p.tenniscores_player_id,
                     p.first_name,
                     p.last_name,
                     p.pti as current_pti,
+                    p.team_id,
                     c.name as club_name,
                     s.name as series_name
                 FROM players p
@@ -13515,6 +13521,9 @@ def get_rising_stars():
             if starting_pti is not None:
                 pti_delta = current_pti - starting_pti
                 rising_stars.append({
+                    'player_id': player['player_id'],
+                    'tenniscores_player_id': player['tenniscores_player_id'],
+                    'team_id': player['team_id'],
                     'first_name': first_name,
                     'last_name': last_name,
                     'current_pti': current_pti,
@@ -13524,9 +13533,9 @@ def get_rising_stars():
                     'series_name': player['series_name']
                 })
         
-        # Sort by PTI delta (most negative first - biggest drops) and take top 10
+        # Sort by PTI delta (most negative first - biggest drops) and take top 100
         rising_stars.sort(key=lambda x: x['pti_delta'], reverse=False)  # False = ascending (most negative first)
-        top_rising_stars = rising_stars[:10]
+        top_rising_stars = rising_stars[:100]
         
         return jsonify({
             "success": True,

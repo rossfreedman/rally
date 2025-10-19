@@ -1,6 +1,13 @@
 {% extends "mobile/layout.html" %}
+{% set cache_buster = range(100000, 999999) | random %}
+{% set timestamp = range(1000000000, 9999999999) | random %}
 
 {% block content %}
+<!-- Force no cache -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <!-- Custom CSS for main-alt page -->
 <style>
         * {
@@ -21,11 +28,12 @@
             height: 180px;
             border-radius: 50%;
             background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
-            border: 8px solid rgba(255,255,255,0.3);
+            border: 8px solid #bff863;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-direction: column;
+            box-shadow: 0 8px 32px rgba(191, 248, 99, 0.3);
         }
         
         .hover-lift {
@@ -175,8 +183,20 @@
             
             <div class="mb-6">
                 <h1 class="text-3xl font-bold tracking-tight">Welcome back, {{ session_data.user.first_name }}</h1>
-                {% if session_data and session_data.user and session_data.user.team_name %}
-                <p class="text-white/80 text-sm mt-1">{{ session_data.user.team_name }}</p>
+                {% if session_data and session_data.user and session_data.user.league_name %}
+                <!-- League Information -->
+                <div class="text-sm space-y-1 mt-1">
+                    <div class="flex items-center">
+                        <span class="font-medium text-white/90">{{ session_data.user.league_name }}</span>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <span class="font-medium text-white/80">{{ session_data.user.series }} @ {{ session_data.user.club }}</span>
+                        <button id="leagueSwitcherTrigger" class="ml-2 text-blue-300 text-xs underline hidden hover:text-blue-200" aria-label="Change League" style="font-size: 10px;" onclick="showLeagueSwitcher()">
+                            (change)
+                        </button>
+                    </div>
+                </div>
                 {% endif %}
             </div>
             
@@ -511,6 +531,7 @@
                         <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
                             <i class="fas fa-trophy" style="color: #bff863;"></i>
                             {{ session_data.user.club or 'Club' }} Teams in 1st Place
+                            <a href="/mobile/teams-players?team_id=59667" class="text-blue-600 hover:text-blue-800 ml-2" title="View Team Details"><i class="fas fa-search"></i></a>
                         </h3>
                     </div>
                     
@@ -789,13 +810,26 @@
     <!-- ============================================
          JAVASCRIPT - DATA LOADING
          ============================================ -->
-    <script>
-        console.log('Main Alt JavaScript loaded');
+    <script id="main-alt-script-{{ cache_buster }}-{{ timestamp }}">
+        // Cache buster: {{ cache_buster }} - Timestamp: {{ timestamp }}
+        console.log('Main Alt JavaScript loaded - Cache buster: {{ cache_buster }} - Timestamp: {{ timestamp }}');
         console.log('Testing if our script is working...');
         
+        // Force immediate execution to prevent caching issues
+        (function() {
+            console.log('Immediate execution function called - Script ID: main-alt-script-{{ cache_buster }}-{{ timestamp }}');
+            console.log('JavaScript syntax check passed');
+        })();
+        
         // Set session data for JavaScript access
-        window.sessionData = {{ session_data | tojson }};
-        console.log('Session data set:', window.sessionData);
+        try {
+            // Temporarily disable session data to isolate syntax error
+            window.sessionData = {};
+            console.log('Session data set successfully (simplified)');
+        } catch (error) {
+            console.error('Error setting session data:', error);
+            window.sessionData = {};
+        }
         
         // Add a visible test to make sure our script is running
         window.testStickyNav = function() {
@@ -839,6 +873,9 @@
             console.log('About to initialize sticky navigation');
             initStickyNavigation();
             console.log('Sticky navigation initialization complete');
+            
+            // Check for multiple leagues and show league switcher if needed
+            checkMultipleLeagues();
         });
 
         // ============================================
@@ -898,16 +935,22 @@
                 const now = Date.now();
                 const maxAge = 5 * 60 * 1000; // 5 minutes
                 
-                // Restore PTI data if recent
+                // Restore PTI data if recent and valid
                 if (dashboardData.pti && (now - dashboardData.pti.timestamp) < maxAge) {
                     const ptiCard = document.getElementById('pti-card');
                     if (ptiCard) {
-                        ptiCard.classList.add('loaded');
-                        document.getElementById('pti-value').textContent = dashboardData.pti.value;
-                        document.getElementById('pti-message').textContent = dashboardData.pti.message;
-                        document.getElementById('pti-loading').classList.add('hidden');
-                        document.getElementById('pti-content').classList.remove('hidden');
-                        console.log('PTI data restored from cache');
+                        // Only restore if we had valid PTI data (not "--")
+                        if (dashboardData.pti.value && dashboardData.pti.value !== '--' && parseFloat(dashboardData.pti.value) > 0) {
+                            ptiCard.classList.add('loaded');
+                            document.getElementById('pti-value').textContent = dashboardData.pti.value;
+                            document.getElementById('pti-message').textContent = dashboardData.pti.message;
+                            document.getElementById('pti-loading').classList.add('hidden');
+                            document.getElementById('pti-content').classList.remove('hidden');
+                            console.log('PTI data restored from cache');
+                        } else {
+                            // Hide PTI card if cached data was invalid
+                            ptiCard.classList.add('hidden');
+                        }
                     }
                 }
                 
@@ -951,36 +994,38 @@
         async function loadPTIData() {
             const loading = document.getElementById('pti-loading');
             const content = document.getElementById('pti-content');
+            const ptiCard = document.getElementById('pti-card');
             
             try {
                 // Use the same API as analyze-me page for consistent PTI data
                 const response = await fetch('/api/player-analysis');
                 
                 loading.classList.add('hidden');
-                content.classList.remove('hidden');
                 
                 if (!response.ok) {
-                    document.getElementById('pti-value').textContent = '--';
-                    document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
-                    // Mark card as loaded and save to persistence
-                    document.getElementById('pti-card').classList.add('loaded');
-                    savePersistedData();
+                    // Hide PTI card if no data available
+                    ptiCard.classList.add('hidden');
                     return;
                 }
                 
                 const data = await response.json();
                 
                 if (data.error || !data.success) {
-                    document.getElementById('pti-value').textContent = '--';
-                    document.getElementById('pti-message').innerHTML = 'Keep playing to build your stats! 🎾';
-                    // Mark card as loaded and save to persistence
-                    document.getElementById('pti-card').classList.add('loaded');
-                    savePersistedData();
+                    // Hide PTI card if no data available
+                    ptiCard.classList.add('hidden');
                     return;
                 }
                 
-                // Use the exact same PTI value as analyze-me page
+                // Check if user has valid PTI data
                 const currentPTI = data.current_pti || 0;
+                if (currentPTI <= 0) {
+                    // Hide PTI card if no valid PTI data
+                    ptiCard.classList.add('hidden');
+                    return;
+                }
+                
+                // Show PTI card if we have valid data
+                content.classList.remove('hidden');
                 
                 document.getElementById('pti-value').textContent = currentPTI.toFixed(1);
                 
@@ -1046,7 +1091,7 @@
                                 const matches = lastMatchesData.matches.reverse();
                                 
                                 for (const match of matches) {
-                                    const isHome = match['Home Team'] && match['Home Team'].includes('{{ session_data.user.club }}');
+                                    const isHome = match['Home Team'] && match['Home Team'].includes('{{ session_data.user.club | replace("'", "\\'") }}');
                                     const won = (isHome && match.Winner === 'home') || (!isHome && match.Winner === 'away');
                                     
                                     if (won) {
@@ -1172,7 +1217,7 @@
                 nextMatchContent.classList.remove('hidden');
                 const homeTeam = nextMatch.home_team || '';
                 const awayTeam = nextMatch.away_team || '';
-                const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
+                const isHome = homeTeam.includes('{{ session_data.user.club | replace("'", "\\'") }}') || homeTeam.includes('{{ session_data.user.team_name | replace("'", "\\'") }}');
                 const opponentName = isHome ? awayTeam : homeTeam;
                 
                 const matchDate = new Date(nextMatch.date);
@@ -1255,7 +1300,7 @@
             
             const homeTeam = match.home_team || '';
             const awayTeam = match.away_team || '';
-            const isHome = homeTeam.includes('{{session_data.user.club}}') || homeTeam.includes('{{session_data.user.team_name}}');
+            const isHome = homeTeam.includes('{{ session_data.user.club | replace("'", "\\'") }}') || homeTeam.includes('{{ session_data.user.team_name | replace("'", "\\'") }}');
             const opponentName = isHome ? awayTeam : homeTeam;
             
             // Extract club name from opponent team name and normalize for logo lookup
@@ -1611,21 +1656,50 @@
                 carousel.classList.remove('hidden');
                 carousel.innerHTML = '';
                 
+                // Add table header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-center justify-between p-3 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 border-b-2 border-gray-200';
+                headerDiv.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-5"></div> <!-- Spacer to align with fire icon -->
+                        <div>Player name</div>
+                    </div>
+                    <div class="text-right">Win Streaks</div>
+                `;
+                carousel.appendChild(headerDiv);
+                
                 hotPlayers.forEach(player => {
                     const fullName = player.player_name || 'Unknown Player';
                     const streak = player.current_streak || 0;
+                    const seriesName = player.series_name || 'No Series';
+                    
+                    // Create magnifying glass link to player detail page with correct URL format
+                    const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
+                        `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
+                        `/mobile/player-detail/${player.player_id}`;
+                    const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
+                    
+                    // Create series chip
+                    const seriesChip = seriesName !== 'No Series' ? 
+                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;">${seriesName}</span>` : 
+                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No Series</span>`;
                     
                     const div = document.createElement('div');
                     div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition';
                     div.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <i class="fas fa-fire text-orange-500 text-lg"></i>
-                            <div>
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
                                 <div class="font-semibold text-sm text-[#045454]">${fullName}</div>
-                                <div class="text-xs text-gray-500">Win Streak</div>
+                                ${magnifyingGlassIcon}
+                            </div>
+                            <div class="flex items-center">
+                                ${seriesChip}
                             </div>
                         </div>
-                        <div class="text-xl font-bold text-orange-500">${streak}</div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold text-orange-500">${streak}</div>
+                            <div class="text-xs text-gray-500">Win Streak</div>
+                        </div>
                     `;
                     carousel.appendChild(div);
                 });
@@ -1720,45 +1794,92 @@
         // ============================================
         async function loadRisingStars() {
             const moversList = document.getElementById('pti-movers-list');
+            const ptiMoversCard = document.querySelector('#pti-movers-list').closest('.bg-white.rounded-2xl');
             
             try {
                 const response = await fetch('/api/rising-stars');
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    // Hide PTI Movers card if API fails
+                    if (ptiMoversCard) {
+                        ptiMoversCard.classList.add('hidden');
+                    }
+                    return;
                 }
                 
                 const data = await response.json();
                 
                 if (data.success && data.rising_stars && data.rising_stars.length > 0) {
-                    // Filter for players with negative PTI deltas (biggest drops)
-                    const negativeMovers = data.rising_stars
-                        .filter(player => player.pti_delta < 0)
-                        .sort((a, b) => a.pti_delta - b.pti_delta) // Sort by most negative first
-                        .slice(0, 5); // Show top 5 biggest drops
+                    // Get top 10 movers by absolute PTI change
+                    const topMovers = data.rising_stars
+                        .sort((a, b) => Math.abs(b.pti_delta) - Math.abs(a.pti_delta)) // Sort by absolute PTI change
+                        .slice(0, 10); // Show top 10
                     
-                    if (negativeMovers.length > 0) {
-                        moversList.innerHTML = negativeMovers.map(player => `
-                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                <div class="flex-1">
-                                    <div class="font-semibold text-sm text-[#045454]">${player.first_name} ${player.last_name}</div>
-                                    <div class="text-xs text-gray-500">${player.club_name || 'Unknown Club'}</div>
+                    if (topMovers.length > 0) {
+                        // Check if any of the movers have actual PTI data (not all zeros)
+                        const hasValidPTIData = topMovers.some(player => 
+                            player.pti_delta !== 0 && player.pti_delta !== null && !isNaN(player.pti_delta)
+                        );
+                        
+                        if (!hasValidPTIData) {
+                            // Hide PTI Movers card if no valid PTI delta data
+                            if (ptiMoversCard) {
+                                ptiMoversCard.classList.add('hidden');
+                            }
+                            return;
+                        }
+                        
+                        moversList.innerHTML = topMovers.map(player => {
+                            // Create magnifying glass link to player detail page with correct URL format
+                            const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
+                                `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
+                                `/mobile/player-detail/${player.player_id}`;
+                            const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
+                            
+                            // Create series chip
+                            const seriesChip = player.series_name ? 
+                                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;">${player.series_name}</span>` : 
+                                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No Series</span>`;
+                            
+                            // Determine color and label based on positive or negative change
+                            const isPositive = player.pti_delta > 0;
+                            const deltaClass = isPositive ? 'text-green-600' : 'text-red-600';
+                            const deltaLabel = isPositive ? 'PTI Gain' : 'PTI Drop';
+                            const deltaSign = isPositive ? '+' : '';
+                            
+                            return `
+                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="flex items-center mb-1">
+                                            <div class="font-semibold text-sm text-[#045454]">${player.first_name} ${player.last_name}</div>
+                                            ${magnifyingGlassIcon}
+                                        </div>
+                                        <div class="flex items-center">
+                                            ${seriesChip}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-bold ${deltaClass}">${deltaSign}${player.pti_delta.toFixed(1)}</div>
+                                        <div class="text-xs text-gray-500">${deltaLabel}</div>
+                                    </div>
                                 </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-bold text-red-500">${player.pti_delta.toFixed(1)}</div>
-                                    <div class="text-xs text-gray-500">PTI Drop</div>
-                                </div>
-                            </div>
-                        `).join('');
+                            `;
+                        }).join('');
                     } else {
-                        moversList.innerHTML = '<div class="text-center text-gray-500 py-4">No significant PTI drops found</div>';
+                        moversList.innerHTML = '<div class="text-center text-gray-500 py-4">No PTI movers found</div>';
                     }
                 } else {
-                    moversList.innerHTML = '<div class="text-center text-gray-500 py-4">No PTI data available</div>';
+                    // Hide PTI Movers card if no PTI data available
+                    if (ptiMoversCard) {
+                        ptiMoversCard.classList.add('hidden');
+                    }
                 }
                 
             } catch (error) {
                 console.error('Error loading PTI movers:', error);
-                moversList.innerHTML = '<div class="text-center text-red-500 py-4">Error loading data</div>';
+                // Hide PTI Movers card if error occurs
+                if (ptiMoversCard) {
+                    ptiMoversCard.classList.add('hidden');
+                }
             }
         }
         
@@ -1892,7 +2013,7 @@
                     const section = document.getElementById('food-section');
                     const content = document.getElementById('food-content');
                     section.classList.remove('hidden');
-                    content.innerHTML = `<p class="text-gray-700">${foodNotifs[0].message}</p>`;
+                    content.innerHTML = `<p class="text-gray-700 pl-4">${foodNotifs[0].message}</p>`;
                 }
                 
                 // Beer notifications
@@ -1901,7 +2022,7 @@
                     const section = document.getElementById('beer-section');
                     const content = document.getElementById('beer-content');
                     section.classList.remove('hidden');
-                    content.innerHTML = `<p class="text-gray-700">${beerNotifs[0].message}</p>`;
+                    content.innerHTML = `<p class="text-gray-700 pl-4">${beerNotifs[0].message}</p>`;
                 }
                 
             } catch (error) {
@@ -2255,16 +2376,24 @@
                     
                     // Always show magnifying glass for all teams
                     let teamNameHtml;
+                    let magnifyingGlassHtml;
                     if (teamId) {
                         // If we have a team_id, make both team name and magnifying glass clickable
-                        teamNameHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}</a> <a href="/mobile/teams-players?team_id=${teamId}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Team Details"><i class="fas fa-search"></i></a>`;
+                        teamNameHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}</a>`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Team Details"><i class="fas fa-search"></i></a>`;
                     } else {
                         // If no team_id, show team name as text but still show magnifying glass (could link to search or club page)
-                        teamNameHtml = `${teamDisplayName} <a href="/mobile/teams-players" class="text-blue-600 hover:text-blue-800 ml-1" title="View Teams"><i class="fas fa-search"></i></a>`;
+                        teamNameHtml = `${teamDisplayName}`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players" class="text-blue-600 hover:text-blue-800 ml-1" title="View Teams"><i class="fas fa-search"></i></a>`;
                     }
                     
                     html += `<tr class="${rowClass}">
-                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamNameHtml}</td>`;
+                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 25%;">
+                        <div class="flex items-center">
+                          <div class="flex-1 truncate">${playoffIcon}${teamNameHtml}</div>
+                          <div class="flex-shrink-0 ml-2">${magnifyingGlassHtml}</div>
+                        </div>
+                      </td>`;
                     
                     // Add Avg PTI column (if PTI data exists)
                     if (hasPtiData) {
@@ -2992,7 +3121,216 @@
             const match = url.match(regex);
             return match ? match[1] : null;
         }
+
+        // ============================================
+        // LEAGUE SWITCHER FUNCTIONALITY
+        // ============================================
+        
+        async function checkMultipleLeagues() {
+            try {
+                console.log('🔍 Checking for multiple leagues...');
+                // Check if this specific user has multiple leagues (including all associations)
+                const response = await fetch('/api/get-user-leagues');
+                const data = await response.json();
+                
+                console.log('📊 League check response:', data);
+                
+                if (data.success && data.has_multiple_leagues) {
+                    const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                    if (leagueButton) {
+                        leagueButton.classList.remove('hidden');
+                        console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
+                    } else {
+                        console.log('❌ League button element not found');
+                    }
+                } else {
+                    console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
+                }
+            } catch (error) {
+                console.error('❌ Error checking multiple leagues:', error);
+            }
+        }
+
+        function showLeagueSwitcher() {
+            const modal = document.getElementById('leagueSwitcherModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                loadLeagueSwitcherOptions();
+            }
+        }
+
+        function closeLeagueSwitcher() {
+            const modal = document.getElementById('leagueSwitcherModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        }
+
+        async function loadLeagueSwitcherOptions() {
+            try {
+                const response = await fetch('/api/get-user-leagues');
+                const data = await response.json();
+                
+                if (data.success && data.leagues) {
+                    const optionsContainer = document.querySelector('#leagueSwitcherModal .league-options');
+                    if (optionsContainer) {
+                        console.log('League data received:', data.leagues);
+                        optionsContainer.innerHTML = data.leagues.map(league => {
+                            console.log('Processing league:', league);
+                            console.log('league.league_string_id:', league.league_string_id);
+                            console.log('league.league_name:', league.league_name);
+                            return `
+                            <button onclick="switchLeague('${league.league_string_id}', '${league.league_name}')" 
+                                    class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all duration-200 border-2 border-gray-600 hover:border-blue-400 hover:shadow-md group
+                                           ${league.is_current ? 'bg-blue-900 border-blue-400' : ''}">
+                                <div class="text-left">
+                                    <div class="font-bold text-white group-hover:text-blue-200">${league.league_name}</div>
+                                    <div class="text-sm text-gray-300 group-hover:text-blue-300">${league.player_count} players</div>
+                                </div>
+                                <div class="text-sm ${league.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${league.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
+                                    ${league.is_current ? 'Current' : 'Switch'}
+                                </div>
+                            </button>
+                        `;
+                        }).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading league switcher options:', error);
+            }
+        }
+
+        async function switchLeague(leagueId, leagueName) {
+            console.log('switchLeague called with:', { leagueId, leagueName });
+            try {
+                // Close modal first
+                const modal = document.getElementById('leagueSwitcherModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+                
+                // Show loading
+                const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                if (leagueButton) {
+                    leagueButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+                    leagueButton.disabled = true;
+                }
+                
+                const response = await fetch('/api/switch-league', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        league_id: leagueId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success briefly then reload
+                    if (leagueButton) {
+                        leagueButton.innerHTML = '<i class="fas fa-check text-xs"></i>';
+                    }
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'League switch failed');
+                }
+            } catch (error) {
+                console.error('League switch error:', error);
+                alert(`Failed to switch leagues: ${error.message}`);
+                
+                // Reset button
+                const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                if (leagueButton) {
+                    leagueButton.innerHTML = '(change)';
+                    leagueButton.disabled = false;
+                }
+            }
+        }
+
     </script>
+
+<!-- League Switching Modal -->
+<div id="leagueSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[40rem] overflow-hidden flex flex-col" style="max-height: 40rem !important; height: auto !important;">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white" style="color: white !important;">
+                Switch League or Team
+            </h3>
+            <button id="closeLeagueModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold" onclick="closeLeagueSwitcher()">
+                ×
+            </button>
+        </div>
+        
+        <!-- Current League Display -->
+        <div class="px-6 py-4" style="background: #045454; border-bottom: 2px solid #045454;">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="bg-white text-rally-dark-green px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                    CURRENT
+                </span>
+                <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE LEAGUE</span>
+            </div>
+            <div class="font-bold text-white text-lg mb-1" style="color: white !important;">{{ session_data.user.league_name }}</div>
+            <div class="text-white text-sm">{{ session_data.user.club }} • {{ session_data.user.series }}</div>
+        </div>
+        
+        <!-- Available League Options -->
+        <div class="p-4 bg-gray-50 flex-1 overflow-y-auto">
+            <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                Switch to Different League
+            </div>
+            <div class="space-y-2 league-options min-h-[300px]" style="min-height: 300px !important;">
+                <!-- Options will be loaded dynamically -->
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fas fa-spinner fa-spin"></i> Loading leagues...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// League Switcher Modal Event Handlers
+function closeLeagueSwitcher() {
+    const modal = document.getElementById('leagueSwitcherModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+// Initialize modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const leagueSwitcherModal = document.getElementById('leagueSwitcherModal');
+    
+    if (leagueSwitcherModal) {
+        // Close modal when clicking outside
+        leagueSwitcherModal.addEventListener('click', function(e) {
+            if (e.target === leagueSwitcherModal) {
+                closeLeagueSwitcher();
+            }
+        });
+    }
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (leagueSwitcherModal && !leagueSwitcherModal.classList.contains('hidden')) {
+                closeLeagueSwitcher();
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}
 

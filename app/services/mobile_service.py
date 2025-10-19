@@ -2827,7 +2827,7 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
             if data['max_streak'] > 0:  # Only include players with at least 1 win streak
                 # Get player details
                 name_query = '''
-                    SELECT first_name, last_name, series_id FROM players 
+                    SELECT first_name, last_name, series_id, tenniscores_player_id, team_id FROM players 
                     WHERE tenniscores_player_id = %s AND club_id = %s
                     LIMIT 1
                 '''
@@ -2854,10 +2854,13 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
                     
                     significant_streaks.append({
                         "player_name": player_name,
+                        "tenniscores_player_id": name_result[0]['tenniscores_player_id'],
+                        "team_id": name_result[0]['team_id'],
                         "current_streak": data['current_streak'],
                         "best_streak": data['max_streak'],
                         "last_match_date": last_match_date,
                         "series": series_name,
+                        "series_name": series_name,  # Add series_name for consistency with other APIs
                         "total_matches": data['total_matches'],
                     })
 
