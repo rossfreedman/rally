@@ -156,7 +156,7 @@
     <!-- ============================================
          HEADER (Fixed at top, below navbar)
          ============================================ -->
-    <header class="section-hero text-white shadow-lg" style="margin-top: 11px;">
+    <header class="section-hero text-white shadow-lg rounded-2xl" style="margin-top: 11px;">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-3">
@@ -202,7 +202,7 @@
              1. DASHBOARD SECTION
              ============================================ -->
         <section id="dashboard" class="space-y-6">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Dashboard</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">Dashboard</h2>
             
             <!-- PTI Hero Card -->
             <div class="section-hero rounded-3xl p-8 sm:p-12 text-center text-white shadow-xl hover-lift persistent-card" id="pti-card">
@@ -227,12 +227,12 @@
                 <!-- First Row: My Record and Win Rate -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
-                        <div class="text-sm text-gray-500 mb-2">My Record</div>
+                        <div class="text-sm font-bold text-gray-700 mb-2">My Record</div>
                         <div id="my-record" class="text-3xl font-bold text-[#045454]">-- - --</div>
                     </div>
                     
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
-                        <div class="text-sm text-gray-500 mb-2">Win Rate</div>
+                        <div class="text-sm font-bold text-gray-700 mb-2">Win Rate</div>
                         <div id="win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
                     </div>
                 </div>
@@ -240,7 +240,7 @@
                 <!-- Second Row: Win Streak -->
                 <div class="grid grid-cols-1">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-sm text-gray-500 mb-2">Win Streak</div>
+                        <div class="text-sm font-bold text-gray-700 mb-2">Win Streak</div>
                         <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
                     </div>
                 </div>
@@ -248,7 +248,7 @@
                 <!-- Third Row: Best Partner -->
                 <div class="grid grid-cols-1">
                     <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-sm text-gray-500 mb-2">Best Partner</div>
+                        <div class="text-sm font-bold text-gray-700 mb-2">Best Partner</div>
                         <div id="best-partner" class="text-xl font-semibold text-[#045454]">Loading...</div>
                     </div>
                 </div>
@@ -272,7 +272,7 @@
              2. SCHEDULE SECTION
              ============================================ -->
         <section id="schedule" class="space-y-6">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Schedule</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">Schedule</h2>
             
             <!-- Next Match Hero -->
             <div class="rounded-3xl p-8 text-white shadow-xl hover-lift" style="background-color: #045454;">
@@ -317,7 +317,7 @@
                         <p class="text-gray-500">No upcoming matches</p>
                     </div>
                     
-                    <a href="/mobile/availability" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    <a href="/mobile/availability" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                         Update Availability
                     </a>
                 </div>
@@ -342,7 +342,7 @@
                         <p class="text-gray-500">No upcoming practices</p>
                     </div>
                     
-                    <a href="/mobile/availability" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                    <a href="/mobile/availability" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                         Update Availability
                     </a>
                 </div>
@@ -353,7 +353,7 @@
              3. TEAM SECTION
              ============================================ -->
         <section id="team" class="space-y-6">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">My Team</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">My Team</h2>
             
             <!-- Captain's Message -->
             <div id="captain-message-section" class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 shadow-md border-l-4 border-rally-green hidden">
@@ -398,29 +398,9 @@
                     </div>
                 </div>
                 
-                <a href="/mobile/my-team" class="block mt-6 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                <a href="/mobile/my-team" class="block mt-6 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     My Team Page →
                 </a>
-            </div>
-            
-            <!-- Who's Doing Well? -->
-            <div class="bg-white rounded-2xl p-6 shadow-md">
-                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
-                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
-                        <i class="fas fa-fire" style="color: #bff863;"></i>
-                        Who's Doing Well?
-                    </h3>
-                </div>
-                
-                <div id="team-streaks-loading" class="text-center py-8">
-                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
-                </div>
-                
-                <div id="team-streaks-content" class="hidden carousel pb-4"></div>
-                
-                <div id="team-streaks-empty" class="hidden text-center py-8 text-gray-500">
-                    No current win streaks
-                </div>
             </div>
             
             <!-- Series Overview -->
@@ -454,8 +434,30 @@
                         Team Polls
                     </h3>
                 </div>
-                <div id="team-polls-content"></div>
-                <a href="/mobile/polls" class="block mt-4 text-center py-3 bg-rally-green text-white rounded-xl font-semibold hover:bg-rally-green-dark transition">
+                
+                <!-- Active Polls -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-[#045454] mb-3 flex items-center gap-2">
+                        <i class="fas fa-clock text-green-500"></i>
+                        Active Polls
+                    </h4>
+                    <div id="active-polls-content" class="space-y-3">
+                        <div class="text-center py-4 text-gray-500">Loading active polls...</div>
+                    </div>
+                </div>
+                
+                <!-- Past Polls -->
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold text-[#045454] mb-3 flex items-center gap-2">
+                        <i class="fas fa-history text-gray-500"></i>
+                        Past Polls
+                    </h4>
+                    <div id="past-polls-content" class="space-y-3">
+                        <div class="text-center py-4 text-gray-500">Loading past polls...</div>
+                    </div>
+                </div>
+                
+                <a href="/mobile/polls" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                     View All Polls →
                 </a>
             </div>
@@ -465,7 +467,7 @@
              4. CLUB SECTION
              ============================================ -->
         <section id="club" class="space-y-6">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">My Club</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">My Club</h2>
             
             <!-- Club Overview -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
@@ -521,10 +523,39 @@
                 <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
                     <div class="flex items-center gap-2 mb-4">
                         <i class="fas fa-trophy text-3xl text-yellow-500"></i>
-                        <h3 class="text-lg font-bold text-[#045454]">1st Place Teams</h3>
+                        <h3 class="text-lg font-bold text-[#045454]">{{ session_data.user.club or 'Club' }} Teams in 1st Place</h3>
                     </div>
-                    <div id="first-place-teams" class="text-2xl font-bold text-rally-green">--</div>
-                    <p class="text-sm text-gray-500 mt-1">at this club</p>
+                    
+                    <!-- Loading state -->
+                    <div id="first-place-loading" class="text-center py-4">
+                        <div class="w-6 h-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <p class="text-sm text-gray-500 mt-2">Loading teams...</p>
+                    </div>
+                    
+                    <!-- Table content -->
+                    <div id="first-place-content" class="hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="bg-gray-50">
+                                        <th class="py-1 px-2 text-left text-xs font-medium text-gray-700">Team</th>
+                                        <th class="py-1 px-2 text-center text-xs font-medium text-gray-700">Place</th>
+                                        <th class="py-1 px-2 text-center text-xs font-medium text-gray-700">Avg Pts</th>
+                                        <th class="py-1 px-2 text-center text-xs font-medium text-gray-700">Total Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="first-place-teams-table">
+                                    <!-- Teams will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Empty state -->
+                    <div id="first-place-empty" class="hidden text-center py-4">
+                        <i class="fas fa-trophy text-2xl text-gray-300 mb-2"></i>
+                        <p class="text-sm text-gray-500">No teams in 1st place</p>
+                    </div>
                 </div>
                 
                 <!-- Players with Win Streaks -->
@@ -607,7 +638,7 @@
              5. PLAY SECTION
              ============================================ -->
         <section id="play" class="space-y-6 pb-12">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Play</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">Play</h2>
             
             <!-- Pickup Games -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
@@ -629,9 +660,14 @@
                     <p class="text-gray-500">No pickup games available</p>
                 </div>
                 
-                <a href="/mobile/pickup-games" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                    View All Pickup Games →
-                </a>
+                <div class="flex gap-3 mt-4">
+                    <a href="/mobile/pickup-games" class="flex-1 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
+                        View All Pickup Games →
+                    </a>
+                    <a href="/mobile/create-pickup-game?type=public" class="flex-1 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                        Create Pickup Game
+                    </a>
+                </div>
             </div>
             
             <!-- Find People to Play -->
@@ -659,12 +695,9 @@
                     </div>
                     
                     <!-- Search Buttons -->
-                    <div class="flex gap-3 pt-2">
-                        <button id="quickSearchBtn" class="flex-1 px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 font-medium" style="background-color: #045454; border-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
+                    <div class="pt-2">
+                        <button id="quickSearchBtn" class="w-full px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 font-medium" style="background-color: #045454; border-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                             <i class="fas fa-search mr-2"></i>Search Players
-                        </button>
-                        <button id="quickResetBtn" class="px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200 font-medium" style="background-color: #045454; border-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                            <i class="fas fa-undo-alt mr-2"></i>Reset
                         </button>
                     </div>
                 </div>
@@ -675,7 +708,7 @@
              6. IMPROVE SECTION
              ============================================ -->
         <section id="improve" class="space-y-6 pb-12">
-            <h2 class="text-4xl font-bold text-[#045454] tracking-tight">Improve</h2>
+            <h2 class="text-4xl font-bold text-[#045454] tracking-tight text-center">Improve</h2>
             
             <!-- Latest Paddle Tip -->
             <div class="rounded-3xl p-8 text-white shadow-xl hover-lift" style="background-color: #045454;">
@@ -683,9 +716,20 @@
                     <i class="fas fa-lightbulb text-3xl"></i>
                     Latest Paddle Tip
                 </h3>
-                <div id="paddle-tip-content" class="text-lg mb-6 text-white/90">
-                    <p><strong>Master the Lob:</strong> When your opponents are at the net, use a high, deep lob to push them back. Aim for their backhand side for maximum effect.</p>
+                
+                <div id="paddle-tip-loading" class="text-center py-8">
+                    <div class="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto"></div>
                 </div>
+                
+                <div id="paddle-tip-content" class="hidden text-lg mb-6 text-white/90">
+                    <!-- Dynamic content will be loaded here -->
+                </div>
+                
+                <div id="paddle-tip-empty" class="hidden text-center py-8">
+                    <i class="fas fa-lightbulb text-4xl text-white/50 mb-2"></i>
+                    <p class="text-white/70">Paddle tips coming soon!</p>
+                </div>
+                
                 <a href="/mobile/improve" class="inline-block px-8 py-3 bg-white rounded-full font-semibold hover:bg-gray-100 transition shadow-lg" style="color: #045454;">
                     Improve My Game →
                 </a>
@@ -712,23 +756,35 @@
                     Browse All Videos →
                 </a>
             </div>
+            
+            <!-- My Lessons -->
+            <div class="bg-white rounded-2xl p-6 shadow-md">
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-graduation-cap" style="color: #bff863;"></i>
+                        My Lessons
+                    </h3>
+                </div>
+                
+                <div id="lessons-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="lessons-content" class="hidden space-y-3"></div>
+                
+                <div id="lessons-empty" class="hidden text-center py-8">
+                    <i class="fas fa-graduation-cap text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No lessons scheduled</p>
+                </div>
+                
+                <a href="/mobile/schedule-lesson" class="block mt-4 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                    Schedule Lesson
+                </a>
+            </div>
         </section>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-200 py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-6">
-                <a href="/mobile" class="text-gray-500 hover:text-rally-green transition text-sm font-medium">
-                    ← Back to Classic View
-                </a>
-            </div>
-            <div class="text-center">
-                <p class="text-gray-500 text-sm">Powered by Rally</p>
-            </div>
-        </div>
-    </footer>
 
     <!-- ============================================
          JAVASCRIPT - DATA LOADING
@@ -736,6 +792,10 @@
     <script>
         console.log('Main Alt JavaScript loaded');
         console.log('Testing if our script is working...');
+        
+        // Set session data for JavaScript access
+        window.sessionData = {{ session_data | tojson }};
+        console.log('Session data set:', window.sessionData);
         
         // Add a visible test to make sure our script is running
         window.testStickyNav = function() {
@@ -775,6 +835,8 @@
             loadSeriesStandings();
             loadClubOverview();
             loadPickupGames();
+            loadMyLessons();
+            loadPaddleTip();
             console.log('About to initialize sticky navigation');
             initStickyNavigation();
             console.log('Sticky navigation initialization complete');
@@ -918,11 +980,11 @@
                 if (data.delta_available && data.pti_delta !== null) {
                     const ptiDelta = data.pti_delta;
                     if (ptiDelta > 0) {
-                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">+${ptiDelta.toFixed(1)} since start of season</div>`;
+                        deltaDisplay = `<div class="text-lg text-white/90 mt-2 font-semibold">+${ptiDelta.toFixed(1)} since start of season</div>`;
                     } else if (ptiDelta < 0) {
-                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">${ptiDelta.toFixed(1)} since start of season</div>`;
+                        deltaDisplay = `<div class="text-lg text-white/90 mt-2 font-semibold">${ptiDelta.toFixed(1)} since start of season</div>`;
                     } else {
-                        deltaDisplay = `<div class="text-sm text-white/80 mt-2">No change since start of season</div>`;
+                        deltaDisplay = `<div class="text-lg text-white/90 mt-2 font-semibold">No change since start of season</div>`;
                     }
                 }
                 
@@ -1104,13 +1166,34 @@
                     </div>
                 `;
                 
-                // Next 3 Matches
-                const next3 = upcomingMatches.slice(0, 3);
+                // Get user's availability for all matches
+                const user = window.sessionData && window.sessionData.user;
+                let availabilityData = [];
+                
+                if (user && user.id) {
+                    try {
+                        const availabilityResponse = await fetch('/api/user-availability');
+                        const availabilityResult = await availabilityResponse.json();
+                        if (availabilityResult.success && availabilityResult.availability) {
+                            availabilityData = availabilityResult.availability;
+                            console.log('Fetched availability data for matches:', availabilityData);
+                        } else {
+                            console.log('No availability data found for matches:', availabilityResult);
+                        }
+                    } catch (e) {
+                        console.log('Could not fetch availability data for matches:', e);
+                    }
+                } else {
+                    console.log('No user or user_id found for availability fetch in matches');
+                }
+                
+                // Next 3 Matches (skip the first one since it's shown in Next Match card)
+                const next3 = upcomingMatches.slice(1, 4);
                 opponentsContent.classList.remove('hidden');
                 opponentsContent.innerHTML = '';
                 
                 next3.forEach(match => {
-                    const matchDiv = createMatchElement(match);
+                    const matchDiv = createMatchElement(match, availabilityData);
                     opponentsContent.appendChild(matchDiv);
                 });
                 
@@ -1123,7 +1206,7 @@
             }
         }
         
-        function createMatchElement(match) {
+        function createMatchElement(match, availabilityData = []) {
             const div = document.createElement('div');
             div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
             
@@ -1169,6 +1252,46 @@
             const timeStr = match.time || 'TBD';
             const location = match.location || '';
             
+            // Get availability status for this match by matching date
+            let availabilityStatus = null;
+            let statusColor = 'gray';
+            let statusText = 'Not Set';
+            let statusIcon = 'fas fa-question-circle';
+            
+            // Find availability for this specific match date
+            const matchDateStr = match.date; // Format: YYYY-MM-DD
+            const matchingAvailability = availabilityData.find(avail => {
+                // Convert both dates to YYYY-MM-DD format for comparison
+                const matchDate = new Date(matchDateStr);
+                const availDate = new Date(avail.match_date);
+                
+                // Convert both to YYYY-MM-DD format
+                const matchDateFormatted = matchDate.toISOString().split('T')[0];
+                const availDateFormatted = availDate.toISOString().split('T')[0];
+                
+                return availDateFormatted === matchDateFormatted;
+            });
+            
+            if (matchingAvailability) {
+                const status = matchingAvailability.availability_status;
+                if (status === 1) { // 1 = available
+                    availabilityStatus = 'available';
+                    statusColor = 'green';
+                    statusText = 'Available';
+                    statusIcon = 'fas fa-check-circle';
+                } else if (status === 2) { // 2 = unavailable
+                    availabilityStatus = 'unavailable';
+                    statusColor = 'red';
+                    statusText = 'Unavailable';
+                    statusIcon = 'fas fa-times-circle';
+                } else if (status === 3) { // 3 = not_sure
+                    availabilityStatus = 'not_sure';
+                    statusColor = 'yellow';
+                    statusText = 'Not Sure';
+                    statusIcon = 'fas fa-question-circle';
+                }
+            }
+            
             div.innerHTML = `
                 <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <img src="/static/images/clubs/${clubName}_logo.png" 
@@ -1183,6 +1306,10 @@
                     <div class="font-semibold text-[#045454]">vs ${opponentName}</div>
                     <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                     ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
+                    <span class="text-xs font-medium text-${statusColor}-600">${statusText}</span>
                 </div>
             `;
             
@@ -1228,7 +1355,28 @@
                 content.classList.remove('hidden');
                 content.innerHTML = '';
                 
-                practices.forEach(practice => {
+                // Get user's availability for all practices
+                const user = window.sessionData && window.sessionData.user;
+                let availabilityData = [];
+                
+                if (user && user.id) {
+                    try {
+                        const availabilityResponse = await fetch('/api/user-availability');
+                        const availabilityResult = await availabilityResponse.json();
+                        if (availabilityResult.success && availabilityResult.availability) {
+                            availabilityData = availabilityResult.availability;
+                            console.log('Fetched availability data:', availabilityData);
+                        } else {
+                            console.log('No availability data found:', availabilityResult);
+                        }
+                    } catch (e) {
+                        console.log('Could not fetch availability data:', e);
+                    }
+                } else {
+                    console.log('No user or user_id found for availability fetch');
+                }
+                
+                practices.forEach((practice, index) => {
                     const practiceDate = new Date(practice.date);
                     const dateStr = practiceDate.toLocaleDateString('en-US', { 
                         weekday: 'short',
@@ -1237,6 +1385,54 @@
                     });
                     const timeStr = practice.time || 'TBD';
                     const location = practice.location || 'TBD';
+                    
+                    // Get availability status for this practice by matching date
+                    let availabilityStatus = null;
+                    let statusColor = 'gray';
+                    let statusText = 'Not Set';
+                    let statusIcon = 'fas fa-question-circle';
+                    
+                    // Find availability for this specific practice date
+                    const practiceDateStr = practice.date; // Format: YYYY-MM-DD
+                    const matchingAvailability = availabilityData.find(avail => {
+                        // Convert both dates to YYYY-MM-DD format for comparison
+                        const practiceDate = new Date(practiceDateStr);
+                        const availDate = new Date(avail.match_date);
+                        
+                        // Convert both to YYYY-MM-DD format
+                        const practiceDateFormatted = practiceDate.toISOString().split('T')[0];
+                        const availDateFormatted = availDate.toISOString().split('T')[0];
+                        
+                        console.log('Date matching:', {
+                            practiceDate: practiceDateStr,
+                            practiceDateFormatted: practiceDateFormatted,
+                            availDate: avail.match_date,
+                            availDateFormatted: availDateFormatted,
+                            match: availDateFormatted === practiceDateFormatted
+                        });
+                        
+                        return availDateFormatted === practiceDateFormatted;
+                    });
+                    
+                    if (matchingAvailability) {
+                        const status = matchingAvailability.availability_status;
+                        if (status === 1) { // 1 = available
+                            availabilityStatus = 'available';
+                            statusColor = 'green';
+                            statusText = 'Available';
+                            statusIcon = 'fas fa-check-circle';
+                        } else if (status === 2) { // 2 = unavailable
+                            availabilityStatus = 'unavailable';
+                            statusColor = 'red';
+                            statusText = 'Unavailable';
+                            statusIcon = 'fas fa-times-circle';
+                        } else if (status === 3) { // 3 = not_sure
+                            availabilityStatus = 'not_sure';
+                            statusColor = 'yellow';
+                            statusText = 'Not Sure';
+                            statusIcon = 'fas fa-question-circle';
+                        }
+                    }
                     
                     const div = document.createElement('div');
                     div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
@@ -1249,12 +1445,90 @@
                             <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
                             <div class="text-xs text-gray-500">📍 ${location}</div>
                         </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
+                            <span class="text-xs font-medium text-${statusColor}-600">${statusText}</span>
+                        </div>
                     `;
                     content.appendChild(div);
                 });
                 
             } catch (error) {
                 console.error('Error loading practices:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+        
+        // ============================================
+        // MY LESSONS LOADING
+        // ============================================
+        async function loadMyLessons() {
+            const loading = document.getElementById('lessons-loading');
+            const content = document.getElementById('lessons-content');
+            const empty = document.getElementById('lessons-empty');
+            
+            try {
+                const response = await fetch('/api/my-lessons');
+                const data = await response.json();
+                
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.success || !data.lessons || data.lessons.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                content.classList.remove('hidden');
+                content.innerHTML = '';
+                
+                data.lessons.forEach(lesson => {
+                    const lessonDate = new Date(lesson.lesson_date);
+                    const dateStr = lessonDate.toLocaleDateString('en-US', { 
+                        weekday: 'short',
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    const timeStr = lesson.lesson_time || 'TBD';
+                    const status = lesson.status || 'requested';
+                    
+                    // Status styling
+                    let statusColor = 'gray';
+                    let statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                    let statusIcon = 'fas fa-clock';
+                    
+                    if (status === 'confirmed') {
+                        statusColor = 'green';
+                        statusIcon = 'fas fa-check-circle';
+                    } else if (status === 'declined') {
+                        statusColor = 'red';
+                        statusIcon = 'fas fa-times-circle';
+                    } else if (status === 'pending') {
+                        statusColor = 'yellow';
+                        statusIcon = 'fas fa-hourglass-half';
+                    }
+                    
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+                    div.innerHTML = `
+                        <div class="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-[#045454]">${lesson.pro_name || 'Pro Lesson'}</div>
+                            <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                            ${lesson.focus_areas ? `<div class="text-xs text-gray-500">Focus: ${lesson.focus_areas}</div>` : ''}
+                        </div>
+                        <div class="flex flex-col items-center gap-1">
+                            <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
+                            <span class="text-xs font-medium text-${statusColor}-600">${statusText}</span>
+                        </div>
+                    `;
+                    content.appendChild(div);
+                });
+                
+            } catch (error) {
+                console.error('Error loading lessons:', error);
                 loading.classList.add('hidden');
                 empty.classList.remove('hidden');
             }
@@ -1282,8 +1556,8 @@
                 
                 // Filter players with 3+ wins in a row (same logic as my-club page)
                 const hotPlayers = data.player_streaks
-                    .filter(player => player.streak >= 3)
-                    .sort((a, b) => b.streak - a.streak) // Sort by streak length
+                    .filter(player => player.current_streak >= 3)
+                    .sort((a, b) => b.current_streak - a.current_streak) // Sort by streak length
                     .slice(0, 10); // Show top 10
                 
                 if (hotPlayers.length === 0) {
@@ -1295,11 +1569,12 @@
                 carousel.innerHTML = '';
                 
                 hotPlayers.forEach(player => {
-                    const firstName = player.first_name || '';
-                    const lastName = player.last_name || '';
-                    const fullName = `${firstName} ${lastName}`.trim();
+                    const fullName = player.player_name || 'Unknown Player';
+                    const nameParts = fullName.split(' ');
+                    const firstName = nameParts[0] || '';
+                    const lastName = nameParts.slice(1).join(' ') || '';
                     const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
-                    const streak = player.streak || 0;
+                    const streak = player.current_streak || 0;
                     
                     const div = document.createElement('div');
                     div.className = 'flex-shrink-0 w-40 bg-gray-50 rounded-2xl p-5 text-center hover:bg-gray-100 transition';
@@ -1334,6 +1609,11 @@
         // FIRST PLACE TEAMS LOADING
         // ============================================
         async function loadFirstPlaceTeams() {
+            const loading = document.getElementById('first-place-loading');
+            const content = document.getElementById('first-place-content');
+            const empty = document.getElementById('first-place-empty');
+            const tableBody = document.getElementById('first-place-teams-table');
+            
             try {
                 // Use the same API as my-club page to get standings data
                 const response = await fetch('/api/club-standings');
@@ -1342,28 +1622,54 @@
                 }
                 
                 const data = await response.json();
+                loading.classList.add('hidden');
                 
                 if (data.success && data.tennaqua_standings && data.tennaqua_standings.length > 0) {
-                    // Find all 1st place teams (same logic as my-club page)
-                    const firstPlaceTeams = data.tennaqua_standings.filter(team => team.place === 1);
+                    // Find all 1st place teams - use same logic as Club Standings section
+                    // Teams in 1st place have place = 1 (not tied) or place contains "1/" (tied for first)
+                    const firstPlaceTeams = data.tennaqua_standings.filter(team => {
+                        const place = team.place;
+                        // Check if place is exactly 1 (not tied) or is a string starting with 1
+                        return place === 1 || String(place).match(/^1($|\/)/);
+                    });
                     
                     if (firstPlaceTeams.length > 0) {
-                        // Show team names instead of just count
-                        const teamNames = firstPlaceTeams.map(team => team.team_name).join(', ');
-                        document.getElementById('first-place-teams').innerHTML = `
-                            <div class="text-lg font-bold text-rally-green">${firstPlaceTeams.length}</div>
-                            <div class="text-xs text-gray-600 mt-1">${teamNames}</div>
-                        `;
+                        // Show table with team details
+                        content.classList.remove('hidden');
+                        tableBody.innerHTML = '';
+                        
+                        firstPlaceTeams.forEach((team, index) => {
+                            const row = document.createElement('tr');
+                            row.className = `${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`;
+                            
+                            row.innerHTML = `
+                                <td class="py-1 px-2">
+                                    <div class="font-medium text-xs text-gray-900">${team.team_name}</div>
+                                </td>
+                                <td class="py-1 px-2 text-center">
+                                    <span class="font-medium text-xs text-green-600">${team.place}</span>
+                                </td>
+                                <td class="py-1 px-2 text-center">
+                                    <span class="font-medium text-xs text-gray-900">${team.avg_points}</span>
+                                </td>
+                                <td class="py-1 px-2 text-center">
+                                    <span class="font-medium text-xs text-gray-900">${team.total_points}</span>
+                                </td>
+                            `;
+                            
+                            tableBody.appendChild(row);
+                        });
                     } else {
-                        document.getElementById('first-place-teams').textContent = '0';
+                        empty.classList.remove('hidden');
                     }
                 } else {
-                    document.getElementById('first-place-teams').textContent = '0';
+                    empty.classList.remove('hidden');
                 }
                 
             } catch (error) {
                 console.error('Error loading first place teams:', error);
-                document.getElementById('first-place-teams').textContent = '--';
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
             }
         }
         
@@ -1420,14 +1726,57 @@
                 const polls = notifications.filter(n => n.type === 'poll');
                 if (polls.length > 0) {
                     const section = document.getElementById('team-polls-section');
-                    const content = document.getElementById('team-polls-content');
+                    const activeContent = document.getElementById('active-polls-content');
+                    const pastContent = document.getElementById('past-polls-content');
                     section.classList.remove('hidden');
-                    content.innerHTML = polls.map(poll => `
-                        <div class="p-4 bg-gray-50 rounded-xl mb-2">
-                            <div class="font-semibold text-[#045454]">${poll.title}</div>
-                            <p class="text-sm text-gray-600 mt-1">${poll.message}</p>
-                        </div>
-                    `).join('');
+                    
+                    // Separate active and past polls based on date or status
+                    const now = new Date();
+                    const activePolls = polls.filter(poll => {
+                        // Consider polls active if they don't have an end date or if end date is in the future
+                        if (!poll.end_date) return true;
+                        const endDate = new Date(poll.end_date);
+                        return endDate > now;
+                    });
+                    
+                    const pastPolls = polls.filter(poll => {
+                        // Consider polls past if they have an end date and it's in the past
+                        if (!poll.end_date) return false;
+                        const endDate = new Date(poll.end_date);
+                        return endDate <= now;
+                    });
+                    
+                    // Display active polls
+                    if (activePolls.length > 0) {
+                        activeContent.innerHTML = activePolls.map(poll => `
+                            <div class="p-4 bg-green-50 border border-green-200 rounded-xl">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="font-semibold text-[#045454]">${poll.title}</div>
+                                    <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">${poll.message}</p>
+                                ${poll.end_date ? `<div class="text-xs text-gray-500">Ends: ${new Date(poll.end_date).toLocaleDateString()}</div>` : ''}
+                            </div>
+                        `).join('');
+                    } else {
+                        activeContent.innerHTML = '<div class="text-center py-4 text-gray-500">No active polls</div>';
+                    }
+                    
+                    // Display past polls
+                    if (pastPolls.length > 0) {
+                        pastContent.innerHTML = pastPolls.map(poll => `
+                            <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="font-semibold text-gray-700">${poll.title}</div>
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Closed</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mb-2">${poll.message}</p>
+                                <div class="text-xs text-gray-500">Ended: ${new Date(poll.end_date).toLocaleDateString()}</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        pastContent.innerHTML = '<div class="text-center py-4 text-gray-500">No past polls</div>';
+                    }
                 }
                 
                 // Food notifications
@@ -1537,17 +1886,57 @@
                 const firstPlacePoints = stats.length > 0 ? stats[0].points : 0;
                 
                 // Find user's team in the standings
-                const userTeam = '{{ session_data.user.team or session_data.user.club }}';
-                const userTeamData = stats.find(team => 
-                    team.team && team.team.toLowerCase() === userTeam.toLowerCase()
-                );
+                const user = window.sessionData && window.sessionData.user;
+                const userTeam = user ? (user.team || user.club) : null;
+                const userTeamId = user ? user.team_id : null;
+                
+                console.log('Debug - User team info:', { userTeam, userTeamId, teamName: user?.team_name, club: user?.club });
+                console.log('Debug - Available teams in stats:', stats.map(t => ({ team: t.team, team_id: t.team_id, points: t.points })));
+                
+                // Enhanced team matching - try multiple strategies
+                let userTeamData = null;
+                
+                // Strategy 1: Match by team_id if available
+                if (userTeamId) {
+                    userTeamData = stats.find(team => team.team_id == userTeamId);
+                    console.log('Debug - Team ID match result:', userTeamData);
+                }
+                
+                // Strategy 2: Match by team name if team_id didn't work
+                if (!userTeamData && userTeam) {
+                    userTeamData = stats.find(team => {
+                        if (!team.team) return false;
+                        const teamName = team.team || '';
+                        const clubName = team.club || '';
+                        return (
+                            teamName.toLowerCase().includes(userTeam.toLowerCase()) ||
+                            clubName.toLowerCase().includes(userTeam.toLowerCase()) ||
+                            userTeam.toLowerCase().includes(teamName.toLowerCase()) ||
+                            userTeam.toLowerCase().includes(clubName.toLowerCase())
+                        );
+                    });
+                    console.log('Debug - Team name match result:', userTeamData);
+                }
+                
+                // Strategy 3: Match by team_name from session if available
+                if (!userTeamData && user?.team_name) {
+                    userTeamData = stats.find(team => {
+                        if (!team.team) return false;
+                        const teamName = team.team || '';
+                        return teamName.toLowerCase().includes(user.team_name.toLowerCase()) ||
+                               user.team_name.toLowerCase().includes(teamName.toLowerCase());
+                    });
+                    console.log('Debug - Team name from session match result:', userTeamData);
+                }
                 
                 if (userTeamData) {
                     // Calculate points behind first place (same logic as my-series page)
                     const pointsBehind = firstPlacePoints - userTeamData.points;
+                    console.log('Debug - Points calculation:', { firstPlacePoints, userPoints: userTeamData.points, pointsBehind });
                     document.getElementById('points-behind').textContent = pointsBehind;
                 } else {
                     // If user's team not found in standings, show placeholder
+                    console.log('Debug - No team match found, showing --');
                     document.getElementById('points-behind').textContent = '--';
                 }
                 
@@ -1627,7 +2016,8 @@
                 stats.sort((a, b) => b.points - a.points);
 
                 // Get user's team for highlighting
-                const userTeam = '{{ session_data.user.team or session_data.user.club }}';
+                const user = window.sessionData && window.sessionData.user;
+                const userTeam = user ? (user.team || user.club) : null;
                 const playoffCutoff = 8;
                 const firstPlacePoints = stats.length > 0 ? stats[0].points : 0;
                 
@@ -1646,13 +2036,21 @@
                 </tr></thead><tbody>`;
                 
                 stats.forEach((team, idx) => {
-                    const isUserTeam = userTeam && team.team && team.team.toLowerCase() === userTeam.toLowerCase();
+                    // More robust team matching - check both team name and club name
+                    const teamName = team.team || '';
+                    const clubName = team.club || '';
+                    const isUserTeam = userTeam && (
+                        teamName.toLowerCase().includes(userTeam.toLowerCase()) ||
+                        clubName.toLowerCase().includes(userTeam.toLowerCase()) ||
+                        userTeam.toLowerCase().includes(teamName.toLowerCase()) ||
+                        userTeam.toLowerCase().includes(clubName.toLowerCase())
+                    );
                     let playoffIcon = '';
                     const isPlayoffTeam = idx < playoffCutoff;
                     let rowClass = 'border-b border-gray-50';
                     
                     if (isUserTeam) {
-                        rowClass += ' bg-yellow-50 border-l-4 border-yellow-400 font-semibold';
+                        rowClass += ' bg-green-50 border-l-4 border-green-400 font-semibold';
                     } else if (idx % 2 === 0) {
                         rowClass += ' bg-white';
                     } else {
@@ -1672,24 +2070,24 @@
                     const teamDisplayName = team.team;
                     const starIcon = isUserTeam ? ' <i class="fas fa-star text-yellow-600 ml-1" title="Your Team"></i>' : '';
                     
-                    const teamName = teamId ? 
+                    const teamNameHtml = teamId ? 
                         `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}${starIcon}</a>` :
                         `${teamDisplayName}${starIcon}`;
                     
                     html += `<tr class="${rowClass}">
-                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamName}</td>`;
+                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 30%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playoffIcon}${teamNameHtml}</td>`;
                     
                     // Add Avg PTI column (if PTI data exists)
                     if (hasPtiData) {
                         const avgPti = team.avg_pti && team.avg_pti !== 'N/A' ? team.avg_pti : 'N/A';
-                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 14%;">${avgPti}</td>`;
+                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 14%;">${avgPti}</td>`;
                     }
                     
                     html += `
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${team.matches.won}-${team.matches.lost}</td>
-                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-yellow-800' : 'text-[#045454]'}" style="width: 14%;">${team.points}</td>
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-700' : 'text-gray-700'}" style="width: 14%;">${avgPoints}</td>
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-yellow-600' : 'text-gray-600'}" style="width: 14%;">${firstPlacePoints - team.points}</td>
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'}" style="width: 14%;">${team.matches.won}-${team.matches.lost}</td>
+                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 14%;">${team.points}</td>
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'}" style="width: 14%;">${avgPoints}</td>
+                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-600' : 'text-gray-600'}" style="width: 14%;">${firstPlacePoints - team.points}</td>
                       </tr>`;
                 });
                 html += '</tbody>';
@@ -1799,10 +2197,49 @@
                     </div>
                 `;
                 
+                // Load club standings to get teams in 1st place
+                await loadClubStandings();
+                
             } catch (error) {
                 console.error('Error loading club overview:', error);
                 loading.classList.add('hidden');
                 empty.classList.remove('hidden');
+            }
+        }
+        
+        // ============================================
+        // CLUB STANDINGS LOADING
+        // ============================================
+        async function loadClubStandings() {
+            try {
+                const response = await fetch('/api/club-standings');
+                const data = await response.json();
+                
+                if (data.success && data.tennaqua_standings) {
+                    const standings = data.tennaqua_standings;
+                    
+                    // Find teams in 1st place
+                    const firstPlaceTeams = standings.filter(team => {
+                        const place = String(team.place || '');
+                        return place.includes('1/') || place.startsWith('1/');
+                    });
+                    
+                    // Update the 1st place teams display
+                    const firstPlaceElement = document.getElementById('first-place-teams');
+                    if (firstPlaceTeams.length > 0) {
+                        firstPlaceElement.innerHTML = firstPlaceTeams.map(team => `
+                            <div class="text-sm font-semibold text-[#045454] mb-1">
+                                ${team.team} - ${team.place}
+                            </div>
+                        `).join('');
+                    } else {
+                        firstPlaceElement.textContent = '0';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error loading club standings:', error);
+                // Keep the default "--" display on error
             }
         }
 
@@ -1895,7 +2332,7 @@
                         <div class="flex-1">
                             <div class="font-semibold text-lg ${won ? 'text-green-600' : 'text-red-600'}">${won ? 'Won' : 'Lost'}</div>
                             <div class="text-gray-600">vs ${opponentTeam || 'Unknown'}</div>
-                            <div class="text-sm text-gray-500">${dateStr} at ${timeStr}</div>
+                            <div class="text-sm text-gray-500">${dateStr}</div>
                             <div class="text-xs text-gray-400">${scoreStr}</div>
                         </div>
                     </div>
@@ -1916,11 +2353,146 @@
         // PICKUP GAMES LOADING
         // ============================================
         async function loadPickupGames() {
-            // Placeholder - would connect to actual pickup games API
             const loading = document.getElementById('pickup-loading');
+            const content = document.getElementById('pickup-content');
             const empty = document.getElementById('pickup-empty');
-            loading.classList.add('hidden');
-            empty.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/api/pickup-games?type=public');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.upcoming_games || data.upcoming_games.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                // Show only the next 3 upcoming games
+                const upcomingGames = data.upcoming_games.slice(0, 3);
+                
+                if (upcomingGames.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                content.classList.remove('hidden');
+                content.innerHTML = '';
+                
+                upcomingGames.forEach(game => {
+                    const gameDiv = createPickupGameElement(game);
+                    content.appendChild(gameDiv);
+                });
+                
+            } catch (error) {
+                console.error('Error loading pickup games:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+        
+        function createPickupGameElement(game) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
+            
+            const gameDate = new Date(game.game_date);
+            const dateStr = gameDate.toLocaleDateString('en-US', { 
+                weekday: 'short',
+                month: 'short', 
+                day: 'numeric' 
+            });
+            const timeStr = game.game_time || 'TBD';
+            const description = game.description || 'Pickup Game';
+            const participants = game.actual_participants || 0;
+            const requested = game.players_requested || 4;
+            
+            div.innerHTML = `
+                <div class="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-[#045454]">${description}</div>
+                    <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                    <div class="text-xs text-gray-500">${participants}/${requested} players</div>
+                </div>
+                <div class="flex flex-col items-center gap-1">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">
+                        ${participants}
+                    </div>
+                    <span class="text-xs text-gray-500">joined</span>
+                </div>
+            `;
+            
+            return div;
+        }
+
+        // ============================================
+        // PADDLE TIP LOADING
+        // ============================================
+        async function loadPaddleTip() {
+            const loading = document.getElementById('paddle-tip-loading');
+            const content = document.getElementById('paddle-tip-content');
+            const empty = document.getElementById('paddle-tip-empty');
+            
+            try {
+                const response = await fetch('/api/paddle-tips');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.paddle_tips || data.paddle_tips.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                // Get a random paddle tip
+                const paddleTips = data.paddle_tips;
+                const randomIndex = Math.floor(Math.random() * paddleTips.length);
+                const tip = paddleTips[randomIndex];
+                
+                // Display the tip
+                content.classList.remove('hidden');
+                
+                // Format the description (truncate if too long for mobile)
+                let description = tip.description || '';
+                if (description.length > 200) {
+                    description = description.substring(0, 200) + '...';
+                }
+                
+                // Format description with basic HTML support
+                const formattedDescription = formatTipDescription(description);
+                
+                content.innerHTML = `
+                    <div class="mb-2">
+                        <span class="text-sm text-white/70">Tip #${tip.number || '?'}</span>
+                        <span class="text-sm text-white/70 ml-2">•</span>
+                        <span class="text-sm text-white/70 ml-2">${tip.date || ''}</span>
+                    </div>
+                    <h4 class="text-xl font-semibold mb-3">${tip.name || 'Paddle Tip'}</h4>
+                    <div class="text-white/90 leading-relaxed">${formattedDescription}</div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading paddle tip:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+        
+        function formatTipDescription(description) {
+            // Basic HTML formatting for paddle tips
+            return description
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+                .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
+                .replace(/\n\n/g, '</p><p>') // Paragraph breaks
+                .replace(/\n/g, '<br>') // Line breaks
+                .replace(/^(.*)$/, '<p>$1</p>'); // Wrap in paragraph
         }
 
         // ============================================
@@ -2066,7 +2638,6 @@
         // Function to initialize quick search functionality
         function initializeQuickSearch() {
             const quickSearchBtn = document.getElementById('quickSearchBtn');
-            const quickResetBtn = document.getElementById('quickResetBtn');
             const quickFirstName = document.getElementById('quickFirstName');
             const quickLastName = document.getElementById('quickLastName');
             
@@ -2074,13 +2645,6 @@
             if (quickSearchBtn) {
                 quickSearchBtn.addEventListener('click', function() {
                     performQuickSearch();
-                });
-            }
-            
-            // Reset button functionality
-            if (quickResetBtn) {
-                quickResetBtn.addEventListener('click', function() {
-                    resetQuickSearch();
                 });
             }
             

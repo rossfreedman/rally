@@ -12591,8 +12591,8 @@ def get_food_notifications(user_id, player_id, league_id, team_id):
                 message_parts.append(f"<i class='fas fa-person-dress' style='color: #045454;'></i> <strong>Women's (S/M/F):</strong> {latest_food.womens_food}")
             
             # Fallback to food_text for backward compatibility
-            # Use <br> tag for HTML line break
-            message = "<br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
+            # Use <br><br> for proper line break between sections
+            message = "<br><br>".join(message_parts) if message_parts else (latest_food.food_text or "Check menu")
             
             notification = {
                 "id": f"food_{latest_food.id}",

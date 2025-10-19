@@ -3532,6 +3532,120 @@ def schedule_lesson_api():
         return jsonify({"error": "Failed to submit lesson request"}), 500
 
 
+@mobile_bp.route("/api/my-lessons", methods=["GET"])
+@login_required
+def get_my_lessons():
+    """API endpoint to get lessons for the current user"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        user_email = user.get("email")
+        if not user_email:
+            return jsonify({"error": "User email not found"}), 400
+        
+        # Get user's lessons
+        query = """
+            SELECT 
+                pl.id,
+                pl.lesson_date,
+                pl.lesson_time,
+                pl.focus_areas,
+                pl.notes,
+                pl.status,
+                pl.created_at,
+                p.name as pro_name,
+                p.bio as pro_bio,
+                p.specialties as pro_specialties
+            FROM pro_lessons pl
+            LEFT JOIN pros p ON pl.pro_id = p.id
+            WHERE pl.user_email = %s
+            ORDER BY pl.lesson_date DESC, pl.lesson_time DESC
+        """
+        
+        lessons = execute_query(query, [user_email])
+        
+        # Convert time objects to strings for JSON serialization
+        for lesson in lessons:
+            if lesson.get('lesson_time'):
+                lesson['lesson_time'] = str(lesson['lesson_time'])
+            if lesson.get('created_at'):
+                lesson['created_at'] = str(lesson['created_at'])
+        
+        return jsonify({
+            "success": True,
+            "lessons": lessons
+        })
+        
+    except Exception as e:
+        print(f"Error getting user lessons: {str(e)}")
+        return jsonify({"error": "Failed to get lessons"}), 500
+
+
+@mobile_bp.route("/api/user-availability", methods=["GET"])
+@login_required
+def get_user_availability():
+    """API endpoint to get user's availability for upcoming matches/practices"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        user_id = user.get("id")
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get user's availability for upcoming matches/practices
+        query = """
+            SELECT 
+                DATE(pa.match_date AT TIME ZONE 'UTC') as match_date,
+                pa.availability_status,
+                pa.notes,
+                pa.updated_at
+            FROM player_availability pa
+            WHERE pa.user_id = %s
+            AND pa.match_date >= CURRENT_DATE
+            ORDER BY pa.match_date ASC
+        """
+        
+        availability = execute_query(query, [user_id])
+        
+        return jsonify({
+            "success": True,
+            "availability": availability
+        })
+        
+    except Exception as e:
+        print(f"Error getting user availability: {str(e)}")
+        return jsonify({"error": "Failed to get availability"}), 500
+
+
+@mobile_bp.route("/api/paddle-tips", methods=["GET"])
+@login_required
+def get_paddle_tips():
+    """API endpoint to get paddle tips for the main-alt page"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+        
+        # Use the same service function as the improve page
+        from app.services.mobile_service import get_mobile_improve_data
+        improve_data = get_mobile_improve_data(user)
+        
+        paddle_tips = improve_data.get("paddle_tips", [])
+        
+        return jsonify({
+            "success": True,
+            "paddle_tips": paddle_tips
+        })
+        
+    except Exception as e:
+        print(f"Error getting paddle tips: {str(e)}")
+        return jsonify({"error": "Failed to get paddle tips"}), 500
+
+
 @mobile_bp.route("/api/lesson-requests", methods=["GET"])
 @login_required
 def get_lesson_requests():
