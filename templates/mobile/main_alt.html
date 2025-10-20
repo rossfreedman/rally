@@ -164,48 +164,50 @@
     <!-- ============================================
          HEADER (Fixed at top, below navbar)
          ============================================ -->
-    <header class="section-hero text-white shadow-lg rounded-2xl" style="margin-top: 11px;">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-3">
-                {% if session_data and session_data.user and session_data.user.club_logo %}
-                <img src="/{{ session_data.user.club_logo }}" 
-                     alt="{{ session_data.user.club }} Logo" 
-                     class="w-20 h-20 object-contain rounded-xl"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                {% endif %}
-                <div class="w-20 h-20 text-white flex items-center justify-center font-bold text-lg rounded-xl" 
-                     style="{% if session_data and session_data.user and session_data.user.club_logo %}display: none;{% endif %}background-color: #bff863; color: #045454;">
-                    {{ session_data.user.club[0:2] if session_data and session_data.user and session_data.user.club else 'CL' }}
-                </div>
-                </div>
-            </div>
-            
-            <div class="mb-6">
-                <h1 class="text-3xl font-bold tracking-tight">Welcome back, {{ session_data.user.first_name }}</h1>
-                {% if session_data and session_data.user and session_data.user.league_name %}
-                <!-- League Information -->
-                <div class="text-sm space-y-1 mt-1">
-                    <div class="flex items-center">
-                        <span class="font-medium text-white/90">{{ session_data.user.league_name }}</span>
-                    </div>
-                    
-                    <div class="flex items-center">
-                        <span class="font-medium text-white/80">{{ session_data.user.series }} @ {{ session_data.user.club }}</span>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style="margin-top: 11px;">
+        <header class="section-hero text-white shadow-lg rounded-2xl py-6 px-6">
+            <div class="flex items-start gap-4">
+                <!-- Logo Section -->
+                <div class="flex-shrink-0">
+                    {% if session_data and session_data.user and session_data.user.club_logo %}
+                    <img src="/{{ session_data.user.club_logo }}" 
+                         alt="{{ session_data.user.club }} Logo" 
+                         class="w-20 h-20 object-contain rounded-xl"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    {% endif %}
+                    <div class="w-20 h-20 text-white flex items-center justify-center font-bold text-lg rounded-xl" 
+                         style="{% if session_data and session_data.user and session_data.user.club_logo %}display: none;{% endif %}background-color: #bff863; color: #045454;">
+                        {{ session_data.user.club[0:2] if session_data and session_data.user and session_data.user.club else 'CL' }}
                     </div>
                 </div>
                 
-                <!-- League Selector Chip -->
-                <div class="mt-3">
-                    <button id="leagueSwitcherTrigger" class="px-3 py-1 rounded-full text-xs font-medium hidden transition-colors duration-200 shadow-sm hover:opacity-90" style="background-color: #bff863; color: #045454;" aria-label="Change League/Team" onclick="showLeagueSwitcher()">
-                        Switch League/Team
-                    </button>
+                <!-- Text Section -->
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold tracking-tight mb-2">Welcome back, {{ session_data.user.first_name }}</h1>
+                    {% if session_data and session_data.user and session_data.user.league_name %}
+                    <!-- League Information -->
+                    <div class="space-y-1">
+                        <div>
+                            <span class="font-medium text-white/90">{{ session_data.user.league_name }}</span>
+                        </div>
+                        
+                        <div>
+                            <span class="font-medium text-white/80">{{ session_data.user.series }} @ {{ session_data.user.club }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- League Selector Chip -->
+                    <div class="mt-3">
+                        <button id="leagueSwitcherTrigger" class="px-3 py-1 rounded-full text-xs font-medium hidden transition-colors duration-200 shadow-sm hover:opacity-90" style="background-color: #bff863; color: #045454;" aria-label="Change League/Team" onclick="showLeagueSwitcher()">
+                            Switch League/Team
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
             </div>
             
-        </div>
-    </header>
+        </header>
+    </div>
 
     <!-- Sticky Navigation Tabs (Persistent below header) -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4" style="position: sticky; top: 56px; z-index: 50;">
@@ -253,36 +255,31 @@
             </div>
             
             <!-- Stats Grid -->
-            <div class="space-y-4">
-                <!-- First Row: My Record and Win Rate -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
-                        <div class="text-2xl font-bold text-[#045454] mb-4">My Record</div>
-                        <div id="my-record" class="text-3xl font-bold text-[#045454]">-- - --</div>
-                    </div>
-                    
-                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
-                        <div class="text-2xl font-bold text-[#045454] mb-4">Win Rate</div>
-                        <div id="win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- My Record -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="record-card">
+                    <div class="text-2xl font-bold text-[#045454] mb-4">My Record</div>
+                    <div id="my-record" class="text-3xl font-bold text-[#045454]">-- - --</div>
                 </div>
                 
-                <!-- Second Row: Win Streak -->
-                <div class="grid grid-cols-1">
-                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-2xl font-bold text-[#045454] mb-4">Win Streak</div>
-                        <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
-                    </div>
+                <!-- Win Rate -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift persistent-card" id="winrate-card">
+                    <div class="text-2xl font-bold text-[#045454] mb-4">Win Rate</div>
+                    <div id="win-rate" class="text-3xl font-bold text-[#045454]">--%</div>
                 </div>
                 
-                <!-- Third Row: Best Partner -->
-                <div class="grid grid-cols-1">
-                    <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
-                        <div class="text-2xl font-bold text-[#045454] mb-4">Best Partner</div>
-                        <div id="best-partner-content">
-                            <div class="text-center py-4">
-                                <div class="w-8 h-8 border-4 border-gray-200 border-t-[#045454] rounded-full animate-spin mx-auto"></div>
-                            </div>
+                <!-- Win Streak -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-2xl font-bold text-[#045454] mb-4">Win Streak</div>
+                    <div id="win-streak" class="text-3xl font-bold text-rally-green">🔥 --</div>
+                </div>
+                
+                <!-- Best Partner -->
+                <div class="bg-white rounded-2xl p-6 shadow-md hover-lift">
+                    <div class="text-2xl font-bold text-[#045454] mb-4">Best Partner</div>
+                    <div id="best-partner-content">
+                        <div class="text-center py-4">
+                            <div class="w-8 h-8 border-4 border-gray-200 border-t-[#045454] rounded-full animate-spin mx-auto"></div>
                         </div>
                     </div>
                 </div>
@@ -826,9 +823,22 @@
         
         // Set session data for JavaScript access
         try {
-            // Temporarily disable session data to isolate syntax error
-            window.sessionData = {};
-            console.log('Session data set successfully (simplified)');
+            window.sessionData = {
+                user: {
+                    id: {{ session_data.user.id | default('null') }},
+                    first_name: "{{ session_data.user.first_name | default('') }}",
+                    last_name: "{{ session_data.user.last_name | default('') }}",
+                    email: "{{ session_data.user.email | default('') }}",
+                    club: "{{ session_data.user.club | default('') }}",
+                    team_name: "{{ session_data.user.team_name | default('') }}",
+                    team_id: {{ session_data.user.team_id | default('null') }},
+                    series: "{{ session_data.user.series | default('') }}",
+                    league_id: {{ session_data.user.league_id | default('null') }},
+                    league_name: "{{ session_data.user.league_name | default('') }}",
+                    tenniscores_player_id: "{{ session_data.user.tenniscores_player_id | default('') }}"
+                }
+            };
+            console.log('Session data set successfully');
         } catch (error) {
             console.error('Error setting session data:', error);
             window.sessionData = {};
@@ -1380,17 +1390,13 @@
                     try {
                         const availabilityResponse = await fetch('/api/user-availability');
                         const availabilityResult = await availabilityResponse.json();
+                        
                         if (availabilityResult.success && availabilityResult.availability) {
                             availabilityData = availabilityResult.availability;
-                            console.log('Fetched availability data for matches:', availabilityData);
-                        } else {
-                            console.log('No availability data found for matches:', availabilityResult);
                         }
                     } catch (e) {
                         console.log('Could not fetch availability data for matches:', e);
                     }
-                } else {
-                    console.log('No user or user_id found for availability fetch in matches');
                 }
                 
                 // Next 3 Matches (skip the first one since it's shown in Next Match card)
