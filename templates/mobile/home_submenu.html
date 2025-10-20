@@ -34,30 +34,35 @@
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     padding: 1.5rem !important;
     width: 100%;
-    text-align: center;
+    text-align: left;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     position: relative;
     z-index: 1;
+    gap: 1rem;
   }
   .category-button * { 
     color: #045454 !important; 
     font-weight: 500 !important; 
-    text-align: center !important;
-    margin: 0 auto !important;
+    text-align: left !important;
+    margin: 0 !important;
   }
   
-  /* Force center alignment for all elements inside category buttons */
+  /* Force left alignment for all elements inside category buttons */
   .category-button svg {
-    margin: 0 auto !important;
+    margin: 0 !important;
     display: block !important;
+    flex-shrink: 0;
+    width: 2rem !important;
+    height: 2rem !important;
   }
   
   .category-button div {
-    text-align: center !important;
+    text-align: left !important;
     width: 100% !important;
+    flex: 1;
   }
   .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
   .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
@@ -71,6 +76,13 @@
     box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
     transform: scale(1.05) translateY(-2px) !important;
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    /* Maintain horizontal layout for active state */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    gap: 1rem !important;
   }
   .category-button.active * { 
     color: #bff863 !important; 
@@ -89,6 +101,13 @@
     box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
     transform: scale(1.05) translateY(-2px) !important;
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    /* Maintain horizontal layout for active state */
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    gap: 1rem !important;
   }
   .category-button[onclick*="act-submenu"].active *,
   button[onclick*="act-submenu"].active *,
@@ -691,8 +710,8 @@
     </div>
     <!-- Rally Support Button -->
     <div class="category-section">
-      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/support'">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <button class="category-button" onclick="window.location.href='/mobile/support'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
           <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
           <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" fill="none"/>
@@ -703,8 +722,8 @@
     
     <!-- Rally Merch Button -->
     <div class="category-section">
-      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/swag'">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <button class="category-button" onclick="window.location.href='/mobile/swag'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" stroke="currentColor" stroke-width="2" fill="none"/>
         </svg>
         <div class="font-semibold text-lg">Rally Merch</div>
@@ -713,8 +732,8 @@
     
     <!-- Captain's Corner Category -->
     <div class="category-section">
-      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" id="captain-corner-button" onclick="event.stopPropagation(); toggleSubmenu('captain-submenu');">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      <button class="category-button" id="captain-corner-button" onclick="event.stopPropagation(); toggleSubmenu('captain-submenu');">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
         <div class="font-semibold text-lg">Captain's Corner</div>
       </button>
       <div id="captain-submenu" class="submenu">
