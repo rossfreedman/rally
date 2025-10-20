@@ -2868,6 +2868,7 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
         significant_streaks.sort(key=lambda x: x['current_streak'], reverse=True)
 
         print(f"[DEBUG] Found {len(significant_streaks)} players with win streaks for club {club_name}")
+        print(f"[DEBUG] significant_streaks data: {significant_streaks}")
         return significant_streaks
 
     except Exception as e:

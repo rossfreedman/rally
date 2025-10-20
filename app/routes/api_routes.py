@@ -13395,13 +13395,18 @@ def get_current_season_stats_api():
         }), 500
 
 
+# Global cache for starting PTI data to avoid repeated file reads
+_starting_pti_cache = {}
+_cache_timestamp = None
+
 @api_bp.route("/rising-stars")
 @login_required
 def get_rising_stars():
-    """Get the 10 players with the biggest PTI gains in the current league"""
+    """Get the 10 players with the biggest PTI gains in the current league - OPTIMIZED"""
     try:
         import csv
         import os
+        import time
         from database_utils import execute_query
         
         user = session.get("user")
@@ -13429,28 +13434,42 @@ def get_rising_stars():
         if not user_league_db_id:
             return jsonify({"error": "Invalid league ID"}), 400
         
-        # Load starting PTI data from CSV
-        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
-        starting_pti_data = {}
+        # OPTIMIZED: Cache starting PTI data to avoid repeated file reads
+        global _starting_pti_cache, _cache_timestamp
+        current_time = time.time()
         
-        try:
-            with open(csv_path, 'r', encoding='utf-8') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    first_name = row.get('First Name', '').strip()
-                    last_name = row.get('Last Name', '').strip()
-                    pti_str = row.get('PTI', '').strip()
-                    
-                    if first_name and last_name and pti_str:
-                        try:
-                            pti_value = float(pti_str)
-                            key = f"{first_name.lower()}_{last_name.lower()}"
-                            starting_pti_data[key] = pti_value
-                        except ValueError:
-                            continue
-        except Exception as e:
-            print(f"Error reading CSV file: {e}")
-            return jsonify({"error": "Could not load starting PTI data"}), 500
+        # Reload cache every 5 minutes or if cache is empty
+        if not _starting_pti_cache or (current_time - _cache_timestamp) > 300:
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
+            _starting_pti_cache = {}
+            
+            try:
+                with open(csv_path, 'r', encoding='utf-8') as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    for row in reader:
+                        first_name = row.get('First Name', '').strip()
+                        last_name = row.get('Last Name', '').strip()
+                        pti_str = row.get('PTI', '').strip()
+                        
+                        if first_name and last_name and pti_str:
+                            try:
+                                pti_value = float(pti_str)
+                                key = f"{first_name.lower()}_{last_name.lower()}"
+                                _starting_pti_cache[key] = pti_value
+                            except ValueError:
+                                continue
+                
+                _cache_timestamp = current_time
+                print(f"Loaded {len(_starting_pti_cache)} starting PTI values into cache")
+                
+            except Exception as e:
+                print(f"Error loading starting PTI data: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": "Could not load starting PTI data"
+                }), 500
+        
+        starting_pti_data = _starting_pti_cache
         
         # Get user's club for filtering
         user_club = user.get("club")
@@ -13599,9 +13618,9 @@ def get_current_season_partner_analysis_api():
 @api_bp.route("/club-standings")
 @login_required
 def get_club_standings_api():
-    """Get club standings data for dashboard (same as my-club page)"""
+    """Get optimized club standings data for dashboard"""
     try:
-        from app.services.mobile_service import get_mobile_club_data
+        from database_utils import execute_query
         
         # Get user session data
         user_data = session.get("user", {})
@@ -13612,15 +13631,124 @@ def get_club_standings_api():
                 "error": "User session data not found"
             }), 400
         
-        # Get club data (same as my-club page)
-        club_data = get_mobile_club_data(user_data)
+        club_name = user_data.get("club", "")
+        user_league_id = user_data.get("league_id", "")
         
-        # Return the club standings data
+        if not club_name or not user_league_id:
+            return jsonify({
+                "success": False,
+                "error": "Club or league information not available"
+            }), 400
+        
+        # Convert league_id to database ID
+        user_league_db_id = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(user_league_id, int):
+            user_league_db_id = user_league_id
+        
+        if not user_league_db_id:
+            return jsonify({
+                "success": False,
+                "error": "Invalid league ID"
+            }), 400
+        
+        # Get player streaks using the existing optimized function
+        from app.services.mobile_service import calculate_player_streaks
+        streaks = calculate_player_streaks(club_name, user_league_db_id)
+        
+        # Use the same logic as get_mobile_club_data to calculate standings correctly
+        standings = []
+        
+        # Get all unique series for this club
+        series_query = """
+            SELECT DISTINCT ss.series
+            FROM series_stats ss
+            WHERE ss.team LIKE %s 
+            AND ss.league_id = %s
+            ORDER BY ss.series
+        """
+        series_list = execute_query(series_query, [f"{club_name}%", user_league_db_id])
+        
+        for series_row in series_list:
+            series = series_row["series"]
+            
+            # Get team stats for this series
+            team_stats_query = """
+                SELECT 
+                    ss.team,
+                    ss.points,
+                    ss.matches_won + ss.matches_lost + ss.matches_tied as total_matches,
+                    ss.points as total_points,
+                    CASE 
+                        WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
+                        THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
+                        ELSE 0 
+                    END as avg_points
+                FROM series_stats ss
+                WHERE ss.team LIKE %s 
+                AND ss.league_id = %s
+                AND ss.series = %s
+            """
+            team_stats_results = execute_query(team_stats_query, [f"{club_name}%", user_league_db_id, series])
+            
+            for team_stats in team_stats_results:
+                # Get all teams in this series to calculate proper ranking
+                series_teams_query = """
+                    SELECT ss.team, ss.points
+                    FROM series_stats ss
+                    WHERE ss.series = %s 
+                    AND ss.league_id = %s
+                    ORDER BY ss.points DESC, ss.team ASC
+                """
+                
+                series_teams = execute_query(series_teams_query, [series, user_league_db_id])
+                
+                # Calculate proper place with tie handling (same logic as get_mobile_club_data)
+                place = 1
+                current_place = 1
+                prev_points = None
+                
+                for i, team in enumerate(series_teams):
+                    # Check if this team is tied with the previous team (same points)
+                    if prev_points is not None and team["points"] == prev_points:
+                        # This team is tied with the previous team, same place
+                        pass  # current_place stays the same
+                    else:
+                        # This team is not tied, advance to next place
+                        current_place = i + 1
+                    
+                    # If this is our team, record the place
+                    if team["team"] == team_stats["team"]:
+                        place = current_place
+                        break
+                    
+                    # Update previous points for next iteration
+                    prev_points = team["points"]
+                
+                standings.append({
+                    "series": series,
+                    "team": team_stats["team"],
+                    "points": team_stats["points"],
+                    "total_matches": team_stats["total_matches"],
+                    "total_points": team_stats["total_points"],
+                    "avg_points": team_stats["avg_points"],
+                    "place": f"{place}/{len(series_teams)}"
+                })
+        
+        # Return the optimized club standings data
         return jsonify({
             "success": True,
-            "tennaqua_standings": club_data.get("tennaqua_standings", []),
-            "player_streaks": club_data.get("player_streaks", []),
-            "club_name": club_data.get("club_name", user_data.get("club", "Unknown"))
+            "tennaqua_standings": standings,
+            "player_streaks": streaks,
+            "club_name": club_name
         }), 200
         
     except Exception as e:

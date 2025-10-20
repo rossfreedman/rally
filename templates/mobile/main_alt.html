@@ -531,7 +531,6 @@
                         <h3 class="text-xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
                             <i class="fas fa-trophy" style="color: #bff863;"></i>
                             {{ session_data.user.club or 'Club' }} Teams in 1st Place
-                            <a href="/mobile/teams-players?team_id=59667" class="text-blue-600 hover:text-blue-800 ml-2" title="View Team Details"><i class="fas fa-search"></i></a>
                         </h3>
                     </div>
                     
@@ -853,23 +852,16 @@
             }
         }, 100);
         
-        // Initialize all data on page load
+        // Initialize all data on page load - OPTIMIZED
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM Content Loaded - Starting initialization');
+            console.log('DOM Content Loaded - Starting OPTIMIZED initialization');
             
             // Initialize persistence system
             initPersistence();
             
-            loadPTIData();
-            loadUpcomingMatches();
-            loadPractices();
-            loadTopPlayers();
-            loadNotifications();
-            loadTeamData();
-            loadSeriesStandings();
-            loadPickupGames();
-            loadMyLessons();
-            loadPaddleTip();
+            // OPTIMIZED: Load data in parallel for better performance
+            loadAllDataInParallel();
+            
             console.log('About to initialize sticky navigation');
             initStickyNavigation();
             console.log('Sticky navigation initialization complete');
@@ -877,6 +869,76 @@
             // Check for multiple leagues and show league switcher if needed
             checkMultipleLeagues();
         });
+        
+        // OPTIMIZED: Load all data in parallel instead of sequentially
+        async function loadAllDataInParallel() {
+            console.log('🔄 Starting parallel data loading...');
+            
+            try {
+                // Load all data simultaneously using Promise.allSettled for better error handling
+                await Promise.allSettled([
+                    loadPTIData(),
+                    loadUpcomingMatches(),
+                    loadPractices(),
+                    loadTopPlayers(),
+                    loadNotifications(),
+                    loadTeamData(),
+                    loadSeriesStandings(),
+                    loadPickupGames(),
+                    loadMyLessons(),
+                    loadPaddleTip()
+                ]);
+                
+                console.log('✅ All data loaded in parallel');
+            } catch (error) {
+                console.error('❌ Error during parallel loading:', error);
+            }
+        }
+        
+        // OPTIMIZED: Add simple caching to avoid repeated API calls
+        const apiCache = new Map();
+        const CACHE_DURATION = 30000; // 30 seconds
+        
+        function getCachedData(key) {
+            const cached = apiCache.get(key);
+            if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+                console.log(`📦 Using cached data for ${key}`);
+                return cached.data;
+            }
+            return null;
+        }
+        
+        function setCachedData(key, data) {
+            apiCache.set(key, {
+                data: data,
+                timestamp: Date.now()
+            });
+            console.log(`💾 Cached data for ${key}`);
+        }
+        
+        // OPTIMIZED: Enhanced fetch with caching
+        async function fetchWithCache(url, cacheKey) {
+            // Check cache first
+            const cachedData = getCachedData(cacheKey);
+            if (cachedData) {
+                return cachedData;
+            }
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                // Cache the data
+                setCachedData(cacheKey, data);
+                return data;
+            } catch (error) {
+                console.error(`❌ Error fetching ${cacheKey}:`, error);
+                throw error;
+            }
+        }
 
         // ============================================
         // PERSISTENCE SYSTEM
@@ -1082,6 +1144,32 @@
                         document.getElementById('winrate-card').classList.add('loaded');
                         savePersistedData();
                         
+                        // Random "no streak" messages
+                        const noStreakMessages = [
+                            'No streak yet… but the fuse is lit. 🔥',
+                            'Win streak? Not yet — but you\'re due.',
+                            'Still warming up… streak coming soon.',
+                            'No streak yet, but every rally starts somewhere.',
+                            'You\'re one win away from bragging rights.',
+                            'No streak yet — time to flip the script.',
+                            'Keep grindin\'… that streak\'s loading. ⏳',
+                            'Not streakin\' yet… but it\'s comin\'.',
+                            'Still searching for that hot hand… stay with it.',
+                            'No streak yet — gotta start the fire before it burns.',
+                            'No win streak yet...keep work\'in at it...you\'ll get there.',
+                            'No streak yet… but hey, Rome wasn\'t built in one set.',
+                            'No streak yet — maybe your paddle\'s still in warm-up mode.',
+                            'No streak? Must be saving it for the playoffs.',
+                            'Still streakless. Maybe bribe your partner with bagels next time. 🥯',
+                            'Technically, not losing is a streak… right?'
+                        ];
+                        
+                        // Function to get random message
+                        const getRandomNoStreakMessage = () => {
+                            const randomIndex = Math.floor(Math.random() * noStreakMessages.length);
+                            return `<span class="text-lg text-gray-600">${noStreakMessages[randomIndex]}</span>`;
+                        };
+                        
                         // Calculate win streak from last-3-matches (for streak only)
                         const lastMatchesResponse = await fetch('/api/last-3-matches');
                         if (lastMatchesResponse.ok) {
@@ -1101,12 +1189,12 @@
                                     }
                                 }
                                 
-                                document.getElementById('win-streak').innerHTML = currentStreak > 0 ? `🔥 ${currentStreak}` : '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
+                                document.getElementById('win-streak').innerHTML = currentStreak > 0 ? `🔥 ${currentStreak}` : getRandomNoStreakMessage();
                             } else {
-                                document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
+                                document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
                             }
                         } else {
-                            document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
+                            document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
                         }
                     } else {
                         // No current season data available
@@ -1118,7 +1206,7 @@
                         winRateElement.textContent = '0%';
                         winRateElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
                         
-                        document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
+                        document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
                         // Mark cards as loaded and save to persistence
                         document.getElementById('record-card').classList.add('loaded');
                         document.getElementById('winrate-card').classList.add('loaded');
@@ -1134,7 +1222,7 @@
                     winRateElement.textContent = '0%';
                     winRateElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
                     
-                    document.getElementById('win-streak').innerHTML = '<span class="text-sm text-gray-600">No win streak yet...keep work\'in at it...</span>';
+                    document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
                     // Mark cards as loaded and save to persistence
                     document.getElementById('record-card').classList.add('loaded');
                     document.getElementById('winrate-card').classList.add('loaded');
@@ -1623,7 +1711,7 @@
         }
         
         // ============================================
-        // TOP PLAYERS LOADING
+        // TOP PLAYERS LOADING - OPTIMIZED
         // ============================================
         async function loadTopPlayers() {
             const loading = document.getElementById('players-loading');
@@ -1631,13 +1719,16 @@
             const empty = document.getElementById('players-empty');
             
             try {
-                // Use the same API as my-club page to get player streaks data
-                const response = await fetch('/api/club-standings');
-                const data = await response.json();
+                // OPTIMIZED: Use cached fetch for better performance
+                const data = await fetchWithCache('/api/club-standings', 'club-standings');
+                
+                console.log('🔍 loadTopPlayers - API response:', data);
+                console.log('🔍 loadTopPlayers - player_streaks:', data.player_streaks);
                 
                 loading.classList.add('hidden');
                 
                 if (!data.success || !data.player_streaks || data.player_streaks.length === 0) {
+                    console.log('🔍 loadTopPlayers - No player streaks data, showing empty state');
                     empty.classList.remove('hidden');
                     return;
                 }
@@ -1719,7 +1810,7 @@
         }
         
         // ============================================
-        // FIRST PLACE TEAMS LOADING
+        // FIRST PLACE TEAMS LOADING - OPTIMIZED
         // ============================================
         async function loadFirstPlaceTeams() {
             const loading = document.getElementById('first-place-loading');
@@ -1728,23 +1819,25 @@
             const tableBody = document.getElementById('first-place-teams-table');
             
             try {
-                // Use the same API as my-club page to get standings data
-                const response = await fetch('/api/club-standings');
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                // OPTIMIZED: Use cached fetch for better performance - force refresh to get latest data
+                const data = await fetchWithCache('/api/club-standings', 'club-standings', 0);
                 
-                const data = await response.json();
+                console.log('🔍 loadFirstPlaceTeams - API response:', data);
+                console.log('🔍 loadFirstPlaceTeams - tennaqua_standings:', data.tennaqua_standings);
+                
                 loading.classList.add('hidden');
                 
                 if (data.success && data.tennaqua_standings && data.tennaqua_standings.length > 0) {
                     // Find all 1st place teams - use same logic as Club Standings section
                     // Teams in 1st place have place = 1 (not tied) or place contains "1/" (tied for first)
                     const firstPlaceTeams = data.tennaqua_standings.filter(team => {
-                        const place = team.place;
-                        // Check if place is exactly 1 (not tied) or is a string starting with 1
-                        return place === 1 || String(place).match(/^1($|\/)/);
+                        const place = String(team.place || '');
+                        console.log(`🔍 Team ${team.team}: place="${place}", starts with 1/: ${place.startsWith('1/')}`);
+                        // Check if place starts with "1/" (first place in series)
+                        return place.startsWith('1/');
                     });
+                    
+                    console.log(`🔍 Filtered first place teams: ${firstPlaceTeams.length} teams`);
                     
                     if (firstPlaceTeams.length > 0) {
                         // Sort teams by total points (descending)
@@ -1760,7 +1853,7 @@
                             
                             row.innerHTML = `
                                 <td class="py-1 px-2">
-                                    <div class="font-medium text-xs text-gray-900">${team.team_name}</div>
+                                    <div class="font-medium text-xs text-gray-900">${team.team}</div>
                                 </td>
                                 <td class="py-1 px-2 text-center">
                                     <span class="font-medium text-xs text-green-600">${team.place}</span>
@@ -1790,23 +1883,18 @@
         }
         
         // ============================================
-        // PTI MOVERS & SHAKERS LOADING
+        // PTI MOVERS & SHAKERS LOADING - OPTIMIZED
         // ============================================
         async function loadRisingStars() {
             const moversList = document.getElementById('pti-movers-list');
             const ptiMoversCard = document.querySelector('#pti-movers-list').closest('.bg-white.rounded-2xl');
             
             try {
-                const response = await fetch('/api/rising-stars');
-                if (!response.ok) {
-                    // Hide PTI Movers card if API fails
-                    if (ptiMoversCard) {
-                        ptiMoversCard.classList.add('hidden');
-                    }
-                    return;
-                }
+                // OPTIMIZED: Use cached fetch for better performance
+                const data = await fetchWithCache('/api/rising-stars', 'rising-stars');
                 
-                const data = await response.json();
+                console.log('🔍 loadRisingStars - API response:', data);
+                console.log('🔍 loadRisingStars - rising_stars:', data.rising_stars);
                 
                 if (data.success && data.rising_stars && data.rising_stars.length > 0) {
                     // Get top 10 movers by absolute PTI change
