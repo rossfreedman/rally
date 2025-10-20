@@ -83,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const delta = player.pti_delta;
             const isPositive = delta > 0;
             const isNegative = delta < 0;
-            const deltaClass = isPositive ? 'text-green-600' : isNegative ? 'text-red-600' : 'text-gray-600';
+            const deltaClass = isPositive ? 'text-green-600' : isNegative ? 'text-green-600' : 'text-gray-600';  // Both positive and negative changes are green
             const deltaIcon = isPositive ? 'fas fa-arrow-up' : isNegative ? 'fas fa-arrow-down' : 'fas fa-minus';
             const deltaSign = isPositive ? '+' : '';
             
