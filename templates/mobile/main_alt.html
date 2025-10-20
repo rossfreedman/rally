@@ -1851,9 +1851,18 @@
                             const row = document.createElement('tr');
                             row.className = `${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100`;
                             
+                            // Create magnifying glass link to teams-players page
+                            const teamDetailLink = team.team_id ? 
+                                `/mobile/teams-players?team_id=${team.team_id}` :
+                                `/mobile/teams-players`;
+                            const magnifyingGlassIcon = `<a href="${teamDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Team Details"><i class="fas fa-search text-xs"></i></a>`;
+                            
                             row.innerHTML = `
                                 <td class="py-1 px-2">
-                                    <div class="font-medium text-xs text-gray-900">${team.team}</div>
+                                    <div class="flex items-center">
+                                        <div class="font-medium text-xs text-gray-900">${team.team}</div>
+                                        ${team.team_id ? magnifyingGlassIcon : ''}
+                                    </div>
                                 </td>
                                 <td class="py-1 px-2 text-center">
                                     <span class="font-medium text-xs text-green-600">${team.place}</span>

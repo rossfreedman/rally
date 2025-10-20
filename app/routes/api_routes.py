@@ -13755,6 +13755,7 @@ def get_club_standings_api():
                 club_teams.total_matches,
                 club_teams.total_points,
                 club_teams.avg_points,
+                club_teams.team_id,
                 all_rankings.rank_in_series || '/' || all_rankings.total_teams_in_series as place
             FROM (
                 SELECT 
@@ -13763,6 +13764,7 @@ def get_club_standings_api():
                     ss.points,
                     ss.matches_won + ss.matches_lost + ss.matches_tied as total_matches,
                     ss.points as total_points,
+                    ss.team_id,
                     CASE 
                         WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
                         THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
@@ -13801,6 +13803,7 @@ def get_club_standings_api():
                 "total_matches": row["total_matches"],
                 "total_points": row["total_points"],
                 "avg_points": row["avg_points"],
+                "team_id": row["team_id"],
                 "place": row["place"]
             })
         
