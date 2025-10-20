@@ -222,7 +222,7 @@
         </nav>
     </div>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    <main class="max-w-7xl mx-auto px-2 sm:px-3 lg:px-4 py-8 space-y-12">
 
         <!-- ============================================
              1. DASHBOARD SECTION
@@ -1592,11 +1592,11 @@
             </div>
         </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-lg font-semibold text-[#045454]">vs ${opponentName}</div>
-                    <div class="text-base text-gray-600">${dateStr} at ${timeStr}</div>
-                    ${location ? `<div class="text-sm text-gray-500">📍 ${location}</div>` : ''}
+                    <div class="text-base font-semibold text-[#045454]">vs ${opponentName}</div>
+                    <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                    ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
                 </div>
-                <div class="flex flex-col items-center justify-center gap-1 w-24">
+                <div class="flex flex-col items-center justify-center gap-1 w-20">
                     <i class="${statusIcon} text-3xl text-${statusColor}-500"></i>
                     <span class="text-sm font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                 </div>
@@ -1730,11 +1730,11 @@
                             <i class="fas fa-dumbbell"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="text-lg font-semibold text-[#045454]">${practice.description || 'Practice'}</div>
-                            <div class="text-base text-gray-600">${dateStr} at ${timeStr}</div>
-                            <div class="text-sm text-gray-500">📍 ${location}</div>
+                            <div class="text-base font-semibold text-[#045454]">${practice.description || 'Practice'}</div>
+                            <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                            <div class="text-xs text-gray-500">📍 ${location}</div>
                         </div>
-                        <div class="flex flex-col items-center justify-center gap-1 w-24">
+                        <div class="flex flex-col items-center justify-center gap-1 w-20">
                             <i class="${statusIcon} text-3xl text-${statusColor}-500"></i>
                             <span class="text-sm font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                         </div>
