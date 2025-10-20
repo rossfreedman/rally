@@ -1499,10 +1499,10 @@
             }
             
             div.innerHTML = `
-                <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div class="w-16 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <img src="/static/images/clubs/${clubName}_logo.png" 
                          alt="${opponentName} Logo" 
-                         class="w-12 h-12 object-contain rounded-lg"
+                         class="max-w-14 max-h-12 w-auto h-auto object-contain rounded-lg"
                          onerror="console.log('Logo not found for:', '${clubName}_logo.png'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
                     <div class="w-12 h-12 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
                         ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
