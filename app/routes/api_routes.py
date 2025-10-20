@@ -13776,7 +13776,7 @@ def get_club_standings_api():
                 SELECT 
                     ss.series,
                     ss.team,
-                    ROW_NUMBER() OVER (PARTITION BY ss.series ORDER BY ss.points DESC, ss.team ASC) as rank_in_series,
+                    DENSE_RANK() OVER (PARTITION BY ss.series ORDER BY ss.points DESC) as rank_in_series,
                     COUNT(*) OVER (PARTITION BY ss.series) as total_teams_in_series
                 FROM series_stats ss
                 WHERE ss.league_id = %s
