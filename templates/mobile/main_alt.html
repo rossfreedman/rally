@@ -1853,32 +1853,65 @@
                 }
                 
                 // Filter players with 3+ wins in a row (same logic as my-club page)
-                const hotPlayers = data.player_streaks
+                const allHotPlayers = data.player_streaks
                     .filter(player => player.current_streak >= 3)
-                    .sort((a, b) => b.current_streak - a.current_streak) // Sort by streak length
-                    .slice(0, 10); // Show top 10
+                    .sort((a, b) => b.current_streak - a.current_streak); // Sort by streak length
                 
-                if (hotPlayers.length === 0) {
+                if (allHotPlayers.length === 0) {
                     empty.classList.remove('hidden');
                     return;
                 }
                 
+                // Find the highest streak value
+                const maxStreak = allHotPlayers[0].current_streak;
+                
+                // Separate players with the highest streak (En fuego!) from the rest
+                const enFuegoPlayers = allHotPlayers.filter(player => player.current_streak === maxStreak);
+                const regularHotPlayers = allHotPlayers.filter(player => player.current_streak < maxStreak).slice(0, 8); // Show up to 8 more
+                
                 carousel.classList.remove('hidden');
                 carousel.innerHTML = '';
                 
-                // Add table header
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'flex items-center justify-between p-3 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 border-b-2 border-gray-200';
-                headerDiv.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-5"></div> <!-- Spacer to align with fire icon -->
-                        <div>Player name</div>
-                    </div>
-                    <div class="text-right">Win Streaks</div>
-                `;
-                carousel.appendChild(headerDiv);
+                // Add "En fuego!" section if there are top performers
+                if (enFuegoPlayers.length > 0) {
+                    const enFuegoHeader = document.createElement('div');
+                    enFuegoHeader.className = 'flex items-center justify-between p-3 bg-orange-500 rounded-lg font-semibold text-sm text-white border-b-2 border-orange-600 mb-2';
+                    enFuegoHeader.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-fire text-white text-sm mr-2"></i>
+                            <div class="text-orange-100 font-bold text-base">Who's En fuego!</div>
+                        </div>
+                        <div class="text-right text-orange-100">${maxStreak} Win Streak</div>
+                    `;
+                    carousel.appendChild(enFuegoHeader);
+                    
+                    enFuegoPlayers.forEach(player => {
+                        const playerDiv = createPlayerElement(player, true); // true for en fuego styling
+                        carousel.appendChild(playerDiv);
+                    });
+                }
                 
-                hotPlayers.forEach(player => {
+                // Add regular "Who's Hot" section if there are other players
+                if (regularHotPlayers.length > 0) {
+                    const regularHeader = document.createElement('div');
+                    regularHeader.className = 'flex items-center justify-between p-3 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 border-b-2 border-gray-200 mt-6';
+                    regularHeader.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-fire text-orange-500 text-xs mr-2"></i>
+                            <div>Who's Hot</div>
+                        </div>
+                        <div class="text-right">Win Streaks</div>
+                    `;
+                    carousel.appendChild(regularHeader);
+                    
+                    regularHotPlayers.forEach(player => {
+                        const playerDiv = createPlayerElement(player, false); // false for regular styling
+                        carousel.appendChild(playerDiv);
+                    });
+                }
+                
+                // Helper function to create player elements
+                function createPlayerElement(player, isEnFuego) {
                     const fullName = player.player_name || 'Unknown Player';
                     const streak = player.current_streak || 0;
                     const seriesName = player.series_name || 'No Series';
@@ -1887,19 +1920,20 @@
                     const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
                         `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
                         `/mobile/player-detail/${player.player_id}`;
-                    const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
+                    const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="ml-1" style="color: ${isEnFuego ? '#fff' : '#045454'};" onmouseover="this.style.color='${isEnFuego ? '#f0f0f0' : '#033d3d'}'" onmouseout="this.style.color='${isEnFuego ? '#fff' : '#045454'}'" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
                     
-                    // Create series chip
+                    // Create series chip with different styling for En fuego
                     const seriesChip = seriesName !== 'No Series' ? 
-                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;">${seriesName}</span>` : 
-                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No Series</span>`;
+                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: ${isEnFuego ? '#fff' : '#045454'}; color: ${isEnFuego ? '#f97316' : '#bff863'};">${seriesName}</span>` : 
+                        `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isEnFuego ? 'bg-orange-200 text-orange-800' : 'bg-gray-100 text-gray-600'}">No Series</span>`;
                     
                     const div = document.createElement('div');
-                    div.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition';
+                    div.className = `flex items-center justify-between p-3 rounded-lg transition ${isEnFuego ? 'bg-orange-400 hover:bg-orange-500' : 'bg-gray-50 hover:bg-gray-100'}`;
                     div.innerHTML = `
                         <div class="flex-1">
                             <div class="flex items-center mb-1">
-                                <div class="font-semibold text-sm text-[#045454]">${fullName}</div>
+                                <i class="fas fa-fire ${isEnFuego ? 'text-white text-sm' : 'text-orange-500 text-xs'} mr-2"></i>
+                                <div class="font-semibold text-sm ${isEnFuego ? 'text-white' : 'text-[#045454]'}">${fullName}</div>
                                 ${magnifyingGlassIcon}
                             </div>
                             <div class="flex items-center">
@@ -1907,12 +1941,12 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-xl font-bold text-orange-500">${streak}</div>
-                            <div class="text-xs text-gray-500">Win Streak</div>
+                            <div class="text-xl font-bold ${isEnFuego ? 'text-white' : 'text-orange-500'}">${streak}</div>
+                            <div class="text-xs ${isEnFuego ? 'text-orange-100' : 'text-gray-500'}">Win Streak</div>
                         </div>
                     `;
-                    carousel.appendChild(div);
-                });
+                    return div;
+                }
                 
                 
                 // Load 1st place teams count using same logic as my-club page
