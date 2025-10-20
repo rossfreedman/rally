@@ -1324,6 +1324,29 @@
                 const timeStr = nextMatch.time || 'TBD';
                 const location = nextMatch.location || 'TBD';
                 
+                // Get opponent team ID for Scout Competition button
+                let scoutCompetitionUrl = '/mobile/teams-players';
+                if (opponentName && opponentName !== 'TBD') {
+                    // Determine which team ID belongs to the opponent (not the user's team)
+                    const userTeamId = {{ session_data.user.team_id | default('null') }};
+                    let opponentTeamId = null;
+                    
+                    // If user is home team, opponent is away team
+                    if (isHome) {
+                        opponentTeamId = nextMatch.away_team_id;
+                    } else {
+                        // If user is away team, opponent is home team
+                        opponentTeamId = nextMatch.home_team_id;
+                    }
+                    
+                    if (opponentTeamId && opponentTeamId !== userTeamId) {
+                        scoutCompetitionUrl = `/mobile/teams-players?team_id=${opponentTeamId}`;
+                    } else {
+                        // Fallback: use opponent name for team lookup
+                        scoutCompetitionUrl = `/mobile/teams-players?team_name=${encodeURIComponent(opponentName)}`;
+                    }
+                }
+                
                 document.getElementById('next-match-details').innerHTML = `
                     <div class="text-5xl font-bold mb-4">vs ${opponentName}</div>
                     <div class="flex items-center gap-6 text-lg flex-wrap">
@@ -1341,7 +1364,7 @@
                         </div>
                     </div>
                     <div class="flex gap-3 mt-6">
-                        <a href="/mobile/teams-players?team_id=59782" class="flex items-center gap-2 px-4 py-2 rounded-full transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                        <a href="${scoutCompetitionUrl}" class="flex items-center gap-2 px-4 py-2 rounded-full transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
                             <i class="fas fa-search"></i>
                             Scout Competition
                         </a>

@@ -31,12 +31,16 @@ def get_matches_for_user_club(user):
             
             # Query using team_id (more reliable than string matching)
             # FIXED: Add league filtering to prevent cross-league practice contamination
+            # FIXED: Add DISTINCT to prevent duplicate practice records
+            # ENHANCED: Include team IDs for opponent lookup
             matches_query = """
-                SELECT 
+                SELECT DISTINCT
                     s.match_date,
                     s.match_time,
                     s.home_team,
                     s.away_team,
+                    s.home_team_id,
+                    s.away_team_id,
                     s.location,
                     c.club_address,
                     l.league_id,
@@ -49,7 +53,6 @@ def get_matches_for_user_club(user):
                 LEFT JOIN clubs c ON s.location = c.name
                 WHERE (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 ORDER BY s.match_date, s.match_time
             """
             
@@ -70,7 +73,7 @@ def get_matches_for_user_club(user):
             print(f"Practice pattern search: {practice_search}")
             
             matches = execute_query(
-                matches_query, [practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
+                matches_query, [practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id]
             )
             
             print(f"Found {len(matches)} matches using team_id {user_team_id}")
@@ -100,12 +103,16 @@ def get_matches_for_user_club(user):
                 
                 # Try legacy string pattern matching
                 # FIXED: Add league filtering to prevent cross-league practice contamination
+                # FIXED: Add DISTINCT to prevent duplicate practice records
+                # ENHANCED: Include team IDs for opponent lookup
                 legacy_matches_query = """
-                    SELECT 
+                    SELECT DISTINCT
                         s.match_date,
                         s.match_time,
                         s.home_team,
                         s.away_team,
+                        s.home_team_id,
+                        s.away_team_id,
                         s.location,
                         c.club_address,
                         l.league_id,
@@ -118,7 +125,6 @@ def get_matches_for_user_club(user):
                     LEFT JOIN clubs c ON s.location = c.name
                     WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
                     AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                    AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                     ORDER BY s.match_date, s.match_time
                 """
                 
@@ -137,7 +143,7 @@ def get_matches_for_user_club(user):
                 team_search = f"%{user_team_pattern}%"
                 
                 matches = execute_query(
-                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search_legacy]
+                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search, user_league_id, user_team_id]
                 )
                 
                 if matches:
@@ -185,12 +191,16 @@ def get_matches_for_user_club(user):
             # Include both regular matches and practice entries
             # JOIN with clubs table to get club address for Google Maps links
             # FIXED: Add league filtering to prevent cross-league practice contamination
+            # FIXED: Add DISTINCT to prevent duplicate practice records
+            # ENHANCED: Include team IDs for opponent lookup
             matches_query = """
-                SELECT 
+                SELECT DISTINCT
                     s.match_date,
                     s.match_time,
                     s.home_team,
                     s.away_team,
+                    s.home_team_id,
+                    s.away_team_id,
                     s.location,
                     c.club_address,
                     l.league_id,
@@ -203,7 +213,6 @@ def get_matches_for_user_club(user):
                 LEFT JOIN clubs c ON s.location = c.name
                 WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
                 AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 ORDER BY s.match_date, s.match_time
             """
 
@@ -214,7 +223,7 @@ def get_matches_for_user_club(user):
             team_search = f"%{user_team_pattern}%"
 
             matches = execute_query(
-                matches_query, [practice_search, practice_search, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
+                matches_query, [practice_search, practice_search, team_search, team_search, user_league_id, user_team_id]
             )
             
             # Debug: Log the types of matches found
@@ -248,6 +257,8 @@ def get_matches_for_user_club(user):
                     "club_address": match["club_address"] or "",  # Include club address
                     "home_team": match["home_team"] or "",
                     "away_team": match["away_team"] or "",
+                    "home_team_id": match.get("home_team_id"),
+                    "away_team_id": match.get("away_team_id"),
                     "type": "practice" if is_practice else "match",
                 }
 
