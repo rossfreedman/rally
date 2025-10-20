@@ -1506,7 +1506,7 @@
         
         function createMatchElement(match, availabilityData = []) {
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
+            div.className = 'flex items-center gap-6 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
             
             const homeTeam = match.home_team || '';
             const awayTeam = match.away_team || '';
@@ -1577,28 +1577,28 @@
             }
             
             div.innerHTML = `
-        <div class="w-16 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+        <div class="w-20 h-18 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
             <img src="${logoPath || '/static/images/clubs/default_club_logo.png'}" 
                  alt="${opponentName} Logo" 
-                 class="w-14 h-14 rounded-lg"
+                 class="w-18 h-18 rounded-lg"
                  style="display: block;"
                  id="logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}"
                  data-opponent="${opponentName}"
                  data-logo-filename="${logoFilename}"
                  onload="console.log('🖼️ Image loaded for ${opponentName}:', this.src, 'ID:', this.id); this.nextElementSibling.style.display='none';"
                  onerror="console.log('❌ Image failed for ${opponentName}:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="w-14 h-14 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
+            <div class="w-18 h-18 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-xl rounded-lg" style="display: none;">
                 ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
             </div>
         </div>
                 <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-[#045454]">vs ${opponentName}</div>
-                    <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
-                    ${location ? `<div class="text-xs text-gray-500">📍 ${location}</div>` : ''}
+                    <div class="text-lg font-semibold text-[#045454]">vs ${opponentName}</div>
+                    <div class="text-base text-gray-600">${dateStr} at ${timeStr}</div>
+                    ${location ? `<div class="text-sm text-gray-500">📍 ${location}</div>` : ''}
                 </div>
-                <div class="flex flex-col items-center justify-center gap-1 w-20">
-                    <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
-                    <span class="text-xs font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
+                <div class="flex flex-col items-center justify-center gap-1 w-24">
+                    <i class="${statusIcon} text-3xl text-${statusColor}-500"></i>
+                    <span class="text-sm font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                 </div>
             `;
             
@@ -1724,19 +1724,19 @@
                     }
                     
                     const div = document.createElement('div');
-                    div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+                    div.className = 'flex items-center gap-6 p-6 bg-gray-50 rounded-xl';
                     div.innerHTML = `
-                        <div class="w-14 h-14 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
+                        <div class="w-18 h-18 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold text-3xl flex-shrink-0">
                             <i class="fas fa-dumbbell"></i>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[#045454]">${practice.description || 'Practice'}</div>
-                            <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
-                            <div class="text-xs text-gray-500">📍 ${location}</div>
+                            <div class="text-lg font-semibold text-[#045454]">${practice.description || 'Practice'}</div>
+                            <div class="text-base text-gray-600">${dateStr} at ${timeStr}</div>
+                            <div class="text-sm text-gray-500">📍 ${location}</div>
                         </div>
-                        <div class="flex flex-col items-center justify-center gap-1 w-20">
-                            <i class="${statusIcon} text-2xl text-${statusColor}-500"></i>
-                            <span class="text-xs font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
+                        <div class="flex flex-col items-center justify-center gap-1 w-24">
+                            <i class="${statusIcon} text-3xl text-${statusColor}-500"></i>
+                            <span class="text-sm font-medium text-${statusColor}-600 text-center leading-tight">${statusText}</span>
                         </div>
                     `;
                     content.appendChild(div);
@@ -1798,7 +1798,7 @@
                     }
                     
                     const div = document.createElement('div');
-                    div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl';
+                    div.className = 'flex items-center gap-6 p-6 bg-gray-50 rounded-xl';
                     div.innerHTML = `
                         <div class="w-14 h-14 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
                             <i class="fas fa-graduation-cap"></i>
@@ -2894,7 +2894,7 @@
         
         function createPickupGameElement(game) {
             const div = document.createElement('div');
-            div.className = 'flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
+            div.className = 'flex items-center gap-6 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
             
             const gameDate = new Date(game.game_date);
             const dateStr = gameDate.toLocaleDateString('en-US', { 

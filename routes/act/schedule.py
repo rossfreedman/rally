@@ -346,7 +346,7 @@ def get_matches_for_user_club(user):
                 team_search = f"%{user_team_pattern}%"
 
                 matches = execute_query(
-                    matches_query, [practice_search, team_search, practice_search, practice_search, team_search, team_search, user_league_id, user_team_id]
+                    matches_query, [team_search, team_search, practice_search, practice_search, team_search, team_search, user_league_id, user_team_id]
                 )
                 
                 # Debug: Log the types of matches found
