@@ -192,10 +192,14 @@
                     
                     <div class="flex items-center">
                         <span class="font-medium text-white/80">{{ session_data.user.series }} @ {{ session_data.user.club }}</span>
-                        <button id="leagueSwitcherTrigger" class="ml-2 text-blue-300 text-xs underline hidden hover:text-blue-200" aria-label="Change League" style="font-size: 10px;" onclick="showLeagueSwitcher()">
-                            (change)
-                        </button>
                     </div>
+                </div>
+                
+                <!-- League Selector Chip -->
+                <div class="mt-3">
+                    <button id="leagueSwitcherTrigger" class="px-3 py-1 rounded-full text-xs font-medium hidden transition-colors duration-200 shadow-sm hover:opacity-90" style="background-color: #bff863; color: #045454;" aria-label="Change League/Team" onclick="showLeagueSwitcher()">
+                        Switch League/Team
+                    </button>
                 </div>
                 {% endif %}
             </div>
@@ -868,6 +872,9 @@
             
             // Check for multiple leagues and show league switcher if needed
             checkMultipleLeagues();
+            
+            // Check for multiple teams in current league and show league switcher if needed
+            checkMultipleClubs();
         });
         
         // OPTIMIZED: Load all data in parallel instead of sequentially
@@ -3248,6 +3255,31 @@
             }
         }
 
+        async function checkMultipleClubs() {
+            try {
+                console.log('🔍 Checking for multiple clubs/teams...');
+                // Check if this specific user has multiple teams in current league
+                const response = await fetch('/api/get-user-teams-in-current-league');
+                const data = await response.json();
+                
+                console.log('📊 Club check response:', data);
+                
+                if (data.success && data.has_multiple_teams) {
+                    const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                    if (leagueButton) {
+                        leagueButton.classList.remove('hidden');
+                        console.log(`✅ League selector shown - user has ${data.teams.length} teams in current league`);
+                    } else {
+                        console.log('❌ League button element not found');
+                    }
+                } else {
+                    console.log(`❌ League selector hidden - user has ${data.teams ? data.teams.length : 0} teams in current league`);
+                }
+            } catch (error) {
+                console.error('❌ Error checking multiple clubs:', error);
+            }
+        }
+
         function showLeagueSwitcher() {
             const modal = document.getElementById('leagueSwitcherModal');
             if (modal) {
@@ -3267,32 +3299,64 @@
 
         async function loadLeagueSwitcherOptions() {
             try {
-                const response = await fetch('/api/get-user-leagues');
-                const data = await response.json();
+                // Load both league and team options
+                const [leaguesResponse, teamsResponse] = await Promise.all([
+                    fetch('/api/get-user-leagues'),
+                    fetch('/api/get-user-teams-in-current-league')
+                ]);
                 
-                if (data.success && data.leagues) {
-                    const optionsContainer = document.querySelector('#leagueSwitcherModal .league-options');
-                    if (optionsContainer) {
-                        console.log('League data received:', data.leagues);
-                        optionsContainer.innerHTML = data.leagues.map(league => {
-                            console.log('Processing league:', league);
-                            console.log('league.league_string_id:', league.league_string_id);
-                            console.log('league.league_name:', league.league_name);
+                const leaguesData = await leaguesResponse.json();
+                const teamsData = await teamsResponse.json();
+                
+                const optionsContainer = document.querySelector('#leagueSwitcherModal .league-options');
+                if (optionsContainer) {
+                    let html = '';
+                    
+                    // Add league options if user has multiple leagues
+                    if (leaguesData.success && leaguesData.leagues && leaguesData.leagues.length > 1) {
+                        html += '<div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">Switch to Different League</div>';
+                        html += leaguesData.leagues.map(league => {
                             return `
                             <button onclick="switchLeague('${league.league_string_id}', '${league.league_name}')" 
-                                    class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all duration-200 border-2 border-gray-600 hover:border-blue-400 hover:shadow-md group
-                                           ${league.is_current ? 'bg-blue-900 border-blue-400' : ''}">
+                                    class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-gray-800 hover:bg-rally-dark-green hover:bg-opacity-80 transition-all duration-200 border-2 border-gray-600 hover:border-rally-bright-green hover:shadow-md group mb-2
+                                           ${league.is_current ? 'bg-rally-dark-green border-rally-bright-green' : ''}">
                                 <div class="text-left">
-                                    <div class="font-bold text-white group-hover:text-blue-200">${league.league_name}</div>
-                                    <div class="text-sm text-gray-300 group-hover:text-blue-300">${league.player_count} players</div>
+                                    <div class="font-bold text-white group-hover:text-rally-bright-green">${league.league_name}</div>
+                                    <div class="text-sm text-gray-300 group-hover:text-rally-bright-green">${league.player_count} players</div>
                                 </div>
-                                <div class="text-sm ${league.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-green-700 group-hover:bg-green-800 text-white px-3 py-1 rounded'}" style="${league.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
+                                <div class="text-sm ${league.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-rally-bright-green group-hover:bg-rally-bright-green group-hover:bg-opacity-90 text-rally-dark-green px-3 py-1 rounded'}" style="${league.is_current ? 'background-color: #797979 !important;' : 'background-color: #bff863 !important; color: #045454 !important;'}">
                                     ${league.is_current ? 'Current' : 'Switch'}
                                 </div>
                             </button>
                         `;
                         }).join('');
                     }
+                    
+                    // Add team options if user has multiple teams in current league
+                    if (teamsData.success && teamsData.teams && teamsData.teams.length > 1) {
+                        if (html) html += '<div class="mt-6"></div>';
+                        html += '<div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">Switch to Different Team (Same League)</div>';
+                        html += teamsData.teams.map(team => `
+                            <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
+                                    class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-rally-bright-green hover:bg-opacity-10 transition-all duration-200 border-2 border-gray-300 hover:border-rally-dark-green hover:shadow-md group mb-2
+                                           ${team.is_current ? 'bg-rally-bright-green bg-opacity-20 border-rally-dark-green' : ''}">
+                                <div class="text-left">
+                                    <div class="font-bold text-gray-900 group-hover:text-rally-dark-green">${team.club_name}</div>
+                                    <div class="text-sm text-gray-600 group-hover:text-rally-dark-green">${team.series_name} • ${team.match_count} matches</div>
+                                </div>
+                                <div class="text-sm ${team.is_current ? 'bg-gray-500 text-white px-3 py-1 rounded' : 'bg-rally-dark-green group-hover:bg-opacity-90 text-white px-3 py-1 rounded'}" style="${team.is_current ? 'background-color: #797979 !important;' : 'background-color: #045454 !important;'}">
+                                    ${team.is_current ? 'Current' : 'Switch'}
+                                </div>
+                            </button>
+                        `).join('');
+                    }
+                    
+                    // If no options available, show message
+                    if (!html) {
+                        html = '<div class="text-center py-4 text-gray-500">No switching options available</div>';
+                    }
+                    
+                    optionsContainer.innerHTML = html;
                 }
             } catch (error) {
                 console.error('Error loading league switcher options:', error);
@@ -3347,7 +3411,60 @@
                 // Reset button
                 const leagueButton = document.getElementById('leagueSwitcherTrigger');
                 if (leagueButton) {
-                    leagueButton.innerHTML = '(change)';
+                    leagueButton.innerHTML = 'Switch League/Team';
+                    leagueButton.disabled = false;
+                }
+            }
+        }
+
+        async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
+            try {
+                // Close modal first
+                const modal = document.getElementById('leagueSwitcherModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+                
+                // Show loading
+                const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                if (leagueButton) {
+                    leagueButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+                    leagueButton.disabled = true;
+                }
+                
+                const response = await fetch('/api/switch-team-in-league', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        team_id: teamId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Show success briefly then reload
+                    if (leagueButton) {
+                        leagueButton.innerHTML = '<i class="fas fa-check text-xs"></i>';
+                    }
+                    
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    throw new Error(data.error || 'Team switch failed');
+                }
+            } catch (error) {
+                console.error('Team switch error:', error);
+                alert(`Failed to switch teams: ${error.message}`);
+                
+                // Reset button
+                const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                if (leagueButton) {
+                    leagueButton.innerHTML = 'Switch League/Team';
                     leagueButton.disabled = false;
                 }
             }
