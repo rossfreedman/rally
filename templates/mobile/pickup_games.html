@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <!-- Visual slot representation -->
-                    <div class="grid grid-cols-4 gap-1 mb-3">
+                    <div class="grid grid-cols-1 gap-1 mb-3">
                         ${Array.from({ length: game.players_requested }, (_, i) => {
                             const slotNumber = i + 1;
                             const isOccupied = i < game.slots_filled;

@@ -2936,15 +2936,11 @@
             const div = document.createElement('div');
             div.className = 'flex items-center gap-6 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition';
             
-            const gameDate = new Date(game.game_date);
-            const dateStr = gameDate.toLocaleDateString('en-US', { 
-                weekday: 'short',
-                month: 'short', 
-                day: 'numeric' 
-            });
-            const timeStr = game.game_time || 'TBD';
+            // Use the formatted_date and formatted_time from the API response
+            const dateStr = game.formatted_date || 'Invalid Date';
+            const timeStr = game.formatted_time || 'TBD';
             const description = game.description || 'Pickup Game';
-            const participants = game.actual_participants || 0;
+            const participants = game.players_committed || 0;
             const requested = game.players_requested || 4;
             
             div.innerHTML = `
