@@ -571,6 +571,13 @@
                                 </tbody>
                             </table>
                         </div>
+                        
+                        <!-- View All Teams Button -->
+                        <div class="mt-4 pt-3 border-t border-gray-200">
+                            <button onclick="viewAllClubTeams()" class="w-full bg-[#045454] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#033d3d] transition-colors">
+                                View all {{ session_data.user.club or 'Club' }} teams →
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Empty state -->
@@ -2967,6 +2974,14 @@
         function viewMoreMatches() {
             // Navigate to analyze-me page with hash for auto-scroll
             window.location.href = '/mobile/analyze-me#last-3-matches';
+        }
+
+        // ============================================
+        // VIEW ALL CLUB TEAMS FUNCTION
+        // ============================================
+        function viewAllClubTeams() {
+            // Navigate to my-club page
+            window.location.href = '/mobile/my-club';
         }
 
         // ============================================
