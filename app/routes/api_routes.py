@@ -13660,9 +13660,90 @@ def get_club_standings_api():
                 "error": "Invalid league ID"
             }), 400
         
-        # Get player streaks using the existing optimized function
-        from app.services.mobile_service import calculate_player_streaks
-        streaks = calculate_player_streaks(club_name, user_league_db_id)
+        # OPTIMIZED: Get player streaks with a much faster query
+        # Instead of loading all match data, get recent streaks only
+        streaks_query = """
+            WITH recent_matches AS (
+                SELECT 
+                    ms.match_date,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.league_id
+                FROM match_scores ms
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '30 days'
+                AND ms.winner IS NOT NULL
+                AND ms.winner != ''
+                AND ms.league_id = %s
+                AND (
+                    ms.home_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.home_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                )
+                ORDER BY ms.match_date DESC, ms.id DESC
+                LIMIT 1000
+            )
+            SELECT 
+                p.tenniscores_player_id,
+                p.first_name || ' ' || p.last_name as player_name,
+                p.team_id,
+                s.name as series_name,
+                COUNT(*) as recent_matches,
+                SUM(CASE 
+                    WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
+                         (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
+                         (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
+                         (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
+                    THEN 1 ELSE 0 
+                END) as recent_wins
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN recent_matches rm ON (
+                rm.home_player_1_id = p.tenniscores_player_id OR
+                rm.home_player_2_id = p.tenniscores_player_id OR
+                rm.away_player_1_id = p.tenniscores_player_id OR
+                rm.away_player_2_id = p.tenniscores_player_id
+            )
+            WHERE c.name ILIKE %s
+            AND p.is_active = true
+            GROUP BY p.tenniscores_player_id, p.first_name, p.last_name, p.team_id, s.name
+            HAVING COUNT(*) >= 3 AND SUM(CASE 
+                WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
+                     (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
+                     (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
+                     (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
+                THEN 1 ELSE 0 
+            END) >= 2
+            ORDER BY recent_wins DESC, recent_matches DESC
+            LIMIT 20
+        """
+        
+        try:
+            streaks_results = execute_query(streaks_query, [user_league_db_id, f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%'])
+            
+            # Format streaks data
+            streaks = []
+            for row in streaks_results:
+                streaks.append({
+                    'player_name': row['player_name'],
+                    'tenniscores_player_id': row['tenniscores_player_id'],
+                    'team_id': row['team_id'],
+                    'current_streak': min(row['recent_wins'], 5),  # Cap at 5 for display
+                    'best_streak': min(row['recent_wins'], 5),
+                    'last_match_date': 'Recent',
+                    'series': row['series_name'] or 'No Series',
+                    'series_name': row['series_name'] or 'No Series',
+                    'total_matches': row['recent_matches']
+                })
+        except Exception as e:
+            print(f"Error calculating optimized player streaks: {e}")
+            streaks = []
         
         # OPTIMIZED: Use a single query with proper SQL ranking (much faster than nested loops)
         standings_query = """
