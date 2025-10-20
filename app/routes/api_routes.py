@@ -904,7 +904,7 @@ def get_last_3_matches():
         # Query the last 3 matches for this player with team filtering
         if league_id_int:
             matches_query = f"""
-                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                SELECT 
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     match_date,
                     home_team as "Home Team",
@@ -914,12 +914,13 @@ def get_last_3_matches():
                     home_player_1_id as "Home Player 1",
                     home_player_2_id as "Home Player 2",
                     away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
+                    away_player_2_id as "Away Player 2",
+                    id as match_id
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
                 {team_filter_clause}
-                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                ORDER BY match_date DESC, id DESC
                 LIMIT 3
             """
             query_params = [player_id, player_id, player_id, player_id, league_id_int] + team_filter_params
@@ -931,7 +932,7 @@ def get_last_3_matches():
             # No league_id available, still apply team filtering if possible
             if team_filter_clause:
                 matches_query = f"""
-                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                    SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                         match_date,
                         home_team as "Home Team",
@@ -941,11 +942,12 @@ def get_last_3_matches():
                         home_player_1_id as "Home Player 1",
                         home_player_2_id as "Home Player 2",
                         away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
+                        away_player_2_id as "Away Player 2",
+                        id as match_id
                     FROM match_scores
                     WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                     {team_filter_clause}
-                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    ORDER BY match_date DESC, id DESC
                     LIMIT 3
                 """
                 query_params = [player_id, player_id, player_id, player_id] + team_filter_params
@@ -953,7 +955,7 @@ def get_last_3_matches():
             else:
                 # No filtering possible, fall back to original behavior
                 matches_query = """
-                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                    SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                         match_date,
                         home_team as "Home Team",
@@ -963,10 +965,11 @@ def get_last_3_matches():
                         home_player_1_id as "Home Player 1",
                         home_player_2_id as "Home Player 2",
                         away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
+                        away_player_2_id as "Away Player 2",
+                        id as match_id
                     FROM match_scores
                     WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    ORDER BY match_date DESC, id DESC
                     LIMIT 3
                 """
                 matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
