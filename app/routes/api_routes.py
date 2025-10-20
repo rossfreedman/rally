@@ -13664,25 +13664,11 @@ def get_club_standings_api():
         from app.services.mobile_service import calculate_player_streaks
         streaks = calculate_player_streaks(club_name, user_league_db_id)
         
-        # Use the same logic as get_mobile_club_data to calculate standings correctly
-        standings = []
-        
-        # Get all unique series for this club
-        series_query = """
-            SELECT DISTINCT ss.series
-            FROM series_stats ss
-            WHERE ss.team LIKE %s 
-            AND ss.league_id = %s
-            ORDER BY ss.series
-        """
-        series_list = execute_query(series_query, [f"{club_name}%", user_league_db_id])
-        
-        for series_row in series_list:
-            series = series_row["series"]
-            
-            # Get team stats for this series
-            team_stats_query = """
+        # OPTIMIZED: Use a single query with proper SQL ranking (much faster than nested loops)
+        standings_query = """
+            WITH ranked_teams AS (
                 SELECT 
+                    ss.series,
                     ss.team,
                     ss.points,
                     ss.matches_won + ss.matches_lost + ss.matches_tied as total_matches,
@@ -13691,57 +13677,39 @@ def get_club_standings_api():
                         WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
                         THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
                         ELSE 0 
-                    END as avg_points
+                    END as avg_points,
+                    DENSE_RANK() OVER (PARTITION BY ss.series ORDER BY ss.points DESC) as place_rank,
+                    COUNT(*) OVER (PARTITION BY ss.series) as total_teams_in_series
                 FROM series_stats ss
                 WHERE ss.team LIKE %s 
                 AND ss.league_id = %s
-                AND ss.series = %s
-            """
-            team_stats_results = execute_query(team_stats_query, [f"{club_name}%", user_league_db_id, series])
-            
-            for team_stats in team_stats_results:
-                # Get all teams in this series to calculate proper ranking
-                series_teams_query = """
-                    SELECT ss.team, ss.points
-                    FROM series_stats ss
-                    WHERE ss.series = %s 
-                    AND ss.league_id = %s
-                    ORDER BY ss.points DESC, ss.team ASC
-                """
-                
-                series_teams = execute_query(series_teams_query, [series, user_league_db_id])
-                
-                # Calculate proper place with tie handling (same logic as get_mobile_club_data)
-                place = 1
-                current_place = 1
-                prev_points = None
-                
-                for i, team in enumerate(series_teams):
-                    # Check if this team is tied with the previous team (same points)
-                    if prev_points is not None and team["points"] == prev_points:
-                        # This team is tied with the previous team, same place
-                        pass  # current_place stays the same
-                    else:
-                        # This team is not tied, advance to next place
-                        current_place = i + 1
-                    
-                    # If this is our team, record the place
-                    if team["team"] == team_stats["team"]:
-                        place = current_place
-                        break
-                    
-                    # Update previous points for next iteration
-                    prev_points = team["points"]
-                
-                standings.append({
-                    "series": series,
-                    "team": team_stats["team"],
-                    "points": team_stats["points"],
-                    "total_matches": team_stats["total_matches"],
-                    "total_points": team_stats["total_points"],
-                    "avg_points": team_stats["avg_points"],
-                    "place": f"{place}/{len(series_teams)}"
-                })
+            )
+            SELECT 
+                series,
+                team,
+                points,
+                total_matches,
+                total_points,
+                avg_points,
+                place_rank || '/' || total_teams_in_series as place
+            FROM ranked_teams
+            ORDER BY series, place_rank
+        """
+        
+        standings_results = execute_query(standings_query, [f"{club_name}%", user_league_db_id])
+        
+        # Parse standings results
+        standings = []
+        for row in standings_results:
+            standings.append({
+                "series": row["series"],
+                "team": row["team"],
+                "points": row["points"],
+                "total_matches": row["total_matches"],
+                "total_points": row["total_points"],
+                "avg_points": row["avg_points"],
+                "place": row["place"]
+            })
         
         # Return the optimized club standings data
         return jsonify({
