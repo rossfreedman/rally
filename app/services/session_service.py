@@ -89,7 +89,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             
             # Player data
             "club": result["club"] or "",
-            "club_logo": result["club_logo"] or "",
+            "club_logo": f"static/images/clubs/{result['club_logo']}" if result["club_logo"] else "",
             "series": display_series_name,
             "club_id": result["club_id"],
             "series_id": result["series_id"],
