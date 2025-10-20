@@ -1,0 +1,115 @@
+{
+  "timestamp": "20251020_090002",
+  "clubs": [
+    {
+      "id": 8486,
+      "name": "Barrington Hills CC",
+      "logo_filename": "static/images/clubs/barringtonhillscc_logo.png"
+    },
+    {
+      "id": 8488,
+      "name": "Biltmore CC",
+      "logo_filename": "static/images/clubs/biltmorecc_logo.png"
+    },
+    {
+      "id": 8501,
+      "name": "Glen Oak I",
+      "logo_filename": "static/images/clubs/glenoaki_logo.png"
+    },
+    {
+      "id": 8509,
+      "name": "Hinsdale PC I",
+      "logo_filename": "static/images/clubs/hinsdalepci_logo.png"
+    },
+    {
+      "id": 8510,
+      "name": "Hinsdale PC II",
+      "logo_filename": "static/images/clubs/hinsdalepcii_logo.png"
+    },
+    {
+      "id": 8514,
+      "name": "LaGrange CC",
+      "logo_filename": "static/images/clubs/lagrangecc_logo.png"
+    },
+    {
+      "id": 8515,
+      "name": "LaGrange CC I",
+      "logo_filename": "static/images/clubs/lagrangecci_logo.png"
+    },
+    {
+      "id": 8516,
+      "name": "LaGrange CC II",
+      "logo_filename": "static/images/clubs/lagrangeccii_logo.png"
+    },
+    {
+      "id": 8519,
+      "name": "Lake Shore CC",
+      "logo_filename": "static/images/clubs/lakeshorecc_logo.png"
+    },
+    {
+      "id": 8531,
+      "name": "Oak Park CC",
+      "logo_filename": "static/images/clubs/oakparkcc_logo.png"
+    },
+    {
+      "id": 8532,
+      "name": "Oak Park CC I",
+      "logo_filename": "static/images/clubs/oakparkcci_logo.png"
+    },
+    {
+      "id": 8533,
+      "name": "Oak Park CC II",
+      "logo_filename": "static/images/clubs/oakparkccii_logo.png"
+    },
+    {
+      "id": 8539,
+      "name": "Prairie Club I",
+      "logo_filename": "static/images/clubs/prairieclubi_logo.png"
+    },
+    {
+      "id": 8540,
+      "name": "Prairie Club II",
+      "logo_filename": "static/images/clubs/prairieclubii_logo.png"
+    },
+    {
+      "id": 8543,
+      "name": "River Forest CC",
+      "logo_filename": "static/images/clubs/riverforestcc_logo.png"
+    },
+    {
+      "id": 8544,
+      "name": "River Forest PD",
+      "logo_filename": "static/images/clubs/riverforestpd_logo.png"
+    },
+    {
+      "id": 8545,
+      "name": "River Forest PD I",
+      "logo_filename": "static/images/clubs/riverforestpdi_logo.png"
+    },
+    {
+      "id": 8546,
+      "name": "River Forest PD II",
+      "logo_filename": "static/images/clubs/riverforestpdii_logo.png"
+    },
+    {
+      "id": 8562,
+      "name": "Wilmette PD I",
+      "logo_filename": "static/images/clubs/wilmettepdi_logo.png"
+    },
+    {
+      "id": 8563,
+      "name": "Wilmette PD II",
+      "logo_filename": "static/images/clubs/wilmettepdii_logo.png"
+    },
+    {
+      "id": 8565,
+      "name": "Winnetka I",
+      "logo_filename": "static/images/clubs/winnetkai_logo.png"
+    },
+    {
+      "id": 8566,
+      "name": "Winnetka II",
+      "logo_filename": "static/images/clubs/winnetkaii_logo.png"
+    }
+  ]
+}
