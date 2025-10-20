@@ -13746,9 +13746,17 @@ def get_club_standings_api():
             streaks = []
         
         # OPTIMIZED: Use a single query with proper ranking logic
-        # Get all team data and calculate rankings in one go
+        # The issue is that we need to rank ALL teams in each series, not just club teams
         standings_query = """
-            WITH all_teams AS (
+            SELECT 
+                club_teams.series,
+                club_teams.team,
+                club_teams.points,
+                club_teams.total_matches,
+                club_teams.total_points,
+                club_teams.avg_points,
+                all_rankings.rank_in_series || '/' || all_rankings.total_teams_in_series as place
+            FROM (
                 SELECT 
                     ss.series,
                     ss.team,
@@ -13762,34 +13770,26 @@ def get_club_standings_api():
                     END as avg_points
                 FROM series_stats ss
                 WHERE ss.league_id = %s
-                ORDER BY ss.series, ss.points DESC, ss.team ASC
-            ),
-            club_teams AS (
+                AND ss.team LIKE %s
+            ) club_teams
+            JOIN (
                 SELECT 
-                    at.series,
-                    at.team,
-                    at.points,
-                    at.total_matches,
-                    at.total_points,
-                    at.avg_points,
-                    ROW_NUMBER() OVER (PARTITION BY at.series ORDER BY at.points DESC, at.team ASC) as rank_in_series,
-                    COUNT(*) OVER (PARTITION BY at.series) as total_teams_in_series
-                FROM all_teams at
-                WHERE at.team LIKE %s
-            )
-            SELECT 
-                series,
-                team,
-                points,
-                total_matches,
-                total_points,
-                avg_points,
-                rank_in_series || '/' || total_teams_in_series as place
-            FROM club_teams
-            ORDER BY series, rank_in_series
+                    ss.series,
+                    ss.team,
+                    ROW_NUMBER() OVER (PARTITION BY ss.series ORDER BY ss.points DESC, ss.team ASC) as rank_in_series,
+                    COUNT(*) OVER (PARTITION BY ss.series) as total_teams_in_series
+                FROM series_stats ss
+                WHERE ss.league_id = %s
+            ) all_rankings ON club_teams.series = all_rankings.series AND club_teams.team = all_rankings.team
+            ORDER BY club_teams.series, all_rankings.rank_in_series
         """
         
-        standings_results = execute_query(standings_query, [user_league_db_id, f"{club_name}%"])
+        standings_results = execute_query(standings_query, [user_league_db_id, f"{club_name}%", user_league_db_id])
+        
+        # Debug: Print what we're getting
+        print(f"[DEBUG] Club standings query returned {len(standings_results)} teams")
+        for i, row in enumerate(standings_results[:5]):  # Print first 5
+            print(f"[DEBUG] Team {i+1}: {row['team']} - Place: {row['place']} - Points: {row['points']}")
         
         # Parse standings results
         standings = []
