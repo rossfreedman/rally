@@ -457,13 +457,20 @@
                     <h3 class="text-2xl font-bold mb-0" style="color: #bff863;">Series Standings</h3>
                 </div>
                 
+                <div class="mb-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-base font-medium text-blue-700 text-center">
+                        <i class="fas fa-arrows-alt-h mr-2 text-blue-600"></i>
+                        Scroll right to see all columns
+                    </p>
+                </div>
+                
                 <div id="series-loading" class="text-center py-8">
                     <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
                 </div>
                 
                 <div id="series-content" class="hidden">
                     <div class="overflow-x-auto">
-                        <table id="seriesTable" class="w-full text-sm text-left" style="table-layout: fixed;">
+                        <table id="seriesTable" class="text-sm text-left min-w-full">
                             <!-- Table will be populated by JS -->
                         </table>
                     </div>
@@ -893,7 +900,8 @@
             
             try {
                 // Load all data simultaneously using Promise.allSettled for better error handling
-                await Promise.allSettled([
+                console.log('🔍 Parallel loading: Starting Promise.allSettled');
+                const results = await Promise.allSettled([
                     loadPTIData(),
                     loadUpcomingMatches(),
                     loadPractices(),
@@ -905,6 +913,13 @@
                     loadMyLessons(),
                     loadPaddleTip()
                 ]);
+                
+                console.log('🔍 Parallel loading: Promise.allSettled completed');
+                console.log('🔍 Parallel loading: Results:', results.map((result, index) => ({
+                    index,
+                    status: result.status,
+                    error: result.status === 'rejected' ? result.reason : null
+                })));
                 
                 console.log('✅ All data loaded in parallel');
             } catch (error) {
@@ -1071,9 +1086,12 @@
         // PTI DATA LOADING
         // ============================================
         async function loadPTIData() {
+            console.log('🔍 loadPTIData: Starting PTI data loading');
             const loading = document.getElementById('pti-loading');
             const content = document.getElementById('pti-content');
             const ptiCard = document.getElementById('pti-card');
+            
+            console.log('🔍 loadPTIData: Elements found - loading:', !!loading, 'content:', !!content, 'ptiCard:', !!ptiCard);
             
             try {
                 // Use the same API as analyze-me page for consistent PTI data
@@ -1082,24 +1100,82 @@
                 loading.classList.add('hidden');
                 
                 if (!response.ok) {
-                    // Hide PTI card if no data available
-                    ptiCard.classList.add('hidden');
+                    console.log('🔍 loadPTIData: PTI API not available (likely CNSWPL player), continuing without PTI data');
+                    // For CNSWPL players who don't have PTI, show a message and continue
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    document.getElementById('pti-value').textContent = 'N/A';
+                    document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
+                    document.getElementById('pti-card').classList.add('loaded');
+                    savePersistedData();
+                    
+                    // Still load Best Partner, Last Match, and Win Streak data even without PTI
+                    console.log('🔍 Main loading: About to call loadBestPartner()');
+                    await loadBestPartner();
+                    
+                    console.log('🔍 Main loading: About to call loadLastMatchData()');
+                    await loadLastMatchData();
+                    
+                    console.log('🔍 Main loading: About to call loadWinStreakData()');
+                    await loadWinStreakData();
+                    
+                    console.log('🔍 loadPTIData: Successfully completed without PTI data');
                     return;
                 }
                 
                 const data = await response.json();
                 
                 if (data.error || !data.success) {
-                    // Hide PTI card if no data available
-                    ptiCard.classList.add('hidden');
+                    console.log('🔍 loadPTIData: PTI data error or no success (likely CNSWPL player), continuing without PTI data');
+                    // For CNSWPL players who don't have PTI, show a message and continue
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    document.getElementById('pti-value').textContent = 'N/A';
+                    document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
+                    document.getElementById('pti-card').classList.add('loaded');
+                    savePersistedData();
+                    
+                    // Still load Best Partner, Last Match, and Win Streak data even without PTI
+                    console.log('🔍 Main loading: About to call loadBestPartner()');
+                    await loadBestPartner();
+                    
+                    console.log('🔍 Main loading: About to call loadLastMatchData()');
+                    await loadLastMatchData();
+                    
+                    console.log('🔍 Main loading: About to call loadWinStreakData()');
+                    await loadWinStreakData();
+                    
+                    console.log('🔍 loadPTIData: Successfully completed without PTI data');
                     return;
                 }
                 
                 // Check if user has valid PTI data
-                const currentPTI = data.current_pti || 0;
-                if (currentPTI <= 0) {
-                    // Hide PTI card if no valid PTI data
-                    ptiCard.classList.add('hidden');
+                console.log('🔍 PTI Debug - Raw API response:', data);
+                console.log('🔍 PTI Debug - data.current_pti:', data.current_pti, 'type:', typeof data.current_pti);
+                const currentPTI = data.current_pti;
+                console.log('🔍 PTI Debug - currentPTI value:', currentPTI, 'type:', typeof currentPTI);
+                console.log('🔍 PTI Debug - currentPTI === null || currentPTI === undefined:', currentPTI === null || currentPTI === undefined);
+                if (currentPTI === null || currentPTI === undefined) {
+                    console.log('🔍 loadPTIData: No valid PTI data (likely CNSWPL player), continuing without PTI data');
+                    // For CNSWPL players who don't have PTI, show a message and continue
+                    loading.classList.add('hidden');
+                    content.classList.remove('hidden');
+                    document.getElementById('pti-value').textContent = 'N/A';
+                    document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
+                    document.getElementById('pti-card').classList.add('loaded');
+                    savePersistedData();
+                    
+                    // Still load Best Partner, Last Match, and Win Streak data even without PTI
+                    console.log('🔍 Main loading: About to call loadBestPartner()');
+                    await loadBestPartner();
+                    
+                    console.log('🔍 Main loading: About to call loadLastMatchData()');
+                    await loadLastMatchData();
+                    
+                    console.log('🔍 Main loading: About to call loadWinStreakData()');
+                    await loadWinStreakData();
+                    
+                    console.log('🔍 loadPTIData: Successfully completed without PTI data');
                     return;
                 }
                 
@@ -1123,8 +1199,10 @@
                 
                 // Get current season stats from the same API as analyze-me page
                 const seasonStatsResponse = await fetch('/api/current-season-stats');
+                console.log('Current season stats response status:', seasonStatsResponse.status);
                 if (seasonStatsResponse.ok) {
                     const seasonStatsData = await seasonStatsResponse.json();
+                    console.log('Current season stats data:', seasonStatsData);
                     if (seasonStatsData.success && seasonStatsData.matches > 0) {
                         // Use the actual current season data from analyze-me
                         const wins = seasonStatsData.wins || 0;
@@ -1206,9 +1284,9 @@
                                     }
                                 }
                                 
-                                document.getElementById('win-streak').innerHTML = currentStreak > 0 ? `🔥 ${currentStreak}` : getRandomNoStreakMessage();
+                                // Win streak will be loaded separately
                             } else {
-                                document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
+                                // Win streak will be loaded separately
                             }
                         } else {
                             document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
@@ -1256,13 +1334,21 @@
                 savePersistedData();
                 
                 // Load best partner data using the same API as analyze-me page
+                console.log('🔍 Main loading: About to call loadBestPartner()');
                 await loadBestPartner();
                 
                 // Load last match data using the same API as analyze-me page
+                console.log('🔍 Main loading: About to call loadLastMatchData()');
                 await loadLastMatchData();
                 
+                // Load win streak data
+                console.log('🔍 Main loading: About to call loadWinStreakData()');
+                await loadWinStreakData();
+                
+                console.log('🔍 loadPTIData: Successfully completed PTI data loading');
+                
             } catch (error) {
-                console.error('Error loading PTI data:', error);
+                console.error('🔍 loadPTIData: Error loading PTI data:', error);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
                 document.getElementById('pti-value').textContent = '--';
@@ -1427,34 +1513,20 @@
             const isHome = homeTeam.includes('{{ session_data.user.club | replace("'", "\\'") }}') || homeTeam.includes('{{ session_data.user.team_name | replace("'", "\\'") }}');
             const opponentName = isHome ? awayTeam : homeTeam;
             
-            // Extract club name from opponent team name and normalize for logo lookup
-            let clubName = opponentName.replace(/\s+\d+$/, '').toLowerCase();
+            // Use the logo filename directly from the database
+            const logoFilename = match.opponent_logo_filename;
+            const logoPath = logoFilename ? `/static/images/clubs/${logoFilename}?v=${Date.now()}` : null;
             
-            // Handle specific club name mappings for logo files
-            const clubMappings = {
-                'valley lo': 'valley_lo',
-                'michigan shores': 'michigan_shores',
-                'glenbrook rc': 'glenbrook_rc',
-                'midtown chicago': 'midtownchicago',
-                'midt bannockburn': 'midtbannockburn',
-                'life sport': 'lifesport',
-                'life sport lshire': 'lifesportlshire',
-                'river forest': 'riverforest',
-                'sunset ridge': 'sunsetridge',
-                'winter club': 'winterclub',
-                'north shore': 'northshore',
-                'lake bluff': 'lakebluff',
-                'westmoreland': 'westmoreland',
-                'wilmette': 'wilmette',
-                'winnetka': 'winnetka',
-                'knollwood': 'knollwood',
-                'briarwood': 'briarwood',
-                'evanston': 'evanston',
-                'tennaqua': 'tennaqua'
-            };
+            // Debug logging for logo issue
+            console.log(`🔍 Match Debug - ${opponentName}:`, {
+                logoFilename: logoFilename,
+                logoPath: logoPath,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam,
+                isHome: isHome,
+                opponentName: opponentName
+            });
             
-            // Apply mapping if exists, otherwise use the original club name
-            clubName = clubMappings[clubName] || clubName.replace(/\s+/g, '_');
             
             const matchDate = new Date(match.date);
             const dateStr = matchDate.toLocaleDateString('en-US', { 
@@ -1505,15 +1577,20 @@
             }
             
             div.innerHTML = `
-                <div class="w-16 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <img src="/static/images/clubs/${clubName}_logo.png" 
-                         alt="${opponentName} Logo" 
-                         class="max-w-14 max-h-12 w-auto h-auto object-contain rounded-lg"
-                         onerror="console.log('Logo not found for:', '${clubName}_logo.png'); this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <div class="w-12 h-12 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
-                        ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
-                    </div>
-                </div>
+        <div class="w-16 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <img src="${logoPath || '/static/images/clubs/default_club_logo.png'}" 
+                 alt="${opponentName} Logo" 
+                 class="w-14 h-14 rounded-lg"
+                 style="display: block;"
+                 id="logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}"
+                 data-opponent="${opponentName}"
+                 data-logo-filename="${logoFilename}"
+                 onload="console.log('🖼️ Image loaded for ${opponentName}:', this.src, 'ID:', this.id); this.nextElementSibling.style.display='none';"
+                 onerror="console.log('❌ Image failed for ${opponentName}:', this.src); this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="w-14 h-14 bg-gradient-to-br from-rally-green to-rally-green-light text-white flex items-center justify-center font-bold text-lg rounded-lg" style="display: none;">
+                ${opponentName.split(' ').map(word => word[0]).join('').substring(0, 2).toUpperCase()}
+            </div>
+        </div>
                 <div class="flex-1 min-w-0">
                     <div class="font-semibold text-[#045454]">vs ${opponentName}</div>
                     <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
@@ -1804,7 +1881,7 @@
                     const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
                         `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
                         `/mobile/player-detail/${player.player_id}`;
-                    const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
+                    const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
                     
                     // Create series chip
                     const seriesChip = seriesName !== 'No Series' ? 
@@ -1891,7 +1968,7 @@
                             const teamDetailLink = team.team_id ? 
                                 `/mobile/teams-players?team_id=${team.team_id}` :
                                 `/mobile/teams-players`;
-                            const magnifyingGlassIcon = `<a href="${teamDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Team Details"><i class="fas fa-search text-xs"></i></a>`;
+                            const magnifyingGlassIcon = `<a href="${teamDetailLink}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Team Details"><i class="fas fa-search text-xs"></i></a>`;
                             
                             row.innerHTML = `
                                 <td class="py-1 px-2">
@@ -1966,7 +2043,7 @@
                             const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
                                 `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
                                 `/mobile/player-detail/${player.player_id}`;
-                            const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
+                            const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Player Details"><i class="fas fa-search text-xs"></i></a>`;
                             
                             // Create series chip
                             const seriesChip = player.series_name ? 
@@ -1980,17 +2057,20 @@
                             const deltaSign = isPositive ? '+' : '';
                             
                             return `
-                                <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                    <div class="flex-1">
+                                <div class="flex items-center p-2 bg-gray-50 rounded-lg">
+                                    <div class="flex-1 min-w-0 pr-2">
                                         <div class="flex items-center mb-1">
-                                            <div class="font-semibold text-sm text-[#045454]">${player.first_name} ${player.last_name}</div>
+                                            <div class="font-semibold text-sm text-[#045454] truncate">${player.first_name} ${player.last_name}</div>
                                             ${magnifyingGlassIcon}
                                         </div>
                                         <div class="flex items-center">
                                             ${seriesChip}
                                         </div>
                                     </div>
-                                    <div class="text-right">
+                                    <div class="flex-1 text-center px-2">
+                                        <div class="text-sm font-medium text-gray-700 whitespace-nowrap">${player.starting_pti.toFixed(1)} → ${player.current_pti.toFixed(1)}</div>
+                                    </div>
+                                    <div class="flex-1 text-right pl-2">
                                         <div class="text-sm font-bold ${deltaClass}">${deltaSign}${player.pti_delta.toFixed(1)}</div>
                                         <div class="text-xs text-gray-500">${deltaLabel}</div>
                                     </div>
@@ -2318,18 +2398,24 @@
         // BEST PARTNER LOADING
         // ============================================
         async function loadBestPartner() {
+            console.log('🔍 loadBestPartner: Starting to load best partner data');
             try {
                 // Use the same API as analyze-me page to get partner analysis
+                console.log('🔍 loadBestPartner: Fetching /api/current-season-partner-analysis');
                 const response = await fetch('/api/current-season-partner-analysis');
+                console.log('🔍 loadBestPartner: Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const data = await response.json();
+                console.log('🔍 loadBestPartner: Response data:', data);
                 
                 if (data.success && data.partner_analysis && data.partner_analysis.length > 0) {
                     // Filter partners with wins > 0 (same logic as analyze-me page)
                     const qualifiedPartners = data.partner_analysis.filter(partner => partner.wins > 0);
+                    
+                    console.log('🔍 loadBestPartner: Found', data.partner_analysis.length, 'total partners,', qualifiedPartners.length, 'qualified partners');
                     
                     if (qualifiedPartners.length > 0) {
                         // Get the best partner (highest win rate, then most wins)
@@ -2398,7 +2484,7 @@
                                 <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                     <i class="fas fa-user-friends text-gray-400 text-xl"></i>
                                 </div>
-                                <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                                <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Need 2+ matches with a partner to see them here!</p>
                             </div>
                         `;
                     }
@@ -2408,7 +2494,7 @@
                             <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                                 <i class="fas fa-user-friends text-gray-400 text-xl"></i>
                             </div>
-                            <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                            <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Need 2+ matches with a partner to see them here!</p>
                         </div>
                     `;
                 }
@@ -2420,7 +2506,7 @@
                         <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                             <i class="fas fa-user-friends text-gray-400 text-xl"></i>
                         </div>
-                        <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Win at least 1 match with a partner to see them here!</p>
+                        <p class="text-gray-500 text-sm">No qualifying partnerships yet.<br>Need 2+ matches with a partner to see them here!</p>
                     </div>
                 `;
             }
@@ -2465,14 +2551,14 @@
                 const hasPtiData = stats.some(team => team.avg_pti && team.avg_pti !== 'N/A' && team.avg_pti !== null);
                 
                 let html = `<thead><tr>
-                  <th class="text-left py-3 px-2 font-semibold text-gray-700" style="width: 30%; white-space: nowrap;">Team</th>`;
+                  <th class="text-left py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Team</th>`;
                 if (hasPtiData) {
-                  html += `<th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Avg PTI</th>`;
+                  html += `<th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg PTI</th>`;
                 }
-                html += `<th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Record</th>
-                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Pts</th>
-                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Avg Pts</th>
-                  <th class="text-right py-3 px-2 font-semibold text-gray-700" style="width: 14%;">Pts Back</th>
+                html += `<th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Record</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg Pts</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts Back</th>
                 </tr></thead><tbody>`;
                 
                 stats.forEach((team, idx) => {
@@ -2513,32 +2599,32 @@
                     if (teamId) {
                         // If we have a team_id, make both team name and magnifying glass clickable
                         teamNameHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}</a>`;
-                        magnifyingGlassHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="text-blue-600 hover:text-blue-800 ml-1" title="View Team Details"><i class="fas fa-search"></i></a>`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Team Details"><i class="fas fa-search"></i></a>`;
                     } else {
                         // If no team_id, show team name as text but still show magnifying glass (could link to search or club page)
                         teamNameHtml = `${teamDisplayName}`;
-                        magnifyingGlassHtml = `<a href="/mobile/teams-players" class="text-blue-600 hover:text-blue-800 ml-1" title="View Teams"><i class="fas fa-search"></i></a>`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Teams"><i class="fas fa-search"></i></a>`;
                     }
                     
                     html += `<tr class="${rowClass}">
-                      <td class="py-3 px-2 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 25%;">
+                      <td class="py-4 px-6 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}">
                         <div class="flex items-center">
-                          <div class="flex-1 truncate">${playoffIcon}${teamNameHtml}</div>
-                          <div class="flex-shrink-0 ml-2">${magnifyingGlassHtml}</div>
+                          <div class="flex-1 whitespace-nowrap">${playoffIcon}${teamNameHtml}</div>
+                          <div class="flex-shrink-0 ml-3">${magnifyingGlassHtml}</div>
                         </div>
                       </td>`;
                     
                     // Add Avg PTI column (if PTI data exists)
                     if (hasPtiData) {
                         const avgPti = team.avg_pti && team.avg_pti !== 'N/A' ? team.avg_pti : 'N/A';
-                        html += `<td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 14%;">${avgPti}</td>`;
+                        html += `<td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${avgPti}</td>`;
                     }
                     
                     html += `
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'}" style="width: 14%;">${team.matches.won}-${team.matches.lost}</td>
-                        <td class="py-3 px-2 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}" style="width: 14%;">${team.points}</td>
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'}" style="width: 14%;">${avgPoints}</td>
-                        <td class="py-3 px-2 text-right ${isUserTeam ? 'text-green-600' : 'text-gray-600'}" style="width: 14%;">${firstPlacePoints - team.points}</td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${team.matches.won}-${team.matches.lost}</td>
+                        <td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${team.points}</td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${avgPoints}</td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-600' : 'text-gray-600'} whitespace-nowrap">${firstPlacePoints - team.points}</td>
                       </tr>`;
                 });
                 html += '</tbody>';
@@ -2591,9 +2677,71 @@
         }
 
         // ============================================
+        // WIN STREAK LOADING
+        // ============================================
+        async function loadWinStreakData() {
+            console.log('🔍 loadWinStreakData: Starting to load win streak data');
+            
+            try {
+                // Define random messages for no streak
+                const noStreakMessages = [
+                    'No streak yet. Time to start one! 🎾',
+                    'Every champion started with zero wins.',
+                    'Still streakless. Maybe bribe your partner with bagels next time. 🥯',
+                    'Technically, not losing is a streak… right?'
+                ];
+                
+                // Function to get random message
+                const getRandomNoStreakMessage = () => {
+                    const randomIndex = Math.floor(Math.random() * noStreakMessages.length);
+                    return `<span class="text-lg text-gray-600 leading-tight">${noStreakMessages[randomIndex]}</span>`;
+                };
+                
+                // Calculate win streak from last-3-matches (for streak only)
+                console.log('🔍 loadWinStreakData: Fetching /api/last-3-matches');
+                const lastMatchesResponse = await fetch('/api/last-3-matches');
+                console.log('🔍 loadWinStreakData: Response status:', lastMatchesResponse.status);
+                
+                if (lastMatchesResponse.ok) {
+                    const lastMatchesData = await lastMatchesResponse.json();
+                    console.log('🔍 loadWinStreakData: Response data:', lastMatchesData);
+                    
+                    if (lastMatchesData.matches && lastMatchesData.matches.length > 0) {
+                        let currentStreak = 0;
+                        const matches = lastMatchesData.matches.reverse();
+                        
+                        for (const match of matches) {
+                            const isHome = match['Home Team'] && match['Home Team'].includes('{{ session_data.user.club | replace("'", "\\'") }}');
+                            const won = (isHome && match.Winner === 'home') || (!isHome && match.Winner === 'away');
+                            
+                            if (won) {
+                                currentStreak++;
+                            } else {
+                                break; // Stop counting streak after first loss
+                            }
+                        }
+                        
+                        console.log('🔍 loadWinStreakData: Calculated streak:', currentStreak);
+                        document.getElementById('win-streak').innerHTML = currentStreak > 0 ? `🔥 ${currentStreak}` : getRandomNoStreakMessage();
+                    } else {
+                        console.log('🔍 loadWinStreakData: No matches found');
+                        document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
+                    }
+                } else {
+                    console.log('🔍 loadWinStreakData: API call failed');
+                    document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
+                }
+            } catch (error) {
+                console.error('🔍 loadWinStreakData: Error loading win streak data:', error);
+                document.getElementById('win-streak').innerHTML = '<span class="text-lg text-gray-600">Error loading streak</span>';
+            }
+        }
+
+        // ============================================
         // LAST MATCH LOADING
         // ============================================
         async function loadLastMatchData() {
+            console.log('🔍 loadLastMatchData: Starting to load last match data');
             const loading = document.getElementById('last-match-loading');
             const content = document.getElementById('last-match-content');
             const empty = document.getElementById('last-match-empty');
@@ -2606,7 +2754,9 @@
             
             try {
                 // Use the same API as analyze-me page
+                console.log('🔍 loadLastMatchData: Fetching /api/last-3-matches');
                 const response = await fetch('/api/last-3-matches');
+                console.log('🔍 loadLastMatchData: Response status:', response.status);
                 
                 if (response.status === 404) {
                     loading.classList.add('hidden');
@@ -2615,6 +2765,7 @@
                 }
                 
                 const data = await response.json();
+                console.log('🔍 loadLastMatchData: Response data:', data);
                 
                 if (data.error || !data.matches || data.matches.length === 0) {
                     loading.classList.add('hidden');

@@ -3585,7 +3585,7 @@ def get_my_lessons():
 
 @mobile_bp.route("/api/user-availability", methods=["GET"])
 @login_required
-def get_user_availability():
+def api_get_user_availability():
     """API endpoint to get user's availability for upcoming matches/practices"""
     try:
         user = session.get("user")

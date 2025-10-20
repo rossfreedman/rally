@@ -4856,9 +4856,7 @@ def get_mobile_team_data(user):
         last_3_matches_query = """
             WITH team_match_dates AS (
                 SELECT DISTINCT 
-                    match_date,
-                    home_team,
-                    away_team
+                    match_date
                 FROM match_scores
                 WHERE (home_team = %s OR away_team = %s)
                 AND league_id = %s
@@ -4877,11 +4875,7 @@ def get_mobile_team_data(user):
                 ms.away_player_1_id as "Away Player 1",
                 ms.away_player_2_id as "Away Player 2"
             FROM match_scores ms
-            INNER JOIN team_match_dates tmd ON (
-                ms.match_date = tmd.match_date 
-                AND ms.home_team = tmd.home_team 
-                AND ms.away_team = tmd.away_team
-            )
+            INNER JOIN team_match_dates tmd ON ms.match_date = tmd.match_date
             WHERE (ms.home_team = %s OR ms.away_team = %s)
             AND ms.league_id = %s
             ORDER BY ms.match_date DESC, ms.id
@@ -4893,6 +4887,7 @@ def get_mobile_team_data(user):
         matches_by_date = {}
         for match in last_3_matches:
             date = match.get("Date", "")
+            match_date = match.get("match_date")  # Get the actual datetime object for sorting
             home_team = match.get("Home Team", "")
             away_team = match.get("Away Team", "")
             
@@ -4906,6 +4901,7 @@ def get_mobile_team_data(user):
                 
                 matches_by_date[matchup_key] = {
                     "date": date,
+                    "match_date": match_date,  # Store datetime object for proper sorting
                     "opponent": opponent,
                     "is_home": is_home,
                     "home_team": home_team,
@@ -5014,6 +5010,7 @@ def get_mobile_team_data(user):
             # Create summary for the team matchup
             formatted_match = {
                 "date": matchup_data["date"],
+                "match_date": matchup_data["match_date"],  # Include datetime for sorting
                 "opponent": matchup_data["opponent"],
                 "result": team_result,
                 "total_matches": len(matchup_data["individual_matches"]),
@@ -5025,8 +5022,8 @@ def get_mobile_team_data(user):
             }
             formatted_matches.append(formatted_match)
         
-        # Sort by date (most recent first)
-        formatted_matches.sort(key=lambda x: x["date"], reverse=True)
+        # Sort by date (most recent first) - use datetime object for proper chronological sorting
+        formatted_matches.sort(key=lambda x: x.get("match_date") or x["date"], reverse=True)
         
         # Get team videos
         team_videos = get_team_videos(team_id)

@@ -13364,8 +13364,10 @@ def get_current_season_stats_api():
         
         # Get player analysis data using the same function as analyze-me page
         analyze_data = get_player_analysis(user_data)
+        print(f"[DEBUG] Current season stats API - analyze_data: {analyze_data}")
         
         if analyze_data.get("error"):
+            print(f"[DEBUG] Current season stats API - error: {analyze_data['error']}")
             return jsonify({
                 "success": False,
                 "error": analyze_data["error"]
@@ -13373,22 +13375,26 @@ def get_current_season_stats_api():
         
         # Extract current season data
         current_season = analyze_data.get("current_season", {})
+        print(f"[DEBUG] Current season stats API - current_season: {current_season}")
         
         if not current_season:
+            print(f"[DEBUG] Current season stats API - no current season data")
             return jsonify({
                 "success": False,
                 "error": "No current season data available"
             }), 404
         
         # Return the current season stats
-        return jsonify({
+        result = {
             "success": True,
             "matches": current_season.get("matches", 0),
             "wins": current_season.get("wins", 0),
             "losses": current_season.get("losses", 0),
             "win_rate": current_season.get("winRate", 0),
             "pti_change": current_season.get("ptiChange", "N/A")
-        }), 200
+        }
+        print(f"[DEBUG] Current season stats API - returning: {result}")
+        return jsonify(result), 200
         
     except Exception as e:
         print(f"Error getting current season stats: {str(e)}")
