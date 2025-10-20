@@ -2900,7 +2900,7 @@
                         
                         <!-- Court Header -->
                         <div class="px-3 py-2" style="background-color: #045454;">
-                            <span class="text-sm font-bold" style="color: #bff863;">Court ${lastMatch.court_number || '1'}</span>
+                            <span class="text-sm font-bold" style="color: #bff863;">${lastMatch.court_number || 'Court 1'}</span>
                         </div>
                         
                         <!-- Match Table -->
@@ -2940,6 +2940,13 @@
                                 </tr>
                             </tbody>
                         </table>
+                        
+                        <!-- View More Matches Button -->
+                        <div class="px-3 py-3 bg-gray-50 border-t border-gray-200">
+                            <button onclick="viewMoreMatches()" class="w-full bg-[#045454] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#033d3d] transition-colors">
+                                <i class="fas fa-eye mr-2"></i>View more matches
+                            </button>
+                        </div>
                     </div>
                 `;
                 
@@ -2952,6 +2959,14 @@
                 loading.classList.add('hidden');
                 empty.classList.remove('hidden');
             }
+        }
+
+        // ============================================
+        // VIEW MORE MATCHES FUNCTION
+        // ============================================
+        function viewMoreMatches() {
+            // Navigate to analyze-me page with hash for auto-scroll
+            window.location.href = '/mobile/analyze-me#last-3-matches';
         }
 
         // ============================================
