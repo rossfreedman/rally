@@ -469,7 +469,7 @@ def get_session_data_for_user_team(user_email: str, team_id: int) -> Optional[Di
             
             # Team-specific player data
             "club": result["club"] or "",
-            "club_logo": result["club_logo"] or "",
+            "club_logo": f"static/images/clubs/{result['club_logo']}" if result["club_logo"] else "",
             "series": result["series"] or "",
             "club_id": result["club_id"],
             "series_id": result["series_id"],
