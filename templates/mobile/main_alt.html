@@ -2604,15 +2604,15 @@
                 const hasPtiData = stats.some(team => team.avg_pti && team.avg_pti !== 'N/A' && team.avg_pti !== null);
                 
                 let html = `<thead><tr>
-                  <th class="text-left py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Team</th>`;
+                  <th class="text-left py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Team</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Record</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg Pts</th>
+                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts Back</th>`;
                 if (hasPtiData) {
                   html += `<th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg PTI</th>`;
                 }
-                html += `<th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Record</th>
-                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts</th>
-                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg Pts</th>
-                  <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts Back</th>
-                </tr></thead><tbody>`;
+                html += `</tr></thead><tbody>`;
                 
                 stats.forEach((team, idx) => {
                     // More robust team matching - check both team name and club name
@@ -2665,20 +2665,19 @@
                           <div class="flex-1 whitespace-nowrap">${playoffIcon}${teamNameHtml}</div>
                           <div class="flex-shrink-0 ml-3">${magnifyingGlassHtml}</div>
                         </div>
-                      </td>`;
+                      </td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${team.matches.won}-${team.matches.lost}</td>
+                        <td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${team.points}</td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${avgPoints}</td>
+                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-600' : 'text-gray-600'} whitespace-nowrap">${firstPlacePoints - team.points}</td>`;
                     
-                    // Add Avg PTI column (if PTI data exists)
+                    // Add Avg PTI column last (if PTI data exists)
                     if (hasPtiData) {
                         const avgPti = team.avg_pti && team.avg_pti !== 'N/A' ? team.avg_pti : 'N/A';
                         html += `<td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${avgPti}</td>`;
                     }
                     
-                    html += `
-                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${team.matches.won}-${team.matches.lost}</td>
-                        <td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${team.points}</td>
-                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${avgPoints}</td>
-                        <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-600' : 'text-gray-600'} whitespace-nowrap">${firstPlacePoints - team.points}</td>
-                      </tr>`;
+                    html += `</tr>`;
                 });
                 html += '</tbody>';
                 table.innerHTML = html;
