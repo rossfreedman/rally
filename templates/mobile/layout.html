@@ -320,6 +320,8 @@
             margin-bottom: 0 !important;
             position: relative !important;
             z-index: 15 !important;
+            overflow: visible !important;
+            isolation: isolate !important;
         }
         
         #navDrawer .space-y-2 > * + * {
@@ -395,7 +397,8 @@
             pointer-events: auto !important;
         }
         
-        /* Ensure the button area is fully clickable */
+        /* Ensure the button area is fully clickable - DISABLED FOR TESTING */
+        /*
         #navDrawer .category-button::before {
             content: '';
             position: absolute;
@@ -406,8 +409,10 @@
             z-index: -1;
             pointer-events: none;
         }
+        */
         
-        /* Force Availability button to be fully clickable */
+        /* Force Availability button to be fully clickable - DISABLED FOR TESTING */
+        /*
         #navDrawer .category-button[href*="availability-calendar"]::after {
             content: '';
             position: absolute;
@@ -419,6 +424,7 @@
             pointer-events: auto;
             background: transparent;
         }
+        */
         
         /* Ensure direct-link buttons are fully clickable */
         #navDrawer .category-button[onclick*="window.location.href"] {
@@ -465,6 +471,11 @@
         }
         
         /* Force Home button to match other buttons exactly - COMPACT VERSION - ONLY FOR DRAWER */
+        #navDrawer .category-section:first-child {
+            overflow: hidden !important;
+            max-height: 48px !important;
+        }
+        
         #navDrawer .category-section:first-child .category-button {
             background: #fff !important;
             color: #045454 !important;
@@ -689,6 +700,23 @@
             #navDrawer .max-w-lg {
                 max-width: none;
                 padding: 0 8px;
+            }
+        }
+        
+        /* Desktop-specific fix for second button clickability */
+        @media (min-width: 768px) {
+            #navDrawer .category-section:nth-child(2) {
+                margin-top: 0.75rem !important;
+                margin-bottom: 0.75rem !important;
+                position: relative !important;
+                z-index: 100 !important;
+                overflow: visible !important;
+            }
+            
+            #navDrawer .category-section:nth-child(2) .category-button {
+                position: relative !important;
+                z-index: 100 !important;
+                pointer-events: auto !important;
             }
         }
         
@@ -956,7 +984,6 @@
                     </div>
                     <div class="flex-grow border-t-2 border-gray-400"></div>
                   </div>
-                  
 
                   
                   <!-- Single Column Navigation (COMPACT VERSION) -->
@@ -966,14 +993,6 @@
                       <button class="category-button" onclick="window.location.href='/mobile'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         <div class="font-semibold text-base">Home</div>
-                      </button>
-                    </div>
-                    
-                    <!-- TEST BUTTON - Google Link -->
-                    <div class="category-section">
-                      <button class="category-button" onclick="window.open('https://www.google.com', '_blank')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" stroke-width="2"/></svg>
-                        <div class="font-semibold text-base">TEST - Google Link</div>
                       </button>
                     </div>
                     
