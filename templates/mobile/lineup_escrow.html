@@ -542,42 +542,75 @@ window.addEventListener('focus', function() {
     }, 100);
 });
 
+// Global flag to track if event listeners are already setup
+let eventListenersSetup = false;
+let searchTimeout;
+
 function setupEventListeners() {
     // Message body changes
-    document.getElementById('lineup-message').oninput = updatePreviewAndCount;
+    const lineupMessageEl = document.getElementById('lineup-message');
+    if (lineupMessageEl) {
+        lineupMessageEl.oninput = updatePreviewAndCount;
+    }
     
     // Type-ahead search
     const searchInput = document.getElementById('player-search');
     
     if (searchInput) {
-        // Debounced search on input
-        let searchTimeout;
-        searchInput.oninput = (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim();
+        // Remove any existing event listeners by cloning and replacing the element
+        // This prevents duplicate event listeners from being attached
+        if (eventListenersSetup) {
+            const newSearchInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+            // Update reference to the new element
+            const updatedSearchInput = document.getElementById('player-search');
             
-            if (query.length < 2) {
-                hideTypeaheadDropdown();
-                return;
-            }
+            // Setup input handler on new element
+            updatedSearchInput.oninput = (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    hideTypeaheadDropdown();
+                    return;
+                }
+                
+                // Debounce search by 300ms
+                searchTimeout = setTimeout(() => {
+                    performTypeaheadSearch(query);
+                }, 300);
+            };
             
-            // Debounce search by 300ms
-            searchTimeout = setTimeout(() => {
-                performTypeaheadSearch(query);
-            }, 300);
-        };
-        
-        // Handle keyboard navigation
-        searchInput.onkeydown = handleTypeaheadKeydown;
-        
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !document.getElementById('typeahead-dropdown').contains(e.target)) {
-                hideTypeaheadDropdown();
-            }
-        });
-        
-        console.log('✅ Type-ahead search handlers attached');
+            // Handle keyboard navigation
+            updatedSearchInput.onkeydown = handleTypeaheadKeydown;
+            
+            console.log('✅ Type-ahead search handlers re-attached (cleaned up duplicates)');
+        } else {
+            // First time setup
+            searchInput.oninput = (e) => {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                
+                if (query.length < 2) {
+                    hideTypeaheadDropdown();
+                    return;
+                }
+                
+                // Debounce search by 300ms
+                searchTimeout = setTimeout(() => {
+                    performTypeaheadSearch(query);
+                }, 300);
+            };
+            
+            // Handle keyboard navigation
+            searchInput.onkeydown = handleTypeaheadKeydown;
+            
+            // Hide dropdown when clicking outside (only attach once)
+            document.addEventListener('click', handleOutsideClick);
+            
+            console.log('✅ Type-ahead search handlers attached');
+            eventListenersSetup = true;
+        }
         
         // Clear any test values
         searchInput.value = '';
@@ -586,7 +619,19 @@ function setupEventListeners() {
     }
     
     // Actions
-    document.getElementById('send-message-btn').onclick = sendMessage;
+    const sendBtn = document.getElementById('send-message-btn');
+    if (sendBtn) {
+        sendBtn.onclick = sendMessage;
+    }
+}
+
+// Separate click handler function to avoid duplicates
+function handleOutsideClick(e) {
+    const searchInput = document.getElementById('player-search');
+    const dropdown = document.getElementById('typeahead-dropdown');
+    if (searchInput && dropdown && !searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        hideTypeaheadDropdown();
+    }
 }
 
 
@@ -1120,16 +1165,37 @@ async function addPTIInformationToLineup(lineupText) {
 async function fetchPTIDataForPlayers(playerNames) {
     const ptiData = {};
     
+    // Get current user's team context for accurate player lookup
+    const user = window.sessionData?.user || {};
+    const userTeamId = user.team_id;
+    const userClubId = user.club_id;
+    
+    console.log('🔧 Fetching PTI data with team context:', { userTeamId, userClubId });
+    
     // Fetch PTI data for each player
     for (const playerName of playerNames) {
         try {
-            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            // Use team context for accurate player lookup
+            let response;
+            if (userTeamId) {
+                // Try team-specific lookup first
+                response = await fetch(`/api/player-history-with-context/${encodeURIComponent(playerName)}?team_id=${userTeamId}`);
+            } else if (userClubId) {
+                // Fallback to club-specific lookup
+                response = await fetch(`/api/player-history-with-context/${encodeURIComponent(playerName)}?club_id=${userClubId}`);
+            } else {
+                // Final fallback to original lookup
+                response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            }
+            
             const data = await response.json();
             
             if (data && data.current_pti !== undefined) {
                 ptiData[playerName] = data.current_pti;
+                console.log(`✅ Found PTI for ${playerName}: ${data.current_pti}`);
             } else {
                 ptiData[playerName] = null; // No PTI data available
+                console.log(`❌ No PTI data for ${playerName}`);
             }
         } catch (error) {
             console.error(`Error fetching PTI for ${playerName}:`, error);

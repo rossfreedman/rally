@@ -677,6 +677,165 @@ def get_player_history_by_id(player_id):
         return jsonify({"error": "Failed to get player history"}), 500
 
 
+@player_bp.route("/api/player-history-with-context/<player_name>")
+@login_required
+def get_player_history_with_context(player_name):
+    """Get history for a specific player with team/club context - FIXED: Uses team context for accurate lookup"""
+    try:
+        from database_utils import execute_query, execute_query_one
+        from flask import request
+        
+        user_league_id = session["user"].get("league_id", "")
+        team_id = request.args.get('team_id')
+        club_id = request.args.get('club_id')
+
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+
+        # Parse player name to handle both "First Last" and "Last, First" formats
+        first_name = None
+        last_name = None
+        
+        if ',' in player_name:
+            # Handle "Last, First" format
+            name_sections = player_name.split(',')
+            if len(name_sections) == 2:
+                last_name = name_sections[0].strip()
+                first_name = name_sections[1].strip()
+        else:
+            # Handle "First Last" format
+            name_parts = player_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+        
+        if not first_name or not last_name:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+
+        # Search for player in database with team/club context
+        if league_id_int:
+            if team_id:
+                # Prioritize player from specified team
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count,
+                        CASE WHEN p.team_id = %s THEN 1 ELSE 0 END as is_target_team
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY is_target_team DESC, history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [team_id, first_name, last_name, league_id_int])
+            elif club_id:
+                # Prioritize player from specified club
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count,
+                        CASE WHEN p.club_id = %s THEN 1 ELSE 0 END as is_target_club
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY is_target_club DESC, history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [club_id, first_name, last_name, league_id_int])
+            else:
+                # Fallback: prioritize by PTI history
+                player_search_query = """
+                    SELECT 
+                        p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.league_id = %s
+                    ORDER BY history_count DESC, p.id DESC
+                    LIMIT 1
+                """
+                player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
+        else:
+            # Fallback without league filter
+            player_search_query = """
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                ORDER BY history_count DESC, p.id DESC
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [first_name, last_name])
+
+        if not player_data:
+            return (
+                jsonify({"error": f"No history found for player: {player_name}"}),
+                404,
+            )
+
+        player_db_id = player_data["id"]
+
+        # Get PTI history from player_history table
+        pti_history_query = """
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        """
+
+        pti_records = execute_query(pti_history_query, [player_db_id])
+
+        # Get current PTI - handle None values properly
+        current_pti = player_data.get("pti")
+        if current_pti is None:
+            # If current PTI is None, get the most recent PTI from history
+            if pti_records:
+                current_pti = pti_records[-1]["end_pti"]  # Most recent record
+            else:
+                current_pti = 0.0
+
+        # Format response to match expected structure
+        player_record = {
+            "name": f"{player_data['first_name']} {player_data['last_name']}",
+            "current_pti": float(current_pti),
+            "player_id": player_data["tenniscores_player_id"],
+            "matches": []
+        }
+
+        # Convert PTI history to matches format
+        for record in pti_records:
+            player_record["matches"].append({
+                "date": record["formatted_date"],
+                "pti": float(record["end_pti"]),
+                "series": record["series"]
+            })
+
+        return jsonify(player_record)
+
+    except Exception as e:
+        print(f"Error in get_player_history_with_context: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
+
+
 @player_bp.route("/api/player-history/<player_name>")
 @login_required
 def get_specific_player_history(player_name):

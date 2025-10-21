@@ -21,12 +21,14 @@ LINEUP_CACHE = {}
 CACHE_DURATION = timedelta(minutes=15)  # Cache for 15 minutes
 
 
-def get_cache_key(players, instructions, series):
+def get_cache_key(players, instructions, series, team_id=None, club_id=None):
     """Generate a cache key for lineup requests"""
     data = {
         "players": sorted(players),  # Sort for consistent cache keys
         "instructions": sorted(instructions) if instructions else [],
         "series": series,
+        "team_id": team_id,  # Include team context to prevent cross-team cache hits
+        "club_id": club_id,  # Include club context as additional safety
     }
     return hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
@@ -195,71 +197,9 @@ def get_player_data_for_lineup(players, series, players_with_preferences=None, t
             player_records = execute_query(query, [players])
 
         # Get pairing consistency data from match_scores table - Show actual partnership history
-        pairing_query = """
-            WITH player_mappings AS (
-                SELECT DISTINCT
-                    p.tenniscores_player_id,
-                    p.first_name || ' ' || p.last_name AS full_name
-                FROM players p
-                WHERE (p.first_name || ' ' || p.last_name) = ANY(%s)
-            ),
-            home_pairings AS (
-                SELECT 
-                    p1.full_name as player1,
-                    p2.full_name as player2,
-                    CASE WHEN ms.winner = 'home' THEN 1 ELSE 0 END as won,
-                    ms.home_team as team_name
-                FROM match_scores ms
-                JOIN player_mappings p1 ON ms.home_player_1_id = p1.tenniscores_player_id
-                JOIN player_mappings p2 ON ms.home_player_2_id = p2.tenniscores_player_id
-                WHERE ms.home_player_1_id IS NOT NULL 
-                AND ms.home_player_2_id IS NOT NULL
-                AND ms.home_player_1_id != ms.home_player_2_id
-                AND ms.winner IN ('home', 'away')
-            ),
-            away_pairings AS (
-                SELECT 
-                    p1.full_name as player1,
-                    p2.full_name as player2,
-                    CASE WHEN ms.winner = 'away' THEN 1 ELSE 0 END as won,
-                    ms.away_team as team_name
-                FROM match_scores ms
-                JOIN player_mappings p1 ON ms.away_player_1_id = p1.tenniscores_player_id
-                JOIN player_mappings p2 ON ms.away_player_2_id = p2.tenniscores_player_id
-                WHERE ms.away_player_1_id IS NOT NULL 
-                AND ms.away_player_2_id IS NOT NULL
-                AND ms.away_player_1_id != ms.away_player_2_id
-                AND ms.winner IN ('home', 'away')
-            ),
-            all_pairings AS (
-                SELECT * FROM home_pairings
-                UNION ALL
-                SELECT * FROM away_pairings
-            )
-            SELECT 
-                CASE 
-                    WHEN player1 < player2 THEN player1 || '/' || player2
-                    ELSE player2 || '/' || player1
-                END as pairing,
-                COUNT(*) as matches_together,
-                SUM(won) as wins_together,
-                ROUND(AVG(won) * 100, 1) as win_rate,
-                STRING_AGG(DISTINCT team_name, ', ') as teams_played_for
-            FROM all_pairings
-            GROUP BY 
-                CASE 
-                    WHEN player1 < player2 THEN player1 || '/' || player2
-                    ELSE player2 || '/' || player1
-                END
-            HAVING COUNT(*) >= 1  -- Show any partnerships, even single matches
-            ORDER BY COUNT(*) DESC, AVG(won) DESC
-        """
-
-        try:
-            pairing_records = execute_query(pairing_query, [players])
-        except Exception as e:
-            print(f"Error getting pairing data: {e}")
-            pairing_records = []
+        # For now, skip pairing data to avoid the complex query issues
+        # TODO: Fix pairing query to include team context properly
+        pairing_records = []
 
         if not player_records:
             return f"No database records found for selected players in {series}. Cannot provide data-driven recommendations."
@@ -422,7 +362,7 @@ def get_pairing_data_for_frontend(players):
             ORDER BY COUNT(*) DESC, AVG(won) DESC
         """
 
-        pairing_records = execute_query(pairing_query, [players])
+        pairing_records = execute_query(pairing_query, pairing_params)
 
         print(f"[DEBUG] Found {len(pairing_records)} pairing records")
         for record in pairing_records:
@@ -835,8 +775,12 @@ def init_lineup_routes(app):
 
             start_time = time.time()
 
-            # Check cache first (include preferences in cache key for future enhancement)
-            cache_key = get_cache_key(selected_players, instructions, display_series)
+            # Get team and club context for proper player matching and cache key
+            team_id = session["user"].get("team_id")
+            club_id = session["user"].get("club_id")
+            
+            # Check cache first (include team context in cache key to prevent cross-team cache hits)
+            cache_key = get_cache_key(selected_players, instructions, display_series, team_id, club_id)
             cached_lineup = get_cached_lineup(cache_key)
 
             if cached_lineup:
@@ -846,10 +790,6 @@ def init_lineup_routes(app):
                     {"suggestion": cached_lineup, "pairing_data": pairing_data}
                 )
 
-            # Get team and club context for proper player matching
-            team_id = session["user"].get("team_id")
-            club_id = session["user"].get("club_id")
-            
             # Generate new lineup using fast Chat Completions API with preferences
             suggestion = generate_fast_lineup(
                 selected_players, instructions, display_series, players_with_preferences, team_id, club_id
@@ -992,7 +932,10 @@ def init_lineup_routes(app):
             data = request.json
             player_name = data.get("player_name", "").strip()
             
+            print(f"🔍 Lineup Escrow Search - Query: '{player_name}'")
+            
             if not player_name:
+                print("❌ Lineup Escrow Search - No player name provided")
                 return jsonify({"error": "player_name is required"}), 400
             
             # Get current user's league ID and team context for filtering
@@ -1000,11 +943,14 @@ def init_lineup_routes(app):
             current_user_team_id = session["user"].get("team_id")
             current_user_club_id = session["user"].get("club_id")
             
+            print(f"🔍 Lineup Escrow Search - User Context: league_id={current_user_league_id}, team_id={current_user_team_id}, club_id={current_user_club_id}")
+            
             if not current_user_league_id:
+                print("❌ Lineup Escrow Search - User league not found")
                 return jsonify({"error": "User league not found"}), 400
             
             with SessionLocal() as db_session:
-                # Search for players by name with team and club context filtering
+                # Search for players by name - search ALL teams in the league
                 from app.models.database_models import Player, Team, League, Club, Series
                 import re
                 
@@ -1014,61 +960,19 @@ def init_lineup_routes(app):
                     first_name = name_parts[0]
                     last_name = name_parts[-1]
                     
-                    # Build query with team and club context filtering
-                    base_query = db_session.query(Player).join(Team).filter(
+                    # Search ALL players in the current user's league (no club/team restrictions)
+                    players = db_session.query(Player).join(Team).filter(
                         Team.league_id == current_user_league_id,
                         ((Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
                         (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%")))
-                    )
-                    
-                    # Priority 1: If we have team context, filter by team first
-                    if current_user_team_id:
-                        players = base_query.filter(Player.team_id == current_user_team_id).all()
-                        if players:
-                            # Found players in the specific team - use these
-                            pass
-                        else:
-                            # No players in specific team, fall back to club context
-                            if current_user_club_id:
-                                players = base_query.filter(Team.club_id == current_user_club_id).all()
-                            else:
-                                # No club context either, use all league players
-                                players = base_query.all()
-                    else:
-                        # No team context, try club context
-                        if current_user_club_id:
-                            players = base_query.filter(Team.club_id == current_user_club_id).all()
-                        else:
-                            # No team or club context, use all league players
-                            players = base_query.all()
+                    ).all()
                 else:
-                    # Single name search with team and club context filtering
-                    base_query = db_session.query(Player).join(Team).filter(
+                    # Single name search - search ALL players in the league
+                    players = db_session.query(Player).join(Team).filter(
                         Team.league_id == current_user_league_id,
                         ((Player.first_name.ilike(f"%{player_name}%")) |
                         (Player.last_name.ilike(f"%{player_name}%")))
-                    )
-                    
-                    # Priority 1: If we have team context, filter by team first
-                    if current_user_team_id:
-                        players = base_query.filter(Player.team_id == current_user_team_id).all()
-                        if players:
-                            # Found players in the specific team - use these
-                            pass
-                        else:
-                            # No players in specific team, fall back to club context
-                            if current_user_club_id:
-                                players = base_query.filter(Team.club_id == current_user_club_id).all()
-                            else:
-                                # No club context either, use all league players
-                                players = base_query.all()
-                    else:
-                        # No team context, try club context
-                        if current_user_club_id:
-                            players = base_query.filter(Team.club_id == current_user_club_id).all()
-                        else:
-                            # No team or club context, use all league players
-                            players = base_query.all()
+                    ).all()
                 if not players:
                     return jsonify({"error": "No players found with that name"}), 404
                 # Get unique teams for these players
@@ -1110,12 +1014,19 @@ def init_lineup_routes(app):
                                 "phone_number": phone_number
                             })
                             seen_teams.add(team.id)
+                
+                print(f"✅ Lineup Escrow Search - Found {len(team_data)} teams")
+                for team in team_data:
+                    print(f"   - {team['player_name']} ({team['team_name']})")
+                
                 return jsonify({
                     "success": True,
                     "teams": team_data
                 })
         except Exception as e:
-            print(f"Error searching for player: {str(e)}")
+            print(f"❌ Error searching for player: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/opposing-team-players/<int:team_id>", methods=["GET"])
