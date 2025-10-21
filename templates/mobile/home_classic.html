@@ -772,17 +772,30 @@
 <!-- Link to alternate dashboard (admin only) -->
 {% if session_data and session_data.user and session_data.user.is_admin %}
 <div style="text-align: center; padding: 3rem 0 2rem; margin-top: 1rem;">
-  <a href="/mobile/main-alt" style="
+  <a href="/mobile/grid-layout" style="
     font-size: 13px;
     color: #86868b;
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s ease;
   " onmouseover="this.style.color='#045454';" onmouseout="this.style.color='#86868b';">
-    Try new view →
+    Try grid layout →
   </a>
 </div>
 {% endif %}
+
+<!-- Link to switch to new button style -->
+<div style="text-align: center; padding: 2rem 0 2rem; margin-top: 0rem;">
+  <a href="/mobile/home" style="
+    font-size: 13px;
+    color: #86868b;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  " onmouseover="this.style.color='#045454';" onmouseout="this.style.color='#86868b';">
+    Switch to new button style
+  </a>
+</div>
 
 <script>
 // Ensure all submenus are closed when page loads
