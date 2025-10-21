@@ -2864,35 +2864,28 @@
                 // Determine which team the current player is on
                 const current_player_on_team1 = lastMatch.player_was_home === false; // If player was away, they're on team1
                 
-                // Determine if current player won
+                // Assign sets to current team and opponent team (EXACT same logic as analyze-me page)
+                let current_team_sets, opponent_team_sets, current_team_won;
+                if (current_player_on_team1) {
+                    // Current player is on team1 (away team in database)
+                    current_team_sets = team1_sets;
+                    opponent_team_sets = team2_sets;
+                    current_team_won = team1_won;
+                } else {
+                    // Current player is on team2 (home team in database)
+                    current_team_sets = team2_sets;
+                    opponent_team_sets = team1_sets;
+                    current_team_won = team2_sets_won > team1_sets_won;
+                }
+                
                 // Get opponent team name
                 const opponentTeam = current_player_on_team1 ? lastMatch.home_team : lastMatch.away_team;
                 
                 // Format score
                 const scoreStr = scores.length > 0 ? scores.join(', ') : '--';
                 
-                // Parse scores for individual sets (same logic as analyze-me modal)
-                const yourScores = [];
-                const opponentScores = [];
-                let yourSetsWon = 0;
-                let opponentSetsWon = 0;
-                
-                scores.forEach(setScore => {
-                    if (setScore && setScore.includes('-')) {
-                        const [score1, score2] = setScore.split('-');
-                        yourScores.push(score1);
-                        opponentScores.push(score2);
-                        
-                        if (parseInt(score1) > parseInt(score2)) {
-                            yourSetsWon++;
-                        } else {
-                            opponentSetsWon++;
-                        }
-                    }
-                });
-                
-                // Determine winner based on sets won
-                const won = yourSetsWon > opponentSetsWon;
+                // Use current_team_won for winner determination (same as analyze-me page)
+                const won = current_team_won;
                 
                 // Update the last match display using analyze-me modal format
                 content.innerHTML = `
@@ -2921,7 +2914,7 @@
                                 <!-- Your Team Row -->
                                 <tr class="${won ? 'bg-green-100' : 'bg-gray-50'}">
                                     <td class="w-40 px-3 py-4 text-left">
-                                        <div class="text-xs text-gray-500 mb-3">${lastMatch.home_team || 'Your Team'}</div>
+                                        <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? lastMatch.away_team : lastMatch.home_team}</div>
                                         <div class="text-sm font-medium text-black">
                                             <div class="mb-1">${lastMatch.partner_name || 'Partner'}</div>
                                             <div>${lastMatch.player_name || 'You'}</div>
@@ -2930,14 +2923,14 @@
                                     <td class="w-12 px-2 py-3 text-center">
                                         ${won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                                     </td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${yourScores[0] || ''}</span></td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${yourScores[1] || ''}</span></td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${yourScores[2] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
                                 </tr>
                                 <!-- Opponent Team Row -->
                                 <tr class="${won ? 'bg-white' : 'bg-green-100'}">
                                     <td class="w-40 px-3 py-4 text-left">
-                                        <div class="text-xs text-gray-500 mb-3">${lastMatch.away_team || opponentTeam || 'Opponent Team'}</div>
+                                        <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? lastMatch.home_team : lastMatch.away_team}</div>
                                         <div class="text-sm font-medium text-black">
                                             <div class="mb-1">${lastMatch.opponent1_name || 'Opponent 1'}</div>
                                             <div>${lastMatch.opponent2_name || 'Opponent 2'}</div>
@@ -2946,9 +2939,9 @@
                                     <td class="w-12 px-2 py-3 text-center">
                                         ${!won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                                     </td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponentScores[0] || ''}</span></td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponentScores[1] || ''}</span></td>
-                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponentScores[2] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                                    <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
                                 </tr>
                             </tbody>
                         </table>
