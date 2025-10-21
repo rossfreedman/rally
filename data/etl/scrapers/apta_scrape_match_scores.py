@@ -1540,9 +1540,8 @@ class APTAScraper(BaseLeagueScraper):
             soup = BeautifulSoup(html, 'html.parser')
             print(f"   🔍 Extracting matches from APTA series: {series_name}")
             
-            # First, extract all dates from th elements with data-col="col0"
-            standings_dates = self._extract_dates_from_standings_page(soup)
-            print(f"   📅 Found {len(standings_dates)} dates on standings page: {list(standings_dates.keys())}")
+            # Note: We don't extract dates from standings page anymore
+            # Dates are extracted from individual match pages for accuracy
             
             # Look for standings tables
             standings_tables = soup.find_all('table', class_='standings-table2')
@@ -1570,15 +1569,13 @@ class APTAScraper(BaseLeagueScraper):
                         processed_urls.add(full_url)
                         print(f"   🔗 Found match link: {full_url}")
                         
-                        # Try to find associated date for this match
-                        match_date = self._find_date_for_match_link(link, standings_dates)
-                        if match_date:
-                            print(f"   📅 Associated date for this match: {match_date}")
-                        else:
-                            print(f"   ⚠️ No date found for this match link")
+                        # Don't use standings page dates - extract from individual match page instead
+                        # This ensures we get the actual match date, not a generic standings date
+                        print(f"   📅 Will extract date from individual match page")
                         
                         # Extract match data from the link (returns list of line records)
-                        match_records = self._extract_match_data_from_url(full_url, series_name, match_date)
+                        # Pass None for standings_date to force extraction from match page
+                        match_records = self._extract_match_data_from_url(full_url, series_name, None)
                         if match_records:
                             matches.extend(match_records)
                             print(f"   📋 Found {len(match_records)} lines for match: {match_records[0].get('Home Team', 'Unknown')} vs {match_records[0].get('Away Team', 'Unknown')}")

@@ -13669,8 +13669,7 @@ def get_club_standings_api():
                 "error": "Invalid league ID"
             }), 400
         
-        # OPTIMIZED: Get player streaks with a much faster query
-        # Instead of loading all match data, get recent streaks only
+        # FIXED: Calculate actual consecutive win streaks, not just recent wins
         streaks_query = """
             WITH recent_matches AS (
                 SELECT 
@@ -13684,7 +13683,7 @@ def get_club_standings_api():
                     ms.away_team,
                     ms.league_id
                 FROM match_scores ms
-                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '30 days'
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '60 days'
                 AND ms.winner IS NOT NULL
                 AND ms.winner != ''
                 AND ms.league_id = %s
@@ -13695,60 +13694,91 @@ def get_club_standings_api():
                     OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
                 )
                 ORDER BY ms.match_date DESC, ms.id DESC
-                LIMIT 1000
+            ),
+            player_match_results AS (
+                SELECT 
+                    p.tenniscores_player_id,
+                    p.first_name || ' ' || p.last_name as player_name,
+                    p.team_id,
+                    s.name as series_name,
+                    rm.match_date,
+                    CASE 
+                        WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
+                             (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
+                        THEN 'W' ELSE 'L' 
+                    END as result
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                JOIN recent_matches rm ON (
+                    rm.home_player_1_id = p.tenniscores_player_id OR
+                    rm.home_player_2_id = p.tenniscores_player_id OR
+                    rm.away_player_1_id = p.tenniscores_player_id OR
+                    rm.away_player_2_id = p.tenniscores_player_id
+                )
+                WHERE c.name ILIKE %s
+                AND p.is_active = true
+                ORDER BY p.tenniscores_player_id, rm.match_date DESC
+            ),
+            streak_calculations AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    match_date,
+                    result,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) as match_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as result_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as streak_group
+                FROM player_match_results
+            ),
+            current_streaks AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    result,
+                    COUNT(*) as current_streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_calculations
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY tenniscores_player_id, player_name, team_id, series_name, result
             )
             SELECT 
-                p.tenniscores_player_id,
-                p.first_name || ' ' || p.last_name as player_name,
-                p.team_id,
-                s.name as series_name,
-                COUNT(*) as recent_matches,
-                SUM(CASE 
-                    WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
-                         (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
-                         (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
-                         (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
-                    THEN 1 ELSE 0 
-                END) as recent_wins
-            FROM players p
-            JOIN clubs c ON p.club_id = c.id
-            LEFT JOIN series s ON p.series_id = s.id
-            LEFT JOIN recent_matches rm ON (
-                rm.home_player_1_id = p.tenniscores_player_id OR
-                rm.home_player_2_id = p.tenniscores_player_id OR
-                rm.away_player_1_id = p.tenniscores_player_id OR
-                rm.away_player_2_id = p.tenniscores_player_id
-            )
-            WHERE c.name ILIKE %s
-            AND p.is_active = true
-            GROUP BY p.tenniscores_player_id, p.first_name, p.last_name, p.team_id, s.name
-            HAVING COUNT(*) >= 3 AND SUM(CASE 
-                WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
-                     (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
-                     (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
-                     (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
-                THEN 1 ELSE 0 
-            END) >= 2
-            ORDER BY recent_wins DESC, recent_matches DESC
+                tenniscores_player_id,
+                player_name,
+                team_id,
+                series_name,
+                current_streak_length,
+                last_match_date
+            FROM current_streaks
+            WHERE result = 'W'  -- Only show win streaks
+            AND current_streak_length >= 3  -- Only streaks of 3+ wins
+            ORDER BY current_streak_length DESC, last_match_date DESC
             LIMIT 20
         """
         
         try:
             streaks_results = execute_query(streaks_query, [user_league_db_id, f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%'])
             
-            # Format streaks data
+            # Format streaks data with proper consecutive win streak calculation
             streaks = []
             for row in streaks_results:
                 streaks.append({
                     'player_name': row['player_name'],
                     'tenniscores_player_id': row['tenniscores_player_id'],
                     'team_id': row['team_id'],
-                    'current_streak': min(row['recent_wins'], 5),  # Cap at 5 for display
-                    'best_streak': min(row['recent_wins'], 5),
-                    'last_match_date': 'Recent',
+                    'current_streak': row['current_streak_length'],  # This is now the actual consecutive wins
+                    'best_streak': row['current_streak_length'],  # For now, same as current
+                    'last_match_date': row['last_match_date'].strftime('%Y-%m-%d') if row['last_match_date'] else 'Unknown',
                     'series': row['series_name'] or 'No Series',
                     'series_name': row['series_name'] or 'No Series',
-                    'total_matches': row['recent_matches']
+                    'total_matches': row['current_streak_length']  # This represents the streak length
                 })
         except Exception as e:
             print(f"Error calculating optimized player streaks: {e}")
