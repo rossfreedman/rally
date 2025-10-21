@@ -1011,7 +1011,7 @@
                     
                     <!-- Schedule -->
                     <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile/availability'">
+                      <button class="category-button" onclick="navigateWithLoading('/mobile/availability', 'Loading Schedule...')">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
                         <div class="font-semibold text-base">Schedule</div>
                       </button>
@@ -1019,7 +1019,7 @@
                     
                     <!-- Availability -->
                     <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile/availability-calendar'">
+                      <button class="category-button" onclick="navigateWithLoading('/mobile/availability-calendar', 'Loading Availability...')">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         <div class="font-semibold text-base">Availability</div>
                       </button>
@@ -2073,6 +2073,52 @@
                 }
             });
         });
+        
+        // Navigation with loading indicator function
+        function navigateWithLoading(url, loadingText = 'Loading...') {
+            // Show loading indicator
+            if (typeof showLoadingIndicator === 'function') {
+                showLoadingIndicator(loadingText);
+            } else {
+                // Fallback: create simple loading indicator
+                const overlay = document.createElement('div');
+                overlay.id = 'loading-overlay';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(4, 84, 84, 0.95);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 9999;
+                    color: white;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                `;
+                overlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="width: 40px; height: 40px; border: 4px solid rgba(191, 248, 99, 0.3); border-top: 4px solid #bff863; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">${loadingText}</div>
+                        <div style="font-size: 14px; opacity: 0.8;">Hang tight...</div>
+                    </div>
+                    <style>
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    </style>
+                `;
+                document.body.appendChild(overlay);
+            }
+            
+            // Navigate after delay
+            setTimeout(() => {
+                window.location.href = url;
+            }, 800);
+        }
     </script>
 
 </body>
