@@ -6044,6 +6044,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team, league_id_int
                             "wins": d["wins"],  # Template expects wins
                             "losses": d["matches"] - d["wins"],  # Template expects losses
                             "isSubstitute": d.get("is_substitute", False),  # Add substitute indicator
+                            "tenniscores_player_id": p,  # Add player ID for magnifying glass links
+                            "team_id": team_id,  # Add team ID for magnifying glass links
                         }
                         for p, d in player_win_counts.items()
                         if get_player_name_from_id(p) is not None  # Only include players with valid names

@@ -6875,6 +6875,7 @@ def get_team_members_with_court_stats(team_id, user):
                 "last_name": member["last_name"],
                 "pti": member.get("pti", 0),
                 "tenniscores_player_id": member["tenniscores_player_id"],
+                "team_id": team_id,  # Add team_id to the returned data
                 "captain_status": member.get("captain_status"),
                 "court_stats": court_stats,
                 "match_count": member.get("match_count", 0),

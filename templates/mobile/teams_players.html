@@ -289,11 +289,19 @@
                                     <td class="py-2 px-2">
                                         <div class="flex items-center gap-2">
                                             <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                            {% if player.tenniscores_player_id and player.team_id %}
+                                            <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ player.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
+                                            {% else %}
                                             <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                                class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                                title="View {{ player.name }}'s profile">
                                                 <i class="fas fa-search text-sm"></i>
                                             </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                     <td class="py-2 px-2 text-center">
@@ -358,19 +366,11 @@
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
                                         {% else %}
-                                        {% if player.tenniscores_player_id and player.team_id %}
-                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}" 
-                                           class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
-                                           title="View {{ player.name }}'s profile">
-                                            <i class="fas fa-search text-sm"></i>
-                                        </a>
-                                        {% else %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                            class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
-                                        {% endif %}
                                         {% endif %}
                                     </div>
                                 </td>
@@ -446,11 +446,19 @@
                                     <td class="py-2 px-2">
                                         <div class="flex items-center gap-2">
                                             <span class="font-medium text-gray-900">{{ player.name }}</span>
+                                            {% if player.tenniscores_player_id and player.team_id %}
+                                            <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}" 
+                                               class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
+                                               title="View {{ player.name }}'s profile">
+                                                <i class="fas fa-search text-sm"></i>
+                                            </a>
+                                            {% else %}
                                             <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                                class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                                title="View {{ player.name }}'s profile">
                                                 <i class="fas fa-search text-sm"></i>
                                             </a>
+                                            {% endif %}
                                         </div>
                                         {% if player.isSubstitute %}
                                         <div class="mt-1">
