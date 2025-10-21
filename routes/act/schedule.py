@@ -34,8 +34,8 @@ def get_matches_for_user_club(user):
             # SIMPLIFIED: Use straightforward team_id → club_id → logo_filename lookup
             matches_query = """
                 SELECT DISTINCT
-                    s.match_date,
-                    s.match_time,
+                    s.match_date as date,
+                    s.match_time as time,
                     s.home_team,
                     s.away_team,
                     s.home_team_id,
@@ -132,8 +132,8 @@ def get_matches_for_user_club(user):
                 # ENHANCED: Include team IDs for opponent lookup
                 legacy_matches_query = """
                     SELECT DISTINCT
-                        s.match_date,
-                        s.match_time,
+                        s.match_date as date,
+                        s.match_time as time,
                         s.home_team,
                         s.away_team,
                         s.home_team_id,
@@ -217,8 +217,8 @@ def get_matches_for_user_club(user):
                 # Now use the team_id-based query with the found team_id
                 matches_query = """
                     SELECT DISTINCT
-                        s.match_date,
-                        s.match_time,
+                        s.match_date as date,
+                        s.match_time as time,
                         s.home_team,
                         s.away_team,
                         s.home_team_id,
@@ -308,8 +308,8 @@ def get_matches_for_user_club(user):
                 # SIMPLIFIED: Use straightforward team_id → club_id → logo_filename lookup
                 matches_query = """
                     SELECT DISTINCT
-                        s.match_date,
-                        s.match_time,
+                        s.match_date as date,
+                        s.match_time as time,
                         s.home_team,
                         s.away_team,
                         s.home_team_id,
@@ -359,13 +359,13 @@ def get_matches_for_user_club(user):
             try:
                 # Format date and time to match the original JSON format
                 match_date = (
-                    match["match_date"].strftime("%m/%d/%Y")
-                    if match["match_date"]
+                    match["date"].strftime("%m/%d/%Y")
+                    if match["date"]
                     else ""
                 )
                 match_time = (
-                    match["match_time"].strftime("%I:%M %p").lstrip("0")
-                    if match["match_time"]
+                    match["time"].strftime("%I:%M %p").lstrip("0")
+                    if match["time"]
                     else ""
                 )
 

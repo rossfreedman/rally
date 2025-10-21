@@ -1391,11 +1391,13 @@
                 
                 // Filter for upcoming matches only (not practices)
                 const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today at midnight
                 const upcomingMatches = data.matches
                     .filter(match => {
                         try {
                             const matchDate = new Date(match.date);
-                            const isUpcoming = matchDate >= now;
+                            const matchDateOnly = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate()); // Match date at midnight
+                            const isUpcoming = matchDateOnly >= today; // Include today's matches
                             const isNotPractice = match.type === 'match' && match.away_team && match.away_team !== 'Practice';
                             return isUpcoming && isNotPractice;
                         } catch (e) {

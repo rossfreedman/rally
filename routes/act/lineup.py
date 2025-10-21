@@ -130,28 +130,69 @@ def delete_user_instruction(user_email, instruction, team_id=None):
         return False
 
 
-def get_player_data_for_lineup(players, series, players_with_preferences=None):
+def get_player_data_for_lineup(players, series, players_with_preferences=None, team_id=None, club_id=None):
     """Get comprehensive player data from database for lineup generation"""
     try:
         if not players:
             return "No player data available."
 
-        # Query for player stats using correct column names
-        query = """
-            SELECT DISTINCT ON (first_name || ' ' || last_name)
-                first_name || ' ' || last_name AS name,
-                pti,
-                wins,
-                losses,
-                (wins + losses) as total_matches,
-                win_percentage,
-                series_id
-            FROM players 
-            WHERE (first_name || ' ' || last_name) = ANY(%s)
-            ORDER BY first_name || ' ' || last_name, pti DESC NULLS LAST
-        """
-
-        player_records = execute_query(query, [players])
+        # Build query with team/club context to avoid duplicate name issues
+        if team_id:
+            # If we have team context, filter by team to get the correct player
+            query = """
+                SELECT 
+                    first_name || ' ' || last_name AS name,
+                    pti,
+                    wins,
+                    losses,
+                    (wins + losses) as total_matches,
+                    win_percentage,
+                    series_id,
+                    team_id,
+                    club_id
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                  AND team_id = %s
+                ORDER BY first_name || ' ' || last_name, pti DESC NULLS LAST
+            """
+            player_records = execute_query(query, [players, team_id])
+        elif club_id:
+            # If we have club context, filter by club to get the correct player
+            query = """
+                SELECT 
+                    first_name || ' ' || last_name AS name,
+                    pti,
+                    wins,
+                    losses,
+                    (wins + losses) as total_matches,
+                    win_percentage,
+                    series_id,
+                    team_id,
+                    club_id
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                  AND club_id = %s
+                ORDER BY first_name || ' ' || last_name, pti DESC NULLS LAST
+            """
+            player_records = execute_query(query, [players, club_id])
+        else:
+            # Fallback to original query with DISTINCT ON (but this could still cause issues)
+            query = """
+                SELECT DISTINCT ON (first_name || ' ' || last_name)
+                    first_name || ' ' || last_name AS name,
+                    pti,
+                    wins,
+                    losses,
+                    (wins + losses) as total_matches,
+                    win_percentage,
+                    series_id,
+                    team_id,
+                    club_id
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                ORDER BY first_name || ' ' || last_name, pti DESC NULLS LAST
+            """
+            player_records = execute_query(query, [players])
 
         # Get pairing consistency data from match_scores table - Show actual partnership history
         pairing_query = """
@@ -409,11 +450,11 @@ def get_pairing_data_for_frontend(players):
         return {}
 
 
-def generate_fast_lineup(players, instructions, series, players_with_preferences=None):
+def generate_fast_lineup(players, instructions, series, players_with_preferences=None, team_id=None, club_id=None):
     """Generate lineup using optimized Chat Completions API with real player data"""
 
-    # Get real player data from database
-    player_data = get_player_data_for_lineup(players, series, players_with_preferences)
+    # Get real player data from database with team/club context
+    player_data = get_player_data_for_lineup(players, series, players_with_preferences, team_id, club_id)
 
     # Build data-driven prompt with sophisticated analysis rules
     prompt = f"""Create a strategic lineup for {series} using ONLY the actual player data provided below and following advanced tennis strategy principles.
@@ -486,27 +527,50 @@ Court 4: Player7/Player8 - [PTI: X/Y, reasoning: specific data-driven explanatio
     except Exception as e:
         print(f"Error with Chat Completions API: {e}")
         # Fallback to a simple algorithmic approach if API fails
-        return generate_algorithmic_lineup(players, instructions)
+        return generate_algorithmic_lineup(players, instructions, team_id, club_id)
 
 
-def generate_algorithmic_lineup(players, instructions):
+def generate_algorithmic_lineup(players, instructions, team_id=None, club_id=None):
     """Fallback algorithmic lineup generation using available data"""
     if len(players) < 4:
         return f"Need at least 4 players. You selected: {', '.join(players)}"
 
-    # Try to get player data for smarter pairing
+    # Try to get player data for smarter pairing with team/club context
     try:
-        # Quick query for PTI ratings to do skill-based pairing
-        query = """
-            SELECT 
-                first_name || ' ' || last_name AS name,
-                COALESCE(pti, 40) as pti
-            FROM players 
-            WHERE (first_name || ' ' || last_name) = ANY(%s)
-            ORDER BY pti DESC
-        """
-
-        player_records = execute_query(query, [players])
+        # Build query with team/club context to avoid duplicate name issues
+        if team_id:
+            query = """
+                SELECT 
+                    first_name || ' ' || last_name AS name,
+                    COALESCE(pti, 40) as pti
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                  AND team_id = %s
+                ORDER BY pti DESC
+            """
+            player_records = execute_query(query, [players, team_id])
+        elif club_id:
+            query = """
+                SELECT 
+                    first_name || ' ' || last_name AS name,
+                    COALESCE(pti, 40) as pti
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                  AND club_id = %s
+                ORDER BY pti DESC
+            """
+            player_records = execute_query(query, [players, club_id])
+        else:
+            # Fallback to original query (could still cause issues)
+            query = """
+                SELECT 
+                    first_name || ' ' || last_name AS name,
+                    COALESCE(pti, 40) as pti
+                FROM players 
+                WHERE (first_name || ' ' || last_name) = ANY(%s)
+                ORDER BY pti DESC
+            """
+            player_records = execute_query(query, [players])
         player_ptis = {p["name"]: p["pti"] for p in player_records}
 
         # Sort players by PTI (lowest first for proper court assignment), use default PTI for unknown players
@@ -782,9 +846,13 @@ def init_lineup_routes(app):
                     {"suggestion": cached_lineup, "pairing_data": pairing_data}
                 )
 
+            # Get team and club context for proper player matching
+            team_id = session["user"].get("team_id")
+            club_id = session["user"].get("club_id")
+            
             # Generate new lineup using fast Chat Completions API with preferences
             suggestion = generate_fast_lineup(
-                selected_players, instructions, display_series, players_with_preferences
+                selected_players, instructions, display_series, players_with_preferences, team_id, club_id
             )
 
             # Get actual pairing data from database
@@ -927,13 +995,16 @@ def init_lineup_routes(app):
             if not player_name:
                 return jsonify({"error": "player_name is required"}), 400
             
-            # Get current user's league ID for filtering
+            # Get current user's league ID and team context for filtering
             current_user_league_id = session["user"].get("league_id")
+            current_user_team_id = session["user"].get("team_id")
+            current_user_club_id = session["user"].get("club_id")
+            
             if not current_user_league_id:
                 return jsonify({"error": "User league not found"}), 400
             
             with SessionLocal() as db_session:
-                # Search for players by name (first name, last name, or full name)
+                # Search for players by name with team and club context filtering
                 from app.models.database_models import Player, Team, League, Club, Series
                 import re
                 
@@ -942,19 +1013,62 @@ def init_lineup_routes(app):
                 if len(name_parts) >= 2:
                     first_name = name_parts[0]
                     last_name = name_parts[-1]
-                    # Search for exact matches first, but only in the user's league
-                    players = db_session.query(Player).join(Team).filter(
+                    
+                    # Build query with team and club context filtering
+                    base_query = db_session.query(Player).join(Team).filter(
                         Team.league_id == current_user_league_id,
                         ((Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
                         (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%")))
-                    ).all()
+                    )
+                    
+                    # Priority 1: If we have team context, filter by team first
+                    if current_user_team_id:
+                        players = base_query.filter(Player.team_id == current_user_team_id).all()
+                        if players:
+                            # Found players in the specific team - use these
+                            pass
+                        else:
+                            # No players in specific team, fall back to club context
+                            if current_user_club_id:
+                                players = base_query.filter(Team.club_id == current_user_club_id).all()
+                            else:
+                                # No club context either, use all league players
+                                players = base_query.all()
+                    else:
+                        # No team context, try club context
+                        if current_user_club_id:
+                            players = base_query.filter(Team.club_id == current_user_club_id).all()
+                        else:
+                            # No team or club context, use all league players
+                            players = base_query.all()
                 else:
-                    # Single name search, but only in the user's league
-                    players = db_session.query(Player).join(Team).filter(
+                    # Single name search with team and club context filtering
+                    base_query = db_session.query(Player).join(Team).filter(
                         Team.league_id == current_user_league_id,
                         ((Player.first_name.ilike(f"%{player_name}%")) |
                         (Player.last_name.ilike(f"%{player_name}%")))
-                    ).all()
+                    )
+                    
+                    # Priority 1: If we have team context, filter by team first
+                    if current_user_team_id:
+                        players = base_query.filter(Player.team_id == current_user_team_id).all()
+                        if players:
+                            # Found players in the specific team - use these
+                            pass
+                        else:
+                            # No players in specific team, fall back to club context
+                            if current_user_club_id:
+                                players = base_query.filter(Team.club_id == current_user_club_id).all()
+                            else:
+                                # No club context either, use all league players
+                                players = base_query.all()
+                    else:
+                        # No team context, try club context
+                        if current_user_club_id:
+                            players = base_query.filter(Team.club_id == current_user_club_id).all()
+                        else:
+                            # No team or club context, use all league players
+                            players = base_query.all()
                 if not players:
                     return jsonify({"error": "No players found with that name"}), 404
                 # Get unique teams for these players
