@@ -317,11 +317,22 @@
         #navDrawer .category-section {
             width: 100% !important;
             max-width: 100% !important;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0 !important;
+            position: relative !important;
+            z-index: 15 !important;
         }
         
         #navDrawer .space-y-2 > * + * {
-            margin-top: 0.5rem !important;
+            margin-top: 0.75rem !important;
+        }
+        
+        /* Ensure consistent spacing for all buttons */
+        #navDrawer .space-y-2 > .category-section {
+            margin-bottom: 0.75rem !important;
+        }
+        
+        #navDrawer .space-y-2 > .category-section:last-child {
+            margin-bottom: 0 !important;
         }
         
         #navDrawer .category-button {
@@ -340,9 +351,10 @@
             align-items: center;
             justify-content: flex-start;
             position: relative;
-            z-index: 1;
+            z-index: 10 !important;
             min-height: 48px !important;
             gap: 0.75rem;
+            cursor: pointer !important;
         }
         
         #navDrawer .category-button svg {
@@ -360,6 +372,97 @@
         #navDrawer .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
         #navDrawer .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
         #navDrawer .category-button:hover * { color: #045454 !important; }
+        
+        /* Ensure all category buttons are fully clickable */
+        #navDrawer .category-button {
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 20 !important;
+            cursor: pointer !important;
+        }
+        
+        /* Make sure child elements don't interfere with clicks - ONLY for button elements */
+        #navDrawer button.category-button svg,
+        #navDrawer button.category-button div,
+        #navDrawer button.category-button span {
+            pointer-events: none !important;
+            user-select: none !important;
+        }
+        
+        /* For anchor tags, allow all pointer events */
+        #navDrawer a.category-button,
+        #navDrawer a.category-button *  {
+            pointer-events: auto !important;
+        }
+        
+        /* Ensure the button area is fully clickable */
+        #navDrawer .category-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        /* Force Availability button to be fully clickable */
+        #navDrawer .category-button[href*="availability-calendar"]::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 50;
+            pointer-events: auto;
+            background: transparent;
+        }
+        
+        /* Ensure direct-link buttons are fully clickable */
+        #navDrawer .category-button[onclick*="window.location.href"] {
+            height: auto !important;
+            min-height: 48px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            width: 100% !important;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 25 !important;
+        }
+        
+        /* Specific fix for Availability button */
+        #navDrawer .category-button[href*="availability-calendar"] {
+            z-index: 30 !important;
+            pointer-events: auto !important;
+            position: relative !important;
+            overflow: visible !important;
+        }
+        
+        /* Ensure no overlapping elements interfere */
+        #navDrawer .category-section:nth-child(2) {
+            z-index: 100 !important;
+            position: relative !important;
+        }
+        
+        #navDrawer .category-section:nth-child(2) .category-button {
+            z-index: 100 !important;
+            pointer-events: auto !important;
+            position: relative !important;
+        }
+        
+        #navDrawer .category-section:nth-child(3) {
+            z-index: 20 !important;
+            position: relative !important;
+        }
+        
+        #navDrawer .category-section:nth-child(3) .category-button {
+            z-index: 35 !important;
+            pointer-events: auto !important;
+        }
         
         /* Force Home button to match other buttons exactly - COMPACT VERSION - ONLY FOR DRAWER */
         #navDrawer .category-section:first-child .category-button {
@@ -434,7 +537,7 @@
         #navDrawer .submenu { 
             display: block !important; 
             background: transparent; 
-            margin-top: 0.5rem; 
+            margin-top: 0 !important; 
             overflow: hidden !important;
             visibility: visible !important;
             opacity: 0 !important;
@@ -448,6 +551,9 @@
             -webkit-transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
                         opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
                         -webkit-transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            z-index: 5 !important;
+            position: relative;
+            pointer-events: none !important;
         }
         #navDrawer .submenu.active { 
             display: block !important; 
@@ -457,6 +563,7 @@
             max-height: 800px !important;
             transform: translateY(0) scale(1) !important;
             -webkit-transform: translateY(0) scale(1) !important;
+            pointer-events: auto !important;
         }
         #navDrawer .submenu-item { 
             display: flex; 
@@ -856,36 +963,42 @@
                   <div class="space-y-2" style="padding-bottom: 600px;">
                     <!-- Home Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
+                      <button class="category-button" onclick="window.location.href='/mobile'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
                         <div class="font-semibold text-base">Home</div>
                       </button>
-                      <div id="drawer-home-submenu" class="submenu">
-                        <!-- Empty submenu to match structure of other buttons -->
-                      </div>
                     </div>
-                    <!-- Act Category -->
+                    
+                    <!-- TEST BUTTON - Google Link -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-act-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Act</div>
+                      <button class="category-button" onclick="window.open('https://www.google.com', '_blank')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke="currentColor" stroke-width="2"/></svg>
+                        <div class="font-semibold text-base">TEST - Google Link</div>
                       </button>
-                      <div id="drawer-act-submenu" class="submenu">
-                        <a href="/mobile/availability" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">View Schedule</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/availability-calendar" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Update Availability</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/polls" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
-                        </a>
-
-                        <!-- Reserve Court button hidden -->
-                      </div>
+                    </div>
+                    
+                    <!-- Schedule -->
+                    <div class="category-section">
+                      <button class="category-button" onclick="window.location.href='/mobile/availability'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
+                        <div class="font-semibold text-base">Schedule</div>
+                      </button>
+                    </div>
+                    
+                    <!-- Availability -->
+                    <div class="category-section">
+                      <button class="category-button" onclick="window.location.href='/mobile/availability-calendar'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Availability</div>
+                      </button>
+                    </div>
+                    
+                    <!-- Polls -->
+                    <div class="category-section">
+                      <button class="category-button" onclick="window.location.href='/mobile/polls'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Polls</div>
+                      </button>
                     </div>
                     <!-- Analyze Category -->
                     <div class="category-section">
@@ -964,7 +1077,7 @@
                         </a>
                       </div>
                     </div>
-                    <!-- Rally Support Button -->
+                    <!-- Support Button -->
                     <div class="category-section">
                       <button class="category-button" onclick="window.location.href='/mobile/support'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -972,7 +1085,7 @@
                           <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
                           <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" fill="none"/>
                         </svg>
-                        <div class="font-semibold text-base">Rally Support</div>
+                        <div class="font-semibold text-base">Support</div>
                       </button>
                     </div>
                     
