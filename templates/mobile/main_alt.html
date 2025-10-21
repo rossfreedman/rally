@@ -74,7 +74,7 @@
         .nav-button {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform: translateY(0);
-            border: 1px solid #bff863;
+            border: 0.5px solid white !important;
         }
 
         .nav-button.scrolled {
@@ -98,6 +98,11 @@
         .nav-button.active:hover {
             background: #bff863 !important;
             color: #045454 !important;
+        }
+
+        /* Main section header styling - only for main sections */
+        .main-section-header {
+            border: 0.5px solid white !important;
         }
 
         /* Smooth scroll behavior */
@@ -230,7 +235,7 @@
              ============================================ -->
         <section id="dashboard" class="space-y-6">
             <!-- Option 4: Rally Branded with Logo Watermark -->
-            <div class="bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-6 relative overflow-hidden">
+            <div class="main-section-header bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-6 relative overflow-hidden">
                 <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5">
                     <img src="/static/images/rally_favicon.png" alt="Rally" class="w-48 h-48 filter brightness-0 invert">
                 </div>
@@ -250,7 +255,7 @@
                     </div>
                     <p id="pti-message" class="text-lg text-white/90 max-w-2xl mx-auto"></p>
                 <a href="/mobile/analyze-me" class="inline-block mt-6 px-8 py-3 rounded-full font-semibold transition shadow-lg" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
-                    Tell me more
+                    Tell me more →
                 </a>
                 </div>
             </div>
@@ -362,7 +367,7 @@
                     </div>
                     
                     <a href="/mobile/availability-calendar" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                        Update Match Availability
+                        Update Match Availability →
                     </a>
                 </div>
                 
@@ -387,7 +392,7 @@
                     </div>
                     
                     <a href="/mobile/availability-calendar" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                        Update Practice Availability
+                        Update Practice Availability →
                     </a>
                 </div>
             </div>
@@ -701,7 +706,7 @@
                         View All Pickup Games →
                     </a>
                     <a href="/mobile/create-pickup-game?type=public" class="flex-1 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
-                        Create Pickup Game
+                        Create Pickup Game →
                     </a>
                 </div>
             </div>
@@ -820,7 +825,7 @@
                 </div>
                 
                 <a href="/mobile/schedule-lesson" class="block mt-4 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                    Schedule Lesson
+                    Schedule Lesson →
                 </a>
             </div>
         </section>
@@ -2952,7 +2957,7 @@
                         <!-- View More Matches Button -->
                         <div class="px-3 py-3 bg-gray-50 border-t border-gray-200">
                             <button onclick="viewMoreMatches()" class="w-full bg-[#045454] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#033d3d] transition-colors">
-                                <i class="fas fa-eye mr-2"></i>View more matches
+                                <i class="fas fa-eye mr-2"></i>View more matches →
                             </button>
                         </div>
                     </div>

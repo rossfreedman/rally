@@ -1286,7 +1286,7 @@
     </div> -->
 
     <!-- Share Rally Floating Chip -->
-    <div style="position: fixed; bottom: 85px; left: 16px; z-index: 50;">
+    <div id="shareRallyChip" style="position: fixed; bottom: 85px; left: 16px; z-index: 50; transition: opacity 0.3s ease, transform 0.3s ease;">
         <a href="/mobile/share-rally" style="
             display: flex; 
             align-items: center; 
@@ -1748,12 +1748,25 @@
                 hamburger.classList.remove('open');
                 console.log('Drawer explicitly closed on page load with inline style');
                 
+                // Ensure Share Rally chip is visible on page load
+                const shareRallyChip = document.getElementById('shareRallyChip');
+                if (shareRallyChip) {
+                    shareRallyChip.style.opacity = '1';
+                    shareRallyChip.style.transform = 'translateY(0)';
+                }
+                
                 // Also do this after a short delay to ensure it overrides any other scripts
                 setTimeout(() => {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
                     console.log('Drawer ensured closed after delay with inline style');
+                    
+                    // Ensure Share Rally chip is visible after delay
+                    if (shareRallyChip) {
+                        shareRallyChip.style.opacity = '1';
+                        shareRallyChip.style.transform = 'translateY(0)';
+                    }
                 }, 100);
             }
 
@@ -1777,6 +1790,13 @@
                         const persistentNav = document.getElementById('main-nav');
                         if (persistentNav) {
                             persistentNav.style.display = 'block';
+                        }
+                        
+                        // Show Share Rally chip when drawer is forced closed
+                        const shareRallyChip = document.getElementById('shareRallyChip');
+                        if (shareRallyChip) {
+                            shareRallyChip.style.opacity = '1';
+                            shareRallyChip.style.transform = 'translateY(0)';
                         }
                     }
                 });
@@ -1803,6 +1823,13 @@
                     if (persistentNav) {
                         persistentNav.style.display = 'block';
                     }
+                    
+                    // Show Share Rally chip when drawer closes
+                    const shareRallyChip = document.getElementById('shareRallyChip');
+                    if (shareRallyChip) {
+                        shareRallyChip.style.opacity = '1';
+                        shareRallyChip.style.transform = 'translateY(0)';
+                    }
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
@@ -1812,6 +1839,13 @@
                     const persistentNav = document.getElementById('main-nav');
                     if (persistentNav) {
                         persistentNav.style.display = 'none';
+                    }
+                    
+                    // Hide Share Rally chip when drawer opens
+                    const shareRallyChip = document.getElementById('shareRallyChip');
+                    if (shareRallyChip) {
+                        shareRallyChip.style.opacity = '0';
+                        shareRallyChip.style.transform = 'translateY(20px)';
                     }
                 }
 
@@ -1880,6 +1914,13 @@
                     const persistentNav = document.getElementById('main-nav');
                     if (persistentNav) {
                         persistentNav.style.display = 'block';
+                    }
+                    
+                    // Show Share Rally chip when drawer closes
+                    const shareRallyChip = document.getElementById('shareRallyChip');
+                    if (shareRallyChip) {
+                        shareRallyChip.style.opacity = '1';
+                        shareRallyChip.style.transform = 'translateY(0)';
                     }
                     
                     setTimeout(() => { intentionalChange = false; }, 300);
