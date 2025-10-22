@@ -13862,3 +13862,53 @@ def get_club_standings_api():
             "success": False,
             "error": str(e)
         }), 500
+
+
+@api_bp.route("/weather", methods=["GET"])
+@login_required
+def get_weather():
+    """Get weather forecast for a specific location and date"""
+    try:
+        location = request.args.get('location')
+        date = request.args.get('date')
+        
+        if not location or not date:
+            return jsonify({
+                "success": False,
+                "error": "location and date parameters are required"
+            }), 400
+        
+        from app.services.weather_service import WeatherService
+        weather_service = WeatherService()
+        
+        forecast = weather_service.get_weather_for_location(location, date)
+        
+        if forecast:
+            return jsonify({
+                "success": True,
+                "weather": {
+                    "date": forecast.date,
+                    "temperature_high": forecast.temperature_high,
+                    "temperature_low": forecast.temperature_low,
+                    "condition": forecast.condition,
+                    "condition_code": forecast.condition_code,
+                    "precipitation_chance": forecast.precipitation_chance,
+                    "wind_speed": forecast.wind_speed,
+                    "humidity": forecast.humidity,
+                    "icon": forecast.icon,
+                    "icon_url": weather_service.get_weather_icon_url(forecast.icon),
+                    "formatted_message": weather_service.format_weather_message(forecast)
+                }
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Weather data not available for this location and date"
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error getting weather: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve weather data: {str(e)}"
+        }), 500

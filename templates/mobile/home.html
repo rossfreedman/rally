@@ -1525,7 +1525,8 @@
                         <div class="flex items-center gap-2">
                             <i class="fas fa-map-marker-alt"></i>
                             ${location}
-                            <a href="https://maps.google.com/?q=${encodeURIComponent(mapsQuery)}" target="_blank" class="ml-2 text-sm px-3 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Get Directions →</a>
+                            <a href="https://maps.google.com/?q=${encodeURIComponent(mapsQuery)}" target="_blank" class="ml-2 text-xs px-2 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Get Directions →</a>
+                            <button onclick="showWeatherModal('${mapsQuery}', '${matchDate}')" class="ml-2 text-xs px-2 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Check Weather →</button>
                         </div>
                     </div>
                     <div class="flex gap-3 mt-6">
@@ -3882,6 +3883,195 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') {
             if (leagueSwitcherModal && !leagueSwitcherModal.classList.contains('hidden')) {
                 closeLeagueSwitcher();
+            }
+        }
+    });
+});
+</script>
+
+<!-- Weather Modal -->
+<div id="weatherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <!-- Modal Header with Rally dark green background -->
+            <div class="flex items-center justify-between p-6" style="background-color: #045454;">
+                <h3 class="text-xl font-bold text-white">Weather Forecast</h3>
+                <button onclick="closeWeatherModal()" class="text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-6">
+                <!-- Loading State -->
+                <div id="weatherLoading" class="text-center py-8">
+                    <div class="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-gray-600">Loading weather data...</p>
+                </div>
+                
+                <!-- Weather Content -->
+                <div id="weatherContent" class="hidden">
+                    <div class="text-center mb-6">
+                        <div id="weatherIcon" class="text-6xl mb-4"></div>
+                        <div id="weatherCondition" class="text-2xl font-semibold text-gray-800 mb-2"></div>
+                        <div id="weatherTemperature" class="text-4xl font-bold text-blue-600 mb-2"></div>
+                        <div id="weatherLocation" class="text-lg text-gray-600 mb-4"></div>
+                        <div id="weatherDate" class="text-sm text-gray-500"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-sm text-gray-600 mb-1">Precipitation</div>
+                            <div id="weatherPrecipitation" class="text-lg font-semibold text-gray-800"></div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-sm text-gray-600 mb-1">Wind Speed</div>
+                            <div id="weatherWind" class="text-lg font-semibold text-gray-800"></div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-sm text-gray-600 mb-1">Humidity</div>
+                            <div id="weatherHumidity" class="text-lg font-semibold text-gray-800"></div>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <div class="text-sm text-gray-600 mb-1">High / Low</div>
+                            <div id="weatherHighLow" class="text-lg font-semibold text-gray-800"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error State -->
+                <div id="weatherError" class="hidden text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                    <p class="text-gray-600 mb-4">Unable to load weather data</p>
+                    <p class="text-sm text-gray-500">Please try again later</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Weather Modal Functions
+function showWeatherModal(location, date) {
+    const modal = document.getElementById('weatherModal');
+    const loading = document.getElementById('weatherLoading');
+    const content = document.getElementById('weatherContent');
+    const error = document.getElementById('weatherError');
+    
+    // Show modal and loading state
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    error.classList.add('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Fetch weather data
+    fetchWeatherData(location, date);
+}
+
+function closeWeatherModal() {
+    const modal = document.getElementById('weatherModal');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function fetchWeatherData(location, date) {
+    const loading = document.getElementById('weatherLoading');
+    const content = document.getElementById('weatherContent');
+    const error = document.getElementById('weatherError');
+    
+    // Format date for API (YYYY-MM-DD)
+    const formattedDate = new Date(date).toISOString().split('T')[0];
+    
+    // Check if date is within 5 days (OpenWeatherMap API limitation)
+    const today = new Date();
+    const targetDate = new Date(date);
+    const daysDiff = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff > 5) {
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+        document.getElementById('weatherError').innerHTML = `
+            <i class="fas fa-calendar-alt text-4xl text-yellow-500 mb-4"></i>
+            <p class="text-gray-600 mb-4">Weather forecast not available</p>
+            <p class="text-sm text-gray-500">Forecasts are only available for the next 5 days</p>
+        `;
+        return;
+    }
+    
+    fetch(`/api/weather?location=${encodeURIComponent(location)}&date=${formattedDate}`)
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.add('hidden');
+            
+            if (data.success && data.weather) {
+                displayWeatherData(data.weather, location, date);
+                content.classList.remove('hidden');
+            } else {
+                error.classList.remove('hidden');
+                document.getElementById('weatherError').innerHTML = `
+                    <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                    <p class="text-gray-600 mb-4">Unable to load weather data</p>
+                    <p class="text-sm text-gray-500">Please try again later</p>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('Weather fetch error:', err);
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+            document.getElementById('weatherError').innerHTML = `
+                <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                <p class="text-gray-600 mb-4">Unable to load weather data</p>
+                <p class="text-sm text-gray-500">Please try again later</p>
+            `;
+        });
+}
+
+function displayWeatherData(weather, location, date) {
+    // Update weather icon
+    const weatherIcon = document.getElementById('weatherIcon');
+    if (weather.icon_url) {
+        weatherIcon.innerHTML = `<img src="${weather.icon_url}" alt="${weather.condition}" class="mx-auto">`;
+    } else {
+        weatherIcon.innerHTML = `<i class="fas fa-cloud text-blue-500"></i>`;
+    }
+    
+    // Update weather details
+    document.getElementById('weatherCondition').textContent = weather.condition;
+    document.getElementById('weatherTemperature').textContent = `${Math.round(weather.temperature_high)}°F`;
+    document.getElementById('weatherLocation').textContent = location;
+    document.getElementById('weatherDate').textContent = new Date(date).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    // Update weather stats
+    document.getElementById('weatherPrecipitation').textContent = `${Math.round(weather.precipitation_chance)}%`;
+    document.getElementById('weatherWind').textContent = `${Math.round(weather.wind_speed)} mph`;
+    document.getElementById('weatherHumidity').textContent = `${Math.round(weather.humidity)}%`;
+    document.getElementById('weatherHighLow').textContent = `${Math.round(weather.temperature_high)}°/${Math.round(weather.temperature_low)}°`;
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const weatherModal = document.getElementById('weatherModal');
+    
+    if (weatherModal) {
+        weatherModal.addEventListener('click', function(e) {
+            if (e.target === weatherModal) {
+                closeWeatherModal();
+            }
+        });
+    }
+    
+    // Close on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (weatherModal && !weatherModal.classList.contains('hidden')) {
+                closeWeatherModal();
             }
         }
     });

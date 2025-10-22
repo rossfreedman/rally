@@ -147,7 +147,11 @@ def get_matches_for_user_club(user):
                         END as type
                     FROM schedule s
                     LEFT JOIN leagues l ON s.league_id = l.id
-                    LEFT JOIN clubs c ON s.location = c.name
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
                     WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
                     AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
                     ORDER BY s.match_date, s.match_time
@@ -244,7 +248,11 @@ def get_matches_for_user_club(user):
                         END as type
                     FROM schedule s
                     LEFT JOIN leagues l ON s.league_id = l.id
-                    LEFT JOIN clubs c ON s.location = c.name
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
                     LEFT JOIN teams home_team ON s.home_team_id = home_team.id
                     LEFT JOIN teams away_team ON s.away_team_id = away_team.id
                     LEFT JOIN clubs home_club ON (home_team.club_id = home_club.id OR (s.home_team_id IS NULL AND home_club.name = REGEXP_REPLACE(s.home_team, '\\s+\\d+[a-z]*$', '')))
@@ -331,7 +339,11 @@ def get_matches_for_user_club(user):
                         END as type
                     FROM schedule s
                     LEFT JOIN leagues l ON s.league_id = l.id
-                    LEFT JOIN clubs c ON s.location = c.name
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
                     LEFT JOIN teams home_team ON s.home_team_id = home_team.id
                     LEFT JOIN teams away_team ON s.away_team_id = away_team.id
                     LEFT JOIN clubs home_club ON (home_team.club_id = home_club.id OR (s.home_team_id IS NULL AND home_club.name = REGEXP_REPLACE(s.home_team, '\\s+\\d+[a-z]*$', '')))
