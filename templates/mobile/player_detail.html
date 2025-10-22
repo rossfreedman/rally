@@ -711,10 +711,11 @@
         {% endif %}
 
         <!-- Player Notes Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if has_notes_access %}
+        <div id="player-notes-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-sticky-note mr-2" style="color: #bff863;"></i>
+                    <i class="fas fa-edit mr-2" style="color: #bff863;"></i>
                     Player Notes
                 </h2>
             </div>
@@ -743,7 +744,7 @@
                 <!-- Empty State -->
                 <div id="notesEmpty" class="hidden text-center py-4">
                     <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-sticky-note text-gray-400 text-xl"></i>
+                        <i class="fas fa-edit text-gray-400 text-xl"></i>
                     </div>
                     <p class="text-gray-500 text-sm">No notes yet for this player</p>
                 </div>
@@ -782,6 +783,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
     </div>
 </div>
@@ -1905,5 +1907,62 @@ async function deleteNote(noteId) {
         alert('Failed to delete note. Please try again.');
     }
 }
+
+// Handle autoscroll to notes section when coming from teams-players page
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[DEBUG] Player detail page loaded, checking for notes hash...');
+    console.log('[DEBUG] Current hash:', window.location.hash);
+    
+    // Check if URL contains #notes hash
+    if (window.location.hash === '#notes') {
+        console.log('[DEBUG] Notes hash detected, looking for notes section...');
+        
+        // Wait for notes to load, then scroll to notes section
+        const checkNotesLoaded = () => {
+            // First try to find by ID
+            let notesSection = document.getElementById('player-notes-section');
+            
+            if (!notesSection) {
+                // Fallback: Look for the notes section by finding the h2 with "Player Notes" text
+                const notesHeaders = document.querySelectorAll('h2');
+                
+                for (let header of notesHeaders) {
+                    if (header.textContent.includes('Player Notes')) {
+                        notesSection = header.closest('.bg-white.rounded-xl.shadow-sm.border.border-gray-100.overflow-hidden');
+                        break;
+                    }
+                }
+            }
+            
+            if (notesSection) {
+                console.log('[DEBUG] Found notes section');
+                notesSection.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+                return true;
+            }
+            
+            console.log('[DEBUG] Notes section not found yet');
+            return false;
+        };
+        
+        // Try to scroll immediately
+        if (!checkNotesLoaded()) {
+            // If notes section not found yet, wait and try again
+            const interval = setInterval(() => {
+                if (checkNotesLoaded()) {
+                    clearInterval(interval);
+                }
+            }, 100);
+            
+            // Clear interval after 3 seconds to avoid infinite checking
+            setTimeout(() => {
+                clearInterval(interval);
+                console.log('[DEBUG] Autoscroll timeout - notes section may not be available');
+            }, 3000);
+        }
+    }
+});
 </script>
 {% endblock %}

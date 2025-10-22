@@ -365,12 +365,26 @@
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% else %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                            class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% endif %}
                                     </div>
                                 </td>
@@ -528,12 +542,26 @@
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% else %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                            class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% endif %}
                                     </div>
                                     {% if player.isSubstitute %}
@@ -642,12 +670,26 @@
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-800 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% else %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                            class="text-gray-500 hover:text-blue-600 transition-colors duration-200"
                                            title="View {{ player.name }}'s profile">
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
+                                        {% if player.has_notes %}
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
+                                           class="text-yellow-600 hover:text-yellow-800 transition-colors duration-200"
+                                           title="View {{ player.name }}'s notes">
+                                            <i class="fas fa-edit text-sm"></i>
+                                        </a>
+                                        {% endif %}
                                         {% endif %}
                                     </div>
                                     <div class="flex flex-col gap-2">
@@ -1791,6 +1833,27 @@ async function loadTeamLastMatches(teamId) {
         }
     }
 }
+
+// Handle note icon clicks with autoscroll to bottom of player detail page
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for note icons
+    document.addEventListener('click', function(e) {
+        // Check if clicked element is a note icon link
+        if (e.target.closest('a[href*="#notes"]')) {
+            const link = e.target.closest('a[href*="#notes"]');
+            const href = link.getAttribute('href');
+            
+            // Extract the base URL (everything before #notes)
+            const baseUrl = href.replace('#notes', '');
+            
+            // Navigate to the player detail page
+            window.location.href = baseUrl;
+            
+            // After navigation, scroll to bottom when page loads
+            // This will be handled by the player detail page itself
+        }
+    });
+});
 </script>
 
 {% endblock %} 

@@ -489,7 +489,11 @@
                 </div>
                 
                 <a href="/mobile/my-series" class="block mt-6 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                    View Full Standings →
+                    View Full Series Standings →
+                </a>
+                
+                <a href="/mobile/teams-players" class="block mt-3 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
+                    Scout Additional Teams & Players →
                 </a>
             </div>
             
@@ -2636,6 +2640,7 @@
                 
                 let html = `<thead><tr>
                   <th class="text-left py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Team</th>
+                  <th class="text-center py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Scout</th>
                   <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Record</th>
                   <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Pts</th>
                   <th class="text-right py-4 px-6 font-semibold text-gray-700 whitespace-nowrap">Avg Pts</th>
@@ -2683,19 +2688,19 @@
                     if (teamId) {
                         // If we have a team_id, make both team name and magnifying glass clickable
                         teamNameHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="hover:text-blue-600 hover:underline">${teamDisplayName}</a>`;
-                        magnifyingGlassHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Team Details"><i class="fas fa-search"></i></a>`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players?team_id=${teamId}" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'" title="View Team Details"><i class="fas fa-search mr-1"></i>Scout</a>`;
                     } else {
                         // If no team_id, show team name as text but still show magnifying glass (could link to search or club page)
                         teamNameHtml = `${teamDisplayName}`;
-                        magnifyingGlassHtml = `<a href="/mobile/teams-players" class="ml-1" style="color: #045454;" onmouseover="this.style.color='#033d3d'" onmouseout="this.style.color='#045454'" title="View Teams"><i class="fas fa-search"></i></a>`;
+                        magnifyingGlassHtml = `<a href="/mobile/teams-players" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'" title="View Teams"><i class="fas fa-search mr-1"></i>Scout</a>`;
                     }
                     
                     html += `<tr class="${rowClass}">
                       <td class="py-4 px-6 font-medium ${isUserTeam ? 'text-green-800' : 'text-[#045454]'}">
-                        <div class="flex items-center">
-                          <div class="flex-1 whitespace-nowrap">${playoffIcon}${teamNameHtml}</div>
-                          <div class="flex-shrink-0 ml-3">${magnifyingGlassHtml}</div>
-                        </div>
+                        <div class="whitespace-nowrap">${playoffIcon}${teamNameHtml}</div>
+                      </td>
+                      <td class="py-4 px-6 text-center">
+                        ${magnifyingGlassHtml}
                       </td>
                         <td class="py-4 px-6 text-right ${isUserTeam ? 'text-green-700' : 'text-gray-700'} whitespace-nowrap">${team.matches.won}-${team.matches.lost}</td>
                         <td class="py-4 px-6 text-right font-semibold ${isUserTeam ? 'text-green-800' : 'text-[#045454]'} whitespace-nowrap">${team.points}</td>

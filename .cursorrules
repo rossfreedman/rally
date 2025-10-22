@@ -19,6 +19,11 @@
 - Aside from ETL commands, do not let the front end application query JSON files. All queries should access the Postgres database.
 - Do NOT use SQLite. All database related queries should be with Postgres
 
+# Design Style
+- Keep consistent with the rest of the application
+- Default to these brand colors: Rally Greens: Dark Green: #045454  Bright Green: #bff863
+- Keep the design modern and iOS app-like
+
 # Documentation & Comments
 - Verbosely document all new functions, components, and complex logic.
 - In Python, use docstrings (Google-style or reStructuredText) for all functions and classes.

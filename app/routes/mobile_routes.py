@@ -675,6 +675,25 @@ def serve_mobile_player_detail(player_id):
     partner_analysis = get_current_season_partner_analysis(actual_player_id, league_id_int, team_id)
     analyze_data["partner_analysis"] = partner_analysis
 
+    # Check if user has access to notes for this player (same logic as teams-players page)
+    user_club_id = session["user"].get("club_id")
+    has_notes_access = False
+    
+    if user_club_id:
+        # Check if there are any notes for this player in the user's club
+        notes_check_query = """
+            SELECT COUNT(*) as note_count
+            FROM player_notes 
+            WHERE player_id = %s AND club_id = %s
+        """
+        try:
+            notes_result = execute_query_one(notes_check_query, [actual_player_id, user_club_id])
+            has_notes_access = notes_result and notes_result.get("note_count", 0) > 0
+            print(f"[DEBUG] Notes access check for player {actual_player_id} in club {user_club_id}: {has_notes_access}")
+        except Exception as e:
+            print(f"[DEBUG] Error checking notes access: {e}")
+            has_notes_access = False
+
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
     
@@ -694,6 +713,7 @@ def serve_mobile_player_detail(player_id):
         player_name=player_name,
         player_info=player_info,
         viewing_user_league=viewing_user_league,
+        has_notes_access=has_notes_access,
     )
 
 
@@ -6620,8 +6640,9 @@ def get_team_members_with_court_stats(team_id, user):
         if not team_id:
             return []
 
-        # Get user's league_id for filtering (extract once at top)
+        # Get user's league_id and club_id for filtering (extract once at top)
         user_league_id = user.get("league_id")
+        user_club_id = user.get("club_id")
         
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
@@ -6735,16 +6756,22 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court3, 0) as court3,
                     COALESCE(pms.court4, 0) as court4,
                     COALESCE(pms.court5, 0) as court5,
-                    COALESCE(pms.court6, 0) as court6
+                    COALESCE(pms.court6, 0) as court6,
+                    CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                LEFT JOIN (
+                    SELECT DISTINCT player_id 
+                    FROM player_notes 
+                    WHERE club_id = %s
+                ) pn ON p.tenniscores_player_id = pn.player_id
                 WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
                 ORDER BY 
                     CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
                     p.last_name, p.first_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, user_club_id, team_id, league_id_int])
         else:
             # Fallback without league filter
             comprehensive_query = """
@@ -6841,16 +6868,22 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court3, 0) as court3,
                     COALESCE(pms.court4, 0) as court4,
                     COALESCE(pms.court5, 0) as court5,
-                    COALESCE(pms.court6, 0) as court6
+                    COALESCE(pms.court6, 0) as court6,
+                    CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                LEFT JOIN (
+                    SELECT DISTINCT player_id 
+                    FROM player_notes 
+                    WHERE club_id = %s
+                ) pn ON p.tenniscores_player_id = pn.player_id
                 WHERE p.team_id = %s AND p.is_active = TRUE
                 ORDER BY 
                     CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
                     p.last_name, p.first_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, user_club_id, team_id])
 
         if not members_data:
             return []
@@ -6881,6 +6914,7 @@ def get_team_members_with_court_stats(team_id, user):
                 "match_count": member.get("match_count", 0),
                 "wins": member.get("wins", 0),  # Include wins from optimized query
                 "losses": member.get("losses", 0),  # Include losses from optimized query
+                "has_notes": bool(member.get("has_notes", 0)),  # Include notes flag
             }
             members_with_stats.append(member_data)
 
