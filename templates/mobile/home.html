@@ -1358,7 +1358,10 @@
                             document.getElementById('win-streak').innerHTML = getRandomNoStreakMessage();
                         }
                     } else {
-                        // No current season data available
+                        // No current season data available - this shouldn't happen if player has matches
+                        console.log('No current season data available - this indicates a data issue');
+                        console.log('Season stats data:', seasonStatsData);
+                        
                         const recordElement = document.getElementById('my-record');
                         recordElement.textContent = '0 - 0';
                         recordElement.className = 'text-3xl font-bold text-red-500'; // 0% win rate = red
