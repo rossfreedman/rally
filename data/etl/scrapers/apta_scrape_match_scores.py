@@ -1452,14 +1452,15 @@ class APTAScraper(BaseLeagueScraper):
                             # Also create YYYY-MM-DD format for sorting
                             sortable_date = f"{current_year}-{month.zfill(2)}-{day.zfill(2)}"
                             
-                            # Use the th element's position/context as a key
-                            th_id = th.get('id', '')
-                            dates[th_id] = {
-                                'display_date': formatted_date,
-                                'sortable_date': sortable_date,
-                                'original_text': text
-                            }
-                            print(f"      📅 Extracted date from th {th_id}: {formatted_date} ({sortable_date})")
+                            # Use the data-col attribute as the key (e.g., 'col0', 'col1', etc.)
+                            data_col = th.get('data-col', '')
+                            if data_col:
+                                dates[data_col] = {
+                                    'display_date': formatted_date,
+                                    'sortable_date': sortable_date,
+                                    'original_text': text
+                                }
+                                print(f"      📅 Extracted date from th data-col='{data_col}': {formatted_date} ({sortable_date})")
                     except Exception as e:
                         print(f"      ❌ Error formatting date from th: {e}")
                         continue
@@ -1470,30 +1471,57 @@ class APTAScraper(BaseLeagueScraper):
         return dates
     
     def _find_date_for_match_link(self, link, standings_dates: dict) -> str:
-        """Find the associated date for a match link by looking at its position relative to date th elements."""
+        """Find the associated date for a match link by looking at its table cell position."""
         try:
-            # Get the link's position in the document
-            link_parent = link.parent
-            if not link_parent:
-                return None
-                
-            # Look for the nearest th element with data-col="col0" that comes before this link
-            # This is a simplified approach - in practice, we might need more sophisticated logic
-            # to associate match links with their corresponding dates
+            # The match link is in a <td> cell. We need to find which column it's in.
+            # The th elements with data-col='col0', 'col1', etc. define the columns.
+            # We match the td's data-col attribute to the th's data-col attribute to get the date.
             
-            # For now, return the first available date as a fallback
-            if standings_dates:
-                first_date_info = list(standings_dates.values())[0]
-                # Return the display_date for backward compatibility
-                if isinstance(first_date_info, dict):
-                    return first_date_info.get('display_date', '')
+            # Get the parent cell
+            cell = link.find_parent('td')
+            if not cell:
+                print(f"      ⚠️ Could not find parent <td> for match link")
+                return self._get_fallback_date(standings_dates)
+            
+            # Get the data-col attribute from the cell
+            data_col = cell.get('data-col', '')
+            if not data_col:
+                print(f"      ⚠️ Cell has no data-col attribute")
+                return self._get_fallback_date(standings_dates)
+            
+            print(f"      🔍 Match link is in cell with data-col='{data_col}'")
+            
+            # Find the corresponding date from standings_dates using the same data-col
+            if data_col in standings_dates:
+                date_info = standings_dates[data_col]
+                if isinstance(date_info, dict):
+                    return date_info.get('display_date', '')
                 else:
-                    # Handle legacy format
-                    return first_date_info
+                    return date_info
+            else:
+                print(f"      ⚠️ No date found for data-col='{data_col}'")
+                return self._get_fallback_date(standings_dates)
                 
         except Exception as e:
             print(f"❌ Error finding date for match link: {e}")
+            return self._get_fallback_date(standings_dates)
+    
+    def _get_fallback_date(self, standings_dates: dict) -> str:
+        """Get the most recent date as a fallback."""
+        if not standings_dates:
+            return None
             
+        # Get all sortable dates and return the most recent
+        sortable_dates = []
+        for date_info in standings_dates.values():
+            if isinstance(date_info, dict) and 'sortable_date' in date_info:
+                sortable_dates.append(date_info)
+        
+        if sortable_dates:
+            # Sort by sortable_date (YYYY-MM-DD format) and get the most recent
+            most_recent = sorted(sortable_dates, key=lambda x: x['sortable_date'], reverse=True)[0]
+            return most_recent.get('display_date', '')
+        
         return None
     
     def _get_recent_dates_for_week_filtering(self, soup) -> List[str]:
@@ -1540,8 +1568,9 @@ class APTAScraper(BaseLeagueScraper):
             soup = BeautifulSoup(html, 'html.parser')
             print(f"   🔍 Extracting matches from APTA series: {series_name}")
             
-            # Note: We don't extract dates from standings page anymore
-            # Dates are extracted from individual match pages for accuracy
+            # First, extract all dates from th elements with data-col="col0"
+            standings_dates = self._extract_dates_from_standings_page(soup)
+            print(f"   📅 Found {len(standings_dates)} dates on standings page: {list(standings_dates.keys())}")
             
             # Look for standings tables
             standings_tables = soup.find_all('table', class_='standings-table2')
@@ -1569,13 +1598,15 @@ class APTAScraper(BaseLeagueScraper):
                         processed_urls.add(full_url)
                         print(f"   🔗 Found match link: {full_url}")
                         
-                        # Don't use standings page dates - extract from individual match page instead
-                        # This ensures we get the actual match date, not a generic standings date
-                        print(f"   📅 Will extract date from individual match page")
+                        # Try to find associated date for this match
+                        match_date = self._find_date_for_match_link(link, standings_dates)
+                        if match_date:
+                            print(f"   📅 Associated date for this match: {match_date}")
+                        else:
+                            print(f"   ⚠️ No date found for this match link")
                         
                         # Extract match data from the link (returns list of line records)
-                        # Pass None for standings_date to force extraction from match page
-                        match_records = self._extract_match_data_from_url(full_url, series_name, None)
+                        match_records = self._extract_match_data_from_url(full_url, series_name, match_date)
                         if match_records:
                             matches.extend(match_records)
                             print(f"   📋 Found {len(match_records)} lines for match: {match_records[0].get('Home Team', 'Unknown')} vs {match_records[0].get('Away Team', 'Unknown')}")
@@ -1616,12 +1647,17 @@ class APTAScraper(BaseLeagueScraper):
             # Extract team names and scores (common to all lines)
             team_data = self._extract_apta_teams_and_score(soup)
             
-            # Use standings date if provided, otherwise try to extract from match page
-            if standings_date:
-                date_data = {"Date": standings_date}
-                print(f"      📅 Using standings date: {standings_date}")
-            else:
-                date_data = self._extract_apta_date(soup)
+            # Always try to extract date from match page first (most accurate)
+            date_data = self._extract_apta_date(soup)
+            
+            # Fallback to standings date only if match page extraction fails
+            if not date_data or not date_data.get('Date'):
+                if standings_date:
+                    date_data = {"Date": standings_date}
+                    print(f"      📅 Fallback to standings date: {standings_date}")
+                else:
+                    print(f"      ⚠️ No date found from match page or standings")
+                    date_data = {"Date": "Unknown Date"}
             
             # Extract all lines
             all_lines = self._extract_all_apta_lines(soup)
@@ -1634,7 +1670,7 @@ class APTAScraper(BaseLeagueScraper):
                 line_number = line_name.replace('Line ', '') if 'Line ' in line_name else '1'
                 
                 match_record = {
-                    "league_id": "APTA_CHICAGO",
+                    "league_id": self.league_subdomain,  # Use the actual league subdomain
                     "source_league": "APTA_CHICAGO",
                     "match_id": f"{self._extract_match_id_from_url(url)}_Line{line_number}",
                     "url": url
@@ -1722,99 +1758,62 @@ class APTAScraper(BaseLeagueScraper):
             return {}
     
     def _extract_apta_date(self, soup) -> dict:
-        """Extract date from APTA match page using th elements with data-col='col0'."""
+        """Extract date from APTA match page header."""
         try:
             import re
             from datetime import datetime
             
-            # Primary method: Look for th elements with data-col="col0" containing date format like "09/23"
-            date_th_elements = soup.find_all('th', {'data-col': 'col0'})
+            # Get all text from the page to search for date patterns
+            all_text = soup.get_text()
             
-            for th in date_th_elements:
-                text = th.get_text(strip=True)
-                print(f"      🔍 Found th data-col='col0' text: '{text}'")
-                
-                # Look for MM/DD format (e.g., "09/23")
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
+            # Look for various date formats that might appear on the APTA match page
+            date_patterns = [
+                # Format: "October 15, 2025" (Month Day, Year)
+                (r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})', 'month_day_year'),
+                # Format: "10/15/2025" or "10/15/25" (MM/DD/YYYY or MM/DD/YY)
+                (r'(\d{1,2})/(\d{1,2})/(\d{2,4})', 'slash_format'),
+                # Format: "2025-10-15" (YYYY-MM-DD)
+                (r'(\d{4})-(\d{1,2})-(\d{1,2})', 'iso_format'),
+            ]
+            
+            for pattern, format_type in date_patterns:
+                matches = re.findall(pattern, all_text)
+                if matches:
+                    match = matches[0]  # Take first match
                     
-                    # Convert to DD-Mon-YY format (assuming current year)
                     try:
-                        # Get current year or use 2025 as fallback
-                        current_year = datetime.now().year
+                        if format_type == 'month_day_year':
+                            # Format: "October 15, 2025"
+                            month_name, day, year = match[0], match[1], match[2]
+                            date_obj = datetime.strptime(f"{month_name} {day}, {year}", "%B %d, %Y")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (Month Day, Year): {formatted_date}")
+                            return {"Date": formatted_date}
                         
-                        # Convert month number to abbreviation
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from th: {formatted_date}")
+                        elif format_type == 'slash_format':
+                            # Format: MM/DD/YYYY or MM/DD/YY
+                            month, day, year = match[0], match[1], match[2]
+                            if len(year) == 2:
+                                year = '20' + year
+                            date_obj = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", "%Y-%m-%d")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (MM/DD/YYYY): {formatted_date}")
                             return {"Date": formatted_date}
-                    except Exception as e:
-                        print(f"      ❌ Error formatting date from th: {e}")
-                        continue
-            
-            # Fallback method 1: Look for th elements with class containing "datacol"
-            datacol_th_elements = soup.find_all('th', class_=re.compile(r'datacol'))
-            
-            for th in datacol_th_elements:
-                text = th.get_text(strip=True)
-                print(f"      🔍 Found datacol th text: '{text}'")
-                
-                # Look for MM/DD format (e.g., "09/23")
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
+                        
+                        elif format_type == 'iso_format':
+                            # Format: YYYY-MM-DD
+                            year, month, day = match[0], match[1], match[2]
+                            date_obj = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", "%Y-%m-%d")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (YYYY-MM-DD): {formatted_date}")
+                            return {"Date": formatted_date}
                     
-                    try:
-                        current_year = datetime.now().year
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from datacol th: {formatted_date}")
-                            return {"Date": formatted_date}
                     except Exception as e:
-                        print(f"      ❌ Error formatting date from datacol th: {e}")
+                        print(f"      ❌ Error parsing date from match '{match}' (format: {format_type}): {e}")
                         continue
             
-            # Fallback method 2: Look for any th element containing date patterns
-            all_th_elements = soup.find_all('th')
-            for th in all_th_elements:
-                text = th.get_text(strip=True)
-                
-                # Look for MM/DD format
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
-                    
-                    try:
-                        current_year = datetime.now().year
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from th fallback: {formatted_date}")
-                            return {"Date": formatted_date}
-                    except Exception as e:
-                        print(f"      ❌ Error formatting date from th fallback: {e}")
-                        continue
-            
-            # If no date found in th elements, return unknown
-            print(f"      ❌ No date found in any th element")
+            # If no date found, return unknown
+            print(f"      ❌ No date found in match page text")
             return {"Date": "Unknown Date"}
         except Exception as e:
             print(f"❌ APTA: Error extracting date: {e}")

@@ -935,6 +935,21 @@ async function loadLast3Matches() {
     // Build matches list
     let matchesHTML = '';
     data.matches.forEach(match => {
+      // Format date from "16-Oct-25" to "Oct 25, 2025"
+      let formattedDate = match.date;
+      if (match.date) {
+        // Parse date in format "DD-Mon-YY" (e.g., "16-Oct-25")
+        const dateParts = match.date.split('-');
+        if (dateParts.length === 3) {
+          const day = dateParts[0];
+          const month = dateParts[1];
+          let year = dateParts[2];
+          // Convert 2-digit year to 4-digit year
+          year = '20' + year;
+          formattedDate = `${month} ${day}, ${year}`;
+        }
+      }
+      
       // Parse scores to determine winner and create score arrays (same logic as modal)
       const scores = match.scores ? match.scores.split(", ") : [];
       const team1_sets = [];  // First team in database (away team)
@@ -980,7 +995,7 @@ async function loadLast3Matches() {
         <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
           <!-- Team Match Header -->
           <div class="px-3 py-2" style="background-color: #045454;">
-            <span class="text-sm font-bold" style="color: #bff863;">${match.date}</span>
+            <span class="text-sm font-bold" style="color: #bff863;">${formattedDate}</span>
           </div>
           
           <!-- Team Matchup -->

@@ -2014,99 +2014,62 @@ class APTAScraper(BaseLeagueScraper):
             return {}
     
     def _extract_apta_date(self, soup) -> dict:
-        """Extract date from APTA match page using th elements with data-col='col0'."""
+        """Extract date from APTA match page header."""
         try:
             import re
             from datetime import datetime
             
-            # Primary method: Look for th elements with data-col="col0" containing date format like "09/23"
-            date_th_elements = soup.find_all('th', {'data-col': 'col0'})
+            # Get all text from the page to search for date patterns
+            all_text = soup.get_text()
             
-            for th in date_th_elements:
-                text = th.get_text(strip=True)
-                print(f"      🔍 Found th data-col='col0' text: '{text}'")
-                
-                # Look for MM/DD format (e.g., "09/23")
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
+            # Look for various date formats that might appear on the APTA match page
+            date_patterns = [
+                # Format: "October 15, 2025" (Month Day, Year)
+                (r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})', 'month_day_year'),
+                # Format: "10/15/2025" or "10/15/25" (MM/DD/YYYY or MM/DD/YY)
+                (r'(\d{1,2})/(\d{1,2})/(\d{2,4})', 'slash_format'),
+                # Format: "2025-10-15" (YYYY-MM-DD)
+                (r'(\d{4})-(\d{1,2})-(\d{1,2})', 'iso_format'),
+            ]
+            
+            for pattern, format_type in date_patterns:
+                matches = re.findall(pattern, all_text)
+                if matches:
+                    match = matches[0]  # Take first match
                     
-                    # Convert to DD-Mon-YY format (assuming current year)
                     try:
-                        # Get current year or use 2025 as fallback
-                        current_year = datetime.now().year
+                        if format_type == 'month_day_year':
+                            # Format: "October 15, 2025"
+                            month_name, day, year = match[0], match[1], match[2]
+                            date_obj = datetime.strptime(f"{month_name} {day}, {year}", "%B %d, %Y")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (Month Day, Year): {formatted_date}")
+                            return {"Date": formatted_date}
                         
-                        # Convert month number to abbreviation
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from th: {formatted_date}")
+                        elif format_type == 'slash_format':
+                            # Format: MM/DD/YYYY or MM/DD/YY
+                            month, day, year = match[0], match[1], match[2]
+                            if len(year) == 2:
+                                year = '20' + year
+                            date_obj = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", "%Y-%m-%d")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (MM/DD/YYYY): {formatted_date}")
                             return {"Date": formatted_date}
-                    except Exception as e:
-                        print(f"      ❌ Error formatting date from th: {e}")
-                        continue
-            
-            # Fallback method 1: Look for th elements with class containing "datacol"
-            datacol_th_elements = soup.find_all('th', class_=re.compile(r'datacol'))
-            
-            for th in datacol_th_elements:
-                text = th.get_text(strip=True)
-                print(f"      🔍 Found datacol th text: '{text}'")
-                
-                # Look for MM/DD format (e.g., "09/23")
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
+                        
+                        elif format_type == 'iso_format':
+                            # Format: YYYY-MM-DD
+                            year, month, day = match[0], match[1], match[2]
+                            date_obj = datetime.strptime(f"{year}-{month.zfill(2)}-{day.zfill(2)}", "%Y-%m-%d")
+                            formatted_date = date_obj.strftime("%d-%b-%y")
+                            print(f"      📅 Extracted date from match page (YYYY-MM-DD): {formatted_date}")
+                            return {"Date": formatted_date}
                     
-                    try:
-                        current_year = datetime.now().year
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from datacol th: {formatted_date}")
-                            return {"Date": formatted_date}
                     except Exception as e:
-                        print(f"      ❌ Error formatting date from datacol th: {e}")
+                        print(f"      ❌ Error parsing date from match '{match}' (format: {format_type}): {e}")
                         continue
             
-            # Fallback method 2: Look for any th element containing date patterns
-            all_th_elements = soup.find_all('th')
-            for th in all_th_elements:
-                text = th.get_text(strip=True)
-                
-                # Look for MM/DD format
-                date_match = re.search(r'(\d{2})/(\d{2})', text)
-                if date_match:
-                    month = date_match.group(1)
-                    day = date_match.group(2)
-                    
-                    try:
-                        current_year = datetime.now().year
-                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                        month_int = int(month)
-                        if 1 <= month_int <= 12:
-                            month_abbr = month_names[month_int - 1]
-                            year_short = str(current_year)[-2:]
-                            formatted_date = f"{day}-{month_abbr}-{year_short}"
-                            print(f"      📅 Extracted date from th fallback: {formatted_date}")
-                            return {"Date": formatted_date}
-                    except Exception as e:
-                        print(f"      ❌ Error formatting date from th fallback: {e}")
-                        continue
-            
-            # If no date found in th elements, return unknown
-            print(f"      ❌ No date found in any th element")
+            # If no date found, return unknown
+            print(f"      ❌ No date found in match page text")
             return {"Date": "Unknown Date"}
         except Exception as e:
             print(f"❌ APTA: Error extracting date: {e}")
