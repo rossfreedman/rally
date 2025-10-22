@@ -459,7 +459,7 @@
                 </div>
                 
                 <a href="/mobile/my-team" class="block mt-6 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                    Team Page →
+                    View All Team Stats →
                 </a>
             </div>
             
@@ -1042,6 +1042,7 @@
                         // Only restore if we had valid PTI data (not "--")
                         if (dashboardData.pti.value && dashboardData.pti.value !== '--' && parseFloat(dashboardData.pti.value) > 0) {
                             ptiCard.classList.add('loaded');
+                            // Set PTI value directly without animation for cached data
                             document.getElementById('pti-value').textContent = dashboardData.pti.value;
                             document.getElementById('pti-message').textContent = dashboardData.pti.message;
                             document.getElementById('pti-loading').classList.add('hidden');
@@ -1086,6 +1087,60 @@
             } catch (error) {
                 console.error('Error restoring persisted data:', error);
             }
+        }
+        
+        // ============================================
+        // PTI ANIMATION
+        // ============================================
+        function animatePTICounter(targetPTI) {
+            const ptiElement = document.getElementById('pti-value');
+            if (!ptiElement) return;
+            
+            const duration = 3000; // 3 seconds total
+            const startTime = performance.now();
+            const startValue = 0;
+            const endValue = targetPTI;
+            
+            function customEasing(t) {
+                // Split animation into two phases: 1.5 seconds fast to 80%, 1.5 seconds slow to 100%
+                const fastPhaseEnd = 0.5; // 50% of the animation (1.5 seconds)
+                
+                if (t <= fastPhaseEnd) {
+                    // First 1.5 seconds: Fast animation to 80% of final value
+                    const fastProgress = t / fastPhaseEnd;
+                    return 0.8 * (1 - Math.pow(1 - fastProgress, 2));
+                } else {
+                    // Last 1.5 seconds: Slow animation from 80% to 100%
+                    const slowProgress = (t - fastPhaseEnd) / (1 - fastPhaseEnd);
+                    const slowEasing = 1 - Math.pow(1 - slowProgress, 4);
+                    return 0.8 + 0.2 * slowEasing;
+                }
+            }
+            
+            function updateCounter(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Apply custom easing function
+                const easedProgress = customEasing(progress);
+                
+                // Calculate current value
+                const currentValue = startValue + (endValue - startValue) * easedProgress;
+                
+                // Update display with one decimal place
+                ptiElement.textContent = currentValue.toFixed(1);
+                
+                // Continue animation if not complete
+                if (progress < 1) {
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    // Ensure final value is exact
+                    ptiElement.textContent = endValue.toFixed(1);
+                }
+            }
+            
+            // Start the animation
+            requestAnimationFrame(updateCounter);
         }
         
         // ============================================
@@ -1188,7 +1243,8 @@
                 // Show PTI card if we have valid data
                 content.classList.remove('hidden');
                 
-                document.getElementById('pti-value').textContent = currentPTI.toFixed(1);
+                // Animate PTI counter from 0 to current PTI
+                animatePTICounter(currentPTI);
                 
                 // Calculate PTI delta since start of season (same logic as analyze-me)
                 let deltaDisplay = '';
@@ -1872,12 +1928,20 @@
                     return;
                 }
                 
+                // Helper function to extract series number from series name (e.g., "Series 7" -> 7)
+                function getSeriesNumber(seriesName) {
+                    const match = seriesName.match(/Series (\d+)/);
+                    return match ? parseInt(match[1], 10) : 999; // Default to 999 if no number found
+                }
+                
                 // En fuego: Show all players with the highest win streak
                 const highestStreak = allHotPlayers.length > 0 ? allHotPlayers[0].current_streak : 0;
-                const enFuegoPlayers = allHotPlayers.filter(player => player.current_streak === highestStreak);
+                const enFuegoPlayers = allHotPlayers.filter(player => player.current_streak === highestStreak)
+                    .sort((a, b) => getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name)); // Sort by series number (lowest to highest)
                 
                 // Who's Hot: Show all players with 3+ win streaks EXCEPT those already in En fuego
-                const regularHotPlayers = allHotPlayers.filter(player => player.current_streak !== highestStreak);
+                const regularHotPlayers = allHotPlayers.filter(player => player.current_streak !== highestStreak)
+                    .sort((a, b) => getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name)); // Sort by series number (lowest to highest)
                 
                 carousel.classList.remove('hidden');
                 carousel.innerHTML = '';

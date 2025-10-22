@@ -2841,11 +2841,17 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
                     
                     # Get series name
                     series_name = ''
+                    series_number = 999  # Default to high number for sorting
                     if series_id:
                         series_query = 'SELECT name FROM series WHERE id = %s'
                         series_result = execute_query(series_query, [series_id])
                         if series_result:
                             series_name = series_result[0]['name']
+                            # Extract series number from series name (e.g., "Series 7" -> 7)
+                            import re
+                            match = re.search(r'Series (\d+)', series_name)
+                            if match:
+                                series_number = int(match.group(1))
                     
                     # Format last match date
                     last_match_date = ''
@@ -2861,6 +2867,7 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
                         "last_match_date": last_match_date,
                         "series": series_name,
                         "series_name": series_name,  # Add series_name for consistency with other APIs
+                        "series_number": series_number,  # Add numeric series number for sorting
                         "total_matches": data['total_matches'],
                     })
 
