@@ -1474,6 +1474,16 @@
                 // Next Match (first one)
                 const nextMatch = upcomingMatches[0];
                 nextMatchContent.classList.remove('hidden');
+                
+                // Debug logging for Scout Competition button
+                console.log('🔍 Next Match Debug:', {
+                    homeTeam: nextMatch.home_team,
+                    awayTeam: nextMatch.away_team,
+                    homeTeamId: nextMatch.home_team_id,
+                    awayTeamId: nextMatch.away_team_id,
+                    allFields: Object.keys(nextMatch)
+                });
+                
                 const homeTeam = nextMatch.home_team || '';
                 const awayTeam = nextMatch.away_team || '';
                 const isHome = homeTeam.includes('{{ session_data.user.club | replace("'", "\\'") }}') || homeTeam.includes('{{ session_data.user.team_name | replace("'", "\\'") }}');
@@ -1507,11 +1517,23 @@
                         opponentTeamId = nextMatch.home_team_id;
                     }
                     
+                    // Debug logging for Scout Competition URL construction
+                    console.log('🔍 Scout Competition Debug:', {
+                        isHome: isHome,
+                        userTeamId: userTeamId,
+                        opponentTeamId: opponentTeamId,
+                        homeTeamId: nextMatch.home_team_id,
+                        awayTeamId: nextMatch.away_team_id,
+                        opponentName: opponentName
+                    });
+                    
                     if (opponentTeamId && opponentTeamId !== userTeamId) {
                         scoutCompetitionUrl = `/mobile/teams-players?team_id=${opponentTeamId}`;
+                        console.log('✅ Using team_id URL:', scoutCompetitionUrl);
                     } else {
                         // Fallback: use opponent name for team lookup
-                        scoutCompetitionUrl = `/mobile/teams-players?team_name=${encodeURIComponent(opponentName)}`;
+                        scoutCompetitionUrl = `/mobile/teams-players?team=${encodeURIComponent(opponentName)}`;
+                        console.log('⚠️ Using fallback team name URL:', scoutCompetitionUrl);
                     }
                 }
                 
@@ -1529,8 +1551,8 @@
                         <div class="flex items-center gap-2">
                             <i class="fas fa-map-marker-alt"></i>
                             ${location}
-                            <a href="https://maps.google.com/?q=${encodeURIComponent(mapsQuery)}" target="_blank" class="ml-2 text-xs px-2 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Get Directions →</a>
-                            <button onclick="showWeatherModal('${mapsQuery}', '${matchDate}')" class="ml-2 text-xs px-2 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition" style="color: #045454;">Check Weather →</button>
+                            <a href="https://maps.google.com/?q=${encodeURIComponent(mapsQuery)}" target="_blank" class="ml-2 text-xs px-5 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition text-center" style="color: #045454;">Get Directions</a>
+                            <button onclick="showWeatherModal('${mapsQuery}', '${matchDate}')" class="ml-2 text-xs px-3 py-1 bg-white rounded-full font-semibold hover:bg-gray-100 transition text-center" style="color: #045454;">Check Weather</button>
                         </div>
                     </div>
                     <div class="flex gap-3 mt-6">
@@ -4037,7 +4059,14 @@ function displayWeatherData(weather, location, date) {
     // Update weather icon
     const weatherIcon = document.getElementById('weatherIcon');
     if (weather.icon_url) {
-        weatherIcon.innerHTML = `<img src="${weather.icon_url}" alt="${weather.condition}" class="mx-auto">`;
+        // Apply yellow filter only to sun/clear weather icons
+        let iconStyle = '';
+        if (weather.icon && (weather.icon.includes('01d') || weather.icon.includes('01n') || 
+            weather.condition.toLowerCase().includes('clear') || 
+            weather.condition.toLowerCase().includes('sun'))) {
+            iconStyle = 'filter: brightness(0) saturate(100%) invert(84%) sepia(100%) saturate(1000%) hue-rotate(0deg) brightness(100%) contrast(100%);';
+        }
+        weatherIcon.innerHTML = `<img src="${weather.icon_url}" alt="${weather.condition}" class="mx-auto" style="${iconStyle}">`;
     } else {
         weatherIcon.innerHTML = `<i class="fas fa-cloud text-blue-500"></i>`;
     }
