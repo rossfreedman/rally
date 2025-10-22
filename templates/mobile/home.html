@@ -664,7 +664,7 @@
                 </div>
             </div>
             
-            <a href="/mobile/improve" class="block text-center py-4 text-white rounded-2xl font-semibold transition text-lg shadow-md" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
+            <a href="/mobile/my-club" class="block text-center py-4 text-white rounded-2xl font-semibold transition text-lg shadow-md" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
                 More Club Info →
             </a>
         </section>
@@ -703,10 +703,10 @@
                 
                 <div class="flex gap-3 mt-4">
                     <a href="/mobile/pickup-games" class="flex-1 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
-                        View All Pickup Games →
+                        View All<br>Pickup Games →
                     </a>
                     <a href="/mobile/create-pickup-game?type=public" class="flex-1 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
-                        Create Pickup Game →
+                        Create<br>Pickup Game →
                     </a>
                 </div>
             </div>
@@ -3169,6 +3169,7 @@
             function updateActiveNavigation(scrollTop) {
                 // Define sections and their scroll positions
                 const sections = [
+                    { id: 'dashboard', element: document.querySelector('#dashboard') },
                     { id: 'schedule', element: document.querySelector('#schedule') },
                     { id: 'team', element: document.querySelector('#team') },
                     { id: 'club', element: document.querySelector('#club') },
