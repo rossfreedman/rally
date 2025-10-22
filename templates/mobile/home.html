@@ -1874,7 +1874,7 @@
                 
                 // Separate players with 5+ consecutive wins (En fuego!) from 3-4 wins (Who's Hot)
                 const enFuegoPlayers = allHotPlayers.filter(player => player.current_streak >= 5);
-                const regularHotPlayers = allHotPlayers.filter(player => player.current_streak >= 3 && player.current_streak < 5).slice(0, 8); // Show up to 8 more
+                const regularHotPlayers = allHotPlayers.filter(player => player.current_streak >= 3 && player.current_streak < 5).slice(0, 15); // Show up to 15 more
                 
                 carousel.classList.remove('hidden');
                 carousel.innerHTML = '';
