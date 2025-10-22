@@ -9479,7 +9479,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
         if not team_id:
             return notifications
             
-        # Get the most recent poll for the user's team
+        # Get recent polls for the user's team (not just the most recent)
         poll_query = """
             SELECT 
                 p.id,
@@ -9495,36 +9495,38 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
             WHERE p.team_id = %s
             GROUP BY p.id, p.question, p.created_at, p.created_by, u.first_name, u.last_name
             ORDER BY p.created_at DESC
-            LIMIT 1
+            LIMIT 3
         """
         
-        recent_poll = execute_query_one(poll_query, [team_id])
+        recent_polls = execute_query(poll_query, [team_id])
         
-        if recent_poll:
-            # Format the creation date
-            created_date = recent_poll["created_at"]
-            if hasattr(created_date, 'date'):
-                created_date = created_date.date()
-            
-            today = datetime.now().date()
-            if created_date == today:
-                date_display = "Today"
-            elif created_date == today - timedelta(days=1):
-                date_display = "Yesterday"
-            else:
-                date_display = created_date.strftime("%b %d")
-            
-            creator_name = f"{recent_poll['creator_first_name']} {recent_poll['creator_last_name']}"
-            
-            notifications.append({
-                "id": f"team_poll_{recent_poll['id']}",
-                "type": "poll",
-                "title": "Team Poll",
-                "message": f"{recent_poll['question']}",
-                "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
-                "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{recent_poll['id']}"},
-                "priority": 4
-            })
+        if recent_polls:
+            for poll in recent_polls:
+                # Format the creation date
+                created_date = poll["created_at"]
+                if hasattr(created_date, 'date'):
+                    created_date = created_date.date()
+                
+                today = datetime.now().date()
+                if created_date == today:
+                    date_display = "Today"
+                elif created_date == today - timedelta(days=1):
+                    date_display = "Yesterday"
+                else:
+                    date_display = created_date.strftime("%b %d")
+                
+                creator_name = f"{poll['creator_first_name']} {poll['creator_last_name']}"
+                
+                notifications.append({
+                    "id": f"team_poll_{poll['id']}",
+                    "type": "poll",
+                    "title": "Team Poll",
+                    "message": f"{poll['question']}",
+                    "cta": {"label": "Vote Now", "href": f"/mobile/polls/{poll['id']}"},
+                    "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{poll['id']}"},
+                    "priority": 4,
+                    "created_at": poll["created_at"].isoformat() if poll["created_at"] else None
+                })
             
     except Exception as e:
         logger.error(f"Error getting team poll notifications: {str(e)}")

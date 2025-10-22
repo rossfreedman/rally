@@ -2241,7 +2241,7 @@
                     const pastContent = document.getElementById('past-polls-content');
                     section.classList.remove('hidden');
                     
-                    // Separate active and past polls based on date or status
+                    // Separate active and past polls based on date
                     const now = new Date();
                     const fiveDaysAgo = new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000)); // 5 days ago
                     
@@ -2249,88 +2249,57 @@
                     console.log('Five days ago:', fiveDaysAgo);
                     console.log('All polls:', polls);
                     
-                    const activePolls = polls.filter(poll => {
-                        console.log('Checking poll for active status:', poll);
-                        
-                        // Check if poll has an end date and it's in the past
-                        if (poll.end_date) {
-                            const endDate = new Date(poll.end_date);
-                            console.log('Poll has end date:', poll.end_date, 'End date <= now?', endDate <= now);
-                            if (endDate <= now) return false;
-                        }
-                        
-                        // Check if poll is older than 5 days based on created_at
-                        if (poll.created_at) {
-                            const createdDate = new Date(poll.created_at);
-                            console.log('Poll created at:', poll.created_at, 'Created at <= fiveDaysAgo?', createdDate <= fiveDaysAgo);
-                            if (createdDate <= fiveDaysAgo) return false;
-                        } else {
-                            console.log('Poll has no created_at, treating as past poll');
-                            return false; // Treat polls without created_at as past polls
-                        }
-                        
-                        console.log('Poll is active');
-                        // Poll is active if it passes both checks
-                        return true;
-                    });
+                    const activePolls = [];
+                    const pastPolls = [];
                     
-                    const pastPolls = polls.filter(poll => {
-                        console.log('Checking poll for past status:', poll);
+                    // Process each poll individually
+                    polls.forEach(poll => {
+                        console.log('Processing poll:', poll);
                         
-                        // Consider polls past if they have an end date and it's in the past
-                        if (poll.end_date) {
-                            const endDate = new Date(poll.end_date);
-                            console.log('Poll has end date:', poll.end_date, 'End date <= now?', endDate <= now);
-                            if (endDate <= now) return true;
-                        }
-                        
-                        // Consider polls past if they're older than 5 days
                         if (poll.created_at) {
                             const createdDate = new Date(poll.created_at);
-                            console.log('Poll created at:', poll.created_at, 'Created at <= fiveDaysAgo?', createdDate <= fiveDaysAgo);
-                            if (createdDate <= fiveDaysAgo) return true;
+                            const isActive = createdDate >= fiveDaysAgo;
+                            console.log('Poll created at:', poll.created_at, 'Created date:', createdDate, 'Is active (>= fiveDaysAgo)?', isActive);
+                            
+                            if (isActive) {
+                                activePolls.push(poll);
+                            } else {
+                                pastPolls.push(poll);
+                            }
                         } else {
                             console.log('Poll has no created_at, treating as past poll');
-                            return true; // Treat polls without created_at as past polls
+                            pastPolls.push(poll); // Treat polls without created_at as past polls
                         }
-                        
-                        console.log('Poll is not past');
-                        return false;
                     });
                     
                     // Display active polls
                     if (activePolls.length > 0) {
                         activeContent.innerHTML = activePolls.map(poll => `
-                            <div class="p-4 bg-green-50 border border-green-200 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="font-semibold text-[#045454]">${poll.title}</div>
-                                    <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                            <div class="p-1.5 bg-green-50 border border-green-200 rounded">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs font-medium text-[#045454] truncate flex-1 mr-1">${poll.title}</div>
+                                    <span class="text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded text-xs">Active</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-2">${poll.message}</p>
-                                ${poll.end_date ? `<div class="text-xs text-gray-500">Ends: ${new Date(poll.end_date).toLocaleDateString()}</div>` : ''}
+                                <p class="text-xs text-gray-600 line-clamp-1 mt-0.5">${poll.message}</p>
                             </div>
                         `).join('');
                     } else {
-                        activeContent.innerHTML = '<div class="text-center py-4 text-gray-500">No active polls</div>';
+                        activeContent.innerHTML = '<div class="text-center py-1 text-gray-500 text-xs">No active polls</div>';
                     }
                     
                     // Display past polls
                     if (pastPolls.length > 0) {
                         pastContent.innerHTML = pastPolls.map(poll => `
-                            <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="font-semibold text-gray-700">${poll.title}</div>
-                                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Closed</span>
+                            <div class="p-1.5 bg-gray-50 border border-gray-200 rounded">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-xs font-medium text-gray-700 truncate flex-1 mr-1">${poll.title}</div>
+                                    <span class="text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded text-xs">Closed</span>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-2">${poll.message}</p>
-                                <div class="text-xs text-gray-500">
-                                    ${poll.end_date ? `Ended: ${new Date(poll.end_date).toLocaleDateString()}` : 
-                                      poll.created_date ? `Created: ${new Date(poll.created_date).toLocaleDateString()}` : ''}
-                                </div>
+                                <p class="text-xs text-gray-600 line-clamp-1 mt-0.5">${poll.message}</p>
                             </div>
                         `).join('');
                     } else {
-                        pastContent.innerHTML = '<div class="text-center py-4 text-gray-500">No past polls</div>';
+                        pastContent.innerHTML = '<div class="text-center py-1 text-gray-500 text-xs">No past polls</div>';
                     }
                 }
                 

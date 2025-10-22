@@ -610,12 +610,9 @@
 
   async function loadClubData() {
     try {
-        const response = await fetch('/api/club-data');
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
+        // Remove the API call since club data is already loaded in the template
+        // This was causing a 404 error as the endpoint doesn't exist
+        console.log('Club data is already loaded in template, no additional API call needed');
     } catch (error) {
         console.error('Error loading club data:', error);
     }

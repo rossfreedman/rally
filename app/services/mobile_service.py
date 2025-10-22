@@ -2569,7 +2569,7 @@ def get_recent_matches_for_user_club(user):
                 WHERE ms.league_id = %s 
                 AND (ms.home_team LIKE %s OR ms.away_team LIKE %s)
                 ORDER BY ms.match_date DESC
-                LIMIT 200
+                LIMIT 50
             """
             club_pattern = f"%{user_club}%"
             league_filtered_matches = execute_query(matches_query, [user_league_db_id, club_pattern, club_pattern])
@@ -2684,198 +2684,142 @@ def get_recent_matches_for_user_club(user):
 
 
 def calculate_player_streaks(club_name, user_league_db_id=None):
-    """Calculate winning streaks for players at the club using improved algorithm"""
+    """Calculate winning streaks for players at the club using the same algorithm as home page"""
     try:
         from database_utils import execute_query
 
-        # Get club ID for the club name
-        club_query = "SELECT id FROM clubs WHERE name ILIKE %s LIMIT 1"
-        club_result = execute_query(club_query, [f'%{club_name}%'])
-        
-        if not club_result:
-            print(f"Club {club_name} not found")
-            return []
-        
-        club_id = club_result[0]['id']
-        print(f"[DEBUG] Found club {club_name} with ID {club_id}")
-
-        # Get all match results for club players, ordered by date
-        query = """
+        # Use the same sophisticated streak calculation as the home page
+        streaks_query = """
+            WITH recent_matches AS (
+                SELECT 
+                    ms.match_date,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.league_id
+                FROM match_scores ms
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '60 days'
+                AND ms.winner IS NOT NULL
+                AND ms.winner != ''
+                AND (%s IS NULL OR ms.league_id = %s)
+                AND (
+                    ms.home_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.home_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                )
+                ORDER BY ms.match_date DESC, ms.id DESC
+            ),
+            player_match_results AS (
+                SELECT 
+                    p.tenniscores_player_id,
+                    p.first_name || ' ' || p.last_name as player_name,
+                    p.team_id,
+                    s.name as series_name,
+                    CASE 
+                        WHEN s.name ~ 'Series (\d+)' THEN 
+                            CAST(SUBSTRING(s.name FROM 'Series (\d+)') AS INTEGER)
+                        ELSE 999
+                    END as series_number,
+                    rm.match_date,
+                    CASE 
+                        WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
+                             (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
+                        THEN 'W' ELSE 'L' 
+                    END as result
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                JOIN recent_matches rm ON (
+                    rm.home_player_1_id = p.tenniscores_player_id OR
+                    rm.home_player_2_id = p.tenniscores_player_id OR
+                    rm.away_player_1_id = p.tenniscores_player_id OR
+                    rm.away_player_2_id = p.tenniscores_player_id
+                )
+                WHERE c.name ILIKE %s
+                AND p.is_active = true
+                ORDER BY p.tenniscores_player_id, rm.match_date DESC
+            ),
+            streak_calculations AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    series_number,
+                    match_date,
+                    result,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) as match_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as result_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as streak_group
+                FROM player_match_results
+            ),
+            current_streaks AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    series_number,
+                    result,
+                    COUNT(*) as current_streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_calculations
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY tenniscores_player_id, player_name, team_id, series_name, series_number, result
+            )
             SELECT 
-                match_date,
-                home_player_1_id,
-                home_player_2_id,
-                away_player_1_id,
-                away_player_2_id,
-                winner,
-                home_team,
-                away_team,
-                scores,
-                league_id
-            FROM match_scores 
-            WHERE match_date IS NOT NULL 
-            AND winner IS NOT NULL
-            AND winner != ''
-            AND (home_player_1_id IN (
-                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
-                ) OR home_player_2_id IN (
-                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
-                ) OR away_player_1_id IN (
-                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
-                ) OR away_player_2_id IN (
-                    SELECT tenniscores_player_id FROM players WHERE club_id = %s
-                ))
+                tenniscores_player_id,
+                player_name,
+                team_id,
+                series_name,
+                series_number,
+                current_streak_length,
+                last_match_date
+            FROM current_streaks
+            WHERE result = 'W'  -- Only show win streaks
+            AND current_streak_length >= 1  -- Show all win streaks (not just 3+)
+            ORDER BY current_streak_length DESC, last_match_date DESC
+            LIMIT 20
         """
         
-        # Add league filter if provided
+        club_pattern = f'%{club_name}%'
         if user_league_db_id:
-            query += " AND league_id = %s"
-            params = [club_id, club_id, club_id, club_id, user_league_db_id]
+            params = [user_league_db_id, user_league_db_id, club_pattern, club_pattern, club_pattern, club_pattern, club_pattern]
         else:
-            params = [club_id, club_id, club_id, club_id]
+            params = [None, None, club_pattern, club_pattern, club_pattern, club_pattern, club_pattern]
         
-        query += " ORDER BY match_date ASC, id ASC"
+        streaks_results = execute_query(streaks_query, params)
         
-        matches = execute_query(query, params)
-        print(f"[DEBUG] Found {len(matches)} matches for club {club_name}")
-        
-        if not matches:
-            return []
-
-        # Track player streaks
-        player_streaks = {}
-        
-        for match in matches:
-            match_date = match['match_date']
-            winner = match['winner']
-            
-            # Get all club players in this match
-            players = [
-                match['home_player_1_id'],
-                match['home_player_2_id'], 
-                match['away_player_1_id'],
-                match['away_player_2_id']
-            ]
-            
-            # Filter to only club players
-            club_players = []
-            for player_id in players:
-                if player_id:
-                    # Check if player is from this club
-                    player_check_query = '''
-                        SELECT tenniscores_player_id FROM players 
-                        WHERE tenniscores_player_id = %s AND club_id = %s
-                    '''
-                    player_check = execute_query(player_check_query, [player_id, club_id])
-                    if player_check:
-                        club_players.append(player_id)
-            
-            # Determine if each club player won or lost
-            for player_id in club_players:
-                if player_id not in player_streaks:
-                    player_streaks[player_id] = {
-                        'current_streak': 0,
-                        'max_streak': 0,
-                        'last_result': None,
-                        'last_date': None,
-                        'streak_start_date': None,
-                        'max_streak_start_date': None,
-                        'max_streak_end_date': None,
-                        'total_matches': 0
-                    }
-                
-                # Determine if this player won
-                player_won = False
-                if 'home' in winner.lower() and player_id in [match['home_player_1_id'], match['home_player_2_id']]:
-                    player_won = True
-                elif 'away' in winner.lower() and player_id in [match['away_player_1_id'], match['away_player_2_id']]:
-                    player_won = True
-                elif winner == match['home_team'] and player_id in [match['home_player_1_id'], match['home_player_2_id']]:
-                    player_won = True
-                elif winner == match['away_team'] and player_id in [match['away_player_1_id'], match['away_player_2_id']]:
-                    player_won = True
-                
-                streak_data = player_streaks[player_id]
-                streak_data['total_matches'] += 1
-                
-                # Update streak
-                if streak_data['last_result'] == 'win' and player_won:
-                    # Continuing win streak
-                    streak_data['current_streak'] += 1
-                elif streak_data['last_result'] == 'loss' and not player_won:
-                    # Continuing loss streak  
-                    streak_data['current_streak'] += 1
-                else:
-                    # Streak broken, start new one
-                    streak_data['current_streak'] = 1
-                    streak_data['streak_start_date'] = match_date
-                
-                streak_data['last_result'] = 'win' if player_won else 'loss'
-                streak_data['last_date'] = match_date
-                
-                # Update max streak if current streak is better
-                if (streak_data['current_streak'] > streak_data['max_streak'] and 
-                    streak_data['last_result'] == 'win'):
-                    streak_data['max_streak'] = streak_data['current_streak']
-                    streak_data['max_streak_start_date'] = streak_data['streak_start_date']
-                    streak_data['max_streak_end_date'] = match_date
-
-        # Get player names and series info
+        # Convert to the expected format
         significant_streaks = []
-        
-        for player_id, data in player_streaks.items():
-            if data['max_streak'] > 0:  # Only include players with at least 1 win streak
-                # Get player details
-                name_query = '''
-                    SELECT first_name, last_name, series_id, tenniscores_player_id, team_id FROM players 
-                    WHERE tenniscores_player_id = %s AND club_id = %s
-                    LIMIT 1
-                '''
-                name_result = execute_query(name_query, [player_id, club_id])
-                
-                if name_result:
-                    first_name = name_result[0]['first_name'] or ''
-                    last_name = name_result[0]['last_name'] or ''
-                    player_name = f'{first_name} {last_name}'.strip()
-                    series_id = name_result[0]['series_id']
-                    
-                    # Get series name
-                    series_name = ''
-                    series_number = 999  # Default to high number for sorting
-                    if series_id:
-                        series_query = 'SELECT name FROM series WHERE id = %s'
-                        series_result = execute_query(series_query, [series_id])
-                        if series_result:
-                            series_name = series_result[0]['name']
-                            # Extract series number from series name (e.g., "Series 7" -> 7)
-                            import re
-                            match = re.search(r'Series (\d+)', series_name)
-                            if match:
-                                series_number = int(match.group(1))
-                    
-                    # Format last match date
-                    last_match_date = ''
-                    if data['last_date']:
-                        last_match_date = data['last_date'].strftime('%m/%d/%y')
-                    
-                    significant_streaks.append({
-                        "player_name": player_name,
-                        "tenniscores_player_id": name_result[0]['tenniscores_player_id'],
-                        "team_id": name_result[0]['team_id'],
-                        "current_streak": data['current_streak'],
-                        "best_streak": data['max_streak'],
-                        "last_match_date": last_match_date,
-                        "series": series_name,
-                        "series_name": series_name,  # Add series_name for consistency with other APIs
-                        "series_number": series_number,  # Add numeric series number for sorting
-                        "total_matches": data['total_matches'],
-                    })
-
-        # Sort by current streak (descending)
-        significant_streaks.sort(key=lambda x: x['current_streak'], reverse=True)
+        for streak in streaks_results:
+            # Format last match date
+            last_match_date = ''
+            if streak['last_match_date']:
+                last_match_date = streak['last_match_date'].strftime('%m/%d/%y')
+            
+            significant_streaks.append({
+                "player_name": streak['player_name'],
+                "tenniscores_player_id": streak['tenniscores_player_id'],
+                "team_id": streak['team_id'],
+                "current_streak": streak['current_streak_length'],
+                "best_streak": streak['current_streak_length'],  # For current streaks, best = current
+                "last_match_date": last_match_date,
+                "series": streak['series_name'],
+                "series_name": streak['series_name'],
+                "series_number": streak['series_number'] or 999,
+                "total_matches": streak['current_streak_length'],  # Approximate
+            })
 
         print(f"[DEBUG] Found {len(significant_streaks)} players with win streaks for club {club_name}")
-        print(f"[DEBUG] significant_streaks data: {significant_streaks}")
         return significant_streaks
 
     except Exception as e:
@@ -2952,6 +2896,37 @@ def get_mobile_club_data(user):
         matches_by_date = get_recent_matches_for_user_club(user_with_club)
 
         print(f"[DEBUG] Found matches for {len(matches_by_date)} different dates")
+        
+        # OPTIMIZATION: Batch lookup all player names to avoid N+1 queries
+        player_names_cache = {}
+        all_player_ids = set()
+        for date_matches in matches_by_date.values():
+            for match in date_matches:
+                for player_field in ["home_player_1", "home_player_2", "away_player_1", "away_player_2"]:
+                    player_id = match.get(player_field)
+                    if player_id and player_id.strip():
+                        all_player_ids.add(player_id)
+        
+        if all_player_ids:
+            # Import execute_query for batch lookup
+            from database_utils import execute_query
+            
+            # Batch query all player names at once
+            player_ids_list = list(all_player_ids)
+            player_ids_placeholders = ','.join(['%s'] * len(player_ids_list))
+            
+            batch_names_query = f"""
+                SELECT tenniscores_player_id, first_name, last_name 
+                FROM players 
+                WHERE tenniscores_player_id IN ({player_ids_placeholders})
+            """
+            batch_names_result = execute_query(batch_names_query, player_ids_list)
+            
+            # Build cache
+            for player in batch_names_result:
+                player_names_cache[player["tenniscores_player_id"]] = f"{player['first_name']} {player['last_name']}"
+            
+            print(f"[DEBUG] Batch loaded {len(player_names_cache)} player names")
 
         # Initialize default values
         weekly_results = []
@@ -3068,24 +3043,24 @@ def get_mobile_club_data(user):
                         # Fallback to database ID order if no tenniscores_match_id
                         court_num = len(team_matches[team]["matches"]) + 1
 
-                    # Resolve player IDs to readable names
+                    # Resolve player IDs to readable names using batch lookup
                     home_player_1_name = (
-                        get_player_name_from_id(match["home_player_1"])
+                        player_names_cache.get(match["home_player_1"], "Unknown")
                         if match.get("home_player_1")
                         else "Unknown"
                     )
                     home_player_2_name = (
-                        get_player_name_from_id(match["home_player_2"])
+                        player_names_cache.get(match["home_player_2"], "Unknown")
                         if match.get("home_player_2")
                         else "Unknown"
                     )
                     away_player_1_name = (
-                        get_player_name_from_id(match["away_player_1"])
+                        player_names_cache.get(match["away_player_1"], "Unknown")
                         if match.get("away_player_1")
                         else "Unknown"
                     )
                     away_player_2_name = (
-                        get_player_name_from_id(match["away_player_2"])
+                        player_names_cache.get(match["away_player_2"], "Unknown")
                         if match.get("away_player_2")
                         else "Unknown"
                     )
