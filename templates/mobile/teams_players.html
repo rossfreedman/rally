@@ -366,8 +366,12 @@
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
                                         {% if player.has_notes %}
-                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                        <a href="#" 
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
+                                           onclick="openPlayerNotesModal('{{ player.tenniscores_player_id }}', '{{ player.name }}'); return false;"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -380,7 +384,10 @@
                                         </a>
                                         {% if player.has_notes %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -543,8 +550,12 @@
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
                                         {% if player.has_notes %}
-                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                        <a href="#" 
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
+                                           onclick="openPlayerNotesModal('{{ player.tenniscores_player_id }}', '{{ player.name }}'); return false;"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -557,7 +568,10 @@
                                         </a>
                                         {% if player.has_notes %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-700 transition-colors duration-200"
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -671,8 +685,12 @@
                                             <i class="fas fa-search text-sm"></i>
                                         </a>
                                         {% if player.has_notes %}
-                                        <a href="/mobile/player-detail/{{ player.tenniscores_player_id }}_team_{{ player.team_id }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-800 transition-colors duration-200"
+                                        <a href="#" 
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
+                                           onclick="openPlayerNotesModal('{{ player.tenniscores_player_id }}', '{{ player.name }}'); return false;"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -685,7 +703,10 @@
                                         </a>
                                         {% if player.has_notes %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}#notes" 
-                                           class="text-yellow-600 hover:text-yellow-800 transition-colors duration-200"
+                                           class="transition-colors duration-200"
+                                           style="color: #dc2626;"
+                                           onmouseover="this.style.color='#b91c1c'"
+                                           onmouseout="this.style.color='#dc2626'"
                                            title="View {{ player.name }}'s notes">
                                             <i class="fas fa-edit text-sm"></i>
                                         </a>
@@ -1853,6 +1874,248 @@ document.addEventListener('DOMContentLoaded', function() {
             // This will be handled by the player detail page itself
         }
     });
+});
+</script>
+
+<!-- Player Notes Modal -->
+<div id="playerNotesModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 rounded-t-xl" style="background-color: #045454;">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                        <i class="fas fa-edit mr-2" style="color: #bff863;"></i>
+                        <span id="modalPlayerName">Player Notes</span>
+                    </h2>
+                    <button onclick="closePlayerNotesModal()" class="text-white hover:text-gray-300 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <!-- Informational Message -->
+                <div class="p-4 mb-4 rounded-lg" style="background-color: rgba(191, 248, 99, 0.1); border: 2px solid #045454;">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle mt-0.5 mr-3 flex-shrink-0" style="color: #045454;"></i>
+                        <p class="text-sm" style="color: #045454;">
+                            Player notes are specific and confidential to <strong>{{ session_data.user.club }}</strong>. Notes are <u>not</u> shared with other clubs.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="modalNotesLoading" class="text-center py-4">
+                    <div class="loading loading-spinner loading-lg mb-2" style="color: #045454;"></div>
+                    <p class="text-gray-500 text-sm">Loading notes...</p>
+                </div>
+                
+                <!-- Notes List -->
+                <div id="modalNotesList" class="hidden space-y-3 mb-6">
+                    <!-- Notes will be loaded here -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="modalNotesEmpty" class="hidden text-center py-4">
+                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-edit text-gray-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-500 text-sm">No notes yet for this player</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="modalNotesError" class="hidden text-center py-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+                    </div>
+                    <p class="text-red-600 text-sm">Failed to load notes</p>
+                </div>
+                
+                <!-- Add Note Form -->
+                <div class="border-t border-gray-100 pt-4 mt-4">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Add a Note</h3>
+                    <form id="modalAddNoteForm" class="space-y-3">
+                        <textarea 
+                            id="modalNoteText" 
+                            name="note" 
+                            rows="3" 
+                            placeholder="Add a note about this player (i.e. weak backhand, struggles with deep lobs, strong drive...)"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                            required
+                        ></textarea>
+                        <button 
+                            type="submit" 
+                            id="modalSubmitNoteBtn"
+                            class="w-full py-2 px-4 font-medium rounded-lg transition-colors duration-200"
+                            style="background-color: #045454; color: #bff863;"
+                            onmouseover="this.style.opacity='0.85'"
+                            onmouseout="this.style.opacity='1'"
+                        >
+                            <i class="fas fa-plus mr-2"></i>Add Note
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functionality for player notes
+let currentPlayerId = null;
+
+function openPlayerNotesModal(playerId, playerName) {
+    currentPlayerId = playerId;
+    
+    // Convert "Last Name, First Name" to "First Name Last Name"
+    let displayName = playerName;
+    if (playerName.includes(',')) {
+        const parts = playerName.split(',');
+        if (parts.length === 2) {
+            const lastName = parts[0].trim();
+            const firstName = parts[1].trim();
+            displayName = `${firstName} ${lastName}`;
+        }
+    }
+    
+    document.getElementById('modalPlayerName').textContent = `${displayName}'s Notes`;
+    
+    // Show modal
+    document.getElementById('playerNotesModal').classList.remove('hidden');
+    
+    // Load notes
+    loadModalPlayerNotes(playerId);
+}
+
+function closePlayerNotesModal() {
+    document.getElementById('playerNotesModal').classList.add('hidden');
+    currentPlayerId = null;
+    
+    // Clear form
+    document.getElementById('modalNoteText').value = '';
+    
+    // Hide all states
+    document.getElementById('modalNotesLoading').classList.add('hidden');
+    document.getElementById('modalNotesList').classList.add('hidden');
+    document.getElementById('modalNotesEmpty').classList.add('hidden');
+    document.getElementById('modalNotesError').classList.add('hidden');
+}
+
+// Load player notes in modal
+async function loadModalPlayerNotes(playerId) {
+    const loading = document.getElementById('modalNotesLoading');
+    const notesList = document.getElementById('modalNotesList');
+    const notesEmpty = document.getElementById('modalNotesEmpty');
+    const notesError = document.getElementById('modalNotesError');
+    
+    // Show loading state
+    loading.classList.remove('hidden');
+    notesList.classList.add('hidden');
+    notesEmpty.classList.add('hidden');
+    notesError.classList.add('hidden');
+    
+    try {
+        console.log('[DEBUG] Loading notes for player:', playerId);
+        
+        // Fetch notes
+        const response = await fetch(`/api/player-notes/${encodeURIComponent(playerId)}`);
+        const data = await response.json();
+        
+        console.log('[DEBUG] Notes response:', data);
+        
+        if (data.success && data.notes && data.notes.length > 0) {
+            // Show notes list
+            notesList.classList.remove('hidden');
+            renderModalNotes(data.notes);
+        } else {
+            // Show empty state
+            notesEmpty.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('[DEBUG] Error loading notes:', error);
+        notesError.classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+// Render notes in the modal
+function renderModalNotes(notes) {
+    const notesList = document.getElementById('modalNotesList');
+    
+    const html = notes.map(note => `
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex justify-between items-start mb-2">
+                <div class="text-sm font-medium text-gray-900">${note.creator_name}</div>
+                <div class="text-xs text-gray-500">${note.created_at}</div>
+            </div>
+            <p class="text-sm text-gray-700 leading-relaxed">${note.note}</p>
+            <div class="flex justify-end mt-3 space-x-2">
+                <button onclick="editModalNote(${note.id})" class="text-xs text-blue-600 hover:text-blue-800 transition-colors">
+                    <i class="fas fa-edit mr-1"></i>Edit
+                </button>
+                <button onclick="deleteModalNote(${note.id})" class="text-xs text-red-600 hover:text-red-800 transition-colors">
+                    <i class="fas fa-trash mr-1"></i>Delete
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    notesList.innerHTML = html;
+}
+
+// Handle modal note form submission
+document.getElementById('modalAddNoteForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    
+    if (!currentPlayerId) return;
+    
+    const noteText = document.getElementById('modalNoteText').value.trim();
+    if (!noteText) return;
+    
+    try {
+        const response = await fetch('/api/player-notes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentPlayerId,
+                note: noteText
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Clear form
+            document.getElementById('modalNoteText').value = '';
+            
+            // Reload notes
+            await loadModalPlayerNotes(currentPlayerId);
+        } else {
+            alert('Failed to add note: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('[DEBUG] Error adding note:', error);
+        alert('Failed to add note. Please try again.');
+    }
+});
+
+// Close modal when clicking outside
+document.getElementById('playerNotesModal').addEventListener('click', function(event) {
+    if (event.target === this) {
+        closePlayerNotesModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closePlayerNotesModal();
+    }
 });
 </script>
 
