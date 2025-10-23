@@ -675,24 +675,15 @@ def serve_mobile_player_detail(player_id):
     partner_analysis = get_current_season_partner_analysis(actual_player_id, league_id_int, team_id)
     analyze_data["partner_analysis"] = partner_analysis
 
-    # Check if user has access to notes for this player (same logic as teams-players page)
+    # Check if user has access to notes for this player
+    # Users should always have access to view and add notes for players in their club
     user_club_id = session["user"].get("club_id")
-    has_notes_access = False
+    has_notes_access = bool(user_club_id)  # Always show notes section if user has a club
     
     if user_club_id:
-        # Check if there are any notes for this player in the user's club
-        notes_check_query = """
-            SELECT COUNT(*) as note_count
-            FROM player_notes 
-            WHERE player_id = %s AND club_id = %s
-        """
-        try:
-            notes_result = execute_query_one(notes_check_query, [actual_player_id, user_club_id])
-            has_notes_access = notes_result and notes_result.get("note_count", 0) > 0
-            print(f"[DEBUG] Notes access check for player {actual_player_id} in club {user_club_id}: {has_notes_access}")
-        except Exception as e:
-            print(f"[DEBUG] Error checking notes access: {e}")
-            has_notes_access = False
+        print(f"[DEBUG] Notes access granted for player {actual_player_id} in club {user_club_id}")
+    else:
+        print(f"[DEBUG] No notes access - user has no club_id")
 
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
