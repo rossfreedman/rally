@@ -1003,6 +1003,10 @@
         function savePersistedData() {
             try {
                 const dashboardData = {
+                    user: window.sessionData && window.sessionData.user ? {
+                        tenniscores_player_id: window.sessionData.user.tenniscores_player_id,
+                        team_id: window.sessionData.user.team_id
+                    } : null,
                     pti: {
                         value: document.getElementById('pti-value')?.textContent || '--',
                         message: document.getElementById('pti-message')?.textContent || '',
@@ -1038,6 +1042,18 @@
                 const dashboardData = JSON.parse(savedData);
                 const now = Date.now();
                 const maxAge = 5 * 60 * 1000; // 5 minutes
+                
+                // Check if cached data is for the current user
+                const currentUser = window.sessionData && window.sessionData.user;
+                const cachedUser = dashboardData.user;
+                
+                if (currentUser && cachedUser && 
+                    (currentUser.tenniscores_player_id !== cachedUser.tenniscores_player_id ||
+                     currentUser.team_id !== cachedUser.team_id)) {
+                    console.log('Cached data is for different user/team, clearing cache');
+                    localStorage.removeItem('rally_dashboard_data');
+                    return;
+                }
                 
                 // Restore PTI data if recent and valid
                 if (dashboardData.pti && (now - dashboardData.pti.timestamp) < maxAge) {
@@ -1210,6 +1226,77 @@
                     console.log('🔍 Main loading: About to call loadWinStreakData()');
                     await loadWinStreakData();
                     
+                    // Load current season stats for CNSWPL players (who don't have PTI)
+                    console.log('🔍 Loading current season stats for CNSWPL player...');
+                    const seasonStatsResponse = await fetch('/api/current-season-stats');
+                    console.log('Current season stats response status:', seasonStatsResponse.status);
+                    if (seasonStatsResponse.ok) {
+                        const seasonStatsData = await seasonStatsResponse.json();
+                        console.log('Current season stats data:', seasonStatsData);
+                        if (seasonStatsData.success && seasonStatsData.matches > 0) {
+                            // Use the actual current season data from analyze-me
+                            const wins = seasonStatsData.wins || 0;
+                            const losses = seasonStatsData.losses || 0;
+                            const winRate = Math.round(seasonStatsData.win_rate || 0);
+                            
+                            // Apply color coding based on win rate
+                            let recordColor = '';
+                            let winRateColor = '';
+                            
+                            if (winRate > 50) {
+                                recordColor = 'text-green-500';
+                                winRateColor = 'text-green-500';
+                            } else if (winRate >= 34 && winRate <= 50) {
+                                recordColor = 'text-yellow-500';
+                                winRateColor = 'text-yellow-500';
+                            } else {
+                                recordColor = 'text-red-500';
+                                winRateColor = 'text-red-500';
+                            }
+                            
+                            // Set record with color
+                            const recordElement = document.getElementById('my-record');
+                            recordElement.textContent = `${wins} - ${losses}`;
+                            recordElement.className = `text-3xl font-bold ${recordColor}`;
+                            
+                            // Set win rate with color
+                            const winRateElement = document.getElementById('win-rate');
+                            winRateElement.textContent = `${winRate}%`;
+                            winRateElement.className = `text-3xl font-bold ${winRateColor}`;
+                            
+                            // Mark cards as loaded and save to persistence
+                            document.getElementById('record-card').classList.add('loaded');
+                            document.getElementById('winrate-card').classList.add('loaded');
+                            savePersistedData();
+                        } else {
+                            // Fallback if no matches
+                            const recordElement = document.getElementById('my-record');
+                            recordElement.textContent = '0 - 0';
+                            recordElement.className = 'text-3xl font-bold text-red-500';
+                            
+                            const winRateElement = document.getElementById('win-rate');
+                            winRateElement.textContent = '0%';
+                            winRateElement.className = 'text-3xl font-bold text-red-500';
+                            
+                            document.getElementById('record-card').classList.add('loaded');
+                            document.getElementById('winrate-card').classList.add('loaded');
+                            savePersistedData();
+                        }
+                    } else {
+                        // Fallback if API fails
+                        const recordElement = document.getElementById('my-record');
+                        recordElement.textContent = '0 - 0';
+                        recordElement.className = 'text-3xl font-bold text-red-500';
+                        
+                        const winRateElement = document.getElementById('win-rate');
+                        winRateElement.textContent = '0%';
+                        winRateElement.className = 'text-3xl font-bold text-red-500';
+                        
+                        document.getElementById('record-card').classList.add('loaded');
+                        document.getElementById('winrate-card').classList.add('loaded');
+                        savePersistedData();
+                    }
+                    
                     console.log('🔍 loadPTIData: Successfully completed without PTI data');
                     return;
                 }
@@ -1239,6 +1326,77 @@
                     
                     console.log('🔍 Main loading: About to call loadWinStreakData()');
                     await loadWinStreakData();
+                    
+                    // Load current season stats for CNSWPL players (who don't have PTI)
+                    console.log('🔍 Loading current season stats for CNSWPL player...');
+                    const seasonStatsResponse = await fetch('/api/current-season-stats');
+                    console.log('Current season stats response status:', seasonStatsResponse.status);
+                    if (seasonStatsResponse.ok) {
+                        const seasonStatsData = await seasonStatsResponse.json();
+                        console.log('Current season stats data:', seasonStatsData);
+                        if (seasonStatsData.success && seasonStatsData.matches > 0) {
+                            // Use the actual current season data from analyze-me
+                            const wins = seasonStatsData.wins || 0;
+                            const losses = seasonStatsData.losses || 0;
+                            const winRate = Math.round(seasonStatsData.win_rate || 0);
+                            
+                            // Apply color coding based on win rate
+                            let recordColor = '';
+                            let winRateColor = '';
+                            
+                            if (winRate > 50) {
+                                recordColor = 'text-green-500';
+                                winRateColor = 'text-green-500';
+                            } else if (winRate >= 34 && winRate <= 50) {
+                                recordColor = 'text-yellow-500';
+                                winRateColor = 'text-yellow-500';
+                            } else {
+                                recordColor = 'text-red-500';
+                                winRateColor = 'text-red-500';
+                            }
+                            
+                            // Set record with color
+                            const recordElement = document.getElementById('my-record');
+                            recordElement.textContent = `${wins} - ${losses}`;
+                            recordElement.className = `text-3xl font-bold ${recordColor}`;
+                            
+                            // Set win rate with color
+                            const winRateElement = document.getElementById('win-rate');
+                            winRateElement.textContent = `${winRate}%`;
+                            winRateElement.className = `text-3xl font-bold ${winRateColor}`;
+                            
+                            // Mark cards as loaded and save to persistence
+                            document.getElementById('record-card').classList.add('loaded');
+                            document.getElementById('winrate-card').classList.add('loaded');
+                            savePersistedData();
+                        } else {
+                            // Fallback if no matches
+                            const recordElement = document.getElementById('my-record');
+                            recordElement.textContent = '0 - 0';
+                            recordElement.className = 'text-3xl font-bold text-red-500';
+                            
+                            const winRateElement = document.getElementById('win-rate');
+                            winRateElement.textContent = '0%';
+                            winRateElement.className = 'text-3xl font-bold text-red-500';
+                            
+                            document.getElementById('record-card').classList.add('loaded');
+                            document.getElementById('winrate-card').classList.add('loaded');
+                            savePersistedData();
+                        }
+                    } else {
+                        // Fallback if API fails
+                        const recordElement = document.getElementById('my-record');
+                        recordElement.textContent = '0 - 0';
+                        recordElement.className = 'text-3xl font-bold text-red-500';
+                        
+                        const winRateElement = document.getElementById('win-rate');
+                        winRateElement.textContent = '0%';
+                        winRateElement.className = 'text-3xl font-bold text-red-500';
+                        
+                        document.getElementById('record-card').classList.add('loaded');
+                        document.getElementById('winrate-card').classList.add('loaded');
+                        savePersistedData();
+                    }
                     
                     console.log('🔍 loadPTIData: Successfully completed without PTI data');
                     return;
