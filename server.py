@@ -802,6 +802,13 @@ def serve_pro_page():
         )
 
 
+@app.route("/subfinder")
+@login_required
+def serve_subfinder():
+    """Serve the Sub Finder page - redirects to create sub request page"""
+    return redirect(url_for('mobile.serve_mobile_create_sub_request'))
+
+
 # Marketing website HTML pages routes - CRITICAL FIX for feature pages
 # Must be before /<path:path> catch-all route to work properly
 @app.route("/search-players.html", methods=["GET"])

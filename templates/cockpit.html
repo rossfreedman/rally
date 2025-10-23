@@ -1019,10 +1019,12 @@
                             callbacks: {
                                 label: function(context) {
                                     const label = context.label || '';
+                                    // Remove the count from label if it's already there (format: "Club Name (count)")
+                                    const cleanLabel = label.replace(/\s*\(\d+\)\s*$/, '');
                                     const value = context.parsed;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${label}: ${value} users (${percentage}%)`;
+                                    return `${cleanLabel}: ${value} users (${percentage}%)`;
                                 }
                             }
                         }
@@ -1206,7 +1208,14 @@
             if (!dashboardState.charts.usersByClub) return;
             
             const chart = dashboardState.charts.usersByClub;
-            chart.data.labels = data.chart_data.labels;
+            
+            // Format labels to include user counts in parenthesis
+            const labelsWithCounts = data.chart_data.labels.map((label, index) => {
+                const count = data.chart_data.datasets[0].data[index];
+                return `${label} (${count})`;
+            });
+            
+            chart.data.labels = labelsWithCounts;
             chart.data.datasets[0].data = data.chart_data.datasets[0].data;
             chart.data.datasets[0].backgroundColor = data.chart_data.datasets[0].backgroundColor;
             chart.data.datasets[0].borderColor = data.chart_data.datasets[0].borderColor;
