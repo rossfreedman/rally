@@ -133,7 +133,7 @@
                             <i class="fas fa-users mr-2" style="color: #045454;"></i>
                             Players Who Match
                         </h3>
-                        <span id="matchingPlayersCount" class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+                        <span id="matchingPlayersCount" class="bg-green-100 text-green-800 text-lg font-bold px-4 py-2 rounded-full">
                             0 players
                         </span>
                     </div>
@@ -153,6 +153,7 @@
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PTI</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                                     </tr>
                                 </thead>
                                 <tbody id="matchingPlayersTableBody" class="bg-white divide-y divide-gray-200">
@@ -486,6 +487,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Format phone number to (XXX) XXX-XXXX
+    function formatPhoneNumber(phone) {
+        if (!phone) return 'N/A';
+        
+        // Remove all non-digit characters
+        const cleaned = phone.replace(/\D/g, '');
+        
+        // Check if we have a valid US phone number (10 or 11 digits)
+        if (cleaned.length === 10) {
+            // Format: (XXX) XXX-XXXX
+            return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6, 10)}`;
+        } else if (cleaned.length === 11 && cleaned[0] === '1') {
+            // Format: (XXX) XXX-XXXX (remove leading 1)
+            return `(${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7, 11)}`;
+        }
+        
+        // Return original if format doesn't match
+        return phone;
+    }
+    
     // Display matching players in the table
     function displayMatchingPlayers(players, count) {
         // Update count badge
@@ -512,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${player.name || 'Unknown'}</td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${player.pti ? player.pti.toFixed(1) : 'N/A'}</td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${player.series || 'N/A'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${formatPhoneNumber(player.phone_number)}</td>
             `;
             matchingPlayersTableBody.appendChild(row);
         });

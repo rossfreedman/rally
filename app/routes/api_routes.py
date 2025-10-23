@@ -8906,10 +8906,13 @@ def get_matching_players_for_subfinder():
                 CONCAT(p.first_name, ' ', p.last_name) as player_name,
                 p.pti,
                 c.name as club,
-                s.name as series_name
+                s.name as series_name,
+                u.phone_number
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
             WHERE c.name = %s
             AND p.league_id = %s
             AND p.pti IS NOT NULL
@@ -8949,7 +8952,8 @@ def get_matching_players_for_subfinder():
                 "name": player["player_name"],
                 "pti": float(player["pti"]) if player["pti"] else None,
                 "club": player["club"],
-                "series": player["series_name"]
+                "series": player["series_name"],
+                "phone_number": player["phone_number"]
             })
         
         return jsonify({
