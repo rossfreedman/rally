@@ -1123,24 +1123,25 @@
             
             // Wait 1 second before starting the animation
             setTimeout(() => {
-                const duration = 3000; // 3 seconds total
+                const duration = 4000; // 4 seconds total (increased from 3)
                 const startTime = performance.now();
                 const startValue = 0;
                 const endValue = targetPTI;
                 
                 function customEasing(t) {
-                    // Split animation into two phases: 1.5 seconds fast to 80%, 1.5 seconds slow to 100%
-                    const fastPhaseEnd = 0.5; // 50% of the animation (1.5 seconds)
+                    // Calculate what percentage of the final value represents the last 2.0 points
+                    const lastTwoPointsRatio = Math.min(2.0 / endValue, 0.4); // Increased cap to 40%
+                    const fastPhaseEnd = 1 - lastTwoPointsRatio; // Adjust phase split based on final value
                     
                     if (t <= fastPhaseEnd) {
-                        // First 1.5 seconds: Fast animation to 80% of final value
+                        // Fast phase: Quick animation to (100% - last 2 points)
                         const fastProgress = t / fastPhaseEnd;
-                        return 0.8 * (1 - Math.pow(1 - fastProgress, 2));
+                        return (1 - lastTwoPointsRatio) * (1 - Math.pow(1 - fastProgress, 2));
                     } else {
-                        // Last 1.5 seconds: Slow animation from 80% to 100%
+                        // Slow phase: Extremely slow animation for the last 2.0 points
                         const slowProgress = (t - fastPhaseEnd) / (1 - fastPhaseEnd);
-                        const slowEasing = 1 - Math.pow(1 - slowProgress, 4);
-                        return 0.8 + 0.2 * slowEasing;
+                        const slowEasing = 1 - Math.pow(1 - slowProgress, 8); // Even slower easing (power of 8)
+                        return (1 - lastTwoPointsRatio) + lastTwoPointsRatio * slowEasing;
                     }
                 }
                 
