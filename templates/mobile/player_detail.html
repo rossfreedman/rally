@@ -1810,43 +1810,87 @@ function renderMatchCard(match, currentPlayerName) {
     const winClass = match.current_team_won ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
     const winIcon = match.current_team_won ? 'fas fa-trophy text-green-500' : 'fas fa-times-circle text-red-500';
     
-    return `
-        <div class="border rounded-lg p-4 ${winClass}">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                    <i class="${winIcon}"></i>
-                    <span class="font-semibold text-sm">${matchDate}</span>
-                    ${match.season ? `<span class="text-xs text-gray-500">(${match.season})</span>` : ''}
-                </div>
-                <div class="text-right">
-                    <div class="text-xs text-gray-500">${match.current_team} vs ${match.opponent_team}</div>
-                </div>
-            </div>
-            
-            <div class="space-y-2">
-                <!-- Current Player's Team -->
-                <div class="flex items-center justify-between">
+    if (match.were_partners) {
+        // Players were partners
+        return `
+            <div class="border rounded-lg p-4 ${winClass}">
+                <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span class="text-sm font-medium">${currentPlayerName}</span>
-                        <span class="text-xs text-gray-500">+</span>
-                        <span class="text-sm font-medium">${match.partner_name}</span>
+                        <i class="${winIcon}"></i>
+                        <span class="font-semibold text-sm">${matchDate}</span>
+                        ${match.season ? `<span class="text-xs text-gray-500">(${match.season})</span>` : ''}
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Partners</span>
                     </div>
-                    <div class="text-xs text-gray-600">${match.scores || 'No scores'}</div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">${match.current_team} vs ${match.opponent_team}</div>
+                    </div>
                 </div>
                 
-                <!-- Opponent Team -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
-                        <span class="text-sm">${match.opponent1_name}</span>
-                        <span class="text-xs text-gray-500">+</span>
-                        <span class="text-sm">${match.opponent2_name}</span>
+                <div class="space-y-2">
+                    <!-- Current Player's Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span class="text-sm font-medium">${currentPlayerName}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm font-medium">${match.partner_name}</span>
+                        </div>
+                        <div class="text-xs text-gray-600">${match.scores || 'No scores'}</div>
+                    </div>
+                    
+                    <!-- Opponent Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span class="text-sm">${match.opponent1_name}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm">${match.opponent2_name}</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        // Players were opponents
+        return `
+            <div class="border rounded-lg p-4 ${winClass}">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="${winIcon}"></i>
+                        <span class="font-semibold text-sm">${matchDate}</span>
+                        ${match.season ? `<span class="text-xs text-gray-500">(${match.season})</span>` : ''}
+                        <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Opponents</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">${match.current_team} vs ${match.opponent_team}</div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <!-- Current Player's Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span class="text-sm font-medium">${currentPlayerName}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm font-medium">${match.partner_name}</span>
+                        </div>
+                        <div class="text-xs text-gray-600">${match.scores || 'No scores'}</div>
+                    </div>
+                    
+                    <!-- Opponent Team (with target player highlighted) -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span class="text-sm ${match.opponent1_name === match.target_player_name ? 'font-bold text-red-600' : ''}">${match.opponent1_name}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm ${match.opponent2_name === match.target_player_name ? 'font-bold text-red-600' : ''}">${match.opponent2_name}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
 }
 
 // Render notes in the list

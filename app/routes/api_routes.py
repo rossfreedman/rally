@@ -12340,7 +12340,7 @@ def get_player_matches_detail():
         }), 500
 
 
-@api_bp.route("/api/my-matches-with-player", methods=["GET"])
+@api_bp.route("/my-matches-with-player", methods=["GET"])
 @login_required
 def get_my_matches_with_player():
     """Get matches between current user and target player from both current and previous seasons"""
@@ -12409,10 +12409,14 @@ def get_my_matches_with_player():
             FROM match_scores ms
             WHERE ms.league_id = %s
             AND (
+                -- Players as partners (same team)
                 (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
                 (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
                 (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
-                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s)
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                -- Players as opponents (different teams)
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s)) OR
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
             )
             ORDER BY ms.match_date DESC
         """
@@ -12422,10 +12426,14 @@ def get_my_matches_with_player():
             current_user_player_id, target_player_id,  # Current user + target as home players
             target_player_id, current_user_player_id,  # Target + current user as home players
             current_user_player_id, target_player_id,  # Current user + target as away players
-            target_player_id, current_user_player_id   # Target + current user as away players
+            target_player_id, current_user_player_id,  # Target + current user as away players
+            # Opponents: current user on home team, target on away team
+            current_user_player_id, current_user_player_id, target_player_id, target_player_id,
+            # Opponents: target on home team, current user on away team
+            target_player_id, target_player_id, current_user_player_id, current_user_player_id
         ]
         
-        current_matches = execute_query_all(current_season_query, current_params)
+        current_matches = execute_query(current_season_query, current_params)
         print(f"[DEBUG] Current season matches found: {len(current_matches) if current_matches else 0}")
         matches.extend(current_matches)
         
@@ -12450,10 +12458,14 @@ def get_my_matches_with_player():
             FROM match_scores_previous_seasons ms
             WHERE ms.league_id = %s
             AND (
+                -- Players as partners (same team)
                 (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
                 (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
                 (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
-                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s)
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                -- Players as opponents (different teams)
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s)) OR
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
             )
             ORDER BY ms.match_date DESC
         """
@@ -12463,10 +12475,14 @@ def get_my_matches_with_player():
             current_user_player_id, target_player_id,  # Current user + target as home players
             target_player_id, current_user_player_id,  # Target + current user as home players
             current_user_player_id, target_player_id,  # Current user + target as away players
-            target_player_id, current_user_player_id   # Target + current user as away players
+            target_player_id, current_user_player_id,  # Target + current user as away players
+            # Opponents: current user on home team, target on away team
+            current_user_player_id, current_user_player_id, target_player_id, target_player_id,
+            # Opponents: target on home team, current user on away team
+            target_player_id, target_player_id, current_user_player_id, current_user_player_id
         ]
         
-        previous_matches = execute_query_all(previous_season_query, previous_params)
+        previous_matches = execute_query(previous_season_query, previous_params)
         print(f"[DEBUG] Previous season matches found: {len(previous_matches) if previous_matches else 0}")
         matches.extend(previous_matches)
         
@@ -12485,28 +12501,60 @@ def get_my_matches_with_player():
             current_user_on_home = (match['home_player_1_id'] == current_user_player_id or 
                                    match['home_player_2_id'] == current_user_player_id)
             
-            # Get partner and opponent names
-            if current_user_on_home:
-                # Current user is on home team
-                partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
-                opponent1_id = match['away_player_1_id']
-                opponent2_id = match['away_player_2_id']
-                current_team = match['home_team']
-                opponent_team = match['away_team']
-                current_team_won = match['winner'] == 'home'
-            else:
-                # Current user is on away team
-                partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
-                opponent1_id = match['home_player_1_id']
-                opponent2_id = match['home_player_2_id']
-                current_team = match['away_team']
-                opponent_team = match['home_team']
-                current_team_won = match['winner'] == 'away'
+            # Check if players were partners or opponents
+            were_partners = (
+                (match['home_player_1_id'] == current_user_player_id and match['home_player_2_id'] == target_player_id) or
+                (match['home_player_2_id'] == current_user_player_id and match['home_player_1_id'] == target_player_id) or
+                (match['away_player_1_id'] == current_user_player_id and match['away_player_2_id'] == target_player_id) or
+                (match['away_player_2_id'] == current_user_player_id and match['away_player_1_id'] == target_player_id)
+            )
             
-            # Get actual player names using the helper function
-            partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
-            opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
-            opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
+            if were_partners:
+                # Players were partners (same team)
+                if current_user_on_home:
+                    # Current user is on home team
+                    partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
+                    opponent1_id = match['away_player_1_id']
+                    opponent2_id = match['away_player_2_id']
+                    current_team = match['home_team']
+                    opponent_team = match['away_team']
+                    current_team_won = match['winner'] == 'home'
+                else:
+                    # Current user is on away team
+                    partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
+                    opponent1_id = match['home_player_1_id']
+                    opponent2_id = match['home_player_2_id']
+                    current_team = match['away_team']
+                    opponent_team = match['home_team']
+                    current_team_won = match['winner'] == 'away'
+                
+                # Get actual player names using the helper function
+                partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
+                opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
+                opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
+            else:
+                # Players were opponents (different teams)
+                if current_user_on_home:
+                    # Current user is on home team, target player is on away team
+                    partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
+                    opponent1_id = match['away_player_1_id'] if match['away_player_1_id'] == target_player_id else match['away_player_2_id']
+                    opponent2_id = match['away_player_2_id'] if match['away_player_1_id'] == target_player_id else match['away_player_1_id']
+                    current_team = match['home_team']
+                    opponent_team = match['away_team']
+                    current_team_won = match['winner'] == 'home'
+                else:
+                    # Current user is on away team, target player is on home team
+                    partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
+                    opponent1_id = match['home_player_1_id'] if match['home_player_1_id'] == target_player_id else match['home_player_2_id']
+                    opponent2_id = match['home_player_2_id'] if match['home_player_1_id'] == target_player_id else match['home_player_1_id']
+                    current_team = match['away_team']
+                    opponent_team = match['home_team']
+                    current_team_won = match['winner'] == 'away'
+                
+                # Get actual player names using the helper function
+                partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
+                opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
+                opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
             
             processed_match = {
                 'id': match['id'],
@@ -12523,7 +12571,9 @@ def get_my_matches_with_player():
                 'current_team_won': current_team_won,
                 'season_type': match['season_type'],
                 'season': match['season'],
-                'tenniscores_match_id': match['tenniscores_match_id']
+                'tenniscores_match_id': match['tenniscores_match_id'],
+                'were_partners': were_partners,
+                'target_player_name': get_player_name_from_id(target_player_id)
             }
             
             processed_matches.append(processed_match)

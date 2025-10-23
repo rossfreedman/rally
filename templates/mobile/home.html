@@ -1098,7 +1098,13 @@
                             document.getElementById('pti-value').textContent = '0.0';
                             document.getElementById('pti-message').textContent = dashboardData.pti.message;
                             document.getElementById('pti-loading').classList.add('hidden');
-                            document.getElementById('pti-content').classList.remove('hidden');
+                            const ptiContent = document.getElementById('pti-content');
+                            ptiContent.classList.remove('hidden');
+                            ptiContent.style.setProperty('display', 'block', 'important'); // Force display with !important
+                            ptiContent.style.setProperty('visibility', 'visible', 'important'); // Force visibility with !important
+                            ptiContent.style.setProperty('opacity', '1', 'important'); // Force opacity with !important
+                            ptiContent.style.setProperty('height', 'auto', 'important'); // Force height with !important
+                            ptiContent.style.setProperty('width', 'auto', 'important'); // Force width with !important
                             // Set up PTI animation to start when card becomes visible
                             pendingPTIAnimation = parseFloat(dashboardData.pti.value);
                             setupPTIVisibilityObserver();
@@ -1273,12 +1279,15 @@
                 const response = await fetch('/api/player-analysis');
                 
                 loading.classList.add('hidden');
+                console.log('🔍 PTI Loading: Hidden loading spinner');
                 
                 if (!response.ok) {
                     console.log('🔍 loadPTIData: PTI API not available (likely CNSWPL player), continuing without PTI data');
                     // For CNSWPL players who don't have PTI, show a message and continue
                     loading.classList.add('hidden');
                     content.classList.remove('hidden');
+                    content.style.display = 'block'; // Force display
+                    console.log('🔍 PTI Loading: Showing PTI content (N/A case)');
                     document.getElementById('pti-value').textContent = 'N/A';
                     document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
                     document.getElementById('pti-card').classList.add('loaded');
@@ -1305,6 +1314,7 @@
                     // For CNSWPL players who don't have PTI, show a message and continue
                     loading.classList.add('hidden');
                     content.classList.remove('hidden');
+                    content.style.display = 'block'; // Force display
                     document.getElementById('pti-value').textContent = 'N/A';
                     document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
                     document.getElementById('pti-card').classList.add('loaded');
@@ -1406,6 +1416,7 @@
                     // For CNSWPL players who don't have PTI, show a message and continue
                     loading.classList.add('hidden');
                     content.classList.remove('hidden');
+                    content.style.display = 'block'; // Force display
                     document.getElementById('pti-value').textContent = 'N/A';
                     document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
                     document.getElementById('pti-card').classList.add('loaded');
@@ -1498,6 +1509,27 @@
                 
                 // Show PTI card if we have valid data
                 content.classList.remove('hidden');
+                content.style.setProperty('display', 'block', 'important'); // Force display with !important
+                content.style.setProperty('visibility', 'visible', 'important'); // Force visibility with !important
+                content.style.setProperty('opacity', '1', 'important'); // Force opacity with !important
+                content.style.setProperty('height', 'auto', 'important'); // Force height with !important
+                content.style.setProperty('width', 'auto', 'important'); // Force width with !important
+                console.log('🔍 PTI Loading: Showing PTI content (success case)');
+                
+                // Debug: Check if hidden class was actually removed
+                console.log('🔍 PTI Content Debug:', {
+                    element: content,
+                    classes: content.className,
+                    hasHidden: content.classList.contains('hidden'),
+                    computedStyle: window.getComputedStyle(content).display,
+                    visibility: window.getComputedStyle(content).visibility,
+                    opacity: window.getComputedStyle(content).opacity,
+                    height: window.getComputedStyle(content).height,
+                    width: window.getComputedStyle(content).width,
+                    position: window.getComputedStyle(content).position,
+                    top: window.getComputedStyle(content).top,
+                    left: window.getComputedStyle(content).left
+                });
                 
                 // Set up PTI animation to start when card becomes visible
                 pendingPTIAnimation = currentPTI;
@@ -1711,6 +1743,7 @@
                 console.error('🔍 loadPTIData: Error loading PTI data:', error);
                 loading.classList.add('hidden');
                 content.classList.remove('hidden');
+                content.style.display = 'block'; // Force display
                 document.getElementById('pti-value').textContent = '--';
                 document.getElementById('pti-message').innerHTML = 'Unable to load stats';
                 // Mark card as loaded and save to persistence
@@ -3617,6 +3650,12 @@
             
             const navButtons = nav.querySelectorAll('.nav-button');
             console.log('Found nav buttons:', navButtons.length);
+            console.log('Nav buttons:', navButtons);
+            
+            // Debug: Check if buttons have href attributes
+            navButtons.forEach((btn, index) => {
+                console.log(`Button ${index + 1}:`, btn.textContent, 'href:', btn.getAttribute('href'));
+            });
             
             // Get the initial position of the navigation
             const navOffsetTop = navContainer.offsetTop;
@@ -3625,13 +3664,15 @@
             let isFixed = false;
             
             function handleScroll() {
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                console.log('Scroll position:', scrollTop, 'Nav offset:', navOffsetTop);
+                console.log('📜 HANDLE SCROLL FUNCTION CALLED');
+                const scrollTop = document.body.scrollTop || document.documentElement.scrollTop || window.pageYOffset;
+                console.log('📜 Scroll position:', scrollTop, 'Nav offset:', navOffsetTop, 'Threshold:', navOffsetTop - 56);
                 
                 // Check if we've scrolled past the navigation's initial position
                 if (scrollTop > navOffsetTop - 56) { // Account for header height
+                    console.log('📜 Should be fixed - scroll past threshold');
                     if (!isFixed) {
-                        console.log('Making navigation fixed');
+                        console.log('📌 Making navigation fixed');
                         navContainer.classList.add('fixed');
                         // Show placeholder to prevent layout shift
                         if (placeholder) {
@@ -3641,15 +3682,16 @@
                     }
                     
                     if (!nav.classList.contains('scrolled')) {
-                        console.log('Adding scrolled class');
+                        console.log('📌 Adding scrolled class');
                         nav.classList.add('scrolled');
                         navButtons.forEach(button => {
                             button.classList.add('scrolled');
                         });
                     }
                 } else {
+                    console.log('📜 Should NOT be fixed - scroll before threshold');
                     if (isFixed) {
-                        console.log('Removing fixed positioning');
+                        console.log('📌 Removing fixed positioning');
                         navContainer.classList.remove('fixed');
                         // Hide placeholder
                         if (placeholder) {
@@ -3659,7 +3701,7 @@
                     }
                     
                     if (nav.classList.contains('scrolled')) {
-                        console.log('Removing scrolled class');
+                        console.log('📌 Removing scrolled class');
                         nav.classList.remove('scrolled');
                         navButtons.forEach(button => {
                             button.classList.remove('scrolled');
@@ -3687,7 +3729,7 @@
                 
                 // Find the section that's currently in view
                 let activeSection = null;
-                const offset = 165; // Same offset as autoscroll + 10px higher
+                const offset = -35; // Same offset as autoscroll + 10px higher (reduced by another 100px)
                 
                 for (let i = sections.length - 1; i >= 0; i--) {
                     const section = sections[i];
@@ -3713,28 +3755,57 @@
             // Throttle scroll events for better performance
             let ticking = false;
             function requestTick() {
+                console.log('📜 REQUEST TICK CALLED, ticking:', ticking);
                 if (!ticking) {
+                    console.log('📜 Calling requestAnimationFrame');
                     requestAnimationFrame(handleScroll);
                     ticking = true;
-                    setTimeout(() => { ticking = false; }, 16); // ~60fps
+                    setTimeout(() => { 
+                        console.log('📜 Resetting ticking to false');
+                        ticking = false; 
+                    }, 16); // ~60fps
+                } else {
+                    console.log('📜 Skipping - already ticking');
                 }
             }
             
             // Add scroll event listener
             console.log('Adding scroll event listener');
-            window.addEventListener('scroll', requestTick, { passive: true });
+            
+            // Test scroll events first - try multiple approaches
+            window.addEventListener('scroll', function() {
+                console.log('📜 WINDOW SCROLL EVENT DETECTED!');
+            }, { passive: true });
+            
+            document.addEventListener('scroll', function() {
+                console.log('📜 DOCUMENT SCROLL EVENT DETECTED!');
+            }, { passive: true });
+            
+            document.body.addEventListener('scroll', function() {
+                console.log('📜 BODY SCROLL EVENT DETECTED!');
+            }, { passive: true });
+            
+            // Use document.body scroll for the main handler - try both throttled and direct
+            document.body.addEventListener('scroll', requestTick, { passive: true });
+            
+            // Also try a direct handler without throttling
+            document.body.addEventListener('scroll', function() {
+                console.log('📜 DIRECT SCROLL HANDLER CALLED');
+                handleScroll();
+            }, { passive: true });
+            
             console.log('Scroll event listener added');
             
             // Handle smooth scrolling for anchor links
+            console.log('🔗 Setting up click handlers for', navButtons.length, 'navigation buttons');
             navButtons.forEach((button, index) => {
-                console.log(`🔗 Setting up click handler for nav button ${index + 1}:`, button.textContent, 'href:', button.getAttribute('href'));
+                console.log(`🔗 Setting up handler for button ${index + 1}:`, button.textContent, 'href:', button.getAttribute('href'));
                 button.addEventListener('click', function(e) {
+                    console.log('🖱️ NAV BUTTON CLICKED:', this.textContent, 'href:', this.getAttribute('href'));
                     const href = this.getAttribute('href');
-                    console.log(`🖱️ Nav button clicked:`, this.textContent, 'href:', href);
-                    
                     if (href.startsWith('#')) {
                         e.preventDefault();
-                        console.log(`🎯 Preventing default and scrolling to:`, href);
+                        console.log('🎯 Preventing default, scrolling to:', href);
                         
                         // Remove active class from all buttons
                         navButtons.forEach(btn => btn.classList.remove('active'));
@@ -3743,13 +3814,31 @@
                         this.classList.add('active');
                         
                         const target = document.querySelector(href);
-                        console.log(`🎯 Target element found:`, target);
-                        
+                        console.log('🎯 Target found:', target);
                         if (target) {
-                            // Consistent offset for all navigation sections
-                            let offset = 155; // Standard offset for all sections
+                            // Individual offsets for each section - scroll to 100px before start
+                            let offset;
+                            switch(href) {
+                                case '#schedule':
+                                    offset = 100; // Schedule: scroll to 100px before start
+                                    break;
+                                case '#dashboard':
+                                    offset = 100; // Stats: scroll to 100px before start
+                                    break;
+                                case '#team':
+                                    offset = 100; // Team: scroll to 100px before start
+                                    break;
+                                case '#club':
+                                    offset = 100; // Club: scroll to 100px before start
+                                    break;
+                                case '#play':
+                                    offset = 100; // Play: scroll to 100px before start
+                                    break;
+                                default:
+                                    offset = 100; // Default: scroll to 100px before start
+                            }
                             const targetOffsetTop = target.offsetTop - offset;
-                            console.log(`🎯 Scrolling to position:`, targetOffsetTop, 'offset:', offset);
+                            console.log(`🎯 Scrolling to position:`, targetOffsetTop, 'offset:', offset, 'section:', href);
                             
                             window.scrollTo({
                                 top: targetOffsetTop,
@@ -3762,6 +3851,7 @@
                     }
                 });
             });
+            console.log('✅ All navigation click handlers set up');
             
             // Initial call to set correct state
             console.log('Setting initial scroll state');
@@ -3773,6 +3863,53 @@
             
             // Initialize quick search functionality
             initializeQuickSearch();
+            
+            // Backup: Ensure navigation handlers are attached after a delay
+            setTimeout(() => {
+                console.log('🔄 Backup: Checking navigation handlers...');
+                const backupButtons = document.querySelectorAll('.nav-button');
+                console.log('🔄 Found', backupButtons.length, 'buttons in backup check');
+                
+                backupButtons.forEach((button, index) => {
+                    // Check if this button already has our click handler by testing for a data attribute
+                    if (!button.hasAttribute('data-nav-handler-attached')) {
+                        console.log(`🔄 Adding backup handler to button ${index + 1}:`, button.textContent);
+                        button.setAttribute('data-nav-handler-attached', 'true');
+                        button.addEventListener('click', function(e) {
+                            console.log('🖱️ BACKUP NAV BUTTON CLICKED:', this.textContent, 'href:', this.getAttribute('href'));
+                            const href = this.getAttribute('href');
+                            if (href.startsWith('#')) {
+                                e.preventDefault();
+                                console.log('🎯 Backup preventing default, scrolling to:', href);
+                                
+                                // Remove active class from all buttons
+                                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                                
+                                // Add active class to clicked button
+                                this.classList.add('active');
+                                
+                                const target = document.querySelector(href);
+                                console.log('🎯 Backup target found:', target);
+                                if (target) {
+                                    let offset = 155;
+                                    const targetOffsetTop = target.offsetTop - offset;
+                                    console.log('🎯 Backup scrolling to position:', targetOffsetTop);
+                                    
+                                    // Use scrollIntoView - more reliable
+                                    target.scrollIntoView({ 
+                                        behavior: 'smooth', 
+                                        block: 'start',
+                                        inline: 'nearest'
+                                    });
+                                    console.log('✅ Backup scrollIntoView command sent');
+                                } else {
+                                    console.error('❌ Backup target not found:', href);
+                                }
+                            }
+                        });
+                    }
+                });
+            }, 2000);
         }
         
         // Function to initialize quick search functionality
