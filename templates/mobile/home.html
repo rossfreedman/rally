@@ -235,7 +235,7 @@
              ============================================ -->
         <section id="dashboard" class="space-y-6">
             <!-- Option 4: Rally Branded with Logo Watermark -->
-            <div class="main-section-header bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-6 relative overflow-hidden">
+            <div class="main-section-header bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-4 relative overflow-hidden" style="margin-top: -25px;">
                 <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5">
                     <img src="/static/images/rally_favicon.png" alt="Rally" class="w-48 h-48 filter brightness-0 invert">
                 </div>
@@ -1062,12 +1062,14 @@
                         // Only restore if we had valid PTI data (not "--")
                         if (dashboardData.pti.value && dashboardData.pti.value !== '--' && parseFloat(dashboardData.pti.value) > 0) {
                             ptiCard.classList.add('loaded');
-                            // Set PTI value directly without animation for cached data
-                            document.getElementById('pti-value').textContent = dashboardData.pti.value;
+                            // Start with 0.0 and animate to cached value
+                            document.getElementById('pti-value').textContent = '0.0';
                             document.getElementById('pti-message').textContent = dashboardData.pti.message;
                             document.getElementById('pti-loading').classList.add('hidden');
                             document.getElementById('pti-content').classList.remove('hidden');
-                            console.log('PTI data restored from cache');
+                            // Animate to the cached PTI value
+                            animatePTICounter(parseFloat(dashboardData.pti.value));
+                            console.log('PTI data restored from cache with animation');
                         } else {
                             // Hide PTI card if cached data was invalid
                             ptiCard.classList.add('hidden');
@@ -1116,51 +1118,57 @@
             const ptiElement = document.getElementById('pti-value');
             if (!ptiElement) return;
             
-            const duration = 3000; // 3 seconds total
-            const startTime = performance.now();
-            const startValue = 0;
-            const endValue = targetPTI;
+            // Start with 0 immediately
+            ptiElement.textContent = '0.0';
             
-            function customEasing(t) {
-                // Split animation into two phases: 1.5 seconds fast to 80%, 1.5 seconds slow to 100%
-                const fastPhaseEnd = 0.5; // 50% of the animation (1.5 seconds)
+            // Wait 1 second before starting the animation
+            setTimeout(() => {
+                const duration = 3000; // 3 seconds total
+                const startTime = performance.now();
+                const startValue = 0;
+                const endValue = targetPTI;
                 
-                if (t <= fastPhaseEnd) {
-                    // First 1.5 seconds: Fast animation to 80% of final value
-                    const fastProgress = t / fastPhaseEnd;
-                    return 0.8 * (1 - Math.pow(1 - fastProgress, 2));
-                } else {
-                    // Last 1.5 seconds: Slow animation from 80% to 100%
-                    const slowProgress = (t - fastPhaseEnd) / (1 - fastPhaseEnd);
-                    const slowEasing = 1 - Math.pow(1 - slowProgress, 4);
-                    return 0.8 + 0.2 * slowEasing;
+                function customEasing(t) {
+                    // Split animation into two phases: 1.5 seconds fast to 80%, 1.5 seconds slow to 100%
+                    const fastPhaseEnd = 0.5; // 50% of the animation (1.5 seconds)
+                    
+                    if (t <= fastPhaseEnd) {
+                        // First 1.5 seconds: Fast animation to 80% of final value
+                        const fastProgress = t / fastPhaseEnd;
+                        return 0.8 * (1 - Math.pow(1 - fastProgress, 2));
+                    } else {
+                        // Last 1.5 seconds: Slow animation from 80% to 100%
+                        const slowProgress = (t - fastPhaseEnd) / (1 - fastPhaseEnd);
+                        const slowEasing = 1 - Math.pow(1 - slowProgress, 4);
+                        return 0.8 + 0.2 * slowEasing;
+                    }
                 }
-            }
-            
-            function updateCounter(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
                 
-                // Apply custom easing function
-                const easedProgress = customEasing(progress);
-                
-                // Calculate current value
-                const currentValue = startValue + (endValue - startValue) * easedProgress;
-                
-                // Update display with one decimal place
-                ptiElement.textContent = currentValue.toFixed(1);
-                
-                // Continue animation if not complete
-                if (progress < 1) {
-                    requestAnimationFrame(updateCounter);
-                } else {
-                    // Ensure final value is exact
-                    ptiElement.textContent = endValue.toFixed(1);
+                function updateCounter(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Apply custom easing function
+                    const easedProgress = customEasing(progress);
+                    
+                    // Calculate current value
+                    const currentValue = startValue + (endValue - startValue) * easedProgress;
+                    
+                    // Update display with one decimal place
+                    ptiElement.textContent = currentValue.toFixed(1);
+                    
+                    // Continue animation if not complete
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        // Ensure final value is exact
+                        ptiElement.textContent = endValue.toFixed(1);
+                    }
                 }
-            }
-            
-            // Start the animation
-            requestAnimationFrame(updateCounter);
+                
+                // Start the animation
+                requestAnimationFrame(updateCounter);
+            }, 1000); // 1 second delay
         }
         
         // ============================================

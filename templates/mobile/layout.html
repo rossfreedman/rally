@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>{% block title %}Rally{% endblock %}</title>
     
     <!-- Theme Color -->
@@ -305,6 +305,61 @@
         .dock-item i,
         .dock-item span {
             color: #000000 !important;
+        }
+        
+        /* Mobile Footer Positioning Fixes */
+        .bottom-dock {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+            transform: translateZ(0) !important;
+            -webkit-transform: translateZ(0) !important;
+            will-change: transform !important;
+            -webkit-backface-visibility: hidden !important;
+            backface-visibility: hidden !important;
+            -webkit-perspective: 1000 !important;
+            perspective: 1000 !important;
+        }
+        
+        /* iOS Safari specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            .bottom-dock {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                transform: translate3d(0, 0, 0) !important;
+                -webkit-transform: translate3d(0, 0, 0) !important;
+            }
+        }
+        
+        /* Prevent footer from moving during scroll on mobile */
+        @media (max-width: 768px) {
+            .bottom-dock {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                transform: translate3d(0, 0, 0) !important;
+                -webkit-transform: translate3d(0, 0, 0) !important;
+                will-change: transform !important;
+                -webkit-backface-visibility: hidden !important;
+                backface-visibility: hidden !important;
+            }
+            
+            /* Ensure body doesn't interfere with fixed positioning */
+            body {
+                -webkit-overflow-scrolling: touch !important;
+                overflow-x: hidden !important;
+            }
+            
+            /* Prevent viewport issues */
+            html {
+                height: 100% !important;
+                overflow-x: hidden !important;
+            }
         }
         
         /* Active state for dock items */
@@ -1460,7 +1515,7 @@
     </div>
 
     <!-- Bottom Navigation Dock -->
-    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #045454; position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; transform: translateZ(0); -webkit-transform: translateZ(0); will-change: transform;">
         <div class="flex items-center justify-around h-full px-2" style="max-width: 600px; margin: 0 auto;">
             <!-- Home -->
             <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-800 rounded-lg mx-1">
@@ -1519,6 +1574,35 @@
 
 
 
+        // Mobile Footer Positioning Fix
+        function ensureFooterFixed() {
+            const footer = document.querySelector('.bottom-dock');
+            if (footer) {
+                // Force fixed positioning
+                footer.style.position = 'fixed';
+                footer.style.bottom = '0';
+                footer.style.left = '0';
+                footer.style.right = '0';
+                footer.style.zIndex = '9999';
+                footer.style.transform = 'translate3d(0, 0, 0)';
+                footer.style.webkitTransform = 'translate3d(0, 0, 0)';
+                footer.style.willChange = 'transform';
+                footer.style.webkitBackfaceVisibility = 'hidden';
+                footer.style.backfaceVisibility = 'hidden';
+            }
+        }
+        
+        // Run on page load and scroll events
+        document.addEventListener('DOMContentLoaded', ensureFooterFixed);
+        window.addEventListener('scroll', ensureFooterFixed);
+        window.addEventListener('resize', ensureFooterFixed);
+        
+        // iOS Safari specific handling
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+            document.addEventListener('touchstart', ensureFooterFixed);
+            document.addEventListener('touchmove', ensureFooterFixed);
+        }
+        
         // Initialize dock active state
         function updateDockActiveState() {
             const currentPath = window.location.pathname;
