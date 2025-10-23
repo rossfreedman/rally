@@ -939,6 +939,14 @@
             
             // Set up PTI visibility observer as fallback (in case PTI data loads later)
             setupPTIVisibilityObserver();
+            
+            // Test PTI elements existence
+            console.log('🔍 PTI Elements Test:', {
+                ptiCard: !!document.getElementById('pti-card'),
+                ptiLoading: !!document.getElementById('pti-loading'),
+                ptiContent: !!document.getElementById('pti-content'),
+                ptiValue: !!document.getElementById('pti-value')
+            });
         });
         
         // OPTIMIZED: Load all data in parallel instead of sequentially
@@ -967,6 +975,28 @@
                     status: result.status,
                     error: result.status === 'rejected' ? result.reason : null
                 })));
+                
+                // Debug PTI loading specifically
+                const ptiResult = results[0]; // PTI is first in the array
+                console.log('🔍 PTI Loading Result:', ptiResult);
+                if (ptiResult.status === 'rejected') {
+                    console.error('❌ PTI Loading Failed:', ptiResult.reason);
+                } else {
+                    console.log('✅ PTI Loading Completed Successfully');
+                }
+                
+                // Check PTI card visibility
+                const ptiCard = document.getElementById('pti-card');
+                const ptiContent = document.getElementById('pti-content');
+                const ptiLoading = document.getElementById('pti-loading');
+                console.log('🔍 PTI Card Elements Check:', {
+                    ptiCard: !!ptiCard,
+                    ptiContent: !!ptiContent,
+                    ptiLoading: !!ptiLoading,
+                    ptiCardClasses: ptiCard ? ptiCard.className : 'N/A',
+                    ptiContentClasses: ptiContent ? ptiContent.className : 'N/A',
+                    ptiLoadingClasses: ptiLoading ? ptiLoading.className : 'N/A'
+                });
                 
                 console.log('✅ All data loaded in parallel');
             } catch (error) {
@@ -1278,21 +1308,40 @@
             const ptiCard = document.getElementById('pti-card');
             
             console.log('🔍 loadPTIData: Elements found - loading:', !!loading, 'content:', !!content, 'ptiCard:', !!ptiCard);
+            console.log('🔍 loadPTIData: Loading classes:', loading ? loading.className : 'N/A');
+            console.log('🔍 loadPTIData: Content classes:', content ? content.className : 'N/A');
             
             try {
                 // Use the same API as analyze-me page for consistent PTI data
+                console.log('🔍 loadPTIData: Making API call to /api/player-analysis');
                 const response = await fetch('/api/player-analysis');
+                console.log('🔍 loadPTIData: API response status:', response.status, 'ok:', response.ok);
                 
                 loading.classList.add('hidden');
+                loading.style.display = 'none'; // Force hide loading
+                loading.style.setProperty('display', 'none', 'important');
                 console.log('🔍 PTI Loading: Hidden loading spinner');
                 
                 if (!response.ok) {
                     console.log('🔍 loadPTIData: PTI API not available (likely CNSWPL player), continuing without PTI data');
                     // For CNSWPL players who don't have PTI, show a message and continue
                     loading.classList.add('hidden');
+                    loading.style.display = 'none'; // Force hide loading
+                    loading.style.setProperty('display', 'none', 'important');
                     content.classList.remove('hidden');
                     content.style.display = 'block'; // Force display
+                    content.style.setProperty('display', 'block', 'important');
                     console.log('🔍 PTI Loading: Showing PTI content (N/A case)');
+                    
+                    // CRITICAL: Remove hidden class from main PTI card container
+                    const ptiCardElement = document.getElementById('pti-card');
+                    if (ptiCardElement) {
+                        ptiCardElement.classList.remove('hidden');
+                        ptiCardElement.style.display = 'block';
+                        ptiCardElement.style.setProperty('display', 'block', 'important');
+                        console.log('🔍 PTI Card: Removed hidden class from main container (N/A case)');
+                    }
+                    
                     document.getElementById('pti-value').textContent = 'N/A';
                     document.getElementById('pti-message').innerHTML = '<div class="text-lg text-white/90 mt-2 font-semibold">PTI not available for CNSWPL</div>';
                     document.getElementById('pti-card').classList.add('loaded');
@@ -1313,6 +1362,8 @@
                 }
                 
                 const data = await response.json();
+                console.log('🔍 loadPTIData: API response data:', data);
+                console.log('🔍 loadPTIData: data.error:', data.error, 'data.success:', data.success);
                 
                 if (data.error || !data.success) {
                     console.log('🔍 loadPTIData: PTI data error or no success (likely CNSWPL player), continuing without PTI data');
@@ -1520,6 +1571,15 @@
                 content.style.setProperty('height', 'auto', 'important'); // Force height with !important
                 content.style.setProperty('width', 'auto', 'important'); // Force width with !important
                 console.log('🔍 PTI Loading: Showing PTI content (success case)');
+                
+                // CRITICAL: Remove hidden class from main PTI card container
+                const ptiCardElement = document.getElementById('pti-card');
+                if (ptiCardElement) {
+                    ptiCardElement.classList.remove('hidden');
+                    ptiCardElement.style.display = 'block';
+                    ptiCardElement.style.setProperty('display', 'block', 'important');
+                    console.log('🔍 PTI Card: Removed hidden class from main container');
+                }
                 
                 // Debug: Check if hidden class was actually removed
                 console.log('🔍 PTI Content Debug:', {
@@ -1743,6 +1803,16 @@
                 await loadWinStreakData();
                 
                 console.log('🔍 loadPTIData: Successfully completed PTI data loading');
+                
+                // Final check of element states
+                console.log('🔍 PTI Final State Check:', {
+                    loadingClasses: loading.className,
+                    contentClasses: content.className,
+                    loadingStyle: loading.style.display,
+                    contentStyle: content.style.display,
+                    loadingHidden: loading.classList.contains('hidden'),
+                    contentHidden: content.classList.contains('hidden')
+                });
                 
             } catch (error) {
                 console.error('🔍 loadPTIData: Error loading PTI data:', error);
