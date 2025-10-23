@@ -5248,6 +5248,53 @@ def serve_mobile_pickup_games():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/create-sub-request")
+@login_required
+def serve_mobile_create_sub_request():
+    """Serve the mobile Create Sub Request page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_create_sub_request"
+        )
+
+        return render_template("mobile/create_sub_request.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving create sub request page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/active-sub-requests")
+@login_required
+def serve_mobile_active_sub_requests():
+    """Serve the mobile Active Sub Requests page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_active_sub_requests"
+        )
+
+        return render_template("mobile/active_sub_requests.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving active sub requests page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/subfinder")
+@login_required
+def serve_mobile_subfinder():
+    """Serve the mobile Sub Finder page (legacy - redirects to create)"""
+    try:
+        return redirect(url_for('mobile.serve_mobile_create_sub_request'))
+    except Exception as e:
+        print(f"Error redirecting subfinder page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/my-groups")
 @login_required
 def serve_mobile_my_groups():

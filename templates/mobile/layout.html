@@ -1183,6 +1183,14 @@
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1"/><line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/></svg>
                           <span class="text">Pickup Games</span><span class="arrow">→</span>
                         </a>
+                        <a href="/mobile/create-sub-request" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Create Sub Request</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/active-sub-requests" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Active Sub Requests</span><span class="arrow">→</span>
+                        </a>
                       </div>
                     </div>
                     <!-- Improve Category -->
@@ -1735,6 +1743,12 @@
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/pickup-games') && itemPath === '/mobile/find-people-to-play') {
                     // Pickup games page should also highlight search dock item
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/create-sub-request') && itemPath === '/mobile/find-people-to-play') {
+                    // Create sub request page should also highlight search dock item
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/active-sub-requests') && itemPath === '/mobile/find-people-to-play') {
+                    // Active sub requests page should also highlight search dock item
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/availability') && itemPath === '/mobile/availability-calendar') {
                     // Availability related pages

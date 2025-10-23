@@ -8495,9 +8495,390 @@ def get_series_options():
         return jsonify({"error": "Failed to retrieve series options"}), 500
 
 
-# =====================================================
-# GROUPS API ROUTES
-# =====================================================
+# ==========================================
+# SUB FINDER API ENDPOINTS
+# ==========================================
+
+@api_bp.route("/subfinder", methods=["GET"])
+@login_required
+def get_subfinder_requests():
+    """Get all active sub finder requests"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get active requests with creator info
+        requests_query = """
+                    SELECT
+                        rsf.id,
+                        rsf.created_by,
+                        rsf.pti_min,
+                        rsf.pti_max,
+                        rsf.series_min,
+                        rsf.series_max,
+                        rsf.slots_total,
+                        rsf.slots_filled,
+                        rsf.notes,
+                        rsf.match_date,
+                        rsf.match_time,
+                        rsf.broadcast_via_text,
+                        rsf.is_active,
+                        rsf.created_at,
+                        CONCAT(u.first_name, ' ', u.last_name) as creator_name
+                    FROM rally_sub_finder rsf
+                    JOIN users u ON rsf.created_by = u.id
+                    ORDER BY rsf.is_active DESC, rsf.created_at DESC
+                """
+        
+        requests = execute_query(requests_query)
+        
+        # Format the response - separate active and archived requests
+        active_requests = []
+        archived_requests = []
+        
+        for request in requests:
+            # Get participants for this request
+            participants_query = """
+                SELECT
+                    CONCAT(u.first_name, ' ', u.last_name) as name,
+                    rsfp.joined_at,
+                    rsfp.user_id
+                FROM rally_sub_finder_participants rsfp
+                JOIN users u ON rsfp.user_id = u.id
+                WHERE rsfp.rally_sub_finder_id = %s
+                ORDER BY rsfp.joined_at ASC
+            """
+
+            participants = execute_query(participants_query, [request["id"]])
+
+            # Check if current user has joined this request
+            user_has_joined = any(p["user_id"] == user_id for p in participants)
+
+            formatted_request = {
+                "id": request["id"],
+                "creator_name": request["creator_name"],
+                "pti_min": float(request["pti_min"]) if request["pti_min"] else None,
+                "pti_max": float(request["pti_max"]) if request["pti_max"] else None,
+                "series_min": request["series_min"],
+                "series_max": request["series_max"],
+                "slots_total": request["slots_total"],
+                "slots_filled": len(participants),
+                "user_has_joined": user_has_joined,
+                "participants": [
+                    {
+                        "name": p["name"],
+                        "joined_at": p["joined_at"].isoformat() if p["joined_at"] else None
+                    } for p in participants
+                ],
+                "notes": request["notes"],
+                "match_date": request["match_date"].isoformat() if request["match_date"] else None,
+                "match_time": str(request["match_time"]) if request["match_time"] else None,
+                "broadcast_via_text": bool(request["broadcast_via_text"]),
+                "is_active": bool(request["is_active"]),
+                "created_at": request["created_at"].isoformat() if request["created_at"] else None
+            }
+            
+            if request["is_active"]:
+                active_requests.append(formatted_request)
+            else:
+                archived_requests.append(formatted_request)
+
+        return jsonify({
+            "success": True,
+            "active_requests": active_requests,
+            "archived_requests": archived_requests
+        })
+        
+    except Exception as e:
+        print(f"[GET_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[GET_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve sub requests"}), 500
+
+
+@api_bp.route("/subfinder", methods=["POST"])
+@login_required
+def create_subfinder_request():
+    """Create a new sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+
+        print(f"[CREATE_SUBFINDER] Session user: {user}")
+        print(f"[CREATE_SUBFINDER] User ID: {user_id}, Email: {user_email}")
+
+        if not user_id:
+            print(f"[CREATE_SUBFINDER] ERROR: User ID not found in session")
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ["pti_min", "pti_max", "series_min", "series_max", "slots_total", "match_date", "match_time"]
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        pti_min = float(data["pti_min"])
+        pti_max = float(data["pti_max"])
+        series_min = int(data["series_min"])
+        series_max = int(data["series_max"])
+        slots_total = int(data["slots_total"])
+        notes = data.get("notes", "").strip()
+        match_date = data["match_date"]
+        match_time = data["match_time"]
+        broadcast_via_text = data.get("broadcast_via_text", True)
+        
+        # Validate ranges
+        if pti_min >= pti_max:
+            return jsonify({"error": "PTI min must be less than PTI max"}), 400
+        
+        if series_min >= series_max:
+            return jsonify({"error": "Series min must be less than Series max"}), 400
+        
+        if slots_total < 1 or slots_total > 16:
+            return jsonify({"error": "Slots total must be between 1 and 16"}), 400
+        
+        # Create the request
+        create_query = """
+            INSERT INTO rally_sub_finder (
+                created_by, pti_min, pti_max, series_min, series_max,
+                slots_total, slots_filled, notes, match_date, match_time, broadcast_via_text
+            ) VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
+            RETURNING id
+        """
+
+        result = execute_query_one(create_query, [
+            user_id, pti_min, pti_max, series_min, series_max, slots_total, notes, match_date, match_time, broadcast_via_text
+        ])
+        
+        if result:
+            request_id = result["id"]
+            print(f"[CREATE_SUBFINDER] User {user_email} created request {request_id}")
+            
+            log_user_activity(user_email, "subfinder_created", 
+                            details=f"Created sub request ID: {request_id}")
+            
+            # TODO: Send notifications to matching players
+            # This would be implemented in the notification service
+            
+            return jsonify({
+                "success": True,
+                "message": "Sub request created successfully",
+                "request_id": request_id
+            })
+        else:
+            return jsonify({"error": "Failed to create sub request"}), 500
+            
+    except Exception as e:
+        print(f"[CREATE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[CREATE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to create sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/join", methods=["POST"])
+@login_required
+def join_subfinder_request(request_id):
+    """Join a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        print(f"[JOIN_SUBFINDER] User {user_email} attempting to join request {request_id}")
+        
+        # Check if request exists and is active
+        request_query = """
+            SELECT rsf.*, COUNT(rsfp.id) as current_participants
+            FROM rally_sub_finder rsf
+            LEFT JOIN rally_sub_finder_participants rsfp ON rsf.id = rsfp.rally_sub_finder_id
+            WHERE rsf.id = %s AND rsf.is_active = TRUE
+            GROUP BY rsf.id
+        """
+        
+        request_record = execute_query_one(request_query, [request_id])
+        
+        if not request_record:
+            return jsonify({"error": "Sub request not found or inactive"}), 404
+        
+        # Check if request is full
+        if request_record["current_participants"] >= request_record["slots_total"]:
+            return jsonify({"error": "All sub spots are filled"}), 400
+        
+        # Check if user is already in this request
+        existing_query = """
+            SELECT id FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [request_id, user_id])
+        
+        if existing:
+            return jsonify({"error": "You have already joined this sub request"}), 400
+        
+        # Add user to the request
+        join_query = """
+            INSERT INTO rally_sub_finder_participants (rally_sub_finder_id, user_id)
+            VALUES (%s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(join_query, [request_id, user_id])
+        
+        if result:
+            # Update the slots_filled count
+            update_query = """
+                UPDATE rally_sub_finder 
+                SET slots_filled = (
+                    SELECT COUNT(*) FROM rally_sub_finder_participants 
+                    WHERE rally_sub_finder_id = %s
+                )
+                WHERE id = %s
+            """
+            execute_update(update_query, [request_id, request_id])
+            
+            print(f"[JOIN_SUBFINDER] User {user_email} successfully joined request {request_id}")
+            
+            log_user_activity(user_email, "subfinder_joined", 
+                            details=f"Joined sub request ID: {request_id}")
+            
+            # TODO: Send notifications to creator and other participants
+            # This would be implemented in the notification service
+            
+            return jsonify({
+                "success": True,
+                "message": "Successfully joined as sub"
+            })
+        else:
+            return jsonify({"error": "Failed to join sub request"}), 500
+            
+    except Exception as e:
+        print(f"[JOIN_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[JOIN_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to join sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/archive", methods=["POST"])
+@login_required
+def archive_subfinder_request(request_id):
+    """Archive a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+
+        print(f"[ARCHIVE_SUBFINDER] User {user_email} attempting to archive request {request_id}")
+
+        # Check if request exists and user is the creator
+        request_query = """
+            SELECT created_by FROM rally_sub_finder
+            WHERE id = %s AND is_active = TRUE
+        """
+
+        request_record = execute_query_one(request_query, [request_id])
+
+        if not request_record:
+            return jsonify({"error": "Sub request not found or inactive"}), 404
+
+        if request_record["created_by"] != user_id:
+            return jsonify({"error": "You can only archive your own sub requests"}), 403
+
+        # Archive the request (soft delete by setting is_active = FALSE)
+        archive_query = """
+            UPDATE rally_sub_finder
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE id = %s
+        """
+
+        execute_update(archive_query, [request_id])
+
+        print(f"[ARCHIVE_SUBFINDER] User {user_email} successfully archived request {request_id}")
+
+        log_user_activity(user_email, "subfinder_archived",
+                        details=f"Archived sub request ID: {request_id}")
+
+        return jsonify({
+            "success": True,
+            "message": "Sub request archived successfully"
+        })
+
+    except Exception as e:
+        print(f"[ARCHIVE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[ARCHIVE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to archive sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/leave", methods=["POST"])
+@login_required
+def leave_subfinder_request(request_id):
+    """Leave a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        print(f"[LEAVE_SUBFINDER] User {user_email} attempting to leave request {request_id}")
+        
+        # Check if user is in this request
+        existing_query = """
+            SELECT id FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [request_id, user_id])
+        
+        if not existing:
+            return jsonify({"error": "You are not currently in this sub request"}), 400
+        
+        # Remove user from the request
+        leave_query = """
+            DELETE FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        execute_update(leave_query, [request_id, user_id])
+        
+        # Update the slots_filled count
+        update_query = """
+            UPDATE rally_sub_finder
+            SET slots_filled = (
+                SELECT COUNT(*) FROM rally_sub_finder_participants
+                WHERE rally_sub_finder_id = %s
+            )
+            WHERE id = %s
+        """
+        execute_update(update_query, [request_id, request_id])
+        
+        print(f"[LEAVE_SUBFINDER] User {user_email} successfully left request {request_id}")
+        
+        log_user_activity(user_email, "subfinder_left", 
+                        details=f"Left sub request ID: {request_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully left sub request"
+        })
+        
+    except Exception as e:
+        print(f"[LEAVE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[LEAVE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to leave sub request due to server error"}), 500
 
 @api_bp.route("/groups", methods=["GET"])
 @login_required
