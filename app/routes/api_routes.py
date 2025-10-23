@@ -859,6 +859,113 @@ def get_enhanced_streaks():
     return get_enhanced_streaks_data()
 
 
+@api_bp.route("/user-win-streak")
+@login_required
+def get_user_win_streak():
+    """Get the current win streak for the logged-in user using robust database logic"""
+    try:
+        user = session["user"]
+        player_id = user.get("tenniscores_player_id")
+        league_id = user.get("league_id")
+
+        if not player_id:
+            return jsonify({"error": "Player ID not found"}), 404
+
+        if not league_id:
+            return jsonify({"error": "League ID not found"}), 404
+
+        # Convert league_id to integer
+        league_id_int = int(league_id) if str(league_id).isdigit() else None
+        if not league_id_int:
+            return jsonify({"error": "Invalid league ID"}), 400
+
+        # Use the same robust logic as the "Who's Hot at Tennaqua" feature
+        streak_query = """
+            WITH recent_matches AS (
+                SELECT 
+                    ms.match_date,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.league_id
+                FROM match_scores ms
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '60 days'
+                AND ms.winner IS NOT NULL
+                AND ms.winner != ''
+                AND ms.league_id = %s
+                AND (
+                    ms.home_player_1_id = %s OR
+                    ms.home_player_2_id = %s OR
+                    ms.away_player_1_id = %s OR
+                    ms.away_player_2_id = %s
+                )
+                ORDER BY ms.match_date DESC, ms.id DESC
+            ),
+            player_match_results AS (
+                SELECT 
+                    rm.match_date,
+                    CASE 
+                        WHEN (rm.winner = 'home' AND rm.home_player_1_id = %s) OR 
+                             (rm.winner = 'home' AND rm.home_player_2_id = %s) OR
+                             (rm.winner = 'away' AND rm.away_player_1_id = %s) OR
+                             (rm.winner = 'away' AND rm.away_player_2_id = %s)
+                        THEN 'W' ELSE 'L' 
+                    END as result
+                FROM recent_matches rm
+            ),
+            streak_calculations AS (
+                SELECT 
+                    match_date,
+                    result,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) as match_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as result_sequence,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_group
+                FROM player_match_results
+            ),
+            current_streak AS (
+                SELECT 
+                    result,
+                    COUNT(*) as current_streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_calculations
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY result
+                ORDER BY current_streak_length DESC
+                LIMIT 1
+            )
+            SELECT 
+                result,
+                current_streak_length,
+                last_match_date
+            FROM current_streak
+        """
+        
+        streak_result = execute_query_one(streak_query, [
+            league_id_int, player_id, player_id, player_id, player_id,
+            player_id, player_id, player_id, player_id
+        ])
+        
+        if streak_result and streak_result.get('result') == 'W':
+            return jsonify({
+                "current_streak": streak_result['current_streak_length'],
+                "last_match_date": streak_result['last_match_date'].strftime('%Y-%m-%d') if streak_result['last_match_date'] else None
+            })
+        else:
+            return jsonify({
+                "current_streak": 0,
+                "last_match_date": None
+            })
+            
+    except Exception as e:
+        print(f"Error getting user win streak: {e}")
+        return jsonify({"error": "Failed to get win streak"}), 500
+
+
 @api_bp.route("/last-3-matches")
 @login_required
 def get_last_3_matches():
@@ -12230,6 +12337,208 @@ def get_player_matches_detail():
         return jsonify({
             "success": False,
             "error": f"Failed to retrieve player matches: {str(e)}"
+        }), 500
+
+
+@api_bp.route("/api/my-matches-with-player", methods=["GET"])
+@login_required
+def get_my_matches_with_player():
+    """Get matches between current user and target player from both current and previous seasons"""
+    try:
+        # Get parameters
+        target_player_id = request.args.get("target_player_id")
+        
+        if not target_player_id:
+            return jsonify({
+                "success": False,
+                "error": "Target player ID is required"
+            }), 400
+        
+        # Get current user's player ID
+        current_user = session["user"]
+        current_user_player_id = current_user.get("tenniscores_player_id")
+        
+        if not current_user_player_id:
+            return jsonify({
+                "success": False,
+                "error": "Current user player ID not found"
+            }), 400
+        
+        print(f"[DEBUG] My matches with player API called - Current user: {current_user_player_id}, Target player: {target_player_id}")
+        print(f"[DEBUG] Current user league_id: {current_user.get('league_id', '')}")
+        
+        # Get user's league context for filtering
+        user_league_id = current_user.get("league_id", "")
+        league_id_int = None
+        
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        print(f"[DEBUG] Using league_id_int: {league_id_int}")
+        
+        # Query both current season and previous seasons
+        matches = []
+        
+        # Query current season matches (match_scores table)
+        current_season_query = """
+            SELECT 
+                ms.id,
+                ms.match_date,
+                ms.home_team,
+                ms.away_team,
+                ms.home_team_id,
+                ms.away_team_id,
+                ms.home_player_1_id,
+                ms.home_player_2_id,
+                ms.away_player_1_id,
+                ms.away_player_2_id,
+                ms.scores,
+                ms.winner,
+                ms.tenniscores_match_id,
+                'Current Season' as season_type,
+                NULL as season
+            FROM match_scores ms
+            WHERE ms.league_id = %s
+            AND (
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s)
+            )
+            ORDER BY ms.match_date DESC
+        """
+        
+        current_params = [
+            league_id_int,
+            current_user_player_id, target_player_id,  # Current user + target as home players
+            target_player_id, current_user_player_id,  # Target + current user as home players
+            current_user_player_id, target_player_id,  # Current user + target as away players
+            target_player_id, current_user_player_id   # Target + current user as away players
+        ]
+        
+        current_matches = execute_query_all(current_season_query, current_params)
+        print(f"[DEBUG] Current season matches found: {len(current_matches) if current_matches else 0}")
+        matches.extend(current_matches)
+        
+        # Query previous seasons matches (match_scores_previous_seasons table)
+        previous_season_query = """
+            SELECT 
+                ms.id,
+                ms.match_date,
+                ms.home_team,
+                ms.away_team,
+                ms.home_team_id,
+                ms.away_team_id,
+                ms.home_player_1_id,
+                ms.home_player_2_id,
+                ms.away_player_1_id,
+                ms.away_player_2_id,
+                ms.scores,
+                ms.winner,
+                ms.tenniscores_match_id,
+                'Previous Season' as season_type,
+                ms.season
+            FROM match_scores_previous_seasons ms
+            WHERE ms.league_id = %s
+            AND (
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s)
+            )
+            ORDER BY ms.match_date DESC
+        """
+        
+        previous_params = [
+            league_id_int,
+            current_user_player_id, target_player_id,  # Current user + target as home players
+            target_player_id, current_user_player_id,  # Target + current user as home players
+            current_user_player_id, target_player_id,  # Current user + target as away players
+            target_player_id, current_user_player_id   # Target + current user as away players
+        ]
+        
+        previous_matches = execute_query_all(previous_season_query, previous_params)
+        print(f"[DEBUG] Previous season matches found: {len(previous_matches) if previous_matches else 0}")
+        matches.extend(previous_matches)
+        
+        # Sort all matches by date (newest first)
+        matches.sort(key=lambda x: x['match_date'], reverse=True)
+        
+        print(f"[DEBUG] Found {len(matches)} total matches between players")
+        
+        # Import helper function for name conversion
+        from app.services.mobile_service import get_player_name_from_id
+        
+        # Process matches to add player names and determine partnership details
+        processed_matches = []
+        for match in matches:
+            # Determine which team the current user is on
+            current_user_on_home = (match['home_player_1_id'] == current_user_player_id or 
+                                   match['home_player_2_id'] == current_user_player_id)
+            
+            # Get partner and opponent names
+            if current_user_on_home:
+                # Current user is on home team
+                partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
+                opponent1_id = match['away_player_1_id']
+                opponent2_id = match['away_player_2_id']
+                current_team = match['home_team']
+                opponent_team = match['away_team']
+                current_team_won = match['winner'] == 'home'
+            else:
+                # Current user is on away team
+                partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
+                opponent1_id = match['home_player_1_id']
+                opponent2_id = match['home_player_2_id']
+                current_team = match['away_team']
+                opponent_team = match['home_team']
+                current_team_won = match['winner'] == 'away'
+            
+            # Get actual player names using the helper function
+            partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
+            opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
+            opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
+            
+            processed_match = {
+                'id': match['id'],
+                'match_date': match['match_date'].strftime('%Y-%m-%d') if match['match_date'] else None,
+                'current_team': current_team,
+                'opponent_team': opponent_team,
+                'partner_name': partner_name,
+                'partner_id': partner_id,
+                'opponent1_name': opponent1_name,
+                'opponent1_id': opponent1_id,
+                'opponent2_name': opponent2_name,
+                'opponent2_id': opponent2_id,
+                'scores': match['scores'],
+                'current_team_won': current_team_won,
+                'season_type': match['season_type'],
+                'season': match['season'],
+                'tenniscores_match_id': match['tenniscores_match_id']
+            }
+            
+            processed_matches.append(processed_match)
+        
+        return jsonify({
+            "success": True,
+            "matches": processed_matches,
+            "total_matches": len(processed_matches)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error in get_my_matches_with_player: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
         }), 500
 
 

@@ -63,7 +63,7 @@
 
     <!-- Calendar Navigation -->
     <div class="flex items-center justify-between mb-4 px-4">
-        <button id="prevMonth" class="px-6 py-3 w-20 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">
+        <button id="prevMonth" class="px-6 py-3 w-20 rounded-lg text-white transition-colors shadow-sm" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#034343'" onmouseout="this.style.backgroundColor='#045454'">
             <i class="fas fa-chevron-left text-sm"></i>
         </button>
         <div class="flex items-center gap-2">
@@ -72,7 +72,7 @@
                 <i class="fas fa-chevron-down text-sm"></i>
             </button>
         </div>
-        <button id="nextMonth" class="px-6 py-3 w-20 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">
+        <button id="nextMonth" class="px-6 py-3 w-20 rounded-lg text-white transition-colors shadow-sm" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#034343'" onmouseout="this.style.backgroundColor='#045454'">
             <i class="fas fa-chevron-right text-sm"></i>
         </button>
     </div>
@@ -255,10 +255,13 @@
     background-color: #dbeafe;
     color: #1e40af;
     font-weight: bold;
+    border: 3px solid #10b981 !important;
+    box-shadow: 0 0 0 1px #10b981;
 }
 
 .calendar-date.today:hover {
     background-color: #bfdbfe;
+    border: 3px solid #059669 !important;
 }
 
 /* Match and Practice styling - highlight entire box */

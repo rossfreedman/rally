@@ -307,58 +307,96 @@
             color: #000000 !important;
         }
         
-        /* Mobile Footer Positioning Fixes */
+        /* Mobile Footer Positioning - Alternative Approach */
         .bottom-dock {
             position: fixed !important;
             bottom: 0 !important;
             left: 0 !important;
             right: 0 !important;
-            z-index: 9999 !important;
-            transform: translateZ(0) !important;
-            -webkit-transform: translateZ(0) !important;
-            will-change: transform !important;
+            z-index: 99999 !important;
+            transform: none !important;
+            -webkit-transform: none !important;
+            contain: layout style paint !important;
+            isolation: isolate !important;
             -webkit-backface-visibility: hidden !important;
             backface-visibility: hidden !important;
-            -webkit-perspective: 1000 !important;
-            perspective: 1000 !important;
+            -webkit-perspective: 1000px !important;
+            perspective: 1000px !important;
+            will-change: auto !important;
         }
         
-        /* iOS Safari specific fixes */
+        /* Force footer to stay in place with absolute positioning fallback */
+        @media (max-width: 768px) {
+            html {
+                height: 100% !important;
+                overflow-x: hidden !important;
+                position: relative !important;
+            }
+            
+            body {
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow-x: hidden !important;
+                position: relative !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+            
+            /* Main content area with bottom padding to prevent overlap */
+            main {
+                padding-bottom: 80px !important;
+                min-height: calc(100vh - 80px) !important;
+                position: relative !important;
+                z-index: 1 !important;
+            }
+            
+            /* Ensure footer is completely isolated from document flow */
+            .bottom-dock {
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                height: 72px !important;
+                z-index: 99999 !important;
+                transform: none !important;
+                -webkit-transform: none !important;
+                contain: layout style paint !important;
+                isolation: isolate !important;
+                -webkit-backface-visibility: hidden !important;
+                backface-visibility: hidden !important;
+                -webkit-perspective: 1000px !important;
+                perspective: 1000px !important;
+                will-change: auto !important;
+                /* Force hardware acceleration without transforms */
+                -webkit-transform: translateZ(0) !important;
+                transform: translateZ(0) !important;
+                /* Remove any margin/padding that might affect positioning */
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+            }
+            
+            /* Prevent any parent elements from affecting positioning */
+            .bottom-dock * {
+                position: relative !important;
+                z-index: inherit !important;
+            }
+        }
+        
+        /* iOS Safari specific containment */
         @supports (-webkit-touch-callout: none) {
             .bottom-dock {
                 position: fixed !important;
                 bottom: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                transform: translate3d(0, 0, 0) !important;
-                -webkit-transform: translate3d(0, 0, 0) !important;
-            }
-        }
-        
-        /* Prevent footer from moving during scroll on mobile */
-        @media (max-width: 768px) {
-            .bottom-dock {
-                position: fixed !important;
-                bottom: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                transform: translate3d(0, 0, 0) !important;
-                -webkit-transform: translate3d(0, 0, 0) !important;
-                will-change: transform !important;
+                transform: none !important;
+                -webkit-transform: none !important;
+                contain: layout style paint !important;
+                isolation: isolate !important;
                 -webkit-backface-visibility: hidden !important;
                 backface-visibility: hidden !important;
-            }
-            
-            /* Ensure body doesn't interfere with fixed positioning */
-            body {
-                -webkit-overflow-scrolling: touch !important;
-                overflow-x: hidden !important;
-            }
-            
-            /* Prevent viewport issues */
-            html {
-                height: 100% !important;
-                overflow-x: hidden !important;
             }
         }
         
@@ -1515,7 +1553,7 @@
     </div>
 
     <!-- Bottom Navigation Dock -->
-    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #045454; position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; transform: translateZ(0); -webkit-transform: translateZ(0); will-change: transform;">
+    <nav class="bottom-dock" style="background-color: #045454; box-shadow: 0 -2px 8px rgba(0,0,0,0.08);">
         <div class="flex items-center justify-around h-full px-2" style="max-width: 600px; margin: 0 auto;">
             <!-- Home -->
             <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-800 rounded-lg mx-1">
@@ -1574,34 +1612,94 @@
 
 
 
-        // Mobile Footer Positioning Fix
-        function ensureFooterFixed() {
+        // Aggressive Mobile Footer Positioning Fix
+        let footerPositionCheckInterval;
+        let lastScrollY = window.scrollY;
+        
+        function forceFooterFixed() {
             const footer = document.querySelector('.bottom-dock');
             if (footer) {
-                // Force fixed positioning
+                // Remove any existing transforms that might interfere
+                footer.style.transform = 'none';
+                footer.style.webkitTransform = 'none';
+                
+                // Force fixed positioning with containment
                 footer.style.position = 'fixed';
                 footer.style.bottom = '0';
                 footer.style.left = '0';
                 footer.style.right = '0';
-                footer.style.zIndex = '9999';
-                footer.style.transform = 'translate3d(0, 0, 0)';
-                footer.style.webkitTransform = 'translate3d(0, 0, 0)';
-                footer.style.willChange = 'transform';
+                footer.style.width = '100%';
+                footer.style.height = '72px';
+                footer.style.zIndex = '99999';
+                footer.style.contain = 'layout style paint';
+                footer.style.isolation = 'isolate';
                 footer.style.webkitBackfaceVisibility = 'hidden';
                 footer.style.backfaceVisibility = 'hidden';
+                footer.style.webkitPerspective = '1000px';
+                footer.style.perspective = '1000px';
+                
+                // Force hardware acceleration
+                footer.style.webkitTransform = 'translateZ(0)';
+                footer.style.transform = 'translateZ(0)';
+                
+                // Ensure it's not affected by parent transforms
+                const computedStyle = window.getComputedStyle(footer);
+                if (computedStyle.position !== 'fixed') {
+                    console.log('Forcing footer to fixed position');
+                    footer.style.position = 'fixed';
+                }
             }
         }
         
-        // Run on page load and scroll events
-        document.addEventListener('DOMContentLoaded', ensureFooterFixed);
-        window.addEventListener('scroll', ensureFooterFixed);
-        window.addEventListener('resize', ensureFooterFixed);
+        function monitorFooterPosition() {
+            const footer = document.querySelector('.bottom-dock');
+            if (footer) {
+                const rect = footer.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                
+                // Check if footer is not at the bottom
+                if (rect.bottom !== viewportHeight) {
+                    console.log('Footer position corrected:', rect.bottom, 'vs', viewportHeight);
+                    forceFooterFixed();
+                }
+            }
+        }
+        
+        function handleScroll() {
+            const currentScrollY = window.scrollY;
+            
+            // Only check if scroll direction changed significantly
+            if (Math.abs(currentScrollY - lastScrollY) > 10) {
+                forceFooterFixed();
+                lastScrollY = currentScrollY;
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            forceFooterFixed();
+            
+            // Start monitoring footer position every 100ms
+            footerPositionCheckInterval = setInterval(monitorFooterPosition, 100);
+        });
+        
+        // Handle scroll events
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        window.addEventListener('resize', forceFooterFixed);
         
         // iOS Safari specific handling
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-            document.addEventListener('touchstart', ensureFooterFixed);
-            document.addEventListener('touchmove', ensureFooterFixed);
+            document.addEventListener('touchstart', forceFooterFixed, { passive: true });
+            document.addEventListener('touchmove', forceFooterFixed, { passive: true });
+            document.addEventListener('touchend', forceFooterFixed, { passive: true });
         }
+        
+        // Clean up interval when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (footerPositionCheckInterval) {
+                clearInterval(footerPositionCheckInterval);
+            }
+        });
         
         // Initialize dock active state
         function updateDockActiveState() {
