@@ -126,6 +126,49 @@
                     </label>
                 </div>
 
+                <!-- Matching Players Preview -->
+                <div id="matchingPlayersSection" class="mt-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-md font-semibold text-gray-900">
+                            <i class="fas fa-users mr-2" style="color: #045454;"></i>
+                            Players Who Match
+                        </h3>
+                        <span id="matchingPlayersCount" class="bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+                            0 players
+                        </span>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="matchingPlayersLoading" class="hidden text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+                        <p class="text-sm text-gray-500 mt-2">Finding matching players...</p>
+                    </div>
+                    
+                    <!-- Players Table -->
+                    <div id="matchingPlayersTable" class="overflow-hidden border border-gray-200 rounded-lg">
+                        <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PTI</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matchingPlayersTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Rows will be populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="matchingPlayersEmpty" class="hidden text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <i class="fas fa-user-slash text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-sm text-gray-500">No players match your current criteria</p>
+                        <p class="text-xs text-gray-400 mt-1">Try adjusting the PTI or Series range</p>
+                    </div>
+                </div>
 
         <!-- Submit Button -->
         <button id="submitRequest" class="btn-primary w-full py-3 px-4 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 font-medium" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
@@ -353,6 +396,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const toastContainer = document.getElementById('toastContainer');
     const userClubNameSpan = document.getElementById('userClubName');
     
+    // Matching players elements
+    const matchingPlayersCount = document.getElementById('matchingPlayersCount');
+    const matchingPlayersLoading = document.getElementById('matchingPlayersLoading');
+    const matchingPlayersTable = document.getElementById('matchingPlayersTable');
+    const matchingPlayersTableBody = document.getElementById('matchingPlayersTableBody');
+    const matchingPlayersEmpty = document.getElementById('matchingPlayersEmpty');
+    
+    // Debounce timer for matching players
+    let matchingPlayersDebounceTimer = null;
+    
     // Load user's club name
     async function loadUserClubName() {
         try {
@@ -392,9 +445,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initialize page
+    // Fetch matching players based on criteria
+    async function fetchMatchingPlayers() {
+        const ptiMin = parseFloat(ptiMinSlider.value);
+        const ptiMax = parseFloat(ptiMaxSlider.value);
+        const seriesMin = seriesMinInput.value ? parseInt(seriesMinInput.value) : null;
+        const seriesMax = seriesMaxInput.value ? parseInt(seriesMaxInput.value) : null;
+        
+        try {
+            // Show loading state
+            matchingPlayersLoading.classList.remove('hidden');
+            matchingPlayersTable.classList.add('hidden');
+            matchingPlayersEmpty.classList.add('hidden');
+            
+            const response = await fetch('/api/subfinder/matching-players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pti_min: ptiMin,
+                    pti_max: ptiMax,
+                    series_min: seriesMin,
+                    series_max: seriesMax
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                displayMatchingPlayers(data.players, data.count);
+            } else {
+                console.error('Failed to fetch matching players:', data.error);
+                displayMatchingPlayers([], 0);
+            }
+            
+        } catch (error) {
+            console.error('Error fetching matching players:', error);
+            displayMatchingPlayers([], 0);
+        } finally {
+            matchingPlayersLoading.classList.add('hidden');
+        }
+    }
+    
+    // Display matching players in the table
+    function displayMatchingPlayers(players, count) {
+        // Update count badge
+        matchingPlayersCount.textContent = count === 1 ? '1 player' : `${count} players`;
+        
+        if (count === 0) {
+            matchingPlayersTable.classList.add('hidden');
+            matchingPlayersEmpty.classList.remove('hidden');
+            return;
+        }
+        
+        // Show table and populate rows
+        matchingPlayersTable.classList.remove('hidden');
+        matchingPlayersEmpty.classList.add('hidden');
+        
+        // Clear existing rows
+        matchingPlayersTableBody.innerHTML = '';
+        
+        // Add rows for each player
+        players.forEach(player => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${player.name || 'Unknown'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${player.pti ? player.pti.toFixed(1) : 'N/A'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${player.series || 'N/A'}</td>
+            `;
+            matchingPlayersTableBody.appendChild(row);
+        });
+    }
+    
+    // Debounced update for matching players
+    function updateMatchingPlayers() {
+        // Clear existing timer
+        if (matchingPlayersDebounceTimer) {
+            clearTimeout(matchingPlayersDebounceTimer);
+        }
+        
+        // Set new timer to fetch after 500ms of no changes
+        matchingPlayersDebounceTimer = setTimeout(() => {
+            fetchMatchingPlayers();
+        }, 500);
+    }
+    
     async function initializePage() {
         try {
             setupEventListeners();
+            // Fetch matching players on initial load
+            fetchMatchingPlayers();
         } catch (error) {
             console.error('Error initializing page:', error);
             showToast('Failed to load page data', 'error');
@@ -429,6 +569,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Clear validation errors when user adjusts slider
                 clearSliderValidationErrors();
+                
+                // Update matching players
+                updateMatchingPlayers();
             });
             
             ptiMaxSlider.addEventListener('input', function() {
@@ -446,7 +589,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Clear validation errors when user adjusts slider
                 clearSliderValidationErrors();
+                
+                // Update matching players
+                updateMatchingPlayers();
             });
+        }
+        
+        // Series input events to update matching players
+        if (seriesMinInput) {
+            seriesMinInput.addEventListener('input', updateMatchingPlayers);
+        }
+        if (seriesMaxInput) {
+            seriesMaxInput.addEventListener('input', updateMatchingPlayers);
         }
     }
     
@@ -515,9 +669,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Validate Series ranges
-            if (seriesMin && seriesMax && seriesMin >= seriesMax) {
-                showFieldError(seriesMinInput, 'Min Series must be less than Max Series');
-                showFieldError(seriesMaxInput, 'Max Series must be greater than Min Series');
+            if (seriesMin && seriesMax && seriesMin > seriesMax) {
+                showFieldError(seriesMinInput, 'Min Series must be less than or equal to Max Series');
+                showFieldError(seriesMaxInput, 'Max Series must be greater than or equal to Min Series');
                 hasErrors = true;
             }
             

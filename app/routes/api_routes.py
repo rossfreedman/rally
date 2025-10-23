@@ -8880,6 +8880,91 @@ def leave_subfinder_request(request_id):
         print(f"[LEAVE_SUBFINDER] Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to leave sub request due to server error"}), 500
 
+
+@api_bp.route("/subfinder/matching-players", methods=["POST"])
+@login_required
+def get_matching_players_for_subfinder():
+    """Get players matching the specified criteria for sub finder"""
+    try:
+        user = session["user"]
+        user_club = user.get("club")
+        user_league_id = user.get("league_id")
+        
+        data = request.get_json()
+        pti_min = data.get("pti_min")
+        pti_max = data.get("pti_max")
+        series_min = data.get("series_min")
+        series_max = data.get("series_max")
+        
+        if not user_club or not user_league_id:
+            return jsonify({"error": "User club or league not found"}), 400
+        
+        # Build query to find matching players
+        query = """
+            SELECT DISTINCT
+                p.id,
+                CONCAT(p.first_name, ' ', p.last_name) as player_name,
+                p.pti,
+                c.name as club,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            WHERE c.name = %s
+            AND p.league_id = %s
+            AND p.pti IS NOT NULL
+            AND p.is_active = TRUE
+        """
+        
+        params = [user_club, user_league_id]
+        
+        # Add PTI filters if provided
+        if pti_min is not None:
+            query += " AND p.pti >= %s"
+            params.append(pti_min)
+        
+        if pti_max is not None:
+            query += " AND p.pti <= %s"
+            params.append(pti_max)
+        
+        # Add series filters if provided
+        if series_min is not None and series_max is not None:
+            query += """
+                AND s.name IS NOT NULL
+                AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) >= %s
+                AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) <= %s
+            """
+            params.append(series_min)
+            params.append(series_max)
+        
+        query += " ORDER BY p.pti DESC LIMIT 100"
+        
+        players = execute_query(query, params)
+        
+        # Format player data
+        formatted_players = []
+        for player in players:
+            formatted_players.append({
+                "id": player["id"],
+                "name": player["player_name"],
+                "pti": float(player["pti"]) if player["pti"] else None,
+                "club": player["club"],
+                "series": player["series_name"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "players": formatted_players,
+            "count": len(formatted_players)
+        })
+        
+    except Exception as e:
+        print(f"[MATCHING_PLAYERS] Error: {str(e)}")
+        import traceback
+        print(f"[MATCHING_PLAYERS] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to fetch matching players"}), 500
+
+
 @api_bp.route("/groups", methods=["GET"])
 @login_required
 def get_user_groups():
