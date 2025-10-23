@@ -8941,7 +8941,7 @@ def get_matching_players_for_subfinder():
             params.append(series_min)
             params.append(series_max)
         
-        query += " ORDER BY p.pti DESC LIMIT 100"
+        query += " ORDER BY p.pti DESC LIMIT 500"
         
         players = execute_query(query, params)
         
