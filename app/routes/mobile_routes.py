@@ -204,7 +204,7 @@ def serve_mobile():
         except Exception as e2:
             print(f"Error logging mobile access: {str(e2)}")
 
-    return render_template("mobile/home.html", session_data=session_data)
+    return render_template("mobile/home.html", session_data=session_data, page_id='home')
 
 
 @mobile_bp.route("/mobile/alt1")

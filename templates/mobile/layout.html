@@ -1531,7 +1531,8 @@
         </a>
     </div> -->
 
-    <!-- Share Rally Floating Chip -->
+    <!-- Share Rally Floating Chip (only shown on home page) -->
+    {% if page_id == 'home' %}
     <div id="shareRallyChip" style="position: fixed; bottom: 85px; left: 16px; z-index: 50; transition: opacity 0.3s ease, transform 0.3s ease;">
         <a href="/mobile/share-rally" style="
             display: flex; 
@@ -1559,6 +1560,7 @@
             <span style="color: #045454; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Share Rally</span>
         </a>
     </div>
+    {% endif %}
 
     <!-- Bottom Navigation Dock -->
     <nav class="bottom-dock" style="background-color: #045454; box-shadow: 0 -2px 8px rgba(0,0,0,0.08);">
