@@ -45,6 +45,11 @@
             box-shadow: 0 12px 28px rgba(0,0,0,0.12);
         }
         
+        /* Scroll margin for sticky navigation */
+        #schedule, #dashboard, #team, #club, #play {
+            scroll-margin-top: 140px; /* Account for sticky nav + header height */
+        }
+        
         .carousel {
             display: flex;
             gap: 1rem;
@@ -430,9 +435,9 @@
         <!-- ============================================
              3. TEAM SECTION
              ============================================ -->
-        <section id="team" class="space-y-6">
+        <section class="space-y-6">
             <!-- Option 4: Rally Branded with Logo Watermark -->
-            <div class="bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-6 relative overflow-hidden">
+            <div id="team" class="bg-gradient-to-r from-[#045454] to-[#067373] rounded-2xl px-8 py-6 shadow-lg mb-6 relative overflow-hidden">
                 <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5">
                     <img src="/static/images/rally_favicon.png" alt="Rally" class="w-48 h-48 filter brightness-0 invert">
                 </div>
@@ -3816,35 +3821,12 @@
                         const target = document.querySelector(href);
                         console.log('🎯 Target found:', target);
                         if (target) {
-                            // Individual offsets for each section - scroll to 100px before start
-                            let offset;
-                            switch(href) {
-                                case '#schedule':
-                                    offset = 100; // Schedule: scroll to 100px before start
-                                    break;
-                                case '#dashboard':
-                                    offset = 100; // Stats: scroll to 100px before start
-                                    break;
-                                case '#team':
-                                    offset = 100; // Team: scroll to 100px before start
-                                    break;
-                                case '#club':
-                                    offset = 100; // Club: scroll to 100px before start
-                                    break;
-                                case '#play':
-                                    offset = 100; // Play: scroll to 100px before start
-                                    break;
-                                default:
-                                    offset = 100; // Default: scroll to 100px before start
-                            }
-                            const targetOffsetTop = target.offsetTop - offset;
-                            console.log(`🎯 Scrolling to position:`, targetOffsetTop, 'offset:', offset, 'section:', href);
-                            
-                            window.scrollTo({
-                                top: targetOffsetTop,
-                                behavior: 'smooth'
+                            // Simple scroll to anchor - let the browser handle positioning
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
                             });
-                            console.log(`✅ Scroll command sent`);
+                            console.log(`✅ Scroll to anchor completed for:`, href);
                         } else {
                             console.error(`❌ Target element not found for:`, href);
                         }
