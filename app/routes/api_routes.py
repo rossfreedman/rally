@@ -8934,6 +8934,7 @@ def get_matching_players_for_subfinder():
         if series_min is not None and series_max is not None:
             query += """
                 AND s.name IS NOT NULL
+                AND REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') != ''
                 AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) >= %s
                 AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) <= %s
             """
