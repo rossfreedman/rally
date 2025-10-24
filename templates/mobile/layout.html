@@ -616,7 +616,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; min-height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454; padding-top: env(safe-area-inset-top, 0px);">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -649,7 +649,7 @@
                 {% endif %}
             {% endif %}
             
-            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu" style="padding-top: max(12px, calc(12px + env(safe-area-inset-top, 0px)));">
+            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu" style="padding-top: calc(12px + env(safe-area-inset-top, 0px)); padding-bottom: 12px;">
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
