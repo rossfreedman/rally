@@ -29,6 +29,7 @@
 - In Python, use docstrings (Google-style or reStructuredText) for all functions and classes.
 - In JavaScript/React, use inline comments for complex logic and JSDoc for utility functions when appropriate.
 - Comment any refactors or non-obvious changes with rationale.
+- Save all .md files to the same directory: md (i.e. <root>/md)
 
 # ETL & Data Import Best Practices
 - ALWAYS backup data before ETL imports (use cb.py for database backups)

@@ -1477,14 +1477,9 @@ a:hover {
   }
 }
 
-/* iOS safe-area header background extension */
+ 
+/* iOS Safari: Extend navbar background into safe area without layout changes */
 @supports (padding-top: env(safe-area-inset-top)) {
-  .navbar {
-    /* Extend background upward into safe area */
-    background-color: #045454 !important;
-    position: relative;
-  }
-  
   .navbar::before {
     content: '';
     position: absolute;
@@ -1492,8 +1487,7 @@ a:hover {
     left: 0;
     right: 0;
     height: env(safe-area-inset-top, 0px);
-    background-color: #bff863;
+    background-color: #045454;
     z-index: -1;
   }
 }
- 

@@ -321,19 +321,20 @@
         
         .category-button {
             background: #fff !important;
-            border-radius: 1.5rem !important;
+            border-radius: 0.75rem !important;
             border: 1px solid #E0E0E0 !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
             color: #045454 !important;
             font-weight: 500 !important;
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            padding: 1.5rem !important;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 0.75rem !important;
             width: 100%;
-            text-align: center;
+            text-align: left;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            gap: 0.75rem;
             position: relative;
             z-index: 1;
         }
@@ -342,60 +343,26 @@
         .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
         .category-button:hover * { color: #045454 !important; }
         
-        /* Force Home button to match other buttons exactly - nuclear option */
-        .category-section:first-child .category-button {
-            background: #fff !important;
-            color: #045454 !important;
-            border-color: #E0E0E0 !important;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-            padding: 1.5rem !important;
-            width: 100% !important;
-            min-height: 120px !important;
-            height: auto !important;
-            text-align: center !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border-radius: 1.5rem !important;
-            border: 1px solid #E0E0E0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-            font-size: inherit !important;
-            line-height: inherit !important;
-        }
-        .category-section:first-child .category-button * {
-            color: #045454 !important;
-        }
-        .category-section:first-child .category-button svg {
-            color: #045454 !important;
-        }
-        .category-section:first-child .category-button:hover {
-            background: #f2f2f7 !important;
-            color: #045454 !important;
-            border-color: #E0E0E0 !important;
-        }
-        .category-section:first-child .category-button:hover * {
-            color: #045454 !important;
-        }
+        /* Home button now matches all other buttons automatically - no special styling needed for COMPACT VERSION */
         
-        /* Active category button styling when submenu is open - Reversed colors */
+        /* Active category button styling when submenu is open - Reversed colors - COMPACT */
         .category-button.active {
             background: #045454 !important;
             border-color: #045454 !important;
             color: #bff863 !important;
-            box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+            box-shadow: 0 2px 12px rgba(4, 84, 84, 0.3) !important;
             /* Ensure consistent sizing for active state */
-            padding: 1.5rem !important;
+            padding: 0.75rem !important;
             width: 100% !important;
-            text-align: center !important;
+            text-align: left !important;
             display: flex !important;
-            flex-direction: column !important;
+            flex-direction: row !important;
             align-items: center !important;
-            justify-content: center !important;
-            /* Animation effects */
-            transform: scale(1.05) translateY(-2px) !important;
-            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+            justify-content: flex-start !important;
+            gap: 0.75rem !important;
+            /* Subtle animation effects */
+            transform: scale(1.02) !important;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
         .category-button.active:not([onclick*="'/mobile'"]) * { 
             color: #bff863 !important; 
@@ -438,21 +405,22 @@
         }
         .submenu-item { 
             display: flex; 
-            flex-direction: column; 
+            flex-direction: row; 
             align-items: center; 
-            justify-content: center; 
-            padding: 1.5rem; 
-            margin-bottom: 0.5rem;
-            border-radius: 1.5rem;
-            border: 1px solid #E0E0E0;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            justify-content: flex-start; 
+            gap: 0.75rem;
+            padding: 0.75rem; 
+            margin-bottom: 0.25rem;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
             text-decoration: none; 
-            color: white !important; 
-            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
-            text-align: center;
-            min-height: 120px;
-            background: #797979 !important;
-            transform: translateY(-20px) scale(0.95) !important;
+            color: #045454 !important; 
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+            text-align: left;
+            min-height: auto;
+            background: transparent !important;
+            transform: translateY(-10px) scale(0.98) !important;
             opacity: 0 !important;
             position: relative;
         }
@@ -484,50 +452,54 @@
             transition-delay: 0.6s !important; 
         }
         .submenu-item:hover { 
-            background-color: #f2f2f7; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-            transform: scale(1.02);
+            background-color: rgba(4, 84, 84, 0.05); 
+            color: #045454 !important; 
+            cursor: pointer; 
         }
         .submenu-item:active { 
-            transform: scale(0.97); 
-            background: #f2f2f7; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transform: scale(0.98); 
+            background-color: rgba(4, 84, 84, 0.1);
         }
         .submenu-item .icon { 
-            width: 2rem; 
-            height: 2rem; 
-            margin-bottom: 0.75rem; 
-            display: block;
-            color: white !important;
+            width: 1.25rem; 
+            height: 1.25rem; 
+            flex-shrink: 0;
+            color: #045454 !important;
         }
         .submenu-item .text { 
             font-weight: 500; 
-            text-align: center;
-            line-height: 1.3;
-            color: white !important;
+            font-size: 0.875rem;
+            text-align: left;
+            flex: 1;
+            color: #045454 !important;
         }
         .submenu-item .arrow { 
-            display: none; 
+            display: block;
+            color: #045454 !important;
+            font-size: 1rem;
+            margin-left: auto;
         }
         
-        /* Submenu item styling when submenu is active */
+        /* Submenu item styling when submenu is active - COMPACT VERSION */
         body.submenu-active .submenu-item {
-            background-color: #797979 !important;
-            color: white !important;
-            border-color: #E0E0E0 !important;
+            background-color: transparent !important;
+            color: #045454 !important;
         }
         
         body.submenu-active .submenu-item:hover {
-            background-color: #6b6b6b !important;
-            border-color: #E0E0E0 !important;
+            background-color: rgba(4, 84, 84, 0.05) !important;
         }
         
         body.submenu-active .submenu-item svg {
-            color: white !important;
+            color: #045454 !important;
         }
         
         body.submenu-active .submenu-item .text {
-            color: white !important;
+            color: #045454 !important;
+        }
+        
+        body.submenu-active .submenu-item .arrow {
+            color: #045454 !important;
         }
         
         /* Responsive adjustments - Keep 2 columns on mobile */
@@ -557,7 +529,7 @@
             }
         }
         
-        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes */
+        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes - COMPACT VERSION */
         @media (min-width: 768px) {
             .space-y-4 {
                 max-width: 500px !important;
@@ -574,42 +546,7 @@
                 margin: 0 !important;
             }
             
-            /* Force Home button to match other buttons on desktop */
-            .category-section:first-child .category-button {
-                background: #fff !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-                padding: 1.5rem !important;
-                width: 100% !important;
-                min-height: 120px !important;
-                height: auto !important;
-                text-align: center !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                border-radius: 1.5rem !important;
-                border: 1px solid #E0E0E0 !important;
-                margin: 0 !important;
-                max-width: 100% !important;
-                font-size: inherit !important;
-                line-height: inherit !important;
-            }
-            .category-section:first-child .category-button * {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button svg {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button:hover {
-                background: #f2f2f7 !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-            }
-            .category-section:first-child .category-button:hover * {
-                color: #045454 !important;
-            }
+            /* Home button matches all other buttons - no special styling */
             
             .submenu-item {
                 max-width: 100% !important;
@@ -622,7 +559,7 @@
             }
         }
         
-        /* Large desktop constraints for hamburger menu - keep mobile button sizes */
+        /* Large desktop constraints for hamburger menu - keep mobile button sizes - COMPACT VERSION */
         @media (min-width: 1024px) {
             .space-y-4 {
                 max-width: 500px !important;
@@ -638,49 +575,14 @@
                 max-width: 100% !important;
             }
             
-            /* Force Home button to match other buttons on large desktop */
-            .category-section:first-child .category-button {
-                background: #fff !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-                padding: 1.5rem !important;
-                width: 100% !important;
-                min-height: 120px !important;
-                height: auto !important;
-                text-align: center !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                border-radius: 1.5rem !important;
-                border: 1px solid #E0E0E0 !important;
-                margin: 0 !important;
-                max-width: 100% !important;
-                font-size: inherit !important;
-                line-height: inherit !important;
-            }
-            .category-section:first-child .category-button * {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button svg {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button:hover {
-                background: #f2f2f7 !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-            }
-            .category-section:first-child .category-button:hover * {
-                color: #045454 !important;
-            }
+            /* Home button matches all other buttons - no special styling */
             
             .submenu-item {
                 max-width: 100% !important;
             }
         }
         
-        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes */
+        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes - COMPACT VERSION */
         @media (min-width: 1280px) {
             .space-y-4 {
                 max-width: 500px !important;
@@ -696,42 +598,7 @@
                 max-width: 100% !important;
             }
             
-            /* Force Home button to match other buttons on extra large desktop */
-            .category-section:first-child .category-button {
-                background: #fff !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-                padding: 1.5rem !important;
-                width: 100% !important;
-                min-height: 120px !important;
-                height: auto !important;
-                text-align: center !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                border-radius: 1.5rem !important;
-                border: 1px solid #E0E0E0 !important;
-                margin: 0 !important;
-                max-width: 100% !important;
-                font-size: inherit !important;
-                line-height: inherit !important;
-            }
-            .category-section:first-child .category-button * {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button svg {
-                color: #045454 !important;
-            }
-            .category-section:first-child .category-button:hover {
-                background: #f2f2f7 !important;
-                color: #045454 !important;
-                border-color: #E0E0E0 !important;
-            }
-            .category-section:first-child .category-button:hover * {
-                color: #045454 !important;
-            }
+            /* Home button matches all other buttons - no special styling */
             
             .submenu-item {
                 max-width: 100% !important;
@@ -782,14 +649,11 @@
                 {% endif %}
             {% endif %}
             
-            <!-- iOS safe wrapper for hamburger with Rally green background -->
-            <div style="padding-top: env(safe-area-inset-top, 0px); background-color: #bff863; margin-top: calc(-1 * env(safe-area-inset-top, 0px));">
-                <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                    <span class="bar"></span>
-                </button>
-            </div>
+            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu" style="padding-top: max(12px, calc(12px + env(safe-area-inset-top, 0px)));">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
         </div>
     </nav>
 
@@ -824,51 +688,49 @@
                   
 
                   
-                  <!-- Single Column Navigation (matches home_submenu) -->
-                  <div class="space-y-4" style="padding-bottom: 600px;">
+                  <!-- Single Column Navigation (COMPACT VERSION) -->
+                  <div class="space-y-2" style="padding-bottom: 600px;">
                     <!-- Home Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Home</div>
+                      <button class="category-button" onclick="window.location.href='/mobile'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Home</div>
                       </button>
-                      <div id="drawer-home-submenu" class="submenu">
-                        <!-- Empty submenu to match structure of other buttons -->
-                      </div>
                     </div>
-                    <!-- Act Category -->
+                    
+                    <!-- Schedule -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-act-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Act</div>
+                      <button class="category-button" onclick="window.location.href='/mobile/availability'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
+                        <div class="font-semibold text-base">Schedule</div>
                       </button>
-                      <div id="drawer-act-submenu" class="submenu">
-                        <a href="/mobile/availability" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">View Schedule</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/availability-calendar" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Update Availability</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/polls" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
-                        </a>
-
-                        <!-- Reserve Court button hidden -->
-                      </div>
                     </div>
-                    <!-- Analyze Category -->
+                    
+                    <!-- Availability -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-analyze-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Analyze</div>
+                      <button class="category-button" onclick="window.location.href='/mobile/availability-calendar'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Availability</div>
+                      </button>
+                    </div>
+                    
+                    <!-- Polls -->
+                    <div class="category-section">
+                      <button class="category-button" onclick="window.location.href='/mobile/polls'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Polls</div>
+                      </button>
+                    </div>
+                    <!-- Stats Category -->
+                    <div class="category-section">
+                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-analyze-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Stats</div>
                       </button>
                       <div id="drawer-analyze-submenu" class="submenu">
                         <a href="/mobile/analyze-me" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg>
-                          <span class="text">Me</span><span class="arrow">→</span>
+                          <span class="text">My Stats</span><span class="arrow">→</span>
                         </a>
                         <a href="/mobile/myteam" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg>
@@ -886,9 +748,9 @@
                     </div>
                     <!-- Prepare Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-prepare-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Prepare</div>
+                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-prepare-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Prepare</div>
                       </button>
                       <div id="drawer-prepare-submenu" class="submenu">
                         <a href="/mobile/teams-players" class="submenu-item">
@@ -904,9 +766,9 @@
                     </div>
                     <!-- Play Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-play-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Play</div>
+                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-play-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Play</div>
                       </button>
                       <div id="drawer-play-submenu" class="submenu">
                         <a href="/mobile/find-people-to-play" class="submenu-item">
@@ -917,13 +779,21 @@
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1"/><line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/></svg>
                           <span class="text">Pickup Games</span><span class="arrow">→</span>
                         </a>
+                        <a href="/mobile/create-sub-request" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Create Sub Request</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/active-sub-requests" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Active Sub Requests</span><span class="arrow">→</span>
+                        </a>
                       </div>
                     </div>
                     <!-- Improve Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-improve-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
-                        <div class="font-semibold text-lg">Improve</div>
+                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-improve-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
+                        <div class="font-semibold text-base">Improve</div>
                       </button>
                       <div id="drawer-improve-submenu" class="submenu">
                         <a href="/mobile/improve" class="submenu-item">
@@ -936,33 +806,33 @@
                         </a>
                       </div>
                     </div>
-                    <!-- Rally Support Button -->
+                    <!-- Support Button -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/support'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <button class="category-button" onclick="window.location.href='/mobile/support'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
                           <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
                           <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" fill="none"/>
                         </svg>
-                        <div class="font-semibold text-lg">Rally Support</div>
+                        <div class="font-semibold text-base">Support</div>
                       </button>
                     </div>
                     
                     <!-- Rally Merch Button -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/swag'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <button class="category-button" onclick="window.location.href='/mobile/swag'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" stroke="currentColor" stroke-width="2" fill="none"/>
                         </svg>
-                        <div class="font-semibold text-lg">Rally Merch</div>
+                        <div class="font-semibold text-base">Rally Merch</div>
                       </button>
                     </div>
                     
                     <!-- Captain's Corner Category -->
                     <div class="category-section">
-                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-captain-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-lg">Captain's Corner</div>
+                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-captain-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-base">Captain's Corner</div>
                       </button>
                       <div id="drawer-captain-submenu" class="submenu">
 
