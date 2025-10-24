@@ -1021,7 +1021,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <header class="navbar shadow-md px-4 py-2 relative flex items-center ios-safe-header" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1050; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <header class="navbar shadow-md px-4 py-2 relative flex items-center ios-safe-header" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 100000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -1054,7 +1054,7 @@
                 {% endif %}
             {% endif %}
             
-            <button class="hamburger-btn relative" id="hamburgerToggle" aria-label="Open menu" style="z-index: 1060; padding: 12px; margin: -12px;">
+            <button class="hamburger-btn relative" id="hamburgerToggle" aria-label="Open menu" style="z-index: 100001; padding: 12px; margin: -12px; position: relative; touch-action: manipulation;">
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -1480,7 +1480,7 @@
     </div>
 
     <!-- Overlay for nav drawer -->
-    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
+    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden" style="pointer-events: none;"></div>
 
 
 
@@ -2098,6 +2098,7 @@
             if (drawer && overlay && hamburger) {
                 drawer.style.transform = 'translateX(100%)';
                 overlay.classList.add('hidden');
+                overlay.style.pointerEvents = 'none';
                 hamburger.classList.remove('open');
                 console.log('Drawer explicitly closed on page load with inline style');
                 
@@ -2112,6 +2113,7 @@
                 setTimeout(() => {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
+                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     console.log('Drawer ensured closed after delay with inline style');
                     
@@ -2137,6 +2139,7 @@
                         console.log('Unwanted drawer state change detected, forcing close');
                         drawer.style.transform = 'translateX(100%)';
                         overlay.classList.add('hidden');
+                        overlay.style.pointerEvents = 'none';
                         hamburger.classList.remove('open');
                         
                         // Show persistent navigation when drawer is forced closed
@@ -2169,6 +2172,7 @@
                 if (isOpen) {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
+                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     
                     // Show persistent navigation when drawer closes
@@ -2186,6 +2190,7 @@
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
+                    overlay.style.pointerEvents = 'auto';
                     hamburger.classList.add('open');
                     
                     // Hide persistent navigation when drawer opens
@@ -2261,6 +2266,7 @@
                     intentionalChange = true;
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
+                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     
                     // Show persistent navigation when drawer closes
