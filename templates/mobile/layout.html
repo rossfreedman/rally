@@ -2,13 +2,13 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rally{% endblock %}</title>
     
-    <!-- Theme Color - set to teal so it blends with our header -->
-    <meta name="theme-color" content="#045454">
-    <meta name="msapplication-navbutton-color" content="#045454">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#000000">
+    <meta name="msapplication-navbutton-color" content="#000000">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
@@ -307,354 +307,112 @@
             color: #000000 !important;
         }
         
-        /* Mobile Footer Positioning - Alternative Approach */
-        .bottom-dock {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            z-index: 99999 !important;
-            transform: none !important;
-            -webkit-transform: none !important;
-            contain: layout style paint !important;
-            isolation: isolate !important;
-            -webkit-backface-visibility: hidden !important;
-            backface-visibility: hidden !important;
-            -webkit-perspective: 1000px !important;
-            perspective: 1000px !important;
-            will-change: auto !important;
-        }
-        
-        /* Force footer to stay in place with absolute positioning fallback */
-        @media (max-width: 768px) {
-            html {
-                height: 100% !important;
-                overflow-x: hidden !important;
-                position: relative !important;
-            }
-            
-            body {
-                height: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow-x: hidden !important;
-                position: relative !important;
-                -webkit-overflow-scrolling: touch !important;
-            }
-            
-            /* Main content area with bottom padding to prevent overlap */
-        main {
-            padding-bottom: 80px !important;
-            min-height: calc(100dvh - 80px) !important;
-            position: relative !important;
-            z-index: 1 !important;
-        }
-            
-            /* Ensure footer is completely isolated from document flow */
-            .bottom-dock {
-                position: fixed !important;
-                bottom: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                width: 100% !important;
-                height: 72px !important;
-                z-index: 99999 !important;
-                transform: none !important;
-                -webkit-transform: none !important;
-                contain: layout style paint !important;
-                isolation: isolate !important;
-                -webkit-backface-visibility: hidden !important;
-                backface-visibility: hidden !important;
-                -webkit-perspective: 1000px !important;
-                perspective: 1000px !important;
-                will-change: auto !important;
-                /* Force hardware acceleration without transforms */
-                -webkit-transform: translateZ(0) !important;
-                transform: translateZ(0) !important;
-                /* Remove any margin/padding that might affect positioning */
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-            }
-            
-            /* Prevent any parent elements from affecting positioning */
-            .bottom-dock * {
-                position: relative !important;
-                z-index: inherit !important;
-            }
-        }
-        
-        /* iOS Safari specific containment */
-        @supports (-webkit-touch-callout: none) {
-            .bottom-dock {
-                position: fixed !important;
-                bottom: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                transform: none !important;
-                -webkit-transform: none !important;
-                contain: layout style paint !important;
-                isolation: isolate !important;
-                -webkit-backface-visibility: hidden !important;
-                backface-visibility: hidden !important;
-            }
-        }
-        
         /* Active state for dock items */
         .dock-item.active i,
         .dock-item.active span {
             color: #000000 !important;
         }
         
-        /* Hamburger Menu Styles (matching home_submenu) - COMPACT VERSION - ONLY FOR DRAWER */
-        #navDrawer .category-section {
+        /* Hamburger Menu Styles (matching home_submenu) */
+        .category-section {
             width: 100% !important;
             max-width: 100% !important;
-            margin-bottom: 0 !important;
-            position: relative !important;
-            z-index: 15 !important;
-            overflow: visible !important;
-            isolation: isolate !important;
         }
         
-        #navDrawer .space-y-2 > * + * {
-            margin-top: 0.75rem !important;
-        }
-        
-        /* Ensure consistent spacing for all buttons */
-        #navDrawer .space-y-2 > .category-section {
-            margin-bottom: 0.75rem !important;
-        }
-        
-        #navDrawer .space-y-2 > .category-section:last-child {
-            margin-bottom: 0 !important;
-        }
-        
-        #navDrawer .category-button {
+        .category-button {
             background: #fff !important;
-            border-radius: 0.75rem !important;
+            border-radius: 1.5rem !important;
             border: 1px solid #E0E0E0 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
             color: #045454 !important;
             font-weight: 500 !important;
-            transition: all 0.3s ease;
-            padding: 0.75rem 1rem !important;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 1.5rem !important;
             width: 100%;
-            text-align: left;
+            text-align: center;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             position: relative;
-            z-index: 10 !important;
-            min-height: 48px !important;
-            gap: 0.75rem;
-            cursor: pointer !important;
+            z-index: 1;
         }
+        .category-button * { color: #045454 !important; font-weight: 500 !important; }
+        .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
+        .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
+        .category-button:hover * { color: #045454 !important; }
         
-        #navDrawer .category-button svg {
-            flex-shrink: 0;
-            width: 1.5rem !important;
-            height: 1.5rem !important;
-            margin: 0 !important;
-        }
-        
-        #navDrawer .category-button div {
-            flex: 1;
-            margin: 0 !important;
-        }
-        #navDrawer .category-button * { color: #045454 !important; font-weight: 500 !important; }
-        #navDrawer .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
-        #navDrawer .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
-        #navDrawer .category-button:hover * { color: #045454 !important; }
-        
-        /* Ensure all category buttons are fully clickable */
-        #navDrawer .category-button {
-            pointer-events: auto !important;
-            position: relative !important;
-            z-index: 20 !important;
-            cursor: pointer !important;
-        }
-        
-        /* Make sure child elements don't interfere with clicks - ONLY for button elements */
-        #navDrawer button.category-button svg,
-        #navDrawer button.category-button div,
-        #navDrawer button.category-button span {
-            pointer-events: none !important;
-            user-select: none !important;
-        }
-        
-        /* For anchor tags, allow all pointer events */
-        #navDrawer a.category-button,
-        #navDrawer a.category-button *  {
-            pointer-events: auto !important;
-        }
-        
-        /* Ensure the button area is fully clickable - DISABLED FOR TESTING */
-        /*
-        #navDrawer .category-button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: -1;
-            pointer-events: none;
-        }
-        */
-        
-        /* Force Availability button to be fully clickable - DISABLED FOR TESTING */
-        /*
-        #navDrawer .category-button[href*="availability-calendar"]::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            z-index: 50;
-            pointer-events: auto;
-            background: transparent;
-        }
-        */
-        
-        /* Ensure direct-link buttons are fully clickable */
-        #navDrawer .category-button[onclick*="window.location.href"] {
-            height: auto !important;
-            min-height: 48px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: flex-start !important;
-            width: 100% !important;
-            cursor: pointer !important;
-            pointer-events: auto !important;
-            position: relative !important;
-            z-index: 25 !important;
-        }
-        
-        /* Specific fix for Availability button */
-        #navDrawer .category-button[href*="availability-calendar"] {
-            z-index: 30 !important;
-            pointer-events: auto !important;
-            position: relative !important;
-            overflow: visible !important;
-        }
-        
-        /* Ensure no overlapping elements interfere */
-        #navDrawer .category-section:nth-child(2) {
-            z-index: 100 !important;
-            position: relative !important;
-        }
-        
-        #navDrawer .category-section:nth-child(2) .category-button {
-            z-index: 100 !important;
-            pointer-events: auto !important;
-            position: relative !important;
-        }
-        
-        #navDrawer .category-section:nth-child(3) {
-            z-index: 20 !important;
-            position: relative !important;
-        }
-        
-        #navDrawer .category-section:nth-child(3) .category-button {
-            z-index: 35 !important;
-            pointer-events: auto !important;
-        }
-        
-        /* Force Home button to match other buttons exactly - COMPACT VERSION - ONLY FOR DRAWER */
-        #navDrawer .category-section:first-child {
-            overflow: hidden !important;
-            max-height: 48px !important;
-        }
-        
-        #navDrawer .category-section:first-child .category-button {
+        /* Force Home button to match other buttons exactly - nuclear option */
+        .category-section:first-child .category-button {
             background: #fff !important;
             color: #045454 !important;
             border-color: #E0E0E0 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-            padding: 0.75rem 1rem !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+            padding: 1.5rem !important;
             width: 100% !important;
-            min-height: 48px !important;
+            min-height: 120px !important;
             height: auto !important;
-            text-align: left !important;
+            text-align: center !important;
             display: flex !important;
-            flex-direction: row !important;
+            flex-direction: column !important;
             align-items: center !important;
-            justify-content: flex-start !important;
-            border-radius: 0.75rem !important;
+            justify-content: center !important;
+            border-radius: 1.5rem !important;
             border: 1px solid #E0E0E0 !important;
             margin: 0 !important;
             max-width: 100% !important;
             font-size: inherit !important;
             line-height: inherit !important;
-            gap: 0.75rem !important;
         }
-        #navDrawer .category-section:first-child .category-button * {
+        .category-section:first-child .category-button * {
             color: #045454 !important;
         }
-        #navDrawer .category-section:first-child .category-button svg {
+        .category-section:first-child .category-button svg {
             color: #045454 !important;
         }
-        #navDrawer .category-section:first-child .category-button:hover {
+        .category-section:first-child .category-button:hover {
             background: #f2f2f7 !important;
             color: #045454 !important;
             border-color: #E0E0E0 !important;
         }
-        #navDrawer .category-section:first-child .category-button:hover * {
+        .category-section:first-child .category-button:hover * {
             color: #045454 !important;
         }
         
-        /* Active category button styling when submenu is open - Reversed colors - COMPACT - ONLY FOR DRAWER */
-        #navDrawer .category-button.active {
+        /* Active category button styling when submenu is open - Reversed colors */
+        .category-button.active {
             background: #045454 !important;
             border-color: #045454 !important;
             color: #bff863 !important;
-            box-shadow: 0 3px 12px rgba(4, 84, 84, 0.3) !important;
-            /* Ensure consistent sizing for active state - COMPACT */
-            padding: 0.75rem 1rem !important;
+            box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+            /* Ensure consistent sizing for active state */
+            padding: 1.5rem !important;
             width: 100% !important;
-            text-align: left !important;
+            text-align: center !important;
             display: flex !important;
-            flex-direction: row !important;
+            flex-direction: column !important;
             align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 0.75rem !important;
-            min-height: 48px !important;
+            justify-content: center !important;
             /* Animation effects */
-            transform: translateX(4px) !important;
-            transition: all 0.3s ease !important;
+            transform: scale(1.05) translateY(-2px) !important;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
-        #navDrawer .category-button.active:not([onclick*="'/mobile'"]) * { 
+        .category-button.active:not([onclick*="'/mobile'"]) * { 
             color: #bff863 !important; 
         }
-        #navDrawer .category-button.active:not([onclick*="'/mobile'"]) svg { 
+        .category-button.active:not([onclick*="'/mobile'"]) svg { 
             color: #bff863 !important; 
         }
         
-          /* Captain's Corner button off state - very light green background - ONLY FOR DRAWER */
-  #navDrawer .category-button[onclick*="captain"] {
+          /* Captain's Corner button off state - very light green background */
+  .category-button[onclick*="captain"] {
     background: #f0f9f0 !important;
     border-color: #d4edda !important;
   }
-        
-        /* Captain's Corner button active state - dark green background - ONLY FOR DRAWER */
-        #navDrawer .category-button[onclick*="captain"].active {
-            background: #045454 !important;
-            border-color: #045454 !important;
-            color: #bff863 !important;
-        }
-        #navDrawer .category-button[onclick*="captain"].active * {
-            color: #bff863 !important;
-        }
-        #navDrawer .category-button[onclick*="captain"].active svg {
-            color: #bff863 !important;
-        }
-        #navDrawer .submenu { 
+        .submenu { 
             display: block !important; 
             background: transparent; 
-            margin-top: 5px !important; 
+            margin-top: 0.5rem; 
             overflow: hidden !important;
             visibility: visible !important;
             opacity: 0 !important;
@@ -668,11 +426,8 @@
             -webkit-transition: max-height 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
                         opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
                         -webkit-transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-            z-index: 5 !important;
-            position: relative;
-            pointer-events: none !important;
         }
-        #navDrawer .submenu.active { 
+        .submenu.active { 
             display: block !important; 
             visibility: visible !important;
             opacity: 1 !important;
@@ -680,105 +435,98 @@
             max-height: 800px !important;
             transform: translateY(0) scale(1) !important;
             -webkit-transform: translateY(0) scale(1) !important;
-            pointer-events: auto !important;
         }
-        #navDrawer .submenu-item { 
+        .submenu-item { 
             display: flex; 
-            flex-direction: row; 
+            flex-direction: column; 
             align-items: center; 
-            justify-content: flex-start; 
-            padding: 0.75rem 1rem; 
-            margin-bottom: 0.375rem;
-            border-radius: 0.75rem;
+            justify-content: center; 
+            padding: 1.5rem; 
+            margin-bottom: 0.5rem;
+            border-radius: 1.5rem;
             border: 1px solid #E0E0E0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
             text-decoration: none; 
             color: white !important; 
-            transition: all 0.3s ease !important;
-            text-align: left;
-            min-height: 48px;
+            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+            text-align: center;
+            min-height: 120px;
             background: #797979 !important;
-            transform: translateY(-10px) !important;
+            transform: translateY(-20px) scale(0.95) !important;
             opacity: 0 !important;
             position: relative;
-            gap: 0.75rem;
         }
-        #navDrawer .submenu-item:last-child { margin-bottom: 0; }
+        .submenu-item:last-child { margin-bottom: 0; }
         
-        /* Active state for submenu items - ONLY FOR DRAWER */
-        #navDrawer .submenu.active .submenu-item {
+        /* Active state for submenu items */
+        .submenu.active .submenu-item {
             transform: translateY(0) scale(1) !important;
             opacity: 1 !important;
         }
         
-        /* Staggered animation delays for submenu items - ONLY FOR DRAWER */
-        #navDrawer .submenu.active .submenu-item:nth-child(1) { 
+        /* Staggered animation delays for submenu items */
+        .submenu.active .submenu-item:nth-child(1) { 
             transition-delay: 0.1s !important; 
         }
-        #navDrawer .submenu.active .submenu-item:nth-child(2) { 
+        .submenu.active .submenu-item:nth-child(2) { 
             transition-delay: 0.2s !important; 
         }
-        #navDrawer .submenu.active .submenu-item:nth-child(3) { 
+        .submenu.active .submenu-item:nth-child(3) { 
             transition-delay: 0.3s !important; 
         }
-        #navDrawer .submenu.active .submenu-item:nth-child(4) { 
+        .submenu.active .submenu-item:nth-child(4) { 
             transition-delay: 0.4s !important; 
         }
-        #navDrawer .submenu.active .submenu-item:nth-child(5) { 
+        .submenu.active .submenu-item:nth-child(5) { 
             transition-delay: 0.5s !important; 
         }
-        #navDrawer .submenu.active .submenu-item:nth-child(6) { 
+        .submenu.active .submenu-item:nth-child(6) { 
             transition-delay: 0.6s !important; 
         }
-        #navDrawer .submenu-item:hover { 
+        .submenu-item:hover { 
             background-color: #f2f2f7; 
             box-shadow: 0 6px 20px rgba(0,0,0,0.12);
             transform: scale(1.02);
         }
-        #navDrawer .submenu-item:active { 
+        .submenu-item:active { 
             transform: scale(0.97); 
             background: #f2f2f7; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
         }
-        #navDrawer .submenu-item .icon { 
-            width: 1.5rem; 
-            height: 1.5rem; 
-            margin-bottom: 0; 
-            flex-shrink: 0;
+        .submenu-item .icon { 
+            width: 2rem; 
+            height: 2rem; 
+            margin-bottom: 0.75rem; 
             display: block;
             color: white !important;
         }
-        #navDrawer .submenu-item .text { 
+        .submenu-item .text { 
             font-weight: 500; 
-            text-align: left;
+            text-align: center;
             line-height: 1.3;
             color: white !important;
-            flex: 1;
         }
-        #navDrawer .submenu-item .arrow { 
-            display: block;
-            font-size: 1rem;
-            color: white !important;
-            margin-left: auto;
+        .submenu-item .arrow { 
+            display: none; 
         }
         
-        /* Submenu item styling when submenu is active - ONLY FOR DRAWER */
-        body.submenu-active #navDrawer .submenu-item {
+        /* Submenu item styling when submenu is active */
+        body.submenu-active .submenu-item {
             background-color: #797979 !important;
             color: white !important;
             border-color: #E0E0E0 !important;
         }
         
-        body.submenu-active #navDrawer .submenu-item:hover {
+        body.submenu-active .submenu-item:hover {
             background-color: #6b6b6b !important;
             border-color: #E0E0E0 !important;
         }
         
-        body.submenu-active #navDrawer .submenu-item svg {
+        body.submenu-active .submenu-item svg {
             color: white !important;
         }
         
-        body.submenu-active #navDrawer .submenu-item .text {
+        body.submenu-active .submenu-item .text {
             color: white !important;
         }
         
@@ -809,79 +557,61 @@
             }
         }
         
-        /* Desktop-specific fix for second button clickability */
+        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 768px) {
-            #navDrawer .category-section:nth-child(2) {
-                margin-top: 0.75rem !important;
-                margin-bottom: 0.75rem !important;
-                position: relative !important;
-                z-index: 100 !important;
-                overflow: visible !important;
-            }
-            
-            #navDrawer .category-section:nth-child(2) .category-button {
-                position: relative !important;
-                z-index: 100 !important;
-                pointer-events: auto !important;
-            }
-        }
-        
-        /* Desktop responsive constraints for hamburger menu - keep mobile button sizes - ONLY FOR DRAWER */
-        @media (min-width: 768px) {
-            #navDrawer .space-y-4 {
+            .space-y-4 {
                 max-width: 500px !important;
                 margin: 0 auto !important;
             }
             
-            #navDrawer .category-section {
+            .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
             }
             
-            #navDrawer .category-button {
+            .category-button {
                 max-width: 100% !important;
                 margin: 0 !important;
             }
             
-            /* Force Home button to match other buttons on desktop - COMPACT - ONLY FOR DRAWER */
-            #navDrawer .category-section:first-child .category-button {
+            /* Force Home button to match other buttons on desktop */
+            .category-section:first-child .category-button {
                 background: #fff !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-                padding: 0.75rem 1rem !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
                 width: 100% !important;
-                min-height: 48px !important;
+                min-height: 120px !important;
                 height: auto !important;
-                text-align: left !important;
+                text-align: center !important;
                 display: flex !important;
-                flex-direction: row !important;
+                flex-direction: column !important;
                 align-items: center !important;
-                justify-content: flex-start !important;
-                border-radius: 0.75rem !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
                 border: 1px solid #E0E0E0 !important;
                 margin: 0 !important;
                 max-width: 100% !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
-                gap: 0.75rem !important;
             }
-            #navDrawer .category-section:first-child .category-button * {
+            .category-section:first-child .category-button * {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button svg {
+            .category-section:first-child .category-button svg {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover {
+            .category-section:first-child .category-button:hover {
                 background: #f2f2f7 !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover * {
+            .category-section:first-child .category-button:hover * {
                 color: #045454 !important;
             }
             
-            #navDrawer .submenu-item {
+            .submenu-item {
                 max-width: 100% !important;
                 margin: 0 0 0.5rem 0 !important;
             }
@@ -892,120 +622,118 @@
             }
         }
         
-        /* Large desktop constraints for hamburger menu - keep mobile button sizes - ONLY FOR DRAWER */
+        /* Large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1024px) {
-            #navDrawer .space-y-4 {
+            .space-y-4 {
                 max-width: 500px !important;
                 margin: 0 auto !important;
             }
             
-            #navDrawer .category-section {
+            .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
             }
             
-            #navDrawer .category-button {
+            .category-button {
                 max-width: 100% !important;
             }
             
-            /* Force Home button to match other buttons on large desktop - COMPACT - ONLY FOR DRAWER */
-            #navDrawer .category-section:first-child .category-button {
+            /* Force Home button to match other buttons on large desktop */
+            .category-section:first-child .category-button {
                 background: #fff !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-                padding: 0.75rem 1rem !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
                 width: 100% !important;
-                min-height: 48px !important;
+                min-height: 120px !important;
                 height: auto !important;
-                text-align: left !important;
+                text-align: center !important;
                 display: flex !important;
-                flex-direction: row !important;
+                flex-direction: column !important;
                 align-items: center !important;
-                justify-content: flex-start !important;
-                border-radius: 0.75rem !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
                 border: 1px solid #E0E0E0 !important;
                 margin: 0 !important;
                 max-width: 100% !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
-                gap: 0.75rem !important;
             }
-            #navDrawer .category-section:first-child .category-button * {
+            .category-section:first-child .category-button * {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button svg {
+            .category-section:first-child .category-button svg {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover {
+            .category-section:first-child .category-button:hover {
                 background: #f2f2f7 !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover * {
+            .category-section:first-child .category-button:hover * {
                 color: #045454 !important;
             }
             
-            #navDrawer .submenu-item {
+            .submenu-item {
                 max-width: 100% !important;
             }
         }
         
-        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes - ONLY FOR DRAWER */
+        /* Extra large desktop constraints for hamburger menu - keep mobile button sizes */
         @media (min-width: 1280px) {
-            #navDrawer .space-y-4 {
+            .space-y-4 {
                 max-width: 500px !important;
                 margin: 0 auto !important;
             }
             
-            #navDrawer .category-section {
+            .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
             }
             
-            #navDrawer .category-button {
+            .category-button {
                 max-width: 100% !important;
             }
             
-            /* Force Home button to match other buttons on extra large desktop - COMPACT - ONLY FOR DRAWER */
-            #navDrawer .category-section:first-child .category-button {
+            /* Force Home button to match other buttons on extra large desktop */
+            .category-section:first-child .category-button {
                 background: #fff !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
-                padding: 0.75rem 1rem !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+                padding: 1.5rem !important;
                 width: 100% !important;
-                min-height: 48px !important;
+                min-height: 120px !important;
                 height: auto !important;
-                text-align: left !important;
+                text-align: center !important;
                 display: flex !important;
-                flex-direction: row !important;
+                flex-direction: column !important;
                 align-items: center !important;
-                justify-content: flex-start !important;
-                border-radius: 0.75rem !important;
+                justify-content: center !important;
+                border-radius: 1.5rem !important;
                 border: 1px solid #E0E0E0 !important;
                 margin: 0 !important;
                 max-width: 100% !important;
                 font-size: inherit !important;
                 line-height: inherit !important;
-                gap: 0.75rem !important;
             }
-            #navDrawer .category-section:first-child .category-button * {
+            .category-section:first-child .category-button * {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button svg {
+            .category-section:first-child .category-button svg {
                 color: #045454 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover {
+            .category-section:first-child .category-button:hover {
                 background: #f2f2f7 !important;
                 color: #045454 !important;
                 border-color: #E0E0E0 !important;
             }
-            #navDrawer .category-section:first-child .category-button:hover * {
+            .category-section:first-child .category-button:hover * {
                 color: #045454 !important;
             }
             
-            #navDrawer .submenu-item {
+            .submenu-item {
                 max-width: 100% !important;
             }
         }
@@ -1021,7 +749,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <header class="navbar shadow-md relative flex items-center" id="mainHeader" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 100000; background-color: #045454; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 8px 16px; height: 56px;">
+    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -1054,17 +782,20 @@
                 {% endif %}
             {% endif %}
             
-            <button class="hamburger-btn relative" id="hamburgerToggle" aria-label="Open menu" style="z-index: 100001; padding: 12px; margin-left: -12px; margin-right: -12px; margin-bottom: -12px; position: relative; touch-action: manipulation;">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </button>
+            <!-- iOS safe wrapper for hamburger -->
+            <div style="padding-top: env(safe-area-inset-top, 0px);">
+                <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
         </div>
-    </header>
+    </nav>
 
 
     <!-- Status Banner (below navigation) -->
-    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: calc(56px + max(8px, env(safe-area-inset-top, 8px))); background-color: #bff863; color: #045454; margin-bottom: 30px;">
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 56px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; gap: 16px;">
             <span id="statusBannerText" class="text-sm font-medium" style="line-height: 1.4; text-align: left; flex: 1;"></span>
             <a id="statusBannerButton" class="hidden" style="background-color: #045454; color: #bff863; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Try it</a>
@@ -1090,46 +821,49 @@
                     </div>
                     <div class="flex-grow border-t-2 border-gray-400"></div>
                   </div>
+                  
 
                   
-                  <!-- Single Column Navigation (COMPACT VERSION) -->
-                  <div class="space-y-2" style="padding-bottom: 600px;">
+                  <!-- Single Column Navigation (matches home_submenu) -->
+                  <div class="space-y-4" style="padding-bottom: 600px;">
                     <!-- Home Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Home</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-home-submenu'); window.location.href='/mobile'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Home</div>
                       </button>
+                      <div id="drawer-home-submenu" class="submenu">
+                        <!-- Empty submenu to match structure of other buttons -->
+                      </div>
                     </div>
-                    
-                    <!-- Schedule -->
+                    <!-- Act Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="navigateWithLoading('/mobile/availability', 'Loading Schedule...')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
-                        <div class="font-semibold text-base">Schedule</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-act-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Act</div>
                       </button>
-                    </div>
-                    
-                    <!-- Availability -->
-                    <div class="category-section">
-                      <button class="category-button" onclick="navigateWithLoading('/mobile/availability-calendar', 'Loading Availability...')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Availability</div>
-                      </button>
-                    </div>
-                    
-                    <!-- Polls -->
-                    <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile/polls'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Polls</div>
-                      </button>
+                      <div id="drawer-act-submenu" class="submenu">
+                        <a href="/mobile/availability" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">View Schedule</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/availability-calendar" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Update Availability</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/polls" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M8 12h8M8 16h8" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="1" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
+                        </a>
+
+                        <!-- Reserve Court button hidden -->
+                      </div>
                     </div>
                     <!-- Analyze Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-analyze-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Analyze</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-analyze-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Analyze</div>
                       </button>
                       <div id="drawer-analyze-submenu" class="submenu">
                         <a href="/mobile/analyze-me" class="submenu-item">
@@ -1152,9 +886,9 @@
                     </div>
                     <!-- Prepare Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-prepare-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Prepare</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-prepare-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Prepare</div>
                       </button>
                       <div id="drawer-prepare-submenu" class="submenu">
                         <a href="/mobile/teams-players" class="submenu-item">
@@ -1170,9 +904,9 @@
                     </div>
                     <!-- Play Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-play-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Play</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-play-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Play</div>
                       </button>
                       <div id="drawer-play-submenu" class="submenu">
                         <a href="/mobile/find-people-to-play" class="submenu-item">
@@ -1183,21 +917,13 @@
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1"/><line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/></svg>
                           <span class="text">Pickup Games</span><span class="arrow">→</span>
                         </a>
-                        <a href="/mobile/create-sub-request" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Create Sub Request</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/active-sub-requests" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Active Sub Requests</span><span class="arrow">→</span>
-                        </a>
                       </div>
                     </div>
                     <!-- Improve Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-improve-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
-                        <div class="font-semibold text-base">Improve</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-improve-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
+                        <div class="font-semibold text-lg">Improve</div>
                       </button>
                       <div id="drawer-improve-submenu" class="submenu">
                         <a href="/mobile/improve" class="submenu-item">
@@ -1210,33 +936,33 @@
                         </a>
                       </div>
                     </div>
-                    <!-- Support Button -->
+                    <!-- Rally Support Button -->
                     <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile/support'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/support'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" fill="none"/>
                           <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2" fill="none"/>
                           <path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="currentColor" stroke-width="2" fill="none"/>
                         </svg>
-                        <div class="font-semibold text-base">Support</div>
+                        <div class="font-semibold text-lg">Rally Support</div>
                       </button>
                     </div>
                     
                     <!-- Rally Merch Button -->
                     <div class="category-section">
-                      <button class="category-button" onclick="window.location.href='/mobile/swag'">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" style="min-height: 120px; padding: 1.5rem;" onclick="window.location.href='/mobile/swag'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path d="M16 11V7a4 4 0 0 0-8 0v4M5 9h14l1 12H4L5 9z" stroke="currentColor" stroke-width="2" fill="none"/>
                         </svg>
-                        <div class="font-semibold text-base">Rally Merch</div>
+                        <div class="font-semibold text-lg">Rally Merch</div>
                       </button>
                     </div>
                     
                     <!-- Captain's Corner Category -->
                     <div class="category-section">
-                      <button class="category-button" onclick="toggleDrawerSubmenu('drawer-captain-submenu')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                        <div class="font-semibold text-base">Captain's Corner</div>
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleDrawerSubmenu('drawer-captain-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Captain's Corner</div>
                       </button>
                       <div id="drawer-captain-submenu" class="submenu">
 
@@ -1275,16 +1001,6 @@
                         <a href="/mobile/practice-times" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></svg>
                           <span class="text">Practice Times</span><span class="arrow">→</span>
-                        </a>
-
-                        <a href="/mobile/pairing-analysis" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
-                            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/>
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/>
-                          </svg>
-                          <span class="text">Pairing Analysis</span><span class="arrow">→</span>
                         </a>
 
                         {% if session_data and session_data.user and session_data.user.is_admin %}
@@ -1480,7 +1196,7 @@
     </div>
 
     <!-- Overlay for nav drawer -->
-    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden" style="pointer-events: none;"></div>
+    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
 
 
 
@@ -1541,9 +1257,8 @@
         </a>
     </div> -->
 
-    <!-- Share Rally Floating Chip (only shown on home page) -->
-    {% if page_id == 'home' %}
-    <div id="shareRallyChip" style="position: fixed; bottom: 85px; left: 16px; z-index: 50; transition: opacity 0.3s ease, transform 0.3s ease;">
+    <!-- Share Rally Floating Chip -->
+    <div style="position: fixed; bottom: 85px; left: 16px; z-index: 50;">
         <a href="/mobile/share-rally" style="
             display: flex; 
             align-items: center; 
@@ -1570,10 +1285,9 @@
             <span style="color: #045454; font-size: 10px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Share Rally</span>
         </a>
     </div>
-    {% endif %}
 
     <!-- Bottom Navigation Dock -->
-    <nav class="bottom-dock" style="background-color: #045454; box-shadow: 0 -2px 8px rgba(0,0,0,0.08);">
+    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <div class="flex items-center justify-around h-full px-2" style="max-width: 600px; margin: 0 auto;">
             <!-- Home -->
             <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-800 rounded-lg mx-1">
@@ -1632,95 +1346,6 @@
 
 
 
-        // Aggressive Mobile Footer Positioning Fix
-        let footerPositionCheckInterval;
-        let lastScrollY = window.scrollY;
-        
-        function forceFooterFixed() {
-            const footer = document.querySelector('.bottom-dock');
-            if (footer) {
-                // Remove any existing transforms that might interfere
-                footer.style.transform = 'none';
-                footer.style.webkitTransform = 'none';
-                
-                // Force fixed positioning with containment
-                footer.style.position = 'fixed';
-                footer.style.bottom = '0';
-                footer.style.left = '0';
-                footer.style.right = '0';
-                footer.style.width = '100%';
-                footer.style.height = '72px';
-                footer.style.zIndex = '99999';
-                footer.style.contain = 'layout style paint';
-                footer.style.isolation = 'isolate';
-                footer.style.webkitBackfaceVisibility = 'hidden';
-                footer.style.backfaceVisibility = 'hidden';
-                footer.style.webkitPerspective = '1000px';
-                footer.style.perspective = '1000px';
-                
-                // Force hardware acceleration
-                footer.style.webkitTransform = 'translateZ(0)';
-                footer.style.transform = 'translateZ(0)';
-                
-                // Ensure it's not affected by parent transforms
-                const computedStyle = window.getComputedStyle(footer);
-                if (computedStyle.position !== 'fixed') {
-                    console.log('Forcing footer to fixed position');
-                    footer.style.position = 'fixed';
-                }
-            }
-        }
-        
-        function monitorFooterPosition() {
-            const footer = document.querySelector('.bottom-dock');
-            if (footer) {
-                const rect = footer.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                
-                // Check if footer is not at the bottom
-                if (rect.bottom !== viewportHeight) {
-                    console.log('Footer position corrected:', rect.bottom, 'vs', viewportHeight);
-                    forceFooterFixed();
-                }
-            }
-        }
-        
-        function handleScroll() {
-            const currentScrollY = window.scrollY;
-            
-            // Only check if scroll direction changed significantly
-            if (Math.abs(currentScrollY - lastScrollY) > 10) {
-                forceFooterFixed();
-                lastScrollY = currentScrollY;
-            }
-        }
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            forceFooterFixed();
-            
-            // Start monitoring footer position every 100ms
-            footerPositionCheckInterval = setInterval(monitorFooterPosition, 100);
-        });
-        
-        // Handle scroll events
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        window.addEventListener('resize', forceFooterFixed);
-        
-        // iOS Safari specific handling
-        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-            document.addEventListener('touchstart', forceFooterFixed, { passive: true });
-            document.addEventListener('touchmove', forceFooterFixed, { passive: true });
-            document.addEventListener('touchend', forceFooterFixed, { passive: true });
-        }
-        
-        // Clean up interval when page unloads
-        window.addEventListener('beforeunload', function() {
-            if (footerPositionCheckInterval) {
-                clearInterval(footerPositionCheckInterval);
-            }
-        });
-        
         // Initialize dock active state
         function updateDockActiveState() {
             const currentPath = window.location.pathname;
@@ -1755,12 +1380,6 @@
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/pickup-games') && itemPath === '/mobile/find-people-to-play') {
                     // Pickup games page should also highlight search dock item
-                    item.classList.add('active');
-                } else if (currentPath.startsWith('/mobile/create-sub-request') && itemPath === '/mobile/find-people-to-play') {
-                    // Create sub request page should also highlight search dock item
-                    item.classList.add('active');
-                } else if (currentPath.startsWith('/mobile/active-sub-requests') && itemPath === '/mobile/find-people-to-play') {
-                    // Active sub requests page should also highlight search dock item
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/availability') && itemPath === '/mobile/availability-calendar') {
                     // Availability related pages
@@ -2090,111 +1709,23 @@
             // Initialize scroll indicator
             initScrollIndicator();
             
-            // Detect iOS and add class for targeted styling
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-            
-            if (isIOS) {
-                document.body.classList.add('ios-device');
-                console.log('🍎 iOS device detected');
-            }
-            if (isSafari) {
-                document.body.classList.add('safari-browser');
-                console.log('🧭 Safari browser detected');
-            }
-            
-            // iOS Safari specific: Add safe-area padding to header and adjust first content element
-            if (isIOS && isSafari) {
-                const header = document.querySelector('header.navbar');
-                
-                if (header) {
-                    // Add safe-area padding using CSS env() function
-                    header.style.paddingTop = 'max(8px, env(safe-area-inset-top, 8px))';
-                    header.style.height = 'auto';
-                    header.style.minHeight = '56px';
-                    
-                    // Wait for reflow to get new height
-                    setTimeout(() => {
-                        const newHeaderHeight = header.offsetHeight;
-                        console.log('📏 iOS Safari: Header height is', newHeaderHeight + 'px');
-                        
-                        // Only adjust if header is taller than 56px (meaning safe-area exists)
-                        if (newHeaderHeight > 56) {
-                            // Adjust status banner position
-                            const statusBanner = document.getElementById('statusBanner');
-                            if (statusBanner) {
-                                statusBanner.style.top = newHeaderHeight + 'px';
-                            }
-                            
-                            // Adjust first content element to account for taller header
-                            const firstContent = document.querySelector('main > :first-child, .max-w-7xl:first-of-type, body > div:not(header):not(nav):not(.fixed):not(.bottom-dock)');
-                            if (firstContent) {
-                                const currentMargin = parseInt(window.getComputedStyle(firstContent).marginTop) || 0;
-                                if (currentMargin < newHeaderHeight) {
-                                    firstContent.style.marginTop = newHeaderHeight + 'px';
-                                    console.log('✅ iOS Safari: Adjusted first content margin from', currentMargin + 'px to', newHeaderHeight + 'px');
-                                }
-                            }
-                        }
-                    }, 100);
-                }
-            } else {
-                // Non-iOS: Just log for debugging
-                const header = document.querySelector('header.navbar');
-                if (header) {
-                    console.log('📏 Header height:', header.offsetHeight + 'px');
-                }
-            }
-            
             const drawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');
-
-            // Debug hamburger visibility
-            if (hamburger) {
-                const rect = hamburger.getBoundingClientRect();
-                console.log('🍔 Hamburger position:', {
-                    top: rect.top,
-                    right: rect.right,
-                    bottom: rect.bottom,
-                    left: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                    visible: rect.width > 0 && rect.height > 0
-                });
-            } else {
-                console.error('❌ Hamburger button not found in DOM!');
-            }
 
             // EXPLICITLY ensure drawer is closed on page load
             if (drawer && overlay && hamburger) {
                 drawer.style.transform = 'translateX(100%)';
                 overlay.classList.add('hidden');
-                overlay.style.pointerEvents = 'none';
                 hamburger.classList.remove('open');
                 console.log('Drawer explicitly closed on page load with inline style');
-                
-                // Ensure Share Rally chip is visible on page load
-                const shareRallyChip = document.getElementById('shareRallyChip');
-                if (shareRallyChip) {
-                    shareRallyChip.style.opacity = '1';
-                    shareRallyChip.style.transform = 'translateY(0)';
-                }
                 
                 // Also do this after a short delay to ensure it overrides any other scripts
                 setTimeout(() => {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
-                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     console.log('Drawer ensured closed after delay with inline style');
-                    
-                    // Ensure Share Rally chip is visible after delay
-                    if (shareRallyChip) {
-                        shareRallyChip.style.opacity = '1';
-                        shareRallyChip.style.transform = 'translateY(0)';
-                    }
                 }, 100);
             }
 
@@ -2212,20 +1743,12 @@
                         console.log('Unwanted drawer state change detected, forcing close');
                         drawer.style.transform = 'translateX(100%)';
                         overlay.classList.add('hidden');
-                        overlay.style.pointerEvents = 'none';
                         hamburger.classList.remove('open');
                         
                         // Show persistent navigation when drawer is forced closed
                         const persistentNav = document.getElementById('main-nav');
                         if (persistentNav) {
                             persistentNav.style.display = 'block';
-                        }
-                        
-                        // Show Share Rally chip when drawer is forced closed
-                        const shareRallyChip = document.getElementById('shareRallyChip');
-                        if (shareRallyChip) {
-                            shareRallyChip.style.opacity = '1';
-                            shareRallyChip.style.transform = 'translateY(0)';
                         }
                     }
                 });
@@ -2245,7 +1768,6 @@
                 if (isOpen) {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
-                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     
                     // Show persistent navigation when drawer closes
@@ -2253,30 +1775,15 @@
                     if (persistentNav) {
                         persistentNav.style.display = 'block';
                     }
-                    
-                    // Show Share Rally chip when drawer closes
-                    const shareRallyChip = document.getElementById('shareRallyChip');
-                    if (shareRallyChip) {
-                        shareRallyChip.style.opacity = '1';
-                        shareRallyChip.style.transform = 'translateY(0)';
-                    }
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
-                    overlay.style.pointerEvents = 'auto';
                     hamburger.classList.add('open');
                     
                     // Hide persistent navigation when drawer opens
                     const persistentNav = document.getElementById('main-nav');
                     if (persistentNav) {
                         persistentNav.style.display = 'none';
-                    }
-                    
-                    // Hide Share Rally chip when drawer opens
-                    const shareRallyChip = document.getElementById('shareRallyChip');
-                    if (shareRallyChip) {
-                        shareRallyChip.style.opacity = '0';
-                        shareRallyChip.style.transform = 'translateY(20px)';
                     }
                 }
 
@@ -2339,7 +1846,6 @@
                     intentionalChange = true;
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
-                    overlay.style.pointerEvents = 'none';
                     hamburger.classList.remove('open');
                     
                     // Show persistent navigation when drawer closes
@@ -2348,64 +1854,11 @@
                         persistentNav.style.display = 'block';
                     }
                     
-                    // Show Share Rally chip when drawer closes
-                    const shareRallyChip = document.getElementById('shareRallyChip');
-                    if (shareRallyChip) {
-                        shareRallyChip.style.opacity = '1';
-                        shareRallyChip.style.transform = 'translateY(0)';
-                    }
-                    
                     setTimeout(() => { intentionalChange = false; }, 300);
                     return;
                 }
             });
         });
-        
-        // Navigation with loading indicator function
-        function navigateWithLoading(url, loadingText = 'Loading...') {
-            // Show loading indicator
-            if (typeof showLoadingIndicator === 'function') {
-                showLoadingIndicator(loadingText);
-            } else {
-                // Fallback: create simple loading indicator
-                const overlay = document.createElement('div');
-                overlay.id = 'loading-overlay';
-                overlay.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(4, 84, 84, 0.95);
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9999;
-                    color: white;
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                `;
-                overlay.innerHTML = `
-                    <div style="text-align: center;">
-                        <div style="width: 40px; height: 40px; border: 4px solid rgba(191, 248, 99, 0.3); border-top: 4px solid #bff863; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-                        <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">${loadingText}</div>
-                        <div style="font-size: 14px; opacity: 0.8;">Hang tight...</div>
-                    </div>
-                    <style>
-                        @keyframes spin {
-                            0% { transform: rotate(0deg); }
-                            100% { transform: rotate(360deg); }
-                        }
-                    </style>
-                `;
-                document.body.appendChild(overlay);
-            }
-            
-            // Navigate after delay
-            setTimeout(() => {
-                window.location.href = url;
-            }, 800);
-        }
     </script>
 
 </body>

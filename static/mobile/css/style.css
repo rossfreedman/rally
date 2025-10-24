@@ -478,13 +478,6 @@ a:hover {
     gap: 6px !important;
     cursor: pointer !important;
     flex-shrink: 0 !important;
-    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-/* Add subtle tap feedback for iOS */
-.hamburger-btn:active {
-    opacity: 0.7 !important;
-    transform: scale(0.95) !important;
 }
 
 .hamburger-btn .bar {
@@ -1484,41 +1477,4 @@ a:hover {
   }
 }
 
-/* iOS safe-area utilities (no-ops on non-iOS) */
-.ios-safe-header {
-  padding-top: env(safe-area-inset-top);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* Prefer dynamic viewport to avoid 100vh issues on iOS */
-.min-h-dvh {
-  min-height: 100dvh; /* falls back to px on old Safari with polyfilled calc */
-}
-
-/* Non-blocking decorative layers */
-.pe-none {
-  pointer-events: none;
-}
-
-/* iOS-specific hamburger enhancements */
-.ios-device .hamburger-btn,
-.safari-browser .hamburger-btn {
-  /* Ensure hamburger is always visible and tappable on iOS */
-  position: relative !important;
-  z-index: 100001 !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
-}
-
-/* Add visible background on iOS Safari for debugging/visibility */
-.ios-device.safari-browser .hamburger-btn {
-  /* Subtle background to ensure visibility */
-  background: rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px !important;
-}
-
-.ios-device.safari-browser .hamburger-btn:active {
-  background: rgba(0, 0, 0, 0.2) !important;
-}
  
