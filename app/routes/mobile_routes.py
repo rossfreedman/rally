@@ -4532,14 +4532,15 @@ def get_pairing_analysis_data():
         if not team_id:
             return jsonify({"success": False, "message": "No team assigned to user"}), 400
         
-        # Get team players with their positions
+        # Get team players with their positions and PTI
         players_query = """
             SELECT DISTINCT
                 u.id as user_id,
                 CONCAT(u.first_name, ' ', u.last_name) as name,
                 COALESCE(u.ad_deuce_preference, 'Either') as position,
                 u.last_name,
-                u.first_name
+                u.first_name,
+                COALESCE(p.pti, 0) as pti
             FROM users u
             JOIN user_player_associations upa ON u.id = upa.user_id
             JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
@@ -4570,10 +4571,75 @@ def get_pairing_analysis_data():
             key = f"{min(user_id_1, user_id_2)}_{max(user_id_1, user_id_2)}"
             preferences[key] = pref["is_allowed"]
         
+        # Get pairing win rates from match history
+        # Only count matches where the two players were PARTNERS (on same team in same match)
+        pairing_stats_query = """
+            WITH team_player_map AS (
+                SELECT DISTINCT
+                    p.tenniscores_player_id,
+                    upa.user_id
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                WHERE p.team_id = %s
+            ),
+            home_partnerships AS (
+                SELECT DISTINCT
+                    ms.id as match_id,
+                    LEAST(tp1.user_id, tp2.user_id) as user_id_1,
+                    GREATEST(tp1.user_id, tp2.user_id) as user_id_2,
+                    CASE WHEN ms.winner = 'home' THEN 1 ELSE 0 END as won
+                FROM match_scores ms
+                JOIN team_player_map tp1 ON ms.home_player_1_id = tp1.tenniscores_player_id
+                JOIN team_player_map tp2 ON ms.home_player_2_id = tp2.tenniscores_player_id
+                WHERE tp1.user_id != tp2.user_id
+            ),
+            away_partnerships AS (
+                SELECT DISTINCT
+                    ms.id as match_id,
+                    LEAST(tp1.user_id, tp2.user_id) as user_id_1,
+                    GREATEST(tp1.user_id, tp2.user_id) as user_id_2,
+                    CASE WHEN ms.winner = 'away' THEN 1 ELSE 0 END as won
+                FROM match_scores ms
+                JOIN team_player_map tp1 ON ms.away_player_1_id = tp1.tenniscores_player_id
+                JOIN team_player_map tp2 ON ms.away_player_2_id = tp2.tenniscores_player_id
+                WHERE tp1.user_id != tp2.user_id
+            ),
+            all_partnerships AS (
+                SELECT * FROM home_partnerships
+                UNION ALL
+                SELECT * FROM away_partnerships
+            )
+            SELECT 
+                user_id_1,
+                user_id_2,
+                COUNT(DISTINCT match_id) as matches_played,
+                SUM(won) as wins,
+                ROUND((SUM(won)::numeric / NULLIF(COUNT(DISTINCT match_id), 0) * 100), 1) as win_rate
+            FROM all_partnerships
+            GROUP BY user_id_1, user_id_2
+            HAVING COUNT(DISTINCT match_id) >= 1
+        """
+        
+        pairing_stats = execute_query(pairing_stats_query, [team_id])
+        
+        print(f"[PAIRING_ANALYSIS] Found {len(pairing_stats)} pairing stats for team {team_id}")
+        
+        # Convert pairing stats to dictionary
+        pairing_win_rates = {}
+        for stat in pairing_stats:
+            key = f"{stat['user_id_1']}_{stat['user_id_2']}"
+            pairing_win_rates[key] = {
+                "matches": stat["matches_played"],
+                "wins": stat["wins"],
+                "win_rate": float(stat["win_rate"]) if stat["win_rate"] else 0
+            }
+            print(f"[PAIRING_ANALYSIS] Pairing {key}: {stat['matches_played']} matches, {stat['wins']} wins, {stat['win_rate']}% win rate")
+        
         return jsonify({
             "success": True,
             "players": players,
-            "preferences": preferences
+            "preferences": preferences,
+            "pairing_stats": pairing_win_rates
         })
         
     except Exception as e:

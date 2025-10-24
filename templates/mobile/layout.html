@@ -343,12 +343,12 @@
             }
             
             /* Main content area with bottom padding to prevent overlap */
-            main {
-                padding-bottom: 80px !important;
-                min-height: calc(100vh - 80px) !important;
-                position: relative !important;
-                z-index: 1 !important;
-            }
+        main {
+            padding-bottom: 80px !important;
+            min-height: calc(100dvh - 80px) !important;
+            position: relative !important;
+            z-index: 1 !important;
+        }
             
             /* Ensure footer is completely isolated from document flow */
             .bottom-dock {
@@ -1021,7 +1021,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <header class="navbar shadow-md px-4 py-2 relative flex items-center ios-safe-header" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1050; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -1054,13 +1054,13 @@
                 {% endif %}
             {% endif %}
             
-            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
+            <button class="hamburger-btn relative" id="hamburgerToggle" aria-label="Open menu" style="z-index: 1060; padding: 12px; margin: -12px;">
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
             </button>
         </div>
-    </nav>
+    </header>
 
 
     <!-- Status Banner (below navigation) -->
