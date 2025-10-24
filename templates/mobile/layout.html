@@ -2,13 +2,13 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}Rally{% endblock %}</title>
     
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#000000">
-    <meta name="msapplication-navbutton-color" content="#000000">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <!-- Theme Color - set to teal so it blends with our header -->
+    <meta name="theme-color" content="#045454">
+    <meta name="msapplication-navbutton-color" content="#045454">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png?v=2025">
@@ -1021,7 +1021,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <header class="navbar shadow-md px-4 py-2 relative flex items-center ios-safe-header" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 100000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <header class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 100000; padding-top: max(0.5rem, env(safe-area-inset-top)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); min-height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -1064,7 +1064,7 @@
 
 
     <!-- Status Banner (below navigation) -->
-    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 56px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: calc(56px + env(safe-area-inset-top, 0px)); background-color: #bff863; color: #045454; margin-bottom: 30px;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; gap: 16px;">
             <span id="statusBannerText" class="text-sm font-medium" style="line-height: 1.4; text-align: left; flex: 1;"></span>
             <a id="statusBannerButton" class="hidden" style="background-color: #045454; color: #bff863; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Try it</a>
@@ -2090,9 +2090,39 @@
             // Initialize scroll indicator
             initScrollIndicator();
             
+            // Detect iOS and add class for targeted styling
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            
+            if (isIOS) {
+                document.body.classList.add('ios-device');
+                console.log('🍎 iOS device detected');
+            }
+            if (isSafari) {
+                document.body.classList.add('safari-browser');
+                console.log('🧭 Safari browser detected');
+            }
+            
             const drawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');
+
+            // Debug hamburger visibility
+            if (hamburger) {
+                const rect = hamburger.getBoundingClientRect();
+                console.log('🍔 Hamburger position:', {
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                    visible: rect.width > 0 && rect.height > 0
+                });
+            } else {
+                console.error('❌ Hamburger button not found in DOM!');
+            }
 
             // EXPLICITLY ensure drawer is closed on page load
             if (drawer && overlay && hamburger) {
