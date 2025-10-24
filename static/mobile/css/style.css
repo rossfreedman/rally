@@ -1477,4 +1477,23 @@ a:hover {
   }
 }
 
+/* iOS safe-area header background extension */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .navbar {
+    /* Extend background upward into safe area */
+    background-color: #045454 !important;
+    position: relative;
+  }
+  
+  .navbar::before {
+    content: '';
+    position: absolute;
+    top: calc(-1 * env(safe-area-inset-top, 0px));
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top, 0px);
+    background-color: #bff863;
+    z-index: -1;
+  }
+}
  
