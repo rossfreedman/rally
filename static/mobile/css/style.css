@@ -1501,24 +1501,6 @@ a:hover {
   pointer-events: none;
 }
 
-/* iOS Safari specific adjustments for status bar */
-@supports (padding-top: env(safe-area-inset-top)) {
-  /* Push body content below the dynamic header height */
-  body {
-    padding-top: calc(56px + env(safe-area-inset-top));
-  }
-  
-  /* Adjust main content padding */
-  main {
-    margin-top: 0 !important;
-  }
-}
-
-/* Fallback for non-iOS devices */
-body {
-  padding-top: 56px;
-}
-
 /* iOS-specific hamburger enhancements */
 .ios-device .hamburger-btn,
 .safari-browser .hamburger-btn {
