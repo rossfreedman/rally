@@ -1056,6 +1056,35 @@ class CaptainMessage(Base):
         return f"<CaptainMessage(id={self.id}, team_id={self.team_id}, captain_user_id={self.captain_user_id})>"
 
 
+class PairingPreference(Base):
+    """
+    Stores player pairing preferences for teams.
+    Captains can mark which players should/shouldn't be paired together.
+    """
+    __tablename__ = "pairing_preferences"
+
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    player1_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    player2_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_allowed = Column(Boolean, nullable=False, default=True)  # True = green (allowed), False = red (not allowed)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    # Relationships
+    team = relationship("Team", backref="pairing_preferences")
+    player1 = relationship("User", foreign_keys=[player1_user_id])
+    player2 = relationship("User", foreign_keys=[player2_user_id])
+
+    # Ensure unique combination of team and player pair
+    __table_args__ = (
+        UniqueConstraint('team_id', 'player1_user_id', 'player2_user_id', name='uc_team_player_pair'),
+    )
+
+    def __repr__(self):
+        return f"<PairingPreference(id={self.id}, team_id={self.team_id}, allowed={self.is_allowed})>"
+
+
 class PickupGame(Base):
     """
     Pickup games for organizing casual tennis/paddle tennis matches

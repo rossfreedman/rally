@@ -24,7 +24,18 @@ def get_user_team_id(user):
             print(f"❌ No user_id provided to get_user_team_id")
             return None
 
-        # 🎯 NEW: Get current league context from session
+        # 🎯 PRIORITY 1: Check session team_id FIRST (user's explicit team selection)
+        session_team_id = user.get("team_id")
+        if session_team_id:
+            try:
+                team_id = int(session_team_id)
+                print(f"[DEBUG] get_user_team_id for user {user_id}")
+                print(f"✅ Using session team_id: {team_id} ({user.get('team_name', 'Unknown Team')})")
+                return team_id
+            except (ValueError, TypeError):
+                print(f"⚠️ Invalid session team_id: {session_team_id}")
+
+        # 🎯 PRIORITY 2: Get current league context from session
         current_league_context = user.get("league_context")  # This should be the integer DB ID
         current_league_id = user.get("league_id")  # String league identifier
         
@@ -53,7 +64,7 @@ def get_user_team_id(user):
             except Exception as e:
                 print(f"[DEBUG] Failed to convert league_id to DB ID: {e}")
 
-        # 🎯 NEW: Query team ID filtered by current league context
+        # 🎯 PRIORITY 3: Query team ID filtered by current league context
         if league_db_id:
             # Use league-aware team lookup
             league_aware_team_query = """
@@ -76,7 +87,7 @@ def get_user_team_id(user):
             else:
                 print(f"⚠️ No team found for user {user_id} in league {league_db_id}")
 
-        # 🎯 FALLBACK: If no league context or no team found, try any active team
+        # 🎯 PRIORITY 4: FALLBACK - If no league context or no team found, try any active team
         print(f"[DEBUG] Using fallback - any active team for user {user_id}")
         fallback_team_query = """
             SELECT p.team_id, t.team_name, t.team_alias
@@ -280,15 +291,31 @@ def create_poll():
             print(f"🔥 Found {len(team_members)} team members for SMS")
             
             if team_members:
-                # Create poll choices text
-                choices_text = "\n".join([f"• {choice}" for choice in choices])
-                
-                # Create SMS message with full URL
+                # Build safe SMS message (target: <500 chars for reliable delivery)
                 base_url = request.url_root.rstrip('/')
                 poll_url = f"{base_url}/mobile/polls/{poll_id}"
-                message = f"📊 New Team Poll from Rally:\n\n\"{question}\"\n\nChoices:\n{choices_text}\n\nVote now: {poll_url}"
                 
-                print(f"🔥 SMS Message: {message}")
+                # Truncate question if needed (max 80 chars)
+                safe_question = question
+                if len(question) > 80:
+                    safe_question = question[:77] + "..."
+                
+                # Truncate choices if needed (limit to first 3, max 30 chars each)
+                choices_to_show = choices[:3]
+                safe_choices = [choice[:30] + "..." if len(choice) > 30 else choice for choice in choices_to_show]
+                choices_text = "\n".join([f"• {choice}" for choice in safe_choices])
+                if len(choices) > 3:
+                    choices_text += f"\n• +{len(choices) - 3} more..."
+                
+                # Build message
+                message = f"📊 New Poll:\n\n\"{safe_question}\"\n\n{choices_text}\n\n{poll_url}"
+                
+                # Final safety check - if still too long, simplify further
+                if len(message) > 500:
+                    # Ultra-simplified version
+                    message = f"📊 New Poll:\n\n\"{safe_question}\"\n\n{len(choices)} choices\n\n{poll_url}"
+                
+                print(f"🔥 SMS Message ({len(message)} chars): {message}")
                 
                 # Send SMS to each team member
                 successful_sends = 0
@@ -878,16 +905,41 @@ def respond_to_poll(poll_id):
                 team_members = execute_query(team_members_query, [poll_details["team_id"]])
                 
                 if team_members:
-                    # Create results summary
-                    total_votes = sum(r["vote_count"] for r in results)
-                    results_text = "\n".join([f"• {r['choice_text']}: {r['vote_count']} vote{'s' if r['vote_count'] != 1 else ''}" for r in results])
-                    
-                    # Create SMS message with full URL
+                    # Build safe SMS message (target: <500 chars for reliable delivery)
                     base_url = request.url_root.rstrip('/')
                     poll_url = f"{base_url}/mobile/polls/{poll_id}"
-                    message = f"🗳️ Poll Update from Rally:\n\n\"{poll_details['question']}\"\n\n{poll_details['voter_first_name']} {poll_details['voter_last_name']} voted: {poll_details['voted_choice']}\n\nCurrent Results ({total_votes} total votes):\n{results_text}\n\nView poll: {poll_url}"
                     
-                    print(f"🗳️  SMS Message: {message}")
+                    # Truncate poll question if needed (max 80 chars)
+                    question = poll_details['question']
+                    if len(question) > 80:
+                        question = question[:77] + "..."
+                    
+                    # Build voter info
+                    voter_info = f"{poll_details['voter_first_name']} {poll_details['voter_last_name']} voted: {poll_details['voted_choice']}"
+                    
+                    # Truncate vote choice if needed (max 40 chars)
+                    if len(voter_info) > 100:
+                        choice = poll_details['voted_choice']
+                        if len(choice) > 40:
+                            choice = choice[:37] + "..."
+                        voter_info = f"{poll_details['voter_first_name']} {poll_details['voter_last_name']} voted: {choice}"
+                    
+                    # Create results summary (limit to top 3 choices to save space)
+                    total_votes = sum(r["vote_count"] for r in results)
+                    results_to_show = results[:3]  # Only show first 3 choices
+                    results_text = "\n".join([f"• {r['choice_text'][:30]}: {r['vote_count']}" for r in results_to_show])
+                    if len(results) > 3:
+                        results_text += f"\n• +{len(results) - 3} more..."
+                    
+                    # Build message components
+                    message = f"🗳️ Poll Update:\n\n\"{question}\"\n\n{voter_info}\n\nResults ({total_votes} votes):\n{results_text}\n\n{poll_url}"
+                    
+                    # Final safety check - if still too long, simplify further
+                    if len(message) > 500:
+                        # Ultra-simplified version
+                        message = f"🗳️ Poll Update:\n\n\"{question}\"\n\n{poll_details['voter_first_name']} voted\n\n{total_votes} total votes\n\n{poll_url}"
+                    
+                    print(f"🗳️  SMS Message ({len(message)} chars): {message}")
                     
                     # Send SMS to each team member
                     successful_sends = 0
@@ -1133,10 +1185,19 @@ def text_team_about_poll(poll_id):
         base_url = request.url_root.rstrip('/')
         poll_url = f"{base_url}/mobile/polls/{poll_id}"
         
-        # Create SMS message
-        message = f"📊 Team Poll from Rally:\n\n\"{poll['question']}\"\n\nVote now:\n{poll_url}"
+        # Create safe SMS message (target: <500 chars for reliable delivery)
+        # Truncate question if needed (max 100 chars for manual texts)
+        safe_question = poll['question']
+        if len(poll['question']) > 100:
+            safe_question = poll['question'][:97] + "..."
         
-        print(f"📱 SMS Message: {message}")
+        message = f"📊 Team Poll:\n\n\"{safe_question}\"\n\nVote:\n{poll_url}"
+        
+        # Final safety check
+        if len(message) > 500:
+            message = f"📊 Team Poll:\n\n{poll_url}"
+        
+        print(f"📱 SMS Message ({len(message)} chars): {message}")
         
         # Send SMS to each team member
         successful_sends = 0

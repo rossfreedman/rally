@@ -4488,6 +4488,162 @@ def serve_mobile_practice_times():
         )
 
 
+@mobile_bp.route("/mobile/pairing-analysis")
+@login_required
+def serve_mobile_pairing_analysis():
+    """Serve the mobile pairing analysis page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_pairing_analysis"
+        )
+
+        return render_template(
+            "mobile/pairing_analysis.html", session_data=session_data
+        )
+
+    except Exception as e:
+        print(f"Error serving mobile pairing analysis: {str(e)}")
+        session_data = {"user": session["user"], "authenticated": True}
+
+        return render_template(
+            "mobile/pairing_analysis.html",
+            session_data=session_data,
+            error="Failed to load pairing analysis page",
+        )
+
+
+# ==========================================
+# PAIRING ANALYSIS API ENDPOINTS
+# ==========================================
+
+@mobile_bp.route("/api/pairing-analysis/data")
+@login_required
+def get_pairing_analysis_data():
+    """Get team players and existing pairing preferences"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        # Get user's team ID
+        team_id = user.get("team_id")
+        if not team_id:
+            return jsonify({"success": False, "message": "No team assigned to user"}), 400
+        
+        # Get team players with their positions
+        players_query = """
+            SELECT DISTINCT
+                u.id as user_id,
+                CONCAT(u.first_name, ' ', u.last_name) as name,
+                COALESCE(u.ad_deuce_preference, 'Either') as position,
+                u.last_name,
+                u.first_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            WHERE p.team_id = %s
+            ORDER BY u.last_name, u.first_name
+        """
+        
+        players = execute_query(players_query, [team_id])
+        
+        # Get existing pairing preferences
+        preferences_query = """
+            SELECT 
+                player1_user_id,
+                player2_user_id,
+                is_allowed
+            FROM pairing_preferences
+            WHERE team_id = %s
+        """
+        
+        preferences_data = execute_query(preferences_query, [team_id])
+        
+        # Convert preferences to dictionary format
+        preferences = {}
+        for pref in preferences_data:
+            user_id_1 = pref["player1_user_id"]
+            user_id_2 = pref["player2_user_id"]
+            # Use consistent key format (smaller ID first)
+            key = f"{min(user_id_1, user_id_2)}_{max(user_id_1, user_id_2)}"
+            preferences[key] = pref["is_allowed"]
+        
+        return jsonify({
+            "success": True,
+            "players": players,
+            "preferences": preferences
+        })
+        
+    except Exception as e:
+        print(f"Error getting pairing analysis data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@mobile_bp.route("/api/pairing-analysis/save", methods=["POST"])
+@login_required
+def save_pairing_preferences():
+    """Save pairing preferences for a team"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        # Get user's team ID
+        team_id = user.get("team_id")
+        if not team_id:
+            return jsonify({"success": False, "message": "No team assigned to user"}), 400
+        
+        # Get preferences from request
+        data = request.get_json()
+        preferences = data.get("preferences", {})
+        
+        # Delete existing preferences for this team
+        execute_update("DELETE FROM pairing_preferences WHERE team_id = %s", [team_id])
+        
+        # Insert new preferences
+        insert_count = 0
+        for key, is_allowed in preferences.items():
+            # Parse key to get user IDs
+            parts = key.split("_")
+            if len(parts) != 2:
+                continue
+                
+            user_id_1 = int(parts[0])
+            user_id_2 = int(parts[1])
+            
+            # Insert preference (always store with smaller ID first)
+            execute_update(
+                """
+                INSERT INTO pairing_preferences (team_id, player1_user_id, player2_user_id, is_allowed)
+                VALUES (%s, %s, %s, %s)
+                """,
+                [team_id, min(user_id_1, user_id_2), max(user_id_1, user_id_2), is_allowed]
+            )
+            insert_count += 1
+        
+        # Log the activity
+        log_user_activity(
+            user["email"],
+            "pairing_preferences_update",
+            details=f"Updated {insert_count} pairing preferences for team {team_id}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Saved {insert_count} pairing preferences"
+        })
+        
+    except Exception as e:
+        print(f"Error saving pairing preferences: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/availability")
 @login_required
 def serve_mobile_availability():

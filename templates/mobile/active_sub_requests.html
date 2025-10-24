@@ -90,7 +90,7 @@
         </div>
 
 <!-- Toast Container -->
-<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+<div id="toastContainer" class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" style="padding: 20px;"></div>
 
 <style>
 /* Hide elements */
@@ -332,30 +332,41 @@
 
 /* Toast styles */
 .toast {
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 20px 24px;
+    border-radius: 12px;
     color: white;
-    font-weight: 500;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    animation: slideIn 0.3s ease-out;
-    max-width: 300px;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    animation: fadeInScale 0.3s ease-out;
+    max-width: 90%;
+    width: auto;
+    display: flex;
+    align-items: center;
+    line-height: 1.5;
+    word-wrap: break-word;
+    text-align: center;
+    pointer-events: auto;
+    position: relative;
 }
 
 .toast.success {
     background-color: #10b981;
+    border: 3px solid #059669;
 }
 
 .toast.error {
     background-color: #ef4444;
+    border: 3px solid #dc2626;
 }
 
-@keyframes slideIn {
+@keyframes fadeInScale {
     from {
-        transform: translateX(100%);
+        transform: scale(0.8);
         opacity: 0;
     }
     to {
-        transform: translateX(0);
+        transform: scale(1);
         opacity: 1;
     }
 }
@@ -501,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ${request.match_date && request.match_time ? `
                 <div class="request-datetime">
                     <i class="fas fa-calendar-alt mr-2"></i>
-                    ${formatMatchDateTime(request.match_date, request.match_time)}
+                    ${request.type || 'Match'} - ${formatMatchDateTime(request.match_date, request.match_time)}
                 </div>
             ` : ''}
             
@@ -596,13 +607,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            const data = await response.json();
-            
-            if (response.ok && data.success) {
-                showToast('Successfully joined as sub!', 'success');
-                // Reload requests to update the UI and show the user's participation
-                await loadActiveRequests();
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Successfully joined as sub!', 'success');
+                    // Reload requests to update the UI and show the user's participation
+                    await loadActiveRequests();
+                } else {
+                    showToast(data.error || 'Failed to join request', 'error');
+                }
             } else {
+                // Handle error responses (400, 500, etc.)
+                const data = await response.json();
                 showToast(data.error || 'Failed to join request', 'error');
             }
             
@@ -752,7 +768,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ${request.match_date && request.match_time ? `
                 <div class="request-datetime">
                     <i class="fas fa-calendar-alt mr-2"></i>
-                    ${formatMatchDateTime(request.match_date, request.match_time)}
+                    ${request.type || 'Match'} - ${formatMatchDateTime(request.match_date, request.match_time)}
                 </div>
             ` : ''}
             
@@ -802,8 +818,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatMatchDateTime(dateStr, timeStr) {
         if (!dateStr || !timeStr) return 'Date/time not specified';
         
-        const date = new Date(dateStr);
-        const time = timeStr;
+        // Parse the date string properly to avoid timezone issues
+        // Split the date string and create a local date object
+        const dateParts = dateStr.split('-');
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2]);
+        
+        // Create a local date object (not UTC)
+        const date = new Date(year, month, day);
         
         const formattedDate = date.toLocaleDateString('en-US', { 
             weekday: 'short',
@@ -812,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Convert to 12-hour format
-        const timeParts = time.split(':');
+        const timeParts = timeStr.split(':');
         const hours = parseInt(timeParts[0]);
         const minutes = timeParts[1];
         const ampm = hours >= 12 ? 'PM' : 'AM';
@@ -824,18 +847,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show toast notification
     function showToast(message, type = 'success') {
+        console.log(`[TOAST] Showing ${type} message:`, message);
+        
+        if (!toastContainer) {
+            console.error('[TOAST] Toast container not found!');
+            // Create a fallback alert
+            alert(message);
+            return;
+        }
+        
+        // Clear any existing toasts
+        toastContainer.innerHTML = '';
+        
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        toast.textContent = message;
+        
+        // Add icon based on type
+        const icon = type === 'success' ? 
+            '<i class="fas fa-check-circle mr-2"></i>' : 
+            '<i class="fas fa-exclamation-circle mr-2"></i>';
+        
+        toast.innerHTML = `${icon}${message}`;
         
         toastContainer.appendChild(toast);
         
-        // Auto remove after 4 seconds
+        // Auto remove after 5 seconds (longer for error messages)
+        const duration = type === 'error' ? 6000 : 4000;
         setTimeout(() => {
             if (toast.parentNode) {
                 toast.parentNode.removeChild(toast);
             }
-        }, 4000);
+        }, duration);
     }
     
     // Initialize the page

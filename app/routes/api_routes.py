@@ -8524,6 +8524,7 @@ def get_subfinder_requests():
                         rsf.notes,
                         rsf.match_date,
                         rsf.match_time,
+                        rsf.type,
                         rsf.broadcast_via_text,
                         rsf.is_active,
                         rsf.created_at,
@@ -8576,6 +8577,7 @@ def get_subfinder_requests():
                 "notes": request["notes"],
                 "match_date": request["match_date"].isoformat() if request["match_date"] else None,
                 "match_time": str(request["match_time"]) if request["match_time"] else None,
+                "type": request.get("type", "Match"),
                 "broadcast_via_text": bool(request["broadcast_via_text"]),
                 "is_active": bool(request["is_active"]),
                 "created_at": request["created_at"].isoformat() if request["created_at"] else None
@@ -8633,6 +8635,7 @@ def create_subfinder_request():
         notes = data.get("notes", "").strip()
         match_date = data["match_date"]
         match_time = data["match_time"]
+        request_type = data.get("type", "Match")
         broadcast_via_text = data.get("broadcast_via_text", True)
         
         # Validate ranges
@@ -8649,13 +8652,13 @@ def create_subfinder_request():
         create_query = """
             INSERT INTO rally_sub_finder (
                 created_by, pti_min, pti_max, series_min, series_max,
-                slots_total, slots_filled, notes, match_date, match_time, broadcast_via_text
-            ) VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
+                slots_total, slots_filled, notes, match_date, match_time, type, broadcast_via_text
+            ) VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s)
             RETURNING id
         """
 
         result = execute_query_one(create_query, [
-            user_id, pti_min, pti_max, series_min, series_max, slots_total, notes, match_date, match_time, broadcast_via_text
+            user_id, pti_min, pti_max, series_min, series_max, slots_total, notes, match_date, match_time, request_type, broadcast_via_text
         ])
         
         if result:
@@ -8725,6 +8728,60 @@ def join_subfinder_request(request_id):
         
         if existing:
             return jsonify({"error": "You have already joined this sub request"}), 400
+        
+        # Get user's PTI and Series to validate against request criteria
+        user_info_query = """
+            SELECT p.pti, s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s
+            AND p.league_id = (
+                SELECT league_id FROM players 
+                WHERE tenniscores_player_id = (
+                    SELECT tenniscores_player_id FROM user_player_associations 
+                    WHERE user_id = %s LIMIT 1
+                ) LIMIT 1
+            )
+            AND p.is_active = TRUE
+            LIMIT 1
+        """
+        
+        user_info = execute_query_one(user_info_query, [user_id, user_id])
+        
+        if not user_info:
+            return jsonify({"error": "Could not find your player information"}), 400
+        
+        user_pti = float(user_info["pti"]) if user_info["pti"] else None
+        user_series = user_info["series_name"]
+        
+        # Extract series number from series name (e.g., "Series 20" -> 20)
+        user_series_number = None
+        if user_series:
+            import re
+            series_match = re.search(r'\d+', user_series)
+            if series_match:
+                user_series_number = int(series_match.group())
+        
+        # Validate PTI range
+        if user_pti is not None and request_record["pti_min"] is not None and request_record["pti_max"] is not None:
+            pti_min = float(request_record["pti_min"])
+            pti_max = float(request_record["pti_max"])
+            
+            if user_pti < pti_min or user_pti > pti_max:
+                return jsonify({
+                    "error": f"Sorry, you cannot join as a sub. Your PTI ({user_pti:.1f}) is outside the requested range ({pti_min:.1f} - {pti_max:.1f})"
+                }), 400
+        
+        # Validate Series range
+        if user_series_number is not None and request_record["series_min"] is not None and request_record["series_max"] is not None:
+            series_min = int(request_record["series_min"])
+            series_max = int(request_record["series_max"])
+            
+            if user_series_number < series_min or user_series_number > series_max:
+                return jsonify({
+                    "error": f"Sorry, you cannot join as a sub. Your Series ({user_series_number}) is outside the requested range (Series {series_min} - {series_max})"
+                }), 400
         
         # Add user to the request
         join_query = """

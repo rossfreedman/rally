@@ -50,6 +50,17 @@
                     </div>
                 </div>
                 
+                <!-- Type -->
+                <div>
+                    <label for="requestType" class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select id="requestType" required
+                            class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="Match">Match</option>
+                        <option value="Practice">Practice</option>
+                        <option value="Pickup">Pickup</option>
+                    </select>
+                </div>
+                
                 <!-- Date and Time -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -391,6 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const slotsTotalInput = document.getElementById('slotsTotal');
     const matchDateInput = document.getElementById('matchDate');
     const matchTimeInput = document.getElementById('matchTime');
+    const requestTypeSelect = document.getElementById('requestType');
     const broadcastViaTextCheckbox = document.getElementById('broadcastViaText');
     const notesTextarea = document.getElementById('notes');
     const submitRequestBtn = document.getElementById('submitRequest');
@@ -640,6 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const slotsTotal = parseInt(slotsTotalInput.value);
             const matchDate = matchDateInput.value;
             const matchTime = matchTimeInput.value;
+            const requestType = requestTypeSelect.value;
             const broadcastViaText = broadcastViaTextCheckbox.checked;
             const notes = notesTextarea.value.trim();
             
@@ -719,6 +732,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     slots_total: slotsTotal,
                     match_date: matchDate,
                     match_time: matchTime,
+                    type: requestType,
                     broadcast_via_text: broadcastViaText,
                     notes: notes
                 })
