@@ -172,6 +172,57 @@
             -webkit-backdrop-filter: blur(20px);
         }
         
+        /* Remove any card styling from nav content area */
+        #navContent,
+        #navContent > div,
+        #navContent .px-4 {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+        
+        /* Ensure no visual card effect around submenus */
+        .category-section,
+        .category-section.active {
+            background: transparent !important;
+            border: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 0 !important;
+            padding-bottom: 0 !important;
+            margin-bottom: 0 !important;
+        }
+        
+        /* Remove any separator lines between sections */
+        .category-section::after,
+        .category-section::before,
+        .submenu::after,
+        .submenu::before {
+            display: none !important;
+            content: none !important;
+            border: none !important;
+            background: none !important;
+        }
+        
+        /* Kill the white card wrapper around menu items */
+        .space-y-2,
+        .space-y-3,
+        .space-y-4,
+        #navDrawer .space-y-2,
+        #navDrawer .space-y-3,
+        #navDrawer .space-y-4 {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+        }
+        
         
         /* Smooth hover effects for navigation links */
         .nav-link {
@@ -323,10 +374,10 @@
         }
         
         .category-button {
-            background: #fff !important;
-            border-radius: 0.75rem !important;
-            border: 1px solid #E0E0E0 !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+            background: transparent !important;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
             color: #045454 !important;
             font-weight: 500 !important;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -343,8 +394,8 @@
             z-index: 1;
         }
         .category-button * { color: #045454 !important; font-weight: 500 !important; }
-        .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
-        .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
+        .category-button:active { transform: scale(0.98); background: rgba(4, 84, 84, 0.1) !important; }
+        .category-button:hover { background: rgba(4, 84, 84, 0.05) !important; color: #045454 !important; }
         .category-button:hover * { color: #045454 !important; }
         
         /* Home button now matches all other buttons automatically - no special styling needed for COMPACT VERSION */
@@ -352,9 +403,11 @@
         /* Active category button styling when submenu is open - Reversed colors - COMPACT */
         .category-button.active {
             background: #045454 !important;
-            border-color: #045454 !important;
+            border: none !important;
+            border-radius: 0.5rem !important;
             color: #bff863 !important;
-            box-shadow: 0 2px 12px rgba(4, 84, 84, 0.3) !important;
+            box-shadow: none !important;
+            outline: none !important;
             /* Ensure consistent sizing for active state */
             padding: 0.75rem !important;
             margin: 0 !important;
@@ -366,7 +419,7 @@
             justify-content: flex-start !important;
             gap: 0.75rem !important;
             /* Subtle animation effects */
-            transform: scale(1.02) !important;
+            transform: scale(1.0) !important;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         }
         .category-button.active:not([onclick*="'/mobile'"]) * { 
@@ -408,9 +461,36 @@
             opacity: 1 !important;
             height: auto !important;
             max-height: 800px !important;
-            margin-top: 0.5rem !important;
+            margin-top: 3px !important;
+            padding-top: 3px !important;
+            background: transparent !important;
+            border: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
+            box-shadow: none !important;
+            outline: none !important;
             transform: translateY(0) scale(1) !important;
             -webkit-transform: translateY(0) scale(1) !important;
+        }
+        
+        /* Remove any pseudo-element lines */
+        .submenu::before,
+        .submenu::after,
+        .submenu.active::before,
+        .submenu.active::after {
+            display: none !important;
+            content: none !important;
+            border: none !important;
+        }
+        
+        /* Kill any left borders on submenu or category sections */
+        .submenu,
+        .submenu.active,
+        .category-section,
+        .submenu-item {
+            border-left: none !important;
         }
         .submenu-item { 
             display: flex; 
@@ -418,7 +498,7 @@
             align-items: center; 
             justify-content: flex-start; 
             gap: 0.75rem;
-            padding: 0.75rem; 
+            padding: 0.25rem 0.75rem; 
             margin-bottom: 0.25rem;
             border-radius: 0;
             border: none;
@@ -630,7 +710,7 @@
 </head>
 <body class="min-h-screen bg-base-100 text-base-content">
     <!-- Top Bar -->
-    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
+    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 61px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -645,7 +725,7 @@
         <!-- Center logo -->
         <div class="flex justify-center" style="flex: 1;">
             <a href="/mobile" class="navbar-logo">
-                <img src="/static/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo" style="height: 68px;">
+                <img src="/static/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo" style="height: 82px;">
             </a>
         </div>
         
@@ -672,7 +752,7 @@
 
 
     <!-- Status Banner (below navigation) -->
-    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 51px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 61px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; gap: 16px;">
             <span id="statusBannerText" class="text-sm font-medium" style="line-height: 1.4; text-align: left; flex: 1;"></span>
             <a id="statusBannerButton" class="hidden" style="background-color: #045454; color: #bff863; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Try it</a>
@@ -682,25 +762,9 @@
     <!-- Full-Width Modern Nav Drawer -->
     <div id="navDrawer" class="fixed top-0 right-0 h-full w-full bg-white z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="flex flex-col h-full">
-            <!-- Nav Drawer Top Bar -->
-            <div class="px-6 py-4 border-b border-gray-100" style="background: rgba(255, 255, 255, 0.9); margin-top: 60px;">
-                <!-- Top bar without logout button -->
-            </div>
-            
-            <!-- Navigation Content -->
-            <div class="flex-1 overflow-y-auto" id="navContent">
+            <!-- Navigation Content (extends to top) -->
+            <div class="flex-1 overflow-y-auto" id="navContent" style="padding-top: 61px;">
                 <div class="px-4 py-6">
-                  <!-- Menu Separator -->
-                  <div class="flex items-center justify-center mb-6" style="margin-top: -18px;">
-                    <div class="flex-grow border-t-2 border-gray-400"></div>
-                    <div class="section-header text-xl font-bold px-4 text-center">
-                      Menu
-                    </div>
-                    <div class="flex-grow border-t-2 border-gray-400"></div>
-                  </div>
-                  
-
-                  
                   <!-- Single Column Navigation (COMPACT VERSION) -->
                   <div class="space-y-5" style="padding-bottom: 600px;">
                     <!-- Home Category -->
@@ -794,11 +858,7 @@
                         </a>
                         <a href="/mobile/create-sub-request" class="submenu-item">
                           <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Create Sub Request</span><span class="arrow">→</span>
-                        </a>
-                        <a href="/mobile/active-sub-requests" class="submenu-item">
-                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-                          <span class="text">Active Sub Requests</span><span class="arrow">→</span>
+                          <span class="text">Sub Finder</span><span class="arrow">→</span>
                         </a>
                       </div>
                     </div>
@@ -931,78 +991,6 @@
                 
                 // Add class to body to style submit buttons when submenu is active
                 document.body.classList.add('submenu-active');
-                
-                // Enhanced scroll functionality for drawer content
-                setTimeout(() => {
-                  console.log('🔍 DRAWER SCROLL DEBUG: Submenu opened for', submenuId);
-                  
-                  // Get the drawer content area
-                  const navContent = document.getElementById('navContent');
-                  if (!navContent) {
-                    console.log('⚠️ DRAWER SCROLL DEBUG: navContent not found');
-                    return;
-                  }
-                  
-                  // Find the category button that was clicked
-                  const categoryButton = submenu.previousElementSibling;
-                  if (categoryButton && categoryButton.classList.contains('category-button')) {
-                    console.log('🔍 DRAWER SCROLL DEBUG: Found category button');
-                    
-                    try {
-                      // Get the button's position relative to the drawer content
-                      const buttonRect = categoryButton.getBoundingClientRect();
-                      const navContentRect = navContent.getBoundingClientRect();
-                      
-                      // Calculate the button's position relative to the navContent
-                      const buttonTopRelativeToNavContent = buttonRect.top - navContentRect.top + navContent.scrollTop;
-                      
-                      console.log(`📊 DRAWER SCROLL DEBUG: Button position relative to navContent: ${buttonTopRelativeToNavContent}px`);
-                      console.log(`📊 DRAWER SCROLL DEBUG: Current navContent scroll: ${navContent.scrollTop}px`);
-                      
-                      // Calculate scroll position based on which section was clicked
-                      let scrollTo;
-                      let adjustment = 0;
-                      
-                      if (submenuId === 'drawer-captain-submenu') {
-                        // Captain's Corner: scroll to show the submenu items, especially Practice Times
-                        // Use a simple but effective approach - scroll to show the submenu with extra space
-                        scrollTo = buttonTopRelativeToNavContent - 100; // Scroll up to show more of the submenu
-                        console.log(`📊 DRAWER SCROLL DEBUG: Captain's Corner - scrolling to position ${scrollTo}px to show Practice Times`);
-                      } else {
-                        // All other submenus: scroll to show the button with some padding
-                        scrollTo = buttonTopRelativeToNavContent - 50; // Scroll up to show more content
-                        console.log(`📊 DRAWER SCROLL DEBUG: ${submenuId} button - scrolling to position ${scrollTo}px`);
-                      }
-                      
-                      console.log(`📊 DRAWER SCROLL DEBUG: Scrolling navContent to position: ${scrollTo}px`);
-                      
-                      // Scroll the drawer content area
-                      navContent.scrollTo({
-                        top: Math.max(0, scrollTo), // Don't scroll above top
-                        behavior: 'smooth'
-                      });
-                      
-                      console.log('✅ DRAWER SCROLL DEBUG: Drawer content scroll initiated');
-                      
-                    } catch (error) {
-                      console.error('❌ DRAWER SCROLL DEBUG: Scroll alignment failed:', error);
-                      
-                      // Fallback: try to scroll the button into view within the drawer
-                      try {
-                        categoryButton.scrollIntoView({
-                          behavior: 'smooth',
-                          block: 'center'
-                        });
-                        console.log('✅ DRAWER SCROLL DEBUG: Fallback scrollIntoView initiated');
-                      } catch (fallbackError) {
-                        console.error('❌ DRAWER SCROLL DEBUG: Fallback scrollIntoView also failed:', fallbackError);
-                      }
-                    }
-                  } else {
-                    console.log('⚠️ DRAWER SCROLL DEBUG: Category button not found');
-                  }
-                  
-                }, 100); // Small delay to ensure submenu is rendered
               } else {
                 // Remove class from body when submenu is closed
                 document.body.classList.remove('submenu-active');

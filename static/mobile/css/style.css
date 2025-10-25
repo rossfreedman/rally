@@ -638,17 +638,11 @@ a:hover {
   will-change: transform;
 }
 
-/* Mobile: Make navbar slightly shorter (51px instead of 56px) */
+/* Mobile: Navbar height 61px (5px taller than previous 56px) */
 @media (max-width: 768px) {
   .navbar {
-    height: 51px !important;
-    min-height: 51px !important;
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-  }
-  
-  .navbar .rally-logo {
-    height: 68px !important; /* Reduce logo proportionally */
+    height: 61px !important;
+    min-height: 61px !important;
   }
 }
 
