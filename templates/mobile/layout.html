@@ -1551,46 +1551,91 @@
 
             // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // iOS Safari specific: Apply safe-area fixes
+            // iOS Safari standalone mode (home screen) specific fixes
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            const isSafari = (/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) ||
+                            navigator.vendor === 'Apple Computer, Inc.';
+            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
             
-            if (isIOS && isSafari) {
-                console.log('🍎 iOS Safari detected - applying safe-area fix');
-                document.body.classList.add('ios-safari');
+            console.log('🔍 Detection Details:');
+            console.log('  - isIOS:', isIOS);
+            console.log('  - isSafari:', isSafari);
+            console.log('  - isStandalone:', isStandalone);
+            console.log('  - userAgent:', navigator.userAgent);
+            console.log('  - vendor:', navigator.vendor);
+            console.log('  - window.navigator.standalone:', window.navigator.standalone);
+            console.log('  - display-mode:', window.matchMedia('(display-mode: standalone)').matches);
+            
+            if (isIOS && isSafari && isStandalone) {
+                console.log('📱 iOS Safari STANDALONE MODE (home screen) - applying safe-area fix');
                 
-                const navbar = document.querySelector('.navbar');
-                const hamburger = document.getElementById('hamburgerToggle');
-                
-                if (navbar) {
-                    navbar.style.paddingTop = 'env(safe-area-inset-top, 0px)';
-                    navbar.style.minHeight = '56px';
-                    navbar.style.height = 'auto';
-                }
-                
-                if (hamburger) {
-                    hamburger.style.paddingTop = 'calc(12px + env(safe-area-inset-top, 0px))';
-                    hamburger.style.paddingBottom = '12px';
-                }
-                
-                // Add background extension for safe area
-                const style = document.createElement('style');
-                style.textContent = `
-                    .navbar::before {
-                        content: '';
-                        position: absolute;
-                        top: calc(-1 * env(safe-area-inset-top, 0px));
-                        left: 0;
-                        right: 0;
-                        height: env(safe-area-inset-top, 0px);
-                        background-color: #045454;
-                        z-index: -1;
-                    }
+                // Create a fixed bar at the very top to fill safe area with Rally green
+                const safeAreaBar = document.createElement('div');
+                safeAreaBar.id = 'ios-safe-area-bar';
+                safeAreaBar.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: env(safe-area-inset-top, 0px);
+                    background-color: #045454;
+                    z-index: 10000;
                 `;
-                document.head.appendChild(style);
+                document.body.insertBefore(safeAreaBar, document.body.firstChild);
+                
+                // Adjust navbar to sit below safe area
+                const navbar = document.querySelector('.navbar');
+                if (navbar) {
+                    navbar.style.top = 'env(safe-area-inset-top, 0px)';
+                    console.log('✅ Navbar top adjusted for safe area');
+                }
+                
+                // Adjust hamburger button
+                const hamburger = document.getElementById('hamburgerToggle');
+                if (hamburger) {
+                    hamburger.style.paddingTop = '18px';
+                    hamburger.style.paddingBottom = '18px';
+                    console.log('✅ Hamburger padding adjusted');
+                }
+                
+                console.log('✅ Safe area bar created');
+            } else if (isIOS && isSafari) {
+                console.log('🌐 iOS Safari BROWSER MODE - no safe-area fixes needed');
             } else {
                 console.log('🖥️ Not iOS Safari - no safe-area fixes applied');
+            }
+            
+            // Force bottom dock and navbar to be truly stationary
+            // Apply inline styles to override everything and prevent any movement
+            const bottomDock = document.querySelector('.bottom-dock');
+            const navbar = document.querySelector('.navbar');
+            
+            if (bottomDock) {
+                bottomDock.style.cssText = `
+                    position: fixed !important;
+                    bottom: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    width: 100% !important;
+                    transform: translate3d(0, 0, 0) !important;
+                    -webkit-transform: translate3d(0, 0, 0) !important;
+                    z-index: 40 !important;
+                `;
+                console.log('✅ Bottom dock set to stationary');
+            }
+            
+            if (navbar) {
+                navbar.style.cssText += `
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    width: 100% !important;
+                    transform: translate3d(0, 0, 0) !important;
+                    -webkit-transform: translate3d(0, 0, 0) !important;
+                `;
+                console.log('✅ Navbar set to stationary');
             }
             
             // Load status banner on page load
