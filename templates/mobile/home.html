@@ -47,7 +47,7 @@
         
         /* Scroll margin for sticky navigation */
         #schedule, #dashboard, #team, #club, #play {
-            scroll-margin-top: 140px; /* Account for sticky nav + header height */
+            scroll-margin-top: 135px; /* Account for sticky nav + header height (51px navbar) */
         }
         
         .carousel {
@@ -78,7 +78,7 @@
         
         .sticky-nav-container.fixed {
             position: fixed !important;
-            top: 56px !important;
+            top: 51px !important;
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
@@ -247,7 +247,7 @@
     </div>
 
     <!-- Sticky Navigation Tabs (Persistent below header) -->
-    <div id="sticky-nav-container" class="sticky-nav-container max-w-7xl mx-auto px-2 sm:px-3 lg:px-4 py-4">
+    <div id="sticky-nav-container" class="sticky-nav-container max-w-7xl mx-auto px-2 sm:px-3 lg:px-4 py-4" style="position: sticky; top: 51px; z-index: 40;">
         <nav id="main-nav" class="sticky-nav rounded-3xl px-6 py-4 shadow-xl">
             <div class="flex gap-1.5 justify-center">
                 <a href="#schedule" class="nav-button px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full text-xs font-medium whitespace-nowrap hover:bg-white/20 transition text-white">Schedule</a>
@@ -3741,10 +3741,10 @@
             function handleScroll() {
                 console.log('📜 HANDLE SCROLL FUNCTION CALLED');
                 const scrollTop = document.body.scrollTop || document.documentElement.scrollTop || window.pageYOffset;
-                console.log('📜 Scroll position:', scrollTop, 'Nav offset:', navOffsetTop, 'Threshold:', navOffsetTop - 56);
+                console.log('📜 Scroll position:', scrollTop, 'Nav offset:', navOffsetTop, 'Threshold:', navOffsetTop - 51);
                 
                 // Check if we've scrolled past the navigation's initial position
-                if (scrollTop > navOffsetTop - 56) { // Account for header height
+                if (scrollTop > navOffsetTop - 51) { // Account for header height
                     console.log('📜 Should be fixed - scroll past threshold');
                     if (!isFixed) {
                         console.log('📌 Making navigation fixed');

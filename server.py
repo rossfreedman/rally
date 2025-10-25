@@ -213,7 +213,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
 
 # Session config
 app.config.update(
-    SESSION_COOKIE_SECURE=not is_development,
+    SESSION_COOKIE_SECURE=False,  # Allow HTTP for local network testing
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(days=1),
@@ -221,7 +221,7 @@ app.config.update(
     SESSION_COOKIE_PATH="/",
     SESSION_REFRESH_EACH_REQUEST=True,
     # Mobile compatibility settings
-    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
+    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains and IPs
     SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
 )
 

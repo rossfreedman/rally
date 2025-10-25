@@ -616,7 +616,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; min-height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454; padding-top: env(safe-area-inset-top, 0px);">
+    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -649,7 +649,7 @@
                 {% endif %}
             {% endif %}
             
-            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu" style="padding-top: calc(12px + env(safe-area-inset-top, 0px)); padding-bottom: 12px;">
+            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
                 <span class="bar"></span>
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -659,7 +659,7 @@
 
 
     <!-- Status Banner (below navigation) -->
-    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 56px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
+    <div id="statusBanner" class="hidden fixed left-0 right-0 z-40" style="top: 51px; background-color: #bff863; color: #045454; margin-bottom: 30px;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; gap: 16px;">
             <span id="statusBannerText" class="text-sm font-medium" style="line-height: 1.4; text-align: left; flex: 1;"></span>
             <a id="statusBannerButton" class="hidden" style="background-color: #045454; color: #bff863; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Try it</a>
@@ -1551,6 +1551,48 @@
 
             // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // iOS Safari specific: Apply safe-area fixes
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            
+            if (isIOS && isSafari) {
+                console.log('🍎 iOS Safari detected - applying safe-area fix');
+                document.body.classList.add('ios-safari');
+                
+                const navbar = document.querySelector('.navbar');
+                const hamburger = document.getElementById('hamburgerToggle');
+                
+                if (navbar) {
+                    navbar.style.paddingTop = 'env(safe-area-inset-top, 0px)';
+                    navbar.style.minHeight = '56px';
+                    navbar.style.height = 'auto';
+                }
+                
+                if (hamburger) {
+                    hamburger.style.paddingTop = 'calc(12px + env(safe-area-inset-top, 0px))';
+                    hamburger.style.paddingBottom = '12px';
+                }
+                
+                // Add background extension for safe area
+                const style = document.createElement('style');
+                style.textContent = `
+                    .navbar::before {
+                        content: '';
+                        position: absolute;
+                        top: calc(-1 * env(safe-area-inset-top, 0px));
+                        left: 0;
+                        right: 0;
+                        height: env(safe-area-inset-top, 0px);
+                        background-color: #045454;
+                        z-index: -1;
+                    }
+                `;
+                document.head.appendChild(style);
+            } else {
+                console.log('🖥️ Not iOS Safari - no safe-area fixes applied');
+            }
+            
             // Load status banner on page load
             loadStatusBanner();
             

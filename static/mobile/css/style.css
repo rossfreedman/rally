@@ -431,6 +431,20 @@ a:hover {
   background-color: #045454 !important; /* Changed to Rally teal */
 }
 
+/* Mobile: Make navbar slightly shorter (51px instead of 56px) */
+@media (max-width: 768px) {
+  .navbar {
+    height: 51px !important;
+    min-height: 51px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+  }
+  
+  .navbar .rally-logo {
+    height: 68px !important; /* Reduce logo proportionally */
+  }
+}
+
 /* Rally green for 'I can play' button */
 .btn-success {
   background-color: #045454 !important; /* Rally dark green */
@@ -1478,16 +1492,3 @@ a:hover {
 }
 
  
-/* iOS Safari: Extend navbar background into safe area without layout changes */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .navbar::before {
-    content: '';
-    position: absolute;
-    top: calc(-1 * env(safe-area-inset-top, 0px));
-    left: 0;
-    right: 0;
-    height: env(safe-area-inset-top, 0px);
-    background-color: #045454;
-    z-index: -1;
-  }
-}
