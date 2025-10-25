@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{% block title %}Rally{% endblock %}</title>
     
     <!-- Theme Color -->
@@ -57,7 +57,8 @@
     
     <!-- iOS Icon Cache Control -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Use black status bar so iOS pushes content below the notch -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     
     <!-- Canonical URL -->
     <link rel="canonical" href="https://lovetorally.com{{ request.path }}">
@@ -317,6 +318,8 @@
         .category-section {
             width: 100% !important;
             max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         
         .category-button {
@@ -328,6 +331,7 @@
             font-weight: 500 !important;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             padding: 0.75rem !important;
+            margin: 0 !important;
             width: 100%;
             text-align: left;
             display: flex;
@@ -353,6 +357,7 @@
             box-shadow: 0 2px 12px rgba(4, 84, 84, 0.3) !important;
             /* Ensure consistent sizing for active state */
             padding: 0.75rem !important;
+            margin: 0 !important;
             width: 100% !important;
             text-align: left !important;
             display: flex !important;
@@ -375,13 +380,16 @@
   .category-button[onclick*="captain"] {
     background: #f0f9f0 !important;
     border-color: #d4edda !important;
+    margin: 0 !important;
+    padding: 0.75rem !important;
   }
         .submenu { 
-            display: block !important; 
+            display: none !important; 
             background: transparent; 
-            margin-top: 0.5rem; 
+            margin: 0 !important;
+            padding: 0 !important;
             overflow: hidden !important;
-            visibility: visible !important;
+            visibility: hidden !important;
             opacity: 0 !important;
             height: 0 !important;
             max-height: 0 !important;
@@ -400,6 +408,7 @@
             opacity: 1 !important;
             height: auto !important;
             max-height: 800px !important;
+            margin-top: 0.5rem !important;
             transform: translateY(0) scale(1) !important;
             -webkit-transform: translateY(0) scale(1) !important;
         }
@@ -539,6 +548,8 @@
             .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .category-button {
@@ -569,6 +580,8 @@
             .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .category-button {
@@ -592,6 +605,8 @@
             .category-section {
                 width: 100% !important;
                 max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
             }
             
             .category-button {
@@ -614,7 +629,6 @@
     {% endif %}
 </head>
 <body class="min-h-screen bg-base-100 text-base-content">
-
     <!-- Top Bar -->
     <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #045454;">
         <!-- Left side -->
@@ -631,13 +645,12 @@
         <!-- Center logo -->
         <div class="flex justify-center" style="flex: 1;">
             <a href="/mobile" class="navbar-logo">
-                                        <img src="/static/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo" style="height: 78px;">
+                <img src="/static/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo" style="height: 68px;">
             </a>
         </div>
         
         <!-- Right side -->
         <div class="flex items-center justify-end" style="flex: 1;">
-            <!-- Database Indicator (Local Development Only - show only when in TEST mode) -->
             {% if config.get('ENV') == 'development' or request.host.startswith('localhost') or request.host.startswith('127.0.0.1') %}
                 {% set db_mode = get_database_mode() %}
                 {% if db_mode == 'test' %}
@@ -689,7 +702,7 @@
 
                   
                   <!-- Single Column Navigation (COMPACT VERSION) -->
-                  <div class="space-y-2" style="padding-bottom: 600px;">
+                  <div class="space-y-5" style="padding-bottom: 600px;">
                     <!-- Home Category -->
                     <div class="category-section">
                       <button class="category-button" onclick="window.location.href='/mobile'">
@@ -1127,8 +1140,8 @@
         </a>
     </div> -->
 
-    <!-- Share Rally Floating Chip -->
-    <div style="position: fixed; bottom: 85px; left: 16px; z-index: 50;">
+    <!-- Share Rally Floating Chip (temporarily hidden) -->
+    <div id="shareRallyChip" style="position: fixed; bottom: 85px; left: 16px; z-index: 50; display: none !important;">
         <a href="/mobile/share-rally" style="
             display: flex; 
             align-items: center; 
@@ -1551,61 +1564,6 @@
 
             // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
-            // iOS Safari standalone mode (home screen) specific fixes
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            const isSafari = (/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) ||
-                            navigator.vendor === 'Apple Computer, Inc.';
-            const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-            
-            console.log('🔍 Detection Details:');
-            console.log('  - isIOS:', isIOS);
-            console.log('  - isSafari:', isSafari);
-            console.log('  - isStandalone:', isStandalone);
-            console.log('  - userAgent:', navigator.userAgent);
-            console.log('  - vendor:', navigator.vendor);
-            console.log('  - window.navigator.standalone:', window.navigator.standalone);
-            console.log('  - display-mode:', window.matchMedia('(display-mode: standalone)').matches);
-            
-            if (isIOS && isSafari && isStandalone) {
-                console.log('📱 iOS Safari STANDALONE MODE (home screen) - applying safe-area fix');
-                
-                // Create a fixed bar at the very top to fill safe area with Rally green
-                const safeAreaBar = document.createElement('div');
-                safeAreaBar.id = 'ios-safe-area-bar';
-                safeAreaBar.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: env(safe-area-inset-top, 0px);
-                    background-color: #045454;
-                    z-index: 10000;
-                `;
-                document.body.insertBefore(safeAreaBar, document.body.firstChild);
-                
-                // Adjust navbar to sit below safe area
-                const navbar = document.querySelector('.navbar');
-                if (navbar) {
-                    navbar.style.top = 'env(safe-area-inset-top, 0px)';
-                    console.log('✅ Navbar top adjusted for safe area');
-                }
-                
-                // Adjust hamburger button
-                const hamburger = document.getElementById('hamburgerToggle');
-                if (hamburger) {
-                    hamburger.style.paddingTop = '18px';
-                    hamburger.style.paddingBottom = '18px';
-                    console.log('✅ Hamburger padding adjusted');
-                }
-                
-                console.log('✅ Safe area bar created');
-            } else if (isIOS && isSafari) {
-                console.log('🌐 iOS Safari BROWSER MODE - no safe-area fixes needed');
-            } else {
-                console.log('🖥️ Not iOS Safari - no safe-area fixes applied');
-            }
-            
             // Force bottom dock and navbar to be truly stationary
             // Apply inline styles to override everything and prevent any movement
             const bottomDock = document.querySelector('.bottom-dock');
@@ -1675,6 +1633,13 @@
                 drawer.style.transform = 'translateX(100%)';
                 overlay.classList.add('hidden');
                 hamburger.classList.remove('open');
+                
+                // Ensure Share Rally chip is visible on page load
+                const shareRallyChip = document.getElementById('shareRallyChip');
+                if (shareRallyChip) {
+                    shareRallyChip.style.display = 'block';
+                }
+                
                 console.log('Drawer explicitly closed on page load with inline style');
                 
                 // Also do this after a short delay to ensure it overrides any other scripts
@@ -1682,6 +1647,12 @@
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
+                    
+                    // Ensure Share Rally chip is visible after delay
+                    if (shareRallyChip) {
+                        shareRallyChip.style.display = 'block';
+                    }
+                    
                     console.log('Drawer ensured closed after delay with inline style');
                 }, 100);
             }
@@ -1707,6 +1678,12 @@
                         if (persistentNav) {
                             persistentNav.style.display = 'block';
                         }
+                        
+                        // Show Share Rally chip when drawer is forced closed
+                        const shareRallyChip = document.getElementById('shareRallyChip');
+                        if (shareRallyChip) {
+                            shareRallyChip.style.display = 'block';
+                        }
                     }
                 });
             });
@@ -1722,6 +1699,8 @@
                 intentionalChange = true;
 
                 const isOpen = drawer.style.transform === 'translateX(0px)' || drawer.style.transform === 'translateX(0%)';
+                const shareRallyChip = document.getElementById('shareRallyChip');
+                
                 if (isOpen) {
                     drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
@@ -1732,6 +1711,11 @@
                     if (persistentNav) {
                         persistentNav.style.display = 'block';
                     }
+                    
+                    // Show Share Rally chip when drawer closes
+                    if (shareRallyChip) {
+                        shareRallyChip.style.display = 'block';
+                    }
                 } else {
                     drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
@@ -1741,6 +1725,11 @@
                     const persistentNav = document.getElementById('main-nav');
                     if (persistentNav) {
                         persistentNav.style.display = 'none';
+                    }
+                    
+                    // Hide Share Rally chip when drawer opens
+                    if (shareRallyChip) {
+                        shareRallyChip.style.display = 'none';
                     }
                 }
 
@@ -1811,6 +1800,12 @@
                         persistentNav.style.display = 'block';
                     }
                     
+                    // Show Share Rally chip when drawer closes
+                    const shareRallyChip = document.getElementById('shareRallyChip');
+                    if (shareRallyChip) {
+                        shareRallyChip.style.display = 'block';
+                    }
+                    
                     setTimeout(() => { intentionalChange = false; }, 300);
                     return;
                 }
@@ -1818,6 +1813,16 @@
         });
     </script>
 
+    <!-- iOS Safari standalone mode detection -->
+    <script>
+      (function () {
+        const standalone =
+          (window.navigator.standalone === true) ||
+          window.matchMedia('(display-mode: standalone)').matches;
+        document.documentElement.classList.toggle('standalone', !!standalone);
+        console.log(standalone ? '✅ Standalone mode - safe-area CSS active' : '🌐 Browser mode');
+      })();
+    </script>
+
 </body>
-</html> 
 </html> 
