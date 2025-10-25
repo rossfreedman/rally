@@ -188,7 +188,7 @@ def serve_mobile():
             log_user_activity(
                 session["user"]["email"], 
                 "page_visit", 
-                page="mobile_home_submenu",
+                page="mobile_home",
                 first_name=session["user"].get("first_name"),
                 last_name=session["user"].get("last_name")
             )
@@ -200,87 +200,20 @@ def serve_mobile():
         # Fallback to old session
         session_data = {"user": session["user"], "authenticated": True}
         try:
-            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_submenu")
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home")
         except Exception as e2:
             print(f"Error logging mobile access: {str(e2)}")
 
-    return render_template("mobile/home_submenu.html", session_data=session_data)
+    return render_template("mobile/home.html", session_data=session_data, page_id='home')
 
 
 @mobile_bp.route("/mobile/alt1")
 @login_required
 def serve_mobile_alt1():
-    """Serve the alternative mobile home page with white buttons and borders"""
-    print(f"=== SERVE_MOBILE_ALT1 FUNCTION CALLED ===")
-    print(f"Request path: {request.path}")
-    print(f"Request method: {request.method}")
-
-    # Don't handle admin routes
-    if "/admin" in request.path:
-        print("Admin route detected in mobile, redirecting to serve_admin")
-        return redirect(url_for("admin.serve_admin"))
-
-    # Use new session service to get fresh session data, BUT preserve team switches
-    from app.services.session_service import get_session_data_for_user
-    
-    try:
-        user_email = session["user"]["email"]
-        
-        print(f"[DEBUG] Checking session for user: {user_email}")
-        
-        # Check if we're currently impersonating - if so, ALWAYS preserve session
-        is_impersonating = session.get("impersonation_active", False)
-        
-        if is_impersonating:
-            # During impersonation, never rebuild session - preserve manual selections
-            print(f"[DEBUG] Impersonation active - preserving session as-is")
-            session_data = {"user": session["user"], "authenticated": True}
-        else:
-            # Use helper function to determine if we should preserve session or refresh
-            current_session = session.get("user", {})
-            
-            if should_preserve_session_context(user_email, current_session):
-                # Preserve current session (team switch protection + no league switch detected)
-                session_data = {"user": current_session, "authenticated": True}
-            else:
-                # Session is incomplete, invalid, or league switch detected - refresh from database
-                fresh_session_data = get_session_data_for_user(user_email)
-                    
-                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
-                
-                if fresh_session_data:
-                    # Update the Flask session with fresh data
-                    session["user"] = fresh_session_data
-                    session.modified = True
-                    session_data = {"user": fresh_session_data, "authenticated": True}
-                    print(f"[DEBUG] Using fresh session data and updated Flask session")
-                else:
-                    # Fallback to old session if session service fails
-                    session_data = {"user": session["user"], "authenticated": True}
-                    print(f"[DEBUG] Using fallback session data: {session['user']}")
-        
-        # Log mobile access
-        try:
-            log_user_activity(
-                session["user"]["email"], 
-                "page_visit", 
-                page="mobile_home_alt1",
-                first_name=session["user"].get("first_name"),
-                last_name=session["user"].get("last_name")
-            )
-        except Exception as e2:
-            print(f"Error logging mobile access: {str(e2)}")
-
-    except Exception as e:
-        print(f"Error with new session service: {str(e)}")
-        # Fallback to old session
-        session_data = {"user": session["user"], "authenticated": True}
-        try:
-            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_alt1")
-        except Exception as e2:
-            print(f"Error logging mobile access: {str(e2)}")
-
-    return render_template("mobile/mobile_home_alt1.html", session_data=session_data)
+    """Redirect to main home page (alt1 is now the primary home page)"""
+    print(f"=== SERVE_MOBILE_ALT1 REDIRECT CALLED ===")
+    print(f"Redirecting from /mobile/alt1 to /mobile/home (alt1 is now primary)")
+    return redirect(url_for("mobile.serve_mobile_home"))
 
 
 @mobile_bp.route("/mobile/classic")
@@ -356,83 +289,16 @@ def serve_mobile_classic():
         except Exception as e2:
             print(f"Error logging mobile access: {str(e2)}")
 
-    return render_template("mobile/index_old.html", session_data=session_data)
+    return render_template("mobile/home_classic.html", session_data=session_data)
 
 
 @mobile_bp.route("/mobile/main-alt")
 @login_required
 def serve_mobile_main_alt():
-    """Serve the new alternate dashboard view with modern design"""
-    print(f"=== SERVE_MOBILE_MAIN_ALT FUNCTION CALLED ===")
-    print(f"Request path: {request.path}")
-    print(f"Request method: {request.method}")
-
-    # Don't handle admin routes
-    if "/admin" in request.path:
-        print("Admin route detected in mobile, redirecting to serve_admin")
-        return redirect(url_for("admin.serve_admin"))
-
-    # Use new session service to get fresh session data, BUT preserve team switches
-    from app.services.session_service import get_session_data_for_user
-    
-    try:
-        user_email = session["user"]["email"]
-        
-        print(f"[DEBUG] Checking session for user: {user_email}")
-        
-        # Check if we're currently impersonating - if so, ALWAYS preserve session
-        is_impersonating = session.get("impersonation_active", False)
-        
-        if is_impersonating:
-            # During impersonation, never rebuild session - preserve manual selections
-            print(f"[DEBUG] Impersonation active - preserving session as-is")
-            session_data = {"user": session["user"], "authenticated": True}
-        else:
-            # Use helper function to determine if we should preserve session or refresh
-            current_session = session.get("user", {})
-            
-            if should_preserve_session_context(user_email, current_session):
-                # Preserve current session (team switch protection + no league switch detected)
-                session_data = {"user": current_session, "authenticated": True}
-            else:
-                # Session is incomplete, invalid, or league switch detected - refresh from database
-                fresh_session_data = get_session_data_for_user(user_email)
-                    
-                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
-                
-                if fresh_session_data:
-                    # Update the Flask session with fresh data
-                    session["user"] = fresh_session_data
-                    session.modified = True
-                    session_data = {"user": fresh_session_data, "authenticated": True}
-                    print(f"[DEBUG] Using fresh session data and updated Flask session")
-                else:
-                    # Fallback to old session if session service fails
-                    session_data = {"user": session["user"], "authenticated": True}
-                    print(f"[DEBUG] Using fallback session data: {session['user']}")
-        
-        # Log mobile access
-        try:
-            log_user_activity(
-                session["user"]["email"], 
-                "page_visit", 
-                page="mobile_main_alt",
-                first_name=session["user"].get("first_name"),
-                last_name=session["user"].get("last_name")
-            )
-        except Exception as e2:
-            print(f"Error logging mobile access: {str(e2)}")
-
-    except Exception as e:
-        print(f"Error with new session service: {str(e)}")
-        # Fallback to old session
-        session_data = {"user": session["user"], "authenticated": True}
-        try:
-            log_user_activity(session["user"]["email"], "page_visit", page="mobile_main_alt")
-        except Exception as e2:
-            print(f"Error logging mobile access: {str(e2)}")
-
-    return render_template("mobile/main_alt.html", session_data=session_data)
+    """Redirect to main home page (main-alt is now the primary home page)"""
+    print(f"=== SERVE_MOBILE_MAIN_ALT REDIRECT CALLED ===")
+    print(f"Redirecting from /mobile/main-alt to /mobile/home (main-alt is now primary)")
+    return redirect(url_for("mobile.serve_mobile_home"))
 
 
 @mobile_bp.route("/mobile/rally")
@@ -809,6 +675,16 @@ def serve_mobile_player_detail(player_id):
     partner_analysis = get_current_season_partner_analysis(actual_player_id, league_id_int, team_id)
     analyze_data["partner_analysis"] = partner_analysis
 
+    # Check if user has access to notes for this player
+    # Users should always have access to view and add notes for players in their club
+    user_club_id = session["user"].get("club_id")
+    has_notes_access = bool(user_club_id)  # Always show notes section if user has a club
+    
+    if user_club_id:
+        print(f"[DEBUG] Notes access granted for player {actual_player_id} in club {user_club_id}")
+    else:
+        print(f"[DEBUG] No notes access - user has no club_id")
+
     session_data = {"user": session["user"], "authenticated": True}
     team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
     
@@ -828,6 +704,7 @@ def serve_mobile_player_detail(player_id):
         player_name=player_name,
         player_info=player_info,
         viewing_user_league=viewing_user_league,
+        has_notes_access=has_notes_access,
     )
 
 
@@ -3585,7 +3462,7 @@ def get_my_lessons():
 
 @mobile_bp.route("/api/user-availability", methods=["GET"])
 @login_required
-def get_user_availability():
+def api_get_user_availability():
     """API endpoint to get user's availability for upcoming matches/practices"""
     try:
         user = session.get("user")
@@ -4611,6 +4488,228 @@ def serve_mobile_practice_times():
         )
 
 
+@mobile_bp.route("/mobile/pairing-analysis")
+@login_required
+def serve_mobile_pairing_analysis():
+    """Serve the mobile pairing analysis page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_pairing_analysis"
+        )
+
+        return render_template(
+            "mobile/pairing_analysis.html", session_data=session_data
+        )
+
+    except Exception as e:
+        print(f"Error serving mobile pairing analysis: {str(e)}")
+        session_data = {"user": session["user"], "authenticated": True}
+
+        return render_template(
+            "mobile/pairing_analysis.html",
+            session_data=session_data,
+            error="Failed to load pairing analysis page",
+        )
+
+
+# ==========================================
+# PAIRING ANALYSIS API ENDPOINTS
+# ==========================================
+
+@mobile_bp.route("/api/pairing-analysis/data")
+@login_required
+def get_pairing_analysis_data():
+    """Get team players and existing pairing preferences"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        # Get user's team ID
+        team_id = user.get("team_id")
+        if not team_id:
+            return jsonify({"success": False, "message": "No team assigned to user"}), 400
+        
+        # Get team players with their positions and PTI
+        players_query = """
+            SELECT DISTINCT
+                u.id as user_id,
+                CONCAT(u.first_name, ' ', u.last_name) as name,
+                COALESCE(u.ad_deuce_preference, 'Either') as position,
+                u.last_name,
+                u.first_name,
+                COALESCE(p.pti, 0) as pti
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            WHERE p.team_id = %s
+            ORDER BY u.last_name, u.first_name
+        """
+        
+        players = execute_query(players_query, [team_id])
+        
+        # Get existing pairing preferences
+        preferences_query = """
+            SELECT 
+                player1_user_id,
+                player2_user_id,
+                is_allowed
+            FROM pairing_preferences
+            WHERE team_id = %s
+        """
+        
+        preferences_data = execute_query(preferences_query, [team_id])
+        
+        # Convert preferences to dictionary format
+        preferences = {}
+        for pref in preferences_data:
+            user_id_1 = pref["player1_user_id"]
+            user_id_2 = pref["player2_user_id"]
+            # Use consistent key format (smaller ID first)
+            key = f"{min(user_id_1, user_id_2)}_{max(user_id_1, user_id_2)}"
+            preferences[key] = pref["is_allowed"]
+        
+        # Get pairing win rates from match history
+        # Only count matches where the two players were PARTNERS (on same team in same match)
+        pairing_stats_query = """
+            WITH team_player_map AS (
+                SELECT DISTINCT
+                    p.tenniscores_player_id,
+                    upa.user_id
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                WHERE p.team_id = %s
+            ),
+            home_partnerships AS (
+                SELECT DISTINCT
+                    ms.id as match_id,
+                    LEAST(tp1.user_id, tp2.user_id) as user_id_1,
+                    GREATEST(tp1.user_id, tp2.user_id) as user_id_2,
+                    CASE WHEN ms.winner = 'home' THEN 1 ELSE 0 END as won
+                FROM match_scores ms
+                JOIN team_player_map tp1 ON ms.home_player_1_id = tp1.tenniscores_player_id
+                JOIN team_player_map tp2 ON ms.home_player_2_id = tp2.tenniscores_player_id
+                WHERE tp1.user_id != tp2.user_id
+            ),
+            away_partnerships AS (
+                SELECT DISTINCT
+                    ms.id as match_id,
+                    LEAST(tp1.user_id, tp2.user_id) as user_id_1,
+                    GREATEST(tp1.user_id, tp2.user_id) as user_id_2,
+                    CASE WHEN ms.winner = 'away' THEN 1 ELSE 0 END as won
+                FROM match_scores ms
+                JOIN team_player_map tp1 ON ms.away_player_1_id = tp1.tenniscores_player_id
+                JOIN team_player_map tp2 ON ms.away_player_2_id = tp2.tenniscores_player_id
+                WHERE tp1.user_id != tp2.user_id
+            ),
+            all_partnerships AS (
+                SELECT * FROM home_partnerships
+                UNION ALL
+                SELECT * FROM away_partnerships
+            )
+            SELECT 
+                user_id_1,
+                user_id_2,
+                COUNT(DISTINCT match_id) as matches_played,
+                SUM(won) as wins,
+                ROUND((SUM(won)::numeric / NULLIF(COUNT(DISTINCT match_id), 0) * 100), 1) as win_rate
+            FROM all_partnerships
+            GROUP BY user_id_1, user_id_2
+            HAVING COUNT(DISTINCT match_id) >= 1
+        """
+        
+        pairing_stats = execute_query(pairing_stats_query, [team_id])
+        
+        print(f"[PAIRING_ANALYSIS] Found {len(pairing_stats)} pairing stats for team {team_id}")
+        
+        # Convert pairing stats to dictionary
+        pairing_win_rates = {}
+        for stat in pairing_stats:
+            key = f"{stat['user_id_1']}_{stat['user_id_2']}"
+            pairing_win_rates[key] = {
+                "matches": stat["matches_played"],
+                "wins": stat["wins"],
+                "win_rate": float(stat["win_rate"]) if stat["win_rate"] else 0
+            }
+            print(f"[PAIRING_ANALYSIS] Pairing {key}: {stat['matches_played']} matches, {stat['wins']} wins, {stat['win_rate']}% win rate")
+        
+        return jsonify({
+            "success": True,
+            "players": players,
+            "preferences": preferences,
+            "pairing_stats": pairing_win_rates
+        })
+        
+    except Exception as e:
+        print(f"Error getting pairing analysis data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@mobile_bp.route("/api/pairing-analysis/save", methods=["POST"])
+@login_required
+def save_pairing_preferences():
+    """Save pairing preferences for a team"""
+    try:
+        user = session.get("user")
+        if not user:
+            return jsonify({"success": False, "message": "Not authenticated"}), 401
+        
+        # Get user's team ID
+        team_id = user.get("team_id")
+        if not team_id:
+            return jsonify({"success": False, "message": "No team assigned to user"}), 400
+        
+        # Get preferences from request
+        data = request.get_json()
+        preferences = data.get("preferences", {})
+        
+        # Delete existing preferences for this team
+        execute_update("DELETE FROM pairing_preferences WHERE team_id = %s", [team_id])
+        
+        # Insert new preferences
+        insert_count = 0
+        for key, is_allowed in preferences.items():
+            # Parse key to get user IDs
+            parts = key.split("_")
+            if len(parts) != 2:
+                continue
+                
+            user_id_1 = int(parts[0])
+            user_id_2 = int(parts[1])
+            
+            # Insert preference (always store with smaller ID first)
+            execute_update(
+                """
+                INSERT INTO pairing_preferences (team_id, player1_user_id, player2_user_id, is_allowed)
+                VALUES (%s, %s, %s, %s)
+                """,
+                [team_id, min(user_id_1, user_id_2), max(user_id_1, user_id_2), is_allowed]
+            )
+            insert_count += 1
+        
+        # Log the activity
+        log_user_activity(
+            user["email"],
+            "pairing_preferences_update",
+            details=f"Updated {insert_count} pairing preferences for team {team_id}"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Saved {insert_count} pairing preferences"
+        })
+        
+    except Exception as e:
+        print(f"Error saving pairing preferences: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/availability")
 @login_required
 def serve_mobile_availability():
@@ -5368,6 +5467,53 @@ def serve_mobile_pickup_games():
 
     except Exception as e:
         print(f"Error serving pickup games page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/create-sub-request")
+@login_required
+def serve_mobile_create_sub_request():
+    """Serve the mobile Create Sub Request page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_create_sub_request"
+        )
+
+        return render_template("mobile/create_sub_request.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving create sub request page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/active-sub-requests")
+@login_required
+def serve_mobile_active_sub_requests():
+    """Serve the mobile Active Sub Requests page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_active_sub_requests"
+        )
+
+        return render_template("mobile/active_sub_requests.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving active sub requests page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/mobile/subfinder")
+@login_required
+def serve_mobile_subfinder():
+    """Serve the mobile Sub Finder page (legacy - redirects to create)"""
+    try:
+        return redirect(url_for('mobile.serve_mobile_create_sub_request'))
+    except Exception as e:
+        print(f"Error redirecting subfinder page: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -6754,8 +6900,9 @@ def get_team_members_with_court_stats(team_id, user):
         if not team_id:
             return []
 
-        # Get user's league_id for filtering (extract once at top)
+        # Get user's league_id and club_id for filtering (extract once at top)
         user_league_id = user.get("league_id")
+        user_club_id = user.get("club_id")
         
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
@@ -6869,16 +7016,22 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court3, 0) as court3,
                     COALESCE(pms.court4, 0) as court4,
                     COALESCE(pms.court5, 0) as court5,
-                    COALESCE(pms.court6, 0) as court6
+                    COALESCE(pms.court6, 0) as court6,
+                    CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                LEFT JOIN (
+                    SELECT DISTINCT player_id 
+                    FROM player_notes 
+                    WHERE club_id = %s
+                ) pn ON p.tenniscores_player_id = pn.player_id
                 WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = TRUE
                 ORDER BY 
                     CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
                     p.last_name, p.first_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, team_id, league_id_int])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, league_id_int, user_club_id, team_id, league_id_int])
         else:
             # Fallback without league filter
             comprehensive_query = """
@@ -6975,16 +7128,22 @@ def get_team_members_with_court_stats(team_id, user):
                     COALESCE(pms.court3, 0) as court3,
                     COALESCE(pms.court4, 0) as court4,
                     COALESCE(pms.court5, 0) as court5,
-                    COALESCE(pms.court6, 0) as court6
+                    COALESCE(pms.court6, 0) as court6,
+                    CASE WHEN pn.player_id IS NOT NULL THEN 1 ELSE 0 END as has_notes
                 FROM players p
                 LEFT JOIN player_match_stats pms ON p.tenniscores_player_id = pms.player_id
+                LEFT JOIN (
+                    SELECT DISTINCT player_id 
+                    FROM player_notes 
+                    WHERE club_id = %s
+                ) pn ON p.tenniscores_player_id = pn.player_id
                 WHERE p.team_id = %s AND p.is_active = TRUE
                 ORDER BY 
                     CASE WHEN p.captain_status = 'true' THEN 0 ELSE 1 END,
                     p.last_name, p.first_name
             """
             
-            members_data = execute_query(comprehensive_query, [team_id, team_id, team_id])
+            members_data = execute_query(comprehensive_query, [team_id, team_id, user_club_id, team_id])
 
         if not members_data:
             return []
@@ -7009,11 +7168,13 @@ def get_team_members_with_court_stats(team_id, user):
                 "last_name": member["last_name"],
                 "pti": member.get("pti", 0),
                 "tenniscores_player_id": member["tenniscores_player_id"],
+                "team_id": team_id,  # Add team_id to the returned data
                 "captain_status": member.get("captain_status"),
                 "court_stats": court_stats,
                 "match_count": member.get("match_count", 0),
                 "wins": member.get("wins", 0),  # Include wins from optimized query
                 "losses": member.get("losses", 0),  # Include losses from optimized query
+                "has_notes": bool(member.get("has_notes", 0)),  # Include notes flag
             }
             members_with_stats.append(member_data)
 
@@ -7759,6 +7920,33 @@ def serve_mobile_all_teams_schedule():
             session_data=session_data,
             error="An error occurred while loading the all teams schedule",
         )
+
+
+@mobile_bp.route("/mobile/pti-movers")
+@login_required
+def serve_pti_movers():
+    """Serve the PTI Movers & Shakers page showing all players at user's club"""
+    print(f"=== SERVE_PTI_MOVERS FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    # Use session service to get fresh session data
+    from app.services.session_service import get_session_data_for_user
+    
+    try:
+        user_email = session["user"]["email"]
+        session_data = get_session_data_for_user(user_email)
+        
+        return render_template("mobile/pti_movers.html", session_data=session_data)
+        
+    except Exception as e:
+        print(f"Error in serve_pti_movers: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        
+        # Fallback to basic session data
+        session_data = {"user": session.get("user"), "authenticated": True}
+        return render_template("mobile/pti_movers.html", session_data=session_data)
 
 
 @mobile_bp.route("/install")

@@ -489,6 +489,76 @@ def ensure_career_stats_consistency(cur, tenniscores_player_id, league_id, caree
     except Exception as e:
         print(f"[WARNING] Failed to ensure career stats consistency for player {tenniscores_player_id}: {e}")
 
+
+def track_pti_history_change(cur, player_id, new_pti_value, series_name, league_id):
+    """
+    Self-contained function to track PTI history changes.
+    
+    Adds a new row to the player_history table if the PTI value has changed
+    from the most recent entry. If the PTI value is the same as the most recent
+    entry, does not add a new row.
+    
+    Args:
+        cur: Database cursor
+        player_id: The player's database ID
+        new_pti_value: The new PTI value to potentially record
+        series_name: The series name for this PTI record
+        league_id: The league ID
+    
+    Returns:
+        bool: True if a new record was added, False if no change or no record added
+    """
+    try:
+        # Skip if PTI value is None or invalid
+        if new_pti_value is None:
+            return False
+            
+        # Get the most recent PTI history record for this player
+        cur.execute("""
+            SELECT end_pti, date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date DESC, id DESC
+            LIMIT 1
+        """, (player_id,))
+        
+        recent_record = cur.fetchone()
+        
+        # If no previous record exists, or if PTI has changed, add new record
+        should_add_record = False
+        
+        if not recent_record:
+            # No previous record - add new one
+            should_add_record = True
+            print(f"[PTI History] First PTI record for player {player_id}: {new_pti_value}")
+        else:
+            recent_pti = recent_record[0]
+            recent_date = recent_record[1]
+            
+            # Check if PTI value has changed (with small tolerance for floating point differences)
+            if abs(float(new_pti_value) - float(recent_pti)) > 0.01:
+                should_add_record = True
+                print(f"[PTI History] PTI changed for player {player_id}: {recent_pti} -> {new_pti_value}")
+            else:
+                print(f"[PTI History] PTI unchanged for player {player_id}: {new_pti_value} (same as {recent_date})")
+        
+        if should_add_record:
+            # Add new PTI history record
+            cur.execute("""
+                INSERT INTO player_history (player_id, league_id, series, date, end_pti, created_at)
+                VALUES (%s, %s, %s, CURRENT_DATE, %s, NOW())
+            """, (player_id, league_id, series_name, new_pti_value))
+            
+            print(f"[PTI History] ✅ Added PTI history record: Player {player_id}, PTI {new_pti_value}, Series {series_name}")
+            return True
+        else:
+            return False
+            
+    except Exception as e:
+        print(f"[PTI History] ❌ Error tracking PTI history for player {player_id}: {e}")
+        return False
+
+
 def upsert_player(cur, league_id, player_data):
     """
     Upsert a single player with comprehensive validation and team assignment.
@@ -641,6 +711,10 @@ def upsert_player(cur, league_id, player_data):
                 # After successful upsert, ensure career stats consistency across all team assignments for this player
                 # TEMPORARILY DISABLED FOR STAGING - CAUSING HANG
                 # ensure_career_stats_consistency(cur, external_id, league_id, career_wins_value, career_losses_value, career_matches_value, career_win_percentage_value)
+                
+                # Track PTI history changes
+                track_pti_history_change(cur, result[0], pti_value, series_name, league_id)
+                
                 return result[0], "upserted"
         else:
             # Fallback to name + league_id + club_id + series_id - NOW INCLUDING PTI, WIN/LOSS DATA, AND CAREER STATS
@@ -669,6 +743,10 @@ def upsert_player(cur, league_id, player_data):
                 # For fallback case with dummy IDs, we can't easily ensure consistency
                 # since each team assignment gets a unique dummy ID
                 # This is a limitation of the fallback approach
+                
+                # Track PTI history changes
+                track_pti_history_change(cur, result[0], pti_value, series_name, league_id)
+                
                 return result[0], "upserted"
         
         # If we get here, the player already exists

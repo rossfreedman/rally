@@ -86,10 +86,12 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False,
             "message_sid": None
         }
     
-    if len(message) > 1600:  # Twilio's SMS limit
+    # Limit to 500 chars for reliable cross-carrier delivery (4-5 SMS segments)
+    # Twilio supports up to 1600, but carriers often corrupt messages beyond 500 chars
+    if len(message) > 500:
         return {
             "success": False,
-            "error": "Message too long (max 1600 characters)",
+            "error": "Message too long (max 500 characters for reliable delivery)",
             "status_code": None,
             "message_sid": None
         }

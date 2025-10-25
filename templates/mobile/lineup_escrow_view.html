@@ -668,18 +668,49 @@ async function processLineupContainer(lineupContainer) {
 async function fetchPTIDataForPlayers(playerNames) {
     const ptiData = {};
     
+    // Get team context from escrow data for accurate player lookup
+    const escrowData = window.escrowData || {};
+    const viewerType = escrowData.viewer_type;
+    
+    // Determine which team context to use based on viewer type
+    let teamId = null;
+    if (viewerType === 'originating_captain') {
+        // Originating captain viewing - use initiator team context
+        teamId = escrowData.initiator_team_id;
+    } else if (viewerType === 'recipient_captain') {
+        // Recipient captain viewing - use recipient team context  
+        teamId = escrowData.recipient_team_id;
+    }
+    
+    // Fallback to user session context if available
+    if (!teamId) {
+        const user = window.sessionData?.user || {};
+        teamId = user.team_id;
+    }
+    
+    console.log('🔧 Fetching PTI data with team context:', { teamId, viewerType });
+    
     // Fetch PTI data for each player
     for (const playerName of playerNames) {
         try {
-            // For now, continue using name-based lookup until we update the lineup creation
-            // TODO: Update lineup creation to store player IDs for accurate PTI lookup
-            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            // Use team context for accurate player lookup
+            let response;
+            if (teamId) {
+                // Try team-specific lookup first
+                response = await fetch(`/api/player-history-with-context/${encodeURIComponent(playerName)}?team_id=${teamId}`);
+            } else {
+                // Final fallback to original lookup
+                response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            }
+            
             const data = await response.json();
             
             if (data && data.current_pti !== undefined) {
                 ptiData[playerName] = data.current_pti;
+                console.log(`✅ Found PTI for ${playerName}: ${data.current_pti} (using team ${teamId})`);
             } else {
                 ptiData[playerName] = null; // No PTI data available
+                console.log(`❌ No PTI data for ${playerName}`);
             }
         } catch (error) {
             console.error(`Error fetching PTI for ${playerName}:`, error);

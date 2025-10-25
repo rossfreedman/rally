@@ -3,6 +3,203 @@
 /* Font awesome icons */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
+/* iOS Safari home screen viewport fix */
+:root {
+  height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: -webkit-fill-available;
+  min-height: -webkit-fill-available;
+}
+
+/* ===== Header tokens ===== */
+:root {
+  --header-bg: #045454;
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --header-height: 60px; /* Bump if your logo is taller */
+}
+
+/* Ensure header styles win */
+.navbar, .nav-grid, .navbar-logo, .left-rail, .right-rail { box-sizing: border-box; }
+
+/* ===== Full-bleed fixed header ===== */
+.navbar {
+  background: var(--header-bg) !important;
+}
+
+/* 3-column grid: left spacer | centered logo | right actions */
+.nav-grid {
+  display: grid !important;
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center !important;
+  min-height: var(--header-height) !important;
+  padding: 8px max(16px, var(--safe-right)) 8px max(16px, var(--safe-left)) !important;
+  position: relative !important;
+  /* Nuke legacy Tailwind/Flex/inline leftovers */
+  transform: none !important;
+}
+
+/* Kill any lingering flex from old markup */
+.nav-grid[class*="flex"],
+.nav-grid[class*="items-center"] {
+  display: grid !important;
+}
+
+/* Left spacer */
+.left-rail {
+  justify-self: start !important;
+  display: flex !important;
+  align-items: center !important;
+  min-width: 44px;
+}
+
+/* ✅ Center-justified logo */
+.navbar-logo {
+  grid-column: 2 !important;
+  justify-self: center !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.rally-logo {
+  height: 68px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+/* ✅ Right-justified hamburger (visible and tappable) */
+.right-rail {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.rally-hamburger {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+/* Hamburger bars - must be visible */
+.rally-hamburger-bar {
+  display: block !important;
+  width: 24px !important;
+  height: 2px !important;
+  margin: 4px 0 !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border-radius: 1px !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+/* Make sure nothing overlays the header click targets */
+.navbar { pointer-events: auto; }
+.navbar * { pointer-events: auto; }
+.main-content { pointer-events: auto; }
+
+/* Content offset below fixed header */
+.main-content {
+  box-sizing: border-box;
+  padding-top: calc(var(--header-height) + 8px) !important;
+}
+
+/* Bottom nav safe-area (unchanged) */
+.bottom-nav,
+.navbar-fixed-bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--header-bg);
+  z-index: 1000;
+  min-height: 64px;
+  padding-bottom: var(--safe-bottom);
+}
+
+.page,
+.app-shell {
+  min-height: 100%;
+  padding-bottom: calc(80px + var(--safe-bottom));
+}
+
+/* ===== Remove old conflicting rules ===== */
+.safe-top-bleed {
+  display: none !important;
+}
+
+/* Hide Share Rally chip temporarily */
+#shareRallyChip {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.header-inner,
+.nav-grid {
+  margin-top: 0 !important;
+}
+
+.navbar .navbar-logo[style],
+.nav-grid[style] {
+  all: unset !important;
+} /* Strip old inline hacks, our classes handle layout */
+
+.navbar .navbar-logo[style] img {
+  all: unset !important;
+}
+
+/* If any legacy CSS positions the old logo absolutely, kill it */
+.navbar img[style*="position:absolute"],
+.navbar [style*="left:50%"],
+.navbar [style*="transform: translate"] {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+
+/* Fixed top navbar */
+.navbar-fixed-top {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 999;
+}
+
+/* Ensure content starts below navbar and respects safe area */
+.main-content {
+  padding-top: calc(51px + env(safe-area-inset-top));
+  padding-bottom: env(safe-area-inset-bottom);
+  box-sizing: border-box;
+}
+
+/* Mobile-specific navbar height adjustment */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: calc(51px + env(safe-area-inset-top));
+  }
+}
+
 /* Custom colors for daisy UI */
 :root {
   --p: 207 90% 54%;  /* primary color: blue */
@@ -109,6 +306,10 @@ body {
     color: #333;
     font-size: 1rem;
     min-height: 100vh;
+    /* iOS Safari smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
+    position: relative;
 }
 
 /* Card animations */
@@ -429,6 +630,20 @@ a:hover {
 /* Rally teal for mobile top nav */
 .navbar {
   background-color: #045454 !important; /* Changed to Rally teal */
+  /* iOS Safari fix - force hardware acceleration to prevent movement during scroll */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* Mobile: Navbar height 61px (5px taller than previous 56px) */
+@media (max-width: 768px) {
+  .navbar {
+    height: 61px !important;
+    min-height: 61px !important;
+  }
 }
 
 /* Rally green for 'I can play' button */
@@ -726,14 +941,26 @@ a:hover {
 
 /* --- Bottom Navigation Dock Styles --- */
 .bottom-dock {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
   backdrop-filter: blur(10px);
   background-color: #085454;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 40 !important;
+  /* iOS Safari fix - force hardware acceleration to prevent movement during scroll */
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .dock-item {
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
   border-radius: 8px;
   position: relative;
 }
@@ -791,8 +1018,8 @@ a:hover {
 }
 
 .dock-item:active {
-  transform: scale(0.95);
   background-color: rgba(255, 255, 255, 0.2);
+  opacity: 0.8;
 }
 
 /* Active state for current page */

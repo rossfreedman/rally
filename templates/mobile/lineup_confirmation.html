@@ -109,8 +109,14 @@ window.sessionData = {{ session_data | tojson | safe }};
 
 // Load and display the lineup from sessionStorage
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔧 Lineup confirmation page loaded');
+    console.log('🔧 Checking sessionStorage for createdLineup...');
+    
     const createdLineup = sessionStorage.getItem('createdLineup');
+    console.log('🔧 createdLineup from sessionStorage:', createdLineup);
+    
     const lineupPreview = document.getElementById('lineup-preview');
+    console.log('🔧 lineupPreview element:', lineupPreview);
     
     if (createdLineup && lineupPreview) {
         // Convert HTML to plain text for proper display in <pre> element
@@ -259,18 +265,37 @@ async function addPTIInformationToLineup(lineupText) {
 async function fetchPTIDataForPlayers(playerNames) {
     const ptiData = {};
     
+    // Get current user's team context for accurate player lookup
+    const user = window.sessionData?.user || {};
+    const userTeamId = user.team_id;
+    const userClubId = user.club_id;
+    
+    console.log('🔧 Fetching PTI data with team context:', { userTeamId, userClubId });
+    
     // Fetch PTI data for each player
     for (const playerName of playerNames) {
         try {
-            // For now, continue using name-based lookup until we update the lineup creation
-            // TODO: Update lineup creation to store player IDs for accurate PTI lookup
-            const response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            // Use team context for accurate player lookup
+            let response;
+            if (userTeamId) {
+                // Try team-specific lookup first
+                response = await fetch(`/api/player-history-with-context/${encodeURIComponent(playerName)}?team_id=${userTeamId}`);
+            } else if (userClubId) {
+                // Fallback to club-specific lookup
+                response = await fetch(`/api/player-history-with-context/${encodeURIComponent(playerName)}?club_id=${userClubId}`);
+            } else {
+                // Final fallback to original lookup
+                response = await fetch(`/api/player-history/${encodeURIComponent(playerName)}`);
+            }
+            
             const data = await response.json();
             
             if (data && data.current_pti !== undefined) {
                 ptiData[playerName] = data.current_pti;
+                console.log(`✅ Found PTI for ${playerName}: ${data.current_pti}`);
             } else {
                 ptiData[playerName] = null; // No PTI data available
+                console.log(`❌ No PTI data for ${playerName}`);
             }
         } catch (error) {
             console.error(`Error fetching PTI for ${playerName}:`, error);

@@ -102,41 +102,78 @@ class WeatherService:
         try:
             # Use OpenWeatherMap Geocoding API
             url = f"http://api.openweathermap.org/geo/1.0/direct"
-            params = {
-                'q': location,
-                'limit': 1,
-                'appid': self.api_key
-            }
             
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
+            # Try multiple location formats, starting with simpler ones
+            location_variants = []
             
-            data = response.json()
-            if data and len(data) > 0:
-                return {
-                    'lat': data[0]['lat'],
-                    'lon': data[0]['lon']
-                }
+            # If location contains a comma, try to extract just the city name
+            if ',' in location:
+                # Try to extract city name from full address
+                city_part = location.split(',')[0].strip()
+                location_variants.extend([
+                    city_part,  # Just the city name
+                    f"{city_part}, Illinois",  # City + state
+                    f"{city_part}, IL",  # City + abbreviated state
+                    location,  # Original full location
+                ])
+            else:
+                # Simple location, try different formats
+                location_variants.extend([
+                    location,  # Original location
+                    f"{location}, Illinois",  # Add state
+                    f"{location}, IL",  # Add abbreviated state
+                ])
             
-            # Fallback for Tennaqua location
-            if 'tennaqua' in location.lower():
-                logger.info(f"Tennaqua geocoding failed, trying fallback: Deerfield, Illinois, US")
-                fallback_params = {
-                    'q': 'Deerfield, Illinois, US',
+            for variant in location_variants:
+                logger.info(f"Trying geocoding for: {variant}")
+                params = {
+                    'q': variant,
                     'limit': 1,
                     'appid': self.api_key
                 }
                 
-                fallback_response = requests.get(url, params=fallback_params, timeout=10)
-                fallback_response.raise_for_status()
+                response = requests.get(url, params=params, timeout=10)
+                response.raise_for_status()
                 
-                fallback_data = fallback_response.json()
-                if fallback_data and len(fallback_data) > 0:
-                    logger.info(f"Tennaqua fallback geocoding successful")
+                data = response.json()
+                if data and len(data) > 0:
+                    logger.info(f"Geocoding successful for: {variant}")
                     return {
-                        'lat': fallback_data[0]['lat'],
-                        'lon': fallback_data[0]['lon']
+                        'lat': data[0]['lat'],
+                        'lon': data[0]['lon']
                     }
+            
+            # Specific fallbacks for known clubs
+            fallback_locations = {
+                'tennaqua': 'Deerfield, Illinois, US',
+                'valley lo': 'Glenview, Illinois, US',
+                'michigan shores': 'Chicago, Illinois, US',
+                'indian hill': 'Winnetka, Illinois, US',
+                'westmoreland': 'Winnetka, Illinois, US',
+                'northmoor': 'Winnetka, Illinois, US',
+                'northmoor country club': 'Winnetka, Illinois, US',
+            }
+            
+            location_lower = location.lower()
+            for club_key, fallback_location in fallback_locations.items():
+                if club_key in location_lower:
+                    logger.info(f"Using fallback location for {club_key}: {fallback_location}")
+                    fallback_params = {
+                        'q': fallback_location,
+                        'limit': 1,
+                        'appid': self.api_key
+                    }
+                    
+                    fallback_response = requests.get(url, params=fallback_params, timeout=10)
+                    fallback_response.raise_for_status()
+                    
+                    fallback_data = fallback_response.json()
+                    if fallback_data and len(fallback_data) > 0:
+                        logger.info(f"Fallback geocoding successful for {club_key}")
+                        return {
+                            'lat': fallback_data[0]['lat'],
+                            'lon': fallback_data[0]['lon']
+                        }
                 
         except Exception as e:
             logger.error(f"Geocoding error for {location}: {str(e)}")

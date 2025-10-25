@@ -385,6 +385,7 @@ def get_series_stats_data():
                         s.games_lost,
                         l.league_id,
                         t.display_name,
+                        t.id as team_id,
                         AVG(p.pti) as avg_pti
                     FROM series_stats s
                     LEFT JOIN leagues l ON s.league_id = l.id
@@ -393,7 +394,7 @@ def get_series_stats_data():
                     WHERE s.series = %s AND s.league_id = %s
                     GROUP BY s.series, s.team, s.points, s.matches_won, s.matches_lost, s.matches_tied,
                              s.lines_won, s.lines_lost, s.lines_for, s.lines_ret, s.sets_won, s.sets_lost,
-                             s.games_won, s.games_lost, l.league_id, t.display_name
+                             s.games_won, s.games_lost, l.league_id, t.display_name, t.id
                     ORDER BY s.points DESC, s.team ASC
                 """
                 db_results = execute_query(series_stats_query, [normalized_series_name, user_league_db_id])
@@ -415,6 +416,7 @@ def get_series_stats_data():
                         s.games_won,
                         s.games_lost,
                         t.display_name,
+                        t.id as team_id,
                         AVG(p.pti) as avg_pti
                     FROM series_stats s
                     LEFT JOIN teams t ON s.team = t.team_name
@@ -422,7 +424,7 @@ def get_series_stats_data():
                     WHERE s.series = %s
                     GROUP BY s.series, s.team, s.points, s.matches_won, s.matches_lost, s.matches_tied,
                              s.lines_won, s.lines_lost, s.lines_for, s.lines_ret, s.sets_won, s.sets_lost,
-                             s.games_won, s.games_lost, t.display_name
+                             s.games_won, s.games_lost, t.display_name, t.id
                     ORDER BY s.points DESC, s.team ASC
                 """
                 db_results = execute_query(series_stats_query, [normalized_series_name])
@@ -511,6 +513,7 @@ def get_series_stats_data():
             print(f"[DEBUG] No series_stats found, falling back to teams table")
             teams_query = """
                 SELECT 
+                    t.id as team_id,
                     t.team_name as team,
                     t.display_name,
                     c.name as club_name,
@@ -544,6 +547,7 @@ def get_series_stats_data():
                     "team": row["team"],
                     "display_name": row.get("display_name", row["team"]),
                     "league_id": row.get("league_id", user_league_id),
+                    "team_id": row.get("team_id"),
                     "points": 0,  # Default stats
                     "matches": {
                         "won": 0,

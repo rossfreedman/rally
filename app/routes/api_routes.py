@@ -859,6 +859,113 @@ def get_enhanced_streaks():
     return get_enhanced_streaks_data()
 
 
+@api_bp.route("/user-win-streak")
+@login_required
+def get_user_win_streak():
+    """Get the current win streak for the logged-in user using robust database logic"""
+    try:
+        user = session["user"]
+        player_id = user.get("tenniscores_player_id")
+        league_id = user.get("league_id")
+
+        if not player_id:
+            return jsonify({"error": "Player ID not found"}), 404
+
+        if not league_id:
+            return jsonify({"error": "League ID not found"}), 404
+
+        # Convert league_id to integer
+        league_id_int = int(league_id) if str(league_id).isdigit() else None
+        if not league_id_int:
+            return jsonify({"error": "Invalid league ID"}), 400
+
+        # Use the same robust logic as the "Who's Hot at Tennaqua" feature
+        streak_query = """
+            WITH recent_matches AS (
+                SELECT 
+                    ms.match_date,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.league_id
+                FROM match_scores ms
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '60 days'
+                AND ms.winner IS NOT NULL
+                AND ms.winner != ''
+                AND ms.league_id = %s
+                AND (
+                    ms.home_player_1_id = %s OR
+                    ms.home_player_2_id = %s OR
+                    ms.away_player_1_id = %s OR
+                    ms.away_player_2_id = %s
+                )
+                ORDER BY ms.match_date DESC, ms.id DESC
+            ),
+            player_match_results AS (
+                SELECT 
+                    rm.match_date,
+                    CASE 
+                        WHEN (rm.winner = 'home' AND rm.home_player_1_id = %s) OR 
+                             (rm.winner = 'home' AND rm.home_player_2_id = %s) OR
+                             (rm.winner = 'away' AND rm.away_player_1_id = %s) OR
+                             (rm.winner = 'away' AND rm.away_player_2_id = %s)
+                        THEN 'W' ELSE 'L' 
+                    END as result
+                FROM recent_matches rm
+            ),
+            streak_calculations AS (
+                SELECT 
+                    match_date,
+                    result,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) as match_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as result_sequence,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_group
+                FROM player_match_results
+            ),
+            current_streak AS (
+                SELECT 
+                    result,
+                    COUNT(*) as current_streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_calculations
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY result
+                ORDER BY current_streak_length DESC
+                LIMIT 1
+            )
+            SELECT 
+                result,
+                current_streak_length,
+                last_match_date
+            FROM current_streak
+        """
+        
+        streak_result = execute_query_one(streak_query, [
+            league_id_int, player_id, player_id, player_id, player_id,
+            player_id, player_id, player_id, player_id
+        ])
+        
+        if streak_result and streak_result.get('result') == 'W':
+            return jsonify({
+                "current_streak": streak_result['current_streak_length'],
+                "last_match_date": streak_result['last_match_date'].strftime('%Y-%m-%d') if streak_result['last_match_date'] else None
+            })
+        else:
+            return jsonify({
+                "current_streak": 0,
+                "last_match_date": None
+            })
+            
+    except Exception as e:
+        print(f"Error getting user win streak: {e}")
+        return jsonify({"error": "Failed to get win streak"}), 500
+
+
 @api_bp.route("/last-3-matches")
 @login_required
 def get_last_3_matches():
@@ -904,7 +1011,7 @@ def get_last_3_matches():
         # Query the last 3 matches for this player with team filtering
         if league_id_int:
             matches_query = f"""
-                SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                SELECT 
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     match_date,
                     home_team as "Home Team",
@@ -914,12 +1021,13 @@ def get_last_3_matches():
                     home_player_1_id as "Home Player 1",
                     home_player_2_id as "Home Player 2",
                     away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
+                    away_player_2_id as "Away Player 2",
+                    id as match_id
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 AND league_id = %s
                 {team_filter_clause}
-                ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                ORDER BY match_date DESC, id DESC
                 LIMIT 3
             """
             query_params = [player_id, player_id, player_id, player_id, league_id_int] + team_filter_params
@@ -931,7 +1039,7 @@ def get_last_3_matches():
             # No league_id available, still apply team filtering if possible
             if team_filter_clause:
                 matches_query = f"""
-                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                    SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                         match_date,
                         home_team as "Home Team",
@@ -941,11 +1049,12 @@ def get_last_3_matches():
                         home_player_1_id as "Home Player 1",
                         home_player_2_id as "Home Player 2",
                         away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
+                        away_player_2_id as "Away Player 2",
+                        id as match_id
                     FROM match_scores
                     WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                     {team_filter_clause}
-                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    ORDER BY match_date DESC, id DESC
                     LIMIT 3
                 """
                 query_params = [player_id, player_id, player_id, player_id] + team_filter_params
@@ -953,7 +1062,7 @@ def get_last_3_matches():
             else:
                 # No filtering possible, fall back to original behavior
                 matches_query = """
-                    SELECT DISTINCT ON (match_date, home_team, away_team, winner, scores)
+                    SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                         match_date,
                         home_team as "Home Team",
@@ -963,10 +1072,11 @@ def get_last_3_matches():
                         home_player_1_id as "Home Player 1",
                         home_player_2_id as "Home Player 2",
                         away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2"
+                        away_player_2_id as "Away Player 2",
+                        id as match_id
                     FROM match_scores
                     WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    ORDER BY match_date DESC, home_team, away_team, winner, scores, id DESC
+                    ORDER BY match_date DESC, id DESC
                     LIMIT 3
                 """
                 matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
@@ -8385,9 +8495,537 @@ def get_series_options():
         return jsonify({"error": "Failed to retrieve series options"}), 500
 
 
-# =====================================================
-# GROUPS API ROUTES
-# =====================================================
+# ==========================================
+# SUB FINDER API ENDPOINTS
+# ==========================================
+
+@api_bp.route("/subfinder", methods=["GET"])
+@login_required
+def get_subfinder_requests():
+    """Get all active sub finder requests"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get active requests with creator info
+        requests_query = """
+                    SELECT
+                        rsf.id,
+                        rsf.created_by,
+                        rsf.pti_min,
+                        rsf.pti_max,
+                        rsf.series_min,
+                        rsf.series_max,
+                        rsf.slots_total,
+                        rsf.slots_filled,
+                        rsf.notes,
+                        rsf.match_date,
+                        rsf.match_time,
+                        rsf.type,
+                        rsf.broadcast_via_text,
+                        rsf.is_active,
+                        rsf.created_at,
+                        CONCAT(u.first_name, ' ', u.last_name) as creator_name
+                    FROM rally_sub_finder rsf
+                    JOIN users u ON rsf.created_by = u.id
+                    ORDER BY rsf.is_active DESC, rsf.created_at DESC
+                """
+        
+        requests = execute_query(requests_query)
+        
+        # Format the response - separate active and archived requests
+        active_requests = []
+        archived_requests = []
+        
+        for request in requests:
+            # Get participants for this request
+            participants_query = """
+                SELECT
+                    CONCAT(u.first_name, ' ', u.last_name) as name,
+                    rsfp.joined_at,
+                    rsfp.user_id
+                FROM rally_sub_finder_participants rsfp
+                JOIN users u ON rsfp.user_id = u.id
+                WHERE rsfp.rally_sub_finder_id = %s
+                ORDER BY rsfp.joined_at ASC
+            """
+
+            participants = execute_query(participants_query, [request["id"]])
+
+            # Check if current user has joined this request
+            user_has_joined = any(p["user_id"] == user_id for p in participants)
+
+            formatted_request = {
+                "id": request["id"],
+                "creator_name": request["creator_name"],
+                "pti_min": float(request["pti_min"]) if request["pti_min"] else None,
+                "pti_max": float(request["pti_max"]) if request["pti_max"] else None,
+                "series_min": request["series_min"],
+                "series_max": request["series_max"],
+                "slots_total": request["slots_total"],
+                "slots_filled": len(participants),
+                "user_has_joined": user_has_joined,
+                "participants": [
+                    {
+                        "name": p["name"],
+                        "joined_at": p["joined_at"].isoformat() if p["joined_at"] else None
+                    } for p in participants
+                ],
+                "notes": request["notes"],
+                "match_date": request["match_date"].isoformat() if request["match_date"] else None,
+                "match_time": str(request["match_time"]) if request["match_time"] else None,
+                "type": request.get("type", "Match"),
+                "broadcast_via_text": bool(request["broadcast_via_text"]),
+                "is_active": bool(request["is_active"]),
+                "created_at": request["created_at"].isoformat() if request["created_at"] else None
+            }
+            
+            if request["is_active"]:
+                active_requests.append(formatted_request)
+            else:
+                archived_requests.append(formatted_request)
+
+        return jsonify({
+            "success": True,
+            "active_requests": active_requests,
+            "archived_requests": archived_requests
+        })
+        
+    except Exception as e:
+        print(f"[GET_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[GET_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve sub requests"}), 500
+
+
+@api_bp.route("/subfinder", methods=["POST"])
+@login_required
+def create_subfinder_request():
+    """Create a new sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+
+        print(f"[CREATE_SUBFINDER] Session user: {user}")
+        print(f"[CREATE_SUBFINDER] User ID: {user_id}, Email: {user_email}")
+
+        if not user_id:
+            print(f"[CREATE_SUBFINDER] ERROR: User ID not found in session")
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # Validate required fields
+        required_fields = ["pti_min", "pti_max", "series_min", "series_max", "slots_total", "match_date", "match_time"]
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        pti_min = float(data["pti_min"])
+        pti_max = float(data["pti_max"])
+        series_min = int(data["series_min"])
+        series_max = int(data["series_max"])
+        slots_total = int(data["slots_total"])
+        notes = data.get("notes", "").strip()
+        match_date = data["match_date"]
+        match_time = data["match_time"]
+        request_type = data.get("type", "Match")
+        broadcast_via_text = data.get("broadcast_via_text", True)
+        
+        # Validate ranges
+        if pti_min >= pti_max:
+            return jsonify({"error": "PTI min must be less than PTI max"}), 400
+        
+        if series_min >= series_max:
+            return jsonify({"error": "Series min must be less than Series max"}), 400
+        
+        if slots_total < 1 or slots_total > 16:
+            return jsonify({"error": "Slots total must be between 1 and 16"}), 400
+        
+        # Create the request
+        create_query = """
+            INSERT INTO rally_sub_finder (
+                created_by, pti_min, pti_max, series_min, series_max,
+                slots_total, slots_filled, notes, match_date, match_time, type, broadcast_via_text
+            ) VALUES (%s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s)
+            RETURNING id
+        """
+
+        result = execute_query_one(create_query, [
+            user_id, pti_min, pti_max, series_min, series_max, slots_total, notes, match_date, match_time, request_type, broadcast_via_text
+        ])
+        
+        if result:
+            request_id = result["id"]
+            print(f"[CREATE_SUBFINDER] User {user_email} created request {request_id}")
+            
+            log_user_activity(user_email, "subfinder_created", 
+                            details=f"Created sub request ID: {request_id}")
+            
+            # TODO: Send notifications to matching players
+            # This would be implemented in the notification service
+            
+            return jsonify({
+                "success": True,
+                "message": "Sub request created successfully",
+                "request_id": request_id
+            })
+        else:
+            return jsonify({"error": "Failed to create sub request"}), 500
+            
+    except Exception as e:
+        print(f"[CREATE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[CREATE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to create sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/join", methods=["POST"])
+@login_required
+def join_subfinder_request(request_id):
+    """Join a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        print(f"[JOIN_SUBFINDER] User {user_email} attempting to join request {request_id}")
+        
+        # Check if request exists and is active
+        request_query = """
+            SELECT rsf.*, COUNT(rsfp.id) as current_participants
+            FROM rally_sub_finder rsf
+            LEFT JOIN rally_sub_finder_participants rsfp ON rsf.id = rsfp.rally_sub_finder_id
+            WHERE rsf.id = %s AND rsf.is_active = TRUE
+            GROUP BY rsf.id
+        """
+        
+        request_record = execute_query_one(request_query, [request_id])
+        
+        if not request_record:
+            return jsonify({"error": "Sub request not found or inactive"}), 404
+        
+        # Check if request is full
+        if request_record["current_participants"] >= request_record["slots_total"]:
+            return jsonify({"error": "All sub spots are filled"}), 400
+        
+        # Check if user is already in this request
+        existing_query = """
+            SELECT id FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [request_id, user_id])
+        
+        if existing:
+            return jsonify({"error": "You have already joined this sub request"}), 400
+        
+        # Get user's PTI and Series to validate against request criteria
+        user_info_query = """
+            SELECT p.pti, s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s
+            AND p.league_id = (
+                SELECT league_id FROM players 
+                WHERE tenniscores_player_id = (
+                    SELECT tenniscores_player_id FROM user_player_associations 
+                    WHERE user_id = %s LIMIT 1
+                ) LIMIT 1
+            )
+            AND p.is_active = TRUE
+            LIMIT 1
+        """
+        
+        user_info = execute_query_one(user_info_query, [user_id, user_id])
+        
+        if not user_info:
+            return jsonify({"error": "Could not find your player information"}), 400
+        
+        user_pti = float(user_info["pti"]) if user_info["pti"] else None
+        user_series = user_info["series_name"]
+        
+        # Extract series number from series name (e.g., "Series 20" -> 20)
+        user_series_number = None
+        if user_series:
+            import re
+            series_match = re.search(r'\d+', user_series)
+            if series_match:
+                user_series_number = int(series_match.group())
+        
+        # Validate PTI range
+        if user_pti is not None and request_record["pti_min"] is not None and request_record["pti_max"] is not None:
+            pti_min = float(request_record["pti_min"])
+            pti_max = float(request_record["pti_max"])
+            
+            if user_pti < pti_min or user_pti > pti_max:
+                return jsonify({
+                    "error": f"Sorry, you cannot join as a sub. Your PTI ({user_pti:.1f}) is outside the requested range ({pti_min:.1f} - {pti_max:.1f})"
+                }), 400
+        
+        # Validate Series range
+        if user_series_number is not None and request_record["series_min"] is not None and request_record["series_max"] is not None:
+            series_min = int(request_record["series_min"])
+            series_max = int(request_record["series_max"])
+            
+            if user_series_number < series_min or user_series_number > series_max:
+                return jsonify({
+                    "error": f"Sorry, you cannot join as a sub. Your Series ({user_series_number}) is outside the requested range (Series {series_min} - {series_max})"
+                }), 400
+        
+        # Add user to the request
+        join_query = """
+            INSERT INTO rally_sub_finder_participants (rally_sub_finder_id, user_id)
+            VALUES (%s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(join_query, [request_id, user_id])
+        
+        if result:
+            # Update the slots_filled count
+            update_query = """
+                UPDATE rally_sub_finder 
+                SET slots_filled = (
+                    SELECT COUNT(*) FROM rally_sub_finder_participants 
+                    WHERE rally_sub_finder_id = %s
+                )
+                WHERE id = %s
+            """
+            execute_update(update_query, [request_id, request_id])
+            
+            print(f"[JOIN_SUBFINDER] User {user_email} successfully joined request {request_id}")
+            
+            log_user_activity(user_email, "subfinder_joined", 
+                            details=f"Joined sub request ID: {request_id}")
+            
+            # TODO: Send notifications to creator and other participants
+            # This would be implemented in the notification service
+            
+            return jsonify({
+                "success": True,
+                "message": "Successfully joined as sub"
+            })
+        else:
+            return jsonify({"error": "Failed to join sub request"}), 500
+            
+    except Exception as e:
+        print(f"[JOIN_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[JOIN_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to join sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/archive", methods=["POST"])
+@login_required
+def archive_subfinder_request(request_id):
+    """Archive a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+
+        print(f"[ARCHIVE_SUBFINDER] User {user_email} attempting to archive request {request_id}")
+
+        # Check if request exists and user is the creator
+        request_query = """
+            SELECT created_by FROM rally_sub_finder
+            WHERE id = %s AND is_active = TRUE
+        """
+
+        request_record = execute_query_one(request_query, [request_id])
+
+        if not request_record:
+            return jsonify({"error": "Sub request not found or inactive"}), 404
+
+        if request_record["created_by"] != user_id:
+            return jsonify({"error": "You can only archive your own sub requests"}), 403
+
+        # Archive the request (soft delete by setting is_active = FALSE)
+        archive_query = """
+            UPDATE rally_sub_finder
+            SET is_active = FALSE, updated_at = NOW()
+            WHERE id = %s
+        """
+
+        execute_update(archive_query, [request_id])
+
+        print(f"[ARCHIVE_SUBFINDER] User {user_email} successfully archived request {request_id}")
+
+        log_user_activity(user_email, "subfinder_archived",
+                        details=f"Archived sub request ID: {request_id}")
+
+        return jsonify({
+            "success": True,
+            "message": "Sub request archived successfully"
+        })
+
+    except Exception as e:
+        print(f"[ARCHIVE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[ARCHIVE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to archive sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/<int:request_id>/leave", methods=["POST"])
+@login_required
+def leave_subfinder_request(request_id):
+    """Leave a sub finder request"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        print(f"[LEAVE_SUBFINDER] User {user_email} attempting to leave request {request_id}")
+        
+        # Check if user is in this request
+        existing_query = """
+            SELECT id FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [request_id, user_id])
+        
+        if not existing:
+            return jsonify({"error": "You are not currently in this sub request"}), 400
+        
+        # Remove user from the request
+        leave_query = """
+            DELETE FROM rally_sub_finder_participants 
+            WHERE rally_sub_finder_id = %s AND user_id = %s
+        """
+        
+        execute_update(leave_query, [request_id, user_id])
+        
+        # Update the slots_filled count
+        update_query = """
+            UPDATE rally_sub_finder
+            SET slots_filled = (
+                SELECT COUNT(*) FROM rally_sub_finder_participants
+                WHERE rally_sub_finder_id = %s
+            )
+            WHERE id = %s
+        """
+        execute_update(update_query, [request_id, request_id])
+        
+        print(f"[LEAVE_SUBFINDER] User {user_email} successfully left request {request_id}")
+        
+        log_user_activity(user_email, "subfinder_left", 
+                        details=f"Left sub request ID: {request_id}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully left sub request"
+        })
+        
+    except Exception as e:
+        print(f"[LEAVE_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[LEAVE_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to leave sub request due to server error"}), 500
+
+
+@api_bp.route("/subfinder/matching-players", methods=["POST"])
+@login_required
+def get_matching_players_for_subfinder():
+    """Get players matching the specified criteria for sub finder"""
+    try:
+        user = session["user"]
+        user_club = user.get("club")
+        user_league_id = user.get("league_id")
+        
+        data = request.get_json()
+        pti_min = data.get("pti_min")
+        pti_max = data.get("pti_max")
+        series_min = data.get("series_min")
+        series_max = data.get("series_max")
+        
+        if not user_club or not user_league_id:
+            return jsonify({"error": "User club or league not found"}), 400
+        
+        # Build query to find matching players
+        query = """
+            SELECT DISTINCT
+                p.id,
+                CONCAT(p.first_name, ' ', p.last_name) as player_name,
+                p.pti,
+                c.name as club,
+                s.name as series_name,
+                u.phone_number
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            WHERE c.name = %s
+            AND p.league_id = %s
+            AND p.pti IS NOT NULL
+            AND p.is_active = TRUE
+        """
+        
+        params = [user_club, user_league_id]
+        
+        # Add PTI filters if provided
+        if pti_min is not None:
+            query += " AND p.pti >= %s"
+            params.append(pti_min)
+        
+        if pti_max is not None:
+            query += " AND p.pti <= %s"
+            params.append(pti_max)
+        
+        # Add series filters if provided
+        if series_min is not None and series_max is not None:
+            query += """
+                AND s.name IS NOT NULL
+                AND REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') != ''
+                AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) >= %s
+                AND CAST(REGEXP_REPLACE(s.name, '[^0-9]', '', 'g') AS INTEGER) <= %s
+            """
+            params.append(series_min)
+            params.append(series_max)
+        
+        query += " ORDER BY p.pti DESC LIMIT 500"
+        
+        players = execute_query(query, params)
+        
+        # Format player data
+        formatted_players = []
+        for player in players:
+            formatted_players.append({
+                "id": player["id"],
+                "name": player["player_name"],
+                "pti": float(player["pti"]) if player["pti"] else None,
+                "club": player["club"],
+                "series": player["series_name"],
+                "phone_number": player["phone_number"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "players": formatted_players,
+            "count": len(formatted_players)
+        })
+        
+    except Exception as e:
+        print(f"[MATCHING_PLAYERS] Error: {str(e)}")
+        import traceback
+        print(f"[MATCHING_PLAYERS] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to fetch matching players"}), 500
+
 
 @api_bp.route("/groups", methods=["GET"])
 @login_required
@@ -9476,7 +10114,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
         if not team_id:
             return notifications
             
-        # Get the most recent poll for the user's team
+        # Get recent polls for the user's team (not just the most recent)
         poll_query = """
             SELECT 
                 p.id,
@@ -9492,36 +10130,38 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
             WHERE p.team_id = %s
             GROUP BY p.id, p.question, p.created_at, p.created_by, u.first_name, u.last_name
             ORDER BY p.created_at DESC
-            LIMIT 1
+            LIMIT 3
         """
         
-        recent_poll = execute_query_one(poll_query, [team_id])
+        recent_polls = execute_query(poll_query, [team_id])
         
-        if recent_poll:
-            # Format the creation date
-            created_date = recent_poll["created_at"]
-            if hasattr(created_date, 'date'):
-                created_date = created_date.date()
-            
-            today = datetime.now().date()
-            if created_date == today:
-                date_display = "Today"
-            elif created_date == today - timedelta(days=1):
-                date_display = "Yesterday"
-            else:
-                date_display = created_date.strftime("%b %d")
-            
-            creator_name = f"{recent_poll['creator_first_name']} {recent_poll['creator_last_name']}"
-            
-            notifications.append({
-                "id": f"team_poll_{recent_poll['id']}",
-                "type": "poll",
-                "title": "Team Poll",
-                "message": f"{recent_poll['question']}",
-                "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
-                "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{recent_poll['id']}"},
-                "priority": 4
-            })
+        if recent_polls:
+            for poll in recent_polls:
+                # Format the creation date
+                created_date = poll["created_at"]
+                if hasattr(created_date, 'date'):
+                    created_date = created_date.date()
+                
+                today = datetime.now().date()
+                if created_date == today:
+                    date_display = "Today"
+                elif created_date == today - timedelta(days=1):
+                    date_display = "Yesterday"
+                else:
+                    date_display = created_date.strftime("%b %d")
+                
+                creator_name = f"{poll['creator_first_name']} {poll['creator_last_name']}"
+                
+                notifications.append({
+                    "id": f"team_poll_{poll['id']}",
+                    "type": "poll",
+                    "title": "Team Poll",
+                    "message": f"{poll['question']}",
+                    "cta": {"label": "Vote Now", "href": f"/mobile/polls/{poll['id']}"},
+                    "detail_link": {"label": "View Poll", "href": f"/mobile/polls/{poll['id']}"},
+                    "priority": 4,
+                    "created_at": poll["created_at"].isoformat() if poll["created_at"] else None
+                })
             
     except Exception as e:
         logger.error(f"Error getting team poll notifications: {str(e)}")
@@ -12228,6 +12868,258 @@ def get_player_matches_detail():
         }), 500
 
 
+@api_bp.route("/my-matches-with-player", methods=["GET"])
+@login_required
+def get_my_matches_with_player():
+    """Get matches between current user and target player from both current and previous seasons"""
+    try:
+        # Get parameters
+        target_player_id = request.args.get("target_player_id")
+        
+        if not target_player_id:
+            return jsonify({
+                "success": False,
+                "error": "Target player ID is required"
+            }), 400
+        
+        # Get current user's player ID
+        current_user = session["user"]
+        current_user_player_id = current_user.get("tenniscores_player_id")
+        
+        if not current_user_player_id:
+            return jsonify({
+                "success": False,
+                "error": "Current user player ID not found"
+            }), 400
+        
+        print(f"[DEBUG] My matches with player API called - Current user: {current_user_player_id}, Target player: {target_player_id}")
+        print(f"[DEBUG] Current user league_id: {current_user.get('league_id', '')}")
+        
+        # Get user's league context for filtering
+        user_league_id = current_user.get("league_id", "")
+        league_id_int = None
+        
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        print(f"[DEBUG] Using league_id_int: {league_id_int}")
+        
+        # Query both current season and previous seasons
+        matches = []
+        
+        # Query current season matches (match_scores table)
+        current_season_query = """
+            SELECT 
+                ms.id,
+                ms.match_date,
+                ms.home_team,
+                ms.away_team,
+                ms.home_team_id,
+                ms.away_team_id,
+                ms.home_player_1_id,
+                ms.home_player_2_id,
+                ms.away_player_1_id,
+                ms.away_player_2_id,
+                ms.scores,
+                ms.winner,
+                ms.tenniscores_match_id,
+                'Current Season' as season_type,
+                NULL as season
+            FROM match_scores ms
+            WHERE ms.league_id = %s
+            AND (
+                -- Players as partners (same team)
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                -- Players as opponents (different teams)
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s)) OR
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+            )
+            ORDER BY ms.match_date DESC
+        """
+        
+        current_params = [
+            league_id_int,
+            current_user_player_id, target_player_id,  # Current user + target as home players
+            target_player_id, current_user_player_id,  # Target + current user as home players
+            current_user_player_id, target_player_id,  # Current user + target as away players
+            target_player_id, current_user_player_id,  # Target + current user as away players
+            # Opponents: current user on home team, target on away team
+            current_user_player_id, current_user_player_id, target_player_id, target_player_id,
+            # Opponents: target on home team, current user on away team
+            target_player_id, target_player_id, current_user_player_id, current_user_player_id
+        ]
+        
+        current_matches = execute_query(current_season_query, current_params)
+        print(f"[DEBUG] Current season matches found: {len(current_matches) if current_matches else 0}")
+        matches.extend(current_matches)
+        
+        # Query previous seasons matches (match_scores_previous_seasons table)
+        previous_season_query = """
+            SELECT 
+                ms.id,
+                ms.match_date,
+                ms.home_team,
+                ms.away_team,
+                ms.home_team_id,
+                ms.away_team_id,
+                ms.home_player_1_id,
+                ms.home_player_2_id,
+                ms.away_player_1_id,
+                ms.away_player_2_id,
+                ms.scores,
+                ms.winner,
+                ms.tenniscores_match_id,
+                'Previous Season' as season_type,
+                ms.season
+            FROM match_scores_previous_seasons ms
+            WHERE ms.league_id = %s
+            AND (
+                -- Players as partners (same team)
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.home_player_1_id = %s AND ms.home_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                (ms.away_player_1_id = %s AND ms.away_player_2_id = %s) OR
+                -- Players as opponents (different teams)
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s)) OR
+                ((ms.home_player_1_id = %s OR ms.home_player_2_id = %s) AND (ms.away_player_1_id = %s OR ms.away_player_2_id = %s))
+            )
+            ORDER BY ms.match_date DESC
+        """
+        
+        previous_params = [
+            league_id_int,
+            current_user_player_id, target_player_id,  # Current user + target as home players
+            target_player_id, current_user_player_id,  # Target + current user as home players
+            current_user_player_id, target_player_id,  # Current user + target as away players
+            target_player_id, current_user_player_id,  # Target + current user as away players
+            # Opponents: current user on home team, target on away team
+            current_user_player_id, current_user_player_id, target_player_id, target_player_id,
+            # Opponents: target on home team, current user on away team
+            target_player_id, target_player_id, current_user_player_id, current_user_player_id
+        ]
+        
+        previous_matches = execute_query(previous_season_query, previous_params)
+        print(f"[DEBUG] Previous season matches found: {len(previous_matches) if previous_matches else 0}")
+        matches.extend(previous_matches)
+        
+        # Sort all matches by date (newest first)
+        matches.sort(key=lambda x: x['match_date'], reverse=True)
+        
+        print(f"[DEBUG] Found {len(matches)} total matches between players")
+        
+        # Import helper function for name conversion
+        from app.services.mobile_service import get_player_name_from_id
+        
+        # Process matches to add player names and determine partnership details
+        processed_matches = []
+        for match in matches:
+            # Determine which team the current user is on
+            current_user_on_home = (match['home_player_1_id'] == current_user_player_id or 
+                                   match['home_player_2_id'] == current_user_player_id)
+            
+            # Check if players were partners or opponents
+            were_partners = (
+                (match['home_player_1_id'] == current_user_player_id and match['home_player_2_id'] == target_player_id) or
+                (match['home_player_2_id'] == current_user_player_id and match['home_player_1_id'] == target_player_id) or
+                (match['away_player_1_id'] == current_user_player_id and match['away_player_2_id'] == target_player_id) or
+                (match['away_player_2_id'] == current_user_player_id and match['away_player_1_id'] == target_player_id)
+            )
+            
+            if were_partners:
+                # Players were partners (same team)
+                if current_user_on_home:
+                    # Current user is on home team
+                    partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
+                    opponent1_id = match['away_player_1_id']
+                    opponent2_id = match['away_player_2_id']
+                    current_team = match['home_team']
+                    opponent_team = match['away_team']
+                    current_team_won = match['winner'] == 'home'
+                else:
+                    # Current user is on away team
+                    partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
+                    opponent1_id = match['home_player_1_id']
+                    opponent2_id = match['home_player_2_id']
+                    current_team = match['away_team']
+                    opponent_team = match['home_team']
+                    current_team_won = match['winner'] == 'away'
+                
+                # Get actual player names using the helper function
+                partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
+                opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
+                opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
+            else:
+                # Players were opponents (different teams)
+                if current_user_on_home:
+                    # Current user is on home team, target player is on away team
+                    partner_id = match['home_player_2_id'] if match['home_player_1_id'] == current_user_player_id else match['home_player_1_id']
+                    opponent1_id = match['away_player_1_id'] if match['away_player_1_id'] == target_player_id else match['away_player_2_id']
+                    opponent2_id = match['away_player_2_id'] if match['away_player_1_id'] == target_player_id else match['away_player_1_id']
+                    current_team = match['home_team']
+                    opponent_team = match['away_team']
+                    current_team_won = match['winner'] == 'home'
+                else:
+                    # Current user is on away team, target player is on home team
+                    partner_id = match['away_player_2_id'] if match['away_player_1_id'] == current_user_player_id else match['away_player_1_id']
+                    opponent1_id = match['home_player_1_id'] if match['home_player_1_id'] == target_player_id else match['home_player_2_id']
+                    opponent2_id = match['home_player_2_id'] if match['home_player_1_id'] == target_player_id else match['home_player_1_id']
+                    current_team = match['away_team']
+                    opponent_team = match['home_team']
+                    current_team_won = match['winner'] == 'away'
+                
+                # Get actual player names using the helper function
+                partner_name = get_player_name_from_id(partner_id) if partner_id else "Unknown Partner"
+                opponent1_name = get_player_name_from_id(opponent1_id) if opponent1_id else "Unknown Player"
+                opponent2_name = get_player_name_from_id(opponent2_id) if opponent2_id else "Unknown Player"
+            
+            processed_match = {
+                'id': match['id'],
+                'match_date': match['match_date'].strftime('%Y-%m-%d') if match['match_date'] else None,
+                'current_team': current_team,
+                'opponent_team': opponent_team,
+                'partner_name': partner_name,
+                'partner_id': partner_id,
+                'opponent1_name': opponent1_name,
+                'opponent1_id': opponent1_id,
+                'opponent2_name': opponent2_name,
+                'opponent2_id': opponent2_id,
+                'scores': match['scores'],
+                'current_team_won': current_team_won,
+                'season_type': match['season_type'],
+                'season': match['season'],
+                'tenniscores_match_id': match['tenniscores_match_id'],
+                'were_partners': were_partners,
+                'target_player_name': get_player_name_from_id(target_player_id)
+            }
+            
+            processed_matches.append(processed_match)
+        
+        return jsonify({
+            "success": True,
+            "matches": processed_matches,
+            "total_matches": len(processed_matches)
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error in get_my_matches_with_player: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
 # ==============================
 # Food API Routes
 # ==============================
@@ -13361,8 +14253,10 @@ def get_current_season_stats_api():
         
         # Get player analysis data using the same function as analyze-me page
         analyze_data = get_player_analysis(user_data)
+        print(f"[DEBUG] Current season stats API - analyze_data: {analyze_data}")
         
         if analyze_data.get("error"):
+            print(f"[DEBUG] Current season stats API - error: {analyze_data['error']}")
             return jsonify({
                 "success": False,
                 "error": analyze_data["error"]
@@ -13370,22 +14264,26 @@ def get_current_season_stats_api():
         
         # Extract current season data
         current_season = analyze_data.get("current_season", {})
+        print(f"[DEBUG] Current season stats API - current_season: {current_season}")
         
         if not current_season:
+            print(f"[DEBUG] Current season stats API - no current season data")
             return jsonify({
                 "success": False,
                 "error": "No current season data available"
             }), 404
         
         # Return the current season stats
-        return jsonify({
+        result = {
             "success": True,
             "matches": current_season.get("matches", 0),
             "wins": current_season.get("wins", 0),
             "losses": current_season.get("losses", 0),
             "win_rate": current_season.get("winRate", 0),
             "pti_change": current_season.get("ptiChange", "N/A")
-        }), 200
+        }
+        print(f"[DEBUG] Current season stats API - returning: {result}")
+        return jsonify(result), 200
         
     except Exception as e:
         print(f"Error getting current season stats: {str(e)}")
@@ -13395,13 +14293,18 @@ def get_current_season_stats_api():
         }), 500
 
 
+# Global cache for starting PTI data to avoid repeated file reads
+_starting_pti_cache = {}
+_cache_timestamp = None
+
 @api_bp.route("/rising-stars")
 @login_required
 def get_rising_stars():
-    """Get the 10 players with the biggest PTI gains in the current league"""
+    """Get the 10 players with the biggest PTI gains in the current league - OPTIMIZED"""
     try:
         import csv
         import os
+        import time
         from database_utils import execute_query
         
         user = session.get("user")
@@ -13429,48 +14332,97 @@ def get_rising_stars():
         if not user_league_db_id:
             return jsonify({"error": "Invalid league ID"}), 400
         
-        # Load starting PTI data from CSV
-        csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
-        starting_pti_data = {}
+        # OPTIMIZED: Cache starting PTI data to avoid repeated file reads
+        global _starting_pti_cache, _cache_timestamp
+        current_time = time.time()
         
-        try:
-            with open(csv_path, 'r', encoding='utf-8') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    first_name = row.get('First Name', '').strip()
-                    last_name = row.get('Last Name', '').strip()
-                    pti_str = row.get('PTI', '').strip()
-                    
-                    if first_name and last_name and pti_str:
-                        try:
-                            pti_value = float(pti_str)
-                            key = f"{first_name.lower()}_{last_name.lower()}"
-                            starting_pti_data[key] = pti_value
-                        except ValueError:
-                            continue
-        except Exception as e:
-            print(f"Error reading CSV file: {e}")
-            return jsonify({"error": "Could not load starting PTI data"}), 500
+        # Reload cache every 5 minutes or if cache is empty
+        if not _starting_pti_cache or (current_time - _cache_timestamp) > 300:
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'data', 'APTA Players - 2025 Season Starting PTI.csv')
+            _starting_pti_cache = {}
+            
+            try:
+                with open(csv_path, 'r', encoding='utf-8') as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    for row in reader:
+                        first_name = row.get('First Name', '').strip()
+                        last_name = row.get('Last Name', '').strip()
+                        pti_str = row.get('PTI', '').strip()
+                        
+                        if first_name and last_name and pti_str:
+                            try:
+                                pti_value = float(pti_str)
+                                key = f"{first_name.lower()}_{last_name.lower()}"
+                                _starting_pti_cache[key] = pti_value
+                            except ValueError:
+                                continue
+                
+                _cache_timestamp = current_time
+                print(f"Loaded {len(_starting_pti_cache)} starting PTI values into cache")
+                
+            except Exception as e:
+                print(f"Error loading starting PTI data: {e}")
+                return jsonify({
+                    "success": False,
+                    "error": "Could not load starting PTI data"
+                }), 500
         
-        # Get current PTI data for all players in the league
-        current_players_query = """
-            SELECT 
-                p.first_name,
-                p.last_name,
-                p.pti as current_pti,
-                c.name as club_name,
-                s.name as series_name
-            FROM players p
-            LEFT JOIN clubs c ON p.club_id = c.id
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.league_id = %s
-            AND p.tenniscores_player_id IS NOT NULL
-            AND p.is_active = true
-            AND p.pti IS NOT NULL
-            ORDER BY p.first_name, p.last_name
-        """
+        starting_pti_data = _starting_pti_cache
         
-        current_players = execute_query(current_players_query, [user_league_db_id])
+        # Get user's club for filtering
+        user_club = user.get("club")
+        user_club_id = None
+        if user_club:
+            club_query = "SELECT id FROM clubs WHERE name ILIKE %s"
+            club_result = execute_query_one(club_query, [f"%{user_club}%"])
+            if club_result:
+                user_club_id = club_result["id"]
+        
+        # Get current PTI data for players in the user's club
+        if user_club_id:
+            current_players_query = """
+                SELECT 
+                    p.id as player_id,
+                    p.tenniscores_player_id,
+                    p.first_name,
+                    p.last_name,
+                    p.pti as current_pti,
+                    p.team_id,
+                    c.name as club_name,
+                    s.name as series_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s
+                AND p.club_id = %s
+                AND p.tenniscores_player_id IS NOT NULL
+                AND p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            current_players = execute_query(current_players_query, [user_league_db_id, user_club_id])
+        else:
+            # Fallback to all players in league if club not found
+            current_players_query = """
+                SELECT 
+                    p.id as player_id,
+                    p.tenniscores_player_id,
+                    p.first_name,
+                    p.last_name,
+                    p.pti as current_pti,
+                    p.team_id,
+                    c.name as club_name,
+                    s.name as series_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s
+                AND p.tenniscores_player_id IS NOT NULL
+                AND p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            current_players = execute_query(current_players_query, [user_league_db_id])
         
         # Calculate PTI deltas
         rising_stars = []
@@ -13486,6 +14438,9 @@ def get_rising_stars():
             if starting_pti is not None:
                 pti_delta = current_pti - starting_pti
                 rising_stars.append({
+                    'player_id': player['player_id'],
+                    'tenniscores_player_id': player['tenniscores_player_id'],
+                    'team_id': player['team_id'],
                     'first_name': first_name,
                     'last_name': last_name,
                     'current_pti': current_pti,
@@ -13495,9 +14450,9 @@ def get_rising_stars():
                     'series_name': player['series_name']
                 })
         
-        # Sort by PTI delta (highest gains first) and take top 10
-        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=True)
-        top_rising_stars = rising_stars[:10]
+        # Sort by PTI delta (most negative first - biggest drops) and take top 100
+        rising_stars.sort(key=lambda x: x['pti_delta'], reverse=False)  # False = ascending (most negative first)
+        top_rising_stars = rising_stars[:100]
         
         return jsonify({
             "success": True,
@@ -13561,9 +14516,9 @@ def get_current_season_partner_analysis_api():
 @api_bp.route("/club-standings")
 @login_required
 def get_club_standings_api():
-    """Get club standings data for dashboard (same as my-club page)"""
+    """Get optimized club standings data for dashboard"""
     try:
-        from app.services.mobile_service import get_mobile_club_data
+        from database_utils import execute_query
         
         # Get user session data
         user_data = session.get("user", {})
@@ -13574,15 +14529,218 @@ def get_club_standings_api():
                 "error": "User session data not found"
             }), 400
         
-        # Get club data (same as my-club page)
-        club_data = get_mobile_club_data(user_data)
+        club_name = user_data.get("club", "")
+        user_league_id = user_data.get("league_id", "")
         
-        # Return the club standings data
+        if not club_name or not user_league_id:
+            return jsonify({
+                "success": False,
+                "error": "Club or league information not available"
+            }), 400
+        
+        # Convert league_id to database ID
+        user_league_db_id = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    user_league_db_id = league_record["id"]
+            except Exception as e:
+                print(f"Could not convert league ID: {e}")
+        elif isinstance(user_league_id, int):
+            user_league_db_id = user_league_id
+        
+        if not user_league_db_id:
+            return jsonify({
+                "success": False,
+                "error": "Invalid league ID"
+            }), 400
+        
+        # FIXED: Calculate actual consecutive win streaks, not just recent wins
+        streaks_query = """
+            WITH recent_matches AS (
+                SELECT 
+                    ms.match_date,
+                    ms.home_player_1_id,
+                    ms.home_player_2_id,
+                    ms.away_player_1_id,
+                    ms.away_player_2_id,
+                    ms.winner,
+                    ms.home_team,
+                    ms.away_team,
+                    ms.league_id
+                FROM match_scores ms
+                WHERE ms.match_date >= CURRENT_DATE - INTERVAL '60 days'
+                AND ms.winner IS NOT NULL
+                AND ms.winner != ''
+                AND ms.league_id = %s
+                AND (
+                    ms.home_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.home_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                )
+                ORDER BY ms.match_date DESC, ms.id DESC
+            ),
+            player_match_results AS (
+                SELECT 
+                    p.tenniscores_player_id,
+                    p.first_name || ' ' || p.last_name as player_name,
+                    p.team_id,
+                    s.name as series_name,
+                    rm.match_date,
+                    CASE 
+                        WHEN (rm.winner = 'home' AND rm.home_player_1_id = p.tenniscores_player_id) OR 
+                             (rm.winner = 'home' AND rm.home_player_2_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_1_id = p.tenniscores_player_id) OR
+                             (rm.winner = 'away' AND rm.away_player_2_id = p.tenniscores_player_id)
+                        THEN 'W' ELSE 'L' 
+                    END as result
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                JOIN recent_matches rm ON (
+                    rm.home_player_1_id = p.tenniscores_player_id OR
+                    rm.home_player_2_id = p.tenniscores_player_id OR
+                    rm.away_player_1_id = p.tenniscores_player_id OR
+                    rm.away_player_2_id = p.tenniscores_player_id
+                )
+                WHERE c.name ILIKE %s
+                AND p.is_active = true
+                ORDER BY p.tenniscores_player_id, rm.match_date DESC
+            ),
+            streak_calculations AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    match_date,
+                    result,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) as match_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as result_sequence,
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY tenniscores_player_id, result ORDER BY match_date DESC) as streak_group
+                FROM player_match_results
+            ),
+            current_streaks AS (
+                SELECT 
+                    tenniscores_player_id,
+                    player_name,
+                    team_id,
+                    series_name,
+                    result,
+                    COUNT(*) as current_streak_length,
+                    MAX(match_date) as last_match_date
+                FROM streak_calculations
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY tenniscores_player_id, player_name, team_id, series_name, result
+            )
+            SELECT 
+                tenniscores_player_id,
+                player_name,
+                team_id,
+                series_name,
+                current_streak_length,
+                last_match_date
+            FROM current_streaks
+            WHERE result = 'W'  -- Only show win streaks
+            AND current_streak_length >= 3  -- Only streaks of 3+ wins
+            ORDER BY current_streak_length DESC, last_match_date DESC
+            LIMIT 20
+        """
+        
+        try:
+            streaks_results = execute_query(streaks_query, [user_league_db_id, f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%'])
+            
+            # Format streaks data with proper consecutive win streak calculation
+            streaks = []
+            for row in streaks_results:
+                streaks.append({
+                    'player_name': row['player_name'],
+                    'tenniscores_player_id': row['tenniscores_player_id'],
+                    'team_id': row['team_id'],
+                    'current_streak': row['current_streak_length'],  # This is now the actual consecutive wins
+                    'best_streak': row['current_streak_length'],  # For now, same as current
+                    'last_match_date': row['last_match_date'].strftime('%Y-%m-%d') if row['last_match_date'] else 'Unknown',
+                    'series': row['series_name'] or 'No Series',
+                    'series_name': row['series_name'] or 'No Series',
+                    'total_matches': row['current_streak_length']  # This represents the streak length
+                })
+        except Exception as e:
+            print(f"Error calculating optimized player streaks: {e}")
+            streaks = []
+        
+        # OPTIMIZED: Use a single query with proper ranking logic
+        # The issue is that we need to rank ALL teams in each series, not just club teams
+        standings_query = """
+            SELECT 
+                club_teams.series,
+                club_teams.team,
+                club_teams.points,
+                club_teams.total_matches,
+                club_teams.total_points,
+                club_teams.avg_points,
+                club_teams.team_id,
+                all_rankings.rank_in_series || '/' || all_rankings.total_teams_in_series as place
+            FROM (
+                SELECT 
+                    ss.series,
+                    ss.team,
+                    ss.points,
+                    ss.matches_won + ss.matches_lost + ss.matches_tied as total_matches,
+                    ss.points as total_points,
+                    ss.team_id,
+                    CASE 
+                        WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
+                        THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
+                        ELSE 0 
+                    END as avg_points
+                FROM series_stats ss
+                WHERE ss.league_id = %s
+                AND ss.team LIKE %s
+            ) club_teams
+            JOIN (
+                SELECT 
+                    ss.series,
+                    ss.team,
+                    DENSE_RANK() OVER (PARTITION BY ss.series ORDER BY ss.points DESC) as rank_in_series,
+                    COUNT(*) OVER (PARTITION BY ss.series) as total_teams_in_series
+                FROM series_stats ss
+                WHERE ss.league_id = %s
+            ) all_rankings ON club_teams.series = all_rankings.series AND club_teams.team = all_rankings.team
+            ORDER BY club_teams.series, all_rankings.rank_in_series
+        """
+        
+        standings_results = execute_query(standings_query, [user_league_db_id, f"{club_name}%", user_league_db_id])
+        
+        # Debug: Print what we're getting
+        print(f"[DEBUG] Club standings query returned {len(standings_results)} teams")
+        for i, row in enumerate(standings_results[:5]):  # Print first 5
+            print(f"[DEBUG] Team {i+1}: {row['team']} - Place: {row['place']} - Points: {row['points']}")
+        
+        # Parse standings results
+        standings = []
+        for row in standings_results:
+            standings.append({
+                "series": row["series"],
+                "team": row["team"],
+                "points": row["points"],
+                "total_matches": row["total_matches"],
+                "total_points": row["total_points"],
+                "avg_points": row["avg_points"],
+                "team_id": row["team_id"],
+                "place": row["place"]
+            })
+        
+        # Return the optimized club standings data
         return jsonify({
             "success": True,
-            "tennaqua_standings": club_data.get("tennaqua_standings", []),
-            "player_streaks": club_data.get("player_streaks", []),
-            "club_name": club_data.get("club_name", user_data.get("club", "Unknown"))
+            "tennaqua_standings": standings,
+            "player_streaks": streaks,
+            "club_name": club_name
         }), 200
         
     except Exception as e:
@@ -13590,4 +14748,54 @@ def get_club_standings_api():
         return jsonify({
             "success": False,
             "error": str(e)
+        }), 500
+
+
+@api_bp.route("/weather", methods=["GET"])
+@login_required
+def get_weather():
+    """Get weather forecast for a specific location and date"""
+    try:
+        location = request.args.get('location')
+        date = request.args.get('date')
+        
+        if not location or not date:
+            return jsonify({
+                "success": False,
+                "error": "location and date parameters are required"
+            }), 400
+        
+        from app.services.weather_service import WeatherService
+        weather_service = WeatherService()
+        
+        forecast = weather_service.get_weather_for_location(location, date)
+        
+        if forecast:
+            return jsonify({
+                "success": True,
+                "weather": {
+                    "date": forecast.date,
+                    "temperature_high": forecast.temperature_high,
+                    "temperature_low": forecast.temperature_low,
+                    "condition": forecast.condition,
+                    "condition_code": forecast.condition_code,
+                    "precipitation_chance": forecast.precipitation_chance,
+                    "wind_speed": forecast.wind_speed,
+                    "humidity": forecast.humidity,
+                    "icon": forecast.icon,
+                    "icon_url": weather_service.get_weather_icon_url(forecast.icon),
+                    "formatted_message": weather_service.format_weather_message(forecast)
+                }
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Weather data not available for this location and date"
+            }), 404
+            
+    except Exception as e:
+        logger.error(f"Error getting weather: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": f"Failed to retrieve weather data: {str(e)}"
         }), 500

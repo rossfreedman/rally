@@ -1,0 +1,887 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                <i class="fas fa-list text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Active Sub Requests</h1>
+                <p class="text-sm text-gray-500">View and join open sub requests</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        <!-- Navigation Button -->
+        <div class="flex justify-center">
+            <a href="/mobile/create-sub-request" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors duration-200" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
+                <i class="fas fa-plus mr-2"></i>
+                New Sub Request
+            </a>
+        </div>
+
+        <!-- Active Sub Requests Section -->
+        <div id="activeRequestsCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-users mr-2" style="color: #bff863;"></i>
+                    Active Sub Requests
+                </h2>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="requestsLoading" class="flex flex-col items-center justify-center py-12">
+                <div class="loading loading-spinner loading-lg text-blue-500 mb-3"></div>
+                <p class="text-gray-500 text-sm">Loading requests...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="requestsEmpty" class="flex flex-col items-center justify-center py-12 hidden">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No open sub requests</h3>
+                <p class="text-gray-500 text-center mb-4">No open sub requests right now.</p>
+                <a href="/mobile/create-sub-request" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors duration-200" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
+                    <i class="fas fa-plus mr-2"></i>
+                    New Sub Request
+                </a>
+            </div>
+
+            <!-- Requests List -->
+            <div id="requestsList" class="grid grid-cols-1 gap-3 p-4">
+                <!-- Requests will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Archived Sub Requests Section -->
+        <div id="archivedRequestsCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+            <div class="px-6 py-4 border-b border-gray-50" style="background-color: #6b7280;">
+                <h2 class="text-lg font-semibold flex items-center text-white">
+                    <i class="fas fa-archive mr-2"></i>
+                    Archived Sub Requests
+                </h2>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="archivedRequestsLoading" class="flex flex-col items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+                <p class="text-gray-500">Loading archived requests...</p>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="archivedRequestsEmpty" class="flex flex-col items-center justify-center py-12" style="display: none;">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-archive text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No archived requests</h3>
+                <p class="text-gray-500 text-center mb-6">Archived sub requests will appear here.</p>
+            </div>
+            
+            <!-- Archived Requests List -->
+            <div id="archivedRequestsList" class="divide-y divide-gray-100" style="display: none;">
+                <!-- Archived requests will be populated here -->
+            </div>
+        </div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none" style="padding: 20px;"></div>
+
+<style>
+/* Hide elements */
+.hidden {
+    display: none;
+}
+
+/* Request card styles */
+.request-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.request-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+/* Slot styles matching pickup games */
+.slot-occupied {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.slot-available {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+}
+
+.slot-number {
+    background-color: #16a34a;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.slot-number.available {
+    background-color: #9ca3af;
+}
+
+.request-header {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.request-creator {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 16px;
+}
+
+.request-time {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.request-criteria {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.criteria-item {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.criteria-label {
+    font-weight: 500;
+    color: #166534;
+}
+
+.criteria-value {
+    color: #15803d;
+}
+
+.request-datetime {
+    background: #045454;
+    border: 1px solid #bff863;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #bff863;
+    font-weight: 500;
+}
+
+.request-broadcast {
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #166534;
+    font-weight: 500;
+}
+
+.request-broadcast-disabled {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.request-notes {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #0c4a6e;
+}
+
+.request-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.slots-info {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.slots-count {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.join-button {
+    background: #045454;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.join-button:hover {
+    background: #085454;
+}
+
+.join-button:disabled {
+    background: #d1d5db;
+    cursor: not-allowed;
+}
+
+.join-button.full {
+    background: #6b7280;
+}
+
+.leave-button {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.archive-button {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.archive-button:hover {
+    background: #d97706;
+}
+
+.archived-card {
+    opacity: 0.7;
+    background-color: #f9fafb;
+    border-left: 4px solid #6b7280;
+}
+
+.archived-card .request-creator,
+.archived-card .request-time,
+.archived-card .criteria-value {
+    color: #6b7280;
+}
+
+.request-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.request-footer .left-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.request-footer .right-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* Toast styles */
+.toast {
+    padding: 20px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    animation: fadeInScale 0.3s ease-out;
+    max-width: 90%;
+    width: auto;
+    display: flex;
+    align-items: center;
+    line-height: 1.5;
+    word-wrap: break-word;
+    text-align: center;
+    pointer-events: auto;
+    position: relative;
+}
+
+.toast.success {
+    background-color: #10b981;
+    border: 3px solid #059669;
+}
+
+.toast.error {
+    background-color: #ef4444;
+    border: 3px solid #dc2626;
+}
+
+@keyframes fadeInScale {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Loading spinner */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let activeRequests = [];
+    let archivedRequests = [];
+    
+    // UI Elements
+    const activeRequestsCard = document.getElementById('activeRequestsCard');
+    const requestsLoading = document.getElementById('requestsLoading');
+    const requestsEmpty = document.getElementById('requestsEmpty');
+    const requestsList = document.getElementById('requestsList');
+    const toastContainer = document.getElementById('toastContainer');
+    
+    // Initialize page
+    async function initializePage() {
+        try {
+            await loadActiveRequests();
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            showToast('Failed to load page data', 'error');
+        }
+    }
+    
+    // Load active requests
+    async function loadActiveRequests() {
+        try {
+            showLoading(true);
+            
+            const response = await fetch('/api/subfinder');
+            if (!response.ok) throw new Error('Failed to fetch requests');
+            
+            const data = await response.json();
+            activeRequests = data.active_requests || [];
+            archivedRequests = data.archived_requests || [];
+            
+            if (activeRequests.length === 0) {
+                showEmptyState();
+            } else {
+                showRequests(activeRequests);
+            }
+            
+            // Display archived requests
+            displayArchivedRequests(archivedRequests);
+            
+        } catch (error) {
+            console.error('Error loading requests:', error);
+            showToast('Failed to load requests', 'error');
+            showEmptyState();
+        } finally {
+            showLoading(false);
+        }
+    }
+    
+    // Show loading state
+    function showLoading(show) {
+        if (show) {
+            requestsLoading.classList.remove('hidden');
+            requestsEmpty.classList.add('hidden');
+            requestsList.innerHTML = '';
+        } else {
+            requestsLoading.classList.add('hidden');
+        }
+    }
+    
+    // Show empty state
+    function showEmptyState() {
+        requestsEmpty.classList.remove('hidden');
+        requestsList.innerHTML = '';
+    }
+    
+    // Show requests
+    function showRequests(requests) {
+        requestsEmpty.classList.add('hidden');
+        
+        requests.forEach(request => {
+            const requestCard = createRequestCard(request);
+            requestsList.appendChild(requestCard);
+        });
+    }
+    
+    // Create request card
+    function createRequestCard(request) {
+        const card = document.createElement('div');
+        card.className = 'request-card';
+        
+        const isFull = request.slots_filled >= request.slots_total;
+        const slotsRemaining = request.slots_total - request.slots_filled;
+        
+        // Create visual slot representation like pickup games
+        const slotsHtml = Array.from({ length: request.slots_total }, (_, i) => {
+            const slotNumber = i + 1;
+            const isOccupied = i < request.slots_filled;
+            const participant = isOccupied && request.participants && request.participants[i] ? request.participants[i] : null;
+            
+            if (isOccupied && participant) {
+                const joinDateTime = new Date(participant.joined_at);
+                const joinDate = joinDateTime.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+                const joinTime = joinDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                return `<div class="bg-green-100 text-green-800 rounded-lg text-xs font-medium border border-green-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: ${participant.name} - Joined ${joinDate} at ${joinTime}">
+                    <div class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="truncate font-medium text-green-800">${participant.name}</div>
+                        <div class="text-green-600 opacity-75 text-xs">Joined ${joinDate} at ${joinTime}</div>
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="bg-gray-100 text-gray-500 rounded-lg text-xs border border-gray-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: Available">
+                    <div class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                    <div class="flex-1">
+                        <div class="font-medium">Open</div>
+                    </div>
+                </div>`;
+            }
+        }).join('');
+        
+        card.innerHTML = `
+            <div class="request-header">
+                <div>
+                    <div class="request-creator">Sub Requester: ${request.creator_name}</div>
+                    <div class="request-time">${formatTime(request.created_at)}</div>
+                </div>
+            </div>
+            
+            ${request.match_date && request.match_time ? `
+                <div class="request-datetime">
+                    <i class="fas fa-calendar-alt mr-2"></i>
+                    ${request.type || 'Match'} - ${formatMatchDateTime(request.match_date, request.match_time)}
+                </div>
+            ` : ''}
+            
+            ${request.broadcast_via_text ? `
+                <div class="request-broadcast">
+                    <i class="fas fa-sms mr-2"></i>
+                    Text notifications enabled
+                </div>
+            ` : `
+                <div class="request-broadcast-disabled">
+                    <i class="fas fa-sms-slash mr-2"></i>
+                    Text notifications disabled
+                </div>
+            `}
+            
+            ${request.notes ? `
+                <div class="request-notes">
+                    <i class="fas fa-sticky-note mr-2"></i>
+                    ${request.notes}
+                </div>
+            ` : ''}
+            
+            <div class="request-criteria">
+                <div class="criteria-item">
+                    <div class="criteria-label">PTI Range</div>
+                    <div class="criteria-value">${request.pti_min} - ${request.pti_max}</div>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-label">Series Range</div>
+                    <div class="criteria-value">${request.series_min} - ${request.series_max}</div>
+                </div>
+            </div>
+            
+            <!-- Visual slot representation -->
+            <div class="grid grid-cols-1 gap-1 mb-3">
+                ${slotsHtml}
+            </div>
+            
+            ${slotsRemaining > 0 ? `
+                <div class="text-xs text-blue-600 font-medium mb-3">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    ${slotsRemaining} slot${slotsRemaining === 1 ? '' : 's'} still available
+                </div>
+            ` : isFull ? `
+                <div class="text-xs text-red-600 font-medium mb-3">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    All slots are filled
+                </div>
+            ` : ''}
+            
+                <div class="request-footer">
+                    <div class="left-buttons">
+                        <button 
+                            class="join-button ${isFull ? 'full' : ''}" 
+                            ${isFull ? 'disabled' : ''}
+                            onclick="handleJoinRequest(${request.id})"
+                        >
+                            ${isFull ? 'Full' : 'Join as Sub'}
+                        </button>
+                        ${request.user_has_joined ? `
+                            <button
+                                class="leave-button"
+                                onclick="handleLeaveRequest(${request.id})"
+                            >
+                                Sorry, can't
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="right-buttons">
+                        <button
+                            class="archive-button"
+                            onclick="handleArchiveRequest(${request.id})"
+                            title="Archive this sub request"
+                        >
+                            <i class="fas fa-archive mr-1"></i>
+                            Archive
+                        </button>
+                    </div>
+                </div>
+        `;
+        
+        return card;
+    }
+    
+    // Handle join request
+    window.handleJoinRequest = async function(requestId) {
+        try {
+            const response = await fetch(`/api/subfinder/${requestId}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Successfully joined as sub!', 'success');
+                    // Reload requests to update the UI and show the user's participation
+                    await loadActiveRequests();
+                } else {
+                    showToast(data.error || 'Failed to join request', 'error');
+                }
+            } else {
+                // Handle error responses (400, 500, etc.)
+                const data = await response.json();
+                showToast(data.error || 'Failed to join request', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error joining request:', error);
+            showToast('Failed to join request. Please try again.', 'error');
+        }
+    };
+    
+    // Handle delete request
+    window.handleArchiveRequest = async function(requestId) {
+        if (!confirm('Are you sure you want to archive this sub request? It will be moved to the archived section.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/subfinder/${requestId}/archive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast('Sub request archived successfully', 'success');
+                // Reload requests to update the UI
+                await loadActiveRequests();
+            } else {
+                showToast(data.error || 'Failed to archive request', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error archiving request:', error);
+            showToast('Failed to archive request. Please try again.', 'error');
+        }
+    };
+    
+    // Handle leave request
+    window.handleLeaveRequest = async function(requestId) {
+        try {
+            const response = await fetch(`/api/subfinder/${requestId}/leave`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast('You have been removed from the sub request', 'success');
+                // Reload requests to update the UI
+                await loadActiveRequests();
+            } else {
+                showToast(data.error || 'Failed to leave request', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error leaving request:', error);
+            showToast('Failed to leave request. Please try again.', 'error');
+        }
+    };
+    
+    // Format time
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        
+        return date.toLocaleDateString();
+    }
+    
+    // Display archived requests
+    function displayArchivedRequests(requests) {
+        const archivedRequestsList = document.getElementById('archivedRequestsList');
+        const archivedRequestsEmpty = document.getElementById('archivedRequestsEmpty');
+        const archivedRequestsLoading = document.getElementById('archivedRequestsLoading');
+        
+        // Hide loading
+        archivedRequestsLoading.style.display = 'none';
+        
+        if (requests.length === 0) {
+            archivedRequestsEmpty.style.display = 'flex';
+            archivedRequestsList.style.display = 'none';
+        } else {
+            archivedRequestsEmpty.style.display = 'none';
+            archivedRequestsList.style.display = 'block';
+            
+            // Create archived request cards
+            archivedRequestsList.innerHTML = requests.map(request => {
+                const card = createArchivedRequestCard(request);
+                return card.outerHTML;
+            }).join('');
+        }
+    }
+    
+    // Create archived request card (read-only version)
+    function createArchivedRequestCard(request) {
+        const card = document.createElement('div');
+        card.className = 'request-card archived-card';
+        
+        // Create visual slot representation like pickup games
+        const slotsHtml = Array.from({ length: request.slots_total }, (_, i) => {
+            const slotNumber = i + 1;
+            const isOccupied = i < request.slots_filled;
+            const participant = isOccupied && request.participants && request.participants[i] ? request.participants[i] : null;
+
+            if (isOccupied && participant) {
+                const joinDateTime = new Date(participant.joined_at);
+                const joinDate = joinDateTime.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+                const joinTime = joinDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                return `<div class="bg-green-100 text-green-800 rounded-lg text-xs font-medium border border-green-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: ${participant.name} - Joined ${joinDate} at ${joinTime}">
+                    <div class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="truncate font-medium text-green-800">${participant.name}</div>
+                        <div class="text-green-600 opacity-75 text-xs">Joined ${joinDate} at ${joinTime}</div>
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="bg-gray-100 text-gray-500 rounded-lg text-xs border border-gray-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: Available">
+                    <div class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                    <div class="flex-1">
+                        <div class="font-medium">Open</div>
+                    </div>
+                </div>`;
+            }
+        }).join('');
+
+        card.innerHTML = `
+            <div class="request-header">
+                <div>
+                    <div class="request-creator">Sub Requester: ${request.creator_name}</div>
+                    <div class="request-time">${formatTime(request.created_at)}</div>
+                </div>
+            </div>
+
+            ${request.match_date && request.match_time ? `
+                <div class="request-datetime">
+                    <i class="fas fa-calendar-alt mr-2"></i>
+                    ${request.type || 'Match'} - ${formatMatchDateTime(request.match_date, request.match_time)}
+                </div>
+            ` : ''}
+            
+            ${request.broadcast_via_text ? `
+                <div class="request-broadcast">
+                    <i class="fas fa-sms mr-2"></i>
+                    Text notifications enabled
+                </div>
+            ` : `
+                <div class="request-broadcast-disabled">
+                    <i class="fas fa-sms-slash mr-2"></i>
+                    Text notifications disabled
+                </div>
+            `}
+            
+            ${request.notes ? `
+                <div class="request-notes">
+                    <i class="fas fa-sticky-note mr-2"></i>
+                    ${request.notes}
+                </div>
+            ` : ''}
+
+            <div class="request-criteria">
+                <div class="criteria-item">
+                    <div class="criteria-label">PTI Range</div>
+                    <div class="criteria-value">${request.pti_min} - ${request.pti_max}</div>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-label">Series Range</div>
+                    <div class="criteria-value">${request.series_min} - ${request.series_max}</div>
+                </div>
+            </div>
+
+            <!-- Visual slot representation -->
+            <div class="grid grid-cols-1 gap-1 mb-3">
+                ${slotsHtml}
+            </div>
+
+            <div class="text-xs text-gray-500 font-medium mb-3">
+                <i class="fas fa-archive mr-1"></i>
+                Archived - ${request.slots_filled}/${request.slots_total} slots filled
+            </div>
+        `;
+
+        return card;
+    }
+    function formatMatchDateTime(dateStr, timeStr) {
+        if (!dateStr || !timeStr) return 'Date/time not specified';
+        
+        // Parse the date string properly to avoid timezone issues
+        // Split the date string and create a local date object
+        const dateParts = dateStr.split('-');
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2]);
+        
+        // Create a local date object (not UTC)
+        const date = new Date(year, month, day);
+        
+        const formattedDate = date.toLocaleDateString('en-US', { 
+            weekday: 'short',
+            month: 'short', 
+            day: 'numeric'
+        });
+        
+        // Convert to 12-hour format
+        const timeParts = timeStr.split(':');
+        const hours = parseInt(timeParts[0]);
+        const minutes = timeParts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12; // Convert 0 to 12 for midnight
+        const formattedTime = `${displayHours}:${minutes} ${ampm}`;
+        
+        return `${formattedDate} at ${formattedTime}`;
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        console.log(`[TOAST] Showing ${type} message:`, message);
+        
+        if (!toastContainer) {
+            console.error('[TOAST] Toast container not found!');
+            // Create a fallback alert
+            alert(message);
+            return;
+        }
+        
+        // Clear any existing toasts
+        toastContainer.innerHTML = '';
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        // Add icon based on type
+        const icon = type === 'success' ? 
+            '<i class="fas fa-check-circle mr-2"></i>' : 
+            '<i class="fas fa-exclamation-circle mr-2"></i>';
+        
+        toast.innerHTML = `${icon}${message}`;
+        
+        toastContainer.appendChild(toast);
+        
+        // Auto remove after 5 seconds (longer for error messages)
+        const duration = type === 'error' ? 6000 : 4000;
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, duration);
+    }
+    
+    // Initialize the page
+    initializePage();
+});
+</script>
+{% endblock %}

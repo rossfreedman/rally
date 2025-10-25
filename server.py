@@ -34,6 +34,7 @@ from flask import (
     request,
     send_from_directory,
     session,
+    url_for,
 )
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -212,7 +213,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", secrets.token_hex(32))
 
 # Session config
 app.config.update(
-    SESSION_COOKIE_SECURE=not is_development,
+    SESSION_COOKIE_SECURE=False,  # Allow HTTP for local network testing
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(days=1),
@@ -220,7 +221,7 @@ app.config.update(
     SESSION_COOKIE_PATH="/",
     SESSION_REFRESH_EACH_REQUEST=True,
     # Mobile compatibility settings
-    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains
+    SESSION_COOKIE_DOMAIN=None,  # Allow all subdomains and IPs
     SESSION_COOKIE_USE_IP=False,  # Don't bind to IP
 )
 
@@ -800,6 +801,13 @@ def serve_pro_page():
             session_data=session_data,
             error="An error occurred while loading the pro dashboard",
         )
+
+
+@app.route("/subfinder")
+@login_required
+def serve_subfinder():
+    """Serve the Sub Finder page - redirects to create sub request page"""
+    return redirect(url_for('mobile.serve_mobile_create_sub_request'))
 
 
 # Marketing website HTML pages routes - CRITICAL FIX for feature pages

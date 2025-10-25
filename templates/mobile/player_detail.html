@@ -364,6 +364,45 @@
         </div>
         {% endif %}
 
+        <!-- My Matches with [player name] -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4" style="background-color: #045454;">
+                <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
+                    <i class="fas fa-users mr-2" style="color: #bff863;"></i>
+                    My Matches against {{ player_name }}
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Loading State -->
+                <div id="myMatchesLoading" class="text-center py-8">
+                    <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+                    <p class="text-gray-500 text-sm">Loading matches...</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="myMatchesError" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <p class="text-red-700 text-sm">Unable to load matches</p>
+                </div>
+                
+                <!-- Matches List -->
+                <div id="myMatchesList" class="hidden space-y-4">
+                    <!-- Matches will be loaded here via JavaScript -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="myMatchesEmpty" class="hidden text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-users text-gray-400 text-2xl"></i>
+                    </div>
+                    <p class="text-gray-500">No matches found with {{ player_name }}</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Court Performance -->
         {% if analyze_data.court_analysis %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -711,10 +750,11 @@
         {% endif %}
 
         <!-- Player Notes Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if has_notes_access %}
+        <div id="player-notes-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-sticky-note mr-2" style="color: #bff863;"></i>
+                    <i class="fas fa-edit mr-2" style="color: #dc2626;"></i>
                     Player Notes
                 </h2>
             </div>
@@ -743,7 +783,7 @@
                 <!-- Empty State -->
                 <div id="notesEmpty" class="hidden text-center py-4">
                     <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <i class="fas fa-sticky-note text-gray-400 text-xl"></i>
+                        <i class="fas fa-edit text-gray-400 text-xl"></i>
                     </div>
                     <p class="text-gray-500 text-sm">No notes yet for this player</p>
                 </div>
@@ -782,6 +822,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
     </div>
 </div>
@@ -1611,6 +1652,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load player notes
     loadPlayerNotes();
     
+    // Load my matches with player
+    loadMyMatchesWithPlayer();
+    
     // Setup note submission
     const addNoteForm = document.getElementById('addNoteForm');
     if (addNoteForm) {
@@ -1657,6 +1701,198 @@ async function loadPlayerNotes() {
     }
 }
 
+// Load my matches with player from API
+async function loadMyMatchesWithPlayer() {
+    const loading = document.getElementById('myMatchesLoading');
+    const matchesList = document.getElementById('myMatchesList');
+    const matchesEmpty = document.getElementById('myMatchesEmpty');
+    const matchesError = document.getElementById('myMatchesError');
+    
+    try {
+        // Get target player ID from URL
+        const pathParts = window.location.pathname.split('/');
+        const playerId = pathParts[pathParts.length - 1];
+        
+        // Extract actual player ID from composite ID if needed
+        let targetPlayerId = playerId;
+        if (playerId.includes('_team_')) {
+            targetPlayerId = playerId.split('_team_')[0];
+        }
+        
+        console.log('[DEBUG] Loading my matches with player:', targetPlayerId);
+        console.log('[DEBUG] Full URL path:', window.location.pathname);
+        console.log('[DEBUG] Path parts:', pathParts);
+        console.log('[DEBUG] Player ID from URL:', playerId);
+        
+        // Fetch matches
+        const response = await fetch(`/api/my-matches-with-player?target_player_id=${encodeURIComponent(targetPlayerId)}`);
+        const data = await response.json();
+        
+        console.log('[DEBUG] My matches response:', data);
+        
+        // Hide loading
+        loading.classList.add('hidden');
+        
+        if (data.success && data.matches && data.matches.length > 0) {
+            // Show matches list
+            matchesList.classList.remove('hidden');
+            renderMyMatches(data.matches);
+        } else {
+            // Show empty state
+            matchesEmpty.classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        console.error('[DEBUG] Error loading my matches:', error);
+        loading.classList.add('hidden');
+        matchesError.classList.remove('hidden');
+    }
+}
+
+// Render matches in the list
+function renderMyMatches(matches) {
+    const matchesList = document.getElementById('myMatchesList');
+    const currentPlayerName = "{{ session_data.user.first_name }} {{ session_data.user.last_name }}";
+    
+    let html = '';
+    
+    // Group matches by season type
+    const currentSeasonMatches = matches.filter(m => m.season_type === 'Current Season');
+    const previousSeasonMatches = matches.filter(m => m.season_type === 'Previous Season');
+    
+    // Render current season matches
+    if (currentSeasonMatches.length > 0) {
+        html += `
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Current Season</h3>
+                <div class="space-y-3">
+        `;
+        
+        currentSeasonMatches.forEach(match => {
+            html += renderMatchCard(match, currentPlayerName);
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // Render previous season matches
+    if (previousSeasonMatches.length > 0) {
+        html += `
+            <div class="mb-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Previous Seasons</h3>
+                <div class="space-y-3">
+        `;
+        
+        previousSeasonMatches.forEach(match => {
+            html += renderMatchCard(match, currentPlayerName);
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    matchesList.innerHTML = html;
+}
+
+// Render individual match card
+function renderMatchCard(match, currentPlayerName) {
+    const matchDate = new Date(match.match_date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    
+    const winClass = match.current_team_won ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200';
+    const winIcon = match.current_team_won ? 'fas fa-trophy text-green-500' : 'fas fa-times-circle text-red-500';
+    
+    if (match.were_partners) {
+        // Players were partners
+        return `
+            <div class="border rounded-lg p-4 ${winClass}">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="${winIcon}"></i>
+                        <span class="font-semibold text-sm">${matchDate}</span>
+                        ${match.season ? `<span class="text-xs text-gray-500">(${match.season})</span>` : ''}
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Partners</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">${match.current_team} vs ${match.opponent_team}</div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <!-- Current Player's Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span class="text-sm font-medium">${currentPlayerName}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm font-medium">${match.partner_name}</span>
+                        </div>
+                        <div class="text-xs text-gray-600">${match.scores || 'No scores'}</div>
+                    </div>
+                    
+                    <!-- Opponent Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span class="text-sm">${match.opponent1_name}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm">${match.opponent2_name}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Players were opponents
+        return `
+            <div class="border rounded-lg p-4 ${winClass}">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="${winIcon}"></i>
+                        <span class="font-semibold text-sm">${matchDate}</span>
+                        ${match.season ? `<span class="text-xs text-gray-500">(${match.season})</span>` : ''}
+                        <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Opponents</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500">${match.current_team} vs ${match.opponent_team}</div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2">
+                    <!-- Current Player's Team -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span class="text-sm font-medium">${currentPlayerName}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm font-medium">${match.partner_name}</span>
+                        </div>
+                        <div class="text-xs text-gray-600">${match.scores || 'No scores'}</div>
+                    </div>
+                    
+                    <!-- Opponent Team (with target player highlighted) -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                            <span class="text-sm ${match.opponent1_name === match.target_player_name ? 'font-bold text-red-600' : ''}">${match.opponent1_name}</span>
+                            <span class="text-xs text-gray-500">+</span>
+                            <span class="text-sm ${match.opponent2_name === match.target_player_name ? 'font-bold text-red-600' : ''}">${match.opponent2_name}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
 // Render notes in the list
 function renderNotes(notes) {
     const notesList = document.getElementById('notesList');
@@ -1674,14 +1910,14 @@ function renderNotes(notes) {
                         <span class="text-xs text-gray-500 ml-2">${escapeHtml(note.created_at)}</span>
                     </div>
                     ${isOwner ? `
-                        <div class="flex gap-2 ml-2">
+                        <div class="flex gap-4 ml-2">
                             <button onclick="editNote(${note.id}, '${escapeHtml(note.note).replace(/'/g, "\\'")}');" 
-                                    class="text-blue-600 hover:text-blue-800 text-xs"
+                                    class="text-blue-600 hover:text-blue-800 text-xl"
                                     title="Edit note">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button onclick="deleteNote(${note.id});" 
-                                    class="text-red-600 hover:text-red-800 text-xs"
+                                    class="text-red-600 hover:text-red-800 text-xl"
                                     title="Delete note">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -1905,5 +2141,7 @@ async function deleteNote(noteId) {
         alert('Failed to delete note. Please try again.');
     }
 }
+
+// Remove autoscroll functionality - using modal approach instead
 </script>
 {% endblock %}

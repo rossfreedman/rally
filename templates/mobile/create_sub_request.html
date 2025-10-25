@@ -1,0 +1,848 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #10645c !important;">
+                <i class="fas fa-plus-circle text-white text-lg"></i>
+            </div>
+            <div class="ml-4 flex-1">
+                <div class="flex items-center gap-2">
+                    <h1 class="text-xl font-bold text-gray-900">Create Sub Request</h1>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold" style="background-color: #bff863; color: #045454;">BETA</span>
+                </div>
+                <p class="text-sm text-gray-500">Find substitutes when you're short for a match or practice</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        <!-- Navigation Buttons -->
+        <div class="flex gap-3 justify-center flex-wrap">
+            <a href="/mobile/active-sub-requests" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors duration-200" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
+                <i class="fas fa-list mr-2"></i>
+                View Active Requests
+            </a>
+            <a href="/mobile/find-subs" class="inline-flex items-center px-4 py-2 text-white rounded-lg transition-colors duration-200" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
+                <i class="fas fa-user-friends mr-2"></i>
+                Recommended Subs
+            </a>
+        </div>
+
+        <!-- Create Sub Request Form -->
+        <div id="createRequestCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 space-y-4">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-plus-circle mr-2" style="color: #085454;"></i>
+                    Create Sub Request
+                </h2>
+                
+                <!-- Warning Message -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-green-600 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-green-800">
+                                How this works
+                            </h3>
+                            <div class="mt-1 text-sm text-green-700">
+                                <p>All players at <strong>{{ session_data.user.club if session_data and session_data.user and session_data.user.club else 'your club' }}</strong> who match these criteria will be notified by text message about this sub request.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Type -->
+                <div>
+                    <label for="requestType" class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select id="requestType" required
+                            class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="Match">Match</option>
+                        <option value="Practice">Practice</option>
+                    </select>
+                </div>
+                
+                <!-- Date and Time -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="matchDate" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                        <input type="date" id="matchDate" required
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="matchTime" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                        <input type="time" id="matchTime" required
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Message -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <textarea id="notes" placeholder="e.g., Need one sub for tonight at 6:30 PM" rows="3"
+                              class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
+                </div>
+                
+                <!-- PTI Range -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div>
+                            <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
+                            <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="-30" max="100" value="35" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">35</span></div>
+                        </div>
+                        <div>
+                            <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
+                            <input type="range" id="ptiMaxSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="-30" max="100" value="45" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">45</span></div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center">
+                            Available Range: <span id="ptiRangeDisplay">35 - 45</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Series Range -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Series Range</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="seriesMin" class="block text-xs font-medium text-gray-600 mb-2">Min Series</label>
+                            <input type="number" id="seriesMin" placeholder="20" min="1" max="50" step="1"
+                                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="seriesMax" class="block text-xs font-medium text-gray-600 mb-2">Max Series</label>
+                            <input type="number" id="seriesMax" placeholder="23" min="1" max="50" step="1"
+                                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Number of Slots -->
+                <div>
+                    <label for="slotsTotal" class="block text-sm font-medium text-gray-700 mb-2">Number of Sub Open Slots</label>
+            <input type="number" id="slotsTotal" placeholder="1" min="1" max="16" step="1"
+                   class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <!-- Broadcast via Text Checkbox -->
+                <div class="flex items-center">
+                    <input type="checkbox" id="broadcastViaText" checked
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="broadcastViaText" class="ml-2 block text-sm text-gray-700">
+                        Broadcast via Text
+                    </label>
+                </div>
+
+                <!-- Matching Players Preview -->
+                <div id="matchingPlayersSection" class="mt-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-3">
+                        <i class="fas fa-users mr-2" style="color: #045454;"></i>
+                        Players Who Match
+                    </h3>
+                    <div class="flex items-center justify-center mb-3">
+                        <span id="matchingPlayersCount" class="bg-green-100 text-green-800 text-lg font-bold px-4 py-2 rounded-full">
+                            0 players
+                        </span>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="matchingPlayersLoading" class="hidden text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+                        <p class="text-sm text-gray-500 mt-2">Finding matching players...</p>
+                    </div>
+                    
+                    <!-- Players Table -->
+                    <div id="matchingPlayersTable" class="overflow-hidden border border-gray-200 rounded-lg">
+                        <div class="overflow-x-auto max-h-64 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PTI</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="matchingPlayersTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Rows will be populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="matchingPlayersEmpty" class="hidden text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                        <i class="fas fa-user-slash text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-sm text-gray-500">No players match your current criteria</p>
+                        <p class="text-xs text-gray-400 mt-1">Try adjusting the PTI or Series range</p>
+                    </div>
+                </div>
+
+        <!-- Submit Button -->
+        <button id="submitRequest" class="btn-primary w-full py-3 px-4 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 font-medium" style="background-color: #045454 !important;" onmouseover="this.style.backgroundColor='#085454'" onmouseout="this.style.backgroundColor='#045454'">
+            <i class="fas fa-paper-plane mr-2"></i>
+            Submit Request
+        </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+<style>
+/* Hide elements */
+.hidden {
+    display: none;
+}
+
+/* Custom slider styles */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.slider:hover {
+    background: #d1d5db;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Validation error styles */
+.error-field {
+    border-color: #ef4444 !important;
+    background-color: #fef2f2 !important;
+}
+
+.error-field.slider {
+    background-color: #fef2f2 !important;
+}
+
+.error-field.slider::-webkit-slider-track {
+    background: #fef2f2 !important;
+    border: 1px solid #ef4444 !important;
+}
+
+.error-field.slider::-webkit-slider-thumb {
+    background: #ef4444 !important;
+    border: 2px solid #ef4444 !important;
+}
+
+.field-error {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Toast styles */
+.toast {
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+    max-width: 300px;
+}
+
+.toast.success {
+    background-color: #10b981;
+}
+
+.toast.error {
+    background-color: #ef4444;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Button styles matching login page */
+.btn-primary {
+    background-color: #085454 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 1.15rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #064040 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-primary:disabled:hover {
+    background-color: #6c757d !important;
+    transform: none;
+}
+
+/* Loading animation styles */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for button press */
+.btn-pulse {
+    animation: pulse 0.3s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.98); }
+    100% { transform: scale(1); }
+}
+
+/* Loading spinner */
+.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form elements
+    const ptiMinSlider = document.getElementById('ptiMinSlider');
+    const ptiMaxSlider = document.getElementById('ptiMaxSlider');
+    const ptiMinValue = document.getElementById('ptiMinValue');
+    const ptiMaxValue = document.getElementById('ptiMaxValue');
+    const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+    const seriesMinInput = document.getElementById('seriesMin');
+    const seriesMaxInput = document.getElementById('seriesMax');
+    const slotsTotalInput = document.getElementById('slotsTotal');
+    const matchDateInput = document.getElementById('matchDate');
+    const matchTimeInput = document.getElementById('matchTime');
+    const requestTypeSelect = document.getElementById('requestType');
+    const broadcastViaTextCheckbox = document.getElementById('broadcastViaText');
+    const notesTextarea = document.getElementById('notes');
+    const submitRequestBtn = document.getElementById('submitRequest');
+    const toastContainer = document.getElementById('toastContainer');
+    const userClubNameSpan = document.getElementById('userClubName');
+    
+    // Matching players elements
+    const matchingPlayersCount = document.getElementById('matchingPlayersCount');
+    const matchingPlayersLoading = document.getElementById('matchingPlayersLoading');
+    const matchingPlayersTable = document.getElementById('matchingPlayersTable');
+    const matchingPlayersTableBody = document.getElementById('matchingPlayersTableBody');
+    const matchingPlayersEmpty = document.getElementById('matchingPlayersEmpty');
+    
+    // Debounce timer for matching players
+    let matchingPlayersDebounceTimer = null;
+    
+    // Load user's club name
+    async function loadUserClubName() {
+        try {
+            const response = await fetch('/api/user-profile');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.user && data.user.club) {
+                    userClubNameSpan.textContent = data.user.club;
+                }
+            }
+        } catch (error) {
+            console.error('Error loading user club name:', error);
+            // Keep default "your club" text if loading fails
+        }
+    }
+    
+    // Load user's club name on page load
+    loadUserClubName();
+    
+    // Button state management functions (matching login page)
+    function setButtonLoading(button, isLoading) {
+        if (isLoading) {
+            button.disabled = true;
+            button.classList.add('btn-loading');
+            button.classList.add('btn-pulse');
+        } else {
+            button.disabled = false;
+            button.classList.remove('btn-loading');
+            button.classList.remove('btn-pulse');
+        }
+    }
+
+    function resetButtonState(button) {
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+        button.classList.remove('btn-pulse');
+    }
+    
+    // Initialize page
+    // Fetch matching players based on criteria
+    async function fetchMatchingPlayers() {
+        const ptiMin = parseFloat(ptiMinSlider.value);
+        const ptiMax = parseFloat(ptiMaxSlider.value);
+        const seriesMin = seriesMinInput.value ? parseInt(seriesMinInput.value) : null;
+        const seriesMax = seriesMaxInput.value ? parseInt(seriesMaxInput.value) : null;
+        
+        try {
+            // Show loading state
+            matchingPlayersLoading.classList.remove('hidden');
+            matchingPlayersTable.classList.add('hidden');
+            matchingPlayersEmpty.classList.add('hidden');
+            
+            const response = await fetch('/api/subfinder/matching-players', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pti_min: ptiMin,
+                    pti_max: ptiMax,
+                    series_min: seriesMin,
+                    series_max: seriesMax
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                displayMatchingPlayers(data.players, data.count);
+            } else {
+                console.error('Failed to fetch matching players:', data.error);
+                displayMatchingPlayers([], 0);
+            }
+            
+        } catch (error) {
+            console.error('Error fetching matching players:', error);
+            displayMatchingPlayers([], 0);
+        } finally {
+            matchingPlayersLoading.classList.add('hidden');
+        }
+    }
+    
+    // Format phone number to (XXX) XXX-XXXX
+    function formatPhoneNumber(phone) {
+        if (!phone) return 'N/A';
+        
+        // Remove all non-digit characters
+        const cleaned = phone.replace(/\D/g, '');
+        
+        // Check if we have a valid US phone number (10 or 11 digits)
+        if (cleaned.length === 10) {
+            // Format: (XXX) XXX-XXXX
+            return `(${cleaned.substring(0, 3)}) ${cleaned.substring(3, 6)}-${cleaned.substring(6, 10)}`;
+        } else if (cleaned.length === 11 && cleaned[0] === '1') {
+            // Format: (XXX) XXX-XXXX (remove leading 1)
+            return `(${cleaned.substring(1, 4)}) ${cleaned.substring(4, 7)}-${cleaned.substring(7, 11)}`;
+        }
+        
+        // Return original if format doesn't match
+        return phone;
+    }
+    
+    // Display matching players in the table
+    function displayMatchingPlayers(players, count) {
+        // Update count badge
+        matchingPlayersCount.textContent = count === 1 ? '1 player' : `${count} players`;
+        
+        if (count === 0) {
+            matchingPlayersTable.classList.add('hidden');
+            matchingPlayersEmpty.classList.remove('hidden');
+            return;
+        }
+        
+        // Show table and populate rows
+        matchingPlayersTable.classList.remove('hidden');
+        matchingPlayersEmpty.classList.add('hidden');
+        
+        // Clear existing rows
+        matchingPlayersTableBody.innerHTML = '';
+        
+        // Add rows for each player
+        players.forEach(player => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${player.name || 'Unknown'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${player.pti ? player.pti.toFixed(1) : 'N/A'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${player.series || 'N/A'}</td>
+                <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${formatPhoneNumber(player.phone_number)}</td>
+            `;
+            matchingPlayersTableBody.appendChild(row);
+        });
+    }
+    
+    // Debounced update for matching players
+    function updateMatchingPlayers() {
+        // Clear existing timer
+        if (matchingPlayersDebounceTimer) {
+            clearTimeout(matchingPlayersDebounceTimer);
+        }
+        
+        // Set new timer to fetch after 500ms of no changes
+        matchingPlayersDebounceTimer = setTimeout(() => {
+            fetchMatchingPlayers();
+        }, 500);
+    }
+    
+    async function initializePage() {
+        try {
+            setupEventListeners();
+            // Fetch matching players on initial load
+            fetchMatchingPlayers();
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            showToast('Failed to load page data', 'error');
+        }
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+        submitRequestBtn.addEventListener('click', handleSubmitRequest);
+        
+        // Auto-apply on Enter key for inputs
+        [seriesMinInput, seriesMaxInput, slotsTotalInput].forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') handleSubmitRequest();
+            });
+        });
+        
+        // PTI slider events with real-time value updates
+        if (ptiMinSlider && ptiMaxSlider) {
+            ptiMinSlider.addEventListener('input', function() {
+                let minVal = parseFloat(this.value);
+                let maxVal = parseFloat(ptiMaxSlider.value);
+                
+                // Ensure min doesn't exceed max
+                if (minVal > maxVal) {
+                    minVal = maxVal;
+                    this.value = minVal;
+                }
+                
+                ptiMinValue.textContent = minVal.toFixed(1);
+                ptiRangeDisplay.textContent = `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
+                
+                // Clear validation errors when user adjusts slider
+                clearSliderValidationErrors();
+                
+                // Update matching players
+                updateMatchingPlayers();
+            });
+            
+            ptiMaxSlider.addEventListener('input', function() {
+                let maxVal = parseFloat(this.value);
+                let minVal = parseFloat(ptiMinSlider.value);
+                
+                // Ensure max doesn't go below min
+                if (maxVal < minVal) {
+                    maxVal = minVal;
+                    this.value = maxVal;
+                }
+                
+                ptiMaxValue.textContent = maxVal.toFixed(1);
+                ptiRangeDisplay.textContent = `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
+                
+                // Clear validation errors when user adjusts slider
+                clearSliderValidationErrors();
+                
+                // Update matching players
+                updateMatchingPlayers();
+            });
+        }
+        
+        // Series input events to update matching players
+        if (seriesMinInput) {
+            seriesMinInput.addEventListener('input', updateMatchingPlayers);
+        }
+        if (seriesMaxInput) {
+            seriesMaxInput.addEventListener('input', updateMatchingPlayers);
+        }
+    }
+    
+    // Handle form submission
+    async function handleSubmitRequest() {
+        // Clear any previous validation errors
+        clearValidationErrors();
+        
+        try {
+            // Validate form
+            const ptiMin = parseFloat(ptiMinSlider.value);
+            const ptiMax = parseFloat(ptiMaxSlider.value);
+            const seriesMin = parseInt(seriesMinInput.value);
+            const seriesMax = parseInt(seriesMaxInput.value);
+            const slotsTotal = parseInt(slotsTotalInput.value);
+            const matchDate = matchDateInput.value;
+            const matchTime = matchTimeInput.value;
+            const requestType = requestTypeSelect.value;
+            const broadcastViaText = broadcastViaTextCheckbox.checked;
+            const notes = notesTextarea.value.trim();
+            
+            let hasErrors = false;
+            
+            // Validate date and time
+            if (!matchDate) {
+                showFieldError(matchDateInput, 'Please select a match date');
+                hasErrors = true;
+            }
+            
+            if (!matchTime) {
+                showFieldError(matchTimeInput, 'Please select a match time');
+                hasErrors = true;
+            }
+            
+            // Validate Series ranges
+            if (!seriesMin || !seriesMax) {
+                showFieldError(seriesMinInput, 'Please enter Series Min');
+                showFieldError(seriesMaxInput, 'Please enter Series Max');
+                hasErrors = true;
+            }
+            
+            // Validate slots
+            if (!slotsTotal || slotsTotal < 1 || slotsTotal > 16) {
+                showFieldError(slotsTotalInput, 'Please enter a valid number of slots (1-16)');
+                hasErrors = true;
+            }
+            
+            // Validate PTI ranges
+            if (ptiMin >= ptiMax) {
+                showFieldError(ptiMinSlider, 'Min PTI must be less than Max PTI');
+                showFieldError(ptiMaxSlider, 'Max PTI must be greater than Min PTI');
+                hasErrors = true;
+            }
+            
+            // Validate PTI range is reasonable (not default values)
+            if (ptiMin === 35 && ptiMax === 45) {
+                showFieldError(ptiMinSlider, 'Please adjust PTI range from default values');
+                showFieldError(ptiMaxSlider, 'Please adjust PTI range from default values');
+                hasErrors = true;
+            }
+            
+            // Validate PTI range is not too narrow (at least 5 points difference)
+            if (ptiMax - ptiMin < 5) {
+                showFieldError(ptiMinSlider, 'PTI range should be at least 5 points wide');
+                showFieldError(ptiMaxSlider, 'PTI range should be at least 5 points wide');
+                hasErrors = true;
+            }
+            
+            // Validate Series ranges
+            if (seriesMin && seriesMax && seriesMin > seriesMax) {
+                showFieldError(seriesMinInput, 'Min Series must be less than or equal to Max Series');
+                showFieldError(seriesMaxInput, 'Max Series must be greater than or equal to Min Series');
+                hasErrors = true;
+            }
+            
+            if (hasErrors) {
+                showToast('Please fix the validation errors below', 'error');
+                return;
+            }
+            
+            // Show loading state (matching login page behavior)
+            setButtonLoading(submitRequestBtn, true);
+            
+            // Submit request
+            const response = await fetch('/api/subfinder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pti_min: ptiMin,
+                    pti_max: ptiMax,
+                    series_min: seriesMin,
+                    series_max: seriesMax,
+                    slots_total: slotsTotal,
+                    match_date: matchDate,
+                    match_time: matchTime,
+                    type: requestType,
+                    broadcast_via_text: broadcastViaText,
+                    notes: notes
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast('Sub request created! Redirecting to view active requests...', 'success');
+                // Clear form
+                clearForm();
+                // Redirect to active requests page after a short delay
+                setTimeout(() => {
+                    window.location.href = '/mobile/active-sub-requests';
+                }, 1500);
+            } else {
+                resetButtonState(submitRequestBtn);
+                showToast(data.error || 'Failed to submit request', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error submitting request:', error);
+            resetButtonState(submitRequestBtn);
+            showToast('Failed to submit request. Please try again.', 'error');
+        }
+    }
+    
+    // Show field error
+    function showFieldError(field, message) {
+        // Add error styling
+        field.classList.add('error-field');
+        
+        // Create or update error message
+        let errorElement = field.parentNode.querySelector('.field-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'field-error';
+            field.parentNode.appendChild(errorElement);
+        }
+        errorElement.textContent = message;
+    }
+    
+    // Clear slider validation errors
+    function clearSliderValidationErrors() {
+        // Remove error styling from sliders
+        ptiMinSlider.classList.remove('error-field');
+        ptiMaxSlider.classList.remove('error-field');
+        
+        // Remove error messages for sliders
+        const minError = ptiMinSlider.parentNode.querySelector('.field-error');
+        const maxError = ptiMaxSlider.parentNode.querySelector('.field-error');
+        
+        if (minError) minError.remove();
+        if (maxError) maxError.remove();
+    }
+    
+    // Clear validation errors
+    function clearValidationErrors() {
+        // Remove error styling from all fields
+        document.querySelectorAll('.error-field').forEach(field => {
+            field.classList.remove('error-field');
+        });
+        
+        // Remove all error messages
+        document.querySelectorAll('.field-error').forEach(error => {
+            error.remove();
+        });
+    }
+    
+    // Clear form
+    function clearForm() {
+        ptiMinSlider.value = 35;
+        ptiMaxSlider.value = 45;
+        ptiMinValue.textContent = '35';
+        ptiMaxValue.textContent = '45';
+        ptiRangeDisplay.textContent = '35 - 45';
+        seriesMinInput.value = '';
+        seriesMaxInput.value = '';
+        slotsTotalInput.value = '';
+        matchDateInput.value = '';
+        matchTimeInput.value = '';
+        broadcastViaTextCheckbox.checked = true;
+        notesTextarea.value = '';
+        clearValidationErrors();
+    }
+    
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        
+        toastContainer.appendChild(toast);
+        
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 4000);
+    }
+    
+    // Initialize the page
+    initializePage();
+});
+</script>
+{% endblock %}

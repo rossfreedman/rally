@@ -20,6 +20,7 @@ def get_matches_for_user_club(user):
             return []
 
         print(f"Looking for matches for club: {user_club}, series: {user_series}, team_id: {user_team_id}")
+        print(f"DEBUG: User data - club: {user_club}, series: {user_series}, league_id: {user.get('league_id')}")
 
         # ENHANCED: Use team_id-based queries when available (much more reliable)
         if user_team_id:
@@ -30,16 +31,30 @@ def get_matches_for_user_club(user):
             print(f"Filtering by league_id: {user_league_id}")
             
             # Query using team_id (more reliable than string matching)
-            # FIXED: Add league filtering to prevent cross-league practice contamination
+            # SIMPLIFIED: Use straightforward team_id → club_id → logo_filename lookup
             matches_query = """
-                SELECT 
-                    s.match_date,
-                    s.match_time,
+                SELECT DISTINCT
+                    s.match_date as date,
+                    s.match_time as time,
                     s.home_team,
                     s.away_team,
+                    s.home_team_id,
+                    s.away_team_id,
                     s.location,
                     c.club_address,
                     l.league_id,
+                    -- Simple opponent logo lookup: team_id → club_id → logo_filename
+                    CASE 
+                        WHEN s.home_team_id = %s AND s.away_team_id IS NOT NULL THEN 
+                            REGEXP_REPLACE(away_club.logo_filename, '^static/images/clubs/', '')
+                        WHEN s.away_team_id = %s AND s.home_team_id IS NOT NULL THEN 
+                            REGEXP_REPLACE(home_club.logo_filename, '^static/images/clubs/', '')
+                        WHEN s.home_team_id = %s AND s.away_team_id IS NULL THEN 
+                            REGEXP_REPLACE(away_club.logo_filename, '^static/images/clubs/', '')
+                        WHEN s.away_team_id = %s AND s.home_team_id IS NULL THEN 
+                            REGEXP_REPLACE(home_club.logo_filename, '^static/images/clubs/', '')
+                        ELSE NULL
+                    END as opponent_logo_filename,
                     CASE 
                         WHEN s.home_team ILIKE %s THEN 'practice'
                         ELSE 'match'
@@ -47,9 +62,12 @@ def get_matches_for_user_club(user):
                 FROM schedule s
                 LEFT JOIN leagues l ON s.league_id = l.id
                 LEFT JOIN clubs c ON s.location = c.name
+                LEFT JOIN teams home_team ON s.home_team_id = home_team.id
+                LEFT JOIN teams away_team ON s.away_team_id = away_team.id
+                LEFT JOIN clubs home_club ON (home_team.club_id = home_club.id OR (s.home_team_id IS NULL AND home_club.name = REGEXP_REPLACE(s.home_team, '\\s+\\d+[a-z]*$', '')))
+                LEFT JOIN clubs away_club ON (away_team.club_id = away_club.id OR (s.away_team_id IS NULL AND away_club.name = REGEXP_REPLACE(s.away_team, '\\s+\\d+[a-z]*$', '')))
                 WHERE (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                 ORDER BY s.match_date, s.match_time
             """
             
@@ -70,10 +88,20 @@ def get_matches_for_user_club(user):
             print(f"Practice pattern search: {practice_search}")
             
             matches = execute_query(
-                matches_query, [practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
+                matches_query, [user_team_id, user_team_id, user_team_id, user_team_id, practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id]
             )
             
             print(f"Found {len(matches)} matches using team_id {user_team_id}")
+            
+            # DEBUG: Log each match's logo data
+            for i, match in enumerate(matches):
+                if match.get('type') == 'match':
+                    print(f"DEBUG Match {i+1}: {match['home_team']} vs {match['away_team']}")
+                    print(f"  Home team ID: {match['home_team_id']}")
+                    print(f"  Away team ID: {match['away_team_id']}")
+                    print(f"  Opponent logo: {match.get('opponent_logo_filename')}")
+                    print(f"  User team ID: {user_team_id}")
+                    print()
             
             # Debug: Log the types of matches found
             practice_count = sum(1 for match in matches if match.get('type') == 'practice')
@@ -100,12 +128,16 @@ def get_matches_for_user_club(user):
                 
                 # Try legacy string pattern matching
                 # FIXED: Add league filtering to prevent cross-league practice contamination
+                # FIXED: Add DISTINCT to prevent duplicate practice records
+                # ENHANCED: Include team IDs for opponent lookup
                 legacy_matches_query = """
-                    SELECT 
-                        s.match_date,
-                        s.match_time,
+                    SELECT DISTINCT
+                        s.match_date as date,
+                        s.match_time as time,
                         s.home_team,
                         s.away_team,
+                        s.home_team_id,
+                        s.away_team_id,
                         s.location,
                         c.club_address,
                         l.league_id,
@@ -115,10 +147,13 @@ def get_matches_for_user_club(user):
                         END as type
                     FROM schedule s
                     LEFT JOIN leagues l ON s.league_id = l.id
-                    LEFT JOIN clubs c ON s.location = c.name
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
                     WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
                     AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                    AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
                     ORDER BY s.match_date, s.match_time
                 """
                 
@@ -137,7 +172,7 @@ def get_matches_for_user_club(user):
                 team_search = f"%{user_team_pattern}%"
                 
                 matches = execute_query(
-                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search_legacy]
+                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search, user_league_id, user_team_id]
                 )
                 
                 if matches:
@@ -145,95 +180,204 @@ def get_matches_for_user_club(user):
             
         else:
             # FALLBACK: Use legacy string pattern matching when team_id not available
-            print(f"No team_id available, falling back to pattern matching")
+            print(f"No team_id available, trying name-based lookup first")
             
             # Get user's league_id for filtering
             user_league_id = user.get("league_id")
             print(f"Filtering by league_id: {user_league_id}")
             
-            # Handle different series name formats
-            # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
-    
-            # For APTA: "Chicago 22" -> "Tennaqua - 22"
-
-            if "Series" in user_series:
-                # NSTF format: "Series 2B" -> "S2B"
-                series_code = user_series.replace("Series ", "S")
-                user_team_pattern = f"{user_club} {series_code} - {user_series}"
-            elif "Division" in user_series:
-        
-                # FIXED: Schedule uses "Series 16" format, not "Division 16"
-                division_num = user_series.replace("Division ", "")
-                user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
-            else:
-                # APTA format: "Chicago 22" -> extract number
-                series_num = user_series.split()[-1] if user_series else ""
-                user_team_pattern = f"{user_club} - {series_num}"
-
-            print(f"Looking for team pattern: {user_team_pattern}")
-
-            # Create practice pattern for this user's club and series
-    
-            if "Division" in user_series:
-                division_num = user_series.replace("Division ", "")
-                practice_pattern = f"{user_club} Practice - Series {division_num}"
-            else:
-                practice_pattern = f"{user_club} Practice - {user_series}"
-            print(f"Looking for practice pattern: {practice_pattern}")
-
-            # Query the database for matches where user's team is playing
-            # Include both regular matches and practice entries
-            # JOIN with clubs table to get club address for Google Maps links
-            # FIXED: Add league filtering to prevent cross-league practice contamination
-            matches_query = """
-                SELECT 
-                    s.match_date,
-                    s.match_time,
-                    s.home_team,
-                    s.away_team,
-                    s.location,
-                    c.club_address,
-                    l.league_id,
-                    CASE 
-                        WHEN s.home_team ILIKE %s THEN 'practice'
-                        ELSE 'match'
-                    END as type
-                FROM schedule s
-                LEFT JOIN leagues l ON s.league_id = l.id
-                LEFT JOIN clubs c ON s.location = c.name
-                WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
-                AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
-                AND (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
-                ORDER BY s.match_date, s.match_time
+            # Try to find team_id by name lookup
+            team_lookup_query = """
+                SELECT t.id as team_id, t.club_id, c.name as club_name
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                WHERE t.name ILIKE %s
+                AND t.league_id = %s
+                LIMIT 1
             """
-
-            # Search patterns:
-            # 1. Practice pattern: "Tennaqua Practice - Chicago 22"
-            # 2. Team pattern for regular matches: "Tennaqua - 22"
-            practice_search = f"%{practice_pattern}%"
-            team_search = f"%{user_team_pattern}%"
-
-            matches = execute_query(
-                matches_query, [practice_search, practice_search, team_search, team_search, user_league_id, user_team_id, user_team_id, user_team_id, practice_search]
+            
+            # Build team name pattern for lookup
+            if "Series" in user_series:
+                series_code = user_series.replace("Series ", "S")
+                team_name_pattern = f"{user_club} {series_code}"
+            elif "Division" in user_series:
+                division_num = user_series.replace("Division ", "")
+                team_name_pattern = f"{user_club} {division_num}"
+            else:
+                series_num = user_series.split()[-1] if user_series else ""
+                team_name_pattern = f"{user_club} {series_num}"
+            
+            print(f"Looking up team by name pattern: {team_name_pattern}")
+            
+            team_lookup_result = execute_query_one(
+                team_lookup_query, [f"%{team_name_pattern}%", user_league_id]
             )
             
-            # Debug: Log the types of matches found
-            practice_count = sum(1 for match in matches if match.get('type') == 'practice')
-            match_count = sum(1 for match in matches if match.get('type') == 'match')
-            print(f"Debug: Found {practice_count} practices and {match_count} matches")
+            if team_lookup_result:
+                user_team_id = team_lookup_result["team_id"]
+                user_club_id = team_lookup_result["club_id"]
+                print(f"Found team_id {user_team_id} and club_id {user_club_id} via name lookup")
+                
+                # Now use the team_id-based query with the found team_id
+                matches_query = """
+                    SELECT DISTINCT
+                        s.match_date as date,
+                        s.match_time as time,
+                        s.home_team,
+                        s.away_team,
+                        s.home_team_id,
+                        s.away_team_id,
+                        s.location,
+                        c.club_address,
+                        l.league_id,
+                        -- Simple opponent logo lookup: team_id → club_id → logo_filename
+                        CASE 
+                            WHEN s.home_team_id = %s AND s.away_team_id IS NOT NULL THEN 
+                                REGEXP_REPLACE(away_club.logo_filename, '^static/images/clubs/', '')
+                            WHEN s.away_team_id = %s AND s.home_team_id IS NOT NULL THEN 
+                                REGEXP_REPLACE(home_club.logo_filename, '^static/images/clubs/', '')
+                            WHEN s.home_team_id = %s AND s.away_team_id IS NULL THEN 
+                                REGEXP_REPLACE(away_club.logo_filename, '^static/images/clubs/', '')
+                            WHEN s.away_team_id = %s AND s.home_team_id IS NULL THEN 
+                                REGEXP_REPLACE(home_club.logo_filename, '^static/images/clubs/', '')
+                            ELSE NULL
+                        END as opponent_logo_filename,
+                        CASE 
+                            WHEN s.home_team ILIKE %s THEN 'practice'
+                            ELSE 'match'
+                        END as type
+                    FROM schedule s
+                    LEFT JOIN leagues l ON s.league_id = l.id
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
+                    LEFT JOIN teams home_team ON s.home_team_id = home_team.id
+                    LEFT JOIN teams away_team ON s.away_team_id = away_team.id
+                    LEFT JOIN clubs home_club ON (home_team.club_id = home_club.id OR (s.home_team_id IS NULL AND home_club.name = REGEXP_REPLACE(s.home_team, '\\s+\\d+[a-z]*$', '')))
+                    LEFT JOIN clubs away_club ON (away_team.club_id = away_club.id OR (s.away_team_id IS NULL AND away_club.name = REGEXP_REPLACE(s.away_team, '\\s+\\d+[a-z]*$', '')))
+                    WHERE (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
+                    AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
+                    ORDER BY s.match_date, s.match_time
+                """
+                
+                # Practice pattern for ILIKE search
+                if "Division" in user_series:
+                    division_num = user_series.replace("Division ", "")
+                    practice_pattern = f"{user_club} Practice - Series {division_num}"
+                elif "Series" in user_series:
+                    practice_pattern = f"{user_club} Practice - {user_series}"
+                else:
+                    practice_pattern = f"{user_club} Practice - Series {user_series}"
+                
+                practice_search = f"%{practice_pattern}%"
+                print(f"Practice pattern search: {practice_search}")
+                
+                matches = execute_query(
+                    matches_query, [user_team_id, user_team_id, user_team_id, user_team_id, practice_search, user_team_id, user_team_id, practice_search, user_league_id, user_team_id]
+                )
+                
+                print(f"Found {len(matches)} matches using name-lookup team_id {user_team_id}")
+                
+                # DEBUG: Log each match's logo data
+                for i, match in enumerate(matches):
+                    if match.get('type') == 'match':
+                        print(f"DEBUG Match {i+1}: {match['home_team']} vs {match['away_team']}")
+                        print(f"  Home team ID: {match['home_team_id']}")
+                        print(f"  Away team ID: {match['away_team_id']}")
+                        print(f"  Opponent logo: {match.get('opponent_logo_filename')}")
+                        print(f"  User team ID: {user_team_id}")
+                        print()
+            else:
+                print(f"No team found via name lookup, falling back to string pattern matching")
+                
+                # Handle different series name formats
+                if "Series" in user_series:
+                    series_code = user_series.replace("Series ", "S")
+                    user_team_pattern = f"{user_club} {series_code} - {user_series}"
+                elif "Division" in user_series:
+                    division_num = user_series.replace("Division ", "")
+                    user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
+                else:
+                    series_num = user_series.split()[-1] if user_series else ""
+                    user_team_pattern = f"{user_club} - {series_num}"
+
+                print(f"Looking for team pattern: {user_team_pattern}")
+
+                # Create practice pattern for this user's club and series
+                if "Division" in user_series:
+                    division_num = user_series.replace("Division ", "")
+                    practice_pattern = f"{user_club} Practice - Series {division_num}"
+                else:
+                    practice_pattern = f"{user_club} Practice - {user_series}"
+                print(f"Looking for practice pattern: {practice_pattern}")
+
+                # SIMPLIFIED: Use straightforward team_id → club_id → logo_filename lookup
+                matches_query = """
+                    SELECT DISTINCT
+                        s.match_date as date,
+                        s.match_time as time,
+                        s.home_team,
+                        s.away_team,
+                        s.home_team_id,
+                        s.away_team_id,
+                        s.location,
+                        c.club_address,
+                        l.league_id,
+                        -- Simple opponent logo lookup: team_id → club_id → logo_filename
+                        CASE 
+                            WHEN s.home_team ILIKE %s THEN 
+                                REGEXP_REPLACE(away_club.logo_filename, '^static/images/clubs/', '')
+                            WHEN s.away_team ILIKE %s THEN 
+                                REGEXP_REPLACE(home_club.logo_filename, '^static/images/clubs/', '')
+                            ELSE NULL
+                        END as opponent_logo_filename,
+                        CASE 
+                            WHEN s.home_team ILIKE %s THEN 'practice'
+                            ELSE 'match'
+                        END as type
+                    FROM schedule s
+                    LEFT JOIN leagues l ON s.league_id = l.id
+                    LEFT JOIN clubs c ON (
+                        s.location = c.name 
+                        OR s.location ILIKE '%' || c.name || '%'
+                        OR c.name ILIKE '%' || s.location || '%'
+                    )
+                    LEFT JOIN teams home_team ON s.home_team_id = home_team.id
+                    LEFT JOIN teams away_team ON s.away_team_id = away_team.id
+                    LEFT JOIN clubs home_club ON (home_team.club_id = home_club.id OR (s.home_team_id IS NULL AND home_club.name = REGEXP_REPLACE(s.home_team, '\\s+\\d+[a-z]*$', '')))
+                    LEFT JOIN clubs away_club ON (away_team.club_id = away_club.id OR (s.away_team_id IS NULL AND away_club.name = REGEXP_REPLACE(s.away_team, '\\s+\\d+[a-z]*$', '')))
+                    WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
+                    AND (s.league_id = %s OR (s.league_id IS NULL AND s.home_team_id = %s))
+                    ORDER BY s.match_date, s.match_time
+                """
+
+                # Search patterns:
+                practice_search = f"%{practice_pattern}%"
+                team_search = f"%{user_team_pattern}%"
+
+                matches = execute_query(
+                    matches_query, [team_search, team_search, practice_search, practice_search, team_search, team_search, user_league_id, user_team_id]
+                )
+                
+                # Debug: Log the types of matches found
+                practice_count = sum(1 for match in matches if match.get('type') == 'practice')
+                match_count = sum(1 for match in matches if match.get('type') == 'match')
+                print(f"Debug: Found {practice_count} practices and {match_count} matches")
 
         filtered_matches = []
         for match in matches:
             try:
                 # Format date and time to match the original JSON format
                 match_date = (
-                    match["match_date"].strftime("%m/%d/%Y")
-                    if match["match_date"]
+                    match["date"].strftime("%m/%d/%Y")
+                    if match["date"]
                     else ""
                 )
                 match_time = (
-                    match["match_time"].strftime("%I:%M %p").lstrip("0")
-                    if match["match_time"]
+                    match["time"].strftime("%I:%M %p").lstrip("0")
+                    if match["time"]
                     else ""
                 )
 
@@ -248,6 +392,9 @@ def get_matches_for_user_club(user):
                     "club_address": match["club_address"] or "",  # Include club address
                     "home_team": match["home_team"] or "",
                     "away_team": match["away_team"] or "",
+                    "home_team_id": match.get("home_team_id"),
+                    "away_team_id": match.get("away_team_id"),
+                    "opponent_logo_filename": match.get("opponent_logo_filename"),  # Include opponent logo
                     "type": "practice" if is_practice else "match",
                 }
 
@@ -354,4 +501,32 @@ def init_schedule_routes(app):
             return jsonify(matches)
         except Exception as e:
             print(f"Error getting team matches from database: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/team-logo/<team_name>")
+    @login_required
+    def get_team_logo(team_name):
+        """Get logo filename for a team by name"""
+        try:
+            # Look up team by name and get club logo
+            query = """
+                SELECT c.logo_filename
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                WHERE t.team_name ILIKE %s
+                LIMIT 1
+            """
+            result = execute_query_one(query, [f"%{team_name}%"])
+            
+            if result and result.get("logo_filename"):
+                # Strip the path prefix if present
+                logo_filename = result["logo_filename"]
+                if logo_filename.startswith("static/images/clubs/"):
+                    logo_filename = logo_filename.replace("static/images/clubs/", "")
+                return jsonify({"logo_filename": logo_filename})
+            else:
+                return jsonify({"logo_filename": None})
+                
+        except Exception as e:
+            print(f"Error getting team logo for {team_name}: {str(e)}")
             return jsonify({"error": str(e)}), 500

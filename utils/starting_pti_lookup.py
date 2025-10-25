@@ -42,6 +42,19 @@ def get_starting_pti_for_player(player_data: Dict[str, Any]) -> Optional[float]:
         # Use league_id if available for more specific lookup
         league_id = player_data.get('league_id')
         
+        # Convert league_id to integer if it's a string
+        if league_id and isinstance(league_id, str):
+            # If it's a string like "APTA_CHICAGO", we need to look up the integer ID
+            league_lookup = execute_query_one(
+                "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+            )
+            if league_lookup:
+                league_id = league_lookup['id']
+                print(f"[PTI LOOKUP] Converted league_id string to integer: {league_id}")
+            else:
+                print(f"[PTI LOOKUP] Could not find league_id for string: {league_id}")
+                league_id = None
+        
         if league_id:
             query = """
                 SELECT starting_pti 

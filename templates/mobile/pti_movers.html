@@ -1,0 +1,181 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+{% set cache_buster = range(100000, 999999) | random %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #045454 !important;">
+                <i class="fas fa-chart-line text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">PTI Movers & Shakers</h1>
+                <p class="text-sm text-gray-500">All players at {{ session_data.user.club }} sorted by PTI change</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Info Text -->
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <p class="text-sm text-gray-500">Showing top 100 players by PTI change from start of season to current</p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-8">
+            <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+            <p class="text-gray-500 mt-2">Loading PTI data...</p>
+        </div>
+
+        <!-- Players List -->
+        <div id="players-list" class="space-y-3 hidden">
+            <!-- Players will be populated here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-chart-line text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No PTI Data Available</h3>
+            <p class="text-gray-500">Unable to load PTI movement data for your club.</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden text-center py-12">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Error Loading Data</h3>
+            <p class="text-gray-500">There was an error loading the PTI data. Please try again later.</p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let allPlayers = [];
+    
+    function renderPlayers() {
+        const playersList = document.getElementById('players-list');
+        
+        // Sort by absolute value of PTI delta and take top 100
+        const topPlayers = [...allPlayers]
+            .sort((a, b) => Math.abs(b.pti_delta) - Math.abs(a.pti_delta))
+            .slice(0, 100);
+        
+        if (topPlayers.length === 0) {
+            playersList.innerHTML = `
+                <div class="text-center py-8">
+                    <p class="text-gray-500">No players found.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        playersList.innerHTML = topPlayers.map(player => {
+            const delta = player.pti_delta;
+            const isPositive = delta > 0;
+            const isNegative = delta < 0;
+            const deltaClass = isPositive ? 'text-green-600' : isNegative ? 'text-green-600' : 'text-gray-600';  // Both positive and negative changes are green
+            const deltaIcon = isPositive ? 'fas fa-arrow-up' : isNegative ? 'fas fa-arrow-down' : 'fas fa-minus';
+            const deltaSign = isPositive ? '+' : '';
+            
+            // Create magnifying glass link to player detail page with correct URL format
+            const playerDetailLink = player.tenniscores_player_id && player.team_id ? 
+                `/mobile/player-detail/${player.tenniscores_player_id}_team_${player.team_id}` :
+                `/mobile/player-detail/${player.player_id}`;
+            const magnifyingGlassIcon = ` <a href="${playerDetailLink}" class="text-blue-600 hover:text-blue-800 ml-2" title="View Player Details"><i class="fas fa-search text-sm"></i></a>`;
+            
+            // Create series chip
+            const seriesChip = player.series_name ? 
+                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: #045454; color: #bff863;">${player.series_name}</span>` : 
+                `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">No Series</span>`;
+            
+            return `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <div class="font-semibold text-[#045454]">${player.first_name} ${player.last_name}</div>
+                                ${magnifyingGlassIcon}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                ${seriesChip}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="flex items-center gap-2 mb-1">
+                                <i class="${deltaIcon} ${deltaClass}"></i>
+                                <span class="font-bold ${deltaClass}">${deltaSign}${delta.toFixed(1)}</span>
+                            </div>
+                            <div class="text-xs text-gray-500">PTI Change</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-100">
+                        <div class="flex justify-between text-sm">
+                            <div>
+                                <span class="text-gray-500">Starting:</span>
+                                <span class="font-medium">${player.starting_pti.toFixed(1)}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500">Current:</span>
+                                <span class="font-medium">${player.current_pti.toFixed(1)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Load PTI data
+    async function loadPTIData() {
+        const loading = document.getElementById('loading');
+        const playersList = document.getElementById('players-list');
+        const emptyState = document.getElementById('empty-state');
+        const errorState = document.getElementById('error-state');
+        
+        try {
+            const response = await fetch('/api/rising-stars');
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            loading.classList.add('hidden');
+            
+            if (data.success && data.rising_stars && data.rising_stars.length > 0) {
+                allPlayers = data.rising_stars;
+                playersList.classList.remove('hidden');
+                renderPlayers();
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+            
+        } catch (error) {
+            console.error('Error loading PTI data:', error);
+            loading.classList.add('hidden');
+            errorState.classList.remove('hidden');
+        }
+    }
+    
+    // Initialize
+    loadPTIData();
+});
+</script>
+
+<style>
+.rally-green {
+    color: #045454;
+}
+</style>
+
+{% endblock %}
