@@ -1398,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <!-- Right Column: Action Buttons -->
                 <div class="flex flex-col justify-center space-y-3" style="width: 138px;">
                     <button class="details-btn w-full" 
-                            onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.playerId)}'"
+                            onclick="handleViewStatsClick('${player.playerId}')"
                             style="
                                 background-color: #045454 !important; 
                                 color: #bff863 !important; 
@@ -1734,6 +1734,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the page
     initializePage();
+    
+    /**
+     * Handle View Stats click with loading indicator
+     */
+    window.handleViewStatsClick = function(playerId) {
+        // Show loading indicator
+        if (typeof showLoadingIndicator === 'function') {
+            showLoadingIndicator('Loading Player Stats...');
+        }
+        
+        // Navigate to player detail page
+        window.location.href = '/mobile/player-detail/' + encodeURIComponent(playerId);
+    };
     
     // Debug function for testing button visibility (can be called from console)
     window.testMessageButton = function() {

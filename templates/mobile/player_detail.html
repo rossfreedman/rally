@@ -1893,6 +1893,18 @@ function renderMatchCard(match, currentPlayerName) {
     }
 }
 
+// Helper function to escape strings for use in JavaScript onclick attributes
+function escapeJsString(str) {
+    if (!str) return '';
+    return str
+        .replace(/\\/g, '\\\\')   // Escape backslashes first
+        .replace(/\n/g, '\\n')    // Escape newlines
+        .replace(/\r/g, '\\r')    // Escape carriage returns
+        .replace(/\t/g, '\\t')    // Escape tabs
+        .replace(/'/g, "\\'")     // Escape single quotes
+        .replace(/"/g, '\\"');    // Escape double quotes
+}
+
 // Render notes in the list
 function renderNotes(notes) {
     const notesList = document.getElementById('notesList');
@@ -1911,7 +1923,7 @@ function renderNotes(notes) {
                     </div>
                     ${isOwner ? `
                         <div class="flex gap-4 ml-2">
-                            <button onclick="editNote(${note.id}, '${escapeHtml(note.note).replace(/'/g, "\\'")}');" 
+                            <button onclick="editNote(${note.id});" 
                                     class="text-blue-600 hover:text-blue-800 text-xl"
                                     title="Edit note">
                                 <i class="fas fa-edit"></i>
@@ -2026,7 +2038,7 @@ function escapeHtml(text) {
 }
 
 // Edit note - show edit mode
-function editNote(noteId, currentText) {
+function editNote(noteId) {
     const noteDiv = document.querySelector(`[data-note-id="${noteId}"]`);
     if (!noteDiv) return;
     

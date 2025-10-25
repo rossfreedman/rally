@@ -250,6 +250,7 @@ function getLoadingTextForUrl(url) {
         '/mobile/my-series': 'Loading Series Data...',
         '/mobile/my-club': 'Loading Club Information...',
         '/mobile/player-search': 'Searching Players...',
+        '/mobile/player-detail': 'Loading Player Stats...',
         '/mobile/teams-players': 'Loading Teams...',
         '/mobile/matchup-simulator': 'Loading Matchup Simulator...',
         

@@ -716,7 +716,9 @@
                                     <div class="flex flex-col gap-2">
                                         <button type="button" class="partner-matches-btn inline-flex items-center px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-all duration-200 hover:opacity-80 hover:shadow-md border-none w-fit" 
                                              style="background-color: #045454; color: #bff863;"
-                                             onclick="openPartnerMatchesModal('{{ player.name }}', 'Court {{ court_num }}', {{ player.matches }})" 
+                                             data-player-name="{{ player.name }}"
+                                             data-court-name="Court {{ court_num }}"
+                                             data-match-count="{{ player.matches|default(0) }}"
                                              title="Click to view matches with {{ player.name }}">
                                             View {{ player.matches|default(0) }} match{{ 'es' if player.matches != 1 else '' }}
                                         </button>
@@ -1859,6 +1861,16 @@ async function loadTeamLastMatches(teamId) {
 document.addEventListener('DOMContentLoaded', function() {
     // Add click handlers for note icons
     document.addEventListener('click', function(e) {
+        // Check if clicked element is a partner matches button
+        if (e.target.closest('.partner-matches-btn')) {
+            const btn = e.target.closest('.partner-matches-btn');
+            const playerName = btn.dataset.playerName;
+            const courtName = btn.dataset.courtName;
+            const matchCount = parseInt(btn.dataset.matchCount) || 0;
+            openPartnerMatchesModal(playerName, courtName, matchCount);
+            return;
+        }
+        
         // Check if clicked element is a note icon link
         if (e.target.closest('a[href*="#notes"]')) {
             const link = e.target.closest('a[href*="#notes"]');
