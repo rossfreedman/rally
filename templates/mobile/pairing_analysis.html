@@ -280,7 +280,7 @@ function renderPairingGrid() {
             } else {
                 // Get preference key (always use smaller user_id first for consistency)
                 const prefKey = getPairingKey(player1.user_id, player2.user_id);
-                const isAllowed = pairingPreferences[prefKey] !== false; // Default to true if not set
+                const isAllowed = pairingPreferences[prefKey] === true; // Default to false if not set
                 const cellClass = isAllowed ? 'allowed' : 'not-allowed';
                 
                 html += `

@@ -1067,7 +1067,7 @@ class PairingPreference(Base):
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
     player1_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     player2_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    is_allowed = Column(Boolean, nullable=False, default=True)  # True = green (allowed), False = red (not allowed)
+    is_allowed = Column(Boolean, nullable=False, default=False)  # True = green (allowed), False = red (not allowed) - defaults to off
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
 
