@@ -3710,13 +3710,9 @@
         // STICKY NAVIGATION
         // ============================================
         function initStickyNavigation() {
-            console.log('initStickyNavigation function called');
             const navContainer = document.getElementById('sticky-nav-container');
             const nav = document.getElementById('main-nav');
             const placeholder = document.getElementById('sticky-nav-placeholder');
-            console.log('Navigation container:', navContainer);
-            console.log('Navigation element:', nav);
-            console.log('Placeholder element:', placeholder);
             
             if (!nav || !navContainer) {
                 console.error('Navigation elements not found');
@@ -3724,30 +3720,18 @@
             }
             
             const navButtons = nav.querySelectorAll('.nav-button');
-            console.log('Found nav buttons:', navButtons.length);
-            console.log('Nav buttons:', navButtons);
-            
-            // Debug: Check if buttons have href attributes
-            navButtons.forEach((btn, index) => {
-                console.log(`Button ${index + 1}:`, btn.textContent, 'href:', btn.getAttribute('href'));
-            });
             
             // Get the initial position of the navigation
             const navOffsetTop = navContainer.offsetTop;
-            console.log('Navigation offset top:', navOffsetTop);
             
             let isFixed = false;
             
             function handleScroll() {
-                console.log('📜 HANDLE SCROLL FUNCTION CALLED');
                 const scrollTop = document.body.scrollTop || document.documentElement.scrollTop || window.pageYOffset;
-                console.log('📜 Scroll position:', scrollTop, 'Nav offset:', navOffsetTop, 'Threshold:', navOffsetTop - 61);
                 
                 // Check if we've scrolled past the navigation's initial position
                 if (scrollTop > navOffsetTop - 61) { // Account for header height
-                    console.log('📜 Should be fixed - scroll past threshold');
                     if (!isFixed) {
-                        console.log('📌 Making navigation fixed');
                         navContainer.classList.add('fixed');
                         // Show placeholder to prevent layout shift
                         if (placeholder) {
@@ -3757,16 +3741,13 @@
                     }
                     
                     if (!nav.classList.contains('scrolled')) {
-                        console.log('📌 Adding scrolled class');
                         nav.classList.add('scrolled');
                         navButtons.forEach(button => {
                             button.classList.add('scrolled');
                         });
                     }
                 } else {
-                    console.log('📜 Should NOT be fixed - scroll before threshold');
                     if (isFixed) {
-                        console.log('📌 Removing fixed positioning');
                         navContainer.classList.remove('fixed');
                         // Hide placeholder
                         if (placeholder) {
@@ -3776,7 +3757,6 @@
                     }
                     
                     if (nav.classList.contains('scrolled')) {
-                        console.log('📌 Removing scrolled class');
                         nav.classList.remove('scrolled');
                         navButtons.forEach(button => {
                             button.classList.remove('scrolled');
@@ -3795,8 +3775,7 @@
                     { id: 'dashboard', element: document.querySelector('#dashboard') },
                     { id: 'team', element: document.querySelector('#team') },
                     { id: 'club', element: document.querySelector('#club') },
-                    { id: 'play', element: document.querySelector('#play') },
-                    { id: 'improve', element: document.querySelector('#improve') }
+                    { id: 'play', element: document.querySelector('#play') }
                 ];
                 
                 // Remove active class from all buttons
@@ -3804,7 +3783,7 @@
                 
                 // Find the section that's currently in view
                 let activeSection = null;
-                const offset = -35; // Same offset as autoscroll + 10px higher (reduced by another 100px)
+                const offset = 150; // Account for header (61px) + sticky nav (~80px) to match scroll-margin-top
                 
                 for (let i = sections.length - 1; i >= 0; i--) {
                     const section = sections[i];
@@ -3822,7 +3801,6 @@
                     const activeButton = document.querySelector(`a[href="#${activeSection}"]`);
                     if (activeButton) {
                         activeButton.classList.add('active');
-                        console.log(`Setting active state for: ${activeSection}`);
                     }
                 }
             }
@@ -3830,57 +3808,24 @@
             // Throttle scroll events for better performance
             let ticking = false;
             function requestTick() {
-                console.log('📜 REQUEST TICK CALLED, ticking:', ticking);
                 if (!ticking) {
-                    console.log('📜 Calling requestAnimationFrame');
                     requestAnimationFrame(handleScroll);
                     ticking = true;
                     setTimeout(() => { 
-                        console.log('📜 Resetting ticking to false');
                         ticking = false; 
                     }, 16); // ~60fps
-                } else {
-                    console.log('📜 Skipping - already ticking');
                 }
             }
             
             // Add scroll event listener
-            console.log('Adding scroll event listener');
-            
-            // Test scroll events first - try multiple approaches
-            window.addEventListener('scroll', function() {
-                console.log('📜 WINDOW SCROLL EVENT DETECTED!');
-            }, { passive: true });
-            
-            document.addEventListener('scroll', function() {
-                console.log('📜 DOCUMENT SCROLL EVENT DETECTED!');
-            }, { passive: true });
-            
-            document.body.addEventListener('scroll', function() {
-                console.log('📜 BODY SCROLL EVENT DETECTED!');
-            }, { passive: true });
-            
-            // Use document.body scroll for the main handler - try both throttled and direct
-            document.body.addEventListener('scroll', requestTick, { passive: true });
-            
-            // Also try a direct handler without throttling
-            document.body.addEventListener('scroll', function() {
-                console.log('📜 DIRECT SCROLL HANDLER CALLED');
-                handleScroll();
-            }, { passive: true });
-            
-            console.log('Scroll event listener added');
+            window.addEventListener('scroll', requestTick, { passive: true });
             
             // Handle smooth scrolling for anchor links
-            console.log('🔗 Setting up click handlers for', navButtons.length, 'navigation buttons');
-            navButtons.forEach((button, index) => {
-                console.log(`🔗 Setting up handler for button ${index + 1}:`, button.textContent, 'href:', button.getAttribute('href'));
+            navButtons.forEach((button) => {
                 button.addEventListener('click', function(e) {
-                    console.log('🖱️ NAV BUTTON CLICKED:', this.textContent, 'href:', this.getAttribute('href'));
                     const href = this.getAttribute('href');
-                    if (href.startsWith('#')) {
+                    if (href && href.startsWith('#')) {
                         e.preventDefault();
-                        console.log('🎯 Preventing default, scrolling to:', href);
                         
                         // Remove active class from all buttons
                         navButtons.forEach(btn => btn.classList.remove('active'));
@@ -3889,26 +3834,19 @@
                         this.classList.add('active');
                         
                         const target = document.querySelector(href);
-                        console.log('🎯 Target found:', target);
                         if (target) {
                             // Simple scroll to anchor - let the browser handle positioning
                             target.scrollIntoView({
                                 behavior: 'smooth',
                                 block: 'start'
                             });
-                            console.log(`✅ Scroll to anchor completed for:`, href);
-                        } else {
-                            console.error(`❌ Target element not found for:`, href);
                         }
                     }
                 });
             });
-            console.log('✅ All navigation click handlers set up');
             
             // Initial call to set correct state
-            console.log('Setting initial scroll state');
             handleScroll();
-            console.log('Initial scroll state set');
             
             // Load featured training video
             loadFeaturedTrainingVideo();
@@ -3916,52 +3854,10 @@
             // Initialize quick search functionality
             initializeQuickSearch();
             
-            // Backup: Ensure navigation handlers are attached after a delay
-            setTimeout(() => {
-                console.log('🔄 Backup: Checking navigation handlers...');
-                const backupButtons = document.querySelectorAll('.nav-button');
-                console.log('🔄 Found', backupButtons.length, 'buttons in backup check');
-                
-                backupButtons.forEach((button, index) => {
-                    // Check if this button already has our click handler by testing for a data attribute
-                    if (!button.hasAttribute('data-nav-handler-attached')) {
-                        console.log(`🔄 Adding backup handler to button ${index + 1}:`, button.textContent);
-                        button.setAttribute('data-nav-handler-attached', 'true');
-                        button.addEventListener('click', function(e) {
-                            console.log('🖱️ BACKUP NAV BUTTON CLICKED:', this.textContent, 'href:', this.getAttribute('href'));
-                            const href = this.getAttribute('href');
-                            if (href.startsWith('#')) {
-                                e.preventDefault();
-                                console.log('🎯 Backup preventing default, scrolling to:', href);
-                                
-                                // Remove active class from all buttons
-                                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-                                
-                                // Add active class to clicked button
-                                this.classList.add('active');
-                                
-                                const target = document.querySelector(href);
-                                console.log('🎯 Backup target found:', target);
-                                if (target) {
-                                    let offset = 155;
-                                    const targetOffsetTop = target.offsetTop - offset;
-                                    console.log('🎯 Backup scrolling to position:', targetOffsetTop);
-                                    
-                                    // Use scrollIntoView - more reliable
-                                    target.scrollIntoView({ 
-                                        behavior: 'smooth', 
-                                        block: 'start',
-                                        inline: 'nearest'
-                                    });
-                                    console.log('✅ Backup scrollIntoView command sent');
-                                } else {
-                                    console.error('❌ Backup target not found:', href);
-                                }
-                            }
-                        });
-                    }
-                });
-            }, 2000);
+            // Mark buttons as having handlers attached to prevent duplicate listeners
+            navButtons.forEach((button) => {
+                button.setAttribute('data-nav-handler-attached', 'true');
+            });
         }
         
         // Function to initialize quick search functionality
