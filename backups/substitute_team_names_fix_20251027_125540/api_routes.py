@@ -11481,13 +11481,6 @@ def get_partner_matches_team():
         partner_name = request.args.get("partner_name")      # Partner to filter by
         court_filter = request.args.get("court")
         
-        # Get substitute context parameters
-        is_substitute = request.args.get("is_substitute") == "true"
-        substitute_team_id = request.args.get("substitute_team_id")
-        substitute_team_name = request.args.get("substitute_team_name")
-        
-        print(f"[DEBUG] Partner matches API: is_substitute={is_substitute}, substitute_team_id={substitute_team_id}, substitute_team_name={substitute_team_name}")
-        
         # Handle different calling patterns
         if current_player and partner_name:
             # Could be analyze-me page OR player-detail page
@@ -12409,23 +12402,10 @@ def get_partner_matches_team():
                 else:
                     partner_team_id = match.get("away_team_id")
             
-            # Use substitute team names if this is a substitute match
-            display_home_team = home_team
-            display_away_team = away_team
-            
-            if is_substitute and substitute_team_name:
-                # For substitute matches, show the substitute team name instead of raw match teams
-                # Determine which side the player was on and replace that team name
-                if is_home:
-                    display_home_team = substitute_team_name
-                else:
-                    display_away_team = substitute_team_name
-                print(f"[DEBUG] API: Substitute match detected - Using substitute team name. Home: {display_home_team}, Away: {display_away_team}")
-            
             formatted_match = {
                 "date": match["date"],
-                "home_team": display_home_team,
-                "away_team": display_away_team,
+                "home_team": home_team,
+                "away_team": away_team,
                 "partner_name": partner_name or "Unknown",
                 "partner_tenniscores_id": partner_tenniscores_id,
                 "partner_team_id": partner_team_id,
@@ -12435,11 +12415,8 @@ def get_partner_matches_team():
                 "court_number": court_number,
                 "player_was_home": is_home,
                 "player_won": match["player_won"],
-                "match_result": "WIN" if match["player_won"] else "LOSS",
-                "is_substitute": is_substitute  # Add flag for frontend
+                "match_result": "WIN" if match["player_won"] else "LOSS"
             }
-            
-            print(f"[DEBUG] API: Returning match - Date: {formatted_match['date']}, Home: {formatted_match['home_team']}, Away: {formatted_match['away_team']}, Substitute: {is_substitute}")
             
             formatted_matches.append(formatted_match)
         
@@ -12664,27 +12641,10 @@ def get_partner_matches_team():
                         else:
                             partner_team_id = match.get("away_team_id")
                     
-                    # Get raw team names from match
-                    home_team = match["home_team"]
-                    away_team = match["away_team"]
-                    
-                    # Use substitute team names if this is a substitute match
-                    display_home_team = home_team
-                    display_away_team = away_team
-                    
-                    if is_substitute and substitute_team_name:
-                        # For substitute matches, show the substitute team name instead of raw match teams
-                        # Determine which side the player was on and replace that team name
-                        if is_home:
-                            display_home_team = substitute_team_name
-                        else:
-                            display_away_team = substitute_team_name
-                        print(f"[DEBUG] API: League-wide substitute match detected - Using substitute team name. Home: {display_home_team}, Away: {display_away_team}")
-                    
                     formatted_match = {
                         "date": match["date"],
-                        "home_team": display_home_team,
-                        "away_team": display_away_team,
+                        "home_team": home_team,
+                        "away_team": away_team,
                         "partner_name": partner_name or "Unknown",
                         "partner_tenniscores_id": partner_tenniscores_id,
                         "partner_team_id": partner_team_id,
@@ -12694,11 +12654,8 @@ def get_partner_matches_team():
                         "court_number": court_number,
                         "player_was_home": is_home,
                         "player_won": match["player_won"],
-                        "match_result": "WIN" if match["player_won"] else "LOSS",
-                        "is_substitute": is_substitute  # Add flag for frontend
+                        "match_result": "WIN" if match["player_won"] else "LOSS"
                     }
-                    
-                    print(f"[DEBUG] API: League-wide returning match - Date: {formatted_match['date']}, Home: {formatted_match['home_team']}, Away: {formatted_match['away_team']}, Substitute: {is_substitute}")
                     
                     league_formatted_matches.append(formatted_match)
                 
