@@ -1452,16 +1452,15 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
         html += `
             <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
                 <!-- Team Match Header -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
-                </div>
-                
-                <!-- Team Matchup -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-base font-semibold" style="color: #bff863;">
-                        ${group.away_team} vs.<br>
-                        ${group.home_team}
-                    </span>
+                <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                    <div>
+                        <div class="mb-3">
+                            <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${group.date}</span>
+                        </div>
+                        <div class="text-base font-bold" style="color: #bff863;">
+                            ${group.away_team} vs. ${group.home_team}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Individual Matches -->
@@ -1519,7 +1518,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
             
             html += `
                 <!-- Court Header Row -->
-                <div class="px-3 py-2" style="background-color: #045454;">
+                <div class="px-3 py-2 text-center" style="background-color: #045454;">
                     <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
                 </div>
                 
@@ -1531,12 +1530,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-40 px-3 py-4 text-left">
                                 <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
                                 <div class="text-sm font-medium text-black">
-                                    <div class="mb-1">
-                                        <a href="/mobile/player-detail/${match.partner_tenniscores_id}_team_${match.partner_team_id}" 
-                                           class="text-blue-600 hover:text-blue-800 hover:underline">
-                                            ${match.partner_name}
-                                        </a>
-                                    </div>
+                                    <div class="mb-1">${match.partner_name}</div>
                                     <div>${currentPlayerName}</div>
                                 </div>
                             </td>

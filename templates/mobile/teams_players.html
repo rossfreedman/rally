@@ -1588,16 +1588,15 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
         html += `
             <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
                 <!-- Team Match Header -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
-                </div>
-                
-                <!-- Team Matchup -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-base font-semibold" style="color: #bff863;">
-                        ${group.away_team} vs.<br>
-                        ${group.home_team}
-                    </span>
+                <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                    <div>
+                        <div class="mb-3">
+                            <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${group.date}</span>
+                        </div>
+                        <div class="text-base font-bold" style="color: #bff863;">
+                            ${group.away_team} vs. ${group.home_team}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Individual Matches -->
@@ -1655,7 +1654,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
             
             html += `
                 <!-- Court Header Row -->
-                <div class="px-3 py-2" style="background-color: #045454;">
+                <div class="px-3 py-2 text-center" style="background-color: #045454;">
                     <span class="text-sm font-bold" style="color: #bff863;">${match.court_number}</span>
                 </div>
                 
@@ -1794,46 +1793,80 @@ async function loadTeamLastMatches(teamId) {
         // Build matches list
         let matchesHTML = '';
         data.matches.forEach(match => {
-            // Determine team result (W or L)
-            const teamResult = match.team_won ? 'W' : 'L';
-            const resultClass = teamResult === 'W' ? 'text-green-600' : 'text-red-600';
-            const resultBg = teamResult === 'W' ? 'bg-green-100' : 'bg-red-100';
-            
+            // Start team match container
             matchesHTML += `
-                <div class="border border-gray-200 rounded-lg overflow-hidden">
-                    <!-- Match Header -->
-                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-medium text-gray-900">${match.date}</span>
-                                <span class="px-2 py-1 rounded-full text-xs font-medium ${resultBg} ${resultClass}">
-                                    ${teamResult}
-                                </span>
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-4">
+                    <!-- Team Match Header -->
+                    <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                        <div>
+                            <div class="mb-3">
+                                <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${match.date}</span>
                             </div>
-                            <span class="text-sm text-gray-600">vs ${match.opponent_team}</span>
+                            <div class="text-base font-bold" style="color: #bff863;">
+                                ${match.home_team} vs. ${match.away_team}
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- Court Results -->
-                    <div class="p-4">
-                        ${match.court_results ? match.court_results.map((court, index) => `
-                            <div class="flex items-center justify-between py-2 ${index > 0 ? 'border-t border-gray-100' : ''}">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs font-medium text-gray-700 bg-gray-100 px-2 py-1 rounded">Court ${court.court_number}</span>
-                                    <span class="text-xs ${court.won ? 'text-green-600' : 'text-red-600'} font-medium">${court.won ? 'W' : 'L'}</span>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-xs font-medium text-gray-900">${court.score}</div>
-                                    <div class="text-xs text-gray-500">${court.players}</div>
-                                </div>
+                    <!-- Individual Matches -->
+                    <div class="divide-y divide-gray-200">
+            `;
+            
+            // Render each individual match
+            if (match.individual_matches && match.individual_matches.length > 0) {
+                match.individual_matches.forEach(individualMatch => {
+                    const ourTeamWon = individualMatch.our_team_won;
+                    
+                    matchesHTML += `
+                        <div class="bg-white">
+                            <!-- Court Header -->
+                            <div class="px-3 py-2 text-center" style="background-color: #045454;">
+                                <span class="text-sm font-bold" style="color: #bff863;">Court ${individualMatch.court_number}</span>
                             </div>
-                        `).join('') : `
-                            <div class="text-sm text-gray-600 mb-2">${match.all_scores}</div>
-                            <div class="text-xs text-gray-500">
-                                <div>Home: ${match.home_players}</div>
-                                <div>Away: ${match.away_players}</div>
-                            </div>
-                        `}
+                            
+                            <!-- Match Table -->
+                            <table class="w-full border-collapse">
+                                <tbody>
+                                    <!-- Our Team Row -->
+                                    <tr class="${ourTeamWon ? 'bg-green-100' : 'bg-white'}">
+                                        <td class="w-40 px-3 py-4 text-left">
+                                            <div class="text-xs text-gray-500 mb-2">${match.our_team_name}</div>
+                                            <div class="text-sm font-medium text-black">
+                                                <div class="mb-1">${individualMatch.our_player1_name}</div>
+                                                <div>${individualMatch.our_player2_name}</div>
+                                            </div>
+                                        </td>
+                                        <td class="w-12 px-2 py-3 text-center">
+                                            ${ourTeamWon ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                                        </td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[0] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[1] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[2] || ''}</span></td>
+                                    </tr>
+                                    <!-- Opponent Team Row -->
+                                    <tr class="${ourTeamWon ? 'bg-white' : 'bg-green-100'}">
+                                        <td class="w-40 px-3 py-4 text-left">
+                                            <div class="text-xs text-gray-500 mb-2">${match.opponent_team}</div>
+                                            <div class="text-sm font-medium text-black">
+                                                <div class="mb-1">${individualMatch.opponent_player1_name}</div>
+                                                <div>${individualMatch.opponent_player2_name}</div>
+                                            </div>
+                                        </td>
+                                        <td class="w-12 px-2 py-3 text-center">
+                                            ${!ourTeamWon ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
+                                        </td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[0] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[1] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[2] || ''}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                });
+            }
+            
+            matchesHTML += `
                     </div>
                 </div>
             `;
