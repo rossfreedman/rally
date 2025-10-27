@@ -8788,6 +8788,9 @@ def create_subfinder_request():
                 "total_selected": len(selected_player_ids) if selected_player_ids else 0
             }
             
+            print(f"[CREATE_SUBFINDER] Broadcast via text setting: {broadcast_via_text}")
+            print(f"[CREATE_SUBFINDER] Selected player IDs count: {len(selected_player_ids) if selected_player_ids else 0}")
+            
             if broadcast_via_text and selected_player_ids:
                 from app.services.notifications_service import send_sms_notification
                 from datetime import datetime
@@ -8880,7 +8883,12 @@ def create_subfinder_request():
                     
                     print(f"[CREATE_SUBFINDER] SMS Results: {sms_results['sent']} sent, {sms_results['failed']} failed, {sms_results['skipped_no_prefs']} skipped (notifications disabled)")
             else:
-                print(f"[CREATE_SUBFINDER] SMS broadcast disabled or no players selected")
+                if not broadcast_via_text:
+                    print(f"[CREATE_SUBFINDER] SMS broadcast disabled by user")
+                elif not selected_player_ids:
+                    print(f"[CREATE_SUBFINDER] No players selected for SMS")
+                else:
+                    print(f"[CREATE_SUBFINDER] SMS broadcast disabled or no players selected")
             
             return jsonify({
                 "success": True,
@@ -9021,8 +9029,85 @@ def join_subfinder_request(request_id):
             log_user_activity(user_email, "subfinder_joined", 
                             details=f"Joined sub request ID: {request_id}")
             
-            # TODO: Send notifications to creator and other participants
-            # This would be implemented in the notification service
+            # Send SMS notification to the requester
+            try:
+                from app.services.notifications_service import send_sms_notification
+                from datetime import datetime
+                
+                # Get creator's information
+                creator_query = """
+                    SELECT 
+                        u.id,
+                        u.email,
+                        u.first_name,
+                        u.last_name,
+                        u.phone_number,
+                        u.notification_prefs
+                    FROM rally_sub_finder rsf
+                    JOIN users u ON rsf.created_by = u.id
+                    WHERE rsf.id = %s
+                """
+                
+                creator = execute_query_one(creator_query, [request_id])
+                
+                if creator and creator["phone_number"]:
+                    # Check if creator has sub_requests notifications enabled
+                    notification_prefs = creator.get("notification_prefs") or {}
+                    sub_requests_enabled = notification_prefs.get("sub_requests", True)  # Default to True
+                    
+                    if sub_requests_enabled:
+                        # Get joiner's name
+                        joiner_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+                        if not joiner_name:
+                            joiner_name = "A player"
+                        
+                        # Format the match date and time
+                        try:
+                            date_obj = datetime.strptime(request_record["match_date"], "%Y-%m-%d")
+                            formatted_date = date_obj.strftime("%A, %B %d")
+                        except:
+                            formatted_date = request_record["match_date"]
+                        
+                        try:
+                            time_obj = datetime.strptime(request_record["match_time"], "%H:%M")
+                            formatted_time = time_obj.strftime("%I:%M %p").lstrip('0')
+                        except:
+                            formatted_time = request_record["match_time"]
+                        
+                        # Get current slots filled
+                        slots_filled = request_record["current_participants"] + 1  # +1 for the person who just joined
+                        slots_total = request_record["slots_total"]
+                        
+                        # Build SMS message
+                        message = "Rally Sub Request Update\n\n"
+                        message += f"{joiner_name} joined as a sub for your {request_record['type'].lower()} request:\n\n"
+                        message += f"{formatted_date} at {formatted_time}\n\n"
+                        message += f"Slots filled: {slots_filled}/{slots_total}\n\n"
+                        
+                        if slots_filled >= slots_total:
+                            message += "Your sub request is now full!\n\n"
+                        
+                        message += "View details: https://www.lovetorally.com/mobile/active-sub-requests"
+                        
+                        # Send SMS
+                        sms_result = send_sms_notification(
+                            to_number=creator["phone_number"],
+                            message=message,
+                            test_mode=False
+                        )
+                        
+                        if sms_result["success"]:
+                            print(f"[JOIN_SUBFINDER] ✅ SMS sent to requester {creator['first_name']} {creator['last_name']}")
+                        else:
+                            print(f"[JOIN_SUBFINDER] ❌ SMS failed to requester: {sms_result.get('error')}")
+                    else:
+                        print(f"[JOIN_SUBFINDER] Requester has sub_requests notifications disabled")
+                else:
+                    print(f"[JOIN_SUBFINDER] Requester has no phone number or not found")
+                    
+            except Exception as e:
+                print(f"[JOIN_SUBFINDER] Error sending SMS notification: {str(e)}")
+                # Don't fail the join if SMS fails
             
             return jsonify({
                 "success": True,

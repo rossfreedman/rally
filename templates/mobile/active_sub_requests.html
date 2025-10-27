@@ -517,18 +517,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             ` : ''}
             
-            ${request.broadcast_via_text ? `
-                <div class="request-broadcast">
-                    <i class="fas fa-sms mr-2"></i>
-                    Text notifications enabled
-                </div>
-            ` : `
-                <div class="request-broadcast-disabled">
-                    <i class="fas fa-sms-slash mr-2"></i>
-                    Text notifications disabled
-                </div>
-            `}
-            
             ${request.notes ? `
                 <div class="request-notes">
                     <i class="fas fa-sticky-note mr-2"></i>
@@ -772,18 +760,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${request.type || 'Match'} - ${formatMatchDateTime(request.match_date, request.match_time)}
                 </div>
             ` : ''}
-            
-            ${request.broadcast_via_text ? `
-                <div class="request-broadcast">
-                    <i class="fas fa-sms mr-2"></i>
-                    Text notifications enabled
-                </div>
-            ` : `
-                <div class="request-broadcast-disabled">
-                    <i class="fas fa-sms-slash mr-2"></i>
-                    Text notifications disabled
-                </div>
-            `}
             
             ${request.notes ? `
                 <div class="request-notes">
