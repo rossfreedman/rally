@@ -1673,9 +1673,9 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-12 px-2 py-3 text-center">
                                 ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                             </td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] ?? ''}</span></td>
                         </tr>
                         <!-- Opponent Team Row -->
                         <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
@@ -1689,9 +1689,9 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-12 px-2 py-3 text-center">
                                 ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                             </td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] ?? ''}</span></td>
                         </tr>
                     </tbody>
                 </table>
@@ -1839,9 +1839,9 @@ async function loadTeamLastMatches(teamId) {
                                         <td class="w-12 px-2 py-3 text-center">
                                             ${ourTeamWon ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                                         </td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[0] || ''}</span></td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[1] || ''}</span></td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[2] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[0] ?? ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[1] ?? ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.our_sets[2] ?? ''}</span></td>
                                     </tr>
                                     <!-- Opponent Team Row -->
                                     <tr class="${ourTeamWon ? 'bg-white' : 'bg-green-100'}">
@@ -1855,9 +1855,9 @@ async function loadTeamLastMatches(teamId) {
                                         <td class="w-12 px-2 py-3 text-center">
                                             ${!ourTeamWon ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                                         </td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[0] || ''}</span></td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[1] || ''}</span></td>
-                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[2] || ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[0] ?? ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[1] ?? ''}</span></td>
+                                        <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${individualMatch.opponent_sets[2] ?? ''}</span></td>
                                     </tr>
                                 </tbody>
                             </table>

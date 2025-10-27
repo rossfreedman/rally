@@ -17,14 +17,30 @@
         </div>
     </div>
 
+    <!-- Tabs -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="flex">
+            <button id="profileTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-blue-600 text-blue-600 bg-blue-50" onclick="switchSettingsTab('profile')">
+                <i class="fas fa-user mr-2"></i>
+                Profile
+            </button>
+            <button id="notificationsTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="switchSettingsTab('notifications')">
+                <i class="fas fa-bell mr-2"></i>
+                Notifications
+            </button>
+        </div>
+    </div>
+
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
         
-        <!-- Main Settings Form -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            
-                        <div class="p-6">
-                <form id="user-settings-form" class="space-y-6">
+        <!-- Profile Tab Content -->
+        <div id="profile-content" class="tab-content">
+            <!-- Main Settings Form -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                
+                            <div class="p-6">
+                    <form id="user-settings-form" class="space-y-6">
                     
                     <!-- Account Information Section -->
                     <div class="form-section" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #007bff;">
@@ -164,6 +180,49 @@
         <div class="text-center py-4">
             <div class="text-xs text-gray-500 font-mono" id="player-id-display">
                 Player ID: Loading...
+            </div>
+        </div>
+        </div>
+
+        <!-- Notifications Tab Content -->
+        <div id="notifications-content" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-6">
+                    <!-- Auto-save Status Message (at top) -->
+                    <div id="notifications-success" class="hidden mb-4 bg-green-50 border border-green-100 rounded-lg p-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            <p class="text-green-700 text-sm font-medium">Saved!</p>
+                        </div>
+                    </div>
+                    
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                        <i class="fas fa-bell mr-2"></i>Notification Preferences
+                    </h2>
+                    
+                    <!-- SMS Status Notice -->
+                    <div id="sms-status-notice" class="mb-6 p-4 rounded-lg border hidden">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-700" id="sms-status-message"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notification Toggles -->
+                    <div class="space-y-4" id="notification-toggles">
+                        <!-- Toggles will be dynamically inserted here -->
+                    </div>
+                    
+                    <!-- Error Message (at bottom) -->
+                    <div id="notifications-error" class="hidden mt-4 bg-red-50 border border-red-100 rounded-lg p-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                            <p class="text-red-700 font-medium" id="notifications-error-message">Error updating notification preferences</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -868,5 +927,176 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Phone Validation Script -->
 <script src="{{ url_for('static', filename='js/phone-validation.js') }}"></script>
+
+<script>
+// Tab switching functionality
+function switchSettingsTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remove active styling from all tabs
+    document.getElementById('profileTab').classList.remove('border-blue-600', 'text-blue-600', 'bg-blue-50');
+    document.getElementById('profileTab').classList.add('border-transparent', 'text-gray-500');
+    document.getElementById('notificationsTab').classList.remove('border-blue-600', 'text-blue-600', 'bg-blue-50');
+    document.getElementById('notificationsTab').classList.add('border-transparent', 'text-gray-500');
+    
+    // Show selected tab and add active styling
+    if (tabName === 'profile') {
+        document.getElementById('profile-content').classList.remove('hidden');
+        document.getElementById('profileTab').classList.add('border-blue-600', 'text-blue-600', 'bg-blue-50');
+        document.getElementById('profileTab').classList.remove('border-transparent', 'text-gray-500');
+    } else if (tabName === 'notifications') {
+        document.getElementById('notifications-content').classList.remove('hidden');
+        document.getElementById('notificationsTab').classList.add('border-blue-600', 'text-blue-600', 'bg-blue-50');
+        document.getElementById('notificationsTab').classList.remove('border-transparent', 'text-gray-500');
+        
+        // Load notification preferences when switching to notifications tab
+        loadNotificationPreferences();
+    }
+}
+
+// Load notification preferences
+async function loadNotificationPreferences() {
+    try {
+        const response = await fetch('/api/me/notification-preferences');
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to load notification preferences');
+        }
+        
+        // Build toggles HTML
+        const togglesContainer = document.getElementById('notification-toggles');
+        togglesContainer.innerHTML = '';
+        
+        // Check SMS enabled status
+        const smsEnabled = data.sms_enabled;
+        
+        // Show SMS status notice if SMS is not enabled
+        const statusNotice = document.getElementById('sms-status-notice');
+        const statusMessage = document.getElementById('sms-status-message');
+        
+        if (!smsEnabled) {
+            statusNotice.classList.remove('hidden');
+            statusNotice.classList.add('bg-yellow-50', 'border-yellow-200');
+            statusMessage.innerHTML = '<strong>Text notifications are off</strong> because SMS isn\'t enabled on your account. Add your phone number in the Profile tab to receive text notifications.';
+        } else {
+            statusNotice.classList.add('hidden');
+        }
+        
+        // Create toggle for each notification type
+        data.notification_types.forEach(type => {
+            const toggleDiv = document.createElement('div');
+            toggleDiv.className = 'grid grid-cols-[1fr,auto] gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200';
+            toggleDiv.innerHTML = `
+                <div>
+                    <label class="font-medium text-gray-900 cursor-pointer block" for="toggle-${type.key}">
+                        ${type.label}
+                    </label>
+                    <p class="text-sm text-gray-600 mt-1">${type.description}</p>
+                </div>
+                <div class="flex items-center justify-end pl-4 border-l border-gray-300">
+                    <label class="relative inline-flex items-center cursor-pointer ${!smsEnabled ? 'opacity-50 cursor-not-allowed' : ''}">
+                        <input type="checkbox" 
+                               id="toggle-${type.key}" 
+                               data-pref-key="${type.key}"
+                               class="sr-only peer notification-toggle" 
+                               ${type.enabled ? 'checked' : ''}
+                               ${!smsEnabled ? 'disabled' : ''}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            `;
+            togglesContainer.appendChild(toggleDiv);
+        });
+        
+        // Add auto-save event listeners to all toggles (only if SMS is enabled)
+        if (smsEnabled) {
+            document.querySelectorAll('.notification-toggle').forEach(toggle => {
+                toggle.addEventListener('change', autoSaveNotificationPreferences);
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error loading notification preferences:', error);
+        showNotificationsError(error.message || 'Failed to load notification preferences');
+    }
+}
+
+// Auto-save notification preferences when toggle changes
+let autoSaveTimeout = null;
+async function autoSaveNotificationPreferences() {
+    // Debounce rapid changes
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+    }
+    
+    autoSaveTimeout = setTimeout(async () => {
+        try {
+            // Collect current toggle states
+            const preferences = {};
+            document.querySelectorAll('.notification-toggle').forEach(toggle => {
+                const key = toggle.getAttribute('data-pref-key');
+                preferences[key] = toggle.checked;
+            });
+            
+            const response = await fetch('/api/me/notification-preferences', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ preferences })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to save notification preferences');
+            }
+            
+            // Show brief success message
+            showNotificationsSuccess();
+            
+        } catch (error) {
+            console.error('Error saving notification preferences:', error);
+            showNotificationsError(error.message || 'Failed to save notification preferences');
+        }
+    }, 500); // Wait 500ms after last change before saving
+}
+
+// Show success message (brief for auto-save)
+function showNotificationsSuccess() {
+    const successDiv = document.getElementById('notifications-success');
+    const errorDiv = document.getElementById('notifications-error');
+    
+    errorDiv.classList.add('hidden');
+    successDiv.classList.remove('hidden');
+    
+    // Hide after 2 seconds (shorter for auto-save feedback)
+    setTimeout(() => {
+        successDiv.classList.add('hidden');
+    }, 2000);
+}
+
+// Show error message
+function showNotificationsError(message) {
+    const successDiv = document.getElementById('notifications-success');
+    const errorDiv = document.getElementById('notifications-error');
+    const errorMessage = document.getElementById('notifications-error-message');
+    
+    successDiv.classList.add('hidden');
+    errorMessage.textContent = message;
+    errorDiv.classList.remove('hidden');
+    
+    // Hide after 5 seconds
+    setTimeout(() => {
+        errorDiv.classList.add('hidden');
+    }, 5000);
+}
+
+// No manual save button needed - auto-save on toggle change
+</script>
 
 {% endblock %} 

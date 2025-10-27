@@ -51,6 +51,7 @@ from app.routes.schema_fix_routes import schema_fix_bp
 from app.routes.player_routes import player_bp
 from app.routes.polls_routes import polls_bp
 from app.routes.download_routes import download_bp
+from app.routes.notification_preferences_routes import notification_prefs_bp
 
 # Import database utilities
 from database_config import test_db_connection
@@ -236,6 +237,7 @@ app.register_blueprint(polls_bp)
 app.register_blueprint(background_bp)
 app.register_blueprint(schema_fix_bp)
 app.register_blueprint(download_bp)
+app.register_blueprint(notification_prefs_bp)
 
 # Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
 init_act_routes(app)

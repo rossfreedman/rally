@@ -20,7 +20,7 @@ from requests.auth import HTTPBasicAuth
 # from sendgrid import SendGridAPIClient
 # from sendgrid.helpers.mail import Mail
 
-from config import TwilioConfig  # SendGridConfig removed - email disabled
+from config import TwilioConfig, RALLY_TESTING_MODE, ADMIN_PHONE  # SendGridConfig removed - email disabled
 
 
 # Configure logging
@@ -44,6 +44,9 @@ def validate_phone_number(phone: str) -> Tuple[bool, str]:
 def send_sms_notification(to_number: str, message: str, test_mode: bool = False, max_retries: int = 3) -> Dict:
     """
     Send an SMS using Twilio's Messaging Service API with retry logic for error 21704
+    
+    TESTING MODE: When RALLY_TESTING_MODE=true, all SMS messages are routed to the admin phone
+    to prevent accidental texts to real users during testing.
     
     Args:
         to_number (str): Recipient phone number
@@ -76,6 +79,14 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False,
         }
     
     formatted_phone = phone_result
+    
+    # TESTING MODE: Route all messages to admin phone
+    original_phone = formatted_phone
+    if RALLY_TESTING_MODE:
+        logger.info(f"🧪 TESTING MODE: Redirecting SMS from {original_phone} to admin {ADMIN_PHONE}")
+        formatted_phone = ADMIN_PHONE
+        # Prepend original recipient to message for context
+        message = f"[TEST - would send to {original_phone}]\n\n{message}"
     
     # Validate message
     if not message or not message.strip():

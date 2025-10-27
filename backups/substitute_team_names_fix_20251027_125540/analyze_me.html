@@ -269,9 +269,6 @@
                                                  data-partner-name="{{ partner.name }}"
                                                  data-court-name="{{ court_name.replace('court', 'Court ')|title }}"
                                                  data-match-count="{{ partner.matches|default(0) }}"
-                                                 data-is-substitute="{{ 'true' if partner.isSubstitute else 'false' }}"
-                                                 data-substitute-team-id="{{ partner.substituteTeamId if partner.isSubstitute else '' }}"
-                                                 data-substitute-team-name="{{ partner.substituteTeamName if partner.isSubstitute else '' }}"
                                                  title="Click to view matches with {{ partner.name }}">
                                                 View {{ partner.matches|default(0) }} match{{ 'es' if partner.matches != 1 else '' }}
                                             </button>
@@ -1030,9 +1027,9 @@ async function loadLast3Matches() {
                   <td class="w-12 px-2 py-3 text-center">
                     ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                   </td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] ?? ''}</span></td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] ?? ''}</span></td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] ?? ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
                 </tr>
                 <!-- Opponent Team Row -->
                 <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
@@ -1046,9 +1043,9 @@ async function loadLast3Matches() {
                   <td class="w-12 px-2 py-3 text-center">
                     ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                   </td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] ?? ''}</span></td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] ?? ''}</span></td>
-                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] ?? ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                  <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
                 </tr>
               </tbody>
             </table>
@@ -1115,14 +1112,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const partnerName = event.target.getAttribute('data-partner-name');
             const courtName = event.target.getAttribute('data-court-name');
             const matchCount = parseInt(event.target.getAttribute('data-match-count'));
-            const isSubstitute = event.target.getAttribute('data-is-substitute') === 'true';
-            const substituteTeamId = event.target.getAttribute('data-substitute-team-id');
-            const substituteTeamName = event.target.getAttribute('data-substitute-team-name');
             
-            console.log(`[DEBUG] Data attributes - partner: ${partnerName}, court: ${courtName}, matches: ${matchCount}, isSubstitute: ${isSubstitute}, substituteTeamId: ${substituteTeamId}`);
+            console.log(`[DEBUG] Data attributes - partner: ${partnerName}, court: ${courtName}, matches: ${matchCount}`);
             
             if (partnerName && courtName && !isNaN(matchCount)) {
-                openPartnerMatchesModal(partnerName, courtName, matchCount, isSubstitute, substituteTeamId, substituteTeamName);
+                openPartnerMatchesModal(partnerName, courtName, matchCount);
             } else {
                 console.error('[DEBUG] Missing or invalid data attributes');
             }
@@ -1452,9 +1446,9 @@ function renderMatchesModal(groupedMatches) {
                             </div>
                         </div>
                         <div class="w-12 flex items-center justify-center">${!home_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}</div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[0] ?? ''}</span></div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[1] ?? ''}</span></div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[2] ?? ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[0] || ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[1] || ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${away_sets[2] || ''}</span></div>
                     </div>
                     <!-- Home Team Row -->
                     <div class="flex items-center ${home_team_won ? 'bg-green-100' : 'bg-white'} px-3 py-2">
@@ -1466,9 +1460,9 @@ function renderMatchesModal(groupedMatches) {
                             </div>
                         </div>
                         <div class="w-12 flex items-center justify-center">${home_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}</div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[0] ?? ''}</span></div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[1] ?? ''}</span></div>
-                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[2] ?? ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[0] || ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[1] || ''}</span></div>
+                        <div class="w-12 text-center"><span class="text-sm font-medium text-gray-700">${home_sets[2] || ''}</span></div>
                     </div>
                 </div>
             `;
@@ -1514,8 +1508,8 @@ function showMatchesEmpty() {
 }
 
 // Partner matches modal functionality
-function openPartnerMatchesModal(partnerName, courtName, matchCount, isSubstitute = false, substituteTeamId = null, substituteTeamName = null) {
-    console.log(`🎯 Opening partner matches modal for ${partnerName} on ${courtName} (Substitute: ${isSubstitute})`);
+function openPartnerMatchesModal(partnerName, courtName, matchCount) {
+    console.log(`🎯 Opening partner matches modal for ${partnerName} on ${courtName}`);
     
     if (!matchesModal) {
         console.log('🔨 Creating matches modal...');
@@ -1541,14 +1535,14 @@ function openPartnerMatchesModal(partnerName, courtName, matchCount, isSubstitut
     matchesModal.classList.remove('hidden');
     console.log('✅ Modal shown');
     
-    // Load partner matches data with substitute context
+    // Load partner matches data
     console.log('🚀 Loading partner matches data...');
-    loadPartnerMatchesData(partnerName, courtName, isSubstitute, substituteTeamId, substituteTeamName);
+    loadPartnerMatchesData(partnerName, courtName);
 }
 
-async function loadPartnerMatchesData(partnerName, courtName, isSubstitute = false, substituteTeamId = null, substituteTeamName = null) {
+async function loadPartnerMatchesData(partnerName, courtName) {
     try {
-        console.log(`🔍 Loading partner matches for ${partnerName} on ${courtName}... (Substitute: ${isSubstitute}, TeamId: ${substituteTeamId})`);
+        console.log(`🔍 Loading partner matches for ${partnerName} on ${courtName}...`);
         
         // Get current player context
         const currentPlayerName = '{{ session_data.user.first_name }} {{ session_data.user.last_name }}';
@@ -1558,16 +1552,8 @@ async function loadPartnerMatchesData(partnerName, courtName, isSubstitute = fal
         
         console.log(`[DEBUG] Current player: ${currentPlayerName}, Partner: ${partnerName}, Court: ${courtNumber}`);
         
-        // Use the partner matches API endpoint with substitute context
-        let apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
-        
-        // Add substitute context if applicable
-        if (isSubstitute && substituteTeamId) {
-            apiUrl += `&is_substitute=true&substitute_team_id=${encodeURIComponent(substituteTeamId)}`;
-            if (substituteTeamName) {
-                apiUrl += `&substitute_team_name=${encodeURIComponent(substituteTeamName)}`;
-            }
-        }
+        // Use the partner matches API endpoint
+        const apiUrl = `/api/partner-matches-team?current_player=${encodeURIComponent(currentPlayerName)}&partner_name=${encodeURIComponent(partnerName)}&court=${encodeURIComponent(courtNumber)}`;
         
         console.log(`[DEBUG] API URL: ${apiUrl}`);
         
@@ -1799,9 +1785,9 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-12 px-2 py-3 text-center">
                                 ${current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                             </td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] ?? ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] ?? ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${current_team_sets[2] || ''}</span></td>
                         </tr>
                         <!-- Opponent Team Row -->
                         <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
@@ -1815,9 +1801,9 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-12 px-2 py-3 text-center">
                                 ${!current_team_won ? '<i class="fas fa-trophy text-yellow-500 text-sm"></i>' : ''}
                             </td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] ?? ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] ?? ''}</span></td>
-                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] ?? ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[0] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[1] || ''}</span></td>
+                            <td class="w-12 px-2 py-3 text-center"><span class="text-sm font-medium text-gray-700">${opponent_team_sets[2] || ''}</span></td>
                         </tr>
                     </tbody>
                 </table>

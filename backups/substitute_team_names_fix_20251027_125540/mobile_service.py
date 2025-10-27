@@ -1901,7 +1901,7 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
 
                     if partner and partner != player_id:
                         if partner not in partner_win_counts:
-                            partner_win_counts[partner] = {"matches": 0, "wins": 0, "is_substitute": False, "substitute_series": None, "substitute_team_id": None, "substitute_team_name": None}
+                            partner_win_counts[partner] = {"matches": 0, "wins": 0, "is_substitute": False, "substitute_series": None}
                         
                         partner_win_counts[partner]["matches"] += 1
                         if won:
@@ -1973,10 +1973,10 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                                     # This is a substitute match - mark partner as being in a substitute context
                                     partner_win_counts[partner]["is_substitute"] = True
                                     
-                                    # Get series name and team info for substitute label
+                                    # Get series name for substitute label
                                     try:
                                         series_query = """
-                                            SELECT t.team_name, t.team_alias, s.name as series_name, s.display_name as series_display_name
+                                            SELECT s.name as series_name, s.display_name as series_display_name
                                             FROM teams t
                                             JOIN series s ON t.series_id = s.id
                                             WHERE t.id = %s
@@ -1987,8 +1987,6 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                                             from app.routes.api_routes import convert_chicago_to_series_for_ui
                                             display_series_name = convert_chicago_to_series_for_ui(series_name)
                                             partner_win_counts[partner]["substitute_series"] = display_series_name
-                                            partner_win_counts[partner]["substitute_team_id"] = match_team_id
-                                            partner_win_counts[partner]["substitute_team_name"] = series_result.get("team_alias") or series_result["team_name"]
                                     except Exception as e:
                                         print(f"Error getting series name for substitute: {e}")
                                         partner_win_counts[partner]["substitute_series"] = "Unknown Series"
@@ -2031,8 +2029,6 @@ def calculate_individual_court_analysis(player_matches, player_id, user=None, cu
                             substitute_series = stats.get("substitute_series", "Unknown Series")
                             partner_data["isSubstitute"] = True
                             partner_data["substituteSeries"] = substitute_series
-                            partner_data["substituteTeamId"] = stats.get("substitute_team_id")
-                            partner_data["substituteTeamName"] = stats.get("substitute_team_name")
                         else:
                             partner_data["isSubstitute"] = False
                         

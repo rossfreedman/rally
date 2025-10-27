@@ -8748,7 +8748,6 @@ def create_subfinder_request():
         match_time = data["match_time"]
         request_type = data.get("type", "Match")
         broadcast_via_text = data.get("broadcast_via_text", True)
-        selected_player_ids = data.get("selected_player_ids", [])
         
         # Validate ranges
         if pti_min >= pti_max:
@@ -8780,90 +8779,13 @@ def create_subfinder_request():
             log_user_activity(user_email, "subfinder_created", 
                             details=f"Created sub request ID: {request_id}")
             
-            # Send SMS notifications to selected players if broadcast is enabled
-            sms_results = {
-                "sent": 0,
-                "failed": 0,
-                "skipped": 0
-            }
-            
-            if broadcast_via_text and selected_player_ids:
-                from app.services.notifications_service import send_sms_notification
-                from datetime import datetime
-                
-                # Get player details for selected players
-                if selected_player_ids:
-                    placeholders = ','.join(['%s'] * len(selected_player_ids))
-                    players_query = f"""
-                        SELECT DISTINCT
-                            p.id,
-                            CONCAT(p.first_name, ' ', p.last_name) as player_name,
-                            u.phone_number,
-                            u.first_name as user_first_name
-                        FROM players p
-                        LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                        LEFT JOIN users u ON upa.user_id = u.id
-                        WHERE p.id IN ({placeholders})
-                        AND u.phone_number IS NOT NULL
-                    """
-                    
-                    players = execute_query(players_query, selected_player_ids)
-                    
-                    # Format the message
-                    requester_name = user.get("first_name", "A player")
-                    club_name = user.get("club", "your club")
-                    
-                    # Parse and format date and time
-                    try:
-                        date_obj = datetime.strptime(match_date, "%Y-%m-%d")
-                        formatted_date = date_obj.strftime("%A, %B %d")
-                    except:
-                        formatted_date = match_date
-                    
-                    # Format time (convert 24h to 12h format)
-                    try:
-                        time_obj = datetime.strptime(match_time, "%H:%M")
-                        formatted_time = time_obj.strftime("%I:%M %p").lstrip('0')
-                    except:
-                        formatted_time = match_time
-                    
-                    message = f"🎾 Sub Request from {requester_name}:\n\n"
-                    message += f"Need a sub for {request_type.lower()} at {club_name}\n"
-                    message += f"{formatted_date} at {formatted_time}\n"
-                    if notes:
-                        message += f"\n{notes}\n"
-                    message += f"\nView and respond: https://www.lovetorally.com/mobile/active-sub-requests"
-                    
-                    print(f"[CREATE_SUBFINDER] Sending SMS to {len(players)} selected players")
-                    
-                    # Send SMS to each selected player
-                    for player in players:
-                        try:
-                            sms_result = send_sms_notification(
-                                to_number=player["phone_number"],
-                                message=message,
-                                test_mode=False
-                            )
-                            
-                            if sms_result["success"]:
-                                sms_results["sent"] += 1
-                                print(f"[CREATE_SUBFINDER] ✅ SMS sent to {player['player_name']}")
-                            else:
-                                sms_results["failed"] += 1
-                                print(f"[CREATE_SUBFINDER] ❌ SMS failed to {player['player_name']}: {sms_result.get('error')}")
-                        except Exception as e:
-                            sms_results["failed"] += 1
-                            print(f"[CREATE_SUBFINDER] ❌ Error sending SMS to {player['player_name']}: {e}")
-                    
-                    print(f"[CREATE_SUBFINDER] SMS Results: {sms_results['sent']} sent, {sms_results['failed']} failed")
-            else:
-                print(f"[CREATE_SUBFINDER] SMS broadcast disabled or no players selected")
+            # TODO: Send notifications to matching players
+            # This would be implemented in the notification service
             
             return jsonify({
                 "success": True,
                 "message": "Sub request created successfully",
-                "request_id": request_id,
-                "sms_results": sms_results
+                "request_id": request_id
             })
         else:
             return jsonify({"error": "Failed to create sub request"}), 500
@@ -11559,13 +11481,6 @@ def get_partner_matches_team():
         partner_name = request.args.get("partner_name")      # Partner to filter by
         court_filter = request.args.get("court")
         
-        # Get substitute context parameters
-        is_substitute = request.args.get("is_substitute") == "true"
-        substitute_team_id = request.args.get("substitute_team_id")
-        substitute_team_name = request.args.get("substitute_team_name")
-        
-        print(f"[DEBUG] Partner matches API: is_substitute={is_substitute}, substitute_team_id={substitute_team_id}, substitute_team_name={substitute_team_name}")
-        
         # Handle different calling patterns
         if current_player and partner_name:
             # Could be analyze-me page OR player-detail page
@@ -12487,23 +12402,10 @@ def get_partner_matches_team():
                 else:
                     partner_team_id = match.get("away_team_id")
             
-            # Use substitute team names if this is a substitute match
-            display_home_team = home_team
-            display_away_team = away_team
-            
-            if is_substitute and substitute_team_name:
-                # For substitute matches, show the substitute team name instead of raw match teams
-                # Determine which side the player was on and replace that team name
-                if is_home:
-                    display_home_team = substitute_team_name
-                else:
-                    display_away_team = substitute_team_name
-                print(f"[DEBUG] API: Substitute match detected - Using substitute team name. Home: {display_home_team}, Away: {display_away_team}")
-            
             formatted_match = {
                 "date": match["date"],
-                "home_team": display_home_team,
-                "away_team": display_away_team,
+                "home_team": home_team,
+                "away_team": away_team,
                 "partner_name": partner_name or "Unknown",
                 "partner_tenniscores_id": partner_tenniscores_id,
                 "partner_team_id": partner_team_id,
@@ -12513,11 +12415,8 @@ def get_partner_matches_team():
                 "court_number": court_number,
                 "player_was_home": is_home,
                 "player_won": match["player_won"],
-                "match_result": "WIN" if match["player_won"] else "LOSS",
-                "is_substitute": is_substitute  # Add flag for frontend
+                "match_result": "WIN" if match["player_won"] else "LOSS"
             }
-            
-            print(f"[DEBUG] API: Returning match - Date: {formatted_match['date']}, Home: {formatted_match['home_team']}, Away: {formatted_match['away_team']}, Substitute: {is_substitute}")
             
             formatted_matches.append(formatted_match)
         
@@ -12742,27 +12641,10 @@ def get_partner_matches_team():
                         else:
                             partner_team_id = match.get("away_team_id")
                     
-                    # Get raw team names from match
-                    home_team = match["home_team"]
-                    away_team = match["away_team"]
-                    
-                    # Use substitute team names if this is a substitute match
-                    display_home_team = home_team
-                    display_away_team = away_team
-                    
-                    if is_substitute and substitute_team_name:
-                        # For substitute matches, show the substitute team name instead of raw match teams
-                        # Determine which side the player was on and replace that team name
-                        if is_home:
-                            display_home_team = substitute_team_name
-                        else:
-                            display_away_team = substitute_team_name
-                        print(f"[DEBUG] API: League-wide substitute match detected - Using substitute team name. Home: {display_home_team}, Away: {display_away_team}")
-                    
                     formatted_match = {
                         "date": match["date"],
-                        "home_team": display_home_team,
-                        "away_team": display_away_team,
+                        "home_team": home_team,
+                        "away_team": away_team,
                         "partner_name": partner_name or "Unknown",
                         "partner_tenniscores_id": partner_tenniscores_id,
                         "partner_team_id": partner_team_id,
@@ -12772,11 +12654,8 @@ def get_partner_matches_team():
                         "court_number": court_number,
                         "player_was_home": is_home,
                         "player_won": match["player_won"],
-                        "match_result": "WIN" if match["player_won"] else "LOSS",
-                        "is_substitute": is_substitute  # Add flag for frontend
+                        "match_result": "WIN" if match["player_won"] else "LOSS"
                     }
-                    
-                    print(f"[DEBUG] API: League-wide returning match - Date: {formatted_match['date']}, Home: {formatted_match['home_team']}, Away: {formatted_match['away_team']}, Substitute: {is_substitute}")
                     
                     league_formatted_matches.append(formatted_match)
                 

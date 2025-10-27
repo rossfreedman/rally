@@ -75,6 +75,14 @@ class User(Base):
     # Temporary password fields
     has_temporary_password = Column(Boolean, default=False)
     temporary_password_set_at = Column(DateTime(timezone=True))
+    
+    # Notification preferences (JSONB column for flexible preference storage)
+    notification_prefs = Column(
+        'notification_prefs',
+        # Use postgresql.JSONB for better performance and indexing
+        type_=None,  # Let SQLAlchemy infer the type from the column definition
+        nullable=True
+    )
 
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
