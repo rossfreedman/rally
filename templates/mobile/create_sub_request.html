@@ -161,12 +161,35 @@
                         <p class="text-sm text-gray-500 mt-2">Finding matching players...</p>
                     </div>
                     
+                    <!-- Selection Controls -->
+                    <div id="selectionControls" class="hidden mb-3 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-check-circle text-blue-600"></i>
+                            <span class="text-sm font-medium text-blue-900">
+                                <span id="selectedCount">0</span> selected for SMS notification
+                            </span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="selectAllBtn" type="button" class="text-xs px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 transition-colors font-medium">
+                                <i class="fas fa-check-double mr-1"></i>
+                                Select All
+                            </button>
+                            <button id="selectNoneBtn" type="button" class="text-xs px-3 py-1.5 bg-white border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 transition-colors font-medium">
+                                <i class="fas fa-times mr-1"></i>
+                                Select None
+                            </button>
+                        </div>
+                    </div>
+                    
                     <!-- Players Table -->
                     <div id="matchingPlayersTable" class="overflow-hidden border border-gray-200 rounded-lg">
                         <div class="overflow-x-auto max-h-64 overflow-y-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50 sticky top-0">
                                     <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <input type="checkbox" id="selectAllCheckbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                                        </th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PTI</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Series</th>
@@ -421,9 +444,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const matchingPlayersTable = document.getElementById('matchingPlayersTable');
     const matchingPlayersTableBody = document.getElementById('matchingPlayersTableBody');
     const matchingPlayersEmpty = document.getElementById('matchingPlayersEmpty');
+    const selectionControls = document.getElementById('selectionControls');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const selectNoneBtn = document.getElementById('selectNoneBtn');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     
     // Debounce timer for matching players
     let matchingPlayersDebounceTimer = null;
+    
+    // Store matching players for selection tracking
+    let matchingPlayers = [];
     
     // Load user's club name
     async function loadUserClubName() {
@@ -527,27 +558,39 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Display matching players in the table
     function displayMatchingPlayers(players, count) {
+        // Store players globally for selection tracking
+        matchingPlayers = players;
+        
         // Update count badge
         matchingPlayersCount.textContent = count === 1 ? '1 player' : `${count} players`;
         
         if (count === 0) {
             matchingPlayersTable.classList.add('hidden');
             matchingPlayersEmpty.classList.remove('hidden');
+            selectionControls.classList.add('hidden');
             return;
         }
         
         // Show table and populate rows
         matchingPlayersTable.classList.remove('hidden');
         matchingPlayersEmpty.classList.add('hidden');
+        selectionControls.classList.remove('hidden');
         
         // Clear existing rows
         matchingPlayersTableBody.innerHTML = '';
         
         // Add rows for each player
-        players.forEach(player => {
+        players.forEach((player, index) => {
             const row = document.createElement('tr');
             row.className = 'hover:bg-gray-50';
             row.innerHTML = `
+                <td class="px-3 py-2 whitespace-nowrap">
+                    <input type="checkbox" 
+                           class="player-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                           data-player-id="${player.id}" 
+                           data-player-index="${index}" 
+                           checked>
+                </td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${player.name || 'Unknown'}</td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${player.pti ? player.pti.toFixed(1) : 'N/A'}</td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-600">${player.series || 'N/A'}</td>
@@ -555,6 +598,36 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             matchingPlayersTableBody.appendChild(row);
         });
+        
+        // Update selected count and attach checkbox listeners
+        updateSelectedCount();
+        attachCheckboxListeners();
+    }
+    
+    // Update the selected count display
+    function updateSelectedCount() {
+        const checkboxes = document.querySelectorAll('.player-checkbox');
+        const checkedCount = document.querySelectorAll('.player-checkbox:checked').length;
+        selectedCount.textContent = checkedCount;
+        
+        // Update select all checkbox state
+        if (checkboxes.length > 0) {
+            selectAllCheckbox.checked = checkedCount === checkboxes.length;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+        }
+    }
+    
+    // Attach event listeners to player checkboxes
+    function attachCheckboxListeners() {
+        document.querySelectorAll('.player-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+    }
+    
+    // Get selected player IDs
+    function getSelectedPlayerIds() {
+        const selectedCheckboxes = document.querySelectorAll('.player-checkbox:checked');
+        return Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.playerId));
     }
     
     // Debounced update for matching players
@@ -584,6 +657,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup event listeners
     function setupEventListeners() {
         submitRequestBtn.addEventListener('click', handleSubmitRequest);
+        
+        // Select All/None buttons
+        selectAllBtn.addEventListener('click', function() {
+            document.querySelectorAll('.player-checkbox').forEach(cb => cb.checked = true);
+            updateSelectedCount();
+        });
+        
+        selectNoneBtn.addEventListener('click', function() {
+            document.querySelectorAll('.player-checkbox').forEach(cb => cb.checked = false);
+            updateSelectedCount();
+        });
+        
+        // Header checkbox for select all/none
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            document.querySelectorAll('.player-checkbox').forEach(cb => cb.checked = isChecked);
+            updateSelectedCount();
+        });
         
         // Auto-apply on Enter key for inputs
         [seriesMinInput, seriesMaxInput, slotsTotalInput].forEach(input => {
@@ -724,6 +815,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state (matching login page behavior)
             setButtonLoading(submitRequestBtn, true);
             
+            // Get selected player IDs for SMS notification
+            const selectedPlayerIds = getSelectedPlayerIds();
+            
             // Submit request
             const response = await fetch('/api/subfinder', {
                 method: 'POST',
@@ -740,7 +834,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     match_time: matchTime,
                     type: requestType,
                     broadcast_via_text: broadcastViaText,
-                    notes: notes
+                    notes: notes,
+                    selected_player_ids: selectedPlayerIds
                 })
             });
             
