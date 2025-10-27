@@ -5061,7 +5061,7 @@ def get_team_videos(team_id):
                 created_at
             FROM videos
             WHERE team_id = %s
-            ORDER BY date DESC, created_at DESC
+            ORDER BY date DESC, name DESC, created_at DESC
         """
         
         videos = execute_query(query, [team_id])
