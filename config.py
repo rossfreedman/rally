@@ -9,7 +9,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Testing mode configuration
-RALLY_TESTING_MODE = os.getenv("RALLY_TESTING_MODE", "true").lower() == "true"
+RALLY_TESTING_MODE = os.getenv("RALLY_TESTING_MODE", "false").lower() == "true"
 ADMIN_PHONE = os.getenv("ADMIN_PHONE", "+17732138911")
 
 

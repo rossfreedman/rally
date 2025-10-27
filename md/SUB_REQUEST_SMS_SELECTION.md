@@ -50,12 +50,13 @@ Added checkbox selection functionality to the create-sub-request page, allowing 
 
 ### Testing Mode Configuration
 
-**IMPORTANT: Testing mode is already enabled by default**
+**IMPORTANT: Testing mode is now DISABLED - SMS messages send to real users**
 
-- `RALLY_TESTING_MODE=true` in config.py (line 12)
-- All SMS messages are automatically routed to admin phone during testing
-- Admin phone: `+17732138911`
-- SMS messages include original recipient for debugging: `[TEST - would send to {original_phone}]`
+- `RALLY_TESTING_MODE=false` in config.py (line 12)
+- SMS messages are sent to actual user phone numbers
+- Only users with "Sub Requests" notifications enabled receive SMS
+- Only selected (checked) players receive SMS
+- To re-enable testing mode: Set `RALLY_TESTING_MODE=true` in .env file
 
 ## How It Works
 

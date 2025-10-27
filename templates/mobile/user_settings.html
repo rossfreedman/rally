@@ -6,25 +6,25 @@
     
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
-                <i class="fas fa-user-cog text-white text-lg"></i>
+        <div class="flex items-center px-4 py-6 md:justify-center">
+            <div class="w-12 h-12 bg-rally-dark-green rounded-full flex items-center justify-center shadow-sm md:w-16 md:h-16">
+                <i class="fas fa-user-cog text-white text-lg md:text-2xl"></i>
             </div>
-            <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">User Settings</h1>
-                <p class="text-sm text-gray-500">Manage your account preferences</p>
+            <div class="ml-4 md:ml-6 md:text-center">
+                <h1 class="text-xl font-bold text-gray-900 md:text-2xl">User Settings</h1>
+                <p class="text-sm text-gray-500 md:text-base">Manage your account preferences</p>
             </div>
         </div>
     </div>
 
     <!-- Tabs -->
     <div class="bg-white border-b border-gray-200">
-        <div class="flex">
-            <button id="profileTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-blue-600 text-blue-600 bg-blue-50" onclick="switchSettingsTab('profile')">
+        <div class="flex md:justify-center md:gap-8 md:max-w-2xl md:mx-auto">
+            <button id="profileTab" class="flex-1 md:flex-none px-4 py-4 md:px-8 text-base font-bold text-center border-b-4 border-transparent text-rally-bright-green bg-rally-dark-green" onclick="switchSettingsTab('profile')">
                 <i class="fas fa-user mr-2"></i>
                 Profile
             </button>
-            <button id="notificationsTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" onclick="switchSettingsTab('notifications')">
+            <button id="notificationsTab" class="flex-1 md:flex-none px-4 py-4 md:px-8 text-base font-bold text-center border-b-4 border-transparent text-rally-dark-green bg-rally-light-green hover:text-rally-bright-green hover:bg-rally-dark-green transition-all" onclick="switchSettingsTab('notifications')">
                 <i class="fas fa-bell mr-2"></i>
                 Notifications
             </button>
@@ -32,7 +32,7 @@
     </div>
 
     <!-- Content -->
-    <div class="px-4 py-6 space-y-6">
+    <div class="px-4 py-6 space-y-6 md:max-w-3xl md:mx-auto">
         
         <!-- Profile Tab Content -->
         <div id="profile-content" class="tab-content">
@@ -177,7 +177,7 @@
         </div>
         
         <!-- Player ID -->
-        <div class="text-center py-4">
+        <div class="hidden text-center py-4">
             <div class="text-xs text-gray-500 font-mono" id="player-id-display">
                 Player ID: Loading...
             </div>
@@ -867,6 +867,22 @@ document.addEventListener('DOMContentLoaded', function() {
 .to-blue-600 {
     --tw-gradient-to: #2563eb;
 }
+.from-rally-dark-green {
+    --tw-gradient-from: #045454;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(4, 84, 84, 0));
+}
+.to-rally-bright-green {
+    --tw-gradient-to: #bff863;
+}
+
+/* Rally brand colors */
+.bg-rally-dark-green { background-color: #045454; }
+.bg-rally-bright-green { background-color: #bff863; }
+.bg-rally-light-green { background-color: rgba(191, 248, 99, 0.1); }
+.text-rally-dark-green { color: #045454; }
+.text-rally-bright-green { color: #bff863; }
+.border-rally-dark-green { border-color: #045454; }
+.border-rally-bright-green { border-color: #bff863; }
 
 /* Spacing utilities */
 .space-y-6 > * + * { margin-top: 1.5rem; }
@@ -936,21 +952,21 @@ function switchSettingsTab(tabName) {
         content.classList.add('hidden');
     });
     
-    // Remove active styling from all tabs
-    document.getElementById('profileTab').classList.remove('border-blue-600', 'text-blue-600', 'bg-blue-50');
-    document.getElementById('profileTab').classList.add('border-transparent', 'text-gray-500');
-    document.getElementById('notificationsTab').classList.remove('border-blue-600', 'text-blue-600', 'bg-blue-50');
-    document.getElementById('notificationsTab').classList.add('border-transparent', 'text-gray-500');
+    // Remove active styling from all tabs - set to OFF state
+    document.getElementById('profileTab').classList.remove('border-transparent', 'text-rally-bright-green', 'bg-rally-dark-green');
+    document.getElementById('profileTab').classList.add('border-transparent', 'text-rally-dark-green', 'bg-rally-light-green');
+    document.getElementById('notificationsTab').classList.remove('border-transparent', 'text-rally-bright-green', 'bg-rally-dark-green');
+    document.getElementById('notificationsTab').classList.add('border-transparent', 'text-rally-dark-green', 'bg-rally-light-green');
     
-    // Show selected tab and add active styling
+    // Show selected tab and add active styling - set to ON state
     if (tabName === 'profile') {
         document.getElementById('profile-content').classList.remove('hidden');
-        document.getElementById('profileTab').classList.add('border-blue-600', 'text-blue-600', 'bg-blue-50');
-        document.getElementById('profileTab').classList.remove('border-transparent', 'text-gray-500');
+        document.getElementById('profileTab').classList.remove('border-transparent', 'text-rally-dark-green', 'bg-rally-light-green');
+        document.getElementById('profileTab').classList.add('border-transparent', 'text-rally-bright-green', 'bg-rally-dark-green');
     } else if (tabName === 'notifications') {
         document.getElementById('notifications-content').classList.remove('hidden');
-        document.getElementById('notificationsTab').classList.add('border-blue-600', 'text-blue-600', 'bg-blue-50');
-        document.getElementById('notificationsTab').classList.remove('border-transparent', 'text-gray-500');
+        document.getElementById('notificationsTab').classList.remove('border-transparent', 'text-rally-dark-green', 'bg-rally-light-green');
+        document.getElementById('notificationsTab').classList.add('border-transparent', 'text-rally-bright-green', 'bg-rally-dark-green');
         
         // Load notification preferences when switching to notifications tab
         loadNotificationPreferences();

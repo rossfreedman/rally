@@ -8754,8 +8754,8 @@ def create_subfinder_request():
         if pti_min >= pti_max:
             return jsonify({"error": "PTI min must be less than PTI max"}), 400
         
-        if series_min >= series_max:
-            return jsonify({"error": "Series min must be less than Series max"}), 400
+        if series_min > series_max:
+            return jsonify({"error": "Series min must be less than or equal to Series max"}), 400
         
         if slots_total < 1 or slots_total > 16:
             return jsonify({"error": "Slots total must be between 1 and 16"}), 400
