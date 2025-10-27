@@ -8784,14 +8784,15 @@ def create_subfinder_request():
             sms_results = {
                 "sent": 0,
                 "failed": 0,
-                "skipped": 0
+                "skipped_no_prefs": 0,
+                "total_selected": len(selected_player_ids) if selected_player_ids else 0
             }
             
             if broadcast_via_text and selected_player_ids:
                 from app.services.notifications_service import send_sms_notification
                 from datetime import datetime
                 
-                # Get player details for selected players
+                # Get player details for selected players who have sub_requests notifications enabled
                 if selected_player_ids:
                     placeholders = ','.join(['%s'] * len(selected_player_ids))
                     players_query = f"""
@@ -8799,26 +8800,41 @@ def create_subfinder_request():
                             p.id,
                             CONCAT(p.first_name, ' ', p.last_name) as player_name,
                             u.phone_number,
-                            u.first_name as user_first_name
+                            u.first_name as user_first_name,
+                            u.notification_prefs
                         FROM players p
                         LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
                         LEFT JOIN users u ON upa.user_id = u.id
                         WHERE p.id IN ({placeholders})
                         AND u.phone_number IS NOT NULL
+                        AND (
+                            u.notification_prefs IS NULL 
+                            OR u.notification_prefs->>'sub_requests' IS NULL
+                            OR (u.notification_prefs->>'sub_requests')::boolean = true
+                        )
                     """
                     
                     players = execute_query(players_query, selected_player_ids)
                     
+                    # Track users skipped due to notification preferences
+                    sms_results["skipped_no_prefs"] = len(selected_player_ids) - len(players)
+                    
+                    print(f"[CREATE_SUBFINDER] Found {len(players)} players with sub_requests notifications enabled out of {len(selected_player_ids)} selected")
+                    if sms_results["skipped_no_prefs"] > 0:
+                        print(f"[CREATE_SUBFINDER] Skipped {sms_results['skipped_no_prefs']} players with sub_requests notifications disabled")
+                    
                     # Format the message
-                    requester_name = user.get("first_name", "A player")
+                    requester_first_name = user.get("first_name", "A")
+                    requester_last_name = user.get("last_name", "Player")
+                    requester_series = user.get("series", "")
                     club_name = user.get("club", "your club")
                     
                     # Parse and format date and time
                     try:
                         date_obj = datetime.strptime(match_date, "%Y-%m-%d")
-                        formatted_date = date_obj.strftime("%A, %B %d")
+                        formatted_date = date_obj.strftime("%A, %B %d at ")
                     except:
-                        formatted_date = match_date
+                        formatted_date = match_date + " at "
                     
                     # Format time (convert 24h to 12h format)
                     try:
@@ -8827,9 +8843,16 @@ def create_subfinder_request():
                     except:
                         formatted_time = match_time
                     
-                    message = f"🎾 Sub Request from {requester_name}:\n\n"
-                    message += f"Need a sub for {request_type.lower()} at {club_name}\n"
-                    message += f"{formatted_date} at {formatted_time}\n"
+                    # Build full date/time string
+                    full_datetime = formatted_date + formatted_time
+                    
+                    # Build message with new format
+                    message = "Rally Sub Request\n\n"
+                    message += f"You meet the criteria for the sub request from {requester_first_name} {requester_last_name}"
+                    if requester_series:
+                        message += f" - {requester_series}"
+                    message += f" at {club_name}:\n\n"
+                    message += f"{full_datetime}\n"
                     if notes:
                         message += f"\n{notes}\n"
                     message += f"\nView and respond: https://www.lovetorally.com/mobile/active-sub-requests"
@@ -8855,7 +8878,7 @@ def create_subfinder_request():
                             sms_results["failed"] += 1
                             print(f"[CREATE_SUBFINDER] ❌ Error sending SMS to {player['player_name']}: {e}")
                     
-                    print(f"[CREATE_SUBFINDER] SMS Results: {sms_results['sent']} sent, {sms_results['failed']} failed")
+                    print(f"[CREATE_SUBFINDER] SMS Results: {sms_results['sent']} sent, {sms_results['failed']} failed, {sms_results['skipped_no_prefs']} skipped (notifications disabled)")
             else:
                 print(f"[CREATE_SUBFINDER] SMS broadcast disabled or no players selected")
             

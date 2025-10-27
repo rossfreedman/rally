@@ -30,16 +30,18 @@ Added checkbox selection functionality to the create-sub-request page, allowing 
 1. **Updated `/api/subfinder` POST endpoint**
    - Accept `selected_player_ids` parameter from request
    - Query database for selected players with phone numbers
-   - Send SMS notifications only to selected players
+   - **Check notification preferences**: Only query users with `sub_requests` notifications enabled
+   - Send SMS notifications only to selected players who have notifications enabled
    - Format professional SMS message with date, time, location, notes
-   - Return SMS results (sent/failed counts) in response
+   - Return SMS results (sent/failed/skipped counts) in response
 
 2. **SMS Message Format**
    ```
-   🎾 Sub Request from [Requester Name]:
+   Rally Sub Request
    
-   Need a sub for [match/practice] at [club name]
-   [Formatted Date] at [Formatted Time]
+   You meet the criteria for the sub request from [First Name] [Last Name] - [Series] at [club name]:
+   
+   [Day, Month Date at Time]
    
    [Optional Notes]
    
@@ -69,12 +71,14 @@ Added checkbox selection functionality to the create-sub-request page, allowing 
 6. When submitted, only selected players receive SMS notifications
 7. During testing, all SMS goes to admin phone only
 
-## Security Features
+## Security & Privacy Features
 
-- Testing mode prevents accidental SMS to real users
+- **Notification Preferences Respected**: Only sends SMS to users who have "Sub Requests" notifications enabled
+- **Testing mode** prevents accidental SMS to real users
 - Only players with valid phone numbers in database receive SMS
 - SMS routing uses safe user_player_associations table
 - Proper validation of selected player IDs
+- Users can disable sub request notifications in Settings > Notifications tab
 
 ## Next Steps
 
@@ -85,10 +89,34 @@ Added checkbox selection functionality to the create-sub-request page, allowing 
 
 ## User Instructions for Testing
 
+### Testing Sub Request Creation
 1. Go to http://127.0.0.1:8080/mobile/create-sub-request
 2. Fill out the form fields
 3. Observe matching players displayed with checkboxes (all checked by default)
 4. Try the select all/none functionality
 5. Submit the request
 6. Only admin phone should receive SMS (testing mode active)
+
+### Testing Notification Preferences
+1. Go to http://127.0.0.1:8080/mobile/settings
+2. Click the "Notifications" tab
+3. Toggle "Sub Requests" OFF for a test user
+4. Create a sub request and select that user
+5. Verify that user is skipped (check console logs for "skipped" count)
+6. Toggle "Sub Requests" back ON
+7. Create another sub request and verify user receives SMS
+
+## Example SMS Message
+
+```
+Rally Sub Request
+
+You meet the criteria for the sub request from Ross Freedman - Chicago 22 at Tennaqua:
+
+Sunday, November 02 at 9:00 AM
+
+need 2 sunday morning
+
+View and respond: https://www.lovetorally.com/mobile/active-sub-requests
+```
 
