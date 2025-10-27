@@ -5,6 +5,7 @@ Rally Flask Application
     
 This is the main server file for the Rally platform tennis management application.
 Most routes have been moved to blueprints for better organization.
+Production deployment: 2025-10-27
 """
 
 # Load environment variables from .env file FIRST, before any other imports
