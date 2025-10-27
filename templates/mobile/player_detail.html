@@ -754,7 +754,7 @@
         <div id="player-notes-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4" style="background-color: #045454;">
                 <h2 class="text-lg font-semibold flex items-center" style="color: #bff863;">
-                    <i class="fas fa-edit mr-2" style="color: #dc2626;"></i>
+                    <i class="fas fa-edit mr-2" style="color: #bff863;"></i>
                     Player Notes
                 </h2>
             </div>
@@ -1452,16 +1452,15 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
         html += `
             <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
                 <!-- Team Match Header -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
-                </div>
-                
-                <!-- Team Matchup -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-base font-semibold" style="color: #bff863;">
-                        ${group.away_team} vs.<br>
-                        ${group.home_team}
-                    </span>
+                <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                    <div>
+                        <div class="mb-3">
+                            <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${group.date}</span>
+                        </div>
+                        <div class="text-base font-bold" style="color: #bff863;">
+                            ${group.away_team} vs. ${group.home_team}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Individual Matches -->
@@ -1519,7 +1518,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
             
             html += `
                 <!-- Court Header Row -->
-                <div class="px-3 py-2" style="background-color: #045454;">
+                <div class="px-3 py-2 text-center" style="background-color: #045454;">
                     <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
                 </div>
                 
@@ -1531,12 +1530,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                             <td class="w-40 px-3 py-4 text-left">
                                 <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
                                 <div class="text-sm font-medium text-black">
-                                    <div class="mb-1">
-                                        <a href="/mobile/player-detail/${match.partner_tenniscores_id}_team_${match.partner_team_id}" 
-                                           class="text-blue-600 hover:text-blue-800 hover:underline">
-                                            ${match.partner_name}
-                                        </a>
-                                    </div>
+                                    <div class="mb-1">${match.partner_name}</div>
                                     <div>${currentPlayerName}</div>
                                 </div>
                             </td>
@@ -1893,6 +1887,18 @@ function renderMatchCard(match, currentPlayerName) {
     }
 }
 
+// Helper function to escape strings for use in JavaScript onclick attributes
+function escapeJsString(str) {
+    if (!str) return '';
+    return str
+        .replace(/\\/g, '\\\\')   // Escape backslashes first
+        .replace(/\n/g, '\\n')    // Escape newlines
+        .replace(/\r/g, '\\r')    // Escape carriage returns
+        .replace(/\t/g, '\\t')    // Escape tabs
+        .replace(/'/g, "\\'")     // Escape single quotes
+        .replace(/"/g, '\\"');    // Escape double quotes
+}
+
 // Render notes in the list
 function renderNotes(notes) {
     const notesList = document.getElementById('notesList');
@@ -1911,7 +1917,7 @@ function renderNotes(notes) {
                     </div>
                     ${isOwner ? `
                         <div class="flex gap-4 ml-2">
-                            <button onclick="editNote(${note.id}, '${escapeHtml(note.note).replace(/'/g, "\\'")}');" 
+                            <button onclick="editNote(${note.id});" 
                                     class="text-blue-600 hover:text-blue-800 text-xl"
                                     title="Edit note">
                                 <i class="fas fa-edit"></i>
@@ -2026,7 +2032,7 @@ function escapeHtml(text) {
 }
 
 // Edit note - show edit mode
-function editNote(noteId, currentText) {
+function editNote(noteId) {
     const noteDiv = document.querySelector(`[data-note-id="${noteId}"]`);
     if (!noteDiv) return;
     

@@ -994,23 +994,22 @@ async function loadLast3Matches() {
       matchesHTML += `
         <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
           <!-- Team Match Header -->
-          <div class="px-3 py-2" style="background-color: #045454;">
-            <span class="text-sm font-bold" style="color: #bff863;">${formattedDate}</span>
-          </div>
-          
-          <!-- Team Matchup -->
-          <div class="px-3 py-2" style="background-color: #045454;">
-            <span class="text-base font-semibold" style="color: #bff863;">
-              ${match.away_team} vs.<br>
-              ${match.home_team}
-            </span>
+          <div class="px-4 py-3 text-center" style="background-color: #045454;">
+            <div>
+              <div class="mb-3">
+                <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${formattedDate}</span>
+              </div>
+              <div class="text-base font-bold" style="color: #bff863;">
+                ${match.away_team} vs. ${match.home_team}
+              </div>
+            </div>
           </div>
           
           <!-- Individual Match -->
           <div class="px-0">
             <!-- Court Header Row -->
-            <div class="px-3 py-2" style="background-color: #045454;">
-              <span class="text-sm font-bold" style="color: #bff863;">${match.court_number || 'Court 1'}</span>
+            <div class="px-3 py-2 text-center" style="background-color: #045454;">
+              <span class="text-sm font-bold" style="color: #bff863;">${typeof match.court_number === 'string' && match.court_number.toString().toLowerCase().includes('court') ? match.court_number : (match.court_number ? 'Court ' + match.court_number : 'Court 1')}</span>
             </div>
             
             <!-- Match Table -->
@@ -1389,16 +1388,15 @@ function renderMatchesModal(groupedMatches) {
                     RENDERMATCHESMODAL FUNCTION - OLD FORMAT
                 </div>
                 <!-- Team Match Header -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
-                </div>
-                
-                <!-- Team Matchup -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-base font-semibold" style="color: #bff863;">
-                        ${group.away_team} vs.<br>
-                        ${group.home_team}
-                    </span>
+                <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                    <div>
+                        <div class="mb-3">
+                            <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${group.date}</span>
+                        </div>
+                        <div class="text-base font-bold" style="color: #bff863;">
+                            ${group.away_team} vs. ${group.home_team}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Individual Matches -->
@@ -1435,8 +1433,8 @@ function renderMatchesModal(groupedMatches) {
             html += `
                 <div class="bg-white rounded-lg border border-gray-200 overflow-hidden w-full">
                     <!-- Court Header Row -->
-                    <div class="px-3 py-2" style="background-color: #045454;">
-                        <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
+                    <div class="px-3 py-2 text-center" style="background-color: #045454;">
+                        <span class="text-sm font-bold" style="color: #bff863;">${typeof match.court_number === 'string' && match.court_number.toString().toLowerCase().includes('court') ? match.court_number : 'Court ' + match.court_number}</span>
                     </div>
                     <!-- Away Team Row -->
                     <div class="flex items-center ${home_team_won ? 'bg-gray-50' : 'bg-green-100'} px-3 py-2 border-b border-gray-300">
@@ -1701,16 +1699,15 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
         html += `
             <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden w-full">
                 <!-- Team Match Header -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">${group.date}</span>
-                </div>
-                
-                <!-- Team Matchup -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-base font-semibold" style="color: #bff863;">
-                        ${group.away_team} vs.<br>
-                        ${group.home_team}
-                    </span>
+                <div class="px-4 py-3 text-center" style="background-color: #045454;">
+                    <div>
+                        <div class="mb-3">
+                            <span class="px-3 py-1.5 rounded-full text-base font-bold" style="background-color: #bff863; color: #045454;">${group.date}</span>
+                        </div>
+                        <div class="text-base font-bold" style="color: #bff863;">
+                            ${group.away_team} vs. ${group.home_team}
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Individual Matches -->
@@ -1769,8 +1766,8 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
             
             html += `
                 <!-- Court Header Row -->
-                <div class="px-3 py-2" style="background-color: #045454;">
-                    <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
+                <div class="px-3 py-2 text-center" style="background-color: #045454;">
+                    <span class="text-sm font-bold" style="color: #bff863;">${typeof match.court_number === 'string' && match.court_number.toString().toLowerCase().includes('court') ? match.court_number : 'Court ' + match.court_number}</span>
                 </div>
                 
                 <!-- Match Table -->

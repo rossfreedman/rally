@@ -1012,7 +1012,7 @@ def get_last_3_matches():
         if league_id_int:
             matches_query = f"""
                 SELECT 
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    TO_CHAR(match_date, 'Mon DD, YYYY') as "Date",
                     match_date,
                     home_team as "Home Team",
                     away_team as "Away Team",
@@ -1040,7 +1040,7 @@ def get_last_3_matches():
             if team_filter_clause:
                 matches_query = f"""
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        TO_CHAR(match_date, 'Mon DD, YYYY') as "Date",
                         match_date,
                         home_team as "Home Team",
                         away_team as "Away Team",
@@ -1063,7 +1063,7 @@ def get_last_3_matches():
                 # No filtering possible, fall back to original behavior
                 matches_query = """
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        TO_CHAR(match_date, 'Mon DD, YYYY') as "Date",
                         match_date,
                         home_team as "Home Team",
                         away_team as "Away Team",
@@ -1313,65 +1313,88 @@ def get_team_last_3_matches():
     try:
         user = session["user"]
 
-        # Get user's team information
-        user_club = user.get("club", "")
-        user_series = user.get("series", "")
-        user_league_id = user.get("league_id", "")
+        # Try to get team_id directly from session first
+        team_id = user.get("team_id")
+        
+        if team_id:
+            print(f"[DEBUG] Team Last 3 Matches: Using team_id from session: {team_id}")
+            # Get team details
+            team_query = "SELECT id, team_name, league_id FROM teams WHERE id = %s"
+            team_record = execute_query_one(team_query, [team_id])
+            
+            if not team_record:
+                print(f"[DEBUG] Team Last 3 Matches: Team not found for team_id: {team_id}")
+                return jsonify({"error": "Team not found"}), 404
+                
+            team_name = team_record["team_name"]
+            league_id_int = team_record["league_id"]
+        else:
+            # Fallback to club/series lookup
+            print(f"[DEBUG] Team Last 3 Matches: No team_id in session, using club/series lookup")
+            user_club = user.get("club", "")
+            user_series = user.get("series", "")
+            user_league_id = user.get("league_id", "")
 
-        if not user_club or not user_series:
-            return jsonify({"error": "Team information not found"}), 404
+            if not user_club or not user_series:
+                print(f"[DEBUG] Team Last 3 Matches: Missing club or series")
+                return jsonify({"error": "Team information not found"}), 404
 
-        # Normalize series name (convert "Series 2B" to "S2B" for NSTF)
-        normalized_series = user_series
-        if user_series.startswith("Series "):
-            normalized_series = user_series.replace("Series ", "S")
+            # Normalize series name (convert "Series 2B" to "S2B" for NSTF)
+            normalized_series = user_series
+            if user_series.startswith("Series "):
+                normalized_series = user_series.replace("Series ", "S")
 
-        # Convert league_id to integer foreign key for database queries
-        league_id_int = None
-        if isinstance(user_league_id, str) and user_league_id != "":
-            try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                else:
-                    return jsonify({"error": "League not found"}), 404
-            except Exception as e:
-                return jsonify({"error": "Failed to resolve league"}), 500
-        elif isinstance(user_league_id, int):
-            league_id_int = user_league_id
+            # Convert league_id to integer foreign key for database queries
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                    else:
+                        print(f"[DEBUG] Team Last 3 Matches: League not found for league_id: {user_league_id}")
+                        return jsonify({"error": "League not found"}), 404
+                except Exception as e:
+                    print(f"[DEBUG] Team Last 3 Matches: Error resolving league: {str(e)}")
+                    return jsonify({"error": "Failed to resolve league"}), 500
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
 
-        # Get the user's team_id using proper joins
-        team_query = """
-            SELECT t.id, t.team_name
-            FROM teams t
-            JOIN clubs c ON t.club_id = c.id
-            JOIN series s ON t.series_id = s.id
-            JOIN leagues l ON t.league_id = l.id
-            WHERE c.name = %s 
-            AND s.name = %s 
-            AND l.id = %s
-        """
+            # Get the user's team_id using proper joins
+            team_query = """
+                SELECT t.id, t.team_name
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                JOIN leagues l ON t.league_id = l.id
+                WHERE c.name = %s 
+                AND s.name = %s 
+                AND l.id = %s
+            """
 
-        team_record = execute_query_one(
-            team_query, [user_club, normalized_series, league_id_int]
-        )
-
-        if not team_record:
-            return (
-                jsonify(
-                    {
-                        "error": "Team not found in database",
-                        "club": user_club,
-                        "series": user_series,
-                    }
-                ),
-                404,
+            team_record = execute_query_one(
+                team_query, [user_club, normalized_series, league_id_int]
             )
 
-        team_id = team_record["id"]
-        team_name = team_record["team_name"]
+            if not team_record:
+                print(f"[DEBUG] Team Last 3 Matches: Team not found - club: {user_club}, series: {normalized_series}, league_id: {league_id_int}")
+                return (
+                    jsonify(
+                        {
+                            "error": "Team not found in database",
+                            "club": user_club,
+                            "series": user_series,
+                        }
+                    ),
+                    404,
+                )
+
+            team_id = team_record["id"]
+            team_name = team_record["team_name"]
+        
+        print(f"[DEBUG] Team Last 3 Matches: Found team - ID: {team_id}, Name: {team_name}, League: {league_id_int}")
 
         # Query the last 3 TEAM matches (not individual player matches)
         # Group by date and teams to get unique team match dates
@@ -1387,7 +1410,7 @@ def get_team_last_3_matches():
                 LIMIT 3
             )
             SELECT 
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                 ms.match_date,
                 ms.home_team as "Home Team",
                 ms.away_team as "Away Team",
@@ -1469,6 +1492,10 @@ def get_team_last_3_matches():
             our_players = set()
             opponent_players = set()
             
+            # Process individual matches for detailed display
+            individual_match_details = []
+            court_number = 1
+            
             for match in individual_matches:
                 winner = match.get("Winner", "").lower()
                 scores = match.get("Scores", "")
@@ -1480,8 +1507,13 @@ def get_team_last_3_matches():
                 match_our_points = 0
                 match_opponent_points = 0
                 
+                # Parse scores for individual display
+                our_sets = []
+                opponent_sets = []
+                
                 if scores:
                     # Parse set scores (format: "6-4, 4-6, 6-3" or similar)
+                    # Database stores scores as "home_score-away_score"
                     sets = [s.strip() for s in scores.split(',')]
                     
                     for set_score in sets:
@@ -1489,7 +1521,18 @@ def get_team_last_3_matches():
                             try:
                                 # Remove any extra formatting like tiebreak scores [7-5]
                                 clean_score = set_score.split('[')[0].strip()
-                                home_score, away_score = map(int, clean_score.split('-'))
+                                score_parts = clean_score.split('-')
+                                home_score = int(score_parts[0])
+                                away_score = int(score_parts[1])
+                                
+                                # Add to appropriate set lists based on team position
+                                # Swap the assignment to fix reversed scores
+                                if is_home:
+                                    our_sets.append(away_score)
+                                    opponent_sets.append(home_score)
+                                else:
+                                    our_sets.append(home_score)
+                                    opponent_sets.append(away_score)
                                 
                                 # Award point for set win
                                 if home_score > away_score:
@@ -1518,7 +1561,7 @@ def get_team_last_3_matches():
                 our_team_points += match_our_points
                 opponent_team_points += match_opponent_points
                 
-                # Collect player names
+                # Get player names for this match
                 if is_home:
                     our_player1_id = match.get("Home Player 1")
                     our_player2_id = match.get("Home Player 2")
@@ -1530,15 +1573,39 @@ def get_team_last_3_matches():
                     opponent_player1_id = match.get("Home Player 1")
                     opponent_player2_id = match.get("Home Player 2")
                 
-                # Add player names (avoid duplicates)
+                our_player1_name = get_player_name(our_player1_id) or "Unknown"
+                our_player2_name = get_player_name(our_player2_id) or "Unknown"
+                opponent_player1_name = get_player_name(opponent_player1_id) or "Unknown"
+                opponent_player2_name = get_player_name(opponent_player2_id) or "Unknown"
+                
+                # Debug logging
+                print(f"[DEBUG] Match: {our_player1_name} & {our_player2_name} vs {opponent_player1_name} & {opponent_player2_name}")
+                print(f"[DEBUG] Raw scores: {scores}, is_home: {is_home}, won: {individual_team_won}")
+                print(f"[DEBUG] Our sets: {our_sets}, Opponent sets: {opponent_sets}")
+                
+                # Store individual match details
+                individual_match_details.append({
+                    "court_number": court_number,
+                    "our_player1_name": our_player1_name,
+                    "our_player2_name": our_player2_name,
+                    "opponent_player1_name": opponent_player1_name,
+                    "opponent_player2_name": opponent_player2_name,
+                    "our_sets": our_sets,
+                    "opponent_sets": opponent_sets,
+                    "our_team_won": individual_team_won,
+                    "scores": scores
+                })
+                court_number += 1
+                
+                # Add player names to sets (avoid duplicates)
                 if our_player1_id:
-                    our_players.add(get_player_name(our_player1_id) or "Unknown")
+                    our_players.add(our_player1_name)
                 if our_player2_id:
-                    our_players.add(get_player_name(our_player2_id) or "Unknown")
+                    our_players.add(our_player2_name)
                 if opponent_player1_id:
-                    opponent_players.add(get_player_name(opponent_player1_id) or "Unknown")
+                    opponent_players.add(opponent_player1_name)
                 if opponent_player2_id:
-                    opponent_players.add(get_player_name(opponent_player2_id) or "Unknown")
+                    opponent_players.add(opponent_player2_name)
             
             # Determine team match result based on total points
             team_won = our_team_points > opponent_team_points
@@ -1571,7 +1638,9 @@ def get_team_last_3_matches():
                 "match_result": "Won" if team_won else "Lost",
                 "individual_matches_count": len(individual_matches),
                 "our_team_points": our_team_points,
-                "opponent_team_points": opponent_team_points
+                "opponent_team_points": opponent_team_points,
+                "individual_matches": individual_match_details,
+                "our_team_name": team_name
             }
             processed_matches.append(processed_match)
 
@@ -1634,7 +1703,7 @@ def get_team_last_3_matches_by_id():
                 LIMIT 3
             )
             SELECT 
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                 ms.match_date,
                 ms.home_team as "Home Team",
                 ms.away_team as "Away Team",
@@ -1709,11 +1778,38 @@ def get_team_last_3_matches_by_id():
             away_player_1_name = get_player_name_from_id(match["Away Player 1"]) if match["Away Player 1"] else "Unknown"
             away_player_2_name = get_player_name_from_id(match["Away Player 2"]) if match["Away Player 2"] else "Unknown"
             
+            # Parse set scores for detailed display
+            home_sets = []
+            away_sets = []
+            scores = match["Scores"]
+            
+            if scores:
+                # Parse set scores (format: "6-4, 4-6, 6-3" or similar)
+                sets = [s.strip() for s in scores.split(',')]
+                
+                for set_score in sets:
+                    if '-' in set_score:
+                        try:
+                            # Remove any extra formatting like tiebreak scores [7-5]
+                            clean_score = set_score.split('[')[0].strip()
+                            home_score, away_score = map(int, clean_score.split('-'))
+                            home_sets.append(home_score)
+                            away_sets.append(away_score)
+                        except (ValueError, IndexError):
+                            # If we can't parse the score, skip it
+                            continue
+            
             # Store individual match data with match ID for court assignment
             individual_match = {
                 "home_players": f"{home_player_1_name} & {home_player_2_name}",
                 "away_players": f"{away_player_1_name} & {away_player_2_name}",
+                "home_player_1_name": home_player_1_name,
+                "home_player_2_name": home_player_2_name,
+                "away_player_1_name": away_player_1_name,
+                "away_player_2_name": away_player_2_name,
                 "scores": match["Scores"],
+                "home_sets": home_sets,
+                "away_sets": away_sets,
                 "winner": winner,
                 "match_id": match["Match ID"]
             }
@@ -1732,8 +1828,8 @@ def get_team_last_3_matches_by_id():
             home_players = list(set([m["home_players"] for m in team_match["individual_matches"]]))
             away_players = list(set([m["away_players"] for m in team_match["individual_matches"]]))
             
-            # Create court-by-court results
-            court_results = []
+            # Create detailed individual match results
+            individual_match_details = []
             
             # Group individual matches by court (determine court from position)
             individual_matches = team_match["individual_matches"]
@@ -1747,32 +1843,46 @@ def get_team_last_3_matches_by_id():
                 
                 # Determine if this court result was won by our team
                 winner = match["winner"]
-                court_won = False
+                our_team_won = False
                 if winner:
                     if (team_match["is_home_team"] and winner.lower() == "home") or \
                        (not team_match["is_home_team"] and winner.lower() == "away"):
-                        court_won = True
+                        our_team_won = True
                 
-                # Get the players for this specific court/match
+                # Get the players and sets for this specific court/match
                 if team_match["is_home_team"]:
-                    our_players = match["home_players"]
-                    opponent_players = match["away_players"]
+                    our_player1_name = match["home_player_1_name"]
+                    our_player2_name = match["home_player_2_name"]
+                    opponent_player1_name = match["away_player_1_name"]
+                    opponent_player2_name = match["away_player_2_name"]
+                    # Swap sets to fix reversed scores
+                    our_sets = match["away_sets"]
+                    opponent_sets = match["home_sets"]
                 else:
-                    our_players = match["away_players"]
-                    opponent_players = match["home_players"]
+                    our_player1_name = match["away_player_1_name"]
+                    our_player2_name = match["away_player_2_name"]
+                    opponent_player1_name = match["home_player_1_name"]
+                    opponent_player2_name = match["home_player_2_name"]
+                    # Swap sets to fix reversed scores
+                    our_sets = match["home_sets"]
+                    opponent_sets = match["away_sets"]
                 
-                court_result = {
+                individual_match_detail = {
                     "court_number": court_number,
-                    "score": match["scores"] or "No score",
-                    "won": court_won,
-                    "players": our_players,
-                    "opponent_players": opponent_players
+                    "our_player1_name": our_player1_name,
+                    "our_player2_name": our_player2_name,
+                    "opponent_player1_name": opponent_player1_name,
+                    "opponent_player2_name": opponent_player2_name,
+                    "our_sets": our_sets,
+                    "opponent_sets": opponent_sets,
+                    "our_team_won": our_team_won,
+                    "scores": match["scores"]
                 }
                 
-                court_results.append(court_result)
+                individual_match_details.append(individual_match_detail)
             
-            # Sort court results by court number
-            court_results.sort(key=lambda x: x["court_number"])
+            # Sort individual matches by court number
+            individual_match_details.sort(key=lambda x: x["court_number"])
             
             formatted_match = {
                 "date": team_match["date"],
@@ -1785,7 +1895,8 @@ def get_team_last_3_matches_by_id():
                 "all_scores": "; ".join(team_match["scores"]),
                 "wins": team_match["wins"],
                 "losses": team_match["losses"],
-                "court_results": court_results
+                "individual_matches": individual_match_details,
+                "our_team_name": team_name
             }
             
             formatted_matches.append(formatted_match)
@@ -1876,7 +1987,7 @@ def get_current_season_matches():
         if league_id_int:
             matches_query = f"""
                 SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                     ms.match_date,
                     ms.home_team as "Home Team",
                     ms.away_team as "Away Team",
@@ -1905,7 +2016,7 @@ def get_current_season_matches():
             if team_filter_clause:
                 matches_query = f"""
                     SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                         ms.match_date,
                         ms.home_team as "Home Team",
                         ms.away_team as "Away Team",
@@ -1929,7 +2040,7 @@ def get_current_season_matches():
             else:
                 matches_query = """
                     SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                        TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                         ms.match_date,
                         ms.home_team as "Home Team",
                         ms.away_team as "Away Team",
@@ -2068,7 +2179,7 @@ def get_current_season_matches():
                     same_matchup_query = """
                         SELECT id, tenniscores_match_id
                         FROM match_scores
-                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        WHERE TO_CHAR(match_date, 'Mon DD, YYYY') = %s
                         AND home_team = %s AND away_team = %s
                         ORDER BY id ASC
                     """
@@ -2166,7 +2277,7 @@ def get_team_current_season_matches():
             print(f"[DEBUG] API: Using team-based query with team_id: {team_id}")
             matches_query = """
                 SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                     ms.match_date,
                     ms.home_team as "Home Team",
                     ms.away_team as "Away Team",
@@ -5398,7 +5509,7 @@ def get_pti_analysis_match_history():
         # Build query with league filtering
         base_query = """
             SELECT 
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                TO_CHAR(ms.match_date, 'Mon DD, YYYY') as "Date",
                 ms.home_team as "Home Team",
                 ms.away_team as "Away Team",
                 COALESCE(p1.first_name || ' ' || p1.last_name, ms.home_player_1_id) as "Home Player 1",
@@ -11626,7 +11737,7 @@ def get_partner_matches_team():
                     # Use smart filtering query with club_id and NULL logic
                     base_query = """
                         SELECT 
-                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                             ms.match_date,
                             ms.home_team,
                             ms.away_team,
@@ -11693,7 +11804,7 @@ def get_partner_matches_team():
                     # Fall back to basic team query if team info not found
                     base_query = """
                         SELECT 
-                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                             ms.match_date,
                             ms.home_team,
                             ms.away_team,
@@ -11737,7 +11848,7 @@ def get_partner_matches_team():
                 print(f"[DEBUG] API: Using regular team-specific query for teams-players page with team_id filtering")
                 base_query = """
                     SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                         ms.match_date,
                         ms.home_team,
                         ms.away_team,
@@ -11810,7 +11921,7 @@ def get_partner_matches_team():
                     
                     base_query = """
                         SELECT 
-                            TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                            TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                             ms.match_date,
                             ms.home_team,
                             ms.away_team,
@@ -11860,7 +11971,7 @@ def get_partner_matches_team():
                 # Fallback to original league-wide query (for player detail page)
                 base_query = """
                     SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                         ms.match_date,
                         ms.home_team,
                         ms.away_team,
@@ -12024,7 +12135,7 @@ def get_partner_matches_team():
                 print(f"[DEBUG] API: Trying direct partner search...")
                 direct_partner_query = """
                     SELECT 
-                        TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                        TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                         ms.match_date,
                         ms.home_team,
                         ms.away_team,
@@ -12318,7 +12429,7 @@ def get_partner_matches_team():
             # Build league-wide query 
             league_wide_query = """
                 SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as date,
+                    TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                     ms.match_date,
                     ms.home_team,
                     ms.away_team,
@@ -12689,7 +12800,7 @@ def get_player_matches_detail():
             
             base_query = """
                 SELECT
-                    TO_CHAR(ms.match_date, 'Mon FMDD, YYYY') as date,
+                    TO_CHAR(ms.match_date, 'Mon DD, YYYY') as date,
                     ms.match_date,
                     ms.home_team,
                     ms.away_team,

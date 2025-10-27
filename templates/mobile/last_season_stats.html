@@ -475,48 +475,39 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
         
         group.matches.forEach(match => {
             const scores = match.scores ? match.scores.split(", ") : [];
-            const team1_sets = [];
-            const team2_sets = [];
-            let team1_sets_won = 0;
-            let team2_sets_won = 0;
+            const home_sets = [];
+            const away_sets = [];
             
             scores.forEach(set_score => {
                 if (set_score && set_score.includes("-")) {
-                    const [score1, score2] = set_score.split("-");
-                    team1_sets.push(score1);
-                    team2_sets.push(score2);
-                    
-                    if (parseInt(score2) > parseInt(score1)) {
-                        team2_sets_won++;
-                    } else {
-                        team1_sets_won++;
-                    }
+                    const [away_score, home_score] = set_score.split("-");
+                    away_sets.push(away_score);
+                    home_sets.push(home_score);
                 }
             });
             
-            const team1_won = team1_sets_won > team2_sets_won;
-            const current_player_on_team1 = match.player_was_home === false;
+            // Use the player_won field from API instead of calculating from scores
+            const current_team_won = match.player_won;
+            const current_player_is_home = match.player_was_home;
             
-            let current_team_sets, opponent_team_sets, current_team_won;
-            if (current_player_on_team1) {
-                current_team_sets = team1_sets;
-                opponent_team_sets = team2_sets;
-                current_team_won = team1_won;
+            let current_team_sets, opponent_team_sets;
+            if (current_player_is_home) {
+                current_team_sets = home_sets;
+                opponent_team_sets = away_sets;
             } else {
-                current_team_sets = team2_sets;
-                opponent_team_sets = team1_sets;
-                current_team_won = team2_sets_won > team1_sets_won;
+                current_team_sets = away_sets;
+                opponent_team_sets = home_sets;
             }
             
             html += `
-                <div class="px-3 py-2" style="background-color: #045454;">
+                <div class="px-3 py-2 text-center" style="background-color: #045454;">
                     <span class="text-sm font-bold" style="color: #bff863;">Court ${match.court_number}</span>
                 </div>
                 <table class="w-full border-collapse">
                     <tbody>
                         <tr class="${current_team_won ? 'bg-green-100' : 'bg-gray-50'}">
                             <td class="w-40 px-3 py-4 text-left">
-                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.away_team : group.home_team}</div>
+                                <div class="text-xs text-gray-500 mb-3">${current_player_is_home ? group.home_team : group.away_team}</div>
                                 <div class="text-sm font-medium text-black">
                                     <div class="mb-1">${match.partner_name}</div>
                                     <div>${currentPlayerName}</div>
@@ -531,7 +522,7 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
                         </tr>
                         <tr class="${current_team_won ? 'bg-white' : 'bg-green-100'}">
                             <td class="w-40 px-3 py-4 text-left">
-                                <div class="text-xs text-gray-500 mb-3">${current_player_on_team1 ? group.home_team : group.away_team}</div>
+                                <div class="text-xs text-gray-500 mb-3">${current_player_is_home ? group.away_team : group.home_team}</div>
                                 <div class="text-sm font-medium text-black">
                                     <div class="mb-1">${match.opponent1_name}</div>
                                     <div>${match.opponent2_name}</div>
