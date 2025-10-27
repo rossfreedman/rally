@@ -8,6 +8,10 @@ load_dotenv()
 # Get OpenAI API key (only validate when actually used, not on import)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# Testing mode configuration
+RALLY_TESTING_MODE = os.getenv("RALLY_TESTING_MODE", "true").lower() == "true"
+ADMIN_PHONE = os.getenv("ADMIN_PHONE", "+17732138911")
+
 
 class TwilioConfig:
     """Configuration for Twilio SMS notifications"""
