@@ -749,6 +749,39 @@
                 </div>
             </div>
             
+            <!-- Sub Finder - Only show for APTA leagues (not CNSWPL) -->
+            {% set user_league_name = session_data.user.league_name if session_data and session_data.user and session_data.user.league_name else '' %}
+            {% if user_league_name and 'CNSWPL' not in user_league_name %}
+            <div id="sub-finder-section" class="bg-white rounded-2xl p-6 shadow-md">
+                <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
+                    <h3 class="text-2xl font-bold mb-0 flex items-center gap-2" style="color: #bff863;">
+                        <i class="fas fa-hands-helping" style="color: #bff863;"></i>
+                        Sub Finder
+                    </h3>
+                </div>
+                
+                <div id="subfinder-loading" class="text-center py-8">
+                    <div class="w-10 h-10 border-4 border-gray-200 border-t-rally-green rounded-full animate-spin mx-auto"></div>
+                </div>
+                
+                <div id="subfinder-content" class="hidden space-y-3"></div>
+                
+                <div id="subfinder-empty" class="hidden text-center py-8">
+                    <i class="fas fa-user-check text-4xl text-gray-300 mb-2"></i>
+                    <p class="text-gray-500">No sub requests match your profile</p>
+                </div>
+                
+                <div class="flex gap-3 mt-4">
+                    <a href="/mobile/active-sub-requests" class="flex-1 text-center py-3 text-white rounded-xl font-semibold transition" style="background-color: #045454;" onmouseover="this.style.backgroundColor='#033d3d'" onmouseout="this.style.backgroundColor='#045454'">
+                        View All<br>Sub Requests →
+                    </a>
+                    <a href="/mobile/create-sub-request" class="flex-1 text-center py-3 rounded-xl font-semibold transition" style="background-color: #bff863; color: #045454;" onmouseover="this.style.backgroundColor='#a8e64a'" onmouseout="this.style.backgroundColor='#bff863'">
+                        Create<br>Sub Request →
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
             <!-- Find People to Play -->
             <div class="bg-white rounded-2xl p-6 shadow-md">
                 <div class="rounded-xl p-4 mb-4" style="background-color: #045454;">
@@ -965,6 +998,7 @@
                     loadTeamData(),
                     loadSeriesStandings(),
                     loadPickupGames(),
+                    loadMatchingSubRequests(),
                     loadMyLessons(),
                     loadPaddleTip()
                 ]);
@@ -3635,6 +3669,111 @@
                     </div>
                     <span class="text-xs text-gray-500">joined</span>
                 </div>
+            `;
+            
+            return div;
+        }
+
+        // ============================================
+        // SUB FINDER LOADING
+        // ============================================
+        async function loadMatchingSubRequests() {
+            const loading = document.getElementById('subfinder-loading');
+            const content = document.getElementById('subfinder-content');
+            const empty = document.getElementById('subfinder-empty');
+            
+            // Check if section exists (only for APTA users)
+            if (!loading || !content || !empty) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/subfinder/matching-requests');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                loading.classList.add('hidden');
+                
+                if (data.error || !data.matching_requests || data.matching_requests.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                // Show only the next 3 matching requests
+                const matchingRequests = data.matching_requests.slice(0, 3);
+                
+                if (matchingRequests.length === 0) {
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                
+                content.classList.remove('hidden');
+                content.innerHTML = '';
+                
+                matchingRequests.forEach(req => {
+                    const reqDiv = createSubRequestElement(req);
+                    content.appendChild(reqDiv);
+                });
+                
+            } catch (error) {
+                console.error('Error loading matching sub requests:', error);
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+        
+        function createSubRequestElement(req) {
+            const div = document.createElement('div');
+            div.className = 'p-6 bg-gray-50 rounded-xl border border-gray-200';
+            
+            // Format date
+            const matchDate = req.match_date ? new Date(req.match_date) : null;
+            const dateStr = matchDate ? matchDate.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+            }) : 'TBD';
+            
+            // Format time
+            const timeStr = req.match_time || 'TBD';
+            
+            // Request type
+            const requestType = req.type || 'Match';
+            const typeIcon = requestType === 'Match' ? 'fa-trophy' : 'fa-table-tennis';
+            
+            // Slots info
+            const slotsInfo = `${req.slots_available} ${req.slots_available === 1 ? 'slot' : 'slots'} open`;
+            
+            div.innerHTML = `
+                <div class="flex items-start gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl flex-shrink-0">
+                        <i class="fas ${typeIcon}"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-[#045454] mb-1">${req.creator_name} needs a sub</div>
+                        <div class="text-sm text-gray-600">${dateStr} at ${timeStr}</div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            PTI: ${req.pti_min?.toFixed(1) || 'N/A'} - ${req.pti_max?.toFixed(1) || 'N/A'} | 
+                            Series: ${req.series_min || 'N/A'} - ${req.series_max || 'N/A'}
+                        </div>
+                        ${req.notes ? `<div class="text-xs text-gray-600 mt-2 italic">"${req.notes}"</div>` : ''}
+                    </div>
+                    <div class="flex flex-col items-center gap-1 flex-shrink-0">
+                        <div class="px-3 py-1 rounded-full text-xs font-semibold" style="background-color: #bff863; color: #045454;">
+                            ${slotsInfo}
+                        </div>
+                        <div class="text-xs text-gray-500">${requestType}</div>
+                    </div>
+                </div>
+                <a href="/mobile/active-sub-requests?request_id=${req.id}" 
+                   class="block w-full py-3 px-4 text-center text-white font-semibold rounded-lg transition-all duration-200" 
+                   style="background-color: #045454;"
+                   onmouseover="this.style.backgroundColor='#033d3d'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(0,0,0,0.2)'" 
+                   onmouseout="this.style.backgroundColor='#045454'; this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                    <i class="fas fa-user-plus mr-2"></i>Join as Sub
+                </a>
             `;
             
             return div;

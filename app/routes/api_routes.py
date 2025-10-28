@@ -9236,6 +9236,143 @@ def leave_subfinder_request(request_id):
         return jsonify({"error": "Failed to leave sub request due to server error"}), 500
 
 
+@api_bp.route("/subfinder/matching-requests", methods=["GET"])
+@login_required
+def get_matching_subfinder_requests():
+    """Get active sub finder requests that match the logged-in user's criteria"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_league_id = user.get("league_id")
+        user_club = user.get("club")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get user's PTI and Series
+        user_info_query = """
+            SELECT p.pti, s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s
+            AND p.league_id = %s
+            AND p.is_active = TRUE
+            LIMIT 1
+        """
+        
+        user_info = execute_query_one(user_info_query, [user_id, user_league_id])
+        
+        if not user_info:
+            return jsonify({"success": True, "matching_requests": []})
+        
+        user_pti = float(user_info["pti"]) if user_info["pti"] else None
+        user_series = user_info["series_name"]
+        
+        # Extract series number from series name (e.g., "Series 20" -> 20)
+        user_series_number = None
+        if user_series:
+            import re
+            series_match = re.search(r'\d+', user_series)
+            if series_match:
+                user_series_number = int(series_match.group())
+        
+        if user_pti is None or user_series_number is None:
+            return jsonify({"success": True, "matching_requests": []})
+        
+        # Get active sub finder requests for user's club
+        # Note: Club info comes from player associations, not users table
+        requests_query = """
+            SELECT DISTINCT
+                rsf.id,
+                rsf.created_by,
+                rsf.pti_min,
+                rsf.pti_max,
+                rsf.series_min,
+                rsf.series_max,
+                rsf.slots_total,
+                rsf.slots_filled,
+                rsf.notes,
+                rsf.match_date,
+                rsf.match_time,
+                rsf.type,
+                rsf.created_at,
+                CONCAT(u.first_name, ' ', u.last_name) as creator_name,
+                c.name as creator_club
+            FROM rally_sub_finder rsf
+            JOIN users u ON rsf.created_by = u.id
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = TRUE
+            LEFT JOIN clubs c ON p.club_id = c.id
+            WHERE rsf.is_active = TRUE
+            AND c.name = %s
+            AND p.league_id = %s
+            AND rsf.created_by != %s
+            ORDER BY rsf.match_date ASC, rsf.match_time ASC
+        """
+        
+        all_requests = execute_query(requests_query, [user_club, user_league_id, user_id])
+        
+        # Filter requests that match user's criteria
+        matching_requests = []
+        for req in all_requests:
+            pti_min = float(req["pti_min"]) if req["pti_min"] else None
+            pti_max = float(req["pti_max"]) if req["pti_max"] else None
+            series_min = req["series_min"]
+            series_max = req["series_max"]
+            
+            # Check if user matches PTI criteria
+            pti_match = True
+            if pti_min is not None and pti_max is not None:
+                pti_match = pti_min <= user_pti <= pti_max
+            
+            # Check if user matches Series criteria
+            series_match = True
+            if series_min is not None and series_max is not None:
+                series_match = series_min <= user_series_number <= series_max
+            
+            # Check if request is not full
+            slots_available = req["slots_total"] - req["slots_filled"]
+            
+            # Check if user has already joined this request
+            participant_check_query = """
+                SELECT COUNT(*) as count
+                FROM rally_sub_finder_participants
+                WHERE rally_sub_finder_id = %s AND user_id = %s
+            """
+            participant_check = execute_query_one(participant_check_query, [req["id"], user_id])
+            user_already_joined = participant_check["count"] > 0 if participant_check else False
+            
+            if pti_match and series_match and slots_available > 0 and not user_already_joined:
+                matching_requests.append({
+                    "id": req["id"],
+                    "creator_name": req["creator_name"],
+                    "pti_min": pti_min,
+                    "pti_max": pti_max,
+                    "series_min": series_min,
+                    "series_max": series_max,
+                    "slots_total": req["slots_total"],
+                    "slots_filled": req["slots_filled"],
+                    "slots_available": slots_available,
+                    "notes": req["notes"],
+                    "match_date": req["match_date"].isoformat() if req["match_date"] else None,
+                    "match_time": str(req["match_time"]) if req["match_time"] else None,
+                    "type": req.get("type", "Match"),
+                    "created_at": req["created_at"].isoformat() if req["created_at"] else None
+                })
+        
+        return jsonify({
+            "success": True,
+            "matching_requests": matching_requests
+        })
+        
+    except Exception as e:
+        print(f"[GET_MATCHING_SUBFINDER] Error: {str(e)}")
+        import traceback
+        print(f"[GET_MATCHING_SUBFINDER] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve matching sub requests"}), 500
+
+
 @api_bp.route("/subfinder/matching-players", methods=["POST"])
 @login_required
 def get_matching_players_for_subfinder():
