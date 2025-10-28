@@ -409,6 +409,19 @@ document.addEventListener('DOMContentLoaded', function() {
     async function initializePage() {
         try {
             await loadActiveRequests();
+            
+            // Check if we have a specific request_id in URL to highlight
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestId = urlParams.get('request_id');
+            console.log('[DEEP_LINK] URL:', window.location.href);
+            console.log('[DEEP_LINK] Search params:', window.location.search);
+            console.log('[DEEP_LINK] Request ID from URL:', requestId);
+            if (requestId) {
+                console.log('[DEEP_LINK] Calling highlightAndScrollToRequest with ID:', requestId);
+                highlightAndScrollToRequest(requestId);
+            } else {
+                console.log('[DEEP_LINK] No request_id parameter found in URL');
+            }
         } catch (error) {
             console.error('Error initializing page:', error);
             showToast('Failed to load page data', 'error');
@@ -476,6 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function createRequestCard(request) {
         const card = document.createElement('div');
         card.className = 'request-card';
+        card.setAttribute('data-request-id', request.id);
         
         const isFull = request.slots_filled >= request.slots_total;
         const slotsRemaining = request.slots_total - request.slots_filled;
@@ -860,6 +874,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 toast.parentNode.removeChild(toast);
             }
         }, duration);
+    }
+    
+    // Highlight and scroll to specific request
+    function highlightAndScrollToRequest(requestId) {
+        console.log('[DEEP_LINK] highlightAndScrollToRequest called with ID:', requestId);
+        setTimeout(() => {
+            const card = document.querySelector(`[data-request-id="${requestId}"]`);
+            console.log('[DEEP_LINK] Found card:', card);
+            if (card) {
+                console.log('[DEEP_LINK] Scrolling to and highlighting card');
+                // Scroll to the card
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Add highlight animation
+                card.style.transition = 'all 0.3s ease';
+                card.style.boxShadow = '0 0 0 4px #bff863';
+                card.style.transform = 'scale(1.02)';
+                
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    card.style.boxShadow = '';
+                    card.style.transform = '';
+                }, 3000);
+            } else {
+                console.log('[DEEP_LINK] Card not found with selector: [data-request-id="' + requestId + '"]');
+                // Log all cards to debug
+                const allCards = document.querySelectorAll('[data-request-id]');
+                console.log('[DEEP_LINK] All cards found:', allCards.length);
+                allCards.forEach(c => console.log('[DEEP_LINK] Card ID:', c.getAttribute('data-request-id')));
+            }
+        }, 500); // Wait for cards to be rendered
     }
     
     // Initialize the page
