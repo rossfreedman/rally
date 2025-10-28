@@ -884,6 +884,30 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('[DEEP_LINK] Found card:', card);
             if (card) {
                 console.log('[DEEP_LINK] Scrolling to and highlighting card');
+                
+                // Hide all other cards
+                const allCards = document.querySelectorAll('[data-request-id]');
+                allCards.forEach(c => {
+                    if (c.getAttribute('data-request-id') !== requestId) {
+                        c.style.display = 'none';
+                        c.classList.add('filtered-out');
+                    }
+                });
+                
+                // Add "View All Sub Requests" button if it doesn't exist
+                if (!document.getElementById('viewAllRequestsBtn')) {
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.id = 'viewAllRequestsBtn';
+                    buttonContainer.className = 'flex justify-center my-4';
+                    buttonContainer.innerHTML = `
+                        <button onclick="showAllRequests()" class="inline-flex items-center px-6 py-3 text-white rounded-lg transition-colors duration-200 font-semibold" style="background-color: #045454 !important;">
+                            <i class="fas fa-eye mr-2"></i>
+                            View All Sub Requests
+                        </button>
+                    `;
+                    requestsList.insertAdjacentElement('afterend', buttonContainer);
+                }
+                
                 // Scroll to the card
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
@@ -905,6 +929,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 allCards.forEach(c => console.log('[DEEP_LINK] Card ID:', c.getAttribute('data-request-id')));
             }
         }, 500); // Wait for cards to be rendered
+    }
+    
+    // Show all requests (remove filter)
+    window.showAllRequests = function() {
+        const allCards = document.querySelectorAll('[data-request-id]');
+        allCards.forEach(c => {
+            c.style.display = '';
+            c.classList.remove('filtered-out');
+        });
+        
+        // Remove the "View All" button
+        const button = document.getElementById('viewAllRequestsBtn');
+        if (button) {
+            button.remove();
+        }
+        
+        // Remove the request_id from URL without reloading
+        const url = new URL(window.location);
+        url.searchParams.delete('request_id');
+        window.history.replaceState({}, '', url);
     }
     
     // Initialize the page
