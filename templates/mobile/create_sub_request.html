@@ -447,6 +447,7 @@
 </style>
 
 <script>
+// Sub Finder - Create Request v1.1 (Checkbox state preservation fix)
 document.addEventListener('DOMContentLoaded', function() {
     // Form elements
     const ptiMinSlider = document.getElementById('ptiMinSlider');
@@ -604,6 +605,10 @@ document.addEventListener('DOMContentLoaded', function() {
         matchingPlayersEmpty.classList.add('hidden');
         selectionControls.classList.remove('hidden');
         
+        // Save current checkbox states before clearing
+        const previouslyCheckedIds = new Set(getSelectedPlayerIds());
+        const hadPreviousState = previouslyCheckedIds.size > 0 && document.querySelectorAll('.player-checkbox').length > 0;
+        
         // Clear existing rows
         matchingPlayersTableBody.innerHTML = '';
         
@@ -611,13 +616,17 @@ document.addEventListener('DOMContentLoaded', function() {
         players.forEach((player, index) => {
             const row = document.createElement('tr');
             row.className = 'hover:bg-gray-50';
+            
+            // Preserve checkbox state if it existed, otherwise default to checked
+            const shouldBeChecked = hadPreviousState ? previouslyCheckedIds.has(player.id) : true;
+            
             row.innerHTML = `
                 <td class="px-3 py-2 whitespace-nowrap">
                     <input type="checkbox" 
                            class="player-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
                            data-player-id="${player.id}" 
                            data-player-index="${index}" 
-                           checked>
+                           ${shouldBeChecked ? 'checked' : ''}>
                 </td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">${player.name || 'Unknown'}</td>
                 <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-700">${player.pti ? player.pti.toFixed(1) : 'N/A'}</td>

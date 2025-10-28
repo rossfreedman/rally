@@ -9061,10 +9061,10 @@ def join_subfinder_request(request_id):
                         if not joiner_name:
                             joiner_name = "A player"
                         
-                        # Format the match date and time (MM-DD-YY at H:MM AM/PM)
+                        # Format the match date and time (M/D/YYYY at H:MM AM/PM)
                         try:
                             date_obj = datetime.strptime(request_record["match_date"], "%Y-%m-%d")
-                            formatted_date = date_obj.strftime("%m-%d-%y")
+                            formatted_date = date_obj.strftime("%-m/%-d/%Y")
                         except:
                             formatted_date = request_record["match_date"]
                         
