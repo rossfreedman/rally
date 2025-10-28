@@ -8858,6 +8858,7 @@ def create_subfinder_request():
                     message += f"{full_datetime}\n"
                     if notes:
                         message += f"\n{notes}\n"
+                    message += f"\nTo stop receiving these notifications, you can opt-out in your profile.\n"
                     message += f"\nView and respond: https://www.lovetorally.com/mobile/active-sub-requests?request_id={request_id}"
                     
                     print(f"[CREATE_SUBFINDER] Sending SMS to {len(players)} selected players")

@@ -931,24 +931,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500); // Wait for cards to be rendered
     }
     
-    // Show all requests (remove filter)
+    // Toggle all requests visibility
     window.showAllRequests = function() {
         const allCards = document.querySelectorAll('[data-request-id]');
-        allCards.forEach(c => {
-            c.style.display = '';
-            c.classList.remove('filtered-out');
-        });
-        
-        // Remove the "View All" button
         const button = document.getElementById('viewAllRequestsBtn');
-        if (button) {
-            button.remove();
-        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestId = urlParams.get('request_id');
         
-        // Remove the request_id from URL without reloading
-        const url = new URL(window.location);
-        url.searchParams.delete('request_id');
-        window.history.replaceState({}, '', url);
+        if (!requestId) return;
+        
+        const currentlyShowing = Array.from(allCards).filter(c => c.style.display !== 'none' && c.getAttribute('data-request-id') !== requestId).length > 0;
+        
+        if (currentlyShowing) {
+            // Hide all other cards again
+            allCards.forEach(c => {
+                if (c.getAttribute('data-request-id') !== requestId) {
+                    c.style.display = 'none';
+                    c.classList.add('filtered-out');
+                }
+            });
+            
+            // Update button text
+            if (button) {
+                button.querySelector('button').innerHTML = '<i class="fas fa-eye mr-2"></i> View All Sub Requests';
+            }
+        } else {
+            // Show all cards
+            allCards.forEach(c => {
+                c.style.display = '';
+                c.classList.remove('filtered-out');
+            });
+            
+            // Update button text
+            if (button) {
+                button.querySelector('button').innerHTML = '<i class="fas fa-eye-slash mr-2"></i> Hide Other Sub Requests';
+            }
+        }
     }
     
     // Initialize the page
