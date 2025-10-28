@@ -1002,8 +1002,13 @@ async function loadNotificationPreferences() {
             statusNotice.classList.add('hidden');
         }
         
-        // Create toggle for each notification type
+        // Create toggle for each notification type (excluding captain_notifications)
         data.notification_types.forEach(type => {
+            // Hide captain notifications section
+            if (type.key === 'captain_notifications') {
+                return; // Skip rendering this toggle
+            }
+            
             const toggleDiv = document.createElement('div');
             toggleDiv.className = 'grid grid-cols-[1fr,auto] gap-4 items-center p-4 bg-gray-50 rounded-lg border border-gray-200';
             toggleDiv.innerHTML = `
