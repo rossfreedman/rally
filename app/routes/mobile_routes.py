@@ -3473,7 +3473,7 @@ def api_get_user_availability():
         if not user_id:
             return jsonify({"error": "User ID not found"}), 400
         
-        # Get user's availability for upcoming matches/practices
+        # Get user's availability for upcoming matches/practices (include today)
         query = """
             SELECT 
                 DATE(pa.match_date AT TIME ZONE 'UTC') as match_date,
@@ -3482,7 +3482,7 @@ def api_get_user_availability():
                 pa.updated_at
             FROM player_availability pa
             WHERE pa.user_id = %s
-            AND pa.match_date >= CURRENT_DATE
+            AND pa.match_date >= CURRENT_DATE - INTERVAL '1 day'
             ORDER BY pa.match_date ASC
         """
         
