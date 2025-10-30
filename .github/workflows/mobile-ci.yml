@@ -1,0 +1,69 @@
+name: Mobile CI
+
+on:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/mobile-ci.yml'
+  push:
+    branches:
+      - main
+      - staging
+    paths:
+      - 'ios/**'
+
+jobs:
+  mobile-test:
+    name: Lint, Type Check & Test iOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.20.4'
+          cache: 'npm'
+          cache-dependency-path: ios/package-lock.json
+
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: ios/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('ios/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: ios
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ios
+        run: npm run lint
+
+      - name: Run TypeScript type check
+        working-directory: ios
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: ios
+        run: npm test -- --coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ./ios/coverage
+          flags: mobile
+          name: ios-coverage
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "✅ Mobile CI completed"
+          echo "Lint: ${{ job.status }}"
+          echo "Type Check: ${{ job.status }}"
+          echo "Tests: ${{ job.status }}"
+

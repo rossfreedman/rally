@@ -19,6 +19,9 @@
 - Aside from ETL commands, do not let the front end application query JSON files. All queries should access the Postgres database.
 - Do NOT use SQLite. All database related queries should be with Postgres
 
+#ios development
+- DO NOT MODIFY ANY OF THE EXISTING FLASK WEB APPLICATION OR ITS APIS WHEN CREATING THE NEW iOS application  We can not risk breaking the working python/flask web application when creating the ios version  Use existing APIs only
+
 # Design Style
 - Keep consistent with the rest of the application
 - Default to these brand colors: Rally Greens: Dark Green: #045454  Bright Green: #bff863

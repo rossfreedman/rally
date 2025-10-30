@@ -7,4 +7,9 @@ reference_code/
 *.tmp
 rally_backups/
 scrapers/
-scrapers_backups/ 
+scrapers_backups/
+
+# React Native / iOS App (not needed on Railway server)
+# Mobile app deploys via EAS to App Store, not Railway
+ios/
+.nvmrc 

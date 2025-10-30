@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 import time
 from datetime import datetime, timedelta
@@ -15,6 +16,8 @@ from utils.auth import login_required
 from utils.db import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
 from utils.series_mapping_service import get_display_name
+
+logger = logging.getLogger(__name__)
 
 # Simple in-memory cache for lineup suggestions
 LINEUP_CACHE = {}
@@ -850,6 +853,13 @@ def init_lineup_routes(app):
                 )
                 
                 if result["success"]:
+                    # Log notification status
+                    notification_sent = result.get("notification_sent", False)
+                    if notification_sent:
+                        logger.info(f"✅ Lineup escrow created successfully with notification sent. Escrow ID: {result.get('escrow_id')}, Recipient: {data['recipient_name']} ({data['recipient_contact'][-4:] if len(data['recipient_contact']) > 4 else '****'})")
+                    else:
+                        logger.warning(f"⚠️ Lineup escrow created but notification NOT sent. Escrow ID: {result.get('escrow_id')}, Recipient: {data['recipient_name']} ({data['recipient_contact'][-4:] if len(data['recipient_contact']) > 4 else '****'})")
+                    
                     # Send notification to recipient
                     if data["contact_type"] == "email":
                         escrow_service.notify_recipient_team(
@@ -860,10 +870,13 @@ def init_lineup_routes(app):
                     
                     return jsonify(result)
                 else:
+                    logger.error(f"❌ Failed to create lineup escrow: {result.get('error', 'Unknown error')}")
                     return jsonify(result), 400
                     
         except Exception as e:
-            print(f"Error creating lineup escrow: {str(e)}")
+            logger.error(f"❌ Exception creating lineup escrow: {str(e)}")
+            import traceback
+            logger.error(f"📋 Traceback: {traceback.format_exc()}")
             return jsonify({"error": str(e)}), 500
 
     @app.route("/api/lineup-escrow/submit", methods=["POST"])

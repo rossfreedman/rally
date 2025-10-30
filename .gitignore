@@ -164,3 +164,15 @@ data/leagues/**/*.json
 backups/*.sql
 .db.env
 rally_backup_2025_09_22_0821/
+
+# React Native / Expo (ios/ directory)
+ios/node_modules/
+ios/.expo/
+ios/.expo-shared/
+ios/dist/
+ios/npm-debug.*
+ios/yarn-error.*
+ios/.env.local
+ios/.env.*.local
+ios/.env.development
+ios/.env.production

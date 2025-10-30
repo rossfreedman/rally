@@ -1,0 +1,18 @@
+node_modules/
+.expo/
+.expo-shared/
+dist/
+*.log
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+.DS_Store
+
+# Reference image (add actual screenshot)
+docs/reference/schedule-web-reference.png
+
+

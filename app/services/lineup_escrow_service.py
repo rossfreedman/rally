@@ -684,21 +684,34 @@ class LineupEscrowService:
                 initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
                 sender_first_name = initiator.first_name if initiator and initiator.first_name else "A fellow captain"
                 sender_last_name = initiator.last_name if initiator and initiator.last_name else ""
-                # Compose message
+                
+                # Compose shorter message that fits within SMS limits (500 chars for reliable delivery)
+                # Shortened message to ensure it fits within 500 character limit
                 message = (
                     f"Hi {recipient_first_name},\n\n"
-                    f"This is {sender_first_name} {sender_last_name} from {club_name}. Looking forward to our upcoming match.  \n\n"
-                    "I'm using Lineup Escrow™ in the Rally app to share my lineup with you. Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.\n\n"
-                    "Once you share your lineup with me, both lineups will be disclosed simultaneously.\n\n"
-                    "Click the link below to get started...\n"
+                    f"This is {sender_first_name} {sender_last_name} from {club_name}. Looking forward to our match.\n\n"
+                    "I'm using Lineup Escrow™ to share my lineup. Once you share yours, both lineups will be revealed simultaneously for fairness.\n\n"
                     f"{view_url}"
                 )
+                
+                logger.info(f"📱 Attempting to send SMS to {escrow.recipient_contact} for escrow {escrow.id}")
+                logger.info(f"📏 Message length: {len(message)} characters")
+                
                 result = send_sms_notification(
                     to_number=escrow.recipient_contact,
                     message=message,
                     test_mode=False
                 )
-                return result["success"]
+                
+                if result.get("success"):
+                    logger.info(f"✅ SMS sent successfully to {escrow.recipient_contact} for escrow {escrow.id}. Message SID: {result.get('message_sid')}")
+                else:
+                    error_msg = result.get("error", "Unknown error")
+                    error_code = result.get("error_code")
+                    logger.error(f"❌ SMS failed for escrow {escrow.id} to {escrow.recipient_contact}: {error_msg} (Code: {error_code})")
+                    logger.error(f"📋 Full SMS result: {result}")
+                
+                return result.get("success", False)
             elif escrow.contact_type == 'email':
                 recipient_first_name = escrow.recipient_name.split()[0] if escrow.recipient_name else "Captain"
                 initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
@@ -717,7 +730,9 @@ class LineupEscrowService:
                 logger.info(f"Email notification would be sent to {escrow.recipient_contact} with message:\n{message}")
                 return True
         except Exception as e:
-            logger.error(f"Error sending escrow notification: {str(e)}")
+            logger.error(f"❌ Exception in _send_escrow_notification for escrow {escrow.id if escrow else 'unknown'}: {str(e)}")
+            import traceback
+            logger.error(f"📋 Traceback: {traceback.format_exc()}")
             return False
 
     def _notify_both_parties(self, escrow: LineupEscrow) -> None:
