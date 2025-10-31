@@ -142,7 +142,13 @@ def main():
         print(f"   Found {len(players_map)} unique players from matches")
         
         if len(players_map) == 0:
-            print("⚠️  No players found from match data. Skipping player assignment.")
+            print("⚠️  No players found from match data.")
+            print("💡 This usually means:")
+            print("   1. The match_scores.json file doesn't exist (Railway filesystem is ephemeral)")
+            print("   2. The scraper needs to be run first to create the JSON file")
+            print("   3. Both scripts should be run in the same SSH session")
+            print("\n🔄 Alternative: Query database directly from match_scores table")
+            print("   This would be more reliable but requires code changes.")
             return
         
         # Check which players exist and which need to be created
