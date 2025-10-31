@@ -715,6 +715,20 @@ def main():
             # Run integrity checks
             integrity_issues = run_integrity_checks(cur, league_id)
             
+            # Post-import team resolution (fixes scraper team name issues)
+            try:
+                from data.etl.fix_team_names_from_players import fix_team_names_from_players
+                print("\n🔧 Running post-import team resolution...")
+                resolution_stats = fix_team_names_from_players(league_key, dry_run=False)
+                if resolution_stats:
+                    print(f"Team resolution: {resolution_stats['total_found']} found, {resolution_stats['applied']} applied")
+            except ImportError as e:
+                print(f"⚠️  Could not import fix_team_names_from_players: {e}")
+                print("Continuing without team resolution...")
+            except Exception as e:
+                print(f"⚠️  Error during team resolution: {e}")
+                print("Continuing without team resolution...")
+            
             # Commit transaction
             conn.commit()
             print(f"\nImport completed successfully!")
