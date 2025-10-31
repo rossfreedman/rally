@@ -995,10 +995,62 @@ def get_last_3_matches():
         team_filter_params = []
         
         if user_team_id:
-            # Filter by specific team_id (most precise)
-            team_filter_clause = "AND (home_team IN (SELECT team_name FROM teams WHERE id = %s) OR away_team IN (SELECT team_name FROM teams WHERE id = %s))"
-            team_filter_params = [user_team_id, user_team_id]
-            print(f"[DEBUG] Last-3-matches: Using team_id filter: {user_team_id}")
+            # Filter by team_id using team_id columns, but also include all teams this player is on
+            # This ensures matches show up even if player is on multiple teams (e.g., Series H and H(2))
+            player_teams_query = """
+                SELECT DISTINCT team_id 
+                FROM players 
+                WHERE tenniscores_player_id = %s 
+                AND league_id = %s 
+                AND is_active = true
+            """
+            if league_id_int:
+                player_teams = execute_query(player_teams_query, [player_id, league_id_int])
+                team_ids = [team["team_id"] for team in player_teams] if player_teams else []
+                
+                # If player not found in players table, find teams from their actual matches
+                # This handles cases where player association isn't up to date
+                if not team_ids:
+                    match_teams_query = """
+                        SELECT DISTINCT 
+                            CASE 
+                                WHEN home_player_1_id = %s OR home_player_2_id = %s THEN home_team_id
+                                WHEN away_player_1_id = %s OR away_player_2_id = %s THEN away_team_id
+                            END as team_id
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s OR home_player_2_id = %s 
+                               OR away_player_1_id = %s OR away_player_2_id = %s)
+                        AND league_id = %s
+                        AND CASE 
+                            WHEN home_player_1_id = %s OR home_player_2_id = %s THEN home_team_id
+                            WHEN away_player_1_id = %s OR away_player_2_id = %s THEN away_team_id
+                        END IS NOT NULL
+                        ORDER BY match_date DESC
+                        LIMIT 5
+                    """
+                    match_teams = execute_query(match_teams_query, 
+                        [player_id, player_id, player_id, player_id, player_id, player_id, player_id, player_id, league_id_int,
+                         player_id, player_id, player_id, player_id])
+                    team_ids = [team["team_id"] for team in match_teams if team.get("team_id")]
+                    if team_ids:
+                        print(f"[DEBUG] Last-3-matches: Player not in players table, found {len(team_ids)} teams from matches: {team_ids}")
+                
+                # Fallback to session team_id if still no teams found
+                if not team_ids:
+                    team_ids = [user_team_id]
+                    print(f"[DEBUG] Last-3-matches: No teams found from matches, using session team_id: {user_team_id}")
+            else:
+                team_ids = [user_team_id]
+            
+            if len(team_ids) > 0:
+                placeholders = ",".join(["%s"] * len(team_ids))
+                team_filter_clause = f"AND (home_team_id IN ({placeholders}) OR away_team_id IN ({placeholders}))"
+                team_filter_params = team_ids + team_ids  # For both home and away
+                print(f"[DEBUG] Last-3-matches: Using team_id filter for {len(team_ids)} teams: {team_ids}")
+            else:
+                team_filter_clause = "AND (home_team_id = %s OR away_team_id = %s)"
+                team_filter_params = [user_team_id, user_team_id]
+                print(f"[DEBUG] Last-3-matches: Using single team_id filter: {user_team_id}")
         elif user_club and user_series:
             # Filter by club and series combination
             team_filter_clause = "AND (home_team LIKE %s OR away_team LIKE %s)"
@@ -1125,7 +1177,27 @@ def get_last_3_matches():
                         print(f"[DEBUG] Found player by partial ID match: {player_id} -> {player_record['tenniscores_player_id']}")
                         return f"{player_record['first_name']} {player_record['last_name']}"
                 
-                # Strategy 3: Provide a more informative fallback
+                # Strategy 3: Try to find player name from match_scores_previous_seasons (has name columns)
+                match_lookup = execute_query_one("""
+                    SELECT 
+                        CASE 
+                            WHEN home_player_1_id = %s AND home_player_1_name IS NOT NULL THEN home_player_1_name
+                            WHEN home_player_2_id = %s AND home_player_2_name IS NOT NULL THEN home_player_2_name
+                            WHEN away_player_1_id = %s AND away_player_1_name IS NOT NULL THEN away_player_1_name
+                            WHEN away_player_2_id = %s AND away_player_2_name IS NOT NULL THEN away_player_2_name
+                        END as player_name
+                    FROM match_scores_previous_seasons
+                    WHERE (home_player_1_id = %s AND home_player_1_name IS NOT NULL)
+                       OR (home_player_2_id = %s AND home_player_2_name IS NOT NULL)
+                       OR (away_player_1_id = %s AND away_player_1_name IS NOT NULL)
+                       OR (away_player_2_id = %s AND away_player_2_name IS NOT NULL)
+                    LIMIT 1
+                """, [player_id, player_id, player_id, player_id, player_id, player_id, player_id, player_id])
+                
+                if match_lookup and match_lookup.get('player_name'):
+                    return match_lookup['player_name']
+                
+                # Strategy 4: Provide a more informative fallback
                 if player_id.startswith('cnswpl_'):
                     # This is a CNSWPL player ID that we couldn't resolve
                     if len(player_id) > 23:  # Hex format like cnswpl_8ae8bf3d03cc912b

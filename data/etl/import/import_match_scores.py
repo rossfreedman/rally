@@ -114,7 +114,26 @@ def parse_team_name(team_name: str) -> Tuple[Optional[str], Optional[str], Optio
             series_part = parts[1].strip()
             return club_part, series_part, None
     
-    # Handle simple format: "Club Series" or "Club Series X"
+    # Handle simple format: "Club Series" or "Club Series X" or "Club H(3)"
+    # First, check for parentheses pattern like "H(3)", "H(2)", etc.
+    paren_match = re.search(r'(\w+)\((\d+)\)', team_name)
+    if paren_match:
+        # Found pattern like "H(3)" or "Series 22(2)"
+        series_base = paren_match.group(1)  # "H" or "Series 22"
+        team_number = paren_match.group(2)  # "3"
+        
+        # Extract club name (everything before the series part)
+        series_full = paren_match.group(0)  # "H(3)"
+        club_name = team_name[:team_name.index(series_full)].strip()
+        
+        # For CNSWPL, "H(3)" should be treated as series "H(3)", not "H" with team_id "(3)"
+        if series_base.upper() in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']:
+            # This is a letter series with parentheses (e.g., "H(3)")
+            return club_name, series_full, None
+        
+        # For other patterns like "Series 22(2)", return the full series with parentheses
+        return club_name, series_full, None
+    
     parts = team_name.split()
     if len(parts) >= 2:
         # Try to identify series part (usually last part or second-to-last)
@@ -525,22 +544,14 @@ def upsert_match_score(cur, league_id, match_data):
         
         # If teams not found, create them
         if not home_team_id:
-            print(f"  ⚠️ Team '{home_team_name}' not found. Creating...")
             home_team_id = upsert_team(cur, league_id, home_team_name, home_club, home_series)
             if not home_team_id:
                 return None, f"home_team_creation_failed: could not create team '{home_team_name}'"
-            print(f"  Team '{home_team_name}' created (ID: {home_team_id})")
-        else:
-            print(f"  Team '{home_team_name}' found (ID: {home_team_id})")
         
         if not away_team_id:
-            print(f"  ⚠️ Team '{away_team_name}' not found. Creating...")
             away_team_id = upsert_team(cur, league_id, away_team_name, away_club, away_series)
             if not away_team_id:
                 return None, f"away_team_creation_failed: could not create team '{away_team_name}'"
-            print(f"  Team '{away_team_name}' created (ID: {away_team_id})")
-        else:
-            print(f"  Team '{away_team_name}' found (ID: {away_team_id})")
         
         # Check for existing match record
         existing_id = check_existing_match(cur, league_id, match_id)

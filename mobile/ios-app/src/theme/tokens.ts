@@ -8,16 +8,19 @@ export const Colors = {
   rallyDarkGreen: '#045454',
   rallyLightGreen: '#bff863',
   limeGreen: '#32CD32',
+  rallyTeal: '#0E7C7B',
+  rallyTealSoft: '#E6F3F3',
   
   // Text
-  textPrimary: '#1F1F1F',
+  textPrimary: '#111827',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   
   // Backgrounds
   bgPrimary: '#FFFFFF',
-  bgSecondary: '#F9FAFB',
+  bgSecondary: '#F7F8FA',
   borderLight: '#E5E7EB',
+  borderSubtle: '#EEF1F4',
   
   // Button States
   buttonGrayBG: '#F3F4F6',
@@ -29,6 +32,9 @@ export const Colors = {
   redMarker: '#EF4444',
   greenButton: '#10B981',
   yellowButton: '#FCD34D',
+  
+  // Overlays
+  overlay: 'rgba(0,0,0,0.04)',
   
   // Special
   white: '#FFFFFF',
@@ -109,49 +115,49 @@ export const Typography = {
 } as const;
 
 export const BorderRadius = {
-  small: 8,
-  medium: 12,
-  large: 18,
-  pill: 18,
+  small: 10,
+  medium: 14,
+  large: 20,
+  pill: 22,
 } as const;
 
 export const Shadows = {
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  cardElevated: {
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
+  },
+  cardElevated: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   tabBar: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
 } as const;
 
 export const Layout = {
   topBarHeight: 104,
   filterCardPadding: Spacing.standard,
-  chipHeight: 36,
+  chipHeight: 38,
   chipPaddingH: Spacing.base,
   chipPaddingV: Spacing.small,
   pastEventsHeight: 48,
   sectionHeaderHeight: 44,
   eventCardPadding: Spacing.large,
-  availabilityColumnWidth: 187,
-  buttonHeight: 40,
+  availabilityColumnWidth: 200,
+  buttonHeight: 44,
   buttonPaddingH: Spacing.base,
-  tabBarHeight: 83,
+  tabBarHeight: 90,
   tabIconSize: 24,
   minTapTarget: 44,
 } as const;

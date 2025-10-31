@@ -35,15 +35,17 @@ const styles = StyleSheet.create({
   button: {
     height: Layout.buttonHeight,
     paddingHorizontal: 12,
-    borderRadius: BorderRadius.small,
-    backgroundColor: Colors.blueMedium,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: Colors.bgPrimary,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: Layout.minTapTarget,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   text: {
     ...Typography.buttonText,
-    color: Colors.white,
+    color: Colors.rallyDarkGreen,
   },
 });
 

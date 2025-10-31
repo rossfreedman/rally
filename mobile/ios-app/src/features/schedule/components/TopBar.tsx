@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius, Layout } from '../../../theme/tokens';
+import { Colors, Typography, Spacing, BorderRadius, Layout, Shadows } from '../../../theme/tokens';
 
 interface TopBarProps {
   onDownloadPress?: () => void;
@@ -10,26 +10,22 @@ export const TopBar: React.FC<TopBarProps> = ({ onDownloadPress }) => {
   return (
     <View style={styles.container}>
       <View style={styles.leftSection}>
-        {/* Logo/Calendar Icon */}
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText}>25</Text>
+          <Text style={styles.logoText}>📅</Text>
         </View>
-        
-        {/* Title Stack */}
         <View style={styles.titleStack}>
-          <Text style={styles.title}>View Schedule</Text>
-          <Text style={styles.subtitle}>Manage your availability for matches & practices</Text>
+          <Text style={styles.title}>Schedule</Text>
+          <Text style={styles.subtitle}>Manage availability for matches and practices</Text>
         </View>
       </View>
-      
-      {/* Download Button */}
+
       <TouchableOpacity
         style={styles.downloadButton}
         onPress={onDownloadPress}
         accessibilityLabel="Download to calendar"
       >
-        <Text style={styles.downloadIcon}>📅</Text>
-        <Text style={styles.downloadText}>Download to calendar</Text>
+        <Text style={styles.downloadIcon}>⇩</Text>
+        <Text style={styles.downloadText}>Add to Calendar</Text>
       </TouchableOpacity>
     </View>
   );
@@ -51,18 +47,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   logoContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.small,
-    backgroundColor: Colors.rallyDarkGreen,
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.large,
+    backgroundColor: Colors.rallyTealSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.standard,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
+    ...Shadows.card,
   },
   logoText: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.white,
+    color: Colors.rallyTeal,
   },
   titleStack: {
     flex: 1,
@@ -70,7 +69,7 @@ const styles = StyleSheet.create({
   title: {
     ...Typography.pageTitle,
     color: Colors.textPrimary,
-    marginBottom: Spacing.base,
+    marginBottom: Spacing.micro,
   },
   subtitle: {
     ...Typography.subtitle,
@@ -79,20 +78,22 @@ const styles = StyleSheet.create({
   downloadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.rallyDarkGreen,
-    paddingHorizontal: Spacing.base,
+    backgroundColor: Colors.bgPrimary,
+    paddingHorizontal: Spacing.standard,
     paddingVertical: Spacing.small,
     borderRadius: BorderRadius.pill,
-    height: 36,
+    height: 38,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   downloadIcon: {
     fontSize: 16,
     marginRight: Spacing.small,
-    color: Colors.white,
+    color: Colors.rallyDarkGreen,
   },
   downloadText: {
     ...Typography.buttonText,
-    color: Colors.white,
+    color: Colors.rallyDarkGreen,
   },
 });
 

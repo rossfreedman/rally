@@ -64,6 +64,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Spacing.micro,
     minHeight: Layout.minTapTarget,
+    borderRadius: BorderRadius.pill,
+    marginHorizontal: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   icon: {
     fontSize: Layout.tabIconSize,

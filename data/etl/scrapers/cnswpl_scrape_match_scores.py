@@ -414,31 +414,53 @@ class CNSWPLScraper(BaseLeagueScraper):
             header_text = datelocheader.get_text(strip=True)
             print(f"🔍 CNSWPL: Found datelocheader: '{header_text}'")
             
-            # Pattern like "Wilmette SN (2) @ Michigan Shores SN: 12 - 0"
-            team_score_pattern = r'([^@\n]+)\s*@\s*([^:\n]+):\s*(\d+)\s*-\s*(\d+)'
+            # Pattern like "Wilmette SN (2) @ Michigan Shores SN: 12 - 0" or "Tennaqua H @ Wilmette H(3): 10.5 - 3"
+            # Updated to handle decimal scores (e.g., 10.5)
+            team_score_pattern = r'([^@\n]+)\s*@\s*([^:\n]+):\s*([\d.]+)\s*-\s*([\d.]+)'
             
             match = re.search(team_score_pattern, header_text)
             if match:
-                away_team, home_team, away_score, home_score = match.groups()
+                away_team, home_team, away_score_str, home_score_str = match.groups()
+                # Handle both integer and decimal scores
+                try:
+                    away_score = float(away_score_str)
+                    home_score = float(home_score_str)
+                    # Convert to int if whole number, keep as float if decimal
+                    away_score = int(away_score) if away_score.is_integer() else away_score
+                    home_score = int(home_score) if home_score.is_integer() else home_score
+                except ValueError:
+                    # Fallback to original integer parsing
+                    away_score = int(re.sub(r'\.\d+', '', away_score_str))
+                    home_score = int(re.sub(r'\.\d+', '', home_score_str))
+                
                 return {
                     "home_team": home_team.strip(),
                     "away_team": away_team.strip(),
-                    "home_score": int(home_score),
-                    "away_score": int(away_score)
+                    "home_score": home_score,
+                    "away_score": away_score
                 }
         
         # Fallback to general text search
         all_text = soup.get_text()
-        team_score_pattern = r'([^@\n]+)\s*@\s*([^:\n]+):\s*(\d+)\s*-\s*(\d+)'
+        team_score_pattern = r'([^@\n]+)\s*@\s*([^:\n]+):\s*([\d.]+)\s*-\s*([\d.]+)'
         
         match = re.search(team_score_pattern, all_text)
         if match:
-            away_team, home_team, away_score, home_score = match.groups()
+            away_team, home_team, away_score_str, home_score_str = match.groups()
+            try:
+                away_score = float(away_score_str)
+                home_score = float(home_score_str)
+                away_score = int(away_score) if away_score.is_integer() else away_score
+                home_score = int(home_score) if home_score.is_integer() else home_score
+            except ValueError:
+                away_score = int(re.sub(r'\.\d+', '', away_score_str))
+                home_score = int(re.sub(r'\.\d+', '', home_score_str))
+            
             return {
                 "home_team": home_team.strip(),
                 "away_team": away_team.strip(),
-                "home_score": int(home_score),
-                "away_score": int(away_score)
+                "home_score": home_score,
+                "away_score": away_score
             }
         
         return None
@@ -490,9 +512,27 @@ class CNSWPLScraper(BaseLeagueScraper):
                                     winning_player_cell = winning_cells[2]
                                     
                                     # Extract all available score columns dynamically
+                                    # Handle superscript tie-break scores (e.g., 6<sup>4</sup>, 7<sup>7</sup>)
                                     winning_scores = []
                                     for i in range(3, len(winning_cells)):  # Start from cell 3 (first score)
-                                        score_text = winning_cells[i].get_text(strip=True)
+                                        cell = winning_cells[i]
+                                        # Get raw HTML to preserve superscript formatting
+                                        cell_html = str(cell)
+                                        
+                                        # Check for tiebreak pattern: number<sup>tiebreak</sup>
+                                        sup_match = re.search(r'(\d+)<sup>(\d+)</sup>', cell_html)
+                                        if sup_match:
+                                            main_score = sup_match.group(1)
+                                            tiebreak_points = sup_match.group(2)
+                                            # For CNSWPL, superscript indicates tie-break points
+                                            # Format: "6" (if superscript is 0-4) or "7" (if superscript is 5-7)
+                                            # For display, we'll use the main score and note the tiebreak
+                                            score_text = main_score  # The main score is what counts
+                                            print(f"    🏆 CNSWPL Tiebreak: {main_score}<sup>{tiebreak_points}</sup> → {score_text}")
+                                        else:
+                                            # Regular score extraction
+                                            score_text = cell.get_text(strip=True)
+                                        
                                         if score_text and score_text != "&nbsp;":  # Skip empty cells
                                             winning_scores.append(score_text)
                                     
@@ -503,9 +543,25 @@ class CNSWPLScraper(BaseLeagueScraper):
                                         losing_player_cell = losing_cells[1]  # Second cell, not third
                                         
                                         # Extract all available score columns dynamically
+                                        # Handle superscript tie-break scores (e.g., 6<sup>4</sup>, 7<sup>7</sup>)
                                         losing_scores = []
                                         for i in range(2, len(losing_cells)):  # Start from cell 2 (first score)
-                                            score_text = losing_cells[i].get_text(strip=True)
+                                            cell = losing_cells[i]
+                                            # Get raw HTML to preserve superscript formatting
+                                            cell_html = str(cell)
+                                            
+                                            # Check for tiebreak pattern: number<sup>tiebreak</sup>
+                                            sup_match = re.search(r'(\d+)<sup>(\d+)</sup>', cell_html)
+                                            if sup_match:
+                                                main_score = sup_match.group(1)
+                                                tiebreak_points = sup_match.group(2)
+                                                # For CNSWPL, superscript indicates tie-break points
+                                                score_text = main_score  # The main score is what counts
+                                                print(f"    🏆 CNSWPL Tiebreak: {main_score}<sup>{tiebreak_points}</sup> → {score_text}")
+                                            else:
+                                                # Regular score extraction
+                                                score_text = cell.get_text(strip=True)
+                                            
                                             if score_text and score_text != "&nbsp;":  # Skip empty cells
                                                 losing_scores.append(score_text)
                                     

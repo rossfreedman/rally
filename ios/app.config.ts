@@ -2,42 +2,26 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Rally',
-  slug: 'rally',
+  name: 'Rally Schedule UI',
+  slug: 'rally-schedule-ui',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/icon.png',
+  // Icons will be added later; omit to avoid missing-asset errors in dev
   userInterfaceStyle: 'automatic',
-  main: 'index.ts',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#045454', // Rally dark green
-  },
+  main: 'index.tsx',
+  // No custom splash while developing UI-only package
   assetBundlePatterns: ['**/*'],
   ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'com.lovetorally.rally',
-    infoPlist: {
-      UIBackgroundModes: ['remote-notification'],
-    },
+    supportsTablet: false,
+    bundleIdentifier: 'com.rally.schedule-ui',
   },
   android: {
-    adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#045454', // Rally dark green
-    },
-    package: 'com.lovetorally.rally',
+    package: 'com.rally.schedule-ui',
   },
   web: {
-    favicon: './assets/favicon.png',
+    // Default favicon
   },
-  scheme: 'rally',
-  extra: {
-    apiBaseUrl: process.env.APP_API_BASE_URL || 'https://www.lovetorally.com',
-    env: process.env.APP_ENV || 'development',
-    cookieDomain: process.env.APP_COOKIE_DOMAIN || '.lovetorally.com',
-    sentryDsn: process.env.APP_SENTRY_DSN || '',
-  },
+  scheme: 'rally-schedule',
 });
+
 

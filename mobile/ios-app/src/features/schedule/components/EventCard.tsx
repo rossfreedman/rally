@@ -91,7 +91,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             status={event.availabilityStatus}
             onStatusChange={onAvailabilityChange}
           />
-          <View style={styles.buttonSpacer} />
+          <View style={styles.divider} />
           <NoteButton
             hasNote={!!event.note}
             noteText={event.note}
@@ -111,10 +111,12 @@ export const EventCard: React.FC<EventCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.bgPrimary,
-    borderRadius: BorderRadius.medium,
+    borderRadius: BorderRadius.large,
     padding: Layout.eventCardPadding,
     marginBottom: Spacing.standard,
-    ...Shadows.card,
+    ...Shadows.cardElevated,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
   },
   content: {
     flexDirection: 'row',
@@ -161,25 +163,25 @@ const styles = StyleSheet.create({
   homeTeamsBox: {
     marginTop: Spacing.standard,
     padding: Spacing.small,
-    backgroundColor: Colors.blueLight,
-    borderRadius: BorderRadius.small,
+    backgroundColor: Colors.rallyTealSoft,
+    borderRadius: BorderRadius.medium,
     borderWidth: 1,
-    borderColor: Colors.blueMedium,
+    borderColor: Colors.borderLight,
   },
   homeIcon: {
     fontSize: 12,
-    color: Colors.blueMedium,
+    color: Colors.rallyTeal,
     marginBottom: Spacing.micro,
   },
   homeLabel: {
     ...Typography.noteLabel,
-    color: Colors.blueMedium,
+    color: Colors.rallyTeal,
     fontWeight: '600',
     marginBottom: Spacing.micro,
   },
   homeTeam: {
     ...Typography.noteLabel,
-    color: Colors.blueMedium,
+    color: Colors.rallyTeal,
   },
   directionsContainer: {
     marginTop: Spacing.standard,
@@ -187,21 +189,28 @@ const styles = StyleSheet.create({
   directionsButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.greenButton,
+    backgroundColor: Colors.bgPrimary,
     paddingHorizontal: Spacing.small,
     paddingVertical: Spacing.small,
-    borderRadius: BorderRadius.small,
+    borderRadius: BorderRadius.pill,
     alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
   },
   directionsIcon: {
     fontSize: 12,
     marginRight: Spacing.micro,
-    color: Colors.white,
+    color: Colors.rallyDarkGreen,
   },
   directionsText: {
     ...Typography.noteLabel,
-    color: Colors.white,
+    color: Colors.rallyDarkGreen,
     fontWeight: '600',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.borderSubtle,
+    marginVertical: Spacing.base,
   },
   buttonSpacer: {
     height: Spacing.base,

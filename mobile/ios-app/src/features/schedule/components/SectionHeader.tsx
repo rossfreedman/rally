@@ -24,10 +24,12 @@ const styles = StyleSheet.create({
     height: Layout.sectionHeaderHeight,
     paddingHorizontal: Spacing.standard,
     paddingVertical: Spacing.base,
-    backgroundColor: Colors.limeGreen,
-    borderTopLeftRadius: BorderRadius.medium,
-    borderTopRightRadius: BorderRadius.medium,
+    backgroundColor: Colors.bgPrimary,
+    borderTopLeftRadius: BorderRadius.large,
+    borderTopRightRadius: BorderRadius.large,
     marginBottom: Spacing.standard,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderSubtle,
   },
   icon: {
     fontSize: 20,
@@ -35,7 +37,7 @@ const styles = StyleSheet.create({
   },
   label: {
     ...Typography.sectionHeader,
-    color: Colors.white,
+    color: Colors.textPrimary,
   },
 });
 
