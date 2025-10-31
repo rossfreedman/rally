@@ -18,11 +18,27 @@ import psycopg2
 
 def get_wilmette_h3_players_from_matches():
     """Extract player information from match_scores.json for Wilmette H(3) matches."""
-    match_scores_path = 'data/leagues/CNSWPL/match_scores.json'
+    # Use the same path logic as the scraper
+    try:
+        from data.etl.utils.league_directory_manager import get_league_file_path
+        match_scores_path = get_league_file_path('cnswpl', 'match_scores.json')
+    except ImportError:
+        # Fallback to hardcoded path
+        match_scores_path = 'data/leagues/CNSWPL/match_scores.json'
+    
+    print(f"📁 Looking for match_scores.json at: {match_scores_path}")
     
     if not os.path.exists(match_scores_path):
         print(f"❌ {match_scores_path} not found")
-        return []
+        print(f"💡 Checking if directory exists: {os.path.dirname(match_scores_path)}")
+        if os.path.exists(os.path.dirname(match_scores_path)):
+            print(f"   Directory exists, listing files:")
+            try:
+                for f in os.listdir(os.path.dirname(match_scores_path)):
+                    print(f"     - {f}")
+            except Exception as e:
+                print(f"   Error listing: {e}")
+        return {}
     
     with open(match_scores_path, 'r') as f:
         matches = json.load(f)
@@ -117,7 +133,17 @@ def main():
         # Get players from match data
         print("\n📥 Extracting players from match_scores.json...")
         players_map = get_wilmette_h3_players_from_matches()
+        
+        # Fix: Ensure players_map is a dict, not a list
+        if not isinstance(players_map, dict):
+            print(f"⚠️  Expected dict but got {type(players_map)}, converting...")
+            players_map = {}
+        
         print(f"   Found {len(players_map)} unique players from matches")
+        
+        if len(players_map) == 0:
+            print("⚠️  No players found from match data. Skipping player assignment.")
+            return
         
         # Check which players exist and which need to be created
         created = 0
