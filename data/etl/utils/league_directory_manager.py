@@ -59,7 +59,17 @@ class LeagueDirectoryManager:
             base_leagues_dir = os.getenv("CNSWPL_CRON_VARIABLE", "data/leagues")
         
         self.base_leagues_dir = Path(base_leagues_dir)
-        self.base_leagues_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.base_leagues_dir.mkdir(parents=True, exist_ok=True)
+        except (PermissionError, OSError) as e:
+            # Log warning but don't crash - directory may exist or permissions issue
+            logger.warning(f"⚠️ Could not create directory {self.base_leagues_dir}: {e}")
+            # Continue with existing directory if it exists
+            if not self.base_leagues_dir.exists():
+                # Fallback to relative path if absolute path fails
+                logger.warning(f"⚠️ Falling back to relative path: data/leagues")
+                self.base_leagues_dir = Path("data/leagues")
+                self.base_leagues_dir.mkdir(parents=True, exist_ok=True)
         
     def get_standard_directory_name(self, league_input: str) -> str:
         """
