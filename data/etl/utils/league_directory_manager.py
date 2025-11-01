@@ -45,13 +45,19 @@ DIRECTORY_TO_SUBDOMAIN = {
 class LeagueDirectoryManager:
     """Manages consistent league directory naming and creation."""
     
-    def __init__(self, base_leagues_dir: str = "data/leagues"):
+    def __init__(self, base_leagues_dir: str = None):
         """
         Initialize the directory manager.
         
         Args:
-            base_leagues_dir: Base directory for all league data
+            base_leagues_dir: Base directory for all league data. 
+                             If None, checks CNSWPL_CRON_VARIABLE env var, 
+                             otherwise defaults to "data/leagues"
         """
+        if base_leagues_dir is None:
+            # Check for environment variable (for Railway volumes, etc.)
+            base_leagues_dir = os.getenv("CNSWPL_CRON_VARIABLE", "data/leagues")
+        
         self.base_leagues_dir = Path(base_leagues_dir)
         self.base_leagues_dir.mkdir(parents=True, exist_ok=True)
         

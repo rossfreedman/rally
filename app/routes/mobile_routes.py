@@ -402,11 +402,12 @@ def serve_mobile_player_detail(player_id):
         # Look up player by tenniscores_player_id with proper team and league filtering
         if team_id:
             # Use team-specific lookup for better context
+            # FIXED: Filter by is_active to prevent deactivated records from being accessible
             player_query = """
                 SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name,
                        p.tenniscores_player_id, p.league_id, p.team_id
                 FROM players p
-                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s AND p.is_active = TRUE
                 LIMIT 1
             """
             player_record = execute_query_one(player_query, [actual_player_id, team_id])
@@ -432,11 +433,12 @@ def serve_mobile_player_detail(player_id):
                 """
                 player_record = execute_query_one(player_query, [actual_player_id, league_id_int])
             else:
+                # FIXED: Filter by is_active to prevent deactivated records from being accessible
                 player_query = """
                     SELECT CONCAT(first_name, ' ', last_name) as full_name,
                            tenniscores_player_id, league_id, team_id
                     FROM players 
-                    WHERE tenniscores_player_id = %s
+                    WHERE tenniscores_player_id = %s AND is_active = TRUE
                     ORDER BY id DESC
                     LIMIT 1
                 """
