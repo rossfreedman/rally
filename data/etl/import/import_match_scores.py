@@ -335,18 +335,19 @@ def validate_match_data(match_data):
     """Validate match data for required fields and data quality."""
     errors = []
     
-    # Required fields
-    required_fields = ["Home Team", "Away Team", "Scores", "Winner"]
+    # Required fields (Scores and Winner are optional for tie matches)
+    required_fields = ["Home Team", "Away Team"]
     for field in required_fields:
         if not match_data.get(field):
             errors.append(f"Missing required field: {field}")
     
     # Validate winner field
     winner = match_data.get("Winner", "").strip().lower()
-    if winner and winner not in ["home", "away"]:
-        errors.append(f"Invalid winner value: {winner} (must be 'home' or 'away')")
+    if winner:
+        if winner not in ["home", "away", "tie"]:
+            errors.append(f"Invalid winner value: {winner} (must be 'home', 'away', or 'tie')")
     
-    # Validate scores format
+    # Validate scores format (allow empty for tie matches)
     scores = match_data.get("Scores", "").strip()
     if scores and not re.match(r'^[\d\-,\s]+$', scores):
         errors.append(f"Invalid scores format: {scores}")
@@ -493,8 +494,10 @@ def upsert_match_score(cur, league_id, match_data):
     # Extract required fields
     home_team_name = match_data.get("Home Team", "").strip()
     away_team_name = match_data.get("Away Team", "").strip()
-    scores = match_data.get("Scores", "").strip()
-    winner = match_data.get("Winner", "").strip().lower() or None
+    scores = match_data.get("Scores", "").strip() or None
+    winner_raw = match_data.get("Winner", "").strip().lower() or None
+    # Convert 'tie' to NULL (database constraint only allows 'home' or 'away')
+    winner = winner_raw if winner_raw in ["home", "away"] else None
     
     # Extract optional fields
     match_date_str = match_data.get("Date", "").strip() or None
