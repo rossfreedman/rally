@@ -659,6 +659,11 @@ def import_match_scores(cur, league_id, matches_data):
                 existing += 1
             else:
                 skipped += 1
+                # Debug: Print skip reasons for matches with parentheses in team names
+                home_team = match_data.get("Home Team", "")
+                away_team = match_data.get("Away Team", "")
+                if "(" in home_team or "(" in away_team:
+                    print(f"  ⚠️ Skipped match {i + 1}: {home_team} vs {away_team} - Reason: {action}")
                 
             # Progress indicator for large imports
             if (i + 1) % 100 == 0:
