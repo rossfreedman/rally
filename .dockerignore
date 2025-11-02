@@ -12,4 +12,12 @@ scrapers_backups/
 # React Native / iOS App (not needed on Railway server)
 # Mobile app deploys via EAS to App Store, not Railway
 ios/
-.nvmrc 
+.nvmrc
+
+# Exclude large backup files from Docker builds (causes deployment timeouts)
+*.sql
+backup_*.sql
+local_backup_*.sql
+staging_backup_*.sql
+backups/
+backup_configs/ 
