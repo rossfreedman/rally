@@ -56,9 +56,16 @@ class LeagueDirectoryManager:
         """
         if base_leagues_dir is None:
             # Check for environment variable (for Railway volumes, etc.)
-            base_leagues_dir = os.getenv("CNSWPL_CRON_VARIABLE", "data/leagues")
+            env_var = os.getenv("CNSWPL_CRON_VARIABLE")
+            if env_var:
+                logger.info(f"📋 Using CNSWPL_CRON_VARIABLE: {env_var}")
+                base_leagues_dir = env_var
+            else:
+                logger.info(f"📋 CNSWPL_CRON_VARIABLE not set, defaulting to: data/leagues")
+                base_leagues_dir = "data/leagues"
         
         self.base_leagues_dir = Path(base_leagues_dir)
+        logger.info(f"📁 LeagueDirectoryManager initialized with base_dir: {self.base_leagues_dir.resolve()}")
         try:
             self.base_leagues_dir.mkdir(parents=True, exist_ok=True)
         except (PermissionError, OSError) as e:
