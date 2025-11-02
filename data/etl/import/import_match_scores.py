@@ -687,7 +687,9 @@ def main():
     if args.file:
         json_path = args.file
     else:
-        json_path = f"data/leagues/{league_key}/match_scores.json"
+        # Use directory manager to get consistent path (respects CNSWPL_CRON_VARIABLE env var)
+        from data.etl.utils.league_directory_manager import get_league_file_path
+        json_path = get_league_file_path(league_key.lower(), "match_scores.json")
     
     print(f"Importing match scores for league: {league_key}")
     
