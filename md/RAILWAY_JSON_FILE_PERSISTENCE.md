@@ -29,9 +29,14 @@ python3 scripts/fix_wilmette_h3_players.py
 ### Option 2: Query Database Instead of JSON
 Modify scripts to query `match_scores` table directly instead of reading JSON files.
 
-### Option 3: Use Railway Volumes (Future)
-Railway supports persistent volumes, but requires configuration changes.
+### Option 3: Use Railway Volumes ✅ (Implemented)
+Railway volumes are now configured. See `md/RAILWAY_VOLUME_SETUP.md` for complete setup instructions.
 
-## Current Workaround
-The script now uses `get_league_file_path()` to find the JSON, and will show diagnostic info if it's missing. For now, run both scraper and fix script in the same SSH session.
+**Configuration:**
+- Volume mounted at `/app/data`
+- Environment variable: `CNSWPL_CRON_VARIABLE=/app/data/leagues`
+- Files persist at `/app/data/leagues/CNSWPL/` (matches import script expectations)
+
+## Current Solution ✅
+Railway volumes are now configured. Scrapers save to persistent storage at `/app/data/leagues/CNSWPL/`, and import scripts find files at the same location via relative path `data/leagues/CNSWPL/`. Files persist across container restarts and deployments.
 
