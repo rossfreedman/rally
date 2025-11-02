@@ -5472,6 +5472,24 @@ def serve_mobile_pickup_games():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/pti-calculator")
+@login_required
+def serve_mobile_pti_calculator():
+    """Serve the mobile PTI Calculator frame page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_pti_calculator"
+        )
+
+        return render_template("mobile/pti_calculator_frame.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving PTI calculator page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/create-sub-request")
 @login_required
 def serve_mobile_create_sub_request():

@@ -1,0 +1,80 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}PTI Calculator - Rally{% endblock %}
+
+{% block content %}
+<style>
+    /* Full-height iframe container */
+    .pti-iframe-container {
+        position: fixed;
+        top: 61px; /* Below navbar */
+        left: 0;
+        right: 0;
+        bottom: 72px; /* Above bottom dock */
+        width: 100%;
+        height: calc(100vh - 133px); /* Full height minus navbar and dock */
+        background: white;
+        z-index: 10;
+    }
+    
+    .pti-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    
+    /* Loading indicator */
+    .loading-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 20;
+    }
+    
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #045454;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+
+<div class="pti-iframe-container">
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <p class="text-sm text-gray-600">Loading PTI Calculator...</p>
+    </div>
+    <iframe 
+        class="pti-iframe"
+        src="https://calc.platform.tennis"
+        title="PTI Calculator"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        onload="document.getElementById('loadingOverlay').style.display='none';"
+    ></iframe>
+</div>
+
+<script>
+    // Handle iframe load errors
+    const iframe = document.querySelector('.pti-iframe');
+    iframe.addEventListener('error', function() {
+        document.getElementById('loadingOverlay').innerHTML = 
+            '<p class="text-red-600">Failed to load PTI Calculator. <a href="https://calc.platform.tennis" target="_blank">Open in new tab</a></p>';
+    });
+    
+    // Hide loading indicator after a timeout
+    setTimeout(function() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }, 10000); // Hide after 10 seconds regardless
+</script>
+{% endblock %}
