@@ -21,6 +21,7 @@ from import_utils import get_league_id, column_exists, parse_datetime_safe, look
 project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..')
 sys.path.insert(0, project_root)
 from database_config import get_db
+from data.etl.utils.league_directory_manager import get_league_file_path
 
 # Club name normalization patterns (shared across all import scripts)
 _ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
@@ -1024,7 +1025,12 @@ def import_players(league_key, file_path=None, limit=None):
     if file_path:
         input_file = file_path
     else:
-        input_file = f"data/leagues/{league_key}/players.json"
+        # Use LeagueDirectoryManager to ensure consistency with scraper paths
+        # This handles Railway volumes and CNSWPL_CRON_VARIABLE correctly
+        input_file = get_league_file_path(league_key, "players.json")
+    
+    # Ensure we use absolute path for reliable file access
+    input_file = os.path.abspath(input_file)
     
     print(f"Input file: {input_file}")
     

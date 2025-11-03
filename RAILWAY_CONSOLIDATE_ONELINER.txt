@@ -1,0 +1,80 @@
+======================================================================
+One-Liner to Consolidate Temp Match Scores Files
+======================================================================
+
+Run this single command in Railway SSH to consolidate all temp files
+into match_scores.json:
+
+python3 << 'PYEOF'
+import os, sys, json, glob
+sys.path.insert(0, '/app')
+from data.etl.utils.league_directory_manager import get_league_file_path
+
+# Get paths
+output_file = os.path.abspath(get_league_file_path('CNSWPL', 'match_scores.json'))
+tmp_dir = os.path.join(os.path.dirname(output_file), 'temp_match_scores')
+
+print(f"Output: {output_file}")
+print(f"Temp dir: {tmp_dir}")
+
+# Load existing if exists
+existing = []
+if os.path.exists(output_file):
+    with open(output_file, 'r') as f:
+        existing = json.load(f)
+    print(f"Loaded {len(existing)} existing matches")
+
+# Dedupe function
+def _dedupe_key(m):
+    mid = (m.get('match_id') or '').strip()
+    line = (m.get('Line') or m.get('Court') or '').strip()
+    if mid:
+        return f"{mid}|{line}".lower()
+    home = (m.get('Home Team') or '').strip()
+    away = (m.get('Away Team') or '').strip()
+    date = (m.get('Date') or '').strip()
+    return f"{home}|{away}|{date}|{line}".lower()
+
+merged = {}
+for m in existing:
+    merged[_dedupe_key(m)] = m
+
+# Load temp files
+temp_files = glob.glob(os.path.join(tmp_dir, 'series_*.json')) if os.path.isdir(tmp_dir) else []
+print(f"Found {len(temp_files)} temp files")
+
+for tf in temp_files:
+    try:
+        with open(tf, 'r') as f:
+            matches = json.load(f)
+        for m in matches:
+            merged[_dedupe_key(m)] = m
+        print(f"  Loaded {len(matches)} from {os.path.basename(tf)}")
+    except Exception as e:
+        print(f"  Error loading {tf}: {e}")
+
+all_matches = list(merged.values())
+print(f"\nTotal matches: {len(all_matches):,}")
+
+# Save
+os.makedirs(os.path.dirname(output_file), exist_ok=True)
+tmp_file = output_file + '.tmp'
+with open(tmp_file, 'w') as f:
+    json.dump(all_matches, f, indent=2)
+os.replace(tmp_file, output_file)
+print(f"✅ Saved to {output_file}")
+PYEOF
+
+======================================================================
+After running the above, verify it worked:
+======================================================================
+
+# Check file exists and size
+ls -lh /app/data/leagues/CNSWPL/match_scores.json
+
+# Test import
+python3 data/etl/import/import_match_scores.py CNSWPL
+
+======================================================================
+
+
