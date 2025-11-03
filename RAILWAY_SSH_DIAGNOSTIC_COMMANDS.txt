@@ -1,0 +1,53 @@
+======================================================================
+DIAGNOSTIC COMMANDS - Run these in your Railway SSH session
+======================================================================
+
+1. CHECK WHAT PATH THE SCRAPER WOULD USE:
+   python3 -c "from data.etl.utils.league_directory_manager import get_league_file_path; print('Scraper path:', get_league_file_path('cnswpl', 'match_scores.json'))"
+
+2. CHECK FOR FAILED ATOMIC WRITES (.tmp files):
+   find /app/data/leagues/CNSWPL -name '*.tmp' -ls
+   ls -la /app/data/leagues/CNSWPL/match_scores.json.tmp 2>/dev/null || echo 'No .tmp file found'
+
+3. CHECK FOR TEMP SERIES FILES:
+   ls -la /app/data/leagues/CNSWPL/temp_match_scores/ 2>/dev/null || echo 'No temp_match_scores directory'
+
+4. CHECK FOR ANY FILES WITH "match" in the name:
+   find /app/data/leagues/CNSWPL -type f -iname '*match*' | head -20
+
+5. CHECK DIRECTORY PERMISSIONS AND WRITABILITY:
+   ls -ld /app/data/leagues/CNSWPL/
+   touch /app/data/leagues/CNSWPL/.test_write && rm /app/data/leagues/CNSWPL/.test_write && echo '✅ Directory is writable' || echo '❌ Directory is NOT writable'
+
+6. CHECK WHAT CNSWPL_CRON_VARIABLE IS SET TO:
+   echo "CNSWPL_CRON_VARIABLE=$CNSWPL_CRON_VARIABLE"
+
+7. CHECK IF FILE EXISTS WITH DIFFERENT PERMISSIONS (hidden files):
+   ls -la /app/data/leagues/CNSWPL/ | grep match
+
+8. CHECK FOR BACKUP FILES:
+   ls -la /app/data/leagues/CNSWPL/match_scores*.json* 2>/dev/null || echo 'No match_scores files found'
+
+9. VERIFY THE ACTUAL SAVE PATH FROM SCRAPER LOGS:
+   # Look in Railway logs for the line: "📁 Results saved to: ..."
+   # This will tell you exactly where the scraper tried to save the file
+
+======================================================================
+WHAT TO LOOK FOR:
+======================================================================
+
+✅ If you find a .tmp file:
+   - The atomic write failed (tmp file exists but wasn't renamed)
+   - Try: mv /app/data/leagues/CNSWPL/match_scores.json.tmp /app/data/leagues/CNSWPL/match_scores.json
+
+✅ If directory is not writable:
+   - Volume mount issue or permission problem
+   - Need to fix volume permissions
+
+✅ If scraper path doesn't match /app/data/leagues/:
+   - CNSWPL_CRON_VARIABLE might not be set
+   - Scraper saved to wrong location
+
+======================================================================
+
+

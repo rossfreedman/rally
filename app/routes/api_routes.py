@@ -62,6 +62,73 @@ def convert_chicago_to_series_for_ui(series_name):
     return series_name
 
 
+def calculate_winner_from_scores(scores_str):
+    """
+    Calculate match winner from scores string by comparing set-by-set results.
+    
+    Score format: "home-away, home-away, home-away" (e.g., "6-1, 3-6, 6-1")
+    Note: Database stores last season scores as "home_score-away_score"
+    - Each set is compared: higher score wins that set
+    - Team that wins more sets wins the match
+    
+    Args:
+        scores_str: Score string in format "6-1, 3-6, 6-1" (home-away)
+    
+    Returns:
+        str: "home", "away", or None if unable to determine
+    """
+    if not scores_str or not isinstance(scores_str, str):
+        return None
+    
+    scores_str = scores_str.strip()
+    if not scores_str or scores_str.lower() == "no score recorded":
+        return None
+    
+    try:
+        # Split scores by comma to get individual sets
+        sets = [s.strip() for s in scores_str.split(",")]
+        
+        home_sets_won = 0
+        away_sets_won = 0
+        
+        for set_score in sets:
+            if not set_score or "-" not in set_score:
+                continue
+            
+            # Split by "-" to get home_score and away_score (database format: "home-away")
+            parts = set_score.split("-")
+            if len(parts) != 2:
+                continue
+            
+            try:
+                home_score = int(parts[0].strip())
+                away_score = int(parts[1].strip())
+                
+                # Higher score wins the set
+                if home_score > away_score:
+                    home_sets_won += 1
+                elif away_score > home_score:
+                    away_sets_won += 1
+                # If scores are equal, neither team wins (shouldn't happen in normal play)
+                
+            except (ValueError, AttributeError):
+                # Skip invalid score formats
+                continue
+        
+        # Determine winner: team with more sets won
+        if home_sets_won > away_sets_won:
+            return "home"
+        elif away_sets_won > home_sets_won:
+            return "away"
+        else:
+            # Tie if equal sets won (shouldn't happen in normal match play)
+            return "tie"
+            
+    except Exception as e:
+        print(f"[DEBUG] Error calculating winner from scores '{scores_str}': {e}")
+        return None
+
+
 # ==============================
 # Status Messages API
 # ==============================
@@ -13304,6 +13371,21 @@ def get_player_matches_detail():
         # Process matches to extract partner information and court assignments
         formatted_matches = []
         for match in raw_matches:
+            # For last season matches, recalculate winner from scores instead of using stored winner
+            if season and match.get("scores"):
+                calculated_winner = calculate_winner_from_scores(match["scores"])
+                if calculated_winner:
+                    # Recalculate player_won based on calculated winner from scores
+                    is_home_player = match["player_was_home"]
+                    if calculated_winner == "tie":
+                        match["player_won"] = False  # Treat ties as losses for display purposes
+                    else:
+                        match["player_won"] = (is_home_player and calculated_winner == "home") or \
+                                             (not is_home_player and calculated_winner == "away")
+                    print(f"[DEBUG] Recalculated player_won from scores for last season match: "
+                          f"scores={match['scores']}, calculated_winner={calculated_winner}, "
+                          f"player_was_home={is_home_player}, player_won={match['player_won']}")
+            
             # Determine court number based on match ID sequence (same logic as other pages)
             court_number = 1
             try:

@@ -1,0 +1,48 @@
+======================================================================
+Commands to Find the File and Verify Volume Mount
+======================================================================
+
+Run these in Railway SSH:
+
+# 1. Check if file exists at old location (might have been recreated)
+ls -lh /data/CNSWPL/match_scores.json 2>/dev/null || echo "Not at /data/CNSWPL/"
+
+# 2. Check if volume is properly mounted
+ls -la /app/data/leagues/ 2>/dev/null || echo "Volume not mounted or directory doesn't exist"
+
+# 3. Check what's in the volume
+find /app/data -name "match_scores.json" 2>/dev/null || echo "No match_scores.json found in /app/data"
+
+# 4. Check if CNSWPL directory exists in volume
+ls -la /app/data/leagues/CNSWPL/ 2>/dev/null || echo "CNSWPL directory doesn't exist in volume"
+
+# 5. Check all JSON files in volume
+find /app/data/leagues -name "*.json" -ls 2>/dev/null || echo "No JSON files in volume"
+
+# 6. Verify environment variable is still set correctly
+echo "CNSWPL_CRON_VARIABLE=$CNSWPL_CRON_VARIABLE"
+
+# 7. Check where scraper would save (based on current variable)
+python3 -c "from data.etl.utils.league_directory_manager import get_league_file_path; print('Scraper save path:', get_league_file_path('cnswpl', 'match_scores.json'))"
+
+# 8. Check if there are any temp files
+find /app/data/leagues/CNSWPL -name "*.tmp" 2>/dev/null || echo "No temp files"
+
+======================================================================
+What Happened:
+======================================================================
+
+The container restarted (new container ID), which means:
+- Files on ephemeral filesystem are lost
+- Files on volume should persist
+- The file we moved earlier might have been on ephemeral filesystem
+
+We need to:
+1. Find where the file actually is (or if it exists)
+2. Ensure volume is mounted correctly
+3. Move/create file on volume if needed
+4. Verify scraper will save to volume location
+
+======================================================================
+
+

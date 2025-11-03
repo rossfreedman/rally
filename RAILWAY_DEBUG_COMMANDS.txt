@@ -1,0 +1,57 @@
+======================================================================
+Debug Commands - Run These in Railway SSH
+======================================================================
+
+# 1. Verify file exists at absolute path
+ls -lh /app/data/leagues/CNSWPL/match_scores.json
+
+# 2. Check current working directory
+pwd
+# Should be: /app
+
+# 3. Check if relative path works (from /app)
+ls -lh data/leagues/CNSWPL/match_scores.json 2>/dev/null || echo "Relative path doesn't work"
+
+# 4. Test path resolution and file existence
+python3 << 'PYEOF'
+from data.etl.utils.league_directory_manager import get_league_file_path
+import os
+
+path = get_league_file_path('CNSWPL', 'match_scores.json')
+print(f'Resolved path: {path}')
+print(f'Path type (absolute/relative): {"Absolute" if os.path.isabs(path) else "Relative"}')
+print(f'File exists: {os.path.exists(path)}')
+print(f'Parent dir exists: {os.path.exists(os.path.dirname(path))}')
+print(f'Files in parent dir: {os.listdir(os.path.dirname(path)) if os.path.exists(os.path.dirname(path)) else "N/A"}')
+
+# Try absolute path resolution
+abs_path = os.path.abspath(path)
+print(f'\nAbsolute path: {abs_path}')
+print(f'Absolute path exists: {os.path.exists(abs_path)}')
+PYEOF
+
+# 5. Check if there's a symlink or mount issue
+ls -la /app/data/leagues/
+
+# 6. Try to manually read the file
+head -5 /app/data/leagues/CNSWPL/match_scores.json 2>/dev/null || echo "Cannot read file"
+
+======================================================================
+What to Look For:
+======================================================================
+
+✅ If file exists at /app/data/leagues/CNSWPL/match_scores.json:
+   - The path resolution might be working, but there's an issue with how Python resolves it
+   - Check if get_league_file_path() returns absolute vs relative path
+
+✅ If file doesn't exist:
+   - It might not have been moved successfully
+   - Check if file is still at old location: ls -lh /data/CNSWPL/match_scores.json
+
+✅ If path is relative instead of absolute:
+   - LeagueDirectoryManager might need to always return absolute paths
+   - Or we need to use os.path.abspath() in the import script
+
+======================================================================
+
+

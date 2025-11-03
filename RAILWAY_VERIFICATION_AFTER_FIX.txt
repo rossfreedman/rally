@@ -1,0 +1,38 @@
+======================================================================
+Verification Commands - Run After Updating CNSWPL_CRON_VARIABLE
+======================================================================
+
+After you update CNSWPL_CRON_VARIABLE in Railway and restart/re-enter SSH:
+
+1. Verify environment variable is updated:
+   echo $CNSWPL_CRON_VARIABLE
+   # Should output: /app/data/leagues
+
+2. Verify path resolution now points to correct location:
+   python3 -c "from data.etl.utils.league_directory_manager import get_league_file_path; print('Path:', get_league_file_path('cnswpl', 'match_scores.json'))"
+   # Should output: Path: /app/data/leagues/CNSWPL/match_scores.json
+
+3. Verify file exists at correct location:
+   ls -lh /app/data/leagues/CNSWPL/match_scores.json
+   # Should show: -rw-r--r-- 1 root root 1.7M Nov  3 17:51 /app/data/leagues/CNSWPL/match_scores.json
+
+4. Test that import script can find the file:
+   python3 data/etl/import/import_match_scores.py CNSWPL
+   # Should successfully import the matches
+
+======================================================================
+Summary
+======================================================================
+
+✅ File moved: /app/data/leagues/CNSWPL/match_scores.json (1.7MB)
+⏳ Waiting: Railway environment variable update
+📋 Next: Update CNSWPL_CRON_VARIABLE from /data to /app/data/leagues
+
+After variable update:
+- Future scraper runs will save to /app/data/leagues/CNSWPL/match_scores.json
+- Import script will find files at same location
+- Everything will work correctly!
+
+======================================================================
+
+

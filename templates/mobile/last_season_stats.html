@@ -480,9 +480,10 @@ function renderPartnerMatchesModal(matches, partnerName, courtName) {
             
             scores.forEach(set_score => {
                 if (set_score && set_score.includes("-")) {
-                    const [away_score, home_score] = set_score.split("-");
-                    away_sets.push(away_score);
+                    // Database stores scores as "home_score-away_score" for last season matches
+                    const [home_score, away_score] = set_score.split("-");
                     home_sets.push(home_score);
+                    away_sets.push(away_score);
                 }
             });
             

@@ -28,6 +28,7 @@ from typing import Optional, Tuple
 # Add the project root to Python path to import database_config
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 from database_config import get_db_url, get_database_mode, is_local_development
+from data.etl.utils.league_directory_manager import get_league_file_path
 
 # Club name normalization patterns (shared across all import scripts)
 _ROMAN_RE = re.compile(r'\b[IVXLCDM]{1,4}\b', re.IGNORECASE)
@@ -695,7 +696,12 @@ def main():
     if args.file:
         json_path = args.file
     else:
-        json_path = f"data/leagues/{league_key}/match_scores.json"
+        # Use LeagueDirectoryManager to ensure consistency with scraper paths
+        # This handles Railway volumes and CNSWPL_CRON_VARIABLE correctly
+        json_path = get_league_file_path(league_key, "match_scores.json")
+    
+    # Ensure we use absolute path for reliable file access
+    json_path = os.path.abspath(json_path)
     
     print(f"Importing match scores for league: {league_key}")
     
