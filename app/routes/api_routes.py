@@ -15001,12 +15001,12 @@ def get_rising_stars():
         
         starting_pti_data = _starting_pti_cache
         
-        # Get user's club for filtering
+        # Get user's club for filtering - use exact match instead of ILIKE
         user_club = user.get("club")
         user_club_id = None
         if user_club:
-            club_query = "SELECT id FROM clubs WHERE name ILIKE %s"
-            club_result = execute_query_one(club_query, [f"%{user_club}%"])
+            club_query = "SELECT id FROM clubs WHERE name = %s"
+            club_result = execute_query_one(club_query, [user_club])
             if club_result:
                 user_club_id = club_result["id"]
         
@@ -15209,10 +15209,10 @@ def get_club_standings_api():
                 AND ms.winner != ''
                 AND ms.league_id = %s
                 AND (
-                    ms.home_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
-                    OR ms.home_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
-                    OR ms.away_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
-                    OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name ILIKE %s))
+                    ms.home_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name = %s))
+                    OR ms.home_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name = %s))
+                    OR ms.away_player_1_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name = %s))
+                    OR ms.away_player_2_id IN (SELECT tenniscores_player_id FROM players WHERE club_id = (SELECT id FROM clubs WHERE name = %s))
                 )
                 ORDER BY ms.match_date DESC, ms.id DESC
             ),
@@ -15239,7 +15239,7 @@ def get_club_standings_api():
                     rm.away_player_1_id = p.tenniscores_player_id OR
                     rm.away_player_2_id = p.tenniscores_player_id
                 )
-                WHERE c.name ILIKE %s
+                WHERE c.name = %s
                 AND p.is_active = true
                 ORDER BY p.tenniscores_player_id, rm.match_date DESC
             ),
@@ -15285,7 +15285,7 @@ def get_club_standings_api():
         """
         
         try:
-            streaks_results = execute_query(streaks_query, [user_league_db_id, f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%', f'%{club_name}%'])
+            streaks_results = execute_query(streaks_query, [user_league_db_id, club_name, club_name, club_name, club_name, club_name])
             
             # Format streaks data with proper consecutive win streak calculation
             streaks = []
@@ -15305,8 +15305,21 @@ def get_club_standings_api():
             print(f"Error calculating optimized player streaks: {e}")
             streaks = []
         
-        # OPTIMIZED: Use a single query with proper ranking logic
-        # The issue is that we need to rank ALL teams in each series, not just club teams
+        # FIXED: Use club_id instead of club name prefix matching to handle name variations
+        # Get club_id from club name
+        club_record = execute_query_one(
+            "SELECT id FROM clubs WHERE name = %s", [club_name]
+        )
+        club_id = club_record["id"] if club_record else None
+        
+        if not club_id:
+            return jsonify({
+                "success": False,
+                "error": f"Club '{club_name}' not found"
+            }), 400
+        
+        # OPTIMIZED: Use a single query with proper ranking logic and club_id-based matching
+        # Get team_ids for this club, then match by team_id in series_stats
         standings_query = """
             SELECT 
                 club_teams.series,
@@ -15332,7 +15345,7 @@ def get_club_standings_api():
                     END as avg_points
                 FROM series_stats ss
                 WHERE ss.league_id = %s
-                AND ss.team LIKE %s
+                AND ss.team_id IN (SELECT id FROM teams WHERE club_id = %s)
             ) club_teams
             JOIN (
                 SELECT 
@@ -15346,7 +15359,7 @@ def get_club_standings_api():
             ORDER BY club_teams.series, all_rankings.rank_in_series
         """
         
-        standings_results = execute_query(standings_query, [user_league_db_id, f"{club_name}%", user_league_db_id])
+        standings_results = execute_query(standings_query, [user_league_db_id, club_id, user_league_db_id])
         
         # Debug: Print what we're getting
         print(f"[DEBUG] Club standings query returned {len(standings_results)} teams")

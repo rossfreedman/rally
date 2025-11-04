@@ -80,12 +80,15 @@ def main():
         # Stats
         run_step("Scrape APTA Series Stats", ["python3", "data/etl/scrapers/scrape_stats.py", "aptachicago"])
         run_step("Import APTA Series Stats", ["python3", "data/etl/import/import_stats.py", "APTA_CHICAGO"])
+        
+        # Post-ETL cleanup: Consolidate duplicate clubs
+        run_step("Post-ETL Club Cleanup", ["python3", "data/etl/import/post_etl_club_cleanup.py", "--live"])
 
         end_time = datetime.now()
         total_duration_seconds = (end_time - start_time).total_seconds()
         total_duration_formatted = format_duration(total_duration_seconds)
         
-        success_message = f"✅ APTA All Scraper Completed!\n\nTotal Duration: {total_duration_formatted}\nLeague: APTA_CHICAGO\nCompleted: 6/6 steps\n\nAll APTA data (players, scores, stats) scraped and imported successfully."
+        success_message = f"✅ APTA All Scraper Completed!\n\nTotal Duration: {total_duration_formatted}\nLeague: APTA_CHICAGO\nCompleted: 7/7 steps\n\nAll APTA data (players, scores, stats) scraped and imported successfully."
         print(f"\n=== {success_message} ===")
         send_sms_notification(ADMIN_PHONE, success_message)
         
