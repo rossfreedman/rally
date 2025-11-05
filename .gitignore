@@ -103,6 +103,7 @@ investigate_*.py
 deploy_*.py
 monitor_*.py
 post_*.py
+!data/etl/import/post_etl_club_cleanup.py
 create_*.py
 populate_*.py
 add_*.py
