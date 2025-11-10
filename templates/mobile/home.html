@@ -3316,6 +3316,18 @@
                 table.innerHTML = html;
                 content.classList.remove('hidden');
                 
+                // Bind loading interstitial to dynamically rendered Scout chips
+                if (typeof handleNavigationClick === 'function') {
+                    table.querySelectorAll('a[href^="/mobile/teams-players"]').forEach(link => {
+                        if (!link.dataset.loadingBound) {
+                            link.addEventListener('click', function(e) {
+                                handleNavigationClick(e, this, 'home-btn-loading');
+                            });
+                            link.dataset.loadingBound = 'true';
+                        }
+                    });
+                }
+                
             } catch (error) {
                 console.error('Error loading series standings:', error);
                 loading.classList.add('hidden');
