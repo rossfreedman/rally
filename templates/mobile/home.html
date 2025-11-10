@@ -2025,6 +2025,19 @@
                     </div>
                 `;
                 
+                // Ensure dynamically inserted Scout Competition button uses the global loading interstitial
+                const scoutCompetitionButton = document.querySelector('#next-match-details a[href^="/mobile/teams-players"]');
+                if (
+                    scoutCompetitionButton &&
+                    typeof handleNavigationClick === 'function' &&
+                    !scoutCompetitionButton.dataset.loadingBound
+                ) {
+                    scoutCompetitionButton.addEventListener('click', function(e) {
+                        handleNavigationClick(e, this, 'home-btn-loading');
+                    });
+                    scoutCompetitionButton.dataset.loadingBound = 'true';
+                }
+                
                 // Get user's availability for all matches (fetch ONCE for both sections)
                 const user = window.sessionData && window.sessionData.user;
                 let availabilityData = [];
