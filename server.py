@@ -11,7 +11,7 @@ Production deployment: 2025-10-27
 # Load environment variables from .env file FIRST, before any other imports
 import os
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(    )
 
 # Debug environment variable loadingr
 print("=== Environment Variables Debug ===")
