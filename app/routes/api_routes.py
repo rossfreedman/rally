@@ -1876,6 +1876,7 @@ def get_team_last_3_matches_by_id():
         
         for match in matches:
             match_date = match["Date"]
+            match_date_obj = match.get("match_date")
             home_team = match["Home Team"]
             away_team = match["Away Team"]
             
@@ -1889,6 +1890,7 @@ def get_team_last_3_matches_by_id():
                 
                 team_matches_dict[match_key] = {
                     "date": match_date,
+                    "match_date_obj": match_date_obj,
                     "home_team": home_team,
                     "away_team": away_team,
                     "opponent_team": opponent_team,
@@ -1957,9 +1959,15 @@ def get_team_last_3_matches_by_id():
             if match["Scores"]:
                 team_match["scores"].append(match["Scores"])
 
-        # Convert to list and format for frontend with court-by-court breakdown
+        # Convert to list with chronological ordering and format for frontend with court-by-court breakdown
+        team_matches_list = sorted(
+            team_matches_dict.values(),
+            key=lambda tm: tm.get("match_date_obj") or datetime.min,
+            reverse=True,
+        )
+
         formatted_matches = []
-        for team_match in team_matches_dict.values():
+        for team_match in team_matches_list:
             # Determine overall team result
             team_won = team_match["wins"] > team_match["losses"]
             
@@ -2035,13 +2043,13 @@ def get_team_last_3_matches_by_id():
                 "wins": team_match["wins"],
                 "losses": team_match["losses"],
                 "individual_matches": individual_match_details,
-                "our_team_name": team_name
+                "our_team_name": team_name,
+                "match_date_iso": team_match["match_date_obj"].isoformat()
+                if team_match.get("match_date_obj")
+                else None,
             }
             
             formatted_matches.append(formatted_match)
-
-        # Sort by date (newest first)
-        formatted_matches.sort(key=lambda x: x["date"], reverse=True)
 
         return jsonify({
             "matches": formatted_matches,
