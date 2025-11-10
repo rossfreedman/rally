@@ -1394,40 +1394,42 @@ def get_season_history():
         season_history_query = """
             WITH season_data AS (
                 SELECT 
-                    series,
+                    ph.series,
                     -- Calculate tennis season year (Aug-May spans two calendar years)
                     -- If month >= 8 (Aug-Dec), season starts that year
                     -- If month < 8 (Jan-Jul), season started previous year
                     CASE 
-                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                        ELSE EXTRACT(YEAR FROM date) - 1
+                        WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                        ELSE EXTRACT(YEAR FROM ph.date) - 1
                     END as season_year,
-                    date,
-                    end_pti,
+                    ph.date,
+                    ph.end_pti,
+                    LAG(ph.end_pti) OVER (ORDER BY ph.date, ph.id) as prev_end_pti,
+                    ph.id as entry_id,
                     ROW_NUMBER() OVER (
-                        PARTITION BY series, 
+                        PARTITION BY ph.series, 
                         CASE 
-                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                            ELSE EXTRACT(YEAR FROM date) - 1
+                            WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                            ELSE EXTRACT(YEAR FROM ph.date) - 1
                         END 
-                        ORDER BY date ASC
+                        ORDER BY ph.date ASC, ph.id ASC
                     ) as rn_start,
                     ROW_NUMBER() OVER (
-                        PARTITION BY series, 
+                        PARTITION BY ph.series, 
                         CASE 
-                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                            ELSE EXTRACT(YEAR FROM date) - 1
+                            WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                            ELSE EXTRACT(YEAR FROM ph.date) - 1
                         END 
-                        ORDER BY date DESC
+                        ORDER BY ph.date DESC, ph.id DESC
                     ) as rn_end
-                FROM player_history
-                WHERE player_id = %s
-                ORDER BY date DESC
+                FROM player_history ph
+                WHERE ph.player_id = %s
+                ORDER BY ph.date DESC, ph.id DESC
             ),
             career_start AS (
-                SELECT end_pti as first_career_pti
+                SELECT COALESCE(prev_end_pti, end_pti) as first_career_pti
                 FROM season_data 
-                ORDER BY date ASC 
+                ORDER BY date ASC, entry_id ASC
                 LIMIT 1
             ),
             season_boundaries AS (
@@ -1447,9 +1449,23 @@ def get_season_history():
                         WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
                             cs.first_career_pti  -- Use career start PTI for first season
                         ELSE 
-                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                            (
+                                SELECT COALESCE(sd.prev_end_pti, sd.end_pti)
+                                FROM season_data sd 
+                                WHERE sd.season_year = sb.season_year 
+                                  AND sd.date = sb.season_start_date 
+                                ORDER BY sd.date ASC, sd.entry_id ASC
+                                LIMIT 1
+                            )
                     END as pti_start,
-                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    (
+                        SELECT sd.end_pti 
+                        FROM season_data sd 
+                        WHERE sd.season_year = sb.season_year 
+                          AND sd.date = sb.season_end_date 
+                        ORDER BY sd.date DESC, sd.entry_id DESC
+                        LIMIT 1
+                    ) as pti_end,
                     sb.matches_count,
                     -- Get the series with the highest numeric value (excluding tournaments)
                     (
@@ -1777,21 +1793,23 @@ def get_player_season_history_by_id(player_id):
         season_history_query = """
             WITH season_data AS (
                 SELECT 
-                    series,
+                    ph.series,
                     CASE 
-                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                        ELSE EXTRACT(YEAR FROM date) - 1
+                        WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                        ELSE EXTRACT(YEAR FROM ph.date) - 1
                     END as season_year,
-                    date,
-                    end_pti
-                FROM player_history
-                WHERE player_id = %s
-                ORDER BY date DESC
+                    ph.date,
+                    ph.end_pti,
+                    LAG(ph.end_pti) OVER (ORDER BY ph.date, ph.id) as prev_end_pti,
+                    ph.id as entry_id
+                FROM player_history ph
+                WHERE ph.player_id = %s
+                ORDER BY ph.date DESC, ph.id DESC
             ),
             career_start AS (
-                SELECT end_pti as first_career_pti
+                SELECT COALESCE(prev_end_pti, end_pti) as first_career_pti
                 FROM season_data 
-                ORDER BY date ASC 
+                ORDER BY date ASC, entry_id ASC
                 LIMIT 1
             ),
             season_boundaries AS (
@@ -1811,9 +1829,23 @@ def get_player_season_history_by_id(player_id):
                         WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
                             cs.first_career_pti
                         ELSE 
-                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                            (
+                                SELECT COALESCE(sd.prev_end_pti, sd.end_pti)
+                                FROM season_data sd 
+                                WHERE sd.season_year = sb.season_year 
+                                  AND sd.date = sb.season_start_date 
+                                ORDER BY sd.date ASC, sd.entry_id ASC
+                                LIMIT 1
+                            )
                     END as pti_start,
-                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    (
+                        SELECT sd.end_pti 
+                        FROM season_data sd 
+                        WHERE sd.season_year = sb.season_year 
+                          AND sd.date = sb.season_end_date 
+                        ORDER BY sd.date DESC, sd.entry_id DESC
+                        LIMIT 1
+                    ) as pti_end,
                     sb.matches_count,
                     (
                         SELECT series 
@@ -2006,38 +2038,40 @@ def get_player_season_history(player_name):
         season_history_query = """
             WITH season_data AS (
                 SELECT 
-                    series,
+                    ph.series,
                     -- Calculate tennis season year (Aug-May spans two calendar years)
                     CASE 
-                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                        ELSE EXTRACT(YEAR FROM date) - 1
+                        WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                        ELSE EXTRACT(YEAR FROM ph.date) - 1
                     END as season_year,
-                    date,
-                    end_pti,
+                    ph.date,
+                    ph.end_pti,
+                    LAG(ph.end_pti) OVER (ORDER BY ph.date, ph.id) as prev_end_pti,
+                    ph.id as entry_id,
                     ROW_NUMBER() OVER (
-                        PARTITION BY series, 
+                        PARTITION BY ph.series, 
                         CASE 
-                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                            ELSE EXTRACT(YEAR FROM date) - 1
+                            WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                            ELSE EXTRACT(YEAR FROM ph.date) - 1
                         END 
-                        ORDER BY date ASC
+                        ORDER BY ph.date ASC, ph.id ASC
                     ) as rn_start,
                     ROW_NUMBER() OVER (
-                        PARTITION BY series, 
+                        PARTITION BY ph.series, 
                         CASE 
-                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                            ELSE EXTRACT(YEAR FROM date) - 1
+                            WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                            ELSE EXTRACT(YEAR FROM ph.date) - 1
                         END 
-                        ORDER BY date DESC
+                        ORDER BY ph.date DESC, ph.id DESC
                     ) as rn_end
-                FROM player_history
-                WHERE player_id = %s
-                ORDER BY date DESC
+                FROM player_history ph
+                WHERE ph.player_id = %s
+                ORDER BY ph.date DESC, ph.id DESC
             ),
             career_start AS (
-                SELECT end_pti as first_career_pti
+                SELECT COALESCE(prev_end_pti, end_pti) as first_career_pti
                 FROM season_data 
-                ORDER BY date ASC 
+                ORDER BY date ASC, entry_id ASC
                 LIMIT 1
             ),
             season_boundaries AS (
@@ -2057,9 +2091,23 @@ def get_player_season_history(player_name):
                         WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
                             cs.first_career_pti  -- Use career start PTI for first season
                         ELSE 
-                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                            (
+                                SELECT COALESCE(sd.prev_end_pti, sd.end_pti)
+                                FROM season_data sd 
+                                WHERE sd.season_year = sb.season_year 
+                                  AND sd.date = sb.season_start_date 
+                                ORDER BY sd.date ASC, sd.entry_id ASC
+                                LIMIT 1
+                            )
                     END as pti_start,
-                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    (
+                        SELECT sd.end_pti 
+                        FROM season_data sd 
+                        WHERE sd.season_year = sb.season_year 
+                          AND sd.date = sb.season_end_date 
+                        ORDER BY sd.date DESC, sd.entry_id DESC
+                        LIMIT 1
+                    ) as pti_end,
                     sb.matches_count,
                     -- Get the series with the highest numeric value (excluding tournaments)
                     (
@@ -2151,37 +2199,39 @@ def get_player_season_history(player_name):
                 ),
                 season_data AS (
                     SELECT 
-                        series,
+                        pm.series,
                         CASE 
-                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                            ELSE EXTRACT(YEAR FROM date) - 1
+                            WHEN EXTRACT(MONTH FROM pm.date) >= 8 THEN EXTRACT(YEAR FROM pm.date)
+                            ELSE EXTRACT(YEAR FROM pm.date) - 1
                         END as season_year,
-                        date,
-                        end_pti,
+                        pm.date,
+                        pm.end_pti,
+                        LAG(pm.end_pti) OVER (ORDER BY pm.date, pm.id) as prev_end_pti,
+                        pm.id as entry_id,
                         ROW_NUMBER() OVER (
-                            PARTITION BY series, 
+                            PARTITION BY pm.series, 
                             CASE 
-                                WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                ELSE EXTRACT(YEAR FROM date) - 1
+                                WHEN EXTRACT(MONTH FROM pm.date) >= 8 THEN EXTRACT(YEAR FROM pm.date)
+                                ELSE EXTRACT(YEAR FROM pm.date) - 1
                             END 
-                            ORDER BY date ASC
+                            ORDER BY pm.date ASC, pm.id ASC
                         ) as rn_start,
                         ROW_NUMBER() OVER (
-                            PARTITION BY series, 
+                            PARTITION BY pm.series, 
                             CASE 
-                                WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                ELSE EXTRACT(YEAR FROM date) - 1
+                                WHEN EXTRACT(MONTH FROM pm.date) >= 8 THEN EXTRACT(YEAR FROM pm.date)
+                                ELSE EXTRACT(YEAR FROM pm.date) - 1
                             END 
-                            ORDER BY date DESC
+                            ORDER BY pm.date DESC, pm.id DESC
                         ) as rn_end
-                    FROM player_matches
-                    ORDER BY date DESC
+                    FROM player_matches pm
+                    ORDER BY pm.date DESC, pm.id DESC
                 ),
                 season_summary AS (
                     SELECT 
                         series,
                         season_year,
-                        MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
+                        MAX(CASE WHEN rn_start = 1 THEN COALESCE(prev_end_pti, end_pti) END) as pti_start,
                         MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
                         COUNT(*) as matches_count
                     FROM season_data

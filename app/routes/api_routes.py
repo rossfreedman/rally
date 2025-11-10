@@ -9454,19 +9454,28 @@ def get_matching_subfinder_requests():
             WHERE rsf.is_active = TRUE
             AND c.name = %s
             AND p.league_id = %s
-            AND rsf.created_by != %s
+            AND rsf.created_at >= %s
             ORDER BY rsf.match_date ASC, rsf.match_time ASC
         """
         
-        all_requests = execute_query(requests_query, [user_club, user_league_id, user_id])
+        recent_cutoff = datetime.utcnow() - timedelta(days=5)
+        
+        all_requests = execute_query(
+            requests_query,
+            [user_club, user_league_id, recent_cutoff]
+        )
         
         # Filter requests that match user's criteria
         matching_requests = []
+        recent_cutoff_dt = recent_cutoff
+        
         for req in all_requests:
             pti_min = float(req["pti_min"]) if req["pti_min"] else None
             pti_max = float(req["pti_max"]) if req["pti_max"] else None
             series_min = req["series_min"]
             series_max = req["series_max"]
+            created_at = req.get("created_at")
+            match_date = req.get("match_date")
             
             # Check if user matches PTI criteria
             pti_match = True
