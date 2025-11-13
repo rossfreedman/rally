@@ -644,11 +644,28 @@ class CNSWPLSimpleScraper:
         else:
             series_value = series_identifier.strip()
         
-        # For numeric series (1-17), look for teams ending with that number
+        # For numeric series (1-17), look for teams whose last token contains the number
         if series_value.isdigit():
-            # Teams should end with the series number (e.g., "Team Name 1" for Series 1)
-            if team_name.endswith(f" {series_value}"):
+            normalized_series = series_value.lower()
+            last_token = team_name.strip().split()[-1].lower()
+
+            # Direct match (e.g., "Birchwood 13")
+            if last_token == normalized_series:
                 return True
+
+            # Allow trailing letter designations (e.g., "Birchwood 13a", "Birchwood 13b")
+            if last_token.startswith(normalized_series):
+                suffix = last_token[len(normalized_series):]
+                if suffix.isalpha() and len(suffix) <= 2:  # 13a, 13ab, etc.
+                    return True
+
+            # Handle tokens with parentheses or punctuation (e.g., "13a)", "13a(1)")
+            stripped_token = re.sub(r"[^a-z0-9]", "", last_token)
+            if stripped_token.startswith(normalized_series):
+                suffix = stripped_token[len(normalized_series):]
+                if not suffix or suffix.isalpha():
+                    return True
+
             # Also check for teams ending with " - {series}" pattern
             if team_name.endswith(f" - {series_value}"):
                 return True
